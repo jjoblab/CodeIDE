@@ -5,7 +5,7 @@
   bordure CSS EXTÉRIEURE au padding, la valeur Android ajoute l'épaisseur du trait (le trait
   d'un <shape> est dessiné À L'INTÉRIEUR de la vue).
 -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Feuille inférieure (.sheet, .grab) -->
     <dimen name="apercu_feuille_rayon">18dp</dimen>  <!-- border-radius 18px 18px 0 0 -->
@@ -75,6 +75,21 @@
     <dimen name="apercu_champ_num_hauteur">28dp</dimen>  <!-- .dimrow input -->
     <dimen name="apercu_curseur_champ_largeur">72dp</dimen>  <!-- .sld colonne droite -->
     <dimen name="apercu_curseur_gap">10dp</dimen>  <!-- .sld gap -->
+    <!-- Le POUCE ROND de la glissière (miroir le curseur natif rond de la
+         maquette) : le style M3 pose une poignée PILULE (4 × 44 dp,
+         m3_comp_slider_active_handle_*) qui dépasserait la rangée — le
+         constructeur ne lit thumbRadius que comme DÉFAUT de largeur et
+         hauteur, deux attrs explicites du style le couvrent. -->
+    <dimen name="apercu_curseur_pouce">20dp</dimen>  <!-- le pouce rond, 2 × 10 -->
+    <!-- PE11g-contrôles — l'ÉPAISSEUR DE WIDGET de la glissière Material (la
+         bibliothèque la mesure à R.dimen.mtrl_slider_widget_height et IGNORE
+         le layout_height, onMeasure la remplace) : 48 dp de cible tactile
+         dépasserait la rangée de la maquette (30 dp, meas sld — glissière 16,
+         champ 30) ; 24 dp couvre le pouce (20 dp) et son halo (24 dp) ENTIERS
+         et tient le budget de cibles tactiles du volet Attributs (ADR 0133,
+         WCAG 2.5.8). La SEULE glissière de l'application est celle du curseur
+         (recherche exhaustive) : la portée de la surcharge lui est propre. -->
+    <dimen name="mtrl_slider_widget_height" tools:override="true">24dp</dimen>
 
     <!-- Segments, drapeaux, boutons -->
     <dimen name="apercu_segments_pad">2dp</dimen>  <!-- .seg2 padding -->

@@ -356,6 +356,13 @@
     </plurals>
     <string name="preview_attr_palette_fermee">palette collapsed</string>
     <string name="preview_attr_ratio_separateur">:</string>
+    <string name="preview_attr_curseur_valeur">%1$s (value)</string>
+    <string name="preview_attr_curseur_bornes">Value between %1$s and %2$s.</string>
+    <string name="preview_attr_ratio_largeur">ratio, width</string>
+    <string name="preview_attr_ratio_hauteur">ratio, height</string>
+    <string name="preview_attr_ratio_invalide">Two positive numbers, for example 16 and 9.</string>
+    <string name="preview_attr_verrou_aucun">none</string>
+    <string name="preview_attr_ratio_note">Requires one dimension set to 0dp (match constraint). W or H marks the computed side.</string>
     <string name="preview_attr_nom_hint">android:name</string>
     <string name="preview_attr_valeur_hint">value</string>
     <string name="preview_attr_ajouter">Add</string>

@@ -1,8 +1,9 @@
 package jo.codeide.preview.xml
 
 /**
- * VALIDATION DES ATTRIBUTS (PE11e — PREMIÈRE TRANCHE : les couleurs ;
- * miroir `vCol` de la maquette § « Fabriques de contrôles ») —
+ * VALIDATION DES ATTRIBUTS (PE11e — couleurs ; PE11f — ressources ;
+ * PE11g-contrôles — curseur et ratio ; miroirs `vCol`/`vRes`/`sld`/`ratio`
+ * de la maquette § « Fabriques de contrôles ») —
  * FONCTIONS PURES SANS ANDROID, testées cas par cas.
  *
  * Le résultat est un TYPE SCELLÉ (brief PE10a/PE11c § « Contrôles et
@@ -49,6 +50,16 @@ public object ValidationAttribut {
 
         /** « @type/nom introuvable dans res/. » (avertissement — [Arguments.TYPE], [Arguments.NOM]). */
         RESSOURCE_INTROUVABLE,
+
+        /**
+         * « Valeur entre %1$s et %2$s. » (erreur — curseur hors bornes,
+         * miroir `'Valeur entre ' + c.min + ' et ' + c.max + '.'` ;
+         * [Arguments.MIN], [Arguments.MAX]).
+         */
+        VALEUR_BORNEE,
+
+        /** « Deux nombres positifs, par exemple 16 et 9. » (erreur — ratio). */
+        RATIO_INVALIDE,
     }
 
     /**
@@ -85,6 +96,12 @@ public object ValidationAttribut {
 
         /** La LISTE des types acceptés (`@color, @drawable`). */
         public const val TYPES: Int = 1
+
+        /** La borne BASSE du message de curseur. */
+        public const val MIN: Int = 0
+
+        /** La borne HAUTE du message de curseur. */
+        public const val MAX: Int = 1
     }
 
     /** Hexadécimal `#RGB`, `#ARGB`, `#RRGGBB`, `#AARRGGBB` (miroir `colorCss`). */
@@ -203,4 +220,49 @@ public object ValidationAttribut {
      */
     private fun erreurReference(types: List<String>): Resultat =
         Resultat.Erreur(GenreMessage.REFERENCE_ATTENDUE, listOf(types.firstOrNull().orEmpty()))
+
+    /**
+     * Valide une saisie de CURSEUR (PE11g-contrôles — miroir le
+     * `commit` du `sld` de la maquette) : non numérique ou hors
+     * [min]…[max] → ERREUR qui n'écrit RIEN, le message porte les
+     * bornes FORMATÉES (miroir `'Valeur entre ' + c.min + ' et ' +
+     * c.max + '.'` — jamais de « 1.0 » pour 1).
+     */
+    public fun curseur(
+        saisie: String,
+        min: Float,
+        max: Float,
+    ): Resultat {
+        val nombre = saisie.trim().toFloatOrNull()
+        return if (nombre != null && nombre >= min && nombre <= max) {
+            Resultat.Valide
+        } else {
+            Resultat.Erreur(
+                GenreMessage.VALEUR_BORNEE,
+                listOf(formaterNombre(min), formaterNombre(max)),
+            )
+        }
+    }
+
+    /**
+     * Valide une saisie de RATIO (PE11g-contrôles — miroir le `put` du
+     * `ratio` de la maquette) : DEUX nombres POSITIFS, sinon ERREUR
+     * qui n'écrit RIEN (miroir `!(+x > 0 && +y > 0)`). Les deux champs
+     * VIDES ne passent PAS par ici : c'est le RETRAIT, réglé au liage.
+     */
+    public fun ratio(
+        a: String,
+        b: String,
+    ): Resultat {
+        val nombreA = a.trim().toFloatOrNull()
+        val nombreB = b.trim().toFloatOrNull()
+        return if (positif(nombreA) && positif(nombreB)) {
+            Resultat.Valide
+        } else {
+            Resultat.Erreur(GenreMessage.RATIO_INVALIDE)
+        }
+    }
+
+    /** Un nombre STRICTEMENT positif (miroir `+x > 0` — le null ou le non numérique ne l'est pas). */
+    private fun positif(nombre: Float?): Boolean = nombre != null && nombre > 0f
 }

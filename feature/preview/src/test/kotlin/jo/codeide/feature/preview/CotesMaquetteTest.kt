@@ -165,6 +165,53 @@ public class CotesMaquetteTest {
     }
 
     @Test
+    public fun `le champ du curseur garde la largeur de la maquette`() {
+        // PE11g-contrôles — miroir `.sld input` (sldnum : 72 × 30, mono
+        // 12, padding 7/8) : la LARGEUR exacte du jeton
+        // apercu_curseur_champ_largeur ; la boîte CSS paie sa bordure de
+        // 1 px de chaque côté (30 contre le plancher 28 du style ChampNum
+        // — écart de boîte, patron interligne).
+        val champ = gonfler(R.layout.controle_curseur).findViewById<View>(R.id.champ_curseur)
+        val hauteur = mesurer(champ, LARGEUR_CHAMP_CURSEUR)
+        verifierCote("sldnum", hauteur, TOLERANCE_INTERLIGNE_DP)
+        assertTrue(
+            "la largeur du champ est le jeton 72 dp (mesurée ${champ.measuredWidth} dp)",
+            champ.measuredWidth == LARGEUR_CHAMP_CURSEUR,
+        )
+    }
+
+    @Test
+    public fun `la rangee du curseur garde la hauteur de la maquette`() {
+        // PE11g-contrôles — miroir `.sld` (374 × 30) : la glissière
+        // re-mesurée à 24 dp (surcharge mtrl_slider_widget_height, ADR
+        // 0133) et le champ 72 dp alignent — la boîte CSS paie sa
+        // bordure de 1 px (30 contre le plancher 28 du style ChampNum).
+        val rangee = gonfler(R.layout.controle_curseur).findViewById<View>(R.id.rangee_curseur)
+        val hauteur = mesurer(rangee)
+        verifierCote("sld", hauteur, TOLERANCE_INTERLIGNE_DP)
+        val glissiere = rangee.findViewById<View>(R.id.curseur)
+        assertTrue(
+            "la glissière tient l'épaisseur de la surcharge (mesurée ${glissiere.measuredHeight} dp)",
+            glissiere.measuredHeight == HAUTEUR_GLISSIERE,
+        )
+    }
+
+    @Test
+    public fun `les champs du ratio gardent la hauteur du champ de la maquette`() {
+        // PE11g-contrôles — miroir `.ratio input` (ratioin : 178,8 ×
+        // 33,6) : les deux nombres « a : b » portent le style Champ.
+        val ratio = gonfler(R.layout.controle_ratio)
+        verifierCote("ratioin", mesurer(ratio.findViewById(R.id.champ_ratio_a), LARGEUR_CHAMP_RATIO))
+    }
+
+    @Test
+    public fun `la rangee du ratio garde la hauteur de la maquette`() {
+        // PE11g-contrôles — miroir `.ratio` (374 × 33,6) : champ,
+        // séparateur « : », champ alignent à la hauteur du style Champ.
+        verifierCote("ratio", mesurer(gonfler(R.layout.controle_ratio).findViewById(R.id.rangee_ratio)))
+    }
+
+    @Test
     public fun `une pastille de palette fait vingt huit dp`() {
         // PE11e — miroir `.cpal button` : disque 28 dp — cote portée par la
         // RESSOURCE (meas n'a pas de clé cpal : sanité, comme les menus PE11l).
@@ -320,6 +367,15 @@ public class CotesMaquetteTest {
 
         /** La largeur mesurée du champ couleur (meas colrin : 266,7 px). */
         private const val LARGEUR_CHAMP_COULEUR: Int = 267
+
+        /** La largeur du champ du curseur (apercu_curseur_champ_largeur). */
+        private const val LARGEUR_CHAMP_CURSEUR: Int = 72
+
+        /** La largeur mesurée d'un champ du ratio (meas ratioin : 178,8 px). */
+        private const val LARGEUR_CHAMP_RATIO: Int = 179
+
+        /** L'épaisseur de widget de la glissière (surcharge mtrl_slider_widget_height). */
+        private const val HAUTEUR_GLISSIERE: Int = 24
 
         /** Les trois segments d'une rangée de dimension (wrap/match/fixe). */
         private const val NB_SEGMENTS_DIMENSION: Int = 3

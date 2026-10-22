@@ -2,6 +2,7 @@ package jo.codeide.preview.xml
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,31 +24,14 @@ import org.robolectric.annotation.Config
 // face du catalogue a SES tests ; le regrouper masquerait le miroir.
 @Suppress("LargeClass")
 public class CatalogueAttributsTest {
-    /** Les noms d'attributs d'une section (Dimensions/Contraintes : contrôle sans nom). */
-    private fun noms(section: CatalogueAttributs.SectionAttributs): List<String> =
-        section.controles.mapNotNull { controle -> controle.nomDeChamp() }
-
     /**
-     * Le NOM d'un contrôle À CHAMP ; null pour les composites sans nom
-     * unique (bascules : chaque bouton porte SON attribut — dimensions,
-     * contraintes : aucun nom).
+     * Les noms d'attributs d'une section (miroir `some` — portés par le
+     * TYPE, comme le `when` de dispatch l'a été avant la CI de 175ce7a7 :
+     * les bascules y comptent LEURS attributs, les composites sans champ
+     * n'en portent AUCUN).
      */
-    private fun CatalogueAttributs.ControleAttribut.nomDeChamp(): String? =
-        when (this) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> nom
-            is CatalogueAttributs.ControleAttribut.Texte -> nom
-            is CatalogueAttributs.ControleAttribut.Nombre -> nom
-            is CatalogueAttributs.ControleAttribut.Choix -> nom
-            is CatalogueAttributs.ControleAttribut.Liste -> nom
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> nom
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> nom
-            is CatalogueAttributs.ControleAttribut.TriEtat -> nom
-            is CatalogueAttributs.ControleAttribut.Couleur -> nom
-            is CatalogueAttributs.ControleAttribut.Ressource -> nom
-            is CatalogueAttributs.ControleAttribut.Cotes -> base
-            is CatalogueAttributs.ControleAttribut.ReferenceId -> nom
-            else -> null
-        }
+    private fun noms(section: CatalogueAttributs.SectionAttributs): List<String> =
+        section.controles.flatMap { controle -> controle.nomsAttributs }
 
     // ── Couverture des 16 widgets de la palette ──────────────────────────
 
@@ -888,6 +872,175 @@ public class CatalogueAttributsTest {
                             it.etiquette == CatalogueAttributs.Etiquette.COULEUR
                     }
                 },
+        )
+    }
+
+    @Test
+    fun `l alpha et la progression portent le controle curseur de la maquette`() {
+        // PE11g-contrôles — règle § 9 (miroir `sld`) : un attribut
+        // NUMÉRIQUE BORNÉ est une GLISSIÈRE liée à son champ, pas un
+        // champ nombre. Usagers de la 1re vague : android:alpha
+        // (Affichage, [0 à 1] pas 0.05, défaut 1) et android:progress
+        // (Progression, [0 à 100] pas 1, défaut 0 — la borne HAUTE suit
+        // android:max, miroir `Math.max(1, dpv(ex(v, 'android:max')) || 100)`).
+        val affichage =
+            CatalogueAttributs
+                .sections("TextView", FamilleParent.CONSTRAINT)
+                .first { it.titre == CatalogueAttributs.TitreSection.AFFICHAGE }
+        assertEquals(
+            "alpha est le curseur [0 à 1] de défaut 1",
+            CatalogueAttributs.ControleAttribut.Curseur(
+                "android:alpha",
+                CatalogueAttributs.Etiquette.ALPHA,
+                min = 0f,
+                max = 1f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 1f,
+            ),
+            affichage.controles.first { it is CatalogueAttributs.ControleAttribut.Curseur },
+        )
+        assertFalse(
+            "plus AUCUN champ nombre ne porte l'étiquette ALPHA",
+            CatalogueAttributs
+                .sections("TextView", FamilleParent.CONSTRAINT)
+                .any { section ->
+                    section.controles.any {
+                        it is CatalogueAttributs.ControleAttribut.Nombre &&
+                            it.etiquette == CatalogueAttributs.Etiquette.ALPHA
+                    }
+                },
+        )
+        val progression =
+            CatalogueAttributs
+                .sections("SeekBar", FamilleParent.CONSTRAINT)
+                .first { it.titre == CatalogueAttributs.TitreSection.PROGRESSION }
+        assertEquals(
+            "progress est le curseur borné au max du document",
+            CatalogueAttributs.ControleAttribut.Curseur(
+                "android:progress",
+                CatalogueAttributs.Etiquette.PROGRESSION,
+                min = 0f,
+                max = 100f,
+                pas = 1f,
+                unite = "",
+                defaut = 0f,
+                maxDe = "android:max",
+            ),
+            progression.controles.first { it is CatalogueAttributs.ControleAttribut.Curseur },
+        )
+    }
+
+    @Test
+    fun `le curseur affiche son defaut, ecrit nombre plus unite et retire au defaut`() {
+        // Miroir `sld` : `cur === '' ? c.def : (dpv(cur) ?? c.def)` à
+        // l'affichage, `num === c.def ? '' : num + c.u` à l'écriture,
+        // `Math.max(1, dpv(ex(v, 'android:max')) || 100)` pour la borne
+        // DYNAMIQUE (le zéro est FAUX côté maquette — il retombe sur le
+        // max statique ; un négatif prend le plancher 1).
+        val alpha =
+            CatalogueAttributs.ControleAttribut.Curseur(
+                "android:alpha",
+                CatalogueAttributs.Etiquette.ALPHA,
+                min = 0f,
+                max = 1f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 1f,
+            )
+        assertEquals("Absent → défaut", 1f, alpha.valeurAffichee(null))
+        assertEquals("Vide → défaut", 1f, alpha.valeurAffichee(""))
+        assertEquals("Non numérique → défaut", 1f, alpha.valeurAffichee("plein"))
+        assertEquals("La valeur lue sert le nombre", 0.5f, alpha.valeurAffichee("0.5"))
+        assertEquals("Le nombre en tête survit à l'unité (dpv)", 12f, alpha.valeurAffichee("12dp"))
+        assertEquals("Égale au défaut → RETRAIT", "", alpha.ecrire(1f))
+        assertEquals("Nombre + unité", "0.5", alpha.ecrire(0.5f))
+        val translation =
+            CatalogueAttributs.ControleAttribut.Curseur(
+                "android:translationZ",
+                CatalogueAttributs.Etiquette.ELEVATION,
+                min = 0f,
+                max = 24f,
+                pas = 1f,
+                unite = "dp",
+                defaut = 0f,
+            )
+        assertEquals("L'entier s'écrit SANS décimales, l'unité suit", "16dp", translation.ecrire(16f))
+        assertEquals("Égale au défaut → RETRAIT (unité ou non)", "", translation.ecrire(0f))
+        val progress =
+            CatalogueAttributs.ControleAttribut.Curseur(
+                "android:progress",
+                CatalogueAttributs.Etiquette.PROGRESSION,
+                min = 0f,
+                max = 100f,
+                pas = 1f,
+                unite = "",
+                defaut = 0f,
+                maxDe = "android:max",
+            )
+        assertEquals("Sans max dans le document → 100", 100f, progress.borneMax(null))
+        assertEquals("La borne suit le max du document", 50f, progress.borneMax("50"))
+        assertEquals("L'unité du max ne compte pas (dpv)", 60f, progress.borneMax("60dp"))
+        assertEquals("Le zéro est FAUX côté maquette → max statique", 100f, progress.borneMax("0"))
+        assertEquals("Le non numérique retombe sur le max statique", 100f, progress.borneMax("plein"))
+        assertEquals("Un négatif prend le plancher 1 (Math.max)", 1f, progress.borneMax("-5"))
+    }
+
+    @Test
+    fun `le format des nombres tue le bruit de pas de la glissiere`() {
+        // Miroir le `num + c.u` de la maquette (le nombre JS se
+        // imprime SANS zéros de queue) : l'entier sans décimales, le
+        // décimal au plus court — et le BRUIT de pas de la glissière
+        // Material (3 × 0.05f en binaire) ne fuit jamais dans le XML.
+        assertEquals("16", formaterNombre(16f))
+        assertEquals("0.05", formaterNombre(0.05f))
+        assertEquals("0.15", formaterNombre(3f * 0.05f))
+        assertEquals("-180", formaterNombre(-180f))
+        assertEquals("0.123456", formaterNombre(0.123456f))
+    }
+
+    @Test
+    fun `le ratio lit et ecrit la forme W virgule a deux points b de la maquette`() {
+        // Miroir `/^(?:([WH]),)?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/` :
+        // le verrou est OPTIONNEL, les nombres TELS QUE SAISIS se
+        // restituent à l'écriture (miroir `(lk ? lk + ',' : '') + x + ':' + y`).
+        // L'étiquette vient avec l'entrée § 7 (Contraintes) — le test ne
+        // porte que la DONNÉE.
+        val ratio =
+            CatalogueAttributs.ControleAttribut.Ratio(
+                "app:layout_constraintDimensionRatio",
+                CatalogueAttributs.Etiquette.TEXTE,
+            )
+        assertEquals(
+            CatalogueAttributs.ControleAttribut.Ratio.Valeur(verrou = null, a = "16", b = "9"),
+            ratio.lire("16:9"),
+        )
+        assertEquals(
+            CatalogueAttributs.ControleAttribut.Ratio.Valeur(verrou = "W", a = "3", b = "4"),
+            ratio.lire("W,3:4"),
+        )
+        assertEquals(
+            "Les décimales se lisent",
+            CatalogueAttributs.ControleAttribut.Ratio.Valeur(verrou = null, a = "1.5", b = "2"),
+            ratio.lire("1.5:2"),
+        )
+        assertNull("Absent", ratio.lire(null))
+        assertNull("Vide", ratio.lire(""))
+        assertNull("Sans les deux-points", ratio.lire("16"))
+        assertNull("Non numérique", ratio.lire("a:b"))
+        assertNull("Trois nombres", ratio.lire("16:9:8"))
+        assertNull("Verrou inconnu", ratio.lire("X,1:1"))
+        assertEquals("16:9", ratio.ecrire(null, "16", "9"))
+        assertEquals("W,3:4", ratio.ecrire("W", "3", "4"))
+        assertEquals(
+            "Les quatre préréglages de la maquette",
+            listOf(
+                CatalogueAttributs.ControleAttribut.Ratio.Prereglage("1:1", "1", "1"),
+                CatalogueAttributs.ControleAttribut.Ratio.Prereglage("4:3", "4", "3"),
+                CatalogueAttributs.ControleAttribut.Ratio.Prereglage("16:9", "16", "9"),
+                CatalogueAttributs.ControleAttribut.Ratio.Prereglage("3:4", "3", "4"),
+            ),
+            CatalogueAttributs.ControleAttribut.Ratio.PREDEFINIS,
         )
     }
 }

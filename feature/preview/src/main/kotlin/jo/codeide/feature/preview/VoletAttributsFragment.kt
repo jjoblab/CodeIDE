@@ -16,6 +16,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.ChipGroup
+import com.google.android.material.slider.Slider
 import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.feature.preview.databinding.BarreOutilsAttributsBinding
@@ -24,11 +25,13 @@ import jo.codeide.feature.preview.databinding.ControleContrainteBinding
 import jo.codeide.feature.preview.databinding.ControleContraintesBinding
 import jo.codeide.feature.preview.databinding.ControleCotesBinding
 import jo.codeide.feature.preview.databinding.ControleCouleurBinding
+import jo.codeide.feature.preview.databinding.ControleCurseurBinding
 import jo.codeide.feature.preview.databinding.ControleDimensionsBinding
 import jo.codeide.feature.preview.databinding.ControleDrapeauxBinding
 import jo.codeide.feature.preview.databinding.ControleExtractionBinding
 import jo.codeide.feature.preview.databinding.ControleIdentifiantBinding
 import jo.codeide.feature.preview.databinding.ControleListeBinding
+import jo.codeide.feature.preview.databinding.ControleRatioBinding
 import jo.codeide.feature.preview.databinding.ControleReferenceIdBinding
 import jo.codeide.feature.preview.databinding.ControleRessourceBinding
 import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
@@ -58,6 +61,7 @@ import jo.codeide.preview.xml.ProblemesPreview
 import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.ValidationAttribut
+import jo.codeide.preview.xml.formaterNombre
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
@@ -205,47 +209,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         return section.controles.filter { controle ->
             val noms = controle.nomsAttributs.joinToString(" ").lowercase()
             val etiquette =
-                etiquetteDuControle(controle)?.let { etiquetteRes(it).lowercase() }.orEmpty()
+                controle.etiquette?.let { etiquetteRes(it).lowercase() }.orEmpty()
             titre.contains(requete) || noms.contains(requete) || etiquette.contains(requete)
         }
     }
-
-    /**
-     * L'ÉTIQUETTE locale d'un contrôle (miroir `c.l` de la maquette) :
-     * les contrôles SANS étiquette (identifiant, composite de saisie,
-     * dimensions, contraintes) ne matchent que par leur NOM ou le
-     * TITRE de leur section.
-     */
-    private fun etiquetteDuControle(controle: CatalogueAttributs.ControleAttribut): CatalogueAttributs.Etiquette? =
-        when (controle) {
-            is CatalogueAttributs.ControleAttribut.Texte -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Nombre -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Choix -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Liste -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.TriEtat -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Couleur -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Ressource -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Cotes -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.ReferenceId -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Bascules -> controle.etiquette
-
-            is CatalogueAttributs.ControleAttribut.Identifiant,
-            is CatalogueAttributs.ControleAttribut.TypeSaisie,
-            CatalogueAttributs.ControleAttribut.Dimensions,
-            CatalogueAttributs.ControleAttribut.Contraintes,
-            -> null
-        }
 
     /**
      * Branche la BARRE d'outils (miroir `q.oninput` + la bascule
@@ -543,6 +510,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Couleur -> controleCouleur(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Ressource -> controleRessource(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Curseur -> controleCurseur(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.Ratio -> controleRatio(controle, attrs)
             else -> controleComposite(controle, attrs)
         }
 
@@ -917,10 +886,6 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             }
         }
     }
-
-    /** Le format d'un nombre saisi (entier sans décimales, sinon valeur brute). */
-    private fun formaterNombre(nombre: Float): String =
-        if (nombre == nombre.toLong().toFloat()) nombre.toLong().toString() else nombre.toString()
 
     /** Un contrôle CHOIX (controle_segments.xml) — le PREMIER choix est
      * le défaut (retrait de l'attribut). */
@@ -1370,6 +1335,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE -> R.string.preview_attr_reference_attendue
             ValidationAttribut.GenreMessage.TYPE_REFUSE -> R.string.preview_attr_type_refuse
             ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE -> R.string.preview_attr_ressource_introuvable
+            ValidationAttribut.GenreMessage.VALEUR_BORNEE -> R.string.preview_attr_curseur_bornes
+            ValidationAttribut.GenreMessage.RATIO_INVALIDE -> R.string.preview_attr_ratio_invalide
         }
 
     /** Retire le message de validation (miroir `showMsg(f, null)` retire le bloc). */
@@ -1554,6 +1521,268 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ValidationAttribut.Resultat.Valide -> {
                 if (valeur.isNotEmpty()) masquerMessageControle(bloc.messageControle)
                 editerOuRecharger { viewModel.definirAttributSelection(controle.nom, valeur) }
+            }
+        }
+    }
+
+    /**
+     * Un contrôle CURSEUR (controle_curseur.xml, PE11g-contrôles — miroir
+     * `sld` de la maquette) : glissière violette + champ numérique LIÉS ;
+     * le GLISSEMENT suit le champ sans écrire (miroir `r.oninput`), l'écriture
+     * ne vient qu'au RELÂCHEMENT (miroir `r.onchange`) ou au commit du champ
+     * (action faite / perte de focus, miroir `n.onchange`). La borne HAUTE
+     * peut suivre un attribut du document (miroir
+     * `Math.max(1, dpv(ex(v, 'android:max')) || 100)` — la progression se
+     * borne au max du ProgressBar) et une valeur du document HORS bornes se
+     * CLAMPE pour la glissière (le champ garde la vérité du document à
+     * l'écriture près).
+     */
+    private fun controleCurseur(
+        controle: CatalogueAttributs.ControleAttribut.Curseur,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleCurseurBinding.inflate(gonfleur())
+        val libelle = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, libelle, listOf(controle.nom), attrs)
+        val maximum = controle.borneMax(controle.maxDe?.let { nom -> valeurDe(nom, attrs) })
+        val affichee = controle.valeurAffichee(valeurDe(controle.nom, attrs)).coerceIn(controle.min, maximum)
+        bloc.curseur.valueFrom = controle.min
+        bloc.curseur.valueTo = maximum
+        bloc.curseur.stepSize = controle.pas
+        bloc.curseur.value = affichee
+        bloc.curseur.contentDescription = libelle
+        bloc.champCurseur.setText(formaterNombre(affichee))
+        val libelleValeur = getString(R.string.preview_attr_curseur_valeur, libelle)
+        bloc.champCurseur.contentDescription = libelleValeur
+        // Le glissement met le champ à jour SANS écrire (miroir `r.oninput`).
+        bloc.curseur.addOnChangeListener { _, valeurCurseur, _ ->
+            bloc.champCurseur.setText(formaterNombre(valeurCurseur))
+        }
+        // L'écriture au RELÂCHEMENT seulement (miroir `r.onchange` — le
+        // champ a suivi le glissement, le commit lit sa valeur).
+        bloc.curseur.addOnSliderTouchListener(
+            object : Slider.OnSliderTouchListener {
+                override fun onStartTrackingTouch(slider: Slider) = Unit
+
+                override fun onStopTrackingTouch(slider: Slider) {
+                    commiterCurseur(bloc, controle, maximum)
+                }
+            },
+        )
+        val commettre = { commiterCurseur(bloc, controle, maximum) }
+        bloc.champCurseur.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) bloc.champCurseur.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        bloc.champCurseur.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        return bloc.root
+    }
+
+    /**
+     * Le COMMIT du curseur (miroir `commit` du `sld`) : hors bornes ou non
+     * numérique → ERREUR sans écriture (message rouge + fond de champ) ;
+     * sinon la valeur `nombre + unité` s'écrit, et une valeur ÉGALE au
+     * DÉFAUT RETIRE l'attribut. Le VIDE ne réécrit RIEN (l'artefact
+     * `+'' → 0` de la maquette est une coercion JS, pas un comportement
+     * voulu — le champ revient à la valeur de la glissière).
+     */
+    private fun commiterCurseur(
+        bloc: ControleCurseurBinding,
+        controle: CatalogueAttributs.ControleAttribut.Curseur,
+        maximum: Float,
+    ): Boolean {
+        val saisie =
+            bloc.champCurseur.text
+                ?.toString()
+                ?.trim()
+                .orEmpty()
+        if (saisie.isEmpty()) {
+            bloc.champCurseur.setText(formaterNombre(bloc.curseur.value))
+            masquerMessageControle(bloc.messageControle)
+            bloc.champCurseur.setBackgroundResource(R.drawable.apercu_champ_fond)
+            return true
+        }
+        return when (val verdict = ValidationAttribut.curseur(saisie, controle.min, maximum)) {
+            is ValidationAttribut.Resultat.Erreur -> {
+                montrerMessageControle(bloc.messageControle, R.color.apercu_erreur, verdict.genre, verdict.arguments)
+                bloc.champCurseur.setBackgroundResource(R.drawable.apercu_champ_fond_erreur)
+                false
+            }
+
+            // Jamais produit par la validation du curseur (rien à écrire).
+            is ValidationAttribut.Resultat.Avertissement -> {
+                true
+            }
+
+            ValidationAttribut.Resultat.Valide -> {
+                masquerMessageControle(bloc.messageControle)
+                bloc.champCurseur.setBackgroundResource(R.drawable.apercu_champ_fond)
+                val nombre = saisie.toFloat()
+                editerOuRecharger {
+                    viewModel.definirAttributSelection(controle.nom, controle.ecrire(nombre))
+                }
+            }
+        }
+    }
+
+    /**
+     * Un contrôle RATIO (controle_ratio.xml, PE11g-contrôles — miroir
+     * `ratio` de la maquette) : deux nombres « a : b », PRÉRÉGLAGES 1:1,
+     * 4:3, 16:9, 3:4 (boutons pressés quand ils matchent, miroir
+     * `aria-pressed`), VERROU aucun/W/H (segments — miroir
+     * `segBtns(['aucun','W','H'])`, qui ne réécrit que si les deux nombres
+     * existent) et la note « dimension à 0dp ». Les deux champs VIDES
+     * retirent l'attribut ; une valeur sans deux nombres POSITIFS ne
+     * s'écrit pas ([poserRatio]).
+     */
+    private fun controleRatio(
+        controle: CatalogueAttributs.ControleAttribut.Ratio,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleRatioBinding.inflate(gonfleur())
+        val libelle = etiquetteRes(controle.etiquette)
+        brancherEntete(bloc.entete, libelle, listOf(controle.nom), attrs)
+        val lue = controle.lire(valeurDe(controle.nom, attrs))
+        val verrou = lue?.verrou
+        val a = lue?.a.orEmpty()
+        val b = lue?.b.orEmpty()
+        bloc.champRatioA.setText(a)
+        bloc.champRatioB.setText(b)
+        bloc.champRatioA.contentDescription = getString(R.string.preview_attr_ratio_largeur)
+        bloc.champRatioB.contentDescription = getString(R.string.preview_attr_ratio_hauteur)
+        brancherPrereglesRatios(bloc, controle, verrou, a, b)
+        brancherVerrouRatio(bloc, controle, verrou, a, b)
+        // Le commit d'un champ, au nom du couple (miroir `A.onchange = B.onchange`).
+        val commettre = {
+            poserRatio(
+                bloc,
+                controle,
+                verrou,
+                bloc.champRatioA.text
+                    ?.toString()
+                    .orEmpty(),
+                bloc.champRatioB.text
+                    ?.toString()
+                    .orEmpty(),
+            )
+        }
+        bloc.champRatioA.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) bloc.champRatioA.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        bloc.champRatioB.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                if (commettre()) bloc.champRatioB.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        bloc.champRatioA.setOnFocusChangeListener { _, aFocus -> if (!aFocus) commettre() }
+        bloc.champRatioB.setOnFocusChangeListener { _, aFocus -> if (!aFocus) commettre() }
+        // La note « dimension à 0dp » vit dans le LAYOUT (patron du
+        // message vide PE11k — toujours visible, miroir note2 du ratio).
+        return bloc.root
+    }
+
+    /**
+     * Les PRÉRÉGLAGES du ratio (miroir le `.flg` du `ratio` : « 1:1 »,
+     * « 4:3 », « 16:9 », « 3:4 » pressés quand la valeur matche, l'appui
+     * écrit le couple en gardant le VERROU courant).
+     */
+    private fun brancherPrereglesRatios(
+        bloc: ControleRatioBinding,
+        controle: CatalogueAttributs.ControleAttribut.Ratio,
+        verrou: String?,
+        a: String,
+        b: String,
+    ) {
+        CatalogueAttributs.ControleAttribut.Ratio.PREDEFINIS.forEach { prereglage ->
+            val drapeau = ItemDrapeauBinding.inflate(gonfleur(), bloc.groupeRatios, false)
+            drapeau.drapeau.text = prereglage.libelle
+            drapeau.drapeau.isChecked = a == prereglage.a && b == prereglage.b
+            drapeau.drapeau.contentDescription = "${etiquetteRes(controle.etiquette)} : ${prereglage.libelle}"
+            drapeau.drapeau.setOnClickListener {
+                bloc.champRatioA.setText(prereglage.a)
+                bloc.champRatioB.setText(prereglage.b)
+                poserRatio(bloc, controle, verrou, prereglage.a, prereglage.b)
+            }
+            bloc.groupeRatios.addView(drapeau.root)
+        }
+    }
+
+    /**
+     * Le VERROU du ratio (miroir `segBtns(f, ['aucun','W','H'], …)`) : le
+     * côté CALCULÉ `W`/`H` ou AUCUN ; le choix ne réécrit que si les deux
+     * nombres existent (miroir `if (a && b)`).
+     */
+    private fun brancherVerrouRatio(
+        bloc: ControleRatioBinding,
+        controle: CatalogueAttributs.ControleAttribut.Ratio,
+        verrou: String?,
+        a: String,
+        b: String,
+    ) {
+        val aucun = getString(R.string.preview_attr_verrou_aucun)
+        val libelles = listOf(aucun, "W", "H")
+        segmentes(bloc.groupeVerrouRatio, libelles, verrou ?: aucun, etiquetteRes(controle.etiquette)) { choix ->
+            if (a.isNotEmpty() && b.isNotEmpty()) {
+                editerOuRecharger {
+                    viewModel.definirAttributSelection(
+                        controle.nom,
+                        controle.ecrire(choix.takeIf { it != aucun }, a, b),
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Le COMMIT du ratio (miroir `put` de la maquette) : les deux champs
+     * VIDES retirent l'attribut ; deux nombres POSITIFS s'écrivent
+     * `[W|H,]a:b` (le verrou devant, miroir `lk + ','`) ; toute autre
+     * saisie est une ERREUR sans écriture (message rouge + fond du champ
+     * de gauche, miroir `A.classList.add('bad')`).
+     */
+    private fun poserRatio(
+        bloc: ControleRatioBinding,
+        controle: CatalogueAttributs.ControleAttribut.Ratio,
+        verrou: String?,
+        x: String,
+        y: String,
+    ): Boolean {
+        if (x.isBlank() && y.isBlank()) {
+            editerOuRecharger { viewModel.definirAttributSelection(controle.nom, "") }
+            return true
+        }
+        return when (val verdict = ValidationAttribut.ratio(x, y)) {
+            is ValidationAttribut.Resultat.Erreur -> {
+                montrerMessageControle(bloc.messageControle, R.color.apercu_erreur, verdict.genre, verdict.arguments)
+                bloc.champRatioA.setBackgroundResource(R.drawable.apercu_champ_fond_erreur)
+                false
+            }
+
+            // Jamais produit par la validation du ratio (rien à écrire).
+            is ValidationAttribut.Resultat.Avertissement -> {
+                true
+            }
+
+            ValidationAttribut.Resultat.Valide -> {
+                masquerMessageControle(bloc.messageControle)
+                bloc.champRatioA.setBackgroundResource(R.drawable.apercu_champ_fond)
+                editerOuRecharger {
+                    viewModel.definirAttributSelection(controle.nom, controle.ecrire(verrou, x, y))
+                }
             }
         }
     }
