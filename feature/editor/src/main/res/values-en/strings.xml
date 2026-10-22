@@ -81,6 +81,12 @@
          (:feature:preview) — its settings (profile, day/night, language)
          live with it. -->
     <string name="editor_action_apercu">XML preview</string>
+    <!-- ADR 0136 — « Format document » action (P1-b): short title,
+         feedback messages per formatting result (no formatter /
+         already formatted; a modified text says NOTHING). -->
+    <string name="editor_formater">Format</string>
+    <string name="editor_formater_indisponible">Formatting unavailable for this file: no language server offers it or it is disabled in the language settings</string>
+    <string name="editor_formater_deja">Already formatted</string>
     <string name="editor_menu_fermer">Close</string>
     <string name="editor_menu_fermer_autres">Close others</string>
     <string name="editor_menu_fermer_tout">Close all</string>

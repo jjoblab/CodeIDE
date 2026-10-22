@@ -58,6 +58,19 @@
         android:title="@string/editor_rechercher"
         app:showAsAction="never" />
 
+    <!-- ADR 0136 (P1-b) : mise en forme du document PAR LE SERVEUR de
+         langue de l'onglet actif (Java, XML — Kotlin ne l'annonce pas
+         encore) ; la commande clavier physique vivait déjà côté
+         bibliothèque, rien ne l'offrait au TOUCHER. Visible quand une
+         session de langue vit (phase 1 — canFormat() en phase 2). -->
+    <item
+        android:id="@+id/action_formater"
+        android:icon="@drawable/ic_formater"
+        android:title="@string/editor_formater"
+        android:visible="false"
+        app:iconTint="?attr/colorOnSurfaceVariant"
+        app:showAsAction="ifRoom" />
+
     <!-- CE7 (B14) : pliage de masse — tout replier / tout déplier. -->
     <item
         android:id="@+id/action_tout_replier"
