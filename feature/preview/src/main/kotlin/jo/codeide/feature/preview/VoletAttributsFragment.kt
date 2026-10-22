@@ -560,6 +560,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
             ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
             ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
+            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
+            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
             -> null
         }
 
@@ -618,6 +622,21 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
             ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
                 R.string.preview_correctif_casser_boucle
+            }
+
+            // v0.170.0 — contenance : l'enfant unique dépassé
+            // s'ENVELOPPE (miroir la résolution canonique du lint
+            // ScrollViewChildren) ; les trois autres genres RETIRENT
+            // les enfants fautifs.
+            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
+                R.string.preview_correctif_envelopper
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
+            -> {
+                R.string.preview_correctif_retirer_enfants
             }
 
             else -> {
@@ -2865,6 +2884,17 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
                 ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
                     getString(R.string.preview_correctif_boucle_toast)
+                }
+
+                ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
+                    getString(R.string.preview_correctif_envelopper_toast)
+                }
+
+                ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+                ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+                ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
+                -> {
+                    getString(R.string.preview_correctif_enfants_toast)
                 }
 
                 else -> {

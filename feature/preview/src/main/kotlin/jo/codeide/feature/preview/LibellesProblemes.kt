@@ -2,6 +2,7 @@ package jo.codeide.feature.preview
 
 import android.content.Context
 import jo.codeide.preview.xml.CalquesApercu
+import jo.codeide.preview.xml.ContraintesHierarchie
 import jo.codeide.preview.xml.InfoVueRendu
 import jo.codeide.preview.xml.ProblemesFamilles
 import jo.codeide.preview.xml.ProblemesPreview
@@ -58,14 +59,19 @@ internal object LibellesProblemes {
                 contexte.getString(R.string.preview_probleme_tronque_titre)
             }
 
-            // Les genres de FAMILLE (PE12f) portent leurs libellés par
-            // [titreFamille] (le problème TEXTE en porte les données) —
-            // jamais ici : garde de programmation, pas un chemin de rendu.
+            // Les genres de FAMILLE (PE12f) et de CONTENANCE (v0.170.0)
+            // portent leurs libellés par [titreFamille] (le problème
+            // TEXTE en porte les données) — jamais ici : garde de
+            // programmation, pas un chemin de rendu.
             ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN,
             ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE,
             ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
             ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
             ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
+            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
+            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
             -> {
                 error("genre de famille : libellé par titreFamille")
             }
@@ -119,6 +125,10 @@ internal object LibellesProblemes {
             ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
             ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
             ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
+            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
+            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
             -> {
                 error("genre de famille : message par messageFamille")
             }
@@ -152,6 +162,24 @@ internal object LibellesProblemes {
 
             ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
                 contexte.getString(R.string.preview_probleme_boucle_titre)
+            }
+
+            // v0.170.0 — les genres de CONTENANCE (S3) : le TITRE suffit,
+            // le message nomme le conteneur.
+            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS -> {
+                contexte.getString(R.string.preview_probleme_feuille_titre)
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR -> {
+                contexte.getString(R.string.preview_probleme_adaptateur_titre)
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
+                contexte.getString(R.string.preview_probleme_unique_titre)
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU -> {
+                contexte.getString(R.string.preview_probleme_inattendu_titre)
             }
 
             // Garde de programmation : les genres de RENDU passent par [titre].
@@ -199,6 +227,38 @@ internal object LibellesProblemes {
                 contexte.getString(
                     R.string.preview_probleme_boucle_detail,
                     probleme.cycle.joinToString(" → ") { "@id/$it" },
+                )
+            }
+
+            // v0.170.0 — contenance : le conteneur au NOM SIMPLE (spec
+            // § 13 : les classes ne se traduisent pas, le nom local
+            // suffit — « TextInputLayout », pas le FQCN).
+            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS -> {
+                contexte.getString(
+                    R.string.preview_probleme_feuille_detail,
+                    probleme.balise.substringAfterLast('.'),
+                )
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR -> {
+                contexte.getString(
+                    R.string.preview_probleme_adaptateur_detail,
+                    probleme.balise.substringAfterLast('.'),
+                )
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
+                contexte.getString(
+                    R.string.preview_probleme_unique_detail,
+                    probleme.balise.substringAfterLast('.'),
+                )
+            }
+
+            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU -> {
+                contexte.getString(
+                    R.string.preview_probleme_inattendu_detail,
+                    probleme.balise.substringAfterLast('.'),
+                    ContraintesHierarchie.baliseEnfantAttendu(probleme.balise).orEmpty(),
                 )
             }
 

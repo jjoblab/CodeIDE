@@ -72,6 +72,12 @@ public enum class FamilleParent {
          * v0.166.3 : les extensions de la palette (HorizontalScrollView,
          * TabLayout — HorizontalScrollView, ViewPager2 — FrameLayout)
          * y tombent aussi, leurs dépôts usagers arrivent par balise.
+         * v0.170.0 (S4) : la deuxième vague de la palette y tombe de
+         * même — LINEAR pour RadioGroup, TableLayout, TableRow,
+         * MaterialButtonToggleGroup (sous-classes de LinearLayout),
+         * FRAME pour DrawerLayout, SwipeRefreshLayout, NavigationView,
+         * BottomNavigationView, ViewFlipper, NumberPicker (sous-classes
+         * de FrameLayout).
          */
         private val PAR_BALISE: Map<String, FamilleParent> =
             mapOf(
@@ -89,6 +95,16 @@ public enum class FamilleParent {
                 "CollapsingToolbarLayout" to FRAME,
                 "TabLayout" to FRAME,
                 "ViewPager2" to FRAME,
+                "RadioGroup" to LINEAR,
+                "TableLayout" to LINEAR,
+                "TableRow" to LINEAR,
+                "MaterialButtonToggleGroup" to LINEAR,
+                "DrawerLayout" to FRAME,
+                "SwipeRefreshLayout" to FRAME,
+                "NavigationView" to FRAME,
+                "BottomNavigationView" to FRAME,
+                "ViewFlipper" to FRAME,
+                "NumberPicker" to FRAME,
             )
 
         /**

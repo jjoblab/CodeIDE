@@ -160,7 +160,7 @@ javax-inject = "1"
 # MaterialRatingBar/SearchBar/MaterialButtonToggleGroup) en composite,
 # de la publication en binaire — la substitution ignore la version
 # déclarée ; la mise à jour = bump ici + ref du clonage CI.
-layoutlib = "3.5.0"
+layoutlib = "3.5.2"
 
 # Dépôts séparés (bascule 2026-10-17, docs/archive/PLAN_SEPARATION_DEPOTS.md §9) :
 # protocol/api/server/testing (codeide-tooling) et les 8 modules lsp

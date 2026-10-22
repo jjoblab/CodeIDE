@@ -157,6 +157,41 @@ public class CatalogueAttributsTest {
     }
 
     @Test
+    fun `l extension palette v0_170 - familles des vingt-trois nouvelles entrees`() {
+        val titres = { classe: String ->
+            CatalogueAttributs.sections(classe, FamilleParent.AUTRE).map { it.titre }
+        }
+        // v0.170.0 S4 « palette proche d'Android Studio » : les MÊMES
+        // familles par héritage de nom couvrent les 23 extensions.
+        // MultiAutoCompleteTextView : la SAISIE d'EditText (miroir act).
+        assertTrue(titres("MultiAutoCompleteTextView").contains(CatalogueAttributs.TitreSection.SAISIE))
+        // CheckedTextView : TEXTE + ÉTAT (TextView à coche, § 7).
+        assertTrue(
+            "CheckedTextView porte Texte + État",
+            titres("CheckedTextView").containsAll(
+                listOf(CatalogueAttributs.TitreSection.TEXTE, CatalogueAttributs.TitreSection.ETAT),
+            ),
+        )
+        // MaterialSwitch : l'ÉTAT interrupteur, SANS icônes du texte (§ 7).
+        assertTrue(titres("MaterialSwitch").contains(CatalogueAttributs.TitreSection.ETAT))
+        assertFalse(titres("MaterialSwitch").contains(CatalogueAttributs.TitreSection.ICONES_TEXTE))
+        // La Toolbar androidx reçoit la BARRE D'OUTILS de MaterialToolbar
+        // (§ 5.4 — elle est sa classe de base, mêmes six attributs).
+        val barreToolbar =
+            CatalogueAttributs
+                .sections("Toolbar", FamilleParent.AUTRE)
+                .first { it.titre == CatalogueAttributs.TitreSection.BARRE_OUTILS }
+        assertTrue(noms(barreToolbar).contains("app:title"))
+        // Les nouveaux conteneurs suivent leur famille PAR BALISE : le
+        // TableLayout est LINEAR, le DrawerLayout est FRAME (§ 2.2).
+        assertTrue(titres("TableLayout").contains(CatalogueAttributs.TitreSection.CONTENEUR))
+        assertEquals(FamilleParent.LINEAR, FamilleParent.deBalise("TableLayout"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("DrawerLayout"))
+        // TextInputEditText seul : la SAISIE (miroir EditText).
+        assertTrue(titres("TextInputEditText").contains(CatalogueAttributs.TitreSection.SAISIE))
+    }
+
+    @Test
     fun `la carte garde arrondi et elevation sous le titre Carte - le conteneur devient frame`() {
         // PE12c — spec § 5.1 : MaterialCardView (famille FRAME) reçoit le
         // Conteneur FRAME ; PE11 § 7 ÉTEND la section Carte (fond, arrondi,

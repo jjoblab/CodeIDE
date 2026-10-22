@@ -2501,9 +2501,14 @@ public object CatalogueAttributs {
 
     // ── PE12c — § 5.4 : sections propres des nouvelles classes ───────
 
-    /** La section BARRE D'OUTILS de MaterialToolbar (§ 5.4). */
+    /**
+     * La section BARRE D'OUTILS de MaterialToolbar (§ 5.4) PUIS de la
+     * Toolbar androidx (v0.170.0, S4) : les mêmes attributs `app:` — la
+     * classe androidx les lit à l'identique (elle est la base de
+     * MaterialToolbar).
+     */
     private fun sectionBarreOutils(classe: String): SectionAttributs? =
-        if (classe != "MaterialToolbar") {
+        if (classe != "MaterialToolbar" && classe != "Toolbar") {
             null
         } else {
             SectionAttributs(
@@ -2975,9 +2980,10 @@ public object CatalogueAttributs {
             familleBouton(classe) ||
             familleEtat(classe)
 
-    /** EditText, TextInputEditText et AutoCompleteTextView (v0.166.3). */
+    /** EditText, TextInputEditText et AutoCompleteTextView (v0.166.3) ; MultiAutoCompleteTextView (v0.170.0, S4). */
     private fun familleSaisie(classe: String): Boolean =
-        classe == "EditText" || classe == "TextInputEditText" || classe == "AutoCompleteTextView"
+        classe == "EditText" || classe == "TextInputEditText" ||
+            classe == "AutoCompleteTextView" || classe == "MultiAutoCompleteTextView"
 
     /** Button et MaterialButton. */
     private fun familleBouton(classe: String): Boolean = classe == "Button" || classe == "MaterialButton"
@@ -2986,14 +2992,20 @@ public object CatalogueAttributs {
      * CompoundButton et ses descendants (CheckBox, Switch, SwitchMaterial)
      * PUIS les extensions v0.166.3 de la palette (RadioButton, ToggleButton,
      * Chip — sous-classe d'AppCompatCheckBox) : la section État porte
-     * `android:checked`, commun aux quatre.
+     * `android:checked`, commun aux quatre. v0.170.0 (S4) : CheckedTextView
+     * (TextView à état coché — la section État porte son `android:checked`).
      */
     private fun familleEtat(classe: String): Boolean =
         classe == "CheckBox" || familleInterrupteur(classe) ||
-            classe == "RadioButton" || classe == "ToggleButton" || classe == "Chip"
+            classe == "RadioButton" || classe == "ToggleButton" ||
+            classe == "Chip" || classe == "CheckedTextView"
 
-    /** Les INTERRUPTEURS seuls (Switch, SwitchMaterial) — PAS d'icônes du texte (§ 7). */
-    private fun familleInterrupteur(classe: String): Boolean = classe == "Switch" || classe == "SwitchMaterial"
+    /**
+     * Les INTERRUPTEURS seuls (Switch, SwitchMaterial) — PAS d'icônes du
+     * texte (§ 7). v0.170.0 (S4) : MaterialSwitch (materialswitch).
+     */
+    private fun familleInterrupteur(classe: String): Boolean =
+        classe == "Switch" || classe == "SwitchMaterial" || classe == "MaterialSwitch"
 
     /** ImageView et ImageButton. */
     private fun familleImage(classe: String): Boolean = classe == "ImageView" || classe == "ImageButton"

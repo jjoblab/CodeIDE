@@ -11,9 +11,12 @@ import kotlin.math.min
  * conteneurs, les emplacements entre frères et la cible sous un point. »
  *
  * Miroir du comportement maquette (`targetAt`, `slotRect`, `drawDrop`) :
- * - [cibleSous] : le CONTENEUR le plus PROFOND sous le point, et
- *   l'INDEX d'insertion entre ses frères (un frère compte quand son
- *   MILIEU — horizontal ? x : y — précède le point) ;
+ * - [cibleSous] : le CONTENEUR le plus PROFOND sous le point qui
+ *   ACCEPTE un enfant de plus, et l'INDEX d'insertion entre ses frères
+ *   (un frère compte quand son MILIEU — horizontal ? x : y — précède le
+ *   point) ; v0.170.0 (S3) : un AdapterView, un conteneur à enfant
+ *   attendu ou un enfant-unique PLEIN ne peut pas être ciblé — le
+ *   point remonte au premier ancêtre accepteur ([ContraintesHierarchie]) ;
  * - [emplacement] : le rectangle de la BARRE D'INSERTION (traversante
  *   dans le conteneur, épaisseur ÉCRAN constante) ;
  * - [libelleCible] / [libelleInsertion] : les libellés des pills
@@ -111,8 +114,9 @@ public object ZonesDepot {
 
     /**
      * La cible de dépôt sous le point (coordonnées BITMAP) — le conteneur
-     * le plus PROFOND contenant le point (miroir `targetAt` : profondeur
-     * maximale), hors de l'écran rendu → `null`. PE12d (§ 6) :
+     * le plus PROFOND contenant le point qui ACCEPTE un enfant de plus
+     * (miroir `targetAt` : profondeur maximale, puis remontée de
+     * contenance v0.170.0), hors de l'écran rendu → `null`. PE12d (§ 6) :
      * - un `FloatingActionButton` ([ContenuDepot.idWidget] « fab ») vise le
      *   plus profond `CoordinatorLayout` ANCEÂTRE de la cible, ancré au
      *   premier frère sous le point ;
@@ -149,6 +153,18 @@ public object ZonesDepot {
                 indiceAncre = cibleFab.second
             }
         }
+        // v0.170.0 (S3, [ContraintesHierarchie]) : le conteneur visé doit
+        // ACCEPTER un enfant de plus — un AdapterView (le contenu vient
+        // de l'adaptateur), un conteneur à ENFANT ATTENDU ou un
+        // ENFANT-UNIQUE plein remonte à son PÈRE, premier ancêtre
+        // accepteur ; sans ancêtre accepteur, le dépôt se refuse (la
+        // barre et les pills suivent la cible, jamais l'inverse). Le cas
+        // du FAB ne passe pas ici : le `CoordinatorLayout` trouvé accepte
+        // toujours, l'ancre reste.
+        while (indiceParent >= 0 && !accepteUnEnfantDePlus(vues, indiceParent)) {
+            indiceParent = vues[indiceParent].indiceParent
+        }
+        if (indiceParent < 0) return null
         val parent = vues[indiceParent]
         val famille = familleDuParent(parent)
         return when (famille) {
@@ -193,6 +209,16 @@ public object ZonesDepot {
     /** La FAMILLE d'une vue rendue (PE12a : nom d'enum du rendu, repli par balise). */
     internal fun familleDuParent(vue: InfoVueRendu): FamilleParent =
         FamilleParent.deNom(vue.famille) ?: FamilleParent.deBalise(vue.classe)
+
+    /**
+     * Le conteneur à l'indice accepte-t-il un enfant de PLUS (v0.170.0,
+     * S3) — [ContraintesHierarchie.accepteEnfant] sur la classe du rendu,
+     * au nombre d'enfants COURANT du conteneur.
+     */
+    private fun accepteUnEnfantDePlus(
+        vues: List<InfoVueRendu>,
+        indice: Int,
+    ): Boolean = ContraintesHierarchie.accepteEnfant(vues[indice].classe, vues.count { it.indiceParent == indice })
 
     /**
      * La cible d'un `FloatingActionButton` (miroir `targetAt` : le plus

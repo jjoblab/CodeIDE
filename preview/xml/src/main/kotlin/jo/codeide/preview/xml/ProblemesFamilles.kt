@@ -7,6 +7,16 @@ package jo.codeide.preview.xml
  * ([ArbreAttributsXml]), contrairement aux règles de RENDU
  * ([ProblemesPreview], PE6c/PE11g — évaluées sur `InfoVueRendu`).
  *
+ * v0.170.0 (S3) : les QUATRE genres de CONTENANCE s'y AJOUTENT — vue
+ * feuille qui porte des enfants, conteneur à adaptateur, enfant unique
+ * dépassé, enfant d'un type inattendu ([ContraintesHierarchie], miroir
+ * des vérifications lint `AdapterViewChildren`/`ScrollViewChildren` —
+ * la question ouverte § 13.3 « NestedScrollView/ScrollView : un seul
+ * enfant direct est admis — faut-il avertir ? » est tranchée OUI). Le
+ * problème se RATTACHE AU CONTENEUR fautif (balise, id, span de
+ * l'élément) : le correctif s'y pose (envelopper les enfants ou les
+ * retirer).
+ *
  * Pourquoi le TEXTE (spec § 9) : ces problèmes restent disponibles quand
  * le rendu ÉCHOUE — la DÉPENDANCE CIRCULAIRE se lit alors que le dernier
  * rendu valide est conservé (§ 12) — et leurs CORRECTIFS se posent sur le
@@ -65,11 +75,13 @@ public object ProblemesFamilles {
     )
 
     /**
-     * Évalue les CINQ règles sur le TEXTE du document (miroir de
+     * Évalue les règles sur le TEXTE du document (miroir de
      * `computeProblems`, DANS SON ORDRE) : par vue du document
-     * (pré-ordre), orphelin puis référence introuvable puis ancre
-     * invalide puis comportement manquant ; la DÉPENDANCE CIRCULAIRE en
-     * dernier, rattachée à la PREMIÈRE vue de la boucle.
+     * (pré-ordre) — CONTENANCE d'abord (structurelle, v0.170.0 : la
+     * racine comprise, sans parent requis), puis orphelin puis
+     * référence introuvable puis ancre invalide puis comportement
+     * manquant ; la DÉPENDANCE CIRCULAIRE en dernier, rattachée à la
+     * PREMIÈRE vue de la boucle.
      *
      * Un document vide, étranger au XML ou interrompu ne lève JAMAIS
      * d'exception (tolérance du lecteur) : la liste sort vide ou
@@ -80,6 +92,7 @@ public object ProblemesFamilles {
         val problemes = mutableListOf<Probleme>()
         for (indice in noeuds.indices) {
             val noeud = noeuds[indice]
+            ContraintesHierarchie.problemeDeContenance(noeud)?.let { problemes.add(it) }
             val parent =
                 noeud.indiceParent
                     .takeIf { it >= 0 }

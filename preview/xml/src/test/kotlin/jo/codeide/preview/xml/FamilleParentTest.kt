@@ -198,6 +198,35 @@ class FamilleParentTest {
     }
 
     @Test
+    fun `deBalise - les extensions palette v0_170 vers LINEAR et FRAME`() {
+        // v0.170.0 S4 « palette proche d'Android Studio » : les nouveaux
+        // conteneurs arrivent par balise (RadioGroup, TableLayout, TableRow,
+        // MaterialButtonToggleGroup — sous-classes de LinearLayout ;
+        // DrawerLayout, SwipeRefreshLayout, NavigationView,
+        // BottomNavigationView, ViewFlipper, NumberPicker — sous-classes de
+        // FrameLayout).
+        assertEquals(FamilleParent.LINEAR, FamilleParent.deBalise("RadioGroup"))
+        assertEquals(FamilleParent.LINEAR, FamilleParent.deBalise("TableLayout"))
+        assertEquals(FamilleParent.LINEAR, FamilleParent.deBalise("TableRow"))
+        assertEquals(FamilleParent.LINEAR, FamilleParent.deBalise("MaterialButtonToggleGroup"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("DrawerLayout"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("SwipeRefreshLayout"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("NavigationView"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("BottomNavigationView"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("ViewFlipper"))
+        assertEquals(FamilleParent.FRAME, FamilleParent.deBalise("NumberPicker"))
+        assertEquals(
+            FamilleParent.FRAME,
+            FamilleParent.deBalise("androidx.drawerlayout.widget.DrawerLayout"),
+        )
+        // Les NON-parents restent AUTRE (ChipGroup étend FlowLayout,
+        // Guideline une simple View).
+        assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("ChipGroup"))
+        assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("Guideline"))
+        assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("Toolbar"))
+    }
+
+    @Test
     fun `deBalise - balise inconnue ou vide vers AUTRE`() {
         assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("GridLayout"))
         assertEquals(FamilleParent.AUTRE, FamilleParent.deBalise("TextView"))

@@ -12,7 +12,10 @@ import kotlin.math.min
  * l'UI à partir du [GenreProbleme], les données portent le fait).
  *
  * Les genres de FAMILLE (PE12f) partagent le même [GenreProbleme] :
- * leur ÉVALUATION vit dans [ProblemesFamilles] (sur le TEXTE, spec § 9).
+ * leur ÉVALUATION vit dans [ProblemesFamilles] (sur le TEXTE, spec § 9)
+ * — de même que les genres de CONTENANCE (v0.170.0, S3 :
+ * [ContraintesHierarchie] — miroir des vérifications lint
+ * `AdapterViewChildren`/`ScrollViewChildren`).
  *
  * Règles livrées (miroir de `computeProblems` de la maquette, DANS SON
  * ORDRE — classe, description, texte codé, cible, tronc) :
@@ -72,6 +75,38 @@ public object ProblemesPreview {
 
         /** Boucle de règles dans un `RelativeLayout` (PE12f, spec § 9 et § 12). */
         DEPENDANCE_CIRCULAIRE,
+
+        /**
+         * Vue FEUILLE qui porte des enfants (v0.170.0, S3 — TextView,
+         * Button, Chip… : l'inflater réel plante ou dégrade) — erreur,
+         * miroir `addView` impossible de la plateforme.
+         */
+        ENFANTS_INTERDITS,
+
+        /**
+         * Conteneur à ADAPTATEUR qui porte des enfants XML (v0.170.0,
+         * S3 — ListView, RecyclerView, Spinner, ViewPager2… : miroir lint
+         * `AdapterViewChildren`, « AdapterViews cannot have children in
+         * XML ») — erreur.
+         */
+        ENFANTS_ADAPTATEUR,
+
+        /**
+         * Conteneur à ENFANT UNIQUE qui en porte plusieurs (v0.170.0,
+         * S3 — ScrollView, HorizontalScrollView, NestedScrollView,
+         * SwipeRefreshLayout : miroir lint `ScrollViewChildren`, « can
+         * host only one direct child ») — avertissement.
+         */
+        ENFANT_UNIQUE_DEPASSE,
+
+        /**
+         * Conteneur à ENFANT ATTENDU qui en porte d'un autre type
+         * (v0.170.0, S3 — TabLayout attend des TabItem, TextInputLayout un
+         * TextInputEditText, ChipGroup des Chip, MaterialButtonToggleGroup
+         * des MaterialButton) — erreur quand la vraie classe jette
+         * (TextInputLayout), avertissement sinon.
+         */
+        ENFANT_INATTENDU,
     }
 
     /** UN problème détecté, rattaché à la vue par son INDICE dans la liste. */
