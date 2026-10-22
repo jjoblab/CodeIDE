@@ -37,15 +37,20 @@ package jo.codeide.preview.xml
  *   `outline` ; `app:endIconMode` : absence = `none` ;
  * - `android:indeterminate` (ProgressBar) : absence = `true` — le
  *   « défaut » du tri-état EST l'absence, le rendu suit la plateforme ;
- * - `android:alpha` : absence = `1.0` — SANS retrait : le champ nombre
- *   n'écrit que des valeurs explicites (une saisie vide ne fait rien).
+ * - `android:alpha` (PE11g-contrôles) : absence = `1.0` = le DÉFAUT du
+ *   CURSEUR — une valeur égale au défaut RETIRE l'attribut (miroir
+ *   `sld` : `num === c.def ? '' : num + c.u`).
  *
- * Exemption detekt ciblée (règle 16) : TooManyFunctions — chaque section
- * du catalogue a SA fonction descriptrice ([sectionTexte],
- * [sectionSaisie]…) : le miroir direct des `if (k === …)` de la maquette,
- * lisible attribut par attribut.
+ * Exemption detekt ciblée (règle 8 — exceptions minimales et commentées) :
+ * TooManyFunctions — chaque section du catalogue a SA fonction
+ * descriptrice ([sectionTexte], [sectionSaisie]…) : le miroir direct
+ * des `if (k === …)` de la maquette, lisible attribut par attribut ;
+ * LargeClass — le catalogue EST une longue liste par conception
+ * (l'annexe § 7 du brief y ajoute encore ~130 attributs), même motif
+ * que le volet d'attributs côté UI : la taille est le miroir, pas la
+ * dette.
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 public object CatalogueAttributs {
     /** Les TITRES de sections (clés sémantiques — traduites au chrome). */
     public enum class TitreSection {
@@ -198,6 +203,15 @@ public object CatalogueAttributs {
          */
         public abstract val nomsAttributs: List<String>
 
+        /**
+         * L'ÉTIQUETTE du contrôle (miroir `c.l` de la maquette) — portée
+         * par le TYPE comme [courant] (même médecine que la CI de
+         * 175ce7a7 : plus de `when` de dispatch dans le volet), `null`
+         * pour les composites sans libellé propre (identifiant,
+         * composite de saisie, dimensions, contraintes).
+         */
+        public abstract val etiquette: Etiquette?
+
         /** L'identifiant de la vue (PE8a : renommage déclaration + références). */
         public data class Identifiant(
             val nom: String,
@@ -205,6 +219,9 @@ public object CatalogueAttributs {
         ) : ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
             override val nomsAttributs: List<String> = listOf(nom)
+
+            /** [ControleAttribut.etiquette] : l'identifiant n'a pas de libellé propre. */
+            override val etiquette: Etiquette? = null
         }
 
         /**
@@ -215,7 +232,7 @@ public object CatalogueAttributs {
          */
         public data class Texte(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val extrayable: Boolean = false,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -226,7 +243,7 @@ public object CatalogueAttributs {
         /** Un nombre avec unité (`"dp"`, `"sp"` ou `""` — alpha sans unité). */
         public data class Nombre(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val unite: String,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -237,7 +254,7 @@ public object CatalogueAttributs {
         /** Un choix segmenté — le PREMIER élément est le défaut (retrait). */
         public data class Choix(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val valeurs: List<String>,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -248,7 +265,7 @@ public object CatalogueAttributs {
         /** Un tri-état (défaut / true / false — défaut = retrait). */
         public data class TriEtat(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
@@ -264,7 +281,7 @@ public object CatalogueAttributs {
          */
         public data class Liste(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val valeurs: List<String>,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -283,7 +300,7 @@ public object CatalogueAttributs {
          */
         public data class Drapeaux(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val valeurs: List<String>,
             val requiert: String? = null,
             override val courant: Boolean = true,
@@ -336,6 +353,9 @@ public object CatalogueAttributs {
             /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
             override val nomsAttributs: List<String> = listOf(nom)
 
+            /** [ControleAttribut.etiquette] : le composite de saisie a UNE étiquette de section. */
+            override val etiquette: Etiquette? = null
+
             /**
              * La BASE courante : première partie de la valeur dans le
              * catalogue, sinon « text » (miroir
@@ -377,7 +397,7 @@ public object CatalogueAttributs {
          */
         public data class Couleur(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
@@ -396,7 +416,7 @@ public object CatalogueAttributs {
          */
         public data class Ressource(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val types: List<String>,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -417,10 +437,162 @@ public object CatalogueAttributs {
             private val nomNu: Regex = Regex("""^[\w.]+$""")
         }
 
+        /**
+         * Le contrôle CURSEUR (PE11g-contrôles — miroir `sld` de la
+         * maquette, § 9 `controle_curseur`) : glissière violette + champ
+         * numérique LIÉS ; le glissement suit le champ SANS écrire
+         * (miroir `r.oninput`), l'écriture ne se fait qu'au RELÂCHEMENT
+         * ou au commit du champ (miroir `r.onchange`/`n.onchange`). La
+         * valeur écrite est `nombre + unité` et une valeur ÉGALE au
+         * [defaut] RETIRE l'attribut (miroir
+         * `num === c.def ? '' : num + c.u`) ; une saisie hors
+         * [min]…[max] ne s'écrit pas ([ValidationAttribut.curseur]).
+         * [maxDe] : la borne HAUTE suit la valeur numérique de CET
+         * attribut du document quand il existe (miroir
+         * `Math.max(1, dpv(ex(v, 'android:max')) || 100)` — la
+         * progression borne sa glissière au max du ProgressBar) ;
+         * attribut absent, vide ou non positif → [max].
+         */
+        public data class Curseur(
+            val nom: String,
+            override val etiquette: Etiquette,
+            val min: Float,
+            val max: Float,
+            val pas: Float,
+            val unite: String,
+            val defaut: Float,
+            val maxDe: String? = null,
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+
+            /**
+             * La valeur AFFICHÉE (miroir `cur === '' ? c.def : (dpv(cur)
+             * ?? c.def)`) : l'attribut absent, vide ou non numérique se
+             * montre à son DÉFAUT.
+             */
+            public fun valeurAffichee(valeur: String?): Float = nombreDe(valeur) ?: defaut
+
+            /**
+             * La valeur ÉCRITE (miroir `num + c.u`) : égale au [defaut]
+             * → VIDE (l'écriture retirera l'attribut).
+             */
+            public fun ecrire(nombre: Float): String = if (nombre == defaut) "" else formaterNombre(nombre) + unite
+
+            /**
+             * La borne HAUTE VÉCUE (miroir
+             * `Math.max(1, dpv(ex(v, 'android:max')) || 100)`) : la
+             * valeur de l'attribut [maxDe] quand elle est POSITIVE (le
+             * zéro est FAUX côté maquette — il retombe sur [max]), le
+             * plancher 1 sinon pour les négatifs.
+             */
+            public fun borneMax(valeurMax: String?): Float {
+                val nombre = nombreDe(valeurMax) ?: return max
+                return when {
+                    nombre == 0f -> max
+                    else -> maxOf(1f, nombre)
+                }
+            }
+
+            /**
+             * Le NOMBRE en tête d'une valeur (miroir `dpv` :
+             * `parseFloat` du préfixe numérique — « 12dp » donne 12),
+             * `null` quand il n'y en a pas.
+             */
+            private fun nombreDe(valeur: String?): Float? =
+                nombreEnTete
+                    .find(valeur.orEmpty())
+                    ?.value
+                    ?.toFloatOrNull()
+
+            /** Un préfixe numérique (« 12 », « -0.5 », « 12dp »). */
+            private val nombreEnTete: Regex = Regex("""^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?""")
+        }
+
+        /**
+         * Le contrôle RATIO (PE11g-contrôles — miroir `ratio` de la
+         * maquette, § 9 `controle_ratio`) : deux nombres « a:b » avec
+         * VERROU optionnel `W,`/`H,` (le côté CALCULÉ), préréglages
+         * [PREDEFINIS] (1:1, 4:3, 16:9, 3:4) et la note « dimension à
+         * 0dp » (posée par l'UI). Les deux champs VIDES retirent
+         * l'attribut ; une valeur sans deux nombres POSITIFS ne s'écrit
+         * pas ([ValidationAttribut.ratio]).
+         */
+        public data class Ratio(
+            val nom: String,
+            override val etiquette: Etiquette,
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
+            override val nomsAttributs: List<String> = listOf(nom)
+
+            /**
+             * Une valeur PARSE du ratio : le [verrou] optionnel
+             * (`"W"`, `"H"` ou `null`) et les deux nombres TELS QUE
+             * SAISIS (miroir le regex de la maquette — l'écriture les
+             * restitue verbatim).
+             */
+            public data class Valeur(
+                val verrou: String?,
+                val a: String,
+                val b: String,
+            )
+
+            /**
+             * La valeur PARSE (miroir
+             * `/^(?:([WH]), )?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/`) :
+             * `null` si la valeur ne suit pas le format.
+             */
+            public fun lire(valeur: String?): Valeur? {
+                val groupes = formatDuRatio.find(valeur.orEmpty()) ?: return null
+                return Valeur(
+                    verrou = groupes.groups[1]?.value,
+                    a = groupes.groups[2]?.value.orEmpty(),
+                    b = groupes.groups[3]?.value.orEmpty(),
+                )
+            }
+
+            /**
+             * La valeur COMPOSÉE (miroir `(lk ? lk + ',' : '') + x + ':' + y`).
+             */
+            public fun ecrire(
+                verrou: String?,
+                a: String,
+                b: String,
+            ): String = (verrou?.let { "$it," }.orEmpty()) + "$a:$b"
+
+            /** Le format du ratio, verrou en option (miroir la maquette). */
+            private val formatDuRatio: Regex = Regex("""^(?:([WH]),)?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$""")
+
+            public companion object {
+                /**
+                 * Les PRÉRÉGLAGES de la maquette (boutons 1:1, 4:3, 16:9,
+                 * 3:4) : le [Prereglage.libelle] est la DONNÉE du bouton
+                 * (miroir `x + ':' + y` calculé côté maquette — le liage
+                 * ne compose JAMAIS de gabarit d'affichage).
+                 */
+                public val PREDEFINIS: List<Prereglage> =
+                    listOf(
+                        Prereglage("1:1", "1", "1"),
+                        Prereglage("4:3", "4", "3"),
+                        Prereglage("16:9", "16", "9"),
+                        Prereglage("3:4", "3", "4"),
+                    )
+
+                /** UN préréglage : son LIBELLÉ de bouton et son couple a:b. */
+                public data class Prereglage(
+                    val libelle: String,
+                    val a: String,
+                    val b: String,
+                )
+            }
+        }
+
         /** Les quatre côtés d'une marge ou d'un padding (miroir `.mrow`). */
         public data class Cotes(
             val base: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : les quatre côtés partagent la BASE. */
@@ -434,6 +606,9 @@ public object CatalogueAttributs {
 
             /** [ControleAttribut.nomsAttributs] : rien à compter. */
             override val nomsAttributs: List<String> = emptyList()
+
+            /** [ControleAttribut.etiquette] : composite sans libellé propre. */
+            override val etiquette: Etiquette? = null
         }
 
         /** Les contraintes du ConstraintLayout parent (ÉDITABLES — PE8b :
@@ -444,6 +619,9 @@ public object CatalogueAttributs {
 
             /** [ControleAttribut.nomsAttributs] : rien à compter. */
             override val nomsAttributs: List<String> = emptyList()
+
+            /** [ControleAttribut.etiquette] : composite sans libellé propre. */
+            override val etiquette: Etiquette? = null
         }
 
         /**
@@ -458,7 +636,7 @@ public object CatalogueAttributs {
          */
         public data class ReferenceId(
             val nom: String,
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val portee: Portee,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -487,7 +665,7 @@ public object CatalogueAttributs {
          * groupe (une seule édition).
          */
         public data class Bascules(
-            val etiquette: Etiquette,
+            override val etiquette: Etiquette,
             val entrees: List<Entree>,
             override val courant: Boolean = true,
         ) : ControleAttribut() {
@@ -1202,7 +1380,16 @@ public object CatalogueAttributs {
         val controles =
             mutableListOf<ControleAttribut>(
                 ControleAttribut.Nombre("android:max", Etiquette.MAXIMUM, ""),
-                ControleAttribut.Nombre("android:progress", Etiquette.PROGRESSION, ""),
+                ControleAttribut.Curseur(
+                    "android:progress",
+                    Etiquette.PROGRESSION,
+                    min = 0f,
+                    max = 100f,
+                    pas = 1f,
+                    unite = "",
+                    defaut = 0f,
+                    maxDe = "android:max",
+                ),
             )
         if (classe == "ProgressBar") {
             controles += ControleAttribut.TriEtat("android:indeterminate", Etiquette.INDETERMINE)
@@ -1240,7 +1427,15 @@ public object CatalogueAttributs {
                 TitreSection.AFFICHAGE,
                 listOf(
                     ControleAttribut.Choix("android:visibility", Etiquette.VISIBILITE, VISIBILITES),
-                    ControleAttribut.Nombre("android:alpha", Etiquette.ALPHA, ""),
+                    ControleAttribut.Curseur(
+                        "android:alpha",
+                        Etiquette.ALPHA,
+                        min = 0f,
+                        max = 1f,
+                        pas = 0.05f,
+                        unite = "",
+                        defaut = 1f,
+                    ),
                     ControleAttribut.TriEtat("android:enabled", Etiquette.ACTIF),
                     ControleAttribut.Texte("android:contentDescription", Etiquette.DESCRIPTION, extrayable = true),
                 ),

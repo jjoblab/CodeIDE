@@ -1,13 +1,15 @@
 package jo.codeide.preview.xml
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Contrat du VALIDATEUR D'ATTRIBUTS (PE11e — 1re tranche, les couleurs) :
- * un test PAR RÈGLE du `vCol` de la maquette, cas limites inclus (brief
- * PE10a/PE11c : « un test par ligne du tableau et par validateur »).
- * Le module est PUR — JUnit seul, aucun Android.
+ * Contrat du VALIDATEUR D'ATTRIBUTS (PE11e — couleurs ; PE11f —
+ * ressources ; PE11g-contrôles — curseur et ratio) : un test PAR RÈGLE
+ * des `vCol`/`vRes`/`sld`/`ratio` de la maquette, cas limites inclus
+ * (brief PE10a/PE11c : « un test par ligne du tableau et par
+ * validateur »). Le module est PUR — JUnit seul, aucun Android.
  */
 public class ValidationAttributTest {
     /** Les couleurs connues du faux projet. */
@@ -233,5 +235,59 @@ public class ValidationAttributTest {
         assertEquals("Une référence passe telle quelle", "@drawable/x", controle.completer("@drawable/x"))
         assertEquals("Un attr de thème passe tel quel", "?attr/x", controle.completer("?attr/x"))
         assertEquals("Le vide passe tel quel (retrait)", "", controle.completer(""))
+    }
+
+    @Test
+    public fun `le curseur accepte la saisie dans les bornes - bords compris`() {
+        // PE11g-contrôles — miroir le `commit` du `sld` : les bornes
+        // sont INCLUSIVES (`num < c.min || num > c.max` seul refuse).
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.curseur("0.5", 0f, 1f))
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.curseur("0", 0f, 1f))
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.curseur("1", 0f, 1f))
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.curseur("-180", -180f, 180f))
+    }
+
+    @Test
+    public fun `le curseur hors bornes ou non numerique est une erreur qui n ecrit rien`() {
+        // Miroir `isNaN(num) || num < c.min || num > c.max` →
+        // « Valeur entre min et max. » ; les bornes du message sont
+        // FORMATÉES (miroir `'… ' + c.min + ' …'` — jamais « 1.0 »).
+        val verdict = ValidationAttribut.curseur("1.2", 0f, 1f)
+        assertTrue(verdict is ValidationAttribut.Resultat.Erreur)
+        assertEquals(
+            ValidationAttribut.GenreMessage.VALEUR_BORNEE,
+            (verdict as ValidationAttribut.Resultat.Erreur).genre,
+        )
+        assertEquals("Les bornes du message sont formatées", listOf("0", "1"), verdict.arguments)
+        assertTrue(
+            "Sous la borne basse",
+            ValidationAttribut.curseur("-0.1", 0f, 1f) is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Non numérique",
+            ValidationAttribut.curseur("plein", 0f, 1f) is ValidationAttribut.Resultat.Erreur,
+        )
+        assertEquals(
+            "Le message porte aussi les bornes à décimales",
+            listOf("0.1", "3"),
+            (ValidationAttribut.curseur("5", 0.1f, 3f) as ValidationAttribut.Resultat.Erreur).arguments,
+        )
+    }
+
+    @Test
+    public fun `le ratio exige deux nombres positifs - le reste est une erreur`() {
+        // Miroir le `put` du `ratio` : `!(+x > 0 && +y > 0)` →
+        // « Deux nombres positifs, par exemple 16 et 9. » ; les deux
+        // champs VIDES ne passent PAS par ici (c'est le RETRAIT, réglé
+        // au liage).
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.ratio("16", "9"))
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.ratio("1.5", "2"))
+        assertEquals(
+            ValidationAttribut.Resultat.Erreur(ValidationAttribut.GenreMessage.RATIO_INVALIDE),
+            ValidationAttribut.ratio("0", "9"),
+        )
+        assertTrue("Négatif", ValidationAttribut.ratio("-1", "9") is ValidationAttribut.Resultat.Erreur)
+        assertTrue("Non numérique", ValidationAttribut.ratio("a", "9") is ValidationAttribut.Resultat.Erreur)
+        assertTrue("Un champ vide", ValidationAttribut.ratio("16", "") is ValidationAttribut.Resultat.Erreur)
     }
 }

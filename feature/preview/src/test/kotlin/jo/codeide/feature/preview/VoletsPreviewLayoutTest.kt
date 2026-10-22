@@ -319,4 +319,48 @@ class VoletsPreviewLayoutTest {
         assertEquals(11, AdaptateurPastilles.colonnesPastille(374, 34))
         assertEquals(1, AdaptateurPastilles.colonnesPastille(30, 34))
     }
+
+    @Test
+    fun `le controle curseur porte sa glissiere son champ et son message cache`() {
+        // PE11g-contrôles — miroir `.sld` : glissière violette (pistes et
+        // pouce par les jetons apercuNouveau*) + champ 72 dp ; le message
+        // de validation (bornes) est CACHÉ au repos (miroir showMsg —
+        // la maquette l'ajoute au DOM à la volée), la note d'inactivité
+        // aussi (aucun usager avant la vague § 7 — le biais vertical).
+        val controle = gonfler(R.layout.controle_curseur)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        assertNotNull(controle.findViewById<View>(R.id.curseur))
+        assertNotNull(controle.findViewById<View>(R.id.champ_curseur))
+        assertFalse(
+            "Le message de validation est masqué au repos",
+            controle.findViewById<View>(R.id.message_controle).isVisible,
+        )
+        assertFalse(
+            "La note d'inactivité est masquée au repos",
+            controle.findViewById<View>(R.id.note_controle).isVisible,
+        )
+    }
+
+    @Test
+    fun `le controle ratio porte ses deux champs ses prereglages son verrou et sa note`() {
+        // PE11g-contrôles — miroir `.ratio` : les deux nombres « a : b »,
+        // le groupe des PRÉRÉGLAGES (drapeaux posés au liage), le groupe
+        // du VERROU aucun/W/H (segments posés au liage) et la note
+        // « dimension à 0dp » TOUJOURS visible (miroir note2 du ratio) ;
+        // le message de validation est CACHÉ au repos.
+        val controle = gonfler(R.layout.controle_ratio)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        assertNotNull(controle.findViewById<View>(R.id.champ_ratio_a))
+        assertNotNull(controle.findViewById<View>(R.id.champ_ratio_b))
+        assertNotNull(controle.findViewById<View>(R.id.groupe_ratios))
+        assertNotNull(controle.findViewById<View>(R.id.groupe_verrou_ratio))
+        assertTrue(
+            "La note 0dp est visible au repos (miroir note2 du ratio)",
+            controle.findViewById<View>(R.id.note_controle).isVisible,
+        )
+        assertFalse(
+            "Le message de validation est masqué au repos",
+            controle.findViewById<View>(R.id.message_controle).isVisible,
+        )
+    }
 }
