@@ -1,5 +1,80 @@
 # Journal des modifications
 
+## [0.166.4] – 2026-10-22
+
+### Le zoom survit aux éditions, le rendu voyage sans PNG, et la palette Material rend enfin de vraies vues
+
+#### Corrigé
+
+- **Le zoom de l'aperçu n'était pas respecté pendant l'édition** (rapport
+  propriétaire du 2026-10-22 : « quand je zoomé… puis j'édite n'importe
+  quelle vue… le zoom pendant l'édition n'est pas respecté ») —
+  `VuePreviewXml.afficherRendu` repassait par `ajusterALaVue()` à CHAQUE
+  rendu : éditer une vue, interagir avec le volet des attributs ou
+  relâcher une poignée de redimensionnement DÉZOOMAIT la planche sous
+  les doigts, et le geste suivant partait d'une vue sautée. Désormais :
+  PREMIER rendu → ajustement (comportement inchangé) ; rendu suivant de
+  MÊME planche (le cas de TOUTE édition — la taille du bitmap vient du
+  profil, pas du layout) → zoom et décalage INTACTS ; planche RETAILLÉE
+  (profil, paysage, échelle de police) → zoom conservé, décalage
+  ré-ancré sur le centre de contenu visible (`recadrerSurNouvellePlanche`) ;
+  le double-tap reste l'ajustement explicite. 3 tests Robolectric
+  (`VuePreviewXmlTest`) verrouillent les trois branches.
+- **Le rendu gelait « un peu avant » chaque mise à jour** (« la rendu
+  n'est pas automatiquement mise a jour, ça gel un peu avant ») — la
+  frontière du processus `:preview` compressait le bitmap en PNG puis
+  l'app le décodait (`BitmapFactory.decodeByteArray`) : un plein écran
+  ARGB_8888 coûtait facilement 1 à 2 s PAR rendu, en plus du rendu
+  lui-même. Depuis API 26 (le minSdk), un Bitmap Parcelable traverse
+  Binder par MÉMOIRE PARTAGÉE (ashmem) — `ResultatRendu.png` devient
+  `ResultatRendu.bitmap` (octet de présence + `Bitmap.CREATOR`), le
+  paramètre `compresser` de `RenduLayoutLib` part avec `compresserPng` :
+  le transport est le même objet pour les DEUX régimes (processus isolé
+  et repli local), sans encode ni décode. `ServicePreviewTest`
+  (transport + Parcel aller-retour), `RenduNuitTest`, `RenduLayoutLibV3Test`
+  et les tests feature recousus.
+- **Un `<Chip>` inséré par la palette dégradait en MockView, « bien
+  d'autres vues aussi »** (MaterialCardView, CoordinatorLayout,
+  AppBarLayout, MaterialToolbar, FloatingActionButton, TabLayout,
+  ViewPager2…) — régression du branchement v0.166.3 : depuis l'APK debug
+  dexé du projet, `DexViewFactory` dérobait TOUS les tags dotted au
+  classloader projet, y compris `com.google.android.material.*` et
+  `androidx.*` ; les classes Material chargées depuis l'APK résolvent
+  leurs ressources par des IDS qui n'existent pas dans l'app hôte →
+  theme-enforcement échoue → MockView. La règle v0.166.4 : L'HÔTE
+  D'ABORD — un tag dotted résolvable par le classloader de l'app n'est
+  pas une vue projet (`chargableParLhote`, probe sans initialisation) ;
+  le classloader projet ne sert QUE les vues que l'hôte ne connaît pas
+  (les vraies `com.example.*`). Les 19 tuiles FQN de la palette rendent
+  enfin leurs vraies vues. 2 tests `DexViewFactoryTest`.
+- **Les poignées de redimensionnement de la RACINE étaient muettes** («
+  le redimensionnement a aussi d'autres problèmes ») — l'aperçu dessine
+  les poignées sur la racine (elle est sélectionnable), mais
+  `redimensionnerSelection` refusait `autoriserRacine` : le geste
+  n'écrivait RIEN, sans retour. La racine reste éditable pour ses
+  dimensions (PE7e — ses attributs de disposition sont éditables, et
+  l'inflater honore les dimensions DÉCLARÉES de la racine depuis
+  LayoutLib v3.4.6) : le geste écrit `layout_width`/`layout_height` sur
+  le tag racine et le rendu suit.
+
+#### Ajouté
+
+- **LayoutLib 3.4.9 — moins de MockView, plus de vraies vues** (« Pour
+  LayoutLib il faut l'étendre pour supporter plus de vue et moins de
+  mockview ») : le `module-inflater` porte désormais les bibliothèques
+  que son `ViewTagRegistry` référence (material, appcompat,
+  recyclerview, constraintlayout, viewpager, viewpager2, cardview,
+  gridlayout, drawerlayout, swiperefreshlayout) — les classes existent
+  sur TOUT hôte et le repli thème Material (une vue Material qui lève
+  le theme-enforcement est ré-instanciée sous un `ContextThemeWrapper`
+  Material3 au lieu d'un cadre hachuré, décision pure
+  `repliThemeMaterialApplicable` testée JVM) ; tags courts ajoutés :
+  `MaterialToolbar`, `MaterialRatingBar`, `SearchBar`,
+  `MaterialButtonToggleGroup` (sans entrée, le tag court partait en
+  `android.widget.{tag}` → introuvable → MockView). Tag v3.4.9 publié
+  sur GitHub Packages (run 39781772586), épinglé dans le catalogue
+  (`layoutlib = "3.4.9"`) et `docs/THIRD_PARTY_NOTICES.md`.
+
 ## [0.166.3] – 2026-10-22
 
 ### La palette se complète, les vues custom se rendent enfin en vraies vues, et le repli des sections se déplie

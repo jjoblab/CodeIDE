@@ -69,7 +69,11 @@ public class ServicePreview : Service() {
             override fun rendre(requete: RequeteRendu): ResultatRendu =
                 synchronized(verrou) {
                     try {
-                        rendu.rendre(requete, compresser = true).rendu
+                        // v0.166.4 — le bitmap voyage en PARCELABLE (ashmem)
+                        // : plus de compression PNG à cette frontière (retour
+                        // propriétaire : le PNG coûtait 1 à 2 s par rendu,
+                        // ressenti comme un gel avant chaque mise à jour).
+                        rendu.rendre(requete).rendu
                     } catch (t: Throwable) {
                         ResultatRendu(
                             ok = false,
@@ -79,7 +83,7 @@ public class ServicePreview : Service() {
                             hauteur = 0,
                             nombreVues = 0,
                             dureeMs = 0,
-                            png = ByteArray(0),
+                            bitmap = null,
                         )
                     }
                 }

@@ -220,16 +220,16 @@ public class RenduLayoutLib(
      * dispatché PAR GENRE (PE3) : LAYOUT inflaté (+ sélection P6),
      * DRAWABLE dessiné, VALEURS en tableau.
      *
+     * v0.166.4 — le bitmap vit DANS [ResultatRendu.bitmap] (Parcelable
+     * ashmem) : plus de compression PNG à la frontière du :preview ni de
+     * décodage BitmapFactory côté app (retour propriétaire 2026-10-22 :
+     * « ça gèle un peu avant » la mise à jour) — le transport est le
+     * même objet pour les deux régimes (processus isolé et repli local).
+     *
      * @param requete la demande complète (texte, res/, genre, profil, nuit).
-     * @param compresser vrai (service :preview) → PNG dans [ResultatRendu.png]
-     *        et bitmap NON retenu ; faux (transport local) → bitmap
-     *        retenu dans [bitmap].
      */
     @Suppress("LongMethod") // Le pipeline EST l'ordre des étapes de PE1 à PE3.
-    public fun rendre(
-        requete: RequeteRendu,
-        compresser: Boolean,
-    ): ResultatPipeline {
+    public fun rendre(requete: RequeteRendu): ResultatPipeline {
         val debut = System.nanoTime()
         return try {
             ligneDeMalformation(requete.texte)?.let { ligne ->
@@ -243,15 +243,15 @@ public class RenduLayoutLib(
                             hauteur = 0,
                             nombreVues = 0,
                             dureeMs = 0,
-                            png = ByteArray(0),
+                            bitmap = null,
                         ),
                     bitmap = null,
                 )
             }
             when (requete.genre) {
-                GenrePreview.LAYOUT -> rendreLayout(requete, compresser, debut)
-                GenrePreview.DRAWABLE -> rendreDrawable(requete, compresser, debut)
-                GenrePreview.VALEURS -> rendreValeurs(requete, compresser, debut)
+                GenrePreview.LAYOUT -> rendreLayout(requete, debut)
+                GenrePreview.DRAWABLE -> rendreDrawable(requete, debut)
+                GenrePreview.VALEURS -> rendreValeurs(requete, debut)
             }
         } catch (t: Throwable) {
             journal?.w(TAG) { "rendu preview échoué : ${t.message}" }
@@ -266,7 +266,7 @@ public class RenduLayoutLib(
                         hauteur = 0,
                         nombreVues = 0,
                         dureeMs = 0,
-                        png = ByteArray(0),
+                        bitmap = null,
                     ),
                 bitmap = null,
             )
@@ -282,7 +282,6 @@ public class RenduLayoutLib(
     /** LAYOUT : inflation → mesure/layout au profil → dessin + sélection P6. */
     private fun rendreLayout(
         requete: RequeteRendu,
-        compresser: Boolean,
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
@@ -352,36 +351,22 @@ public class RenduLayoutLib(
         // racine. Si le chrome enveloppe la racine, c'est le chrome qui est
         // mesuré par layoutEngine.render — racine n'est qu'un enfant.
         val rendu =
-            if (compresser) {
-                ResultatRendu(
-                    ok = true,
-                    message = null,
-                    largeur = vueRendue.measuredWidth,
-                    hauteur = vueRendue.measuredHeight,
-                    nombreVues = compterVues(vueRendue),
-                    dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                    png = compresserPng(bitmap),
-                    vues = vues,
-                )
-            } else {
-                ResultatRendu(
-                    ok = true,
-                    message = null,
-                    largeur = vueRendue.measuredWidth,
-                    hauteur = vueRendue.measuredHeight,
-                    nombreVues = compterVues(vueRendue),
-                    dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                    png = ByteArray(0),
-                    vues = vues,
-                )
-            }
-        return ResultatPipeline(rendu, if (compresser) null else bitmap)
+            ResultatRendu(
+                ok = true,
+                message = null,
+                largeur = vueRendue.measuredWidth,
+                hauteur = vueRendue.measuredHeight,
+                nombreVues = compterVues(vueRendue),
+                dureeMs = (System.nanoTime() - debut) / 1_000_000,
+                bitmap = bitmap,
+                vues = vues,
+            )
+        return ResultatPipeline(rendu, bitmap)
     }
 
     /** DRAWABLE (PE3) : parsing LayoutLib → dessin à la taille intrinsèque. */
     private fun rendreDrawable(
         requete: RequeteRendu,
-        compresser: Boolean,
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
@@ -417,16 +402,15 @@ public class RenduLayoutLib(
                 hauteur = hauteur,
                 nombreVues = 1,
                 dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                png = if (compresser) compresserPng(bitmap) else ByteArray(0),
+                bitmap = bitmap,
                 vues = emptyArray(),
             )
-        return ResultatPipeline(rendu, if (compresser) null else bitmap)
+        return ResultatPipeline(rendu, bitmap)
     }
 
     /** VALEURS (PE3) : extraction des entrées → tableau bitmap. */
     private fun rendreValeurs(
         requete: RequeteRendu,
-        compresser: Boolean,
         debut: Long,
     ): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
@@ -441,7 +425,7 @@ public class RenduLayoutLib(
                             hauteur = 0,
                             nombreVues = 0,
                             dureeMs = 0,
-                            png = ByteArray(0),
+                            bitmap = null,
                         ),
                     bitmap = null,
                 )
@@ -459,10 +443,10 @@ public class RenduLayoutLib(
                 hauteur = bitmap.height,
                 nombreVues = entrees.size,
                 dureeMs = (System.nanoTime() - debut) / 1_000_000,
-                png = if (compresser) compresserPng(bitmap) else ByteArray(0),
+                bitmap = bitmap,
                 vues = emptyArray(),
             )
-        return ResultatPipeline(rendu, if (compresser) null else bitmap)
+        return ResultatPipeline(rendu, bitmap)
     }
 
     /**
@@ -707,13 +691,6 @@ public class RenduLayoutLib(
                 // PE12a — famille de CONTENEUR (spec § 2.2), DERNIER champ.
                 famille = famille.name,
             )
-    }
-
-    /** Compresse le bitmap en PNG (frontière AIDL — ~1 Mo max). */
-    private fun compresserPng(bitmap: Bitmap): ByteArray {
-        val tampon = java.io.ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.PNG, QUALITE_PNG, tampon)
-        return tampon.toByteArray()
     }
 
     /** Applique le background de la racine depuis le XML brut — LayoutLib
@@ -1169,9 +1146,6 @@ public class RenduLayoutLib(
 
     private companion object {
         private const val TAG = "RenduLayoutLib"
-
-        /** Qualité PNG (sans perte — le paramètre ne touche que le filtre). */
-        private const val QUALITE_PNG: Int = 100
 
         /** Taille d'un drawable sans dimension intrinsèque (dp). */
         private const val TAILLE_DRAWABLE_DEFAUT_DP: Int = 160
