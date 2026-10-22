@@ -55,29 +55,24 @@ class PortLspEspaceTest {
     }
 
     @Test
-    fun `capacités annoncées - Java les dix, Kotlin sans formatage ni indices, XML sans signatures ni références`() {
+    fun `capacités annoncées - Java les dix, Kotlin les dix depuis le 1-3-0, XML huit sans signatures ni indices`() {
         // Le tableau attendu EXPLICITE (revue §1, verrouillé par la parité
         // du frère) : c'est LUI qui alimente les interrupteurs de l'écran L2.
+        // codeide-lsp 1.3.0 (v0.168.0) : Kotlin annonce le FORMATAGE et les
+        // INDICES EN LIGNE (références déjà servies), XML les RÉFÉRENCES —
+        // la table se miroit, l'écran L2 gagne les interrupteurs effectifs
+        // sans changement de code (dérivation [TableCapacitesLspHote]).
         val attendues =
             mapOf(
                 LangageLsp.JAVA to capacites(*CapaciteLsp.entries.toTypedArray()),
-                LangageLsp.KOTLIN to
-                    capacites(
-                        CapaciteLsp.COMPLETION,
-                        CapaciteLsp.SURVOL,
-                        CapaciteLsp.DIAGNOSTICS,
-                        CapaciteLsp.SIGNATURES,
-                        CapaciteLsp.DEFINITION,
-                        CapaciteLsp.REFERENCES,
-                        CapaciteLsp.RENOMMAGE,
-                        CapaciteLsp.ACTIONS_RAPIDES,
-                    ),
+                LangageLsp.KOTLIN to capacites(*CapaciteLsp.entries.toTypedArray()),
                 LangageLsp.XML to
                     capacites(
                         CapaciteLsp.COMPLETION,
                         CapaciteLsp.SURVOL,
                         CapaciteLsp.DIAGNOSTICS,
                         CapaciteLsp.DEFINITION,
+                        CapaciteLsp.REFERENCES,
                         CapaciteLsp.RENOMMAGE,
                         CapaciteLsp.ACTIONS_RAPIDES,
                         CapaciteLsp.FORMATAGE,

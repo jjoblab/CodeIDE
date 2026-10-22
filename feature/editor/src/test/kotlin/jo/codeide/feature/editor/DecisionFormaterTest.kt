@@ -7,32 +7,38 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Décisions de l'action « Formater le document » (ADR 0136 — P1-c :
- * la logique du choix de message et de visibilité est PURE, testée
- * JVM sans cadre Android ; le scénario d'appareil vit dans
+ * Décisions des actions de mise en forme (ADR 0136 — P1-c puis
+ * phase 2 : la logique du choix de message et de visibilité est PURE,
+ * testée JVM sans cadre Android ; les scénarios d'appareil vivent dans
  * `docs/TESTS_MANUELS.md`).
  */
 public class DecisionFormaterTest {
-    // ── La visibilité (phase 1 : onglet ouvert + session vivante). ────
+    // ── La visibilité (phase 2 : onglet ouvert + canFormat()). ──────
 
     @Test
-    public fun `visible - un onglet ouvert avec session vivante`() {
-        assertTrue(DecisionFormater.visible(ongletOuvert = true, sessionVivante = true))
+    public fun `visible - un onglet ouvert avec formateur disponible`() {
+        // Phase 2 (ADR 0136 D4) : `canFormat()` — le langage courant
+        // expose un formateur (le serveur annonce la mise en forme et
+        // la capacité n'est pas éteinte dans les réglages de langage).
+        assertTrue(DecisionFormater.visible(ongletOuvert = true, formateurDisponible = true))
     }
 
     @Test
     public fun `invisible - sans onglet ouvert rien ne se lance`() {
         // Prompt P1-b : « Ne lance rien si aucun onglet n'est ouvert » —
         // l'action n'est même pas proposée.
-        assertFalse(DecisionFormater.visible(ongletOuvert = false, sessionVivante = true))
+        assertFalse(DecisionFormater.visible(ongletOuvert = false, formateurDisponible = true))
     }
 
     @Test
-    public fun `invisible - onglet ouvert sans serveur de langue`() {
-        // Un .txt (ou un .java quand le moteur Java est absent) : la vue
-        // n'a AUCUN formateur à invoquer — l'action n'est pas proposée
-        // (phase 1 ; canFormat() prendra le relais en phase 2).
-        assertFalse(DecisionFormater.visible(ongletOuvert = true, sessionVivante = false))
+    public fun `invisible - onglet ouvert sans formateur`() {
+        // Un .txt (coloration seule — la déconnexion restaure
+        // EmptyLanguage) ou une capacité « Formatage » coupée dans
+        // l'écran Intelligence du code : `canFormat()` faux, l'action
+        // n'est pas proposée — la vue répond, la session n'est plus un
+        // proxy (phase 2 ; le serveur Kotlin, muet sur la mise en forme
+        // en 1.2.0, l'annonce depuis codeide-lsp 1.3.0).
+        assertFalse(DecisionFormater.visible(ongletOuvert = true, formateurDisponible = false))
     }
 
     // ── Le message de retour (TRUE se tait, FALSE confirme, NULL dit). ─
@@ -54,6 +60,19 @@ public class DecisionFormaterTest {
         // Kotlin (serveur sans mise en forme) ou un fichier sans serveur :
         // l'indisponibilité s'EXPLIQUE (message complet du prompt).
         assertEquals(R.string.editor_formater_indisponible, DecisionFormater.messagePour(resultat = null))
+    }
+
+    // ── Phase 2 : les MÊMES messages portent la sélection (D4). ─────
+
+    @Test
+    public fun `message - la selection partage les retours du document`() {
+        // `formatSelection` : `null` = aucun formateur ; `false` = refus
+        // propre (formateur sans plages, sélection déjà conforme) — le
+        // prompt §3.2.5 impose les MÊMES messages que le document ;
+        // `true` (texte modifié) reste silencieux : l'utilisateur le voit.
+        assertEquals(R.string.editor_formater_indisponible, DecisionFormater.messagePour(resultat = null))
+        assertEquals(R.string.editor_formater_deja, DecisionFormater.messagePour(resultat = false))
+        assertNull(DecisionFormater.messagePour(resultat = true))
     }
 
     // ── P1-a : le journal honnête — la résolution du langage. ──────────

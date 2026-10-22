@@ -58,11 +58,12 @@
         android:title="@string/editor_rechercher"
         app:showAsAction="never" />
 
-    <!-- ADR 0136 (P1-b) : mise en forme du document PAR LE SERVEUR de
-         langue de l'onglet actif (Java, XML — Kotlin ne l'annonce pas
-         encore) ; la commande clavier physique vivait déjà côté
-         bibliothèque, rien ne l'offrait au TOUCHER. Visible quand une
-         session de langue vit (phase 1 — canFormat() en phase 2). -->
+    <!-- ADR 0136 (D3/D4) : mise en forme du document PAR LE SERVEUR de
+         langue de l'onglet actif (Java, XML, et Kotlin depuis codeide-lsp
+         1.3.0 — ré-indentation seule) ; la commande clavier physique
+         vivait déjà côté bibliothèque, rien ne l'offrait au TOUCHER.
+         Visible quand le formateur est disponible (phase 2 : canFormat()
+         — la vue répond, plus de proxy de session). -->
     <item
         android:id="@+id/action_formater"
         android:icon="@drawable/ic_formater"

@@ -21,6 +21,7 @@ import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.channels.Channel
@@ -79,6 +80,15 @@ sealed interface ActionParametres {
     /** Change la licence par défaut proposée au wizard. */
     data class ChangerLicence(
         val licence: License,
+    ) : ActionParametres
+
+    /**
+     * Éditeur : largeur de tabulation des requêtes de mise en forme LSP
+     * (`setFormattingOptions`, réglage réintroduit v0.168.0 — ADR 0136
+     * phase 2, la promesse de l'ADR 0066 est tenue).
+     */
+    data class ChangerTailleTabulation(
+        val taille: TailleTabulation,
     ) : ActionParametres
 
     /**
@@ -374,6 +384,10 @@ class SettingsViewModel
 
                 is ActionParametres.ChangerTaillePoliceEditeur -> {
                     ecrireReglage("taille de police éditeur") { it.copy(editorTaillePolice = action.taille) }
+                }
+
+                is ActionParametres.ChangerTailleTabulation -> {
+                    ecrireReglage("largeur de tabulation") { it.copy(editorTailleTabulation = action.taille) }
                 }
 
                 else -> {

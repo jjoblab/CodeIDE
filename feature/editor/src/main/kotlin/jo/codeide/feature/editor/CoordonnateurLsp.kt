@@ -65,12 +65,19 @@ internal class CoordonnateurLsp(
      * définitions `definition()` de `:lsp:host`), le lie à la vue puis
      * connecte (asynchrone : le cycle LSP part en arrière-plan).
      *
+     * [quandBranche] est exécuté quand la connexion aboutit : le
+     * langage est posé au thread UI DANS ce même cycle (file FIFO de
+     * la vue — le rappel voit le résolveur) ; l'activité y
+     * re-évalue la disponibilité du formateur (`canFormat()`, ADR 0136
+     * phase 2 — la réponse n'est vraie qu'après la pose).
+     *
      * Exemption detekt ciblée (règle 16) : ReturnCount — chaque sortie
      * porte une DÉCISION distincte (déjà branché, projet cel-lsp
      * incréable, LspEditor incréable, branchement) avec son journal.
      * LongParameterList — une session PAR LANGUE (Java, Kotlin, XML :
-     * garde par langue, miroir de brancherLspSiNecessaire) : chaque
-     * paramètre est une frontière consommée, pas un regroupement.
+     * garde par langue, miroir de brancherLspSiNecessaire) plus le
+     * rappel de branchement : chaque paramètre est une frontière
+     * consommée, pas un regroupement.
      */
     @Suppress("ReturnCount", "LongParameterList")
     internal fun brancher(
@@ -80,6 +87,7 @@ internal class CoordonnateurLsp(
         uri: String,
         cheminFuse: String,
         vue: EditorView,
+        quandBranche: () -> Unit,
     ) {
         if (uriBranchee == uri && editeurCourant?.isConnected == true) return
         debrancher()
@@ -117,6 +125,10 @@ internal class CoordonnateurLsp(
                     null -> journal.w(TAG) { "LSP connecté sans langage reconnu ($cheminFuse) — coloration seule" }
                     else -> journal.i(TAG) { "LSP $langue connecté ($cheminFuse)" }
                 }
+                // ADR 0136 phase 2 : le rappel passe APRÈS la pose du
+                // langage (postée au thread UI plus tôt dans CE cycle —
+                // la file FIFO de la vue garantit l'ordre).
+                vue.post { quandBranche() }
             }.exceptionally { echec ->
                 journal.w(TAG, echec) { "LSP : échec de connexion ($cheminFuse) — coloration seule" }
                 null

@@ -1120,33 +1120,51 @@ d'architecture des interrupteurs y sont livrés.
    passe par le port et porte l'identifiant du projet ; refus honnête
    sans port ni session).
 
-## Capacités LSP fermées par défaut et action « Formater » (chantier LSP-fermeture → v0.167.0, ADR 0136)
+## Capacités LSP fermées par défaut et actions « Formater » (chantier LSP-fermeture → v0.167.0 + phase 2 v0.168.0, ADR 0136)
 
 Écran : éditeur (`EditorActivity`), plusieurs onglets de types DIFFÉRENTS ouverts dans le même
 espace (un `.java` ou `.kt`, un `.txt` sans serveur, un `.xml`). À vérifier sur appareil 360 dp,
-clair ET sombre, clavier logiciel présent. ⚠ **Les scénarios 2 à 4 échoueront tant que la montée
-code-editor 3.74.0 n'est pas consommée (phase 2 du chantier)** : le défaut ≤ 3.73.0
-(`disconnect()` n'enlève pas le `LspLanguage` de la vue) est corrigé DANS LA BIBLIOTHÈQUE —
-ADR 0136 D1 interdit tout contournement local ; noter l'écart constaté et le re-vérifier après
-la montée.
+clair ET sombre, clavier logiciel présent. La montée code-editor **3.74.0** (v0.168.0) referme
+les capacités à la DÉCONNEXION (`disconnect()` restaure `EmptyLanguage`, correction DANS LA
+bibliothèque — ADR 0136 D1/D4) : les scénarios 2 à 4 sont désormais VÉRIFIABLES tels quels.
 
 1. **Branchement honnête (P1-a)** — ouvrir un `.java` : le journal (écran Diagnostic) dit
-   « LSP Java connecté (…) » ; le menu « Formater » est PROPOSÉ. Ouvrir un `.txt` : le journal ne
-   dit JAMAIS « Java » pour lui (le coordinateur n'est d'ailleurs pas branché : pas de
-   complétion, pas de survol — coloration seule).
-2. **Fermeture des capacités au changement d'onglet (3.74.0 requis)** — sur le `.java` : taper,
-   attendre la complétion (elle apparaît) ; passer au `.txt` : AUCUNE complétion, AUCUN survol,
-   aucune marque de diagnostic, la mise en forme ne fait RIEN. Avec 3.73.0 : la complétion du
-   Java fuitera encore sur le `.txt` — écart CONNU, documenté ADR 0136 D1.
-3. **Retour au `.java` (3.74.0 requis)** — tout revient : complétion, survol, diagnostics,
-   formatage. La coloration du `.txt` reste lexicale.
-4. **Changement d'onglet très rapide pendant la connexion (3.74.0 requis)** — enchaîner
-   4-5 changements d'onglet au moment où le journal annonce la connexion : pas de marque
-   résiduelle sur l'onglet final, pas de plantage (le renoncement de branchement est journalisé).
-5. **Action « Formater » (P1-b, livré phase 1)** — sur un `.java` ou un `.xml` mal indenté :
-   le menu (toolbar, icône baguette, ou débordement si la toolbar est dense) FORMATE le document,
-   SUCCESSION d'une seule frappe à l'historique ; le texte modifié n'affiche AUCUN message. Sur un
-   document déjà conforme : « Déjà formaté ». Sur un `.kt` (le serveur Kotlin n'annonce pas la
-   mise en forme) : « Mise en forme indisponible pour ce fichier : aucun serveur ne la propose ou
-   elle est désactivée dans les réglages de langage ». Sur un onglet sans serveur (`.txt`) :
-   l'action N'EST PAS PROPOSÉE. Sans aucun onglet : le menu n'existe pas / ne lance rien.
+   « LSP Java connecté (…) » ; le menu « Formater » est PROPOSÉ (le formateur du Java est posé).
+   Ouvrir un `.txt` : le journal ne dit JAMAIS « Java » pour lui (le coordinateur n'est d'ailleurs
+   pas branché : pas de complétion, pas de survol — coloration seule).
+2. **Fermeture des capacités au changement d'onglet** — sur le `.java` : taper, attendre la
+   complétion (elle apparaît) ; passer au `.txt` : AUCUNE complétion, AUCUN survol, aucune
+   marque de diagnostic, la mise en forme ne fait RIEN, l'action « Formater » disparaît du menu
+   (`canFormat()` faux — le langage est retiré à la déconnexion).
+3. **Retour au `.java`** — tout revient : complétion, survol, diagnostics, formatage (l'action
+   « Formater » réapparaît — le rappel de branchement re-évalue la disponibilité APRÈS la pose
+   du langage). La coloration du `.txt` reste lexicale.
+4. **Changement d'onglet très rapide pendant la connexion** — enchaîner 4-5 changements d'onglet
+   au moment où le journal annonce la connexion : pas de marque résiduelle sur l'onglet final,
+   pas de plantage (le renoncement de branchement est journalisé), pas de complétion du langage
+   du fichier précédent (jeton de génération côté bibliothèque).
+5. **Action « Formater le document »** — sur un `.java` ou un `.xml` mal indenté : le menu
+   (toolbar, icône baguette, ou débordement si la toolbar est dense) FORMATE le document,
+   SUCCESSION d'une seule frappe à l'historique ; le texte modifié n'affiche AUCUN message. Sur
+   un document déjà conforme : « Déjà formaté ». Sur un `.kt` (le serveur Kotlin annonce
+   désormais la mise en forme depuis codeide-lsp 1.3.0 — RÉ-INDENTATION seule, le contenu
+   n'est jamais réécrit) : l'action RÉ-INDENTE, AUCUN message d'indisponibilité — il ne doit plus
+   apparaître que sur un onglet sans serveur (`.txt`, action MASQUÉE — `canFormat()` faux) ou
+   une capacité « Formatage » coupée dans l'écran Intelligence du code (message complet).
+   Sans aucun onglet : le menu n'existe pas / ne lance rien.
+6. **« Formater la sélection » (phase 2)** — sur le `.java`, SÉLECTIONNER une plage mal indentée :
+   la pill flottante porte « Formater la sélection » ; le tap ne formate QUE la sélection, en UN
+   seul pas d'undo (retour arrière retrouve l'état d'avant), le caret et la sélection
+   survivent, aucun message. Sélection déjà conforme : « Déjà formaté ». Les trois langages
+   servent le formatage de PLAGE depuis codeide-lsp 1.3.0 ; l'entrée reste GRISÉE quand la
+   capacité est coupée dans l'écran Intelligence du code ou le serveur muet.
+   Clavier physique branché : `Ctrl+Shift+K` formate la sélection (commande de la
+   bibliothèque).
+7. **Options de mise en forme (phase 2)** — Paramètres → Éditeur → carte Édition → « Largeur de
+   tabulation » : choisir 8, formatter un `.java` : l'indentation produite suit la largeur ;
+   les espaces remplacent les tabulations (politique ADR 0136 D6). Choisir 2 à l'éditeur OUVERT :
+   le formatage suivant l'applique sans redémarrage (réglage consommé au fil de l'eau).
+8. **Saisie et IME (attention 3.73.0)** — composer du texte (clavier Gboard/AOSP), retour de
+   sélection après retour arrière : l'IME est au niveau plateforme depuis la 3.73.0 — CodeIDE
+   n'a AUCUN contournement à retirer (vérifié : seul le filtre logcat masque le clavier), la
+   saisie doit être fluide, la composition et les suggestions intactes.

@@ -22,9 +22,13 @@ package jo.codeide.core.model
  * (feature:editor) — chaque champ projette une API réelle de cel-ui
  * (thème, zoom, retour à la ligne, minimap…). Les anciens réglages
  * « persistés avant consommation » jamais honorés par la bibliothèque
- * (numéros de ligne, surlignage de ligne, tabulation — toujours dessinés
- * ou auto-détectés par cel-ui) ont été retirés ; le terminal consomme
- * déjà style du curseur et copie de sélection.
+ * (numéros de ligne, surlignage de ligne — toujours dessinés par cel-ui)
+ * restent retirés ; la LARGEUR DE TABULATION, retirée au même titre
+ * (ADR 0066 : « réintroduits si la bibliothèque expose un jour les
+ * setters »), est RÉINTRODUITE en v0.168.0 : `setFormattingOptions`
+ * (code-editor 3.74.0) consomme le réglage dans les requêtes de mise
+ * en forme LSP ; le terminal consomme déjà style du curseur et copie
+ * de sélection.
  *
  * Section Tooling (v3 — écran de configuration de la console) : affichage
  * des tâches pendant le build, mode hors ligne et arguments Gradle libres
@@ -52,6 +56,10 @@ package jo.codeide.core.model
  * (`EditorView.setDiagnosticChipsEnabled`).
  * @property editorSauvegardeAuto sauvegarde à chaque perte de focus.
  * @property editorTaillePolice taille de police de l'éditeur.
+ * @property editorTailleTabulation largeur d'indentation des requêtes
+ * de mise en forme LSP (`EditorView.setFormattingOptions`, code-editor
+ * 3.74.0 — ADR 0136 phase 2 ; l'affichage reste auto-détecté par
+ * fichier côté bibliothèque, le réglage porte les requêtes serveur).
  * @property styleCurseurTerminal style du curseur de l'émulateur.
  * @property copieSelectionAuto copier la sélection du terminal dès sa fin.
  * @property workspace dossier de travail (ou `null` si non configuré).
@@ -89,6 +97,7 @@ public data class AppSettings(
     public val editorChipsDiagnostics: Boolean = true,
     public val editorSauvegardeAuto: Boolean = true,
     public val editorTaillePolice: TaillePoliceEditeur = TaillePoliceEditeur.MOYENNE,
+    public val editorTailleTabulation: TailleTabulation = TailleTabulation.QUATRE,
     public val styleCurseurTerminal: StyleCurseurTerminal = StyleCurseurTerminal.BLOC,
     public val copieSelectionAuto: Boolean = false,
     public val workspace: StorageLocation? = null,
