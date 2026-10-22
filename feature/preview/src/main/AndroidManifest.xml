@@ -8,10 +8,16 @@
          La session d'édition reste celle du EditorViewModel : elle est
          partagée par le registre des sources d'aperçu (:core:domain). -->
     <application android:supportsRtl="true">
+        <!-- v0.166.5 — `adjustResize` (miroir ADR 0118 de EditorActivity) :
+             l'écran aperçu REÇOIT les insets du CLAVIER — la feuille
+             inférieure déployée jusqu'à l'appbar redescend AU-DESSUS de
+             l'IME (hauteur des volets pilotée par l'activité), les champs
+             du volet Attributs restent visibles à la frappe. -->
         <activity
             android:name="jo.codeide.feature.preview.PreviewActivity"
             android:exported="false"
             android:label="@string/preview_titre"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.CodeIDE.Apercu" />
     </application>
 

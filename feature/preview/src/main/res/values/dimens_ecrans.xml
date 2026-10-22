@@ -140,7 +140,11 @@
     <dimen name="apercu_rangee_pad_h">8dp</dimen>  <!-- .row padding -->
     <dimen name="apercu_rangee_gap">8dp</dimen>  <!-- .row gap -->
     <dimen name="apercu_rangee_rayon">8dp</dimen>  <!-- .row radius -->
-    <dimen name="apercu_rangee_indent">16dp</dimen>  <!-- retrait par niveau : style.paddingLeft = 8 + profondeur x 16 -->
+    <!-- v0.166.5 : `apercu_rangee_indent` est retiré — le retrait par niveau
+         (8 + profondeur x 16 dp) vit ENTIER dans EntreeArbre.indentation
+         (:preview:xml, miroir `style.paddingLeft = (8 + f.d * 16)`), posé
+         tel quel par l'arbre ET le mini-arbre du popup (l'ancienne
+         remultiplication rangeait l'arbre hors de l'écran). -->
     <dimen name="apercu_monogramme">20dp</dimen>  <!-- .row .k -->
     <dimen name="apercu_monogramme_rayon">5dp</dimen>  <!-- .row .k radius -->
     <dimen name="apercu_badge_rangee_pad_v">2dp</dimen>  <!-- .row .badge padding -->

@@ -50,9 +50,11 @@ import java.io.File
  * le VRAI [PopupPlacement] sur les vues du rendu, le calque Relations
  * est le VRAI dessin de [VuePreviewXml] ([CalquesApercu.lignesRelations]
  * lues sur le texte). Les défauts du moteur constatés à la mesure
- * (voir [MesureRenduParentsTest] : F1/F2/F3/C1/F4, annexe ADR 0135)
- * restent VISIBLES sur les captures — c'est le RÔLE d'une paire de
- * recette : l'œil du propriétaire juge sur l'image, pas sur l'intention.
+ * (voir [MesureRenduParentsTest] : F1/F2/F3/F4, annexe ADR 0135 — C1 est
+ * CORRIGÉ en v0.166.5 : l'action bar du chrome se retire enfin pour la
+ * planche noBar du fil) restent VISIBLES sur les captures — c'est le
+ * RÔLE d'une paire de recette : l'œil du propriétaire juge sur l'image,
+ * pas sur l'intention.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])

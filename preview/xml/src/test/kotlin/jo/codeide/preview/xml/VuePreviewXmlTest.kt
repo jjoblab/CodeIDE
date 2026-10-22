@@ -117,6 +117,45 @@ class VuePreviewXmlTest {
     }
 
     @Test
+    fun `v0_166_5 - le zoom survit au resize du canvas par la feuille`() {
+        // Retour propriétaire prolongé : la FEUILLE inférieure retire le
+        // bas du canvas à chaque état (repli 78 dp, déploiement jusqu'à
+        // l'appbar) — le redimensionnement ne doit pas DÉZOOMER une
+        // planche déjà posée, seul le pan se re-borne (bornerPan).
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        vue.zoomer(2f)
+        val echelleUtilisateur = vue.echelleCourante
+        // Le canvas rétrécit (la feuille se déploie)…
+        vue.measure(512, 256)
+        vue.layout(0, 0, 512, 256)
+        assertEquals(
+            "le resize du canvas ne dézoome plus",
+            echelleUtilisateur,
+            vue.echelleCourante,
+            0.0001f,
+        )
+        // …puis se rouvre (la feuille se replie) : l'échelle tient toujours.
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        assertEquals(echelleUtilisateur, vue.echelleCourante, 0.0001f)
+    }
+
+    @Test
+    fun `v0_166_5 - le premier dimensionnement d une planche posee s ajuste`() {
+        // Le bitmap arrive AVANT le premier layout (vue non mesurée) : le
+        // report d'ajustement doit FIT à la première mesure (comportement
+        // inchangé par le gardien plancheAjustee).
+        val vue = vue()
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        assertEquals(512f / 234f, vue.echelleCourante, 0.0001f)
+    }
+
+    @Test
     fun `mesure layout dessin - aucun lever`() {
         val vue = vue()
         vue.measure(512, 512)

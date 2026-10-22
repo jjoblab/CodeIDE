@@ -7,17 +7,18 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.ui.AppNavigator
-import jo.codeide.core.ui.applySystemBarsInsets
 import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuAppareilBinding
 import jo.codeide.feature.preview.databinding.PopoverMenuCalquesBinding
@@ -177,17 +178,29 @@ public class PreviewActivity :
     /** La cible dérivée (miroir `placeTarget`) — le repère suit. */
     private var ciblePlacement: ZonesDepot.CibleDepot? = null
 
+    /**
+     * Le gestionnaire de la FEUILLE inférieure (v0.166.5) : géométrie
+     * déléguée — peek, insets (navigation + clavier), hauteur des volets
+     * et retrait du canvas ([GestionnaireFeuilleApercu]).
+     */
+    private lateinit var feuilleApercu: GestionnaireFeuilleApercu
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         liaison = ActivityPreviewBinding.inflate(layoutInflater)
         setContentView(liaison.root)
 
+        // v0.166.5 : le GESTIONNAIRE de la feuille vit AVANT tout branchement
+        // (l'écouteur d'insets le référence) — montage juste après.
+        feuilleApercu = GestionnaireFeuilleApercu(liaison, supportFragmentManager)
         // PE11i (ADR 0134 D1) : plus d'ActionBar — la barre du haut est un
         // LinearLayout de 52 dp ; l'inset de barre d'état va à l'EN-TÊTE
         // (fond surface), le menu « Choisir le fichier… » s'ouvre par un
-        // PopupMenu ancré au bouton « plus ».
-        liaison.entetePreview.applySystemBarsInsets(top = true, bottom = false)
+        // PopupMenu ancré au bouton « plus ». v0.166.5 : UN SEUL écouteur
+        // d'insets pour l'écran (barre d'état → entête, barre de navigation
+        // + CLAVIER → gestionnaire de la feuille — ADR 0118).
+        brancherInsets()
         liaison.boutonRetour.setOnClickListener { navigateur.goBack() }
         liaison.boutonPlus.setOnClickListener { ouvrirMenuPlus() }
         // PE11i (D7) : les JETONS du moteur sont posés AVANT tout tracé.
@@ -207,7 +220,9 @@ public class PreviewActivity :
                 brancherCollections()
             }
         }
-        monterFeuille()
+        // v0.166.5 : le montage de la feuille passe par le GESTIONNAIRE
+        // (géométrie déléguée — peek, insets, volets, retrait du canvas).
+        feuilleApercu.monter()
         majTitre()
         majBarreEdition()
     }
@@ -346,87 +361,27 @@ public class PreviewActivity :
     }
 
     /**
-     * La feuille inférieure (PE6d) : le fragment porte son contenu —
-     * l'activité pose le BottomSheetBehavior, le HUD de zoom REMONTE au
-     * déploiement (miroir `applySheet` : `status/zoom .bottom` suive la
-     * feuille) et la bulle ÉVITE la zone déployée.
+     * Les INSETS de la fenêtre, en UN SEUL point (v0.166.5) : la barre
+     * d'état devient le padding haut de l'ENTÊTE (ancien
+     * `applySystemBarsInsets`), la barre de navigation et le CLAVIER vont
+     * au gestionnaire de la feuille (géométrie — le manifest porte
+     * `adjustResize`, miroir ADR 0118 de l'éditeur). Les insets sont
+     * rendus NON consommés : les autres écouteurs de la hiérarchie
+     * continuent de les recevoir.
      */
-    private fun monterFeuille() {
-        supportFragmentManager
-            .beginTransaction()
-            .replace(R.id.conteneur_feuille, FeuilleApercuFragment())
-            .commit()
-        supportFragmentManager.executePendingTransactions()
-        // Le comportement vit sur le CONTENEUR (enfant direct du
-        // CoordinatorLayout, app:layout_behavior du XML) — PAS sur la
-        // vue du fragment (enfant du conteneur : from() planterait).
-        val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
-        comportement.addBottomSheetCallback(
-            object : BottomSheetBehavior.BottomSheetCallback() {
-                override fun onStateChanged(
-                    vue: View,
-                    etat: Int,
-                ) {
-                    // PE10 : plus de compaction — la feuille recouvre le
-                    // rendu (miroir applySheet) ; les états posés fixent
-                    // la glissade (expanded = tout déployé, sinon repli).
-                    val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
-                    val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
-                    majGlissadeFeuille(
-                        if (etat == BottomSheetBehavior.STATE_EXPANDED) delta else 0f,
-                    )
-                }
-
-                override fun onSlide(
-                    vue: View,
-                    decalage: Float,
-                ) {
-                    val feuille = liaison.conteneurFeuille.getChildAt(0) ?: return
-                    val delta = (feuille.height - comportement.peekHeight).coerceAtLeast(0).toFloat()
-                    majGlissadeFeuille(delta * decalage)
-                }
-            },
-        )
-        // PE11l (bug rapporté par le propriétaire : « Zoom / Rendu · N vues
-        // s'affichent normalement seulement après avoir déployé la
-        // feuille ») : la glissade n'était posée que par les CALLBACKS
-        // (onStateChanged/onSlide) — au lancement, la feuille est
-        // REPLIÉE et AUCUN callback n'a encore tiré : le HUD de zoom et
-        // la pastille d'état restaient posés au bord, SOUS l'entête
-        // visible (peek). La pose INITIALE (feuille repliée, part
-        // déployée nulle) suit le même montage que la maquette
-        // (`applySheet` au chargement) : le fragment est déjà monté et
-        // le peek posé (executePendingTransactions ci-dessus), les
-        // formules [GlissadeFeuilleApercu] font le reste.
-        majGlissadeFeuille(0f)
-    }
-
-    /**
-     * La GLISSADE de la feuille (PE10a — miroir `applySheet` de la
-     * maquette : `status/zoom .bottom` suivent la feuille) : le HUD de
-     * zoom et la PASTILLE D'ÉTAT glissent au-dessus du bord COURANT de
-     * la feuille (peek compris — correctif PE11k : repliée, l'entête
-     * recouvrait les deux pièces), la bulle ÉVITE la zone visible.
-     */
-    private fun majGlissadeFeuille(deployeePx: Float) {
-        // Garde : la vue de la feuille doit exister (le fragment est monté).
-        liaison.conteneurFeuille.getChildAt(0) ?: return
-        val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
-        // La bulle ne glisse pas SOUS la feuille déployée
-        // (miroir le `hi` de `placeBubble` qui suit `S.open`).
-        // PE11k : la réserve de la bulle et la translation des pièces
-        // basses partent du PEEK — formules pures [GlissadeFeuilleApercu].
-        liaison.hudZoom.translationY =
-            GlissadeFeuilleApercu.translationHud(comportement.peekHeight, deployeePx.toInt())
-        liaison.pastilleEtat.translationY = liaison.hudZoom.translationY
-        liaison.bullePalette.reserveBas =
-            GlissadeFeuilleApercu.reserveBulle(
-                hudPx = liaison.hudZoom.height,
-                margePx = resources.getDimensionPixelSize(R.dimen.apercu_hud_marge),
-                peekPx = comportement.peekHeight,
-                deployeePx = deployeePx.toInt(),
+    private fun brancherInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(liaison.racinePreview) { _, insets ->
+            val barres =
+                insets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout(),
+                )
+            liaison.entetePreview.updatePadding(top = barres.top)
+            feuilleApercu.poserInsets(
+                bas = barres.bottom,
+                clavier = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom,
             )
-        liaison.bullePalette.reposer()
+            insets
+        }
     }
 
     /**
