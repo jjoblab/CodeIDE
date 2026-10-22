@@ -1,11 +1,19 @@
 package jo.codeide.preview.xml
 
-import android.graphics.Color
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
+import jo.layoutlib.inflater.bridge.bars.ChromeSysteme
+import jo.layoutlib.inflater.bridge.bars.ConfigChrome
+import jo.layoutlib.inflater.bridge.bars.ModeNavigation
+import jo.layoutlib.inflater.bridge.bars.ModePlacementDecor
+import jo.layoutlib.inflater.bridge.bars.NavigationBar
+import jo.layoutlib.inflater.bridge.bars.NavigationHandle
+import jo.layoutlib.inflater.bridge.bars.StatusBar
+import jo.layoutlib.resources.api.ActionBarCallback
 import jo.layoutlib.themes.ThemeResolverImpl
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -15,19 +23,21 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Le CHROME SYSTÈME du rendu (PE11j — ADR 0134, miroir `.sbar`/`.abar`/
- * `.nbar` de la maquette) : l'enveloppement pose status bar + action
- * bar + contenu, puis la BARRE DE NAVIGATION optionnelle (48 dp, trois
- * glyphes) commandée par [RequeteRendu.barreNavigation] — l'interrupteur
- * « Barre de navigation » du groupe « Chrome système » du menu Calques.
+ * Le CHROME SYSTÈME possédé par le MOTEUR de rendu (PE13, ADR 0137) : les
+ * vues maquette transportées telles quelles dans le frère
+ * (LayoutLib `bridge/bars` — v3.5.0), pilotées par la CONFIG DE SESSION
+ * [ConfigChrome] (titre résolu, surcharge « Barre de navigation » du menu
+ * Calques, capacités étape 5). Ce module n'en construit plus AUCUNE — le
+ * test consomme l'API du frère (Robolectric ; le frère ne teste que la
+ * partie PURE en JVM, philosophie inchangée).
  *
- * v0.166.5 (retour propriétaire : « le statutbar n'est pas similaire à
- * celui de la maquette (n'a pas les icônes) et le appbar est peut-être
- * trop gros ») : la status bar porte son CONTENU maquette (heure « 9:41 »
- * + « 5G ▮▮▮ 100% » — [GlyphesBarreStatut]) et le correctif C1 (ADR 0135)
- * lit ENFIN `windowNoTitle`/`windowActionBar`/`windowFullscreen` —
- * l'action bar se retire pour un thème sans barre (l'appbar « trop gros »
- * venait de l'abar du chrome incrustée PAR-DESSUS la toolbar du document).
+ * Historique des assertions (transportées de v0.166.5, garde-fou G2 —
+ * zéro changement visuel) : le chrome pose status bar + action bar +
+ * contenu, puis la barre de navigation OPTIONNELLE en 4e pièce ; la status
+ * bar porte ses glyphes maquette (9:41 / 5G ▮▮▮ 100%) ; le correctif C1
+ * (ADR 0135) retire l'action bar des thèmes `windowNoTitle` ; la nuit —
+ * désormais RÉGIME DES RÉSOLVEURS (ADR 0137 D2) — pilote les couleurs par
+ * défaut de la planche par `ThemeResolver.isNightMode()`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
@@ -35,19 +45,32 @@ class ChromeSystemeTest {
     /** Un contenu témoin (une vue sans enfant). */
     private fun contenu(): View = View(ApplicationProvider.getApplicationContext())
 
-    /** Le chrome à tester (resolver null → couleurs par défaut, précédent v0.133.2). */
+    /** Le chrome moteur à tester — config de session par défaut + titre. */
     private fun chrome(
-        nuit: Boolean = false,
-        barreNavigation: Boolean = true,
+        config: ConfigChrome = configDefaut(),
         themeResolver: ThemeResolverImpl? = null,
     ): ChromeSysteme =
         ChromeSysteme(
             ApplicationProvider.getApplicationContext(),
             themeResolver,
-            titreActivite = "Titre",
-            nuit = nuit,
-            barreNavigation = barreNavigation,
+            config,
         )
+
+    /** La config nominale de session (miroir de RenduLayoutLib). */
+    private fun configDefaut(
+        barreNavigation: Boolean? = true,
+        modePlacement: ModePlacementDecor = ModePlacementDecor.PADDE_PAR_DEFAUT,
+        modeNavigation: ModeNavigation = ModeNavigation.TROIS_BOUTONS,
+        callback: ActionBarCallback = ActionBarCallback.parDefaut(),
+    ): ConfigChrome =
+        ConfigChrome
+            .Builder()
+            .appLabel("Titre")
+            .surchargeNavigationBar(barreNavigation)
+            .modePlacement(modePlacement)
+            .modeNavigation(modeNavigation)
+            .actionBarCallback(callback)
+            .build()
 
     /** Un résolveur réel nourri d'un themes.xml inline, thème courant posé. */
     private fun resolver(
@@ -59,8 +82,8 @@ class ChromeSystemeTest {
             setTheme(theme)
         }
 
-    /** themes.xml de test : un thème SANS barre (miroir du fil noBar). */
-    private val themesSansBarre: String =
+    /** themes.xml de test : les trois régimes de fenêtre du fil historique. */
+    private val themesFenetres: String =
         """
         <resources>
             <style name="Theme.Test.SansBarre">
@@ -80,17 +103,18 @@ class ChromeSystemeTest {
 
     @Test
     fun `la barre de navigation est rendue en quatrieme piece quand elle est active`() {
-        val conteneur = chrome(barreNavigation = true).envelopper(contenu(), 1f) as ViewGroup
+        val conteneur = chrome().envelopper(contenu(), 1f) as ViewGroup
         // status bar + action bar + contenu + barre de navigation.
         assertEquals(4, conteneur.childCount)
         val barre = conteneur.getChildAt(3)
         assertEquals(48, barre.layoutParams.height)
-        assertTrue("la barre porte les glyphes", barre.javaClass.simpleName == "GlyphesBarreNavigation")
+        assertTrue("la barre porte les trois glyphes", barre is NavigationBar)
     }
 
     @Test
     fun `la barre de navigation disparait quand l interrupteur est eteint`() {
-        val conteneur = chrome(barreNavigation = false).envelopper(contenu(), 1f) as ViewGroup
+        val conteneur =
+            chrome(configDefaut(barreNavigation = false)).envelopper(contenu(), 1f) as ViewGroup
         // status bar + action bar + contenu — pas de quatrième pièce.
         assertEquals(3, conteneur.childCount)
     }
@@ -103,86 +127,185 @@ class ChromeSystemeTest {
     }
 
     @Test
-    fun `v0_166_5 - la status bar porte l heure et les icones de la maquette`() {
+    fun `la status bar porte l heure et les icones de la maquette`() {
         // Miroir `.sbar` (ligne 1080) : « 9:41 » à gauche, « 5G ▮▮▮ 100% »
-        // à droite — une View NUE ne suffit plus, le contenu se dessine.
-        val conteneur = chrome(barreNavigation = false).envelopper(contenu(), 1f) as ViewGroup
+        // à droite — la vue du MOTEUR dessine le contenu maquette.
+        val conteneur =
+            chrome(configDefaut(barreNavigation = false)).envelopper(contenu(), 1f) as ViewGroup
         val barre = conteneur.getChildAt(0)
         assertEquals(24, barre.layoutParams.height)
-        assertTrue("la barre porte l'heure et les icônes", barre.javaClass.simpleName == "GlyphesBarreStatut")
+        assertTrue("la barre porte l'heure et les icônes", barre is StatusBar)
     }
 
     @Test
-    fun `v0_166_5 - correctif c1 - l action bar se retire quand le theme declare windowNoTitle`() {
-        // Le fil « noBar » de la maquette : `Theme.Mesure.SansBarre` porte
-        // windowNoTitle=true + windowActionBar=false — AVANT le correctif,
-        // attrBool lisait getStyleAttribute(null, …) = TOUJOURS null et
-        // l'abar incrustait le document (constat C1 de l'ADR 0135).
-        val resolver = resolver(themesSansBarre, "Theme.Test.SansBarre")
-        val conteneur = chrome(barreNavigation = false, themeResolver = resolver).envelopper(contenu(), 1f) as ViewGroup
+    fun `le titre de l activite est pose dans l action bar`() {
+        val conteneur =
+            chrome(configDefaut(barreNavigation = false)).envelopper(contenu(), 1f) as ViewGroup
+        val barre = conteneur.getChildAt(1) as ViewGroup
+        assertEquals("l'action bar maquette porte le titre seul", 1, barre.childCount)
+        val titre = barre.getChildAt(0) as TextView
+        assertEquals("Titre", titre.text.toString())
+        assertEquals(20f, titre.textSize)
+    }
+
+    @Test
+    fun `correctif c1 - l action bar se retire quand le theme declare windowNoTitle`() {
+        // Le fil « noBar » de la maquette : `windowNoTitle=true` +
+        // `windowActionBar=false` — l'abar du chrome n'incruste plus le
+        // document (constat C1 de l'ADR 0135, transporté côté moteur).
+        val resolver = resolver(themesFenetres, "Theme.Test.SansBarre")
+        val conteneur =
+            chrome(configDefaut(barreNavigation = false), resolver).envelopper(contenu(), 1f) as ViewGroup
         // status bar + contenu, PAS d'action bar.
         assertEquals(2, conteneur.childCount)
     }
 
     @Test
-    fun `v0_166_5 - l action bar reste posee quand le theme garde windowActionBar`() {
-        val resolver = resolver(themesSansBarre, "Theme.Test.AvecBarre")
-        val conteneur = chrome(barreNavigation = false, themeResolver = resolver).envelopper(contenu(), 1f) as ViewGroup
+    fun `l action bar reste posee quand le theme garde windowActionBar`() {
+        val resolver = resolver(themesFenetres, "Theme.Test.AvecBarre")
+        val conteneur =
+            chrome(configDefaut(barreNavigation = false), resolver).envelopper(contenu(), 1f) as ViewGroup
         // status bar + action bar + contenu.
         assertEquals(3, conteneur.childCount)
     }
 
     @Test
-    fun `v0_166_5 - windowFullscreen retire aussi la status bar`() {
+    fun `windowFullscreen retire aussi la status bar`() {
         // Plein écran : ni status bar ni action bar — le chrome rend le
-        // CONTENU TEL QUEL (retour anticipé, précédent v0.133.2).
-        val resolver = resolver(themesSansBarre, "Theme.Test.PleinEcran")
+        // CONTENU TEL QUEL (retour anticipé, miroir v0.133.2).
+        val resolver = resolver(themesFenetres, "Theme.Test.PleinEcran")
         val temoin = contenu()
-        val enveloppe = chrome(barreNavigation = false, themeResolver = resolver).envelopper(temoin, 1f)
+        val enveloppe =
+            chrome(configDefaut(barreNavigation = false), resolver).envelopper(temoin, 1f)
         assertTrue("sans barres le contenu se rend tel quel", enveloppe === temoin)
     }
 
     @Test
-    fun `v0_166_5 - les fonds par defaut suivent la maquette jour et nuit`() {
-        // Resolver absent : les défauts prennent les jetons de la planche
-        // (--s-dark/--s-pri : indigo #2B2F7A/#43559E jour, #0C1030/#BAC4FF
-        // nuit) — plus le teal Material des premières versions.
-        val clair = chrome(nuit = false, barreNavigation = false).envelopper(contenu(), 1f) as ViewGroup
-        val nuit = chrome(nuit = true, barreNavigation = false).envelopper(contenu(), 1f) as ViewGroup
+    fun `les fonds par defaut suivent la maquette jour et nuit - regime des resolveurs`() {
+        // ADR 0137 D2 : PLUS de drapeau nuit — le régime vit dans le
+        // RÉSOLVEUR (isNightMode). Resolver absent : couleurs jour de la
+        // planche ; résolveur minimal en régime nuit : couleurs nuit.
+        val clair = chrome(configDefaut(barreNavigation = false)).envelopper(contenu(), 1f) as ViewGroup
         assertEquals(
-            Color.parseColor("#2B2F7A"),
+            android.graphics.Color.parseColor("#2B2F7A"),
             (clair.getChildAt(0).background as android.graphics.drawable.ColorDrawable).color,
         )
         assertEquals(
-            Color.parseColor("#43559E"),
+            android.graphics.Color.parseColor("#43559E"),
             (clair.getChildAt(1).background as android.graphics.drawable.ColorDrawable).color,
         )
+        val resolverNuit =
+            ThemeResolverImpl().apply {
+                registerThemesFile(themesFenetres)
+                setTheme("Theme.Test.AvecBarre")
+                setNightMode(true)
+            }
+        val nuit =
+            chrome(configDefaut(barreNavigation = false), resolverNuit).envelopper(contenu(), 1f) as ViewGroup
         assertEquals(
-            Color.parseColor("#0C1030"),
+            android.graphics.Color.parseColor("#0C1030"),
             (nuit.getChildAt(0).background as android.graphics.drawable.ColorDrawable).color,
         )
         assertEquals(
-            Color.parseColor("#BAC4FF"),
+            android.graphics.Color.parseColor("#BAC4FF"),
             (nuit.getChildAt(1).background as android.graphics.drawable.ColorDrawable).color,
         )
     }
 
     @Test
-    fun `v0_166_5 - la lisibilite du contenu suit la luminance du fond`() {
-        // Sombre (indigo de la planche) → contenu BLANC ; clair (primaire
-        // nuit #BAC4FF) → contenu SOMBRE #0C2264 (miroir --s-onpri).
-        assertEquals(Color.WHITE, LisibiliteChrome.couleurContenu(Color.parseColor("#2B2F7A")))
-        assertEquals(Color.WHITE, LisibiliteChrome.couleurContenu(Color.parseColor("#43559E")))
-        assertEquals(Color.parseColor("#0C2264"), LisibiliteChrome.couleurContenu(Color.parseColor("#BAC4FF")))
-        assertEquals(Color.parseColor("#0C2264"), LisibiliteChrome.couleurContenu(Color.WHITE))
+    fun `la barre de navigation suit aussi le regime nuit`() {
+        // Miroir `.nbar` nuit : fond #000 (--s-sys) — même sans thème posé,
+        // le résolveur porte le régime (PE13, ADR 0137 D2).
+        val resolverNuit = ThemeResolverImpl().apply { setNightMode(true) }
+        val conteneur =
+            chrome(configDefaut(), resolverNuit).envelopper(contenu(), 1f) as ViewGroup
+        assertEquals(
+            android.graphics.Color.parseColor("#000000"),
+            (conteneur.getChildAt(3).background as android.graphics.drawable.ColorDrawable).color,
+        )
     }
 
     @Test
-    fun `v0_166_5 - la luminance relative suit rec 709`() {
-        // 0.2126 R + 0.7152 V + 0.0722 B — blanc 1, noir 0, rouge pur
-        // 0.2126 ; le seuil de bascule vaut 0.5.
-        assertEquals(1.0, LisibiliteChrome.luminanceRelative(Color.WHITE), 0.0001)
-        assertEquals(0.0, LisibiliteChrome.luminanceRelative(Color.BLACK), 0.0001)
-        assertEquals(0.2126, LisibiliteChrome.luminanceRelative(Color.RED), 0.0001)
+    fun `surimpression - le contenu reste plein cadre, les insets restent exposes`() {
+        // ADR 0137 D3 : en SURIMPRESSION le contenu est mesuré PLEIN CADRE
+        // (FrameLayout plein cadre, barres PAR-DESSUS) et les insets restent
+        // la vérité à consommer en aval.
+        val chromeSurimpression = chrome(configDefaut(modePlacement = ModePlacementDecor.SURIMPRESSION))
+        val decor = chromeSurimpression.envelopper(contenu(), 1f) as ViewGroup
+        assertTrue("le décor surimpression est un FrameLayout", decor is FrameLayout)
+        val insets = chromeSurimpression.insets()
+        assertEquals("inset haut = status bar + action bar", 24 + 56, insets.haut)
+        assertEquals("inset bas = barre de navigation", 48, insets.bas)
+        // Le contenu est PREMIER enfant (dessiné SOUS les barres).
+        assertTrue(decor.getChildAt(0) is FrameLayout)
+    }
+
+    @Test
+    fun `mode padde - les insets valent les barres posees`() {
+        // PADDE : même valeurs d'insets — le contenu est déjà posé sous les
+        // barres (comportement nominal, garde-fou G2).
+        val chromePadde = chrome(configDefaut())
+        chromePadde.envelopper(contenu(), 1f)
+        val insets = chromePadde.insets()
+        assertEquals(24 + 56, insets.haut)
+        assertEquals(48, insets.bas)
+        assertEquals(0, insets.gauche)
+        assertEquals(0, insets.droite)
+    }
+
+    @Test
+    fun `mode gestuel - la pilule remplace les trois boutons`() {
+        // ADR 0137 D6 : ModeNavigation.GESTUELLE — la pilule 48×4 remplace
+        // les trois glyphes dans la zone 48 dp (capacité moteur, sans UI).
+        val conteneur =
+            chrome(configDefaut(modeNavigation = ModeNavigation.GESTUELLE))
+                .envelopper(contenu(), 1f) as ViewGroup
+        val barre = conteneur.getChildAt(3)
+        assertTrue("la zone gestuelle porte la pilule", barre is NavigationHandle)
+        assertEquals(48, barre.layoutParams.height)
+    }
+
+    @Test
+    fun `fleche retour et debordement suivent le callback de l action bar`() {
+        // ADR 0137 D6 : la flèche retour (homeAsUp) et le bouton ⋮
+        // (popupDebordement) sont pilotés par ActionBarCallback — défauts
+        // MAQUETTE : titre seul.
+        val avecTout =
+            chrome(
+                configDefaut(
+                    barreNavigation = false,
+                    callback = ActionBarCallback(true, true, null),
+                ),
+            ).envelopper(contenu(), 1f) as ViewGroup
+        val barreTout = avecTout.getChildAt(1) as ViewGroup
+        // flèche + titre + espace (poids) + débordement.
+        assertEquals(4, barreTout.childCount)
+        assertEquals("la flèche retour ouvre la barre", "FlecheRetour", barreTout.getChildAt(0).javaClass.simpleName)
+        assertEquals(
+            "le bouton de débordement clôt la barre",
+            "Debordement",
+            barreTout.getChildAt(3).javaClass.simpleName,
+        )
+        val sansRien = chrome(configDefaut(barreNavigation = false)).envelopper(contenu(), 1f) as ViewGroup
+        assertEquals(1, (sansRien.getChildAt(1) as ViewGroup).childCount)
+    }
+
+    @Test
+    fun `surcharge status bar - force la barre d un theme plein ecran`() {
+        // ADR 0137 D1 : la SURCHARGE utilisateur gagne sur le thème (le
+        // menu Calques force la présence même si windowFullscreen retire).
+        val resolver = resolver(themesFenetres, "Theme.Test.PleinEcran")
+        val config =
+            ConfigChrome
+                .Builder()
+                .appLabel("Titre")
+                .surchargeStatusBar(true)
+                .surchargeNavigationBar(false)
+                .build()
+        val conteneur = chrome(config, resolver).envelopper(contenu(), 1f) as ViewGroup
+        // La status bar est revenue (surcharge) ; l'action bar reste
+        // retirée (windowNoTitle, pas de surcharge) ; pas de barre nav.
+        assertEquals("status bar + contenu", 2, conteneur.childCount)
+        assertTrue(conteneur.getChildAt(0) is StatusBar)
     }
 }

@@ -1,5 +1,97 @@
 # Journal des modifications
 
+## [0.169.0] – 2026-10-23
+
+### Le chrome système passe au moteur de rendu : LayoutLib 3.5.0, zéro vue chrome côté IDE, un seul espace de coordonnées — PE13 (ADR 0137)
+
+#### Modifié
+
+- **LE MOTEUR POSSÈDE LE CHROME (ADR 0137, option B)** — l'architecture
+  validée par l'étude croisée AOSP (`docs/PE13-chrome-systeme-moteur-etude.md`)
+  est exécutée : la session de rendu de référence crée et possède le décor
+  (`Layout.Builder`, `bars/*`), l'IDE n'écrit pas un pixel de chrome. Le frère
+  **LayoutLib passe 3.4.9 → 3.5.0** (tag `v3.5.0`, GitHub Packages) : le
+  paquet `bridge/bars` cesse d'être des stubs morts (zéro usager vérifié) et
+  devient le décor RÉEL — `StatusBar` (glyphes maquette « 9:41 / 5G ▮▮▮
+  100% »), `NavigationBar` (trois glyphes), `NavigationHandle` (pilule
+  gestuelle), `FrameworkActionBar` (titre + capacités), `ChromeSysteme`
+  (factory du décor), `ConfigChrome` (config de session, miroir
+  `SessionParams`), `LisibiliteChrome` (pur, testé JVM), `DimensChrome`
+  (LA source unique des hauteurs), `InsetsDecor` + `ModePlacementDecor`
+  (PADDE_PAR_DEFAUT | SURIMPRESSION), collecte DUALE
+  `ViewInfoCollector.collectDecor` (contenu translaté bitmap + décor marqué
+  `ViewType`), `SystemViewInfo`/`ActionBarCallback` prennent leurs vraies
+  sémantiques AOSP, le contrat `ThemeResolver.isNightMode()` est ajouté
+  (l'implémentation existait déjà). Stubs `Config`/`TitleBar` supprimés.
+- **`ChromeSysteme.kt` QUITTE `:preview:xml` (517 lignes supprimées)** : le
+  pipeline ne construit plus AUCUNE vue chrome. `RenduLayoutLib` décrit la
+  SESSION dans un `ConfigChrome` — titre RÉSOLU (label d'activité, miroir
+  `getAppLabel()`) + la SURCHARGE « Barre de navigation » du menu Calques
+  (PE11j) — et le moteur décide de TOUT le reste : présences DÉRIVÉES du
+  thème (`windowFullscreen`, `windowNoTitle`/`windowActionBar` — correctif
+  C1/ADR 0135 conservé), couleurs résolues (`statusBarColor` >
+  `colorPrimaryDark` > jetons `--s-dark`/`--s-pri` de la planche),
+  hauteurs, insets, décor.
+- **LA NUIT DEVIENT LE RÉGIME DES RÉSOLVEURS (D2, nuance tranchée)** : plus
+  de drapeau `nuit` dans le chrome — il relit `ThemeResolver.isNightMode()`.
+  Le repli natif (dossier `res/` absent) passe un résolveur MINIMAL porteur
+  du régime (`setNightMode(requete.nuit)`), si bien que les couleurs par
+  défaut jour/nuit de la planche restent rendues À L'IDENTIQUE (garde-fou
+  G2) : une seule source de vérité, jamais deux contradictoires.
+- **LES INSETS SONT EXPLICITES (D3)** : le moteur CALCULE les insets
+  (`InsetsDecor` : haut = status bar + action bar posées, bas = barre de
+  navigation) et les expose à la collecte ; le mode
+  `ModePlacementDecor.SURIMPRESSION` mesure le contenu PLEIN CADRE et
+  laisse les barres par-dessus (l'équivalent déterministe du
+  edge-to-edge Android 15+), disponible pour une future surcouche
+  « cutout ». Le mode nominal PADDE est pixel-identique au chrome
+  historique.
+- **`decalageContenuDansArbreRendu` SUPPRIMÉ (D5)** : le recalage IDE v0.134.2
+  devient une propriété DU MOTEUR — `ViewInfoCollector.collectDecor`
+  produit les bounds du contenu DÉJÀ translatées dans l'espace bitmap
+  (miroir du `visitAllChildren` AOSP, l'offset appliqué à la collecte).
+  Le contrat `InfoVueRendu` (bounds absolues bitmap) et la frontière AIDL
+  ne bougent pas d'un pixel (G3) ; les tests de sélection (P6/X4) restent
+  verts SANS RETOUCHE (R3) — le même espace de coordonnées pour draw,
+  hit-test et surlignage, désormais garanti par construction.
+- **`ResultatRendu.nombreVues` COMPTE LE CONTENU SEUL** (changement de
+  SÉMANTIQUE, ADR 0137 D5) : la pastille « rendue • n vues » parle des vues
+  de l'UTILISATEUR, pas du chrome — un document à 5 vues affiche « 5 vues »,
+  le décor ne s'ajoute plus au compte. Le champ AIDL et son type ne changent
+  pas ; seule sa sémantique s'ajuste (documenté ici noir sur blanc).
+- **LES HAUTEURS ONT UNE SEULE SOURCE DE VÉRITÉ (D4, garde-fou G1)** :
+  `DimensChrome` (moteur) — repli maquette 24/48/56 dp ; `actionBarSize` du
+  thème est DÉSORMAIS honoré quand l'attribut y est déclaré (miroir
+  `Layout.Builder` AOSP, nouveaux rendus 64 dp si le thème le demande).
+  L'étude note que le repli du moteur de référence serait 25 dp : nous
+  gardons 24 dp = maquette `apercu-xml.html` (`.sbar`), tout écart futur se
+  tranchera avec le propriétaire, jamais silencieusement.
+
+#### Ajouté
+
+- **Capacités moteur étape 5, aux DÉFAUTS MAQUETTE (D6)** : mode GESTUEL de
+  la barre de navigation (`NavigationHandle`, pilule 48×4 dp —
+  `ConfigChrome.modeNavigation`), flèche retour + bouton de débordement de
+  l'action bar (`ActionBarCallback.homeAsUp`/`popupDebordement`, miroir du
+  callback AOSP), sous-titre. AUCUNE UI CodeIDE n'est ajoutée (la planche
+  v6 ne les montre pas) : le moteur est PRÊT, le branchement d'un réglage
+  reste un chantier séparé si le propriétaire le demande.
+- **`windowLightStatusBar` HONORÉ** en plus de la luminance
+  (`LisibiliteChrome.couleurContenu(fond, explicite)`) : un thème qui
+  déclare l'attribut gagne sur la bascule automatique blanc ↔ `#0C2264` —
+  le moteur de référence v32 n'a pas cet attribut, c'est une amélioration
+  assumée (étude §3.5).
+- **Tests** : `ChromeSystemeTest` réécrit CONTRE l'API du frère (15 tests
+  Robolectric : transport des 10 assertions historiques v0.166.5 — G2 —
+  + surimpression, insets, mode gestuel, flèche/débordement, surcharge
+  status bar, régime nuit par résolveur) ; 23 tests JVM purs dans le frère
+  (`LisibiliteChromeTest`, `ChromeSystemeDecisionsTest`, `ConfigChromeTest`)
+  ; les tests pixel du pipeline (`RenduLayoutLibV3Test` : racine décalée de
+  24+56 dp à la densité du profil, barre de navigation 48 dp, correctif C1)
+  et les hauteurs racines de `MesureRenduParentsTest` passent TELS QUELS
+  contre le chrome moteur.
+
+
 ## [0.168.0] – 2026-10-23
 
 ### Montée code-editor 3.74.0 : « Formater » piloté par `canFormat()`, formatage de la sélection, le réglage « Largeur de tabulation » enfin consommé — phase 2 de « Capacités LSP fermées par défaut » (ADR 0136)
