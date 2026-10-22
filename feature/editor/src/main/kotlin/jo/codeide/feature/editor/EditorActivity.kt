@@ -395,6 +395,9 @@ class EditorActivity :
             // plus que la VISIBILITÉ du menu (classification directe de
             // l'onglet actif ; la session est au registre des sources).
             majMenuApercu()
+            // ADR 0136 (P1-b) : « Formater » suit la session de langue de
+            // l'onglet actif (phase 1 — canFormat() en phase 2).
+            majActionFormater()
         }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
 
@@ -1340,6 +1343,15 @@ class EditorActivity :
                     true
                 }
 
+                // ADR 0136 (P1-b) : mise en forme du document PAR LE
+                // SERVEUR de l'onglet actif — l'activité ne fait que
+                // RELAYER (règle 1) : la vue mène le formatage, la
+                // décision du retour est pure ([DecisionFormater]).
+                R.id.action_formater -> {
+                    formaterDocument()
+                    true
+                }
+
                 // CE7 (B14) : pliage de masse.
                 R.id.action_tout_replier -> {
                     liaison.vueEditeur.getSession()?.collapseAllFolds()
@@ -2062,6 +2074,63 @@ class EditorActivity :
         action.isVisible = previewable
     }
 
+    /**
+     * Le serveur du TYPE du fichier [onglet] est-il prêt ? (K2
+     * LSP_KOTLIN.md §5, XE1 : la garde est PAR LANGUE — l'onglet
+     * Kotlin exige SA session, l'onglet XML la sienne ; la dégradation
+     * honnête d'un moteur ne doit pas priver un onglet `.java` de la
+     * sienne. Partagée par le BRANCHEMENT et la VISIBILITÉ de
+     * « Formater » — une seule écriture de la règle.)
+     */
+    private fun serveurPretDe(onglet: EditorTabState?): Boolean {
+        val session = viewModel.sessionLsp.value
+        val sessionKotlin = viewModel.sessionLspKotlin.value
+        val sessionXml = viewModel.sessionLspXml.value
+        return (onglet?.estJava() == true && session != null) ||
+            (onglet?.estKotlin() == true && sessionKotlin != null) ||
+            (onglet?.estXml() == true && sessionXml != null)
+    }
+
+    /**
+     * La VISIBILITÉ de « Formater » suit la session de langue de
+     * l'onglet actif (ADR 0136 P1-b — phase 1 : la vue ne reçoit le
+     * formateur que d'un serveur CONNECTÉ ; la phase 2 la pilotera par
+     * `canFormat()`, code-editor 3.74.0). La décision est PURE
+     * ([DecisionFormater.visible]) — motif [majMenuApercu].
+     */
+    private fun majActionFormater() {
+        val action = liaison.toolbarEditeur.menu.findItem(R.id.action_formater) ?: return
+        val etatCourant = viewModel.etat.value
+        val onglet = etatCourant.onglets.getOrNull(etatCourant.indexOngletActif)
+        action.isVisible =
+            DecisionFormater.visible(
+                ongletOuvert = onglet != null,
+                sessionVivante = serveurPretDe(onglet),
+            )
+    }
+
+    /**
+     * FORMATE le document de l'onglet actif (ADR 0136 P1-b) : la vue
+     * mène le formatage — l'activité ne fait que RELAYER le clic
+     * (règle 1) ; ne lance RIEN si aucun onglet n'est ouvert. Le
+     * callback arrive sur le thread UI : `true` (texte modifié) ne dit
+     * RIEN — l'utilisateur le voit ; `false` (déjà conforme) et `null`
+     * (aucun formateur — serveur muet ou capacité éteinte) portent
+     * leurs messages ([DecisionFormater.messagePour], Snackbar sur la
+     * racine, motif du retour « chemin copié »).
+     */
+    private fun formaterDocument() {
+        val etatCourant = viewModel.etat.value
+        if (etatCourant.onglets.getOrNull(etatCourant.indexOngletActif) == null) return
+        liaison.vueEditeur.formatDocument(
+            java.util.function.Consumer<Boolean> { resultat ->
+                DecisionFormater.messagePour(resultat)?.let { message ->
+                    Snackbar.make(liaison.racineEditeur, message, Snackbar.LENGTH_SHORT).show()
+                }
+            },
+        )
+    }
+
     /** Crée l'onglet graphique (vue personnalisée) pour [onglet]. */
     private fun creerOnglet(
         onglet: EditorTabState,
@@ -2329,13 +2398,9 @@ class EditorActivity :
         // K2 (LSP_KOTLIN.md §5) : l'onglet Kotlin exige SA session — les
         // deux moteurs ouvrent sous le même verrou, mais la dégradation
         // honnête (moteur Kotlin absent) ne doit pas priver un onglet
-        // .java de sa session : la garde est PAR LANGUE. XE1 : idem pour
-        // l'onglet XML (moteur absent → coloration seule).
-        val serveurPret =
-            (onglet?.estJava() == true && session != null) ||
-                (onglet?.estKotlin() == true && sessionKotlin != null) ||
-                (onglet?.estXml() == true && sessionXml != null)
-        if (onglet == null || !serveurPret) {
+        // .java de sa session : la garde est PAR LANGUE (XE1 : idem XML,
+        // [serveurPretDe] — l'unique écriture de la règle).
+        if (onglet == null || !serveurPretDe(onglet)) {
             coordonnateurLsp.debrancher()
             return
         }

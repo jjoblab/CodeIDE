@@ -312,8 +312,7 @@ data class EditorTabState(
      * extension `.java` en repli (langage null = repli neutre à
      * l'ouverture, l'extension reste discriminante).
      */
-    fun estJava(): Boolean =
-        langage?.equals("java", ignoreCase = true) == true || nom.endsWith(".java", ignoreCase = true)
+    fun estJava(): Boolean = langage?.equals("java", ignoreCase = true) == true || extensionJava(nom)
 
     /**
      * Fichier Kotlin (mission « LSP Kotlin » K2, LSP_KOTLIN.md §5) :
@@ -321,10 +320,7 @@ data class EditorTabState(
      * langage reconnu ou extensions `.kt`/`.kts` en repli (même logique
      * de repli que [estJava]).
      */
-    fun estKotlin(): Boolean =
-        langage?.equals("kotlin", ignoreCase = true) == true ||
-            nom.endsWith(".kt", ignoreCase = true) ||
-            nom.endsWith(".kts", ignoreCase = true)
+    fun estKotlin(): Boolean = langage?.equals("kotlin", ignoreCase = true) == true || extensionKotlin(nom)
 
     /**
      * Fichier XML (mission « LSP XML » XE1, LSP_XML.md §5) : l'onglet
@@ -333,8 +329,37 @@ data class EditorTabState(
      * [estJava] ; le GENRE layout/values/manifest se déduit de l'URI
      * côté moteur, X1).
      */
-    fun estXml(): Boolean = langage?.equals("xml", ignoreCase = true) == true || nom.endsWith(".xml", ignoreCase = true)
+    fun estXml(): Boolean = langage?.equals("xml", ignoreCase = true) == true || extensionXml(nom)
 }
+
+/**
+ * Prédicats d'EXTENSION des langages LSP (chantier « Capacités LSP
+ * fermées par défaut », ADR 0136 — P1-a) : le repli d'[EditorTabState.estJava]/
+ * [estKotlin]/[estXml] VIT ICI, partagé avec [CoordonnateurLsp] qui ne
+ * connaît pas l'onglet (il ne reçoit que le chemin FUSE) — la résolution
+ * du langage reste UNE SEULE écriture.
+ */
+internal fun extensionJava(nom: String): Boolean = nom.endsWith(".java", ignoreCase = true)
+
+/** Le repli extension Kotlin (`.kt`/`.kts`) — voir [extensionJava]. */
+internal fun extensionKotlin(nom: String): Boolean =
+    nom.endsWith(".kt", ignoreCase = true) || nom.endsWith(".kts", ignoreCase = true)
+
+/** Le repli extension XML (`.xml`) — voir [extensionJava]. */
+internal fun extensionXml(nom: String): Boolean = nom.endsWith(".xml", ignoreCase = true)
+
+/**
+ * Le LANGAGE LSP d'un chemin, par extension seule (P1-a — le journal du
+ * coordinateur doit être HONNÊTE : un fichier sans extension de langage
+ * n'est JAMAIS étiqueté Java) : "Kotlin", "XML", "Java" ou `null`.
+ */
+internal fun langageLspDuFichier(chemin: String): String? =
+    when {
+        extensionKotlin(chemin) -> "Kotlin"
+        extensionXml(chemin) -> "XML"
+        extensionJava(chemin) -> "Java"
+        else -> null
+    }
 
 /**
  * Intentions utilisateur de l'espace de travail (section 5.3 : `XxxAction`).
