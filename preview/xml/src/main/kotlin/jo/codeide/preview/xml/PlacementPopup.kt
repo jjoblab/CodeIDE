@@ -17,9 +17,17 @@ package jo.codeide.preview.xml
  *   (+ Dedans si la référence est un conteneur) + marge 0/8/16/24 dp ;
  * - `RELATIVE` (« Dedans ») : Dedans + grille 3 × 3 d'ancrage + marge.
  *
+ * v0.170.0 (S3, [ContraintesHierarchie]) : « Dedans » suit en plus la
+ * CONTENANCE de la référence — un conteneur à ADAPTATEUR (ListView,
+ * RecyclerView, ViewPager2…) ou à ENFANT ATTENDU n'offre jamais
+ * « Dedans », un ENFANT UNIQUE plein (ScrollView qui porte déjà le
+ * sien) non plus ; l'offre du popup reste ainsi dans les bornes que
+ * la plateforme impose au XML.
+ *
  * Les positions INVALIDES sont filtrées (une feuille n'offre pas
- * « Dedans », la racine n'offre que « Dedans ») ; une position devenue
- * invalide retombe sur la première valide ([positionInitiale] — miroir
+ * « Dedans », la racine n'offre que « Dedans », la contenance est
+ * honorée) ; une position devenue invalide retombe sur la première
+ * valide ([positionInitiale] — miroir
  * `normPos` : Dedans si possible, sinon Après, sinon la première).
  *
  * [cible] (miroir `placeTarget`) dérive la cible de dépôt RÉSULTANTE — la
@@ -69,7 +77,10 @@ public object PlacementPopup {
      * DEDANS (si elle est conteneur — un document vide se refuse), une
      * FEUILLE n'offre pas DEDANS, un parent `RELATIVE` offre les QUATRE
      * côtés (+ DEDANS si la référence est un conteneur), les autres
-     * familles offrent Avant/Dedans/Après selon la contenance.
+     * familles offrent Avant/Dedans/Après selon la contenance — la
+     * contenance HONORANT [ContraintesHierarchie] : DEDANS exige un
+     * conteneur qui ACCEPTE un enfant de plus (un ScrollView plein, un
+     * AdapterView ou un conteneur à enfant attendu l'excluent, v0.170.0).
      *
      * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde est
      * une issue DISTINCTE du refus (philosophie X4, miroir normPos).
@@ -81,12 +92,13 @@ public object PlacementPopup {
     ): Set<Position> {
         val reference = vues.getOrNull(indiceRef) ?: return emptySet()
         if (reference.indiceParent < 0 || indiceRef == 0) {
-            // Racine (ou première vue du document) : DEDANS seul si conteneur.
-            return if (reference.conteneur) setOf(Position.DEDANS) else emptySet()
+            // Racine (ou première vue du document) : DEDANS seul si
+            // conteneur qui accepte un enfant (contenance S3 comprise).
+            return if (dedansAutorise(vues, indiceRef)) setOf(Position.DEDANS) else emptySet()
         }
         return when (familleDuPere(vues, reference)) {
             FamilleParent.RELATIVE -> {
-                if (reference.conteneur) {
+                if (dedansAutorise(vues, indiceRef)) {
                     setOf(Position.DESSOUS, Position.DESSUS, Position.DROITE, Position.GAUCHE, Position.DEDANS)
                 } else {
                     setOf(Position.DESSOUS, Position.DESSUS, Position.DROITE, Position.GAUCHE)
@@ -94,13 +106,29 @@ public object PlacementPopup {
             }
 
             else -> {
-                if (reference.conteneur) {
+                if (dedansAutorise(vues, indiceRef)) {
                     setOf(Position.AVANT, Position.DEDANS, Position.APRES)
                 } else {
                     setOf(Position.AVANT, Position.APRES)
                 }
             }
         }
+    }
+
+    /**
+     * La référence accepte-t-elle « Dedans » (miroir `posList` étendu
+     * v0.170.0) : un conteneur du RENDU qui ACCEPTE un enfant de plus —
+     * [ContraintesHierarchie.accepteEnfant] décide de la capacité par
+     * le nom de classe simple (feuille, adaptateur, enfant attendu,
+     * enfant unique plein).
+     */
+    private fun dedansAutorise(
+        vues: List<InfoVueRendu>,
+        indiceRef: Int,
+    ): Boolean {
+        val reference = vues[indiceRef]
+        return reference.conteneur &&
+            ContraintesHierarchie.accepteEnfant(reference.classe, enfantsDe(vues, indiceRef).size)
     }
 
     /**

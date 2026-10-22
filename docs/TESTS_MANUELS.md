@@ -1253,3 +1253,62 @@ d'instant vide au relâchement.
    part (le contenu descend), l'interrupteur « Mode gestuel » reste posé sans effet
    visible ; le rétablir : la pilule revient. Le réglage vit la SESSION (rouvrir
    l'aperçu : trois boutons par défaut).
+7. **Arbre de composants** — l'onglet Arbre ne montre PAS les vues du chrome (déjà le cas
+   avant) ; la future section « système » (infos marquées `ViewType`) n'est PAS branchée —
+   rien à vérifier de ce côté, le moteur l'expose pour un chantier ultérieur.
+
+## Conformité parent/enfant + palettes 64 tuiles + bugs LayoutLib (PE14 S3/S4/S5 → v0.171.0)
+
+Écran : aperçu XML (`PreviewActivity`), clair ET nuit, profil Pixel 4. La contenance suit
+les règles de lint Android (feuilles, enfant unique, adaptateurs, enfants attendus) et la
+palette gagne 23 tuiles « proches du réel ». Les scénarios se jouent sur un document créé
+avec la palette elle-même.
+
+1. **Le popup ne propose plus « Dedans » quand la vue refuse** — insérer un ScrollView
+   (palette), y déposer un LinearLayout, puis re-taper le ScrollView : le popup de
+   placement n'offre plus « Dedans » (un seul enfant direct admis — miroir lint
+   `ScrollViewChildren`) ; la racine adaptateur (déposer un RecyclerView en racine,
+   puis le taper) n'offre RIEN : « Placer ici » reste désactivé. Un conteneur sain
+   (LinearLayout) offre bien Avant/Dedans/Après comme toujours.
+2. **Le glisser remonte au parent** — glisser un TextView sur une RecyclerView rendue :
+   la pilule vise le PARENT de la liste (« Dans … », barre d'insertion chez lui),
+   jamais la liste elle-même (le contenu vient de l'adaptateur). Un ScrollView VIDE
+   reçoit bien son premier enfant en direct ; un ScrollView PLEIN fait remonter au
+   sien.
+3. **L'onglet Problèmes signale les violations existantes** — taper au source
+   (ou via le bouton ↺ d'un champ) un document : `<TextView>` avec un `<Button>`
+   dedans → carte rouge « Enfants interdits » ; `<ScrollView>` avec deux enfants →
+   carte ambre « Un seul enfant direct » ; un `<ListView>` avec un enfant → carte
+   rouge « Contenu venu de l'adaptateur » ; un `<TabLayout>` avec un `<TextView>`
+   → carte « Enfant inattendu » (ambre), un `<TextInputLayout>` avec un `<Button>`
+   → carte rouge (la vraie classe jette). Les cartes s'ouvrent en sélectionnant la
+   vue fautive dans l'arbre.
+4. **Les deux correctifs** — sur le ScrollView à deux enfants : bouton
+   « Envelopper dans un LinearLayout » → UNE annulation ramène tout (les enfants
+   indentés sous le nouveau LinearLayout vertical, le problème part au re-rendu) ;
+   sur le TextView porteur : « Retirer les enfants » → les enfants partent, UNE
+   annulation restaure. Le toast maison confirme dans les deux cas.
+5. **La palette à 64 tuiles** — l'onglet « Tous » déroule les nouvelles entrées par
+   catégorie : Texte (MultiAutoCompleteTextView, CheckedTextView, TextInputEditText),
+   Boutons (RadioGroup, MaterialSwitch, MaterialButtonToggleGroup, ChipGroup),
+   Conteneurs (TableLayout, TableRow, DrawerLayout, SwipeRefreshLayout,
+   CollapsingToolbarLayout, NavigationView, ViewFlipper), Médias (TextureView),
+   Listes (ExpandableListView), Autres (Toolbar, BottomAppBar, BottomNavigationView,
+   Chronometer, TextClock, NumberPicker, Guideline). La recherche « button » attrape
+   désormais aussi MaterialButtonToggleGroup. Chaque tuile porte son icône et son
+   badge de dépendance éventuel (Material, AppCompat, DrawerLayout,
+   SwipeRefreshLayout, ConstraintLayout, RecyclerView).
+6. **Les nouvelles tuiles rendent leurs vraies vues** — insérer un MaterialSwitch
+   (interrupteur réel, fiche État), une Toolbar (fiche Barre d'outils : app:title
+   éditable, badge « AppCompat »), un Guideline dans un ConstraintLayout (aide
+   visible au rendu maquette, fiche Contraintes du parent). Un DrawerLayout avec
+   dossier res/ du modèle affiche le badge « DrawerLayout » s'il manque la
+   dépendance — le repli honnête MockView + carte « classe absente » reste la règle
+   (comportement v0.166.3 inchangé pour toute dépendance absente).7. **Un nœud refusé n'échoue plus la planche entière (LayoutLib 3.5.2,
+   § 3.3-C)** — taper au source un ListView avec un enfant
+   (`<ListView …><TextView …/></TextView>` dans les deux sens : l'enfant
+   est refusé par l'AdapterView au rendu) : l'aperçu continue de rendre
+   LE RESTE du document (plus de bandeau d'erreur généralisé) et
+   l'onglet Problèmes porte la carte rouge « Contenu venu de
+   l'adaptateur » — le correctif « Retirer les enfants » répare le
+   document en une édition.
