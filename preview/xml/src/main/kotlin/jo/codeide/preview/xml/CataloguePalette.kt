@@ -9,15 +9,16 @@ package jo.codeide.preview.xml
  * les tuiles dessinées, les icônes et les récents sont le chrome de
  * `:feature:preview`, PE7c).
  *
- * Miroir fidèle de `WIDGETS` de la maquette (16 entrées, 6 catégories) :
- * chaque entrée porte un EXTRAIT XML prêt à insérer — balise
- * multi-lignes, un attribut par ligne, l'identifiant en `@+id/base`
- * (la base est renumérotée au premier suffixe libre par
+ * Miroir fidèle de `WIDGETS` de la maquette (22 entrées après PE12h,
+ * 6 catégories) : chaque entrée porte un EXTRAIT XML prêt à insérer —
+ * balise multi-lignes, un attribut par ligne, l'identifiant en
+ * `@+id/base` (la base est renumérotée au premier suffixe libre par
  * [InsertionXml.renumeroter], miroir `nextId`). L'extrait ne porte
- * JAMAIS de contrainte ni de marge : le façonnage au dépôt (parent
- * ConstraintLayout, marges en dp du point de dépôt) est le rôle de
- * [InsertionXml.contraindre], calculé par le contrôleur avec la densité
- * du profil.
+ * JAMAIS de contrainte ni de marge : le façonnage au dépôt (gravité de
+ * la cellule, règles vers un frère ou le parent, ancre — PE12d) est le
+ * rôle de [InsertionXml.ajouterAttributs] sur le plan de
+ * [PlanInsertionFamille], calculé par le contrôleur avec la densité du
+ * profil.
  *
  * Le texte du document reste la SEULE source (maquette § « Limite de la
  * maquette ») : le catalogue ne décrit que CE QUE la palette offre,
@@ -204,6 +205,86 @@ public object CataloguePalette {
                         "    android:layout_height=\"wrap_content\"\n" +
                         "    android:padding=\"16dp\" />",
             ),
+            // PE12h — les six entrées de la vague « familles de parents »
+            // (spec § 11, miroir `WIDGETS` : fl, rl, cl, abl, tb, fab —
+            // même position dans le catalogue que la maquette, entre la
+            // carte et les médias).
+            EntreePalette(
+                id = "fl",
+                nomAffiche = "FrameLayout",
+                classe = "FrameLayout",
+                categorie = "Conteneurs",
+                extraitXml =
+                    "<FrameLayout\n" +
+                        "    android:id=\"@+id/frameLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\" />",
+            ),
+            EntreePalette(
+                id = "rl",
+                nomAffiche = "RelativeLayout",
+                classe = "RelativeLayout",
+                categorie = "Conteneurs",
+                extraitXml =
+                    "<RelativeLayout\n" +
+                        "    android:id=\"@+id/relativeLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\" />",
+            ),
+            EntreePalette(
+                id = "cl",
+                nomAffiche = "CoordinatorLayout",
+                classe = "CoordinatorLayout",
+                categorie = "Conteneurs",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<androidx.coordinatorlayout.widget.CoordinatorLayout\n" +
+                        "    android:id=\"@+id/coordinatorLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"160dp\" />",
+            ),
+            EntreePalette(
+                id = "abl",
+                nomAffiche = "AppBarLayout",
+                classe = "AppBarLayout",
+                categorie = "Conteneurs",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<com.google.android.material.appbar.AppBarLayout\n" +
+                        "    android:id=\"@+id/appBarLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"56dp\" />",
+            ),
+            EntreePalette(
+                id = "tb",
+                nomAffiche = "MaterialToolbar",
+                classe = "MaterialToolbar",
+                categorie = "Autres",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<com.google.android.material.appbar.MaterialToolbar\n" +
+                        "    android:id=\"@+id/materialToolbar\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"56dp\"\n" +
+                        "    app:title=\"Titre\" />",
+            ),
+            EntreePalette(
+                id = "fab",
+                nomAffiche = "FloatingActionButton",
+                classe = "FloatingActionButton",
+                categorie = "Boutons",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<com.google.android.material.floatingactionbutton.FloatingActionButton\n" +
+                        "    android:id=\"@+id/floatingActionButton\"\n" +
+                        "    android:layout_width=\"56dp\"\n" +
+                        "    android:layout_height=\"56dp\"\n" +
+                        "    app:srcCompat=\"@drawable/ic_search\"\n" +
+                        "    android:contentDescription=\"Action\" />",
+            ),
             EntreePalette(
                 id = "iv",
                 nomAffiche = "ImageView",
@@ -274,6 +355,12 @@ public object CataloguePalette {
                         "    android:layout_height=\"16dp\" />",
             ),
         )
+
+    // NB PE12h : les six entrées de la vague parents portent la même
+    // convention d'identifiant que les seize historiques — base camelCase
+    // du nom simple de classe (miroir `nextId`) : frameLayout,
+    // relativeLayout, coordinatorLayout, appBarLayout, materialToolbar,
+    // floatingActionButton.
 
     /** L'entrée par identifiant (miroir `wById` — récents, PE7c). */
     public fun parId(id: String): EntreePalette? = CATALOGUE.firstOrNull { it.id == id }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Drawable de mesure (PE12h) : loupe du bouton d'action de la fixture
+     fil (app:srcCompat) et de l'extrait palette fab. Placeholder neutre —
+     la position du bouton ne dépend pas de son icône. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#FF1C1B1F" />
+</shape>

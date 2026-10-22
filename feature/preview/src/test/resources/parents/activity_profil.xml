@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.widget.RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ProfilActivity">
+    <ImageView
+        android:id="@+id/avatar"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/ic_user"
+        android:contentDescription="@string/profil_cd_avatar" />
+    <TextView
+        android:id="@+id/nom"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginStart="16dp"
+        android:text="@string/profil_nom"
+        android:textSize="20sp"
+        android:layout_toEndOf="@id/avatar"
+        android:layout_alignTop="@id/avatar"
+        android:textStyle="bold" />
+    <TextView
+        android:id="@+id/role"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/profil_role"
+        android:textSize="14sp"
+        android:layout_below="@id/nom"
+        android:layout_alignStart="@id/nom" />
+    <Button
+        android:id="@+id/btn_suivre"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:layout_marginEnd="16dp"
+        android:paddingHorizontal="16dp"
+        android:text="@string/profil_suivre"
+        android:textSize="14sp"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@id/avatar" />
+    <View
+        android:id="@+id/separateur"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_below="@id/avatar" />
+    <TextView
+        android:id="@+id/bio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginHorizontal="16dp"
+        android:text="@string/profil_bio"
+        android:textSize="14sp"
+        android:layout_below="@id/separateur" />
+    <LinearLayout
+        android:id="@+id/stats"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginHorizontal="16dp"
+        android:orientation="horizontal"
+        android:layout_below="@id/bio">
+        <TextView
+            android:id="@+id/n_projets"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profil_n_projets"
+            android:textSize="14sp"
+            android:layout_weight="1"
+            android:gravity="center" />
+        <TextView
+            android:id="@+id/n_abonnes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profil_n_abonnes"
+            android:textSize="14sp"
+            android:layout_weight="1"
+            android:gravity="center" />
+        <TextView
+            android:id="@+id/n_suivis"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/profil_n_suivis"
+            android:textSize="14sp"
+            android:layout_weight="1"
+            android:gravity="center" />
+    </LinearLayout>
+    <Button
+        android:id="@+id/btn_message"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginBottom="24dp"
+        android:paddingHorizontal="24dp"
+        android:text="@string/profil_message"
+        android:textSize="14sp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+</android.widget.RelativeLayout>

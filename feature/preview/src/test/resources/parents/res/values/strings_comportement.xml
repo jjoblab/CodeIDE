@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le comportement de défilement lié à l'AppBarLayout (PE12h) : la
+     valeur RÉELLE de la bibliothèque Material (com.google.android.material
+     1.14 — res/values/values.xml de l'AAR) que le projet utilisateur
+     reçoit par FUSION des ressources de sa dépendance. Posée dans le
+     dossier res de mesure pour que le CoordinatorLayout de la fixture
+     activity_fil.xml résolve app:layout_behavior comme sur appareil. -->
+<resources>
+    <string name="appbar_scrolling_view_behavior" translatable="false">
+        com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior
+    </string>
+</resources>

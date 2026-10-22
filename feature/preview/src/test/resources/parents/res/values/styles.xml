@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Thèmes du projet de mesure (PE12h — spec PREVIEW_PARENTS § 15.3) :
+     miroir des documents de la maquette. Les planches Profil et Carte
+     portent la barre d'action du chrome (abar 56 dp, CSS .abar), le Fil
+     est noBar (DOCS.fil.noBar — pas d'action bar) : le style
+     SansBarre porte windowNoTitle pour que ChromeSysteme n'en pose pas.
+     Le chrome complet (barre d'état 24 + action bar 56 + barre de
+     navigation 48) est identique de part et d'autre (miroir assumé). -->
+<resources>
+    <!-- Profil et Carte : action bar POSÉE (défaut de ChromeSysteme). -->
+    <style name="Theme.Mesure" />
+
+    <!-- Fil : SANS action bar (miroir DOCS.fil.noBar) — items PRÉFIXÉS
+         android: (le ThemeResolver lit les attributs fenêtre du namespace
+         android, comme un vrai styles.xml de projet). -->
+    <style name="Theme.Mesure.SansBarre">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
+</resources>
