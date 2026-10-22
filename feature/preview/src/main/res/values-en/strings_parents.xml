@@ -51,12 +51,25 @@
     <string name="preview_probleme_comportement_detail">An AppBarLayout is present: without appbar_scrolling_view_behavior, the content goes under the bar.</string>
     <string name="preview_probleme_boucle_titre">Circular dependency</string>
     <string name="preview_probleme_boucle_detail">%1$s: RelativeLayout refuses a loop of rules. The last valid render is kept.</string>
+    <!-- v0.170.0 — view containment (S3, ContraintesHierarchie: mirror of
+         the lint checks AdapterViewChildren/ScrollViewChildren). Class
+         names are never translated (spec § 13). -->
+    <string name="preview_probleme_feuille_titre">Children not allowed</string>
+    <string name="preview_probleme_feuille_detail">%1$s cannot have child views: it is a leaf view, the real inflater refuses them.</string>
+    <string name="preview_probleme_adaptateur_titre">Adapter-driven content</string>
+    <string name="preview_probleme_adaptateur_detail">%1$s gets its views from an adapter, not from XML: the declared children will never show.</string>
+    <string name="preview_probleme_unique_titre">One direct child only</string>
+    <string name="preview_probleme_unique_detail">%1$s accepts only one direct child: wrap the views in a LinearLayout.</string>
+    <string name="preview_probleme_inattendu_titre">Unexpected child</string>
+    <string name="preview_probleme_inattendu_detail">%1$s accepts only %2$s children: the declared child is not one.</string>
     <string name="preview_correctif_retirer_attribut">Remove this attribute</string>
     <string name="preview_correctif_retirer_attributs">Remove these attributes</string>
     <string name="preview_correctif_retirer_regle">Remove the rule</string>
     <string name="preview_correctif_retirer_ancre">Remove the anchor</string>
     <string name="preview_correctif_ajouter_comportement">Add the behavior</string>
     <string name="preview_correctif_casser_boucle">Break the loop</string>
+    <string name="preview_correctif_envelopper">Wrap in a LinearLayout</string>
+    <string name="preview_correctif_retirer_enfants">Remove the children</string>
     <!-- Feedback of the family quick fixes (mirroring the mockup's
          `fx.msg`; the NUMBER of attributes is a QUANTITY: a plural). -->
     <plurals name="preview_correctif_orphelin_toast">
@@ -67,6 +80,8 @@
     <string name="preview_correctif_ancre_toast">Anchor removed</string>
     <string name="preview_correctif_comportement_toast">app:layout_behavior added</string>
     <string name="preview_correctif_boucle_toast">Rule removed</string>
+    <string name="preview_correctif_envelopper_toast">Wrapped in a LinearLayout</string>
+    <string name="preview_correctif_enfants_toast">Children removed</string>
     <string name="preview_bandeau_boucle">Circular dependency in %1$s: %2$s. RelativeLayout refuses a loop of rules.</string>
     <!-- Layer and deletion (the NUMBER of removed or updated
          references is a QUANTITY: a plural, no "(s)" hack). -->

@@ -17,6 +17,7 @@ import jo.codeide.preview.xml.ArbreAttributsXml
 import jo.codeide.preview.xml.CalquesApercu
 import jo.codeide.preview.xml.CatalogueAttributs
 import jo.codeide.preview.xml.ClassificateurPreview
+import jo.codeide.preview.xml.ContraintesHierarchie
 import jo.codeide.preview.xml.CouleursProjetXml
 import jo.codeide.preview.xml.EditionAttributsXml
 import jo.codeide.preview.xml.EtatPreviewXml
@@ -899,8 +900,13 @@ public class PreviewViewModel
 
         /**
          * CORRIGE un problème de famille (PE12f — miroir les `fixer.run`
-         * de la maquette : retirer les attributs en cause, ou POSER le
-         * comportement de défilement) : l'édition se pose sur le SPAN du
+         * de la maquette : retirer les attributs en cause, POSER le
+         * comportement de défilement) ; v0.170.0 (S3) : les genres de
+         * CONTENANCE passent par [ContraintesHierarchie] — ENVELOPPER les
+         * enfants d'un enfant-unique dépassé dans un LinearLayout
+         * (résolution canonique du lint ScrollViewChildren), RETIRER les
+         * enfants fautifs d'une feuille, d'un adaptateur ou d'un
+         * conteneur à enfant attendu. L'édition se pose sur le SPAN du
          * problème, LU DANS LE TEXTE VIVANT — pas sur la sélection du
          * rendu, qui peut être périmée depuis (le rendu vient d'échouer :
          * c'est le cas d'emploi de la boucle, § 12). UNE seule édition,
@@ -912,18 +918,32 @@ public class PreviewViewModel
             val sourceBranchee = source ?: return false
             val texte = sourceBranchee.texte()
             val span = InsertionXml.SpanParent(probleme.debut, probleme.fin)
-            val edition =
+            val edition: InsertionXml.EditionXml? =
                 if (probleme.genre == ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT) {
-                    EditionAttributsXml.definirReference(
-                        texte,
-                        span,
-                        ATTRIBUT_COMPORTEMENT,
-                        ProblemesFamilles.COMPORTEMENT_DEFILEMENT,
-                    )
+                    EditionAttributsXml
+                        .definirReference(
+                            texte,
+                            span,
+                            ATTRIBUT_COMPORTEMENT,
+                            ProblemesFamilles.COMPORTEMENT_DEFILEMENT,
+                        )?.versEditionXml()
+                } else if (probleme.genre == ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE) {
+                    // v0.170.0 — les enfants passent sous un LinearLayout.
+                    ContraintesHierarchie.envelopperEnfants(texte, probleme)
+                } else if (
+                    probleme.genre == ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS ||
+                    probleme.genre == ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR ||
+                    probleme.genre == ProblemesPreview.GenreProbleme.ENFANT_INATTENDU
+                ) {
+                    // v0.170.0 — les enfants fautifs partent en une édition.
+                    ContraintesHierarchie.retirerEnfants(texte, probleme)
                 } else {
-                    EditionAttributsXml.retirerAttributs(texte, span, probleme.attributs)
-                } ?: return false
-            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+                    EditionAttributsXml
+                        .retirerAttributs(texte, span, probleme.attributs)
+                        ?.versEditionXml()
+                }
+            val ecrite = edition ?: return false
+            val ecrit = sourceBranchee.remplacer(ecrite.debut, ecrite.fin, ecrite.remplacement)
             if (!ecrit) return false
             moteur.soumettreImmediat { sourceBranchee.texte() }
             return true

@@ -94,6 +94,108 @@
   restent verts SANS RETOUCHE de leurs valeurs (C1 rétrocompatible : la
   signature du modèle ne change pas, la compensation vit dans la machine).
 
+## [0.171.0] – 2026-10-23
+
+### Conformité parent/enfant appliquée (PolitiqueEnfants), palettes 41 → 64 tuiles et les trois bugs LayoutLib de l'étude (S3/S4/S5 de PE14, D4/D5)
+
+#### Ajouté
+
+- **CONFORMITÉ PARENT/ENFANT (S4 de l'étude PE14, décision D4 : les
+  DEUX — refus à l'interaction ET problèmes de texte)** (demande
+  propriétaire du 2026-10-23 : « quelles vues ne peuvent pas contenir de
+  vues enfants, lesquelles n'en admettent qu'une seule ») : le nouveau
+  module pur `ContraintesHierarchie` (la `PolitiqueEnfants` de § 3.3) porte les règles que lint Android
+  Studio applique au XML — `AdapterViewChildren` (« AdapterViews cannot
+  have children in XML », erreur), `ScrollViewChildren` (« can host only
+  one direct child », avertissement), les FEUILLES (TextView, Button,
+  Chip, FloatingActionButton… : aucun enfant), et les conteneurs à
+  ENFANT ATTENDU (TabLayout → TabItem, TextInputLayout →
+  TextInputEditText — la vraie bibliothèque jette
+  `IllegalArgumentException` : erreur ; ChipGroup → Chip,
+  MaterialButtonToggleGroup → MaterialButton : avertissement). Les
+  classes INCONNUES restent PERMISSIVES (MockView, vues custom : jamais
+  de faux refus), les SUFFIXES couvrent les sous-classes (`*ScrollView`,
+  `*ListView`, `*Button`, `*TextView`…) et la question ouverte § 13.3 de
+  `PREVIEW_PARENTS.md` (« un seul enfant direct est admis — faut-il
+  avertir ? ») est tranchée OUI. QUATRE consommateurs, une seule table :
+  ① le POPUP DE PLACEMENT retire « Dedans » quand la référence refuse
+  un enfant de plus (`PlacementPopup.positionsAutorisees` — un ScrollView
+  plein ou une liste n'offre plus Dedans, la cible refusée désactive
+  « Placer ici ») ; ② le DÉPÔT glissé-coulé REMONTE au premier ancêtre
+  accepteur (`ZonesDepot.cibleSous` — déposer sur une RecyclerView vise
+  son parent ; racine adaptateur sans issue : pilule et barre absentes) ;
+  ③ l'onglet PROBLÈMES signale les documents qui violent déjà la
+  contenance (`ProblemesFamilles.evaluer` sur le TEXTE, miroir spec § 9 :
+  quatre NOUVEAUX genres — ENFANTS_INTERDITS/ERREUR,
+  ENFANTS_ADAPTATEUR/ERREUR, ENFANT_UNIQUE_DEPASSE/AVERTISSEMENT,
+  ENFANT_INATTENDU selon le refus réel — la RACINE comprise) ; ④ les
+  CARTES DE CORRECTION RAPIDE portent DEUX NOUVEAUX correctifs :
+  « Envelopper dans un LinearLayout » (la résolution canonique du lint
+  `ScrollViewChildren` : les enfants passent sous un LinearLayout
+  vertical en UNE seule édition, indentation suivie, une entrée
+  d'historique) et « Retirer les enfants » (feuille, adaptateur, type
+  inattendu — seuls les enfants du MAUVAIS type partent quand ils sont
+  contigus ; des fautifs intercalés refusent l'édition plutôt que
+  d'avaler un enfant légitime). Les gardes se recalculent sur le texte
+  VIVANT : un problème périmé refuse son correctif, miroir
+  `corrigerProblemeFamille`. Messages FR/EN par genre (`LibellesProblemes`).
+- **PALETTES & REGISTRE (S5 de l'étude PE14, décision D5 : la vague
+  P0+P1 ; la dépendance « S5 exige S4 » est satisfaite par la même
+  livraison — politique AVANT tuiles)** (demande propriétaire du
+  2026-10-23 : « enrichir les palettes, plus proche du réel ») : 23
+  entrées AU-DELÀ des deux vagues précédentes, mêmes conventions
+  (append, extraits multi-lignes sans contrainte ni marge, identifiant en
+  base camelCase, catégories de la maquette) — TEXTE :
+  MultiAutoCompleteTextView, CheckedTextView, TextInputEditText seul ;
+  BOUTONS : RadioGroup, MaterialSwitch, MaterialButtonToggleGroup,
+  ChipGroup ; CONTENEURS : TableLayout, TableRow, DrawerLayout,
+  SwipeRefreshLayout, CollapsingToolbarLayout, NavigationView,
+  ViewFlipper ; MÉDIAS : TextureView ; LISTES : ExpandableListView ;
+  AUTRES : Toolbar (androidx), BottomAppBar, BottomNavigationView,
+  Chronometer, TextClock, NumberPicker, Guideline. Toutes les classes
+  rendent leurs VRAIES vues : les tags sont ENREGISTRÉS au
+  `ViewTagRegistry` du LayoutLib (déjà présents en 3.5.0, vérifié entrée
+  par entrée — la montée 3.5.1 de cette même version n'est PAS requise
+  par la palette) ou issus de la plateforme.
+  23 icônes `ic_tuile_*` au style PE7c (24 dp, trait 1.8, jeton), 3
+  DÉPENDANCES signalées sur la tuile (AppCompat pour la Toolbar,
+  DrawerLayout, SwipeRefreshLayout — libellés courts dédiés), fiches
+  suivies : `familleSaisie` + MultiAutoCompleteTextView,
+  `familleEtat` + CheckedTextView (TEXTE + ÉTAT, `checked` § 7),
+  `familleInterrupteur` + MaterialSwitch, Barre d'outils + Toolbar
+  (les six attributs `app:` de MaterialToolbar), familles PAR BALISE
+  étendues (RadioGroup/TableLayout/TableRow/MaterialButtonToggleGroup →
+  LINEAR ; DrawerLayout/SwipeRefreshLayout/NavigationView/
+  BottomNavigationView/ViewFlipper/NumberPicker → FRAME) ; le
+  Guideline reste FEUILLE et la contenance S3 le protège
+  (`estFeuilleConnue`). LE CATALOGUE DES ENTRÉES est DÉCOUPÉ en listes
+  top-level PAR VAGUE (`CataloguePaletteEntrees.kt` — règle 8 detekt :
+  LargeClass ; la composition `maquette + v0.166.3 + S4` préserve
+  l'ORDRE public à l'octet près).
+- **LES TROIS BUGS LAYOUTLIB DE L'AUDIT + L'ISOLEMENT AU NŒUD (S3 § 2.3
+  de l'étude PE14, et § 3.3-C de son S4)** : **LayoutLib passe 3.5.0 →
+  3.5.2** (tags `v3.5.1`/`v3.5.2`, GitHub Packages). ① `layout_column` lu
+  depuis `layout_rowSpan` (copier-coller `BridgeInflater`) — tout GridLayout
+  avec `layout_column` était mal placé ; ② `layout_gravity` ignoré sur
+  un enfant de RelativeLayout (la valeur tombait TOUJOURS en
+  `CENTER_IN_PARENT`) — désormais TRADUIT EN RÈGLES PARENT par jeton
+  (`end|bottom` → ALIGN_PARENT_END + ALIGN_PARENT_BOTTOM ; par JETON car
+  les bits de gravité se chevauchent : un masque `& CENTER` confondrait
+  `end|bottom` avec `center`) ; ③ ids dynamiques RÉGÉNÉRÉS à chaque appel —
+  deux vues référençant le même `@id/x` obtenaient des ids DIFFÉRENTS
+  selon l'ordre de résolution (`layout_below`, contraintes, ancres
+  silencieusement cassés, non déterministes) : la `DynamicIdMap` STABLE
+  nom → id (miroir `util/DynamicIdMap` de la référence) remplace le
+  compteur ET `View.generateViewId()` sur les DEUX chemins (attribut
+  `android:id` et références), `reset()` suit la map ; ④ (v3.5.2, § 3.3-C)
+  un parent qui REFUSE l'ajout (AdapterView.addView →
+  UnsupportedOperationException pour tout enfant) n'entraîne PLUS l'échec
+  du rendu ENTIER : le nœud fautif reste DÉTACHÉ et journalisé
+  (`attacherSansAbandonner`, les deux sites d'attachement), le reste du
+  document vit — miroir `Bridge.createMockView` de la référence. Tests
+  directs par bug (GridLayout positionné, gravité en règles, ids stables
+  entre chemins et après reset, parent refusant sans échec du document).
+
 ## [0.169.0] – 2026-10-23
 
 ### Le chrome système passe au moteur de rendu : LayoutLib 3.5.0, zéro vue chrome côté IDE, un seul espace de coordonnées — PE13 (ADR 0137)
