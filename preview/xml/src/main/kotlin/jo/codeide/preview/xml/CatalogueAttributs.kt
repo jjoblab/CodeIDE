@@ -565,13 +565,20 @@ public object CatalogueAttributs {
             /** Le format du ratio, verrou en option (miroir la maquette). */
             private val formatDuRatio: Regex = Regex("""^(?:([WH]),)?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$""")
 
+            /**
+             * UN préréglage : son LIBELLÉ de bouton et son couple a:b —
+             * le [libelle] est la DONNÉE du bouton (miroir le
+             * `x + ':' + y` calculé côté maquette : le liage ne compose
+             * JAMAIS de gabarit d'affichage).
+             */
+            public data class Prereglage(
+                val libelle: String,
+                val a: String,
+                val b: String,
+            )
+
             public companion object {
-                /**
-                 * Les PRÉRÉGLAGES de la maquette (boutons 1:1, 4:3, 16:9,
-                 * 3:4) : le [Prereglage.libelle] est la DONNÉE du bouton
-                 * (miroir `x + ':' + y` calculé côté maquette — le liage
-                 * ne compose JAMAIS de gabarit d'affichage).
-                 */
+                /** Les PRÉRÉGLAGES de la maquette (boutons 1:1, 4:3, 16:9, 3:4). */
                 public val PREDEFINIS: List<Prereglage> =
                     listOf(
                         Prereglage("1:1", "1", "1"),
@@ -579,13 +586,6 @@ public object CatalogueAttributs {
                         Prereglage("16:9", "16", "9"),
                         Prereglage("3:4", "3", "4"),
                     )
-
-                /** UN préréglage : son LIBELLÉ de bouton et son couple a:b. */
-                public data class Prereglage(
-                    val libelle: String,
-                    val a: String,
-                    val b: String,
-                )
             }
         }
 
