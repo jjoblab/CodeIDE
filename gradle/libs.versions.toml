@@ -70,7 +70,26 @@ androidx-viewpager2 = "1.1.0"
 # Montée 3.49.2 → 3.69.0 (v0.122.2) : compat API vérifiée par le guide
 # MISE-A-JOUR-CODEIDE.md (docs/ du dépôt code-editor) — plage additive.
 # CodeEditor côté CodeIDE ne change pas (les deux modules suivent version.ref).
-code-editor = "3.72.0"
+# Montée 3.72.0 → 3.74.0 (v0.168.0) : phase 2 du chantier « Capacités
+# LSP fermées par défaut » (ADR 0136) — la montée franchit AUSSI la 3.73.0
+# (carte d'aperçu « goutte d'eau » + IME au niveau plateforme : AUCUN
+# contournement clavier à retirer côté CodeIDE — vérifié, seul le filtre
+# logcat masque le clavier, hors EditorView). 3.74.0 = cycle de vie du
+# langage (disconnect() restaure EmptyLanguage — ADR 0136 D1 : le défaut
+# qui laissait fuiter les capacités du fichier précédent est corrigé DANS
+# LA BIBLIOTHÈQUE, aucun contournement local) + formatage complet :
+# canFormat()/canFormatSelection()/formatSelection(Consumer<Boolean>)/
+# setFormattingOptions(int,boolean), Ctrl+Shift+K physique porté par la
+# bibliothèque (EditorCommands.FORMAT_SELECTION). Consommé du lot :
+# pilotage de « Formater » par canFormat() (D4), « Formater la sélection »
+# dans la pill de sélection (grisée par canFormatSelection()), options
+# de formatage alimentées par le réglage « Largeur de tabulation »
+# RÉINTRODUIT (ADR 0066 : « réintroduits si la bibliothèque expose un
+# jour les setters » — setFormattingOptions EST ce setter). Aucune
+# rupture d'API (note de passage §3.74.0 du dépôt frère : tout est
+# additif, méthodes default ou nouvelles) ; artefacts JitPack v3.74.0
+# vérifiés HTTP 200 (cel-ui, cel-lsp, cel-lsp-api).
+code-editor = "3.74.0"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"
@@ -152,7 +171,7 @@ layoutlib = "3.4.9"
 # composite, de la publication en binaire ; la substitution ignore la
 # version déclarée — la mise à jour = bump ici + ref du clonage CI.
 codeide-tooling = "1.0.0"
-codeide-lsp = "1.2.0"
+codeide-lsp = "1.3.0"
 
 # Interface ViewBinding pour core:ui (même version que l'AGP, vérifié sur Google Maven ;
 # AGP l'ajoute automatiquement aux modules qui activent viewBinding, core:ui la déclare explicitement).
