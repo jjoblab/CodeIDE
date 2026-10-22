@@ -36,6 +36,9 @@ import android.os.Parcelable
  *           Parcelable ashmem depuis v0.166.4.
  * @property vues arbre aplati en pré-ordre pour le hit-test P6 (vide hors
  *           LAYOUT : drawables et values n'ont pas de sélection).
+ * @property vuesSysteme les BARRES du décor de rendu (PE13-suite / PE14-S1,
+ *           ADR 0139 — collecte duale LayoutLib 3.5.0) : la section
+ *           « Système » de l'onglet Arbre ; VIDE sans chrome ou hors LAYOUT.
  *
  * Exemption detekt ciblée (règle 16) : LongParameterList — miroir
  * PARCELABLE de la frontière AIDL, un CHAMP = un paramètre (le format
@@ -53,6 +56,7 @@ public class ResultatRendu(
     public val dureeMs: Long,
     public val bitmap: Bitmap?,
     public val vues: Array<InfoVueRendu> = emptyArray(),
+    public val vuesSysteme: Array<InfoVueSysteme> = emptyArray(),
 ) : Parcelable {
     private constructor(parcel: Parcel) : this(
         ok = parcel.readByte() != 0.toByte(),
@@ -69,6 +73,7 @@ public class ResultatRendu(
                 null
             },
         vues = parcel.createTypedArray(InfoVueRendu.CREATOR) ?: emptyArray(),
+        vuesSysteme = parcel.createTypedArray(InfoVueSysteme.CREATOR) ?: emptyArray(),
     )
 
     override fun writeToParcel(
@@ -90,6 +95,7 @@ public class ResultatRendu(
             parcel.writeByte(0)
         }
         parcel.writeTypedArray(vues, drapeaux)
+        parcel.writeTypedArray(vuesSysteme, drapeaux)
     }
 
     override fun describeContents(): Int = 0

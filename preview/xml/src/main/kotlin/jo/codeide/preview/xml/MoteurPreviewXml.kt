@@ -131,6 +131,9 @@ public class MoteurPreviewXml(
     /** Barre de navigation du chrome système courante (PE11j — miroir `S.nav`, défaut ON). */
     private var barreNavigationCourante: Boolean = true
 
+    /** Mode gestuel de la barre de navigation courant (PE14-S1 — pilule, défaut OFF). */
+    private var modeGestuelCourant: Boolean = false
+
     /** Fournisseur de texte courant (dernier onglet branché). */
     private var fournisseurTexte: (() -> String)? = null
 
@@ -267,6 +270,9 @@ public class MoteurPreviewXml(
     /** Barre de navigation du chrome système courante (PE11j — menu Calques, groupe « Chrome système »). */
     public val barreNavigation: Boolean get() = barreNavigationCourante
 
+    /** Mode gestuel de la barre de navigation courant (PE14-S1 — menu Calques, groupe « Chrome système »). */
+    public val modeGestuel: Boolean get() = modeGestuelCourant
+
     /** Définit l'orientation de l'aperçu (PE6e-f — puce Portrait/Paysage de
      *  la maquette) : un CHANGEMENT relance un rendu immédiat (dimensions
      *  du profil permutées + qualifieur `values-land`). */
@@ -294,6 +300,17 @@ public class MoteurPreviewXml(
     public fun definirBarreNavigation(barre: Boolean) {
         if (ferme || barre == barreNavigationCourante) return
         barreNavigationCourante = barre
+        relancerSiTexte()
+    }
+
+    /** Définit le MODE GESTUEL de la barre de navigation (PE14-S1, ADR
+     *  0139 — interrupteur « Mode gestuel » du menu Calques) : un
+     *  CHANGEMENT relance un rendu immédiat (la zone de 48 dp passe des
+     *  trois glyphes à la PILULE gestuelle — la hauteur ne bouge pas,
+     *  miroir ADR 0137 D6). */
+    public fun definirModeGestuel(gestuel: Boolean) {
+        if (ferme || gestuel == modeGestuelCourant) return
+        modeGestuelCourant = gestuel
         relancerSiTexte()
     }
 
@@ -372,6 +389,7 @@ public class MoteurPreviewXml(
                     paysage = paysageCourant,
                     echellePolice = echellePoliceCourante,
                     barreNavigation = barreNavigationCourante,
+                    modeGestuel = modeGestuelCourant,
                 )
             journal?.i(TAG_PREVIEW) {
                 "rendu soumis : genre=$genreCourant, texte=${texte.length}c, " +
@@ -406,6 +424,7 @@ public class MoteurPreviewXml(
                     largeur = resultat.largeur,
                     hauteur = resultat.hauteur,
                     vues = resultat.vues,
+                    vuesSysteme = resultat.vuesSysteme,
                 )
             }
 

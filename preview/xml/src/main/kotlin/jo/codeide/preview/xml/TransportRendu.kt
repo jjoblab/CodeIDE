@@ -49,6 +49,8 @@ public sealed interface ResultatTransport {
         public val largeur: Int,
         public val hauteur: Int,
         public val vues: List<InfoVueRendu> = emptyList(),
+        /** Les BARRES du décor (PE14-S1, ADR 0139 — section « Système » de l'arbre). */
+        public val vuesSysteme: List<InfoVueSysteme> = emptyList(),
     ) : ResultatTransport
 
     /** Rendu échoué (XML malformé → [m[message] = [XML_MALFORME]). */
@@ -146,6 +148,7 @@ public class TransportRenduLocal(
                 largeur = resultat.rendu.largeur,
                 hauteur = resultat.rendu.hauteur,
                 vues = resultat.rendu.vues.toList(),
+                vuesSysteme = resultat.rendu.vuesSysteme.toList(),
             )
         } else {
             ResultatTransport.Erreur(
@@ -246,6 +249,7 @@ internal class TransportRenduProcess(
             largeur = brut.largeur,
             hauteur = brut.hauteur,
             vues = brut.vues.toList(),
+            vuesSysteme = brut.vuesSysteme.toList(),
         )
     }
 
