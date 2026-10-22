@@ -290,4 +290,50 @@ public class ValidationAttributTest {
         assertTrue("Non numérique", ValidationAttribut.ratio("a", "9") is ValidationAttribut.Resultat.Erreur)
         assertTrue("Un champ vide", ValidationAttribut.ratio("16", "") is ValidationAttribut.Resultat.Erreur)
     }
+
+    @Test
+    public fun `le nom d attribut libre exige un espace de noms et un identifiant`() {
+        // PE11h — miroir `/^(android|app|tools):[A-Za-z_]\w*$/.test(nm)` de
+        // la rangée d'ajout de la maquette : les TROIS préfixes passent, le
+        // nom commence par une LETTRE ou un _ ; tout le reste est une
+        // ERREUR qui n'écrit RIEN (le vide compris — la rangée exige un
+        // nom ET une valeur).
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.nomAttributLibre("android:transitionName"))
+        assertEquals(
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.nomAttributLibre("app:layout_goneMarginTop"),
+        )
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.nomAttributLibre("tools:ignore"))
+        assertEquals(ValidationAttribut.Resultat.Valide, ValidationAttribut.nomAttributLibre("android:_prive"))
+        assertEquals(
+            "Les blancs extrêmes se retirent",
+            ValidationAttribut.Resultat.Valide,
+            ValidationAttribut.nomAttributLibre(" android:tag "),
+        )
+        assertEquals(
+            ValidationAttribut.Resultat.Erreur(ValidationAttribut.GenreMessage.NOM_ATTRIBUT_LIBRE),
+            ValidationAttribut.nomAttributLibre("transitionName"),
+        )
+        assertTrue(
+            "Préfixe inconnu",
+            ValidationAttribut.nomAttributLibre("foo:bar") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Chiffre en tête",
+            ValidationAttribut.nomAttributLibre("android:9patch") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Tiret dans le nom",
+            ValidationAttribut.nomAttributLibre("android:mon-nom") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Double préfixe",
+            ValidationAttribut.nomAttributLibre("android:app:x") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue(
+            "Nom seul avec deux-points",
+            ValidationAttribut.nomAttributLibre("android:") is ValidationAttribut.Resultat.Erreur,
+        )
+        assertTrue("Vide", ValidationAttribut.nomAttributLibre("") is ValidationAttribut.Resultat.Erreur)
+    }
 }

@@ -385,6 +385,20 @@
     <string name="preview_attr_nom_hint">android:nom</string>
     <string name="preview_attr_valeur_hint">valeur</string>
     <string name="preview_attr_ajouter">Ajouter</string>
+    <!-- PE11h — action rapide, contraintes en lecture, attribut libre -->
+    <string name="preview_etiquette_actions">Actions</string>
+    <string name="preview_etiquette_remplir_espace">Remplir l\'espace restant</string>
+    <string name="preview_action_remplir_toast">Espace restant rempli.</string>
+    <string name="preview_etiquette_contraintes_lues">dans le ConstraintLayout</string>
+    <string name="preview_note_contraintes_lues">Ancres lues telles qu\'écrites dans le document ; les quatre côtés s\'éditent ci-dessous.</string>
+    <string name="preview_section_autres">Autres attributs</string>
+    <string name="preview_attr_supprimer_glyphe">✕</string>
+    <string name="preview_attr_supprimer_desc">Supprimer %1$s</string>
+    <string name="preview_attr_libre_nom_invalide">Nom attendu : android:…, app:… ou tools:….</string>
+    <string name="preview_attr_libre_valeur_manquante">Valeur manquante.</string>
+    <string name="preview_attr_libre_ajoute">%1$s ajouté.</string>
+    <string name="preview_attr_libre_supprime">%1$s supprimé.</string>
+    <string name="preview_attr_ajouter_comme_libre">Ajouter %1$s comme attribut libre</string>
 
     <!-- Problèmes PE11g (miroir computeProblems : les 3 nouveaux genres). -->
     <string name="preview_probleme_texte_code_titre">Texte codé en dur</string>

@@ -366,6 +366,20 @@
     <string name="preview_attr_nom_hint">android:name</string>
     <string name="preview_attr_valeur_hint">value</string>
     <string name="preview_attr_ajouter">Add</string>
+    <!-- PE11h — quick action, read-only constraints, free attribute -->
+    <string name="preview_etiquette_actions">Actions</string>
+    <string name="preview_etiquette_remplir_espace">Fill the remaining space</string>
+    <string name="preview_action_remplir_toast">Remaining space filled.</string>
+    <string name="preview_etiquette_contraintes_lues">in the ConstraintLayout</string>
+    <string name="preview_note_contraintes_lues">Anchors as written in the document; the four sides are edited below.</string>
+    <string name="preview_section_autres">Other attributes</string>
+    <string name="preview_attr_supprimer_glyphe">✕</string>
+    <string name="preview_attr_supprimer_desc">Remove %1$s</string>
+    <string name="preview_attr_libre_nom_invalide">Expected name: android:…, app:… or tools:….</string>
+    <string name="preview_attr_libre_valeur_manquante">Missing value.</string>
+    <string name="preview_attr_libre_ajoute">%1$s added.</string>
+    <string name="preview_attr_libre_supprime">%1$s removed.</string>
+    <string name="preview_attr_ajouter_comme_libre">Add %1$s as a free attribute</string>
 
     <!-- Problems PE11g (mirror of computeProblems: the three new genres). -->
     <string name="preview_probleme_texte_code_titre">Hardcoded text</string>

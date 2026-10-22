@@ -60,6 +60,9 @@ public object ValidationAttribut {
 
         /** « Deux nombres positifs, par exemple 16 et 9. » (erreur — ratio). */
         RATIO_INVALIDE,
+
+        /** « Nom attendu : android:…, app:… ou tools:…. » (erreur — attribut libre, PE11h). */
+        NOM_ATTRIBUT_LIBRE,
     }
 
     /**
@@ -265,4 +268,25 @@ public object ValidationAttribut {
 
     /** Un nombre STRICTEMENT positif (miroir `+x > 0` — le null ou le non numérique ne l'est pas). */
     private fun positif(nombre: Float?): Boolean = nombre != null && nombre > 0f
+
+    /**
+     * Un NOM d'attribut LIBRE (PE11h — miroir le toast `n.classList.add('bad')`
+     * de la rangée d'ajout de la maquette) : `android:nom`, `app:nom` ou
+     * `tools:nom`, le nom en IDENTIFIANT Java (`[A-Za-z_]\w*` — ni chiffre
+     * ni tiret en tête, pas de préfixe supplémentaire).
+     */
+    private val NOM_LIBRE: Regex = Regex("""^(android|app|tools):[A-Za-z_]\w*$""")
+
+    /**
+     * Valide le NOM saisi pour un ATTRIBUT LIBRE (miroir
+     * `/^(android|app|tools):[A-Za-z_]\w*$/.test(nm)` de la maquette) :
+     * le VIDE est une ERREUR aussi (la rangée exige un nom ET une valeur,
+     * jamais d'écriture hasardeuse).
+     */
+    public fun nomAttributLibre(nom: String): Resultat =
+        if (NOM_LIBRE.matches(nom.trim())) {
+            Resultat.Valide
+        } else {
+            Resultat.Erreur(GenreMessage.NOM_ATTRIBUT_LIBRE)
+        }
 }

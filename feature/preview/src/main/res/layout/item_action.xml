@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UNE action rapide (PE11h, maquette `.qa .linkbtn`) : Chip « assist » à
+  contour, 26 dp de haut, rayon 8, texte accent 12/500. Le libellé et le
+  geste se posent au liage (item gonflé dans `controle_action`).
+-->
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/action"
+    style="@style/Widget.CodeIDE.Apercu.Action"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content" />

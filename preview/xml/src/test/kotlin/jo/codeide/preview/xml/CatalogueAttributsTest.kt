@@ -44,6 +44,9 @@ public class CatalogueAttributsTest {
                 sections.isNotEmpty(),
             )
             sections.forEach { section ->
+                // PE11h — la section AUTRES ne porte AUCUN contrôle du
+                // catalogue : son corps vient du document (attribut libre).
+                if (section.autres) return@forEach
                 assertTrue(
                     "La section ${section.titre} de ${entree.classe} doit avoir des contrôles",
                     section.controles.isNotEmpty(),
@@ -371,7 +374,9 @@ public class CatalogueAttributsTest {
     @Test
     fun `l ordre suit propres puis conteneur puis parent puis generiques`() {
         // spec § 5 : les deux groupes de famille viennent APRÈS les
-        // sections propres à la classe et AVANT les sections communes.
+        // sections propres à la classe et AVANT les sections communes ;
+        // PE11h — la section Autres attributs CLÔT la fiche (miroir le
+        // `sec('Autres attributs', …)` en fin de `sectionsFor`).
         val sections =
             CatalogueAttributs.sections("LinearLayout", FamilleParent.RELATIVE, FamilleParent.LINEAR)
         assertEquals(
@@ -382,6 +387,7 @@ public class CatalogueAttributsTest {
                 CatalogueAttributs.TitreSection.POSITIONS_RELATIVES,
                 CatalogueAttributs.TitreSection.DISPOSITION,
                 CatalogueAttributs.TitreSection.AFFICHAGE,
+                CatalogueAttributs.TitreSection.AUTRES,
             ),
             sections.map { section -> section.titre },
         )
@@ -398,16 +404,21 @@ public class CatalogueAttributsTest {
                 CatalogueAttributs.TitreSection.IDENTITE,
                 CatalogueAttributs.TitreSection.DISPOSITION,
                 CatalogueAttributs.TitreSection.AFFICHAGE,
+                // PE11h — la section Autres attributs clôt TOUTE fiche non
+                // racine, la vue dégradée comprise (elle édite le document).
+                CatalogueAttributs.TitreSection.AUTRES,
             ),
             sections,
         )
     }
 
     @Test
-    fun `le parent constraint ajoute les contraintes editables`() {
+    fun `le parent constraint ajoute les ancres lues puis les contraintes editables`() {
         // PE12b (spec § 2.3) : la famille CONSTRAINT couvre racine et
         // non-racine — l'ancienne distinction GenreParent ne servait à
         // rien, la section Contraintes est la même.
+        // PE11h — le bloc des ancres LUES ouvre la section (annexe § 7
+        // « Contraintes — ancres lues »), l'édition par côtés suit (PE8b).
         val sections =
             CatalogueAttributs
                 .sections("TextView", FamilleParent.CONSTRAINT)
@@ -418,13 +429,18 @@ public class CatalogueAttributsTest {
                 .sections("TextView", FamilleParent.CONSTRAINT)
                 .first { it.titre == CatalogueAttributs.TitreSection.CONTRAINTES }
         assertEquals(
-            CatalogueAttributs.ControleAttribut.Contraintes,
-            contraintes.controles.single(),
+            listOf(
+                CatalogueAttributs.ControleAttribut.ContraintesLecture(
+                    CatalogueAttributs.Etiquette.CONTRAINTES_LUES,
+                ),
+                CatalogueAttributs.ControleAttribut.Contraintes,
+            ),
+            contraintes.controles,
         )
     }
 
     @Test
-    fun `le parent lineaire ajoute poids et gravite de mise en page`() {
+    fun `le parent lineaire ajoute poids gravite et action rapide`() {
         val dansParent =
             CatalogueAttributs
                 .sections("TextView", FamilleParent.LINEAR)
@@ -432,6 +448,89 @@ public class CatalogueAttributsTest {
         assertEquals(
             listOf("android:layout_weight", "android:layout_gravity"),
             noms(dansParent),
+        )
+        // PE11h — l'action groupée « Remplir l'espace restant » clôt la
+        // section (annexe § 7 : `—` ActionRapide, courant) ; elle ne porte
+        // AUCUN nom (composite — jamais dans le badge « n définis »).
+        val action =
+            dansParent.controles.single { it is CatalogueAttributs.ControleAttribut.ActionRapide }
+                as CatalogueAttributs.ControleAttribut.ActionRapide
+        assertTrue(action.courant)
+        assertEquals(CatalogueAttributs.Etiquette.ACTIONS, action.etiquette)
+        assertEquals(
+            CatalogueAttributs.ControleAttribut.ActionRapide.Action(
+                CatalogueAttributs.Etiquette.REMPLIR_ESPACE,
+                CatalogueAttributs.ControleAttribut.ActionRapide.Ecriture.RemplirEspaceRestant,
+            ),
+            action.actions.single(),
+        )
+        // Seul le parent LINÉAIRE porte l'action (miroir le `genre === 'lin'`).
+        for (famille in listOf(FamilleParent.FRAME, FamilleParent.CONSTRAINT, FamilleParent.AUTRE)) {
+            assertFalse(
+                "la famille $famille ne porte pas d'action rapide",
+                CatalogueAttributs
+                    .sections("TextView", famille)
+                    .any { section ->
+                        section.controles.any { it is CatalogueAttributs.ControleAttribut.ActionRapide }
+                    },
+            )
+        }
+    }
+
+    @Test
+    fun `la section autres attributs clot la fiche des vues non racine`() {
+        // PE11h — miroir le `sec('Autres attributs', [], {other:true})` de
+        // `sectionsFor` : DERNIÈRE section, AUCUN contrôle du catalogue
+        // (son corps vient du document), absente de la racine.
+        for (famille in listOf(FamilleParent.LINEAR, FamilleParent.CONSTRAINT, FamilleParent.AUTRE)) {
+            val sections = CatalogueAttributs.sections("Button", famille)
+            assertEquals(
+                "la section Autres attributs clôt la fiche ($famille)",
+                CatalogueAttributs.TitreSection.AUTRES,
+                sections.last().titre,
+            )
+            assertTrue(sections.last().autres)
+            assertTrue(sections.last().controles.isEmpty())
+            assertFalse(sections.first().autres)
+        }
+    }
+
+    @Test
+    fun `les noms connus couvrent les controles et les cinq attributs fixes`() {
+        // PE11h — miroir `knownNames` : les noms portés par les contrôles
+        // PLUS les cinq attributs que les composites couvrent sans les
+        // porter (id, dimensions, marges, padding).
+        val connus = CatalogueAttributs.nomsConnus("Button", FamilleParent.LINEAR, FamilleParent.LINEAR)
+        assertTrue("android:id est couvert (composite identifiant)", "android:id" in connus)
+        assertTrue("android:layout_width est couvert (composite dimensions)", "android:layout_width" in connus)
+        assertTrue("android:layout_height est couvert (composite dimensions)", "android:layout_height" in connus)
+        assertTrue("android:layout_margin est couvert (composite côtés)", "android:layout_margin" in connus)
+        assertTrue("android:padding est couvert (composite côtés)", "android:padding" in connus)
+        assertTrue("android:text est couvert (contrôle de la section Texte)", "android:text" in connus)
+        assertTrue("android:layout_weight est couvert (parent linéaire)", "android:layout_weight" in connus)
+        assertFalse("un nom hors catalogue n'est pas connu", "android:transitionName" in connus)
+    }
+
+    @Test
+    fun `les noms libres suggeres sont les douze de la maquette`() {
+        // PE11h — miroir FREE_NAMES (liste de référence figée) : la
+        // complétion de l'ajout libre propose ces douze noms réels.
+        assertEquals(
+            listOf(
+                "android:tag",
+                "android:textDirection",
+                "android:layoutDirection",
+                "android:fadingEdge",
+                "android:saveEnabled",
+                "android:soundEffectsEnabled",
+                "android:hapticFeedbackEnabled",
+                "android:keepScreenOn",
+                "android:requiresFadingEdge",
+                "android:transitionName",
+                "app:layout_goneMarginTop",
+                "app:layout_constraintHorizontal_chainStyle",
+            ),
+            CatalogueAttributs.NOMS_LIBRES_SUGGERES,
         )
     }
 
@@ -443,6 +542,9 @@ public class CatalogueAttributsTest {
                 .map { it.titre }
         assertFalse(titres.contains(CatalogueAttributs.TitreSection.CONTRAINTES))
         assertFalse(titres.contains(CatalogueAttributs.TitreSection.DANS_PARENT))
+        // PE11h — la section Autres attributs est aussi ABSENTE de la
+        // racine (miroir le retour anticipé de `sectionsFor`).
+        assertFalse(titres.contains(CatalogueAttributs.TitreSection.AUTRES))
         // La racine reste éditable pour Disposition et Affichage (piège § 5).
         assertTrue(
             titres.containsAll(
