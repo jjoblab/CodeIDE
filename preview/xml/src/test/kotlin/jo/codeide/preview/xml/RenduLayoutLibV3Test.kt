@@ -362,10 +362,11 @@ class RenduLayoutLibV3Test {
     // draw, hit-test et surlignage).
     // ============================================================
 
-    /** Le layout passé, rendu AVEC chrome (themeName) — barre de navigation PE11j réglable. */
+    /** Le layout passé, rendu AVEC chrome (themeName) — barre de navigation PE11j réglable, mode gestuel PE14-S1. */
     private fun rendreAvecChrome(
         texte: String,
         barreNavigation: Boolean = true,
+        modeGestuel: Boolean = false,
     ): ResultatRendu {
         val requete =
             RequeteRendu(
@@ -376,6 +377,7 @@ class RenduLayoutLibV3Test {
                 nuit = false,
                 themeName = "Theme.MaterialComponents.DayNight",
                 barreNavigation = barreNavigation,
+                modeGestuel = modeGestuel,
             )
         return pipeline.rendre(requete).rendu
     }
@@ -508,6 +510,65 @@ class RenduLayoutLibV3Test {
             "sans themeName, pas de chrome : la racine reste à 0 dans le bitmap",
             0,
             resultat.vues.first().haut,
+        )
+    }
+
+    // ============================================================
+    // PE14-S1 (ADR 0139) — mode gestuel + transport de la section
+    // « Système » : la collecte duale LayoutLib 3.5.0 traverse la
+    // frontière du pipeline (les BARRES de premier rang, marquées
+    // ViewType), et la pilule OCCUPE la même place que les trois
+    // glyphes (la hauteur ne bouge jamais — ADR 0137 D6).
+    // ============================================================
+
+    @Test
+    fun `chrome PE14_S1 - la section systeme transporte les barres marquees`() {
+        val resultat = rendreAvecChrome(xmlRacineMatchParent)
+        assertTrue(resultat.ok)
+        val types = resultat.vuesSysteme.map { it.type }
+        assertTrue("la status bar est transportée", InfoVueSysteme.TYPE_STATUS_BAR in types)
+        assertTrue("la barre de navigation est transportée", InfoVueSysteme.TYPE_NAVIGATION_BAR in types)
+        assertTrue("l'action bar est transportée", InfoVueSysteme.TYPE_ACTION_BAR in types)
+        // Les bornes sont ABSOLUES bitmap : la status bar commence à 0.
+        val status = resultat.vuesSysteme.first { it.type == InfoVueSysteme.TYPE_STATUS_BAR }
+        assertEquals(0, status.gauche)
+        assertEquals(0, status.haut)
+        // Sans chrome, AUCUNE section système.
+        val nu = rendre(xmlRacineMatchParent)
+        assertTrue(nu.ok)
+        assertTrue("sans themeName, aucune barre transportée", nu.vuesSysteme.isEmpty())
+    }
+
+    @Test
+    fun `chrome PE14_S1 - le mode gestuel pose la pilule a la place des trois boutons`() {
+        val troisBoutons = rendreAvecChrome(xmlRacineMatchParent, barreNavigation = true, modeGestuel = false)
+        assertTrue(troisBoutons.ok)
+        val pilule = rendreAvecChrome(xmlRacineMatchParent, barreNavigation = true, modeGestuel = true)
+        assertTrue(pilule.ok)
+        // La ZONE ne bouge pas (48 dp, ADR 0137 D6) : la racine finit à la
+        // même place dans les deux modes ; seul le CONTENU change.
+        assertEquals(
+            "la pilule occupe la même place que les trois boutons",
+            troisBoutons.vues.first().bas,
+            pilule.vues.first().bas,
+        )
+        val classesTrois = troisBoutons.vuesSysteme.map { it.classe }
+        val classesPilule = pilule.vuesSysteme.map { it.classe }
+        assertTrue("trois boutons : NavigationBar", "NavigationBar" in classesTrois)
+        assertTrue(
+            "mode gestuel : la PILULE (NavigationHandle) remplace les boutons",
+            InfoVueSysteme.CLASSE_PILOULE in classesPilule,
+        )
+        assertFalse(
+            "plus de barre à trois glyphes en mode gestuel",
+            "NavigationBar" in classesPilule,
+        )
+        // Les DEUX portent le marquage NAVIGATION_BAR (le type désigne la
+        // ZONE, la classe distingue le contenu).
+        assertTrue(
+            pilule.vuesSysteme.any {
+                it.type == InfoVueSysteme.TYPE_NAVIGATION_BAR && it.classe == InfoVueSysteme.CLASSE_PILOULE
+            },
         )
     }
 

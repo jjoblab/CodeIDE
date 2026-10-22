@@ -29,6 +29,8 @@ import jo.codeide.preview.xml.MoteurPreviewXml
 import jo.codeide.preview.xml.PlacementPopup
 import jo.codeide.preview.xml.ProblemesFamilles
 import jo.codeide.preview.xml.ProblemesPreview
+import jo.codeide.preview.xml.RedimensionApercu
+import jo.codeide.preview.xml.RedimensionParLayout
 import jo.codeide.preview.xml.ReferencesId
 import jo.codeide.preview.xml.RenommageIdentifiant
 import jo.codeide.preview.xml.RequeteRendu
@@ -938,12 +940,18 @@ public class PreviewViewModel
             }
 
         /**
-         * REDIMENSIONNE la sélection aux deux dimensions FIXES (PE11l —
-         * poignée d'angle de l'aperçu) : les DEUX axes partent en UNE
-         * édition groupée (une seule entrée d'historique par geste, miroir
-         * le `mutate` groupé de la maquette —
-         * [EditionAttributsXml.ecrireDimensions]). `false` = sélection non
-         * éditable (racine) ou span périmé.
+         * REDIMENSIONNE la sélection aux dimensions de la cible (PE11l +
+         * PE14-S2, poignée d'angle de l'aperçu) : les DEUX axes partent
+         * en UNE édition groupée (une seule entrée d'historique par
+         * geste, miroir le `mutate` groupé de la maquette —
+         * [EditionAttributsXml.ecrireRedimension]), ÉTOFFÉE des
+         * ajustements PAR-LAYOUT (ADR 0138 C3) : le `layout_weight` qui
+         * contredisait la taille écrite part au passage (parent
+         * LINEAR/APPBAR), les marges du bord tenu suivent le doigt
+         * (parent RELATIVE), les positions `tools:` du bord déplacé se
+         * posent SI le document déclare déjà le dialecte (parent
+         * CONSTRAINT — arbitrage D3). `false` = sélection non éditable
+         * (racine) ou span périmé.
          *
          * v0.166.4 — LA RACINE EST AUTORISÉE (retour propriétaire : « le
          * redimensionnement a aussi d'autres problèmes ») : l'aperçu
@@ -953,15 +961,87 @@ public class PreviewViewModel
          * disposition sont éditables, et l'inflater honore les dimensions
          * DÉCLARÉES de la racine depuis LayoutLib v3.4.6) — le geste
          * écrit `layout_width`/`layout_height` sur le tag racine et le
-         * rendu suit.
+         * rendu suit (sans parent, AUCUN ajustement par-layout).
          */
-        public fun redimensionnerSelection(
-            largeurDp: Int,
-            hauteurDp: Int,
-        ): Boolean =
-            editerSelection(autoriserRacine = true) { rendu, span ->
-                EditionAttributsXml.ecrireDimensions(rendu, span, largeurDp, hauteurDp)
+        public fun redimensionnerSelection(cible: RedimensionApercu.CibleRedimension): Boolean =
+            editerSelection(autoriserRacine = true) { texte, span ->
+                EditionAttributsXml.ecrireRedimension(
+                    texte,
+                    span,
+                    largeurDp = cible.largeurDp,
+                    hauteurDp = cible.hauteurDp,
+                    ajustements = ajustementsParLayout(texte, span, cible),
+                )
             }
+
+        /**
+         * Les AJUSTEMENTS PAR-LAYOUT du relâchement (PE14-S2 C3, ADR
+         * 0138) : dérivés de la famille du PARENT RENDU (miroir les
+         * « targets par layout » du designer de la référence) — la
+         * géométrie vient du DERNIER RENDU (bornes absolues bitmap, la
+         * même vérité que la sélection), les règles de position du
+         * TEXTE VIVANT (lues par [EditionAttributsXml.lire]). Sans
+         * parent (racine) ou famille inconnue : AUCUN ajustement (les
+         * deux axes seuls — comportement PE11l).
+         */
+        private fun ajustementsParLayout(
+            texte: String,
+            span: InsertionXml.SpanParent,
+            cible: RedimensionApercu.CibleRedimension,
+        ): EditionAttributsXml.AjustementsRedimension {
+            val rendu = dernierRendu ?: return EditionAttributsXml.AjustementsRedimension()
+            val selection =
+                rendu.vues.getOrNull(selectionInterne.value) ?: return EditionAttributsXml.AjustementsRedimension()
+            val parent =
+                rendu.vues.getOrNull(selection.indiceParent)
+                    ?: return EditionAttributsXml.AjustementsRedimension()
+            val attributs =
+                EditionAttributsXml
+                    .lire(texte, span)
+                    ?.associate { it.nom to it.valeur }
+                    ?: return EditionAttributsXml.AjustementsRedimension()
+            val cadre =
+                RedimensionParLayout.CadreRedimension(
+                    attributs = attributs,
+                    selection = selection,
+                    parent = parent,
+                    freres = freresRendus(rendu),
+                    densiteDpi = moteur.profil.densiteDpi,
+                )
+            val famille =
+                FamilleParent.deNom(parent.famille) ?: FamilleParent.deBalise(parent.classe)
+            return when (famille) {
+                FamilleParent.LINEAR, FamilleParent.APPBAR -> {
+                    EditionAttributsXml.AjustementsRedimension(
+                        retirerPoids = RedimensionParLayout.poidsARetirer(attributs),
+                    )
+                }
+
+                FamilleParent.RELATIVE -> {
+                    EditionAttributsXml.AjustementsRedimension(
+                        marges = RedimensionParLayout.margesARetenir(cadre, cible),
+                    )
+                }
+
+                FamilleParent.CONSTRAINT -> {
+                    val (x, y) =
+                        RedimensionParLayout.positionsOutils(
+                            cadre = cadre,
+                            cible = cible,
+                            outilsAutorises = texte.contains(XMLNS_OUTILS),
+                        )
+                    EditionAttributsXml.AjustementsRedimension(positionOutilsX = x, positionOutilsY = y)
+                }
+
+                else -> {
+                    EditionAttributsXml.AjustementsRedimension()
+                }
+            }
+        }
+
+        /** Les vues rendues du document par NOM D'ID (ancres RelativeLayout — PE14-S2 C3). */
+        private fun freresRendus(rendu: EtatPreviewXml.RenduValide): Map<String, InfoVueRendu> =
+            rendu.vues.filter { it.idRes.isNotEmpty() }.associateBy { it.idRes }
 
         /**
          * CORRECTION « Passer à 48 dp » de la sélection (PE11g — carte de
@@ -1297,6 +1377,9 @@ public class PreviewViewModel
         /** Extras d'intention (Publics : l'implémentation du navigateur pose les extras.) */
         public companion object {
             private const val TAG: String = "PreviewViewModel"
+
+            /** La déclaration du dialecte `tools:` (PE14-S2 C3, arbitrage D3 : jamais imposé). */
+            private const val XMLNS_OUTILS: String = "xmlns:tools"
 
             /** Extra d'intention : identifiant du projet (relance de l'éditeur). */
             public const val CLE_PROJET: String = "jo.codeide.preview.PROJECT_ID"

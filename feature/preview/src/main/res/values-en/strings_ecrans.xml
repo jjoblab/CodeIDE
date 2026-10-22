@@ -13,6 +13,14 @@
     <string name="preview_calques_titre">Layers</string>
     <string name="preview_chrome_systeme_titre">System chrome</string>
     <string name="preview_calque_navigation">Navigation bar</string>
+    <!-- PE14-S1 (ADR 0139) — gesture mode of the navigation bar. -->
+    <string name="preview_calque_mode_gestuel">Gesture mode</string>
+    <!-- PE14-S1 (ADR 0139) — the "System" section of the Tree tab. -->
+    <string name="preview_arbre_systeme_titre">System</string>
+    <string name="preview_arbre_systeme_status_bar">Status bar</string>
+    <string name="preview_arbre_systeme_navigation_bar">Navigation bar</string>
+    <string name="preview_arbre_systeme_pilule">Gesture pill</string>
+    <string name="preview_arbre_systeme_action_bar">Action bar</string>
     <string name="preview_probleme_voir">Show</string>
     <string name="preview_bandeau_erreur_titre">Render error</string>
     <string name="preview_bandeau_ligne">Line %1$d</string>

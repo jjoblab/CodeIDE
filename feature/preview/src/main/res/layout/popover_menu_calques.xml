@@ -57,4 +57,12 @@
     <include
         android:id="@+id/calque_navigation"
         layout="@layout/item_menu_calque" />
+
+    <!-- PE14-S1 (ADR 0139) — « Mode gestuel » : la pilule remplace les
+         trois glyphes de la barre de navigation (la place ne change pas).
+         Indépendant de « Barre de navigation » : sans barre rendue,
+         l'interrupteur ne change rien d'visible (l'état reste posé). -->
+    <include
+        android:id="@+id/calque_mode_gestuel"
+        layout="@layout/item_menu_calque" />
 </LinearLayout>

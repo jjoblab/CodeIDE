@@ -1201,6 +1201,55 @@ c'est le fil conducteur de toute la section.
 6. **Hauteurs thémées (D4)** — si le thème du projet déclare `android:actionBarSize` (p. ex.
    64dp), l'action bar du chrome suit l'attribut au rendu suivant ; sans déclaration, repli
    56 dp. (Nouveauté miroir `Layout.Builder` AOSP : à signaler si un écart vous surprend.)
-7. **Arbre de composants** — l'onglet Arbre ne montre PAS les vues du chrome (déjà le cas
-   avant) ; la future section « système » (infos marquées `ViewType`) n'est PAS branchée —
-   rien à vérifier de ce côté, le moteur l'expose pour un chantier ultérieur.
+7. **Arbre de composants** — l'onglet Arbre ne montre PAS les vues du chrome dans le
+   PRÉ-ORDRE du document (déjà le cas avant) ; la section « système » branchée en v0.170.0
+   est TERMINALE et non sélectionnable — voir la section suivante.
+
+## Geste de redimensionnement fidèle + section « Système » et « Mode gestuel » (PE14 S1/S2 → v0.170.0, ADR 0138/0139)
+
+Écran : aperçu XML, projet avec thème Material standard, un LinearLayout vertical
+contenant un Button (et une seconde vue au-dessus pour les scénarios d'ancrage),
+profil Pixel 4. Le fil conducteur : le geste de poignée fait EXACTEMENT ce que le
+doigt montre — plus de saut au premier mouvement, plus de vue qui glisse, plus
+d'instant vide au relâchement.
+
+1. **Plus de saut de préhension (C1, le cœur)** — saisir la poignée BAS-DROITE du
+   bouton en POSANT le doigt visiblement À CÔTÉ du carré (dans la zone de saisie,
+   1-2 cm à l'écran) : le fantôme pointillé part DE LA TAILLE ACTUELLE et le COIN
+   reste sous le doigt — la pill « w×h dp » n'affiche PAS une valeur différente de
+   la vue avant même que vous bougiez (l'ancien comportement sautait de la longueur
+   du décalage, jusqu'à ~18 dp par axe). Tirer de 20 dp vers le bas-droite : la
+   cible affiche ~la taille de départ + 20 dp, PAS + 30.
+2. **Le fantôme ne laisse jamais de vide (C4)** — relâcher un geste sur un GROS
+   layout (rendu lent) : le rectangle cible et sa pill RESTENT affichés jusqu'à
+   l'arrivée du nouveau rendu, puis s'effacent en fondu (~150 ms). Un geste RATÉ
+   (sélection périmée : éditer le texte pendant le geste) relâche sur le toast
+   d'échec et le fantôme part immédiatement.
+3. **Poids neutralisé (C3, LinearLayout)** — un enfant `layout_width="0dp"` +
+   `layout_weight="1"` : saisir sa poignée et écrire une taille → le RENDU CHANGE
+   (avant, rien ne bougeait) ; l'onglet Source montre le poids RETIRÉ dans la même
+   édition (UN SEUL « Annuler » ramène l'ancien XML au complet).
+4. **Plus de glissement (C3, RelativeLayout)** — enfant ancré `layout_below` +
+   `layout_toRightOf` d'une vue : saisir la poignée HAUT-GAUCHE → le coin
+   BAS-DROIT reste FIXE pendant le geste et APRÈS le rendu (la marge du bord tenu
+   est réécrite dans la même édition) ; même contrôle sur un enfant `alignParentRight`
+   saisi par sa poignée GAUCHE. Une vue centrée (`centerInParent`) reste libre de
+   glisser (les marges ne la contrôlent pas — comportement assumé, ADR 0138).
+5. **Dialecte tools: jamais imposé (C3, ConstraintLayout)** — un document SANS
+   `xmlns:tools` : le geste n'écrit QUE les dimensions (vérifier dans la Source) ;
+   un document qui LE DÉCLARE : `tools:layout_editor_absoluteX/Y` suivent le bord
+   déplacé (miroir ConstraintResizeTarget).
+6. **Section « Système » de l'arbre (ADR 0139)** — onglet Arbre d'un rendu CHROMÉ :
+   après le contenu, une entête « Système » puis « Barre de statut », « Barre
+   d'action », « Barre de navigation » avec leurs badges (24, 56, 48 dp au profil).
+   Taper une rangée système : RIEN ne se sélectionne (aucune balise source — la
+   sélection courante reste). Un document plein écran (`windowFullscreen`) ou sans
+   thème : la section N'EXISTE PAS. La pastille « rendue • n vues » ne compte
+   TOUJOURS que le contenu.
+7. **Mode gestuel (ADR 0139)** — menu Calques → Chrome système → « Mode gestuel » :
+   la barre de navigation 48 dp troque ses trois glyphes contre la PILULE — MÊME
+   hauteur, le contenu ne bouge PAS d'un pixel ; l'arbre affiche « Pilule gestuelle »
+   à la place de « Barre de navigation ». Éteindre « Barre de navigation » : la zone
+   part (le contenu descend), l'interrupteur « Mode gestuel » reste posé sans effet
+   visible ; le rétablir : la pilule revient. Le réglage vit la SESSION (rouvrir
+   l'aperçu : trois boutons par défaut).

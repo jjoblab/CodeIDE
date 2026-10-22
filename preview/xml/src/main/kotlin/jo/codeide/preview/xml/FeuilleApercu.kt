@@ -42,6 +42,9 @@ public object FeuilleApercu {
      * @property idNom nom d'entrée de la ressource id (sans préfixe).
      * @property badge badge de fin de rangée (problèmes ou dimensions).
      * @property aProblemes la rangée porte le badge de problèmes.
+     * @property genre le GENRE de la rangée (PE14-S1, ADR 0139) : contenu
+     *           sélectionnable, ou section « Système » — entête ou barre
+     *           du décor, JAMAIS sélectionnable (aucune balise source).
      */
     public data class EntreeArbre(
         val indice: Int,
@@ -51,13 +54,91 @@ public object FeuilleApercu {
         val idNom: String,
         val badge: String,
         val aProblemes: Boolean,
+        val genre: GenreRangee = GenreRangee.CONTENU,
     )
+
+    /**
+     * Le genre d'une rangée de l'arbre (PE14-S1, ADR 0139) : le contenu
+     * de l'utilisateur (sélectionnable), l'ENTÊTE de la section
+     * « Système », ou une BARRE du décor (non sélectionnable — miroir le
+     * toast de la maquette : « Barre système : aucune balise XML à
+     * sélectionner »).
+     */
+    public enum class GenreRangee {
+        /** Une vue du document — sélection croisée au tap. */
+        CONTENU,
+
+        /** L'entête « Système » — un LIBELLÉ, pas une vue. */
+        ENTETE_SYSTEME,
+
+        /** Une barre du décor (status bar, navigation, action bar). */
+        VUE_SYSTEME,
+    }
 
     /** Indentation de base d'une rangée d'arbre, en dp (miroir `paddingLeft = 8 + …`). */
     private const val INDENTATION_BASE_DP: Int = 8
 
     /** Pas d'indentation par profondeur, en dp (miroir `d * 16`). */
     private const val INDENTATION_PAS_DP: Int = 16
+
+    /** L'indice de l'ENTÊTE « Système » (jamais une cible de sélection). */
+    private const val INDICE_ENTETE_SYSTEME: Int = -1
+
+    /**
+     * Les rangées de la SECTION « Système » de l'arbre (PE14-S1, ADR
+     * 0139 — les barres du décor, collecte duale LayoutLib 3.5.0) : une
+     * ENTÊTE puis une rangée par BARRE de premier rang — libellé fourni
+     * par l'UI (chaîne résolue du [InfoVueSysteme.type], repli le nom de
+     * classe), monogramme de la CLASSE (les barres partagent des
+     * initiales de libellé — « S » de « StatusBar » se lit mieux que le
+     * « B » de « Barre »), badge des dimensions au profil. Vide sans
+     * décor — l'arbre reste celui du contenu.
+     *
+     * @param vuesSysteme les barres du décor du DERNIER rendu.
+     * @param densiteDpi la densité du PROFIL (badge dp — 0 : repli px).
+     * @param entete le LIBELLÉ de l'entête de section (chaîne de l'UI).
+     * @param libelle résout le LIBELLÉ affichable d'une barre (pur : la
+     *        couche UI fournit les chaînes du thème de l'app).
+     */
+    public fun entreesSysteme(
+        vuesSysteme: List<InfoVueSysteme>,
+        densiteDpi: Int,
+        entete: String,
+        libelle: (InfoVueSysteme) -> String,
+    ): List<EntreeArbre> {
+        if (vuesSysteme.isEmpty()) return emptyList()
+        val rangees = mutableListOf<EntreeArbre>()
+        rangees +=
+            EntreeArbre(
+                // L'entête : indice DÉDIÉ (les barres suivent à partir de
+                // −2) — la clé DiffUtil reste UNIQUE par rangée.
+                indice = INDICE_ENTETE_SYSTEME,
+                indentation = INDENTATION_BASE_DP,
+                monogramme = "",
+                classe = entete,
+                idNom = "",
+                badge = "",
+                aProblemes = false,
+                genre = GenreRangee.ENTETE_SYSTEME,
+            )
+        vuesSysteme.forEachIndexed { position, vue ->
+            rangees +=
+                EntreeArbre(
+                    // Indices NÉGATIFS distincts (l'entête occupe −1) : les
+                    // rangées système ne sont JAMAIS des cibles de
+                    // sélection, la clé DiffUtil reste UNIQUE.
+                    indice = -(position + 2),
+                    indentation = INDENTATION_BASE_DP,
+                    monogramme = monogramme(vue.classe),
+                    classe = libelle(vue),
+                    idNom = "",
+                    badge = badgeDimensionsSysteme(vue, densiteDpi),
+                    aProblemes = false,
+                    genre = GenreRangee.VUE_SYSTEME,
+                )
+        }
+        return rangees
+    }
 
     /**
      * Les rangées de l'arbre (miroir `renderTree` : parcours PRÉ-ORDRE de
@@ -268,6 +349,21 @@ public object FeuilleApercu {
         val largeur = CalquesApercu.pxVersDp(vue.largeurPx, densiteDpi)
         val hauteur = CalquesApercu.pxVersDp(vue.hauteurPx, densiteDpi)
         return "$largeur×$hauteur"
+    }
+
+    /**
+     * Le badge de dimensions d'une BARRE SYSTÈME (PE14-S1, ADR 0139 — même
+     * convention que [badgeDimensions], sur les bornes du décor).
+     */
+    private fun badgeDimensionsSysteme(
+        vue: InfoVueSysteme,
+        densiteDpi: Int,
+    ): String {
+        if (vue.droite <= vue.gauche || vue.bas <= vue.haut) return ""
+        if (densiteDpi <= 0) return "${vue.largeurPx}×${vue.hauteurPx}px"
+        val largeur = CalquesApercu.pxVersDp(vue.largeurPx, densiteDpi)
+        val hauteur = CalquesApercu.pxVersDp(vue.hauteurPx, densiteDpi)
+        return "$largeur×$hauteur dp"
     }
 
     /** Une bande de marge/padding affichée (0 dp → masquée, miroir maquette `if (mt)`). */

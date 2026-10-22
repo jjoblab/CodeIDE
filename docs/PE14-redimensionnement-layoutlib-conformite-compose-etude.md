@@ -32,7 +32,17 @@
 > `LayoutLib` v3.5.0). Tous les faits cités ont été vérifiés dans les
 > fichiers sources, avec chemins et lignes. Annexe A : liste des sources.
 >
-> **Verdict en une ligne** : le redimensionnement a un défaut de calcul
+> **Arbitrages (2026-10-23)** : le propriétaire a tranché « **C'est oui pour
+D1-D8** » — les HUIT décisions du § 7 sont acceptées DANS LE SENS RECOMMANDÉ
+par l'étude, et les chantiers **S1 (PE13-suite) + S2 (redimension fidèle)
+sont LIVRÉS dans CodeIDE v0.170.0** (ADR 0138 pour le geste — D1/D3 au
+complet, D2 snap renvoyé en P2 comme recommandé ; ADR 0139 pour la section
+« système » et le mode gestuel). Le plan **S3–S9 reste séquencé** ci-dessous
+(S3 bugs ponctuels LayoutLib, S4 conformité enfants, S5 palettes, S6 listes,
+S7 attributs fidèles, S8 cookie/RTL/hygiène, S9 Compose C0) — chaque
+lancement attendra le mot du propriétaire.
+
+**Verdict en une ligne** : le redimensionnement a un défaut de calcul
 > **réel et chiffrable** (le saut de préhension — §1.3), le LayoutLib maison
 > est **structurellement sain mais concentré sur un périmètre restreint**
 > (l'audit livre 3 bugs ponctuels, 15 manques priorisés et 6 stubs

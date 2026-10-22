@@ -7,6 +7,7 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.DragEvent
 import android.view.GestureDetector
@@ -263,12 +264,16 @@ public class VuePreviewXml :
     // ── Redimensionnement par poignée (PE11l — demandé par le propriétaire) ──
 
     /**
-     * Le RELÂCHEMENT d'une poignée d'angle de la sélection : UNE écriture
-     * groupée des dimensions FIXES `[largeurDp] × [hauteurDp]` (plancher
-     * 8 dp, miroir `mutate` de la maquette — l'activité relaie au port,
-     * une seule entrée d'historique par geste).
+     * Le RELÂCHEMENT d'une poignée d'angle de la sélection (PE11l +
+     * PE14-S2, ADR 0138) : UNE édition groupée des dimensions FIXES de
+     * la [RedimensionApercu.CibleRedimension] (plancher 8 dp, miroir
+     * `mutate` de la maquette — l'activité relaie au port, une seule
+     * entrée d'historique par geste) ; la cible porte l'ANCRE et le coin
+     * visé — le par-layout en dérive les ajustements (poids, marges,
+     * positions `tools:`). `false` = écriture REFUSÉE (sélection
+     * périmée) : le fantôme ne s'attarde pas (pas de faux confort).
      */
-    public var auRedimensionner: ((largeurDp: Int, hauteurDp: Int) -> Unit)? = null
+    public var auRedimensionner: ((cible: RedimensionApercu.CibleRedimension) -> Boolean)? = null
 
     /** Le coin ANCRE du redimensionnement (coordonnées CONTENU — null : pas de geste en cours). */
     private var redimensionAncre: Pair<Int, Int>? = null
@@ -278,6 +283,29 @@ public class VuePreviewXml :
 
     /** Le point COURANT du doigt (coordonnées CONTENU — dessine le fantôme). */
     private var redimensionPoint: Pair<Int, Int>? = null
+
+    /**
+     * La COMPENSATION DE PRÉHENSION (PE14-S2 C1) : le doigt saisit DANS
+     * le rayon de 18 dp écran, pas SUR le coin. Le `DOWN` mémorise
+     * `decalage = coinSaisi − contact` et la machine ne stocke QUE des
+     * points COMPENSÉS (contact + decalage — le DÉPART vaut le COIN
+     * SAISI) : le fantôme part DE LA TAILLE ACTUELLE de la vue au lieu
+     * de sauter, la dérive se mesure sur la même trajectoire (le
+     * décalage est constant sur tout le geste — § 1.3 de l'étude PE14).
+     */
+    private var redimensionDecalage: Pair<Int, Int>? = null
+
+    /**
+     * Le fantôme PERSISTANT du relâchement (C4 — px contenu) : la cible
+     * reste affichée jusqu'au RENDU SUIVANT, puis se fond (150 ms) — le
+     * panneau n'a jamais d'instant vide entre le geste et le re-rendu
+     * asynchrone (l'écriture part en `soumettreImmediat`, le bitmap
+     * arrive quand il arrive).
+     */
+    private var fantomePersistant: RectF? = null
+
+    /** Le départ du FONDU du fantôme persistant (null : plein jusqu'au prochain rendu). */
+    private var debutFonduFantome: Long? = null
 
     /**
      * Changement d'échelle (PE6b — boutons de zoom, gestes, ajustement) :
@@ -606,6 +634,13 @@ public class VuePreviewXml :
                 Unit
             }
         }
+        // PE14-S2 (C4) — le rendu SUIVANT arrive : le fantôme persistant
+        // du dernier relâchement entame son fondu (la cible écrite est
+        // maintenant DANS la planche — le fantôme n'est plus une
+        // promesse mais un doublon qui s'efface en douceur).
+        if (fantomePersistant != null) {
+            debutFonduFantome = SystemClock.uptimeMillis()
+        }
         notifierEchelle()
         invalidate()
     }
@@ -658,6 +693,11 @@ public class VuePreviewXml :
         problemes = emptyList()
         accueilAffiche = true
         plancheAjustee = false
+        redimensionAncre = null
+        redimensionDepart = null
+        redimensionPoint = null
+        redimensionDecalage = null
+        effacerFantomePersistant()
         notifierEchelle()
         invalidate()
     }
@@ -769,11 +809,14 @@ public class VuePreviewXml :
     /**
      * La MACHINE du redimensionnement par poignée (PE11l — internal :
      * testée sans [MotionEvent], patron [traiterEvenementDrag]) :
-     * ACTION_DOWN saisit la poignée sous le doigt (coin ANCRE opposé —
-     * la cible tactile de 18 dp écran dépasse le carré visuel de 9 dp,
-     * dérogation ADR 0133), MOVE suit le point, UP écrit UNE fois les
-     * dimensions cibles si le geste a DÉRIVÉ (contact seul = rien,
-     * miroir le tap), CANCEL abandonne. `true` = événement CONSOMMÉ.
+     * ACTION_DOWN saisit la poignée sous le doigt (coin ANCRE opposé +
+     * COMPENSATION de préhension PE14-S2 C1 — la cible tactile de
+     * 18 dp écran dépasse le carré visuel de 9 dp, dérogation ADR 0133,
+     * le doigt n'y tombe JAMAIS pile : les points suivants sont stockés
+     * COMPENSÉS, le coin visuel suit le doigt), MOVE suit le point, UP
+     * écrit UNE fois les dimensions cibles si le geste a DÉRIVÉ
+     * (contact seul = rien, miroir le tap) et GARDE le fantôme jusqu'au
+     * rendu suivant (C4), CANCEL abandonne. `true` = événement CONSOMMÉ.
      *
      * Exemption ciblée (règle 16) : refus MOVE/UP sans saisie = ISSUES
      * DISTINCTES, même patron que la machine de drag.
@@ -790,13 +833,25 @@ public class VuePreviewXml :
         val yContenu = Math.round(yCourant)
         return when (action) {
             MotionEvent.ACTION_DOWN -> {
-                val ancre = saisirPoignee(xContenu, yContenu)
-                if (ancre == null) {
+                val saisie = saisirPoignee(xContenu, yContenu)
+                if (saisie == null) {
                     false
                 } else {
-                    redimensionAncre = ancre
-                    redimensionDepart = xContenu to yContenu
-                    redimensionPoint = xContenu to yContenu
+                    val decalage =
+                        RedimensionApercu.decalagePrehension(
+                            coinX = saisie.coin.first,
+                            coinY = saisie.coin.second,
+                            pointX = xContenu,
+                            pointY = yContenu,
+                        )
+                    redimensionAncre = saisie.ancre
+                    // DÉPART et point COMPENSÉS : le départ vaut le COIN
+                    // saisi — la dérive part de zéro, la cible part de la
+                    // taille actuelle (C1).
+                    redimensionDepart = saisie.coin
+                    redimensionPoint = saisie.coin
+                    redimensionDecalage = decalage
+                    effacerFantomePersistant()
                     invalidate()
                     true
                 }
@@ -804,7 +859,7 @@ public class VuePreviewXml :
 
             MotionEvent.ACTION_MOVE -> {
                 if (redimensionAncre == null) return false
-                redimensionPoint = xContenu to yContenu
+                redimensionPoint = pointCompense(xContenu, yContenu)
                 invalidate()
                 true
             }
@@ -818,11 +873,19 @@ public class VuePreviewXml :
                 redimensionAncre = null
                 redimensionDepart = null
                 redimensionPoint = null
-                invalidate()
+                redimensionDecalage = null
                 // Contact SANS dérive : rien ne s'écrit (miroir le tap) ;
                 // CANCEL n'écrit JAMAIS (règle 6 : pas d'écriture surprise).
                 val cible = cibleDuRelachement(action, ancre, depart, point)
-                if (cible != null) auRedimensionner?.invoke(cible.first, cible.second)
+                if (cible == null) {
+                    effacerFantomePersistant()
+                } else {
+                    poserFantomePersistant(cible)
+                    // `false` (sélection périmée, racine non éditable) : le
+                    // fantôme ne s'attarde pas sur une cible non écrite.
+                    if (auRedimensionner?.invoke(cible) != true) effacerFantomePersistant()
+                }
+                invalidate()
                 true
             }
 
@@ -832,17 +895,29 @@ public class VuePreviewXml :
         }
     }
 
+    /** Le point de contact RAMENÉ au coin visuel (C1 — contact + compensation de préhension). */
+    private fun pointCompense(
+        xContenu: Int,
+        yContenu: Int,
+    ): Pair<Int, Int> {
+        val decalage = redimensionDecalage ?: return xContenu to yContenu
+        return (xContenu + decalage.first) to (yContenu + decalage.second)
+    }
+
     /**
      * Les dimensions cibles du RELÂCHEMENT — `null` : contact sans
      * dérive (miroir le tap), CANCEL (règle 6 : pas d'écriture surprise),
-     * densité inconnue ou geste immobile.
+     * densité inconnue ou geste immobile. La cible porte l'ANCRE et le
+     * COIN visé (contact + compensation) : le par-layout en dérive ses
+     * ajustements (PE14-S2 C3). Le `when` en EXPRESSION garde les issues
+     * DISTINCTES sans flotter de retours (miroir le PE11l d'origine).
      */
     private fun cibleDuRelachement(
         action: Int,
         ancre: Pair<Int, Int>,
         depart: Pair<Int, Int>?,
         point: Pair<Int, Int>?,
-    ): Pair<Int, Int>? =
+    ): RedimensionApercu.CibleRedimension? =
         when {
             action != MotionEvent.ACTION_UP -> {
                 null
@@ -863,13 +938,23 @@ public class VuePreviewXml :
             }
 
             else -> {
-                RedimensionApercu.dimensions(
-                    ancreX = ancre.first,
-                    ancreY = ancre.second,
-                    pointX = point.first,
-                    pointY = point.second,
-                    densiteDpi = densiteDpi,
-                )
+                RedimensionApercu
+                    .dimensions(
+                        ancreX = ancre.first,
+                        ancreY = ancre.second,
+                        pointX = point.first,
+                        pointY = point.second,
+                        densiteDpi = densiteDpi,
+                    )?.let { dimensions ->
+                        RedimensionApercu.CibleRedimension(
+                            largeurDp = dimensions.first,
+                            hauteurDp = dimensions.second,
+                            ancreX = ancre.first,
+                            ancreY = ancre.second,
+                            coinX = point.first,
+                            coinY = point.second,
+                        )
+                    }
             }
         }
 
@@ -881,9 +966,9 @@ public class VuePreviewXml :
     private fun saisirPoignee(
         xContenu: Int,
         yContenu: Int,
-    ): Pair<Int, Int>? {
+    ): RedimensionApercu.PoigneeSaisie? {
         if (densiteDpi <= 0 || indiceSurligne !in vues.indices) return null
-        return RedimensionApercu.ancrePoigneeSous(
+        return RedimensionApercu.poigneeSous(
             vue = vues[indiceSurligne],
             xContenu = xContenu,
             yContenu = yContenu,
@@ -1805,14 +1890,64 @@ public class VuePreviewXml :
      * du coin ANCRE au point courant + pill « largeur×hauteur dp » en
      * direct — RIEN n'est écrit avant le relâchement (le fantôme vit
      * dans le TRACÉ, pas dans le document : un rendu par édition
-     * écrite, règle du brief PE11).
+     * écrite, règle du brief PE11). PE14-S2 (C4) : le relâchement GARDE
+     * la cible affichée jusqu'au rendu suivant, puis la fond sur
+     * [RedimensionApercu.DUREE_FONDU_FANTOME_MS] — le panneau n'a
+     * jamais d'instant vide.
      */
     private fun dessinerRedimensionnement(
         canevas: Canvas,
         jetons: JetonsCalques,
     ) {
+        val ancre = redimensionAncre
+        if (ancre == null) {
+            dessinerFantomePersistant(canevas, jetons)
+            return
+        }
         val rect = rectangleFantome() ?: return
+        dessinerFantome(canevas, jetons, rect, alpha = 1f)
+    }
+
+    /**
+     * Le fantôme PERSISTANT (C4) : dessiné PLEIN jusqu'au rendu suivant
+     * ([afficherRendu] pose le départ du fondu), puis fond — l'alpha
+     * dérive de l'écart mesuré ([RedimensionApercu.alphaFantome], pur) ;
+     * la boucle de dessin s'auto-réinvalide tant que le fondu vit, et
+     * nettoie les champs à son terme (jamais de résidu).
+     */
+    private fun dessinerFantomePersistant(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+    ) {
+        val rect = fantomePersistant ?: return
+        val depart = debutFonduFantome
+        val alpha =
+            if (depart == null) {
+                1f
+            } else {
+                RedimensionApercu.alphaFantome(SystemClock.uptimeMillis() - depart)
+            }
+        if (alpha <= 0f) {
+            effacerFantomePersistant()
+            return
+        }
+        dessinerFantome(canevas, jetons, rect, alpha)
+        if (depart != null) postInvalidateOnAnimation()
+    }
+
+    /**
+     * Le TRACÉ commun du fantôme (geste vivant ou persistant) : rectangle
+     * pointillé accent + pill dp — l'alpha porte le fondu (C4), posé sur
+     * les peintures puis RESTAURÉ (elles sont partagées avec le plan).
+     */
+    private fun dessinerFantome(
+        canevas: Canvas,
+        jetons: JetonsCalques,
+        rect: RectF,
+        alpha: Float,
+    ) {
         peintPlan.color = jetons.accent
+        peintPlan.alpha = (alpha * ALPHA_PLEIN).toInt()
         peintPlan.pathEffect = EFFET_POINTILLES
         peintPlan.strokeWidth = tailleEcran(LARGEUR_TRAIT_SURLIGNAGE)
         canevas.drawRect(rect, peintPlan)
@@ -1832,14 +1967,58 @@ public class VuePreviewXml :
             val xPill = (rect.left - padH).coerceAtLeast(0f)
             val centreY = (rect.top - tailleEcran(TAILLE_POIGNEE_DP) - padV).coerceAtLeast(padV)
             peintPill.color = jetons.accent
+            peintPill.alpha = (alpha * ALPHA_PLEIN).toInt()
             peintEtiquette.color = jetons.surCalque
+            peintEtiquette.alpha = (alpha * ALPHA_PLEIN).toInt()
             dessinerEtiquetteRectangle(canevas, dimensions, xPill, centreY)
+            peintPill.alpha = ALPHA_PLEIN
+            peintEtiquette.alpha = ALPHA_PLEIN
         }
+        peintPlan.alpha = ALPHA_PLEIN
     }
 
     /**
-     * Le RECTANGLE du fantôme (px contenu) — de l'ancre au point courant,
-     * `null` hors geste.
+     * POSE le fantôme persistant du relâchement (C4) : le rectangle cible
+     * du geste reste affiché PLEIN jusqu'au prochain rendu
+     * ([afficherRendu] amorce le fondu).
+     */
+    private fun poserFantomePersistant(cible: RedimensionApercu.CibleRedimension) {
+        val (hautGauche, basDroite) =
+            RedimensionApercu.rectangle(
+                ancreX = cible.ancreX,
+                ancreY = cible.ancreY,
+                pointX = cible.coinX,
+                pointY = cible.coinY,
+            )
+        fantomePersistant =
+            RectF(
+                hautGauche.first.toFloat(),
+                hautGauche.second.toFloat(),
+                basDroite.first.toFloat(),
+                basDroite.second.toFloat(),
+            )
+        debutFonduFantome = null
+    }
+
+    /** EFFACE le fantôme persistant (fin de fondu, nouveau geste, échec, réinitialisation). */
+    private fun effacerFantomePersistant() {
+        if (fantomePersistant == null) return
+        fantomePersistant = null
+        debutFonduFantome = null
+    }
+
+    /**
+     * Le fantôme PERSISTANT est-il affiché ? (PE14-S2 C4 — sonde interne
+     * de test : le tracé vit dans `onDraw`, la machine d'état se vérifie
+     * par son effet visible — posé au relâchement, fondu au rendu
+     * suivant, parti au terme du fondu.)
+     */
+    internal fun fantomePersistantAffiche(): Boolean = fantomePersistant != null
+
+    /**
+     * Le RECTANGLE du fantôme (px contenu) — de l'ancre au point courant
+     * COMPENSÉ de la préhension (C1 : la machine ne stocke QUE des
+     * points compensés), `null` hors geste.
      */
     private fun rectangleFantome(): RectF? {
         val ancre = redimensionAncre
@@ -1848,7 +2027,12 @@ public class VuePreviewXml :
             null
         } else {
             val (hautGauche, basDroite) =
-                RedimensionApercu.rectangle(ancre.first, ancre.second, point.first, point.second)
+                RedimensionApercu.rectangle(
+                    ancreX = ancre.first,
+                    ancreY = ancre.second,
+                    pointX = point.first,
+                    pointY = point.second,
+                )
             RectF(
                 hautGauche.first.toFloat(),
                 hautGauche.second.toFloat(),

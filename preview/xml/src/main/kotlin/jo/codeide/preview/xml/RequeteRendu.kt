@@ -64,6 +64,14 @@ public class RequeteRendu(
      *  le contenu (avec la status bar et l'action bar du chrome). Un
      *  CHANGEMENT relance un rendu immédiat. Défaut : ON. */
     public val barreNavigation: Boolean = true,
+    /** MODE GESTUEL de la barre de navigation du chrome (PE13-suite / PE14-S1,
+     *  ADR 0139 — interrupteur « Mode gestuel » du groupe « Chrome système »
+     *  du menu Calques) : `true` = la zone de 48 dp porte la PILULE gestuelle
+     *  (`NavigationHandle`) à la place des trois glyphes — la HAUTEUR reste
+     *  celle de la maquette dans les deux modes (le mode change le CONTENU,
+     *  jamais la place). Un CHANGEMENT relance un rendu immédiat. Défaut :
+     *  OFF (trois boutons, défauts maquette — ADR 0137 D6). */
+    public val modeGestuel: Boolean = false,
 ) : Parcelable {
     // Le profil est APLATI au parcel (pas de readParcelable déprécié
     // API 33 — le module reste compatible minSdk 26 sans
@@ -88,6 +96,7 @@ public class RequeteRendu(
         paysage = parcel.readByte() != 0.toByte(),
         echellePolice = parcel.readFloat(),
         barreNavigation = parcel.readByte() != 0.toByte(),
+        modeGestuel = parcel.readByte() != 0.toByte(),
     )
 
     override fun writeToParcel(
@@ -109,6 +118,7 @@ public class RequeteRendu(
         parcel.writeByte(if (paysage) 1 else 0)
         parcel.writeFloat(echellePolice)
         parcel.writeByte(if (barreNavigation) 1 else 0)
+        parcel.writeByte(if (modeGestuel) 1 else 0)
     }
 
     override fun describeContents(): Int = 0
@@ -126,7 +136,8 @@ public class RequeteRendu(
             other.classpath == classpath &&
             other.paysage == paysage &&
             other.echellePolice == echellePolice &&
-            other.barreNavigation == barreNavigation
+            other.barreNavigation == barreNavigation &&
+            other.modeGestuel == modeGestuel
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()
@@ -141,6 +152,7 @@ public class RequeteRendu(
         resultat = 31 * resultat + if (paysage) 1 else 0
         resultat = 31 * resultat + echellePolice.hashCode()
         resultat = 31 * resultat + if (barreNavigation) 1 else 0
+        resultat = 31 * resultat + if (modeGestuel) 1 else 0
         return resultat
     }
 

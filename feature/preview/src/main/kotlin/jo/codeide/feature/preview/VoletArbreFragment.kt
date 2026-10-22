@@ -13,6 +13,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.feature.preview.databinding.FragmentVoletArbreBinding
 import jo.codeide.feature.preview.databinding.ItemArbreBinding
 import jo.codeide.preview.xml.FeuilleApercu
+import jo.codeide.preview.xml.InfoVueSysteme
 import jo.codeide.preview.xml.ProblemesPreview
 
 /**
@@ -25,6 +26,16 @@ import jo.codeide.preview.xml.ProblemesPreview
  * badge « ! n » sur fond AMBRE (avertissement) sinon les dimensions
  * sur fond neutre, monogramme 20 dp. La SÉLECTION vit dans les
  * entrées (rebind DiffUtil des seules rangées changées).
+ *
+ * PE14-S1 (ADR 0139) — la SECTION « SYSTÈME » : les BARRES du décor
+ * (collecte duale LayoutLib 3.5.0, [EtatPreviewXml.RenduValide.vuesSysteme])
+ * suivent le contenu — une ENTÊTE « Système » puis une rangée par barre
+ * (status bar, barre de navigation ou PILULE gestuelle, action bar),
+ * JAMAIS sélectionnables (aucune balise XML source — miroir le toast
+ * de la maquette : « Barre système : aucune balise XML à
+ * sélectionner »). Le même item layout sert les TROIS genres —
+ * l'entête masque monogramme et badge, les barres portent le
+ * monogramme de leur CLASSE et leurs dimensions au profil.
  */
 @AndroidEntryPoint
 internal class VoletArbreFragment : VoletFeuilleFragment() {
@@ -47,7 +58,8 @@ internal class VoletArbreFragment : VoletFeuilleFragment() {
     }
 
     override fun marcher() {
-        val vues = renduCourant?.vues
+        val rendu = renduCourant
+        val vues = rendu?.vues
         // Miroir renderTree : arbre VIDE → liste vide (la maquette
         // n'affiche AUCUN message dans ce volet — le fil d'Ariane de la
         // feuille porte déjà « Sans sélection »).
@@ -57,12 +69,52 @@ internal class VoletArbreFragment : VoletFeuilleFragment() {
         }
         val densite = viewModel.moteur.profil.densiteDpi
         val problemes = ProblemesPreview.evaluer(vues, densite)
-        adaptateur.submitList(
+        val entrees =
             FeuilleApercu.entreesArbre(vues, problemes, densite).mapIndexed { indice, entree ->
                 EntreeArbreUi(entree = entree, selectionnee = indice == selectionCourante)
-            },
-        )
+            }
+        // PE14-S1 — la section « Système » suit le contenu (vides sans
+        // décor : la liste reste celle du document).
+        val entreesSysteme =
+            FeuilleApercu
+                .entreesSysteme(
+                    vuesSysteme = rendu?.vuesSysteme.orEmpty(),
+                    densiteDpi = densite,
+                    entete = getString(R.string.preview_arbre_systeme_titre),
+                    libelle = { vue -> libelleSysteme(vue) },
+                ).map { entree -> EntreeArbreUi(entree = entree, selectionnee = false) }
+        adaptateur.submitList(entrees + entreesSysteme)
     }
+
+    /**
+     * Le LIBELLÉ d'une barre système : la chaîne du TYPE de la barre
+     * (résolue du thème de l'app), la PILULE gestuelle se distingue de
+     * la barre à trois glyphes par sa CLASSE (`NavigationHandle`) — repli
+     * défensif sur le nom de classe pour tout marquage à venir.
+     */
+    private fun libelleSysteme(vue: InfoVueSysteme): String =
+        when {
+            vue.type == InfoVueSysteme.TYPE_STATUS_BAR -> {
+                getString(R.string.preview_arbre_systeme_status_bar)
+            }
+
+            vue.type == InfoVueSysteme.TYPE_NAVIGATION_BAR &&
+                vue.classe == InfoVueSysteme.CLASSE_PILOULE -> {
+                getString(R.string.preview_arbre_systeme_pilule)
+            }
+
+            vue.type == InfoVueSysteme.TYPE_NAVIGATION_BAR -> {
+                getString(R.string.preview_arbre_systeme_navigation_bar)
+            }
+
+            vue.type == InfoVueSysteme.TYPE_ACTION_BAR -> {
+                getString(R.string.preview_arbre_systeme_action_bar)
+            }
+
+            else -> {
+                vue.classe
+            }
+        }
 }
 
 /** UNE entrée de l'onglet Arbre : la rangée du pré-ordre et son état de sélection. */
@@ -78,7 +130,9 @@ internal data class EntreeArbreUi(
  * layout RÉEL (`item_arbre.xml` — monogramme, classe, id, badge), les
  * SEULES poses au liage sont l'indentation de profondeur (donnée du
  * modèle), l'état `isSelected` de la rangée et le fond/couleur du badge
- * (neutre ↔ avertissement — miroir `.badge`/`.badge.w`).
+ * (neutre ↔ avertissement — miroir `.badge`/`.badge.w`). PE14-S1 : les
+ * rangées SYSTÈME ne posent AUCUN écouteur (aucune balise à sélectionner),
+ * l'ENTÊTE masque monogramme et badge.
  */
 internal class AdaptateurArbre(
     private val auLigne: (Int) -> Unit,
@@ -112,8 +166,12 @@ internal class AdaptateurArbre(
         }
 
         fun poser(entree: EntreeArbreUi) {
+            val genre = entree.entree.genre
             indice = entree.entree.indice
             val contexte = liaison.root.context
+            // PE14-S1 — les rangées SYSTÈME ne sélectionnent RIEN : pas
+            // d'écouteur (l'entête non plus).
+            liaison.root.isClickable = genre == FeuilleApercu.GenreRangee.CONTENU
             // Sélection = isSelected : le sélecteur apercu_rangee_fond
             // peint l'accent doux (miroir `.row.on` de la maquette).
             liaison.root.isSelected = entree.selectionnee
@@ -126,6 +184,9 @@ internal class AdaptateurArbre(
                 liaison.root.paddingEnd,
                 liaison.root.paddingBottom,
             )
+            // L'ENTÊTE « Système » est un LIBELLÉ : pas de monogramme, pas
+            // d'id, pas de badge — le texte seul le distingue.
+            liaison.pillMonogramme.isVisible = genre != FeuilleApercu.GenreRangee.ENTETE_SYSTEME
             liaison.pillMonogramme.text = entree.entree.monogramme
             liaison.libelleClasse.text = entree.entree.classe
             liaison.libelleId.text = contexte.getString(R.string.preview_feuille_id, entree.entree.idNom)
