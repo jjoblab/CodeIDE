@@ -21,8 +21,11 @@ import com.google.android.material.textfield.TextInputEditText
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.feature.preview.databinding.BarreOutilsAttributsBinding
 import jo.codeide.feature.preview.databinding.CarteSectionBinding
+import jo.codeide.feature.preview.databinding.ControleActionBinding
+import jo.codeide.feature.preview.databinding.ControleAttributLibreBinding
 import jo.codeide.feature.preview.databinding.ControleContrainteBinding
 import jo.codeide.feature.preview.databinding.ControleContraintesBinding
+import jo.codeide.feature.preview.databinding.ControleContraintesLectureBinding
 import jo.codeide.feature.preview.databinding.ControleCotesBinding
 import jo.codeide.feature.preview.databinding.ControleCouleurBinding
 import jo.codeide.feature.preview.databinding.ControleCurseurBinding
@@ -38,8 +41,10 @@ import jo.codeide.feature.preview.databinding.ControleSegmentsBinding
 import jo.codeide.feature.preview.databinding.ControleTexteBinding
 import jo.codeide.feature.preview.databinding.EnteteChampBinding
 import jo.codeide.feature.preview.databinding.FragmentVoletAttributsBinding
+import jo.codeide.feature.preview.databinding.ItemActionBinding
 import jo.codeide.feature.preview.databinding.ItemAttributBinding
 import jo.codeide.feature.preview.databinding.ItemAttributGroupeBinding
+import jo.codeide.feature.preview.databinding.ItemAttributLibreBinding
 import jo.codeide.feature.preview.databinding.ItemDimensionBinding
 import jo.codeide.feature.preview.databinding.ItemDrapeauBinding
 import jo.codeide.feature.preview.databinding.ItemLectureSeuleBinding
@@ -112,6 +117,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private var branchementBarre: Boolean = false
 
     /**
+     * Le NOM à PRÉREMPLIR dans la rangée d'ajout libre (PE11h — miroir le
+     * `n.value = S.attrQ` de la suggestion de la maquette) : posé par le
+     * tap sur « Ajouter … comme attribut libre », consommé au liage de la
+     * section Autres attributs puis effacé (une seule consommation).
+     */
+    private var suggestionLibreEnAttente: String? = null
+
+    /**
      * Le contrat adaptateur : le LIAGE des corps de cartes reste au volet
      * (chaque contrôle a sa fonction, un type = un item layout).
      */
@@ -123,6 +136,13 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 controles: List<CatalogueAttributs.ControleAttribut>,
                 attrs: List<EditionAttributsXml.AttributSource>,
             ) {
+                // La section AUTRES (PE11h — miroir `{other:true}`) ne
+                // reçoit AUCUN contrôle du catalogue : son corps est le
+                // composite attribut libre (rangées du document + ajout).
+                if (section.autres) {
+                    carte.corpsSection.addView(controleAttributLibre(attrs))
+                    return
+                }
                 // La NOTE de section (PE12c — miroir `sc.note` de la
                 // maquette) se rend EN TÊTE du corps, AVANT les contrôles.
                 section.note?.let { carte.corpsSection.addView(vueNoteSection(it)) }
@@ -139,10 +159,26 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 section: CatalogueAttributs.SectionAttributs,
                 position: Int,
             ): Boolean =
-                // La recherche OUVRE les sections qui restent (miroir
-                // `d.open = qq ? true : …`).
-                rechercheInterne.value.isNotBlank() ||
-                    (etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES))
+                when {
+                    // La recherche OUVRE les sections qui restent (miroir
+                    // `d.open = qq ? true : …`).
+                    rechercheInterne.value.isNotBlank() -> {
+                        true
+                    }
+
+                    // La section AUTRES s'ouvre par défaut dès qu'elle
+                    // PORTE des rangées (miroir `rows.length > 0`).
+                    section.autres -> {
+                        viewModel
+                            .attributsSelection()
+                            ?.let { attrs -> nomsInconnus(attrs).isNotEmpty() }
+                            ?: false
+                    }
+
+                    else -> {
+                        etatSections[section.titre.name] ?: (position < DEFAUT_OUVERTES)
+                    }
+                }
 
             override fun basculerSection(
                 section: CatalogueAttributs.SectionAttributs,
@@ -155,6 +191,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             override fun auBoutonAutres() {
                 modeCourantsInterne.value = false
                 majAttributs()
+            }
+
+            override fun auSuggestionLibre(nom: String) {
+                this@VoletAttributsFragment.auSuggestionLibre(nom)
             }
 
             override fun auCorrectif(action: ActionCorrectif) {
@@ -285,6 +325,12 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 var visibles = 0
                 var masques = 0
                 sections.forEachIndexed { position, section ->
+                    // La section AUTRES (PE11h — miroir `sc.other`) : les
+                    // rangées viennent du DOCUMENT, pas du catalogue.
+                    if (section.autres) {
+                        if (ajouterSectionAutres(this, attrs, section, position)) visibles++
+                        return@forEachIndexed
+                    }
                     val controles = controlesFiltres(section)
                     if (controles.isEmpty()) return@forEachIndexed
                     masques += section.controles.size - controles.size
@@ -300,23 +346,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                         ),
                     )
                 }
-                if (visibles == 0) {
-                    // Miroir le `<p class="empty">` de la maquette (la
-                    // suggestion « Ajouter … comme attribut libre » arrive
-                    // avec la section Autres attributs, PE11h).
-                    add(ItemAttributs.Message(getString(R.string.preview_attr_aucun, rechercheInterne.value.trim())))
-                }
-                // Miroir le `.linkbtn.wide` : visible en mode Courants
-                // quand des attributs sont MASQUÉS (toujours 0 dans la
-                // 1re vague — tous courants — le bouton s'allumera avec
-                // les drapeaux de la 2e vague).
-                if (rechercheInterne.value.isBlank() && modeCourantsInterne.value && masques > 0) {
-                    add(
-                        ItemAttributs.BoutonAutres(
-                            resources.getQuantityString(R.plurals.preview_attr_autres, masques, masques, classe),
-                        ),
-                    )
-                }
+                ajouterPiedSections(this, classe, visibles, masques)
                 add(ItemAttributs.Separateur)
             }
             for (groupe in FeuilleApercu.groupesAttributs(vue, viewModel.moteur.profil.densiteDpi)) {
@@ -330,6 +360,72 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     /** Le titre localisé d'une section (clé sémantique → ressource — table
      * unique, miroir [ETIQUETTES_RES]). */
     private fun titreSectionRes(titre: CatalogueAttributs.TitreSection): String = getString(TITRES_RES.getValue(titre))
+
+    /**
+     * La carte de la section AUTRES (PE11h — miroir le `sc.other` de
+     * `fill`) : la recherche filtre les NOMS des rangées, le mode Tous
+     * seul révèle la rangée d'ajout, et la carte se montre dès qu'il y a
+     * une rangée (ou en mode Tous sans recherche) — le badge compte TOUTES
+     * les rangées hors catalogue, filtrées ou pas. `true` = la carte est
+     * visible (elle compte dans l'état vide).
+     */
+    private fun ajouterSectionAutres(
+        items: MutableList<ItemAttributs>,
+        attrs: List<EditionAttributsXml.AttributSource>,
+        section: CatalogueAttributs.SectionAttributs,
+        position: Int,
+    ): Boolean {
+        val inconnus = nomsInconnus(attrs)
+        val requete = rechercheInterne.value.trim().lowercase()
+        val ranges =
+            if (requete.isEmpty()) {
+                inconnus
+            } else {
+                inconnus.filter { it.nom.lowercase().contains(requete) }
+            }
+        val visible = ranges.isNotEmpty() || (requete.isEmpty() && !modeCourantsInterne.value)
+        if (visible) {
+            items.add(
+                ItemAttributs.Carte(
+                    section = section,
+                    controles = emptyList(),
+                    attrs = attrs,
+                    position = position,
+                    titre = titreSectionRes(section.titre),
+                    definis = inconnus.size,
+                ),
+            )
+        }
+        return visible
+    }
+
+    /**
+     * Le PIED des sections (PE11h — miroir la fin de `fill`) : l'état VIDE
+     * (le message « Aucun attribut ne correspond » puis la SUGGESTION
+     * « Ajouter … comme attribut libre » quand la recherche RESSEMBLE à
+     * un nom d'attribut), puis le bouton large « Afficher les N autres »
+     * (mode Courants, attributs masqués — miroir le `.linkbtn.wide`).
+     */
+    private fun ajouterPiedSections(
+        items: MutableList<ItemAttributs>,
+        classe: String,
+        visibles: Int,
+        masques: Int,
+    ) {
+        if (visibles == 0) {
+            items.add(ItemAttributs.Message(getString(R.string.preview_attr_aucun, rechercheInterne.value.trim())))
+            rechercheInterne.value.trim().takeIf { NOM_SUGGESTION.matches(it) }?.let { nom ->
+                items.add(ItemAttributs.SuggestionLibre(nom))
+            }
+        }
+        if (rechercheInterne.value.isBlank() && modeCourantsInterne.value && masques > 0) {
+            items.add(
+                ItemAttributs.BoutonAutres(
+                    resources.getQuantityString(R.plurals.preview_attr_autres, masques, masques, classe),
+                ),
+            )
+        }
+    }
 
     /**
      * Les cartes de CORRECTION RAPIDE (PE11g — miroir `quickFixes` :
@@ -528,6 +624,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
             is CatalogueAttributs.ControleAttribut.ReferenceId -> controleReferenceId(controle, attrs)
             is CatalogueAttributs.ControleAttribut.Bascules -> controleBascules(controle, attrs)
+            is CatalogueAttributs.ControleAttribut.ActionRapide -> controleActionRapide(controle)
+            is CatalogueAttributs.ControleAttribut.ContraintesLecture -> controleContraintesLecture(controle, attrs)
             CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
             CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
             else -> error("contrôle à champ routé par controleSection : $controle")
@@ -1337,6 +1435,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE -> R.string.preview_attr_ressource_introuvable
             ValidationAttribut.GenreMessage.VALEUR_BORNEE -> R.string.preview_attr_curseur_bornes
             ValidationAttribut.GenreMessage.RATIO_INVALIDE -> R.string.preview_attr_ratio_invalide
+            ValidationAttribut.GenreMessage.NOM_ATTRIBUT_LIBRE -> R.string.preview_attr_libre_nom_invalide
         }
 
     /** Retire le message de validation (miroir `showMsg(f, null)` retire le bloc). */
@@ -2206,6 +2305,249 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
             },
         )
 
+    // ── PE11h : action rapide, contraintes en lecture, attribut libre ────
+
+    /**
+     * Le contrôle ACTIONS RAPIDES (controle_action.xml — miroir `.qa`) :
+     * une Chip « lien » par action, SANS en-tête ni champ (une action ne
+     * compte jamais dans le badge « n définis ») ; chaque geste = UNE
+     * ÉDITION GROUPÉE + le retour maison du libellé (miroir
+     * `mutate(fn, lab)`).
+     */
+    private fun controleActionRapide(controle: CatalogueAttributs.ControleAttribut.ActionRapide): View {
+        val bloc = ControleActionBinding.inflate(gonfleur())
+        controle.actions.forEach { action ->
+            val puce = ItemActionBinding.inflate(gonfleur(), bloc.root, false)
+            puce.action.text = etiquetteRes(action.libelle)
+            puce.action.setOnClickListener {
+                when (action.ecriture) {
+                    CatalogueAttributs.ControleAttribut.ActionRapide.Ecriture.RemplirEspaceRestant -> {
+                        if (editerOuRecharger { viewModel.remplirEspaceRestantSelection() }) {
+                            annoncerCorrectif(R.string.preview_action_remplir_toast)
+                        }
+                    }
+                }
+            }
+            bloc.root.addView(puce.root)
+        }
+        return bloc.root
+    }
+
+    /**
+     * Les contraintes EN LECTURE (controle_contraintes_lecture.xml —
+     * miroir `con`) : TOUTES les ancres `app:layout_constraint*` du
+     * document, une ligne « ancre = cible » par contrainte (le préfixe
+     * commun se retire, miroir `x[0].replace('app:layout_constraint',
+     * '')`), puis la NOTE — l'édition par côtés suit dans la même section
+     * (contrôle Contraintes, PE8b). Le bloc ne porte NI puce d'espace de
+     * noms NI ↺ (rien à rétablir : il ne détient pas les attributs).
+     */
+    private fun controleContraintesLecture(
+        controle: CatalogueAttributs.ControleAttribut.ContraintesLecture,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): View {
+        val bloc = ControleContraintesLectureBinding.inflate(gonfleur())
+        brancherEntete(bloc.entete, etiquetteRes(controle.etiquette), emptyList(), attrs)
+        bloc.valeurLectureSeule.text =
+            attrs
+                .filter { it.nom.startsWith(PREFIXE_ANCRE) }
+                .joinToString("\n") { attr ->
+                    attr.nom.removePrefix(PREFIXE_ANCRE) + " = " + attr.valeur
+                }
+        bloc.root.addView(noteSousChamp(getString(R.string.preview_note_contraintes_lues)))
+        return bloc.root
+    }
+
+    /**
+     * La section AUTRES ATTRIBUTS (controle_attribut_libre.xml — miroir
+     * `.other`) : une rangée éditable par attribut du document HORS
+     * catalogue ([nomsInconnus] — la recherche filtre les NOMS), puis la
+     * rangée d'AJOUT qui ne se montre qu'en mode TOUS (miroir
+     * `if (S.attrMode === 't')`). Chaque geste = UNE édition au port.
+     */
+    private fun controleAttributLibre(attrs: List<EditionAttributsXml.AttributSource>): View {
+        val bloc = ControleAttributLibreBinding.inflate(gonfleur())
+        val requete = rechercheInterne.value.trim().lowercase()
+        val ranges =
+            nomsInconnus(attrs).let { inconnus ->
+                if (requete.isEmpty()) {
+                    inconnus
+                } else {
+                    inconnus.filter { it.nom.lowercase().contains(requete) }
+                }
+            }
+        ranges.forEach { attr ->
+            bloc.listeAttributsLibres.addView(rangeeAttributLibre(attr, bloc.listeAttributsLibres))
+        }
+        bloc.rangeeAjoutAttribut.isVisible = !modeCourantsInterne.value
+        if (bloc.rangeeAjoutAttribut.isVisible) brancherAjoutLibre(bloc, attrs)
+        return bloc.root
+    }
+
+    /**
+     * Le LIAGE d'une rangée d'attribut libre EXISTANT
+     * (item_attribut_libre.xml — miroir `.other` sans l'ajout) : nom en
+     * mono tronqué, valeur brute éditable (commit au DONE ou à la perte de
+     * focus, seulement si elle CHANGE), ✕ qui RETIRE l'attribut (une
+     * édition, retour maison du nom — miroir `mutate(() => setEx(v, n,
+     * ''), n + ' supprimé')`).
+     */
+    private fun rangeeAttributLibre(
+        attr: EditionAttributsXml.AttributSource,
+        parent: ViewGroup,
+    ): View {
+        val rangee = ItemAttributLibreBinding.inflate(gonfleur(), parent, false)
+        rangee.nomAttributLibre.text = attr.nom
+        rangee.valeurAttributLibre.setText(attr.valeur)
+        val commettre = {
+            val saisie =
+                rangee.valeurAttributLibre.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+            if (saisie != attr.valeur) {
+                editerOuRecharger { viewModel.definirAttributSelection(attr.nom, saisie) }
+            }
+        }
+        rangee.valeurAttributLibre.setOnEditorActionListener { _, action, _ ->
+            if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                commettre()
+                rangee.valeurAttributLibre.clearFocus()
+                true
+            } else {
+                false
+            }
+        }
+        rangee.valeurAttributLibre.setOnFocusChangeListener { _, aFocus ->
+            if (!aFocus) commettre()
+        }
+        rangee.boutonRetirerAttributLibre.setOnClickListener {
+            if (editerOuRecharger { viewModel.definirAttributSelection(attr.nom, "") }) {
+                annoncerTexte(getString(R.string.preview_attr_libre_supprime, attr.nom))
+            }
+        }
+        return rangee.root
+    }
+
+    /**
+     * La RANGÉE d'ajout libre (miroir `.other.add`) : nom à COMPLÉTION
+     * (les suggestions de la maquette + les noms du catalogue PAS encore
+     * posés sur la vue — miroir `[...FREE_NAMES, ...[...known]].filter(x
+     * => !ex(v, x))`), valeur, « Ajouter » ; un nom qui ne ressemble pas
+     * à `android:…`/`app:…`/`tools:…` ou une valeur VIDE ne s'écrit PAS
+     * (toasts de la maquette, jamais d'écriture hasardeuse).
+     */
+    private fun brancherAjoutLibre(
+        bloc: ControleAttributLibreBinding,
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ) {
+        val poses = attrs.map { it.nom }.toSet()
+        val suggestions =
+            (CatalogueAttributs.NOMS_LIBRES_SUGGERES + nomsConnusSelection().filter { it !in poses }).distinct()
+        bloc.champNouveauNom.setAdapter(
+            ArrayAdapter(requireContext(), R.layout.item_option_liste, suggestions),
+        )
+        // La PRÉREMPLISSAGE de la suggestion (PE11h) : le nom cherché se
+        // pose une seule fois, le curseur en fin de champ, le focus part
+        // dès que la carte est liée (miroir le `n.focus()` de la maquette).
+        suggestionLibreEnAttente?.let { nom ->
+            bloc.champNouveauNom.setText(nom)
+            bloc.champNouveauNom.setSelection(nom.length)
+            suggestionLibreEnAttente = null
+            bloc.champNouveauNom.post { bloc.champNouveauNom.requestFocus() }
+        }
+        bloc.boutonAjouterAttribut.setOnClickListener {
+            val nom =
+                bloc.champNouveauNom.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+            val valeur =
+                bloc.champNouvelleValeur.text
+                    ?.toString()
+                    ?.trim()
+                    .orEmpty()
+            when {
+                ValidationAttribut.nomAttributLibre(nom) is ValidationAttribut.Resultat.Erreur -> {
+                    annoncerTexte(getString(R.string.preview_attr_libre_nom_invalide))
+                }
+
+                valeur.isEmpty() -> {
+                    annoncerTexte(getString(R.string.preview_attr_libre_valeur_manquante))
+                }
+
+                else -> {
+                    if (editerOuRecharger { viewModel.definirAttributSelection(nom, valeur) }) {
+                        annoncerTexte(getString(R.string.preview_attr_libre_ajoute, nom))
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Les noms CONNUS du catalogue pour la SÉLECTION (PE11h — la
+     * complétion de l'ajout libre y ajoute les absents du document).
+     */
+    private fun nomsConnusSelection(): Set<String> {
+        val classe = viewModel.classeSelection() ?: return emptySet()
+        return CatalogueAttributs.nomsConnus(
+            classe,
+            viewModel.familleParentSelection() ?: FamilleParent.AUCUN,
+            viewModel.familleVueSelection() ?: FamilleParent.deBalise(classe),
+        )
+    }
+
+    /**
+     * Les attributs du document HORS catalogue (PE11h — miroir
+     * `(v.extra || []).filter(x => !known.has(x[0]))`) : l'opposition du
+     * [nomsConnusSelection] aux attributs lus de la sélection — la
+     * matière première de la section Autres attributs.
+     */
+    private fun nomsInconnus(
+        attrs: List<EditionAttributsXml.AttributSource>,
+    ): List<EditionAttributsXml.AttributSource> {
+        if (viewModel.classeSelection() == null) return emptyList()
+        val connus = nomsConnusSelection()
+        return attrs.filter { it.nom !in connus }
+    }
+
+    /**
+     * Le tap sur la SUGGESTION « Ajouter … comme attribut libre » (PE11h
+     * — miroir le `b.onclick` de la maquette, ADAPTÉ) : passe en mode
+     * TOUS, VIDE la recherche (la maquette la garde — mais sa propre
+     * rangée d'ajout reste alors cachée par le filtre et son `focus()`
+     * n'aboutit jamais ; vider la recherche révèle la section, écart
+     * voulu consigné), ouvre la section Autres attributs et PRÉREMPLIT
+     * le champ de nom avec le nom cherché — SANS édition.
+     */
+    private fun auSuggestionLibre(nom: String) {
+        rechercheInterne.value = ""
+        modeCourantsInterne.value = false
+        etatSections[CatalogueAttributs.TitreSection.AUTRES.name] = true
+        suggestionLibreEnAttente = nom
+        majAttributs()
+        liaison.voletAttributs.post { amenerAuChampLibre() }
+    }
+
+    /**
+     * Amène la section AUTRES à l'écran (miroir le `scrollIntoView` de la
+     * maquette) : le FOCUS part au liage de la rangée d'ajout, posé par
+     * la suggestion en attente — jamais deux fois.
+     */
+    private fun amenerAuChampLibre() {
+        val position =
+            adaptateur.currentList.indexOfFirst { item ->
+                item is ItemAttributs.Carte && item.section.autres
+            }
+        if (position >= 0) liaison.voletAttributs.scrollToPosition(position)
+    }
+
+    /** Le retour maison PARAMÉTRÉ (miroir les toasts `mutate(…, msg)` de la maquette). */
+    private fun annoncerTexte(texte: String) {
+        (activity as? HoteVoletsApercu)?.annoncerTexte(texte)
+    }
+
     /** L'édition ou le RECHARGEMENT : un refus → retour maison via
      * l'HÔTE (surchargeable pour un refus spécialisé, ex. renommage)
      * + volet relu depuis le texte vivant. */
@@ -2388,6 +2730,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         /** L'opacité d'un contrôle DÉSACTIVÉ (miroir `.flg button:disabled { opacity: .4 }`). */
         private const val ALPHA_DESACTIVE: Float = 0.4f
 
+        /** PE11h — une recherche qui RESSEMBLE à un nom d'attribut
+         * (miroir `/^(android|app|tools):\w+$/` de la suggestion). */
+        private val NOM_SUGGESTION: Regex = Regex("""^(android|app|tools):\w+$""")
+
+        /** PE11h — le préfixe commun des ancres de contrainte
+         * (miroir `/layout_constraint/` du contrôle `con`). */
+        private const val PREFIXE_ANCRE: String = "app:layout_constraint"
+
         // ── Attributs de dimension du volet Modifier (PE7d) ──
         private const val ATTR_LARGEUR: String = "android:layout_width"
         private const val ATTR_HAUTEUR: String = "android:layout_height"
@@ -2414,6 +2764,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.TitreSection.BARRE_OUTILS to R.string.preview_section_barre_outils,
                 CatalogueAttributs.TitreSection.BOUTON_ACTION to R.string.preview_section_bouton_action,
                 CatalogueAttributs.TitreSection.CARTE to R.string.preview_section_carte,
+                CatalogueAttributs.TitreSection.AUTRES to R.string.preview_section_autres,
             )
 
         /** La table des étiquettes (clé sémantique → ressource — une seule voie). */
@@ -2512,6 +2863,10 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 CatalogueAttributs.Etiquette.LARGEUR_BORDURE to R.string.preview_etiquette_largeur_bordure,
                 CatalogueAttributs.Etiquette.COULEUR_RIPPLE to R.string.preview_etiquette_couleur_ripple,
                 CatalogueAttributs.Etiquette.PADDING_COMPAT to R.string.preview_etiquette_padding_compat,
+                // ── PE11h — action rapide, contraintes en lecture, libre ──
+                CatalogueAttributs.Etiquette.ACTIONS to R.string.preview_etiquette_actions,
+                CatalogueAttributs.Etiquette.CONTRAINTES_LUES to R.string.preview_etiquette_contraintes_lues,
+                CatalogueAttributs.Etiquette.REMPLIR_ESPACE to R.string.preview_etiquette_remplir_espace,
             )
     }
 }

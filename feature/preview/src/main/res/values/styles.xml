@@ -102,6 +102,13 @@
         <item name="lineHeight">17sp</item>
     </style>
 
+    <!-- Nom d'un attribut libre (.other code) : mono 12 / interligne 16.8, tronqué au liage. -->
+    <style name="TextAppearance.CodeIDE.Apercu.NomAttributLibre">
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textSize">12sp</item>
+        <item name="lineHeight">17sp</item>
+    </style>
+
     <!-- Segment (.seg2 button) : 12 / 500 ; couleur par sélecteur. -->
     <style name="TextAppearance.CodeIDE.Apercu.Segment">
         <item name="lineHeight">12sp</item>

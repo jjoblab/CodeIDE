@@ -669,6 +669,39 @@ public class PreviewViewModel
             }
 
         /**
+         * ACTION RAPIDE « Remplir l'espace restant » (PE11h — miroir le
+         * `items` du `quick` linéaire de la maquette) : pose
+         * `android:layout_weight="1"` et passe la dimension de l'AXE DU
+         * PARENT à `0dp` (match_constraint) en UNE SEULE édition groupée
+         * (une seule entrée d'historique). L'AXE se résout au CLIC sur
+         * l'orientation du parent LUE DANS LE TEXTE VIVANT (`horizontal`
+         * → largeur, défaut → hauteur) — jamais sur le rendu, qui peut
+         * dater d'avant la frappe. `false` = sélection non éditable, span
+         * périmé ou RIEN à remplir (poids 1 + 0dp déjà posés).
+         */
+        public fun remplirEspaceRestantSelection(): Boolean {
+            val rendu = dernierRendu ?: return false
+            val sourceBranchee = source ?: return false
+            val vue = rendu.vues.getOrNull(selectionInterne.value) ?: return false
+            val parent = rendu.vues.getOrNull(vue.indiceParent) ?: return false
+            val orientation =
+                EditionAttributsXml.valeurAttribut(
+                    sourceBranchee.texte(),
+                    InsertionXml.SpanParent(parent.debutElement, parent.finElement),
+                    ATTR_ORIENTATION_PARENT,
+                )
+            val axe =
+                if (orientation == VALEUR_HORIZONTALE) {
+                    EditionAttributsXml.Axe.LARGEUR
+                } else {
+                    EditionAttributsXml.Axe.HAUTEUR
+                }
+            return editerSelection { texte, span ->
+                EditionAttributsXml.remplirEspaceRestant(texte, span, axe)
+            }
+        }
+
+        /**
          * La session strings.xml OUVERTE du même projet (PE8c — le
          * registre ne connaît que les documents OUVERTS) : même racine
          * projet, chemin `res/values/strings.xml` dérivé de celui du
@@ -1272,5 +1305,11 @@ public class PreviewViewModel
 
             /** PE12f — l'attribut posé par le correctif « Ajouter le comportement ». */
             private const val ATTRIBUT_COMPORTEMENT: String = "app:layout_behavior"
+
+            /** PE11h — l'orientation du parent, lue dans le texte vivant. */
+            private const val ATTR_ORIENTATION_PARENT: String = "android:orientation"
+
+            /** PE11h — la seule orientation qui calcule la LARGEUR (défaut : vertical). */
+            private const val VALEUR_HORIZONTALE: String = "horizontal"
         }
     }

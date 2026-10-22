@@ -63,6 +63,13 @@ internal class AdaptateurAttributs(
         /** Le tap sur « Afficher les N autres attributs » passe en mode TOUS. */
         fun auBoutonAutres()
 
+        /**
+         * Le tap sur la SUGGESTION « Ajouter … comme attribut libre »
+         * (PE11h) : passe en mode Tous, ouvre la section Autres attributs
+         * et préremplit le champ de nom — SANS édition.
+         */
+        fun auSuggestionLibre(nom: String)
+
         /** Le tap sur le BOUTON d'une carte de correction (PE11g — l'action part au volet). */
         fun auCorrectif(action: ActionCorrectif)
     }
@@ -86,6 +93,7 @@ internal class AdaptateurAttributs(
             is ItemAttributs.Attribut -> VUE_ATTRIBUT
             is ItemAttributs.Message -> VUE_VIDE
             is ItemAttributs.BoutonAutres -> VUE_BOUTON_AUTRES
+            is ItemAttributs.SuggestionLibre -> VUE_SUGGESTION_LIBRE
             ItemAttributs.Vide -> VUE_VIDE
         }
 
@@ -105,6 +113,7 @@ internal class AdaptateurAttributs(
                 VUE_TITRE_GROUPE -> ItemAttributGroupeBinding.inflate(gonfleur, parent, false).root
                 VUE_ATTRIBUT -> ItemAttributBinding.inflate(gonfleur, parent, false).root
                 VUE_BOUTON_AUTRES -> BoutonAutresAttributsBinding.inflate(gonfleur, parent, false).root
+                VUE_SUGGESTION_LIBRE -> BoutonAutresAttributsBinding.inflate(gonfleur, parent, false).root
                 else -> VideVoletBinding.inflate(gonfleur, parent, false).root
             }
         return Detenteur(vue)
@@ -164,6 +173,16 @@ internal class AdaptateurAttributs(
                 val bouton = BoutonAutresAttributsBinding.bind(detenteur.itemView).boutonAutresAttributs
                 bouton.text = item.texte
                 bouton.setOnClickListener { evenements.auBoutonAutres() }
+            }
+
+            is ItemAttributs.SuggestionLibre -> {
+                val bouton = BoutonAutresAttributsBinding.bind(detenteur.itemView).boutonAutresAttributs
+                bouton.text =
+                    detenteur.itemView.resources.getString(
+                        R.string.preview_attr_ajouter_comme_libre,
+                        item.nom,
+                    )
+                bouton.setOnClickListener { evenements.auSuggestionLibre(item.nom) }
             }
         }
     }
@@ -252,5 +271,6 @@ internal class AdaptateurAttributs(
         internal const val VUE_VIDE: Int = 7
         internal const val VUE_BOUTON_AUTRES: Int = 8
         internal const val VUE_CORRECTIF: Int = 9
+        internal const val VUE_SUGGESTION_LIBRE: Int = 10
     }
 }

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ACTIONS RAPIDES d'une section (PE11h, maquette `.qa`) : rangée de boutons
+  « lien » à contour (26 dp, rayon 8, texte accent 12/500), écart 6 dp,
+  renvoi à la ligne. PAS d'étiquette (miroir le `quick` de la maquette,
+  sans `fieldBox`) ; chaque bouton = UNE édition groupée.
+-->
+<com.google.android.material.chip.ChipGroup xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/controle_action"
+    style="@style/Widget.CodeIDE.Apercu.GroupeDrapeaux"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:chipSpacingHorizontal="@dimen/apercu_couleur_gap"
+    app:chipSpacingVertical="@dimen/apercu_couleur_gap" />
