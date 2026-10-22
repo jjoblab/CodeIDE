@@ -35,6 +35,9 @@ public sealed interface EtatPreviewXml {
         public val hauteur: Int,
         /** Vues rendues en pré-ordre (vide hors LAYOUT — pas de sélection). */
         public val vues: List<InfoVueRendu> = emptyList(),
+        /** Les BARRES du décor (PE14-S1, ADR 0139 — section « Système » de
+         *  l'arbre ; vide sans chrome ou hors LAYOUT). */
+        public val vuesSysteme: List<InfoVueSysteme> = emptyList(),
     ) : EtatPreviewXml
 
     /**

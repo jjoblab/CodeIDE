@@ -187,4 +187,70 @@ public class FeuilleApercuTest {
         assertEquals(-1, FeuilleApercu.vueDeLigne(vuesBornees, texte, 9))
         assertEquals(-1, FeuilleApercu.vueDeLigne(emptyList(), texte, 1))
     }
+
+    // ── PE14-S1 (ADR 0139) — la section « Système » de l'arbre ───────────
+
+    /** Les BARRES d'un décor : status bar 24 dp + barre de navigation 48 dp (440 dpi). */
+    private fun barresSysteme(): List<InfoVueSysteme> =
+        listOf(
+            InfoVueSysteme(
+                gauche = 0,
+                haut = 0,
+                droite = 440,
+                bas = 66,
+                classe = "StatusBar",
+                type = InfoVueSysteme.TYPE_STATUS_BAR,
+            ),
+            InfoVueSysteme(
+                gauche = 0,
+                haut = 814,
+                droite = 440,
+                bas = 946,
+                classe = "NavigationBar",
+                type = InfoVueSysteme.TYPE_NAVIGATION_BAR,
+            ),
+        )
+
+    @Test
+    fun `entreesSysteme - une entete puis une rangee par barre, jamais selectionnables`() {
+        val entrees =
+            FeuilleApercu.entreesSysteme(
+                vuesSysteme = barresSysteme(),
+                densiteDpi = 440,
+                entete = "Système",
+                libelle = { vue -> if (vue.type == InfoVueSysteme.TYPE_STATUS_BAR) "Barre de statut" else vue.classe },
+            )
+        assertEquals("entête + deux barres", 3, entrees.size)
+        assertEquals(FeuilleApercu.GenreRangee.ENTETE_SYSTEME, entrees[0].genre)
+        assertEquals("l'entête porte le libellé, rien d'autre", "Système", entrees[0].classe)
+        assertTrue(entrees[0].monogramme.isEmpty())
+        assertTrue(entrees[0].badge.isEmpty())
+        val status = entrees[1]
+        assertEquals(FeuilleApercu.GenreRangee.VUE_SYSTEME, status.genre)
+        assertEquals("monogramme de la CLASSE (pas du libellé)", "S", status.monogramme)
+        assertEquals("Barre de statut", status.classe)
+        assertEquals("440 px × 160/440 = 160 dp ; 66 px = 24 dp", "160×24 dp", status.badge)
+        assertEquals("indices NÉGATIFS distincts (clé DiffUtil)", -2, status.indice)
+        assertEquals(-3, entrees[2].indice)
+        assertEquals("la barre de navigation garde sa classe en repli", "NavigationBar", entrees[2].classe)
+    }
+
+    @Test
+    fun `entreesSysteme - sans decor la section n existe pas`() {
+        assertTrue(
+            FeuilleApercu.entreesSysteme(emptyList(), densiteDpi = 440, entete = "Système", libelle = { "" }).isEmpty(),
+        )
+    }
+
+    @Test
+    fun `entreesSysteme - sans densite le badge tombe en px`() {
+        val entrees =
+            FeuilleApercu.entreesSysteme(
+                vuesSysteme = barresSysteme().take(1),
+                densiteDpi = 0,
+                entete = "Système",
+                libelle = { vue -> vue.classe },
+            )
+        assertEquals("440×66px", entrees[1].badge)
+    }
 }

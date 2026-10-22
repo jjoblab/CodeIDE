@@ -1,5 +1,99 @@
 # Journal des modifications
 
+## [0.170.0] – 2026-10-23
+
+### Le redimensionnement devient fidèle (compensation de préhension, fantôme persistant, par-layout au relâchement) + la section « Système » de l'arbre et le réglage « Mode gestuel » — PE14 S1/S2 (ADR 0138, ADR 0139)
+
+#### Modifié
+
+- **LE SAUT DE PRÉHENSION EST RÉPARÉ (ADR 0138 D1, C1 — le cœur du retour
+  propriétaire « les calculs ne sont pas correctes »)** : le tactile saisit la
+  poignée quelque part dans son rayon de 18 dp écran, JAMAIS pile sur le coin —
+  la cible `|ancre − doigt|` sautait d'emblée de la longueur du décalage
+  (jusqu'à ~18 dp par axe, un tiers de la dimension d'un bouton ; démonstration
+  chiffrée § 1.3 de l'étude PE14
+  `docs/PE14-redimensionnement-layoutlib-conformite-compose-etude.md`). Au
+  `ACTION_DOWN` la saisie rapporte désormais le COIN visé et la vue mémorise
+  `decalage = coinSaisi − contact` (px contenu) : cible, fantôme et pill dp se
+  calculent depuis `point + decalage` — le fantôme part DE LA TAILLE ACTUELLE
+  de la vue, le coin suit le doigt (l'analogue tactile du `CommonDragTarget`
+  de la référence). Un contact PILE sur le coin redonne le modèle historique
+  PE11l (`decalage = 0`, rétrocompatible). La cible voyage dans
+  `RedimensionApercu.CibleRedimension` (dimensions dp + ancre + coin visé).
+- **LE FANTÔME PERSISTE JUSQU'AU RENDU SUIVANT (C4, ADR 0138)** : le
+  relâchement GARDE le rectangle cible + pill dp affichés PLEIN jusqu'au
+  prochain `afficherRendu`, puis les fond sur 150 ms
+  (`RedimensionApercu.alphaFantome`, pur) — le panneau n'a jamais d'instant
+  vide entre le geste et le re-rendu asynchrone (« rien ne s'est passé »).
+  Un échec d'écriture (`auRedimensionner` devient `(CibleRedimension) ->
+  Boolean`), un CANCEL, un contact sans dérive, un NOUVEAU geste et
+  `reinitialiser()` effacent le fantôme immédiatement.
+- **LE PAR-LAYOUT AU RELÂCHEMENT (C3, ADR 0138 D3 — la vue reste SUR PLACE)** :
+  miroir les « targets par layout » du designer de la référence
+  (`RelativeResizeTarget`, `ConstraintResizeTarget`) — `ecrireDimensions`
+  devient `ecrireRedimension` (composition ATOMIQUE : dimensions + ajustements
+  dans UNE seule édition, un geste = UNE entrée d'historique), les
+  ajustements dérivés de la famille du PARENT RENDU :
+  `LINEAR`/`APPBAR` → le `layout_weight` non nul qui CONTREDISAIT la taille
+  fixe écrite part dans la même édition (cas A de l'étude : un enfant `0dp` +
+  poids IGNORAIT la taille écrite, « rien ne bougeait ») ; `RELATIVE` → la
+  marge du bord TENU suit le doigt depuis sa référence (parent par
+  défaut/ancrage implicite, vue alignée pour `toRightOf`/`below`/`align*` —
+  marge clampée ≥ 0, bords dérivés et axes centrés jamais écrits, frère
+  introuvable refusé, les DEUX variantes `marginStart`/`marginLeft`
+  réalignées ensemble car le `XmlPreprocessor` du frère renomme Start→Left) ;
+  `CONSTRAINT` → `tools:layout_editor_absoluteX/Y` du bord déplacé posés
+  SEULEMENT si le document déclare déjà `xmlns:tools` (arbitrage D3 : jamais
+  de dialecte imposé) ; racine/famille inconnue → les deux axes seuls.
+
+#### Ajouté
+
+- **LA SECTION « SYSTÈME » DE L'ARBRE (ADR 0139 — chantier « section
+  système » confirmé à la suite de PE13)** : les BARRES de premier rang du
+  décor marquées `ViewType` (collecte duale LayoutLib 3.5.0) traversent la
+  frontière dans le nouveau parcelable `InfoVueSysteme`
+  (`ResultatRendu.vuesSysteme` → `ResultatTransport` →
+  `EtatPreviewXml.RenduValide.vuesSysteme` — champs en QUEUE des contrats
+  Parcel, `.aidl` inchangés) et terminent l'onglet Arbre : une ENTÊTE
+  « Système » puis une rangée par barre — « Barre de statut », « Barre
+  d'action », « Barre de navigation » ou « Pilule gestuelle » (la classe
+  `NavigationHandle` distingue la pilule des trois glyphes, le marquage
+  `NAVIGATION_BAR` désigne la zone), monogramme de la CLASSE (« S », « N »,
+  « F »), badge des dimensions au profil. Les rangées système ne sont
+  JAMAIS sélectionnables (aucune balise XML source — miroir le toast de la
+  maquette « Barre système : aucune balise XML à sélectionner »), indices
+  NÉGATIFS distincts, `FeuilleApercu.EntreeArbre` gagne un `genre`
+  (`CONTENU`/`ENTETE_SYSTEME`/`VUE_SYSTEME`). Sans chrome la section
+  n'existe pas ; `nombreVues` compte toujours le CONTENU SEUL.
+- **LE RÉGLAGE « MODE GESTUEL » AU MENU CALQUES (ADR 0139 — chantier « mode
+  gestuel » confirmé)** : groupe « Chrome système », à côté de « Barre de
+  navigation » — `true` et la zone de 48 dp porte la PILULE gestuelle
+  (`NavigationHandle`) à la place des trois glyphes, la HAUTEUR ne bouge
+  jamais (ADR 0137 D6). Passe-plat de session `RequeteRendu.modeGestuel`
+  (défaut OFF, défauts maquette) → `ConfigChrome.Builder.modeNavigation`,
+  `MoteurPreviewXml.definirModeGestuel` relance un rendu immédiat (patron
+  `definirBarreNavigation`), interrupteur INDÉPENDANT et état de SESSION
+  non persisté (même régime que « Barre de navigation »). AUCUNE montée du
+  frère : LayoutLib 3.5.0 suffit.
+
+#### Docs
+
+- **ADR 0138** (« Le geste de redimensionnement devient fidèle » — C1/C4/C3,
+  arbitrages D1–D3 de l'étude PE14) et **ADR 0139** (« La section Système de
+  l'arbre et le réglage Mode gestuel » — PE13-suite, D1–D5) acceptées ;
+  **l'étude PE14 est versionnée avec ses arbitrages** (le propriétaire a
+  tranché « C'est oui pour D1-D8 » le 2026-10-23 — le plan S3–S9 reste
+  séquencé dans le document).
+- Tests : +21 (par-layout pur — marges du bord tenu, bords dérivés, règles
+  de frère, ancre introuvable, axes centrés, positions `tools:`, poids ;
+  modèle — saisie rapportant le coin, décalage de préhension, alpha du fondu ;
+  machine Robolectric — cible compensée, fantôme persistant/échec/nettoyage ;
+  pipeline — transport de la section système, pilule à la place des trois
+  boutons à place égale ; arbre — section système, badges, sans décor ;
+  éditeur — poids/marge/`tools:` sur texte). Les tests PE11l existants
+  restent verts SANS RETOUCHE de leurs valeurs (C1 rétrocompatible : la
+  signature du modèle ne change pas, la compensation vit dans la machine).
+
 ## [0.169.0] – 2026-10-23
 
 ### Le chrome système passe au moteur de rendu : LayoutLib 3.5.0, zéro vue chrome côté IDE, un seul espace de coordonnées — PE13 (ADR 0137)

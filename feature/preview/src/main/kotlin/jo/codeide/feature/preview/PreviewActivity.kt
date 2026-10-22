@@ -154,6 +154,8 @@ public class PreviewActivity :
             vueRendu = liaison.vuePreview,
             barreNavigation = { controleur?.barreNavigation ?: true },
             poserBarreNavigation = { coche -> controleur?.definirBarreNavigation(coche) },
+            modeGestuel = { controleur?.modeGestuel ?: false },
+            poserModeGestuel = { coche -> controleur?.definirModeGestuel(coche) },
         )
     }
 
@@ -500,16 +502,24 @@ public class PreviewActivity :
                 toast(getString(R.string.preview_toast_depot_ko))
             }
         }
-        // PE11l : le relâchement d'une POIGNÉE d'angle redimensionne la
-        // sélection (UNE édition groupée des deux axes — la racine n'est
-        // pas redimensionnable, l'échec part en toast honnête).
-        liaison.vuePreview.auRedimensionner = { largeurDp, hauteurDp ->
+        // PE11l + PE14-S2 : le relâchement d'une POIGNÉE d'angle
+        // redimensionne la sélection (UNE édition groupée des deux axes —
+        // la racine n'est pas redimensionnable, l'échec part en toast
+        // honnête). `false` : le fantôme persistant (C4) s'efface, la
+        // cible n'a PAS été écrite.
+        liaison.vuePreview.auRedimensionner = { cible ->
             val libelle =
-                getString(R.string.preview_dimension_format, largeurDp, hauteurDp)
-            if (viewModel.redimensionnerSelection(largeurDp, hauteurDp)) {
+                getString(
+                    R.string.preview_dimension_format,
+                    cible.largeurDp,
+                    cible.hauteurDp,
+                )
+            if (viewModel.redimensionnerSelection(cible)) {
                 toast(getString(R.string.preview_toast_redimensionne, libelle))
+                true
             } else {
                 toast(R.string.preview_toast_redimension_ko)
+                false
             }
         }
     }

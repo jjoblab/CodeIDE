@@ -11,7 +11,11 @@ import org.junit.Test
  * Le REDIMENSIONNEMENT par poignée (PE11l — demandé par le propriétaire)
  * — fonctions PURES : ancre du coin saisi, dimensions dp (plancher 8,
  * miroir `Math.max(8, …)`), rectangle du fantôme, dérive du contact
- * (patron [CalquesApercuTest], sans Android).
+ * (patron [CalquesApercuTest], sans Android). PE14-S2 (C1) : la
+ * compensation de préhension se vérifie au niveau de la MACHINE
+ * ([VuePreviewXmlTest] — saisie décalée) et du DÉCALAGE pur
+ * ([decalagePrehension]) ; les ajustements PAR-LAYOUT vivent dans
+ * [RedimensionParLayoutTest].
  */
 public class RedimensionApercuTest {
     /** La vue sélectionnée de référence (px contenu, densité 440 — miroir les tests de calques). */
@@ -84,5 +88,63 @@ public class RedimensionApercuTest {
     public fun `derive - le contact immobile n ecrit rien`() {
         assertFalse("contact seul : pas de mutation", RedimensionApercu.aDerive(100, 100, 103, 102, seuilPx = 6f))
         assertTrue("le geste a dérivé : UNE écriture", RedimensionApercu.aDerive(100, 100, 130, 100, seuilPx = 6f))
+    }
+
+    // ── PE14-S2 (C1) — la compensation de préhension ─────────────────────
+
+    @Test
+    public fun `poigneeSous - la saisie rapporte le coin ET l ancre`() {
+        val saisie = RedimensionApercu.poigneeSous(selection(), xContenu = 20, yContenu = 40, rayonPx = 30f)
+        assertNotNull("poignée sous le point", saisie)
+        assertEquals("le coin SAISI est sous le doigt", 20 to 40, saisie?.coin)
+        assertEquals("l'ancre reste le coin OPPOSÉ", 220 to 136, saisie?.ancre)
+        assertNull(
+            "hors du rayon : aucune saisie",
+            RedimensionApercu.poigneeSous(selection(), xContenu = 500, yContenu = 500, rayonPx = 10f),
+        )
+    }
+
+    @Test
+    public fun `decalagePrehension - le coin moins le contact`() {
+        // § 1.3 de l'étude : un contact à 12 px au nord-ouest du coin
+        // bas-droit (220, 136) — le décalage RATURE le doigt vers le coin,
+        // la machine stocke des points COMPENSÉS (contact + décalage) et
+        // les fonctions ci-dessus reçoivent le COIN VISÉ, pas le contact.
+        assertEquals(
+            12 to 12,
+            RedimensionApercu.decalagePrehension(coinX = 220, coinY = 136, pointX = 208, pointY = 124),
+        )
+        assertEquals(
+            "contact PILE sur le coin : décalage nul (rétrocompatibilité C1)",
+            0 to 0,
+            RedimensionApercu.decalagePrehension(100, 100, 100, 100),
+        )
+        // Le point COMPENSÉ retombe SUR le coin tant que le doigt ne
+        // bouge pas : contact (208, 124) + (12, 12) = (220, 136) → la
+        // cible vaut la TAILLE ACTUELLE de la vue (73 × 35 dp), PAS la
+        // distance ancre-contact (68 × 31 dp — l'ancien saut).
+        assertEquals(
+            "point compensé = coin : la cible reste la taille de la vue",
+            73 to 35,
+            RedimensionApercu.dimensions(20, 40, 208 + 12, 124 + 12, densiteDpi = 440),
+        )
+        assertEquals(
+            "sans compensation, le contact brut fait SAUTER la cible",
+            68 to 31,
+            RedimensionApercu.dimensions(20, 40, 208, 124, densiteDpi = 440),
+        )
+    }
+
+    // ── PE14-S2 (C4) — l'alpha du fantôme persistant ──────────────────────
+
+    @Test
+    public fun `alphaFantome - plein avant le rendu, fondu sur 150 ms, nul au bout`() {
+        assertEquals("plein avant l'amorce", 1f, RedimensionApercu.alphaFantome(0L))
+        assertEquals(
+            "à mi-course",
+            0.5f,
+            RedimensionApercu.alphaFantome(RedimensionApercu.DUREE_FONDU_FANTOME_MS / 2),
+        )
+        assertEquals("nul au terme, y compris après", 0f, RedimensionApercu.alphaFantome(500L))
     }
 }

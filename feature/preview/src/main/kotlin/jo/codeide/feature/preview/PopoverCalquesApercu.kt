@@ -9,9 +9,10 @@ import jo.codeide.core.ui.R as RUi
 /**
  * Le popover CALQUES (PE9c, PE11j — miroir `showPop("layers")` de la
  * maquette) : les SIX calques de la VUE (titre, état lu à la volée,
- * pose) et le groupe « CHROME SYSTÈME » — « Barre de navigation », qui
- * vit dans la CONFIGURATION DE RENDU (un changement RELANCE le rendu),
- * pas dans la vue.
+ * pose) et le groupe « CHROME SYSTÈME » — « Barre de navigation » et
+ * « Mode gestuel » (PE14-S1, ADR 0139), qui vivent dans la
+ * CONFIGURATION DE RENDU (un changement RELANCE le rendu), pas dans
+ * la vue.
  *
  * Extraction PE11k (règle 8, LargeClass de [PreviewActivity] — même
  * patron que [BandeauApercu] en PE11i) : chrome PUR, aucun état métier
@@ -24,6 +25,10 @@ internal class PopoverCalquesApercu(
     private val barreNavigation: () -> Boolean,
     /** Pose l'état « Barre de navigation » (un changement relance le rendu). */
     private val poserBarreNavigation: (Boolean) -> Unit,
+    /** L'état « Mode gestuel » de la configuration de rendu (défaut OFF). */
+    private val modeGestuel: () -> Boolean,
+    /** Pose l'état « Mode gestuel » (un changement relance le rendu). */
+    private val poserModeGestuel: (Boolean) -> Unit,
 ) {
     /** Lie les rangées du popover : accents, états lus à la volée, bascules. */
     internal fun lier(popover: PopoverMenuCalquesBinding) {
@@ -69,6 +74,19 @@ internal class PopoverCalquesApercu(
         }
         popover.calqueNavigation.basculeCalque.setOnCheckedChangeListener { _, coche ->
             poserBarreNavigation(coche)
+        }
+        // PE14-S1 (ADR 0139) — « Chrome système / Mode gestuel » : la
+        // PILULE remplace les trois glyphes de la barre (place
+        // inchangée, miroir ADR 0137 D6) ; même canal étiquette.
+        popover.calqueModeGestuel.pastilleCalque.backgroundTintList =
+            ColorStateList.valueOf(StyleVolet.couleur(contexte, RUi.attr.colorCanalEtiquette))
+        popover.calqueModeGestuel.libelleCalque.setText(R.string.preview_calque_mode_gestuel)
+        popover.calqueModeGestuel.basculeCalque.isChecked = modeGestuel()
+        popover.calqueModeGestuel.rangeeCalque.setOnClickListener {
+            popover.calqueModeGestuel.basculeCalque.toggle()
+        }
+        popover.calqueModeGestuel.basculeCalque.setOnCheckedChangeListener { _, coche ->
+            poserModeGestuel(coche)
         }
     }
 

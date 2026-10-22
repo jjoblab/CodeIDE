@@ -102,6 +102,9 @@ public class ControleurPreviewXml(
     /** Barre de navigation du chrome système courante (PE11j — menu Calques). */
     public val barreNavigation: Boolean get() = moteur.barreNavigation
 
+    /** Mode gestuel de la barre de navigation courant (PE14-S1 — menu Calques, ADR 0139). */
+    public val modeGestuel: Boolean get() = moteur.modeGestuel
+
     /**
      * Définit la barre de navigation du chrome système (PE11j — miroir
      * `S.nav` : l'interrupteur « Barre de navigation » du groupe
@@ -110,6 +113,16 @@ public class ControleurPreviewXml(
      */
     public fun definirBarreNavigation(barre: Boolean) {
         moteur.definirBarreNavigation(barre)
+    }
+
+    /**
+     * Définit le MODE GESTUEL de la barre de navigation (PE14-S1, ADR
+     * 0139 — l'interrupteur « Mode gestuel » du groupe « Chrome
+     * système » du menu Calques) : pilule au lieu des trois glyphes,
+     * place inchangée ; un CHANGEMENT relance un rendu immédiat.
+     */
+    public fun definirModeGestuel(gestuel: Boolean) {
+        moteur.definirModeGestuel(gestuel)
     }
 
     /** Coupe la collecte d'état (onDestroy de l'activité). Idempotent. */

@@ -19,7 +19,9 @@ import jo.layoutlib.inflater.ViewTagRegistry
 import jo.layoutlib.inflater.bridge.bars.ChromeSysteme
 import jo.layoutlib.inflater.bridge.bars.ConfigChrome
 import jo.layoutlib.inflater.bridge.bars.InsetsDecor
+import jo.layoutlib.inflater.bridge.bars.ModeNavigation
 import jo.layoutlib.inflater.bridge.bars.ModePlacementDecor
+import jo.layoutlib.inflater.bridge.impl.SystemViewInfo
 import jo.layoutlib.layout.LayoutEngineImpl
 import jo.layoutlib.resources.DimensionConverter
 import jo.layoutlib.resources.ResourceResolverImpl
@@ -370,6 +372,11 @@ public class RenduLayoutLib(
                 decor.modePlacement,
             )
         val vues = collecterVues(requete, racine, collecte.contenu)
+        // PE14-S1 (ADR 0139) — la section « Système » de l'arbre : les
+        // BARRES de premier rang du décor marquées ViewType, miroir des
+        // infos système de la référence — la mécanique INTERNE des
+        // barres (glyphes, titres) reste au moteur, jamais dans l'arbre.
+        val vuesSysteme = collecterVuesSysteme(collecte.systeme)
         // v0.133.4 — les dimensions viennent du DÉCOR (vue rendue), pas de
         // la racine. PE13 : nombreVues compte le CONTENU SEUL — la pastille
         // « rendue • n vues » parle des vues de l'UTILISATEUR, pas du chrome
@@ -384,6 +391,7 @@ public class RenduLayoutLib(
                 dureeMs = (System.nanoTime() - debut) / 1_000_000,
                 bitmap = bitmap,
                 vues = vues,
+                vuesSysteme = vuesSysteme,
             )
         return ResultatPipeline(rendu, bitmap)
     }
@@ -525,6 +533,31 @@ public class RenduLayoutLib(
                 famille = familleDefinitive(attributs[indice], element.nomBalise),
             )
         }
+    }
+
+    /**
+     * Les vues SYSTÈME transportées (PE14-S1, ADR 0139) : les enfants de
+     * PREMIER RANG du décor — les barres marquées `ViewType` par la
+     * collecte duale (`SystemViewInfo`), PAS leur mécanique interne
+     * (glyphes, titres — c'est le moteur, pas des composants). `null`
+     * sans chrome (themeName absent) → liste VIDE : la section
+     * « Système » de l'arbre n'existe que quand le décor existe.
+     */
+    private fun collecterVuesSysteme(systeme: SystemViewInfo?): Array<InfoVueSysteme> {
+        val barres = systeme?.children ?: return emptyArray()
+        return barres
+            .mapNotNull { barre ->
+                if (barre !is SystemViewInfo) return@mapNotNull null
+                InfoVueSysteme(
+                    gauche = barre.left,
+                    haut = barre.top,
+                    droite = barre.right,
+                    bas = barre.bottom,
+                    classe = barre.simpleName ?: "",
+                    type = barre.viewType.name,
+                    profondeur = 0,
+                )
+            }.toTypedArray()
     }
 
     /**
@@ -1023,16 +1056,24 @@ public class RenduLayoutLib(
         // (comportement d'avant v0.134.4).
         val titre = titreActionBar(requete)
         // PE13 (ADR 0137) — la CONFIG DE SESSION : l'hôte ne construit plus
-        // AUCUNE vue chrome, il décrit la session — titre RÉSOLU + la
-        // SURCHARGE « Barre de navigation » du menu Calques (PE11j). Le
-        // MOTEUR dérive les présences du thème, résout les couleurs,
+        // AUCUNE vue chrome, il décrit la session — titre RÉSOLU, la
+        // SURCHARGE « Barre de navigation » du menu Calques (PE11j) et le
+        // MODE GESTUEL de la barre (PE14-S1, ADR 0139 : pilule au lieu des
+        // trois glyphes — la hauteur ne bouge pas, miroir ADR 0137 D6).
+        // Le MOTEUR dérive les présences du thème, résout les couleurs,
         // calcule les insets et pose le décor.
         val config =
             ConfigChrome
                 .Builder()
                 .appLabel(titre)
                 .surchargeNavigationBar(requete.barreNavigation)
-                .build()
+                .modeNavigation(
+                    if (requete.modeGestuel) {
+                        ModeNavigation.GESTUELLE
+                    } else {
+                        ModeNavigation.TROIS_BOUTONS
+                    },
+                ).build()
         val chrome = ChromeSysteme(contexte, resolverPourChrome(), config)
         val vue = chrome.envelopper(racine, densite)
         // Thème plein écran sans barres : vue === racine, insets NULS — la

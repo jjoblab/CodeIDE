@@ -190,53 +190,121 @@ public object EditionAttributsXml {
     }
 
     /**
-     * Pose les DEUX dimensions FIXES en UNE SEULE édition (PE11l —
-     * redimensionnement par POIGNÉE de l'aperçu, miroir le `mutate`
-     * groupé de la maquette : un geste = une entrée d'historique) :
-     * la largeur puis la hauteur sont composées sur le texte remanié
-     * (chaque écriture par [ecrireDimension], le span suit le décalage
-     * de la première), puis la balise ouvrante ENTIÈRE est remplacée
-     * par sa version remaniée — [SourceApercu.remplacer] n'accepte
-     * qu'une plage, l'édition reste ATOMIQUE.
+     * Les AJUSTEMENTS PAR-LAYOUT du relâchement d'une poignée (PE14-S2
+     * C3, ADR 0138) : ce que le geste écrit AU-DELÀ des deux axes pour
+     * que la vue reste SUR PLACE pendant que sa taille change — miroir
+     * les « targets par layout » du designer de la référence
+     * (`RelativeResizeTarget`, `ConstraintResizeTarget`).
      *
-     * `null` si RIEN ne change (les deux valeurs déjà posées) ou span
-     * périmé (jamais d'exception, règle 6).
+     * @property retirerPoids un `layout_weight` non nul CONTREDIT la
+     *           taille fixe écrite (parent LINEAR/APPBAR — il absorbait
+     *           l'espace restant PAR-DESSUS : « rien ne bougeait »).
+     * @property marges les marges à réécrire (côté → dp) — enfant de
+     *           RelativeLayout, le bord tenu suit le doigt par SA marge.
+     * @property positionOutilsX/Y les positions absolues du dialecte
+     *           `tools:` (dp, enfant de ConstraintLayout) — posées SEULEMENT
+     *           si le document déclare déjà le dialecte (arbitrage D3).
      */
-    public fun ecrireDimensions(
+    public data class AjustementsRedimension(
+        public val retirerPoids: Boolean = false,
+        public val marges: List<Pair<Cote, Int>> = emptyList(),
+        public val positionOutilsX: Int? = null,
+        public val positionOutilsY: Int? = null,
+    )
+
+    /** La base des marges de disposition (miroir les 4 champs `.mrow`). */
+    private const val BASE_MARGE: String = "android:layout_margin"
+
+    /** Les positions absolues du dialecte `tools:` de ConstraintLayout (C3). */
+    private const val ATTR_OUTIL_X: String = "tools:layout_editor_absoluteX"
+    private const val ATTR_OUTIL_Y: String = "tools:layout_editor_absoluteY"
+
+    /**
+     * Pose les DEUX dimensions FIXES + les AJUSTEMENTS PAR-LAYOUT en UNE
+     * SEULE ÉDITION (PE11l + PE14-S2 : redimensionnement par POIGNÉE,
+     * miroir le `mutate` groupé de la maquette — un geste = une entrée
+     * d'historique) : chaque écriture est composée sur le texte remanié
+     * (chaque étape décale le span de son propre delta), puis la balise
+     * ouvrante ENTIÈRE est remplacée par sa version remaniée —
+     * [SourceApercu.remplacer] n'accepte qu'une plage, l'édition reste
+     * ATOMIQUE.
+     *
+     * `null` si RIEN ne change (les deux valeurs déjà posées, aucun
+     * ajustement effectif) ou span périmé (jamais d'exception, règle 6).
+     */
+    public fun ecrireRedimension(
         texte: String,
         span: InsertionXml.SpanParent,
         largeurDp: Int,
         hauteurDp: Int,
+        ajustements: AjustementsRedimension = AjustementsRedimension(),
     ): EditionAttributsXmlResultat? {
         val localise = localiser(texte, span) ?: return null
-        // 1) LA LARGEUR sur le texte original.
-        val editionLargeur =
-            ecrireDimension(texte, span, Axe.LARGEUR, ModeDimension.FIXE, largeurDp)
-        val deltaLargeur = delta(editionLargeur)
-        val texteApresLargeur =
-            if (editionLargeur == null) {
-                texte
-            } else {
-                appliquer(texte, editionLargeur)
+        var ecrits = false
+        var texteCourant = texte
+        var deltaCumule = 0
+
+        fun etape(edition: EditionAttributsXmlResultat?) {
+            if (edition == null) return
+            ecrits = true
+            deltaCumule += delta(edition)
+            texteCourant = appliquer(texteCourant, edition)
+        }
+        // 1) LA LARGEUR puis LA HAUTEUR sur le texte remanié (le span
+        // suit le décalage de chaque écriture — l'édition vit DANS la balise).
+        etape(ecrireDimension(texte, span, Axe.LARGEUR, ModeDimension.FIXE, largeurDp))
+        etape(
+            ecrireDimension(
+                texteCourant,
+                spanDecale(span, deltaCumule),
+                Axe.HAUTEUR,
+                ModeDimension.FIXE,
+                hauteurDp,
+            ),
+        )
+        // 2) Le POIDS qui contredit la taille fixe (C3 cas A).
+        if (ajustements.retirerPoids) {
+            etape(retirerAttributs(texteCourant, spanDecale(span, deltaCumule), listOf(ATTR_POIDS)))
+        }
+        // 3) Les MARGES du bord tenu (C3 — [ecrireCote] éclate le
+        // raccourci couvrant au besoin) ; si les DEUX variantes
+        // Start/Left du côté coexistent au source, la SECONDE est
+        // réalignée dans la MÊME édition (le pré-processeur du frère
+        // renomme marginStart→marginLeft : une variante oubliée
+        // l'emporterait silencieusement au rendu).
+        for ((cote, valeurDp) in ajustements.marges) {
+            etape(ecrireCote(texteCourant, spanDecale(span, deltaCumule), BASE_MARGE, cote, valeurDp))
+            val margeEgale = "${valeurDp}dp"
+            for (nom in nomsSpecifiquesCote(BASE_MARGE, cote)) {
+                val valeur = valeurAttribut(texteCourant, spanDecale(span, deltaCumule), nom)
+                if (valeur != null && valeur != margeEgale) {
+                    etape(definir(texteCourant, spanDecale(span, deltaCumule), nom, margeEgale))
+                }
             }
-        // 2) LA HAUTEUR sur le texte remanié — l'élément FIN bouge du
-        // décalage de la largeur (l'écriture vit DANS la balise).
-        val spanHauteur = InsertionXml.SpanParent(span.debut, span.fin + deltaLargeur)
-        val editionHauteur =
-            ecrireDimension(texteApresLargeur, spanHauteur, Axe.HAUTEUR, ModeDimension.FIXE, hauteurDp)
-        if (editionLargeur == null && editionHauteur == null) return null
-        val texteFinal =
-            if (editionHauteur == null) {
-                texteApresLargeur
-            } else {
-                appliquer(texteApresLargeur, editionHauteur)
-            }
-        // 3) UNE édition : la balise originale remplacée par la remaniée.
+        }
+        // 4) Les positions du dialecte `tools:` (C3 — jamais posées si
+        // le document ne déclare pas déjà le dialecte, arbitrage D3).
+        ajustements.positionOutilsX?.let { x ->
+            etape(definir(texteCourant, spanDecale(span, deltaCumule), ATTR_OUTIL_X, "${x}dp"))
+        }
+        ajustements.positionOutilsY?.let { y ->
+            etape(definir(texteCourant, spanDecale(span, deltaCumule), ATTR_OUTIL_Y, "${y}dp"))
+        }
+        if (!ecrits) return null
+        // 5) UNE édition : la balise originale remplacée par la remaniée
+        // (le texte courant contient toutes les étapes appliquées).
         val finBaliseOriginale = localise.chevron + 1
-        val finBaliseRemaniee = finBaliseOriginale + deltaLargeur + delta(editionHauteur)
-        val baliseRemaniee = texteFinal.substring(localise.debut, finBaliseRemaniee)
+        val finBaliseRemaniee = finBaliseOriginale + deltaCumule
+        if (finBaliseRemaniee > texteCourant.length) return null
+        val baliseRemaniee = texteCourant.substring(localise.debut, finBaliseRemaniee)
         return EditionAttributsXmlResultat(localise.debut, finBaliseOriginale, baliseRemaniee)
     }
+
+    /** Le span décalé du delta cumulé des écritures précédentes. */
+    private fun spanDecale(
+        span: InsertionXml.SpanParent,
+        delta: Int,
+    ): InsertionXml.SpanParent = InsertionXml.SpanParent(span.debut, span.fin + delta)
 
     /**
      * CORRECTION RAPIDE « Passer à 48 dp » (PE11g — miroir `quickFixes`
