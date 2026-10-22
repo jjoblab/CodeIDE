@@ -13,6 +13,7 @@ import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TaillePoliceEditeur
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
@@ -141,6 +142,7 @@ class SettingsViewModelTest {
             viewModel.onAction(ActionParametres.ChangerChipsDiagnostics(false))
             viewModel.onAction(ActionParametres.ChangerSauvegardeAuto(false))
             viewModel.onAction(ActionParametres.ChangerTaillePoliceEditeur(TaillePoliceEditeur.GRANDE))
+            viewModel.onAction(ActionParametres.ChangerTailleTabulation(TailleTabulation.DEUX))
             advanceUntilIdle()
 
             val reglages = depot.reglages
@@ -158,6 +160,7 @@ class SettingsViewModelTest {
             assertFalse(reglages.editorChipsDiagnostics)
             assertFalse(reglages.editorSauvegardeAuto)
             assertEquals(TaillePoliceEditeur.GRANDE, reglages.editorTaillePolice)
+            assertEquals(TailleTabulation.DEUX, reglages.editorTailleTabulation)
         }
 
     @Test

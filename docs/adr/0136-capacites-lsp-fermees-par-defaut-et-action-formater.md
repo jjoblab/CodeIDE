@@ -1,12 +1,14 @@
 # ADR 0136 — Capacités LSP fermées par défaut et action « Formater »
 
-- **Statut** : **proposé** (phase 1 livrée ; passe à « accepté » à la fin de la phase 2, quand la
-  montée code-editor 3.74.0 sera consommée et vérifiée).
-- **Date** : 2026-10-22
+- **Statut** : **accepté** (phase 1 livrée en v0.167.0 ; phase 2 — montée
+  code-editor 3.74.0 — livrée en v0.168.0, vérifiée par la chaîne locale et la CI).
+- **Date** : 2026-10-22 (phase 2 : 2026-10-23)
 - **Décideurs** : jjoblab
 - **Dépend de** : ADR 0028 (éditeur à onglets, UNE EditorView), ADR 0058 (classpath LSP),
-  ADR 0115 (LSP Kotlin), XE1 (LSP XML). **Bibliothèque** : `code-editor` 3.72.0 (cible phase 2 :
-  3.74.0, note de passage `docs/MISE-A-JOUR-CODEIDE.md` du dépôt frère).
+  ADR 0066 (réglages Éditeur consommés — sa promesse de réintroduction est tenue), ADR 0115
+  (LSP Kotlin), XE1 (LSP XML). **Bibliothèque** : `code-editor` 3.74.0 (consommée ; note de
+  passage `docs/MISE-A-JOUR-CODEIDE.md` § 3.74.0 du dépôt frère, vérifiée contre les 4
+  conditions §3.1 : tag, workflows verts, JitPack ok, section complète).
 
 ## Contexte
 
@@ -28,8 +30,11 @@ Constats vérifiés dans le code :
    code-editor, décision LSP-2).
 3. **Journal faux** : `CoordonnateurLsp.brancher` étiquetait « Java » TOUT fichier sans extension
    `.kt`/`.kts`/`.xml` (`else -> "Java"`) — un diagnostic trompeur.
-4. Le serveur Kotlin n'annonce pas le formatage (`TableCapacitesLsp`) ; l'action doit gérer
-   proprement l'indisponibilité.
+4. Le serveur Kotlin n'annonçait pas le formatage (`TableCapacitesLsp`, à la rédaction) ; l'action
+   devait gérer proprement l'indisponibilité. **Caduc avec codeide-lsp 1.3.0** (consommé en phase 2,
+   v0.168.0) : le serveur Kotlin annonce désormais le formatage (RÉ-INDENTATION seule) — le
+   message d'indisponibilité ne s'affiche plus que pour un fichier sans serveur ou une capacité
+   coupée dans les réglages de langage.
 
 ## Options
 
@@ -57,24 +62,57 @@ Constats vérifiés dans le code :
   le thread UI : `true` texte modifié → AUCUN message ; `false` → « Déjà formaté » ;
   `null` → message d'indisponibilité complet — Snackbar). La décision (visibilité, message) est
   PURE ([DecisionFormater], testée JVM). Ne lance rien sans onglet ouvert.
-- **D4 — Visibilité en DEUX temps.** Phase 1 : l'action n'apparaît que si l'onglet actif a une
-  session de langue vivante ([serveurPretDe] — la même garde que le branchement). Phase 2
-  (après note de passage 3.74.0) : pilotée par `canFormat()` ; ajout de « Formater la sélection »
-  par `canFormatSelection()`, options de formatage alimentées depuis `TailleTabulation`
-  (le réglage devient enfin « consommé »), ADR repassé à « accepté ».
-- **D5 — Version.** Le lot porte un palier mineur : `0.167.0` (le dépôt est à `0.166.5` — le
-  numéro de départ du prompt, `0.161.0`, datait d'avant les livraisons récentes).
+- **D4 — Visibilité en DEUX temps (phase 2 LIVRÉE, v0.168.0).** Phase 1 : l'action n'apparaissait
+  que si l'onglet actif avait une session de langue vivante ([serveurPretDe] — la même garde que
+  le branchement). Phase 2 : pilotée par `canFormat()` — la disponibilité suit le FORMATEUR de la
+  vue, plus le proxy de session ; le branchement étant ASYNCHRONE (le langage est posé au thread
+  UI à la fin de `connect()`), `CoordonnateurLsp.brancher` reçoit un rappel exécuté APRÈS la pose
+  (file FIFO de la vue) qui re-évalue la visibilité. « Formater la sélection » est ajouté là où
+  le projet expose les actions de sélection : la PILL flottante de la bibliothèque
+  (`SelectionAction`) — la pill n'existe qu'avec une VRAIE sélection (« sélection vide ⇒ entrée
+  masquée » vient du contrat), l'entrée est GRISÉE par `canFormatSelection()` (formateur +
+  plages), le tap RELAIE `formatSelection` et les refus portent les MÊMES messages que le
+  document (`false` refus propre — formateur sans plages ; `null` aucun formateur).
+  Le raccourci physique `Ctrl+Shift+K` (`EditorCommands.FORMAT_SELECTION`) vit côté
+  bibliothèque — rien à brancher pour un clavier physique.
+- **D5 — Version.** Le lot phase 1 portait un palier mineur : `0.167.0` (le dépôt était à
+  `0.166.5` — le numéro de départ du prompt, `0.161.0`, datait d'avant les livraisons
+  récentes). La phase 2 en porte un second : `0.168.0`.
+- **D6 — Options de formatage : le réglage réintroduit + une politique (v0.168.0).**
+  `setFormattingOptions(int tabSize, boolean insertSpaces)` attend les DEUX valeurs ; le prompt
+  ne nommait que `TailleTabulation` — et l'investigation a révélé que le « réglage persisté »
+  N'EXISTAIT PLUS : l'enum avait été supprimée par l'ADR 0066/v0.37.0 puis ressuscitée par
+  erreur par le commit d'import « Apply local CodeIDE changes » (57147dbe), sans champ
+  `AppSettings`, sans clé DataStore, sans UI. La promesse de l'ADR 0066 (« réintroduits si la
+  bibliothèque expose un jour les setters ») est TENUE : le réglage complet revient — champ
+  `editorTailleTabulation` (défaut QUATRE), clé `editor_tab_size` (projection tolérante),
+  trio 2/4/8 dans la carte Édition (miroir du trio de police), consommation via
+  `OptionsEditeur` → `setFormattingOptions`. La NATURE de l'indentation est une
+  POLITIQUE, pas un réglage : ESPACES (convention des projets Java/Kotlin Android,
+  `OptionsEditeur.indenterAvecEspaces()`) — la largeur reste à l'utilisateur, le dessin de
+  l'éditeur reste auto-détecté par fichier (`IndentDetection`), seule la requête LSP est
+  concernée.
 
 ## Conséquences
 
-- La phase 1 est INDEPENDANTE de la bibliothèque : livrée et poussée immédiatement ; les
-  scénarios d'appareil 2 à 4 (fermeture des capacités au changement d'onglet) ÉCHOUERONT tant
-  que 3.74.0 n'est pas consommée — c'est écrit dans `docs/TESTS_MANUELS.md`.
-- La phase 2 ne démarre QUE sur la note de passage (§4 du prompt du chantier) : tag `v3.74.0`
-  vérifié, workflows verts, JitPack « ok », section `## 3.74.0` de la note ; sinon ARRÊT et point
-  au propriétaire, aucune version montée, AUCUN contournement.
-- `TailleTabulation` (core:model) reste « persistée avant consommation » jusqu'à la phase 2 — sa
-  KDoc sera corrigée quand le réglage deviendra réel (phase 2).
+- La phase 1 était INDÉPENDANTE de la bibliothèque : livrée et poussée immédiatement (v0.167.0) ;
+  les scénarios d'appareil 2 à 4 (fermeture des capacités au changement d'onglet) sont DÉBLOQUÉS
+  par la montée 3.74.0 — `docs/TESTS_MANUELS.md` les porte désormais comme vérifiables, avec les
+  nouveaux scénarios de la phase 2 (sélection, options, IME 3.73.0).
+- La phase 2 a démarré sur la note de passage (§4 du prompt du chantier) : les 4 conditions §3.1
+  vérifiées contre le dépôt frère (tag `v3.74.0`, publish.yml SUCCESS, JitPack « ok » pour les
+  3 artefacts, section `## 3.74.0` complète). Aucune rupture d'API (tout est additif) ; le point
+  d'attention 3.73.0 (IME niveau plateforme — retirer les contournements clavier) a été
+  vérifié NON ARMÉ : seul le filtre logcat masque le clavier, hors `EditorView`.
+- `TailleTabulation` (core:model) est CONSOMMÉE (v0.168.0) : sa KDoc ne dit plus « persistée
+  avant consommation » ; le réglage vit de bout en bout (UI → DataStore → `OptionsEditeur` →
+  `setFormattingOptions`). Aucun texte d'écran ne disait « pas encore appliqué » — la rangée
+  avait été retirée tout entière par l'ADR 0066, il n'y avait rien à corriger de ce côté.
+- Correctif connexe livré avec la phase 2 : l'injection de l'action ✥ Move de la pill
+  (`blockDrag`) vivait dans `appliquerReglagesEditeur` — RÉPÉTÉE à chaque émission des réglages
+  (`addSelectionAction` ne déduplique PAS) ; les actions de la pill sont désormais posées UNE
+  fois à la création (`installerActionsSelection`).
 - Défauts hors périmètre découverts : aucun défaut `code-editor`/`codeide-lsp` n'a été corrigé
   ici ; les déclarations factuelles (version réelle du dépôt, numéro d'ADR suivant, interrupteurs
-  de capacités non persistés, absence locale du dépôt frère) sont consignées au rapport.
+  de capacités non persistés, enum `TailleTabulation` ressuscitée par erreur par le commit
+  d'import — corrigée en la consommant pour de bon) sont consignées au rapport.

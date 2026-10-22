@@ -88,12 +88,14 @@
          dédié (:feature:preview) — les réglages de l'aperçu (profil,
          jour/nuit, langue) vivent avec lui. -->
     <string name="editor_action_apercu">Aperçu XML</string>
-    <!-- ADR 0136 — action « Formater le document » (P1-b) : titre court,
-         messages de retour selon le résultat du formatage (aucun
-         formateur / déjà formaté ; le texte modifié ne dit RIEN). -->
+    <!-- ADR 0136 — actions de mise en forme (D3 document ; D4 phase 2
+         sélection) : titres courts, messages de retour PARTAGÉS selon
+         le résultat du formatage (aucun formateur / déjà formaté ; le
+         texte modifié ne dit RIEN). -->
     <string name="editor_formater">Formater</string>
     <string name="editor_formater_indisponible">Mise en forme indisponible pour ce fichier : aucun serveur ne la propose ou elle est désactivée dans les réglages de langage</string>
     <string name="editor_formater_deja">Déjà formaté</string>
+    <string name="editor_formater_selection">Formater la sélection</string>
     <string name="editor_menu_fermer">Fermer</string>
     <string name="editor_menu_fermer_autres">Fermer les autres</string>
     <string name="editor_menu_fermer_tout">Fermer tout</string>

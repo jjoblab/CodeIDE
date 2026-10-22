@@ -197,7 +197,10 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Carte « Édition » : sauvegarde automatique. -->
+            <!-- Carte « Édition » : largeur de tabulation (mise en forme
+                 LSP — réglage réintroduit v0.168.0, la bibliothèque expose
+                 enfin le setter promis par ADR 0066), sauvegarde
+                 automatique. -->
             <com.google.android.material.card.MaterialCardView
                 style="@style/Widget.CodeIDE.Card"
                 android:layout_width="match_parent"
@@ -218,6 +221,53 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="@string/settings_editeur_edition" />
+
+                    <!-- Largeur de tabulation : en-tête de groupe + trio de
+                         boutons (miroir exact du trio de police de la carte
+                         Apparence) — la valeur nourrit les requêtes de mise
+                         en forme LSP (setFormattingOptions), pas le dessin
+                         de l'indentation (auto-détecté par fichier). -->
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_tabulation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeIcone="@drawable/ic_tabulation"
+                        app:rangeeSousTitre="@string/settings_tabulation_sous"
+                        app:rangeeTitre="@string/settings_tabulation"
+                        app:rangeeType="aucun" />
+
+                    <com.google.android.material.button.MaterialButtonToggleGroup
+                        android:id="@+id/groupe_tabulation"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_sm"
+                        app:selectionRequired="true"
+                        app:singleSelection="true">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_tabulation_1"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/settings_tabulation_2" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_tabulation_2"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/settings_tabulation_4" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_tabulation_3"
+                            style="@style/Widget.CodeIDE.Button.Outlined"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="@string/settings_tabulation_8" />
+                    </com.google.android.material.button.MaterialButtonToggleGroup>
 
                     <jo.codeide.core.ui.RangeeParametre
                         android:id="@+id/rangee_sauvegarde_auto"

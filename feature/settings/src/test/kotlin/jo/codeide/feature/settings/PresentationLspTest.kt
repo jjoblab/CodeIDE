@@ -135,7 +135,12 @@ class PresentationLspTest {
     }
 
     @Test
-    fun `langage - Kotlin sans formatage ni indices, XML sans signatures ni références`() {
+    fun `langage - la liste ne montre QUE les capacités annoncées`() {
+        // Fixtures réduites VOLONTAIREMENT (la projection filtre, quel que
+        // soit l'ensemble réel) ; la table vivante est verrouillée par le
+        // test jumeau de :feature:editor (PortLspEspaceTest — depuis
+        // codeide-lsp 1.3.0, Kotlin annonce AUSSI formatage et indices,
+        // XML les références).
         val kotlin =
             PresentationLsp.langage(
                 LangageLsp.KOTLIN,

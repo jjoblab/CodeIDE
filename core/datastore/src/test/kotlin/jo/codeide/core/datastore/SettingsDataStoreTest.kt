@@ -15,6 +15,7 @@ import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TaillePoliceEditeur
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
@@ -112,6 +113,7 @@ class SettingsDataStoreTest {
                     editorChipsDiagnostics = false,
                     editorSauvegardeAuto = false,
                     editorTaillePolice = TaillePoliceEditeur.GRANDE,
+                    editorTailleTabulation = TailleTabulation.DEUX,
                     toolingAfficherTaches = false,
                     toolingHorsLigne = true,
                     toolingArguments = "--stacktrace --info",
@@ -141,6 +143,7 @@ class SettingsDataStoreTest {
             assertEquals(false, relu.editorChipsDiagnostics)
             assertEquals(false, relu.editorSauvegardeAuto)
             assertEquals(TaillePoliceEditeur.GRANDE, relu.editorTaillePolice)
+            assertEquals(TailleTabulation.DEUX, relu.editorTailleTabulation)
             assertEquals(false, relu.toolingAfficherTaches)
             assertEquals(true, relu.toolingHorsLigne)
             assertEquals("--stacktrace --info", relu.toolingArguments)
@@ -199,6 +202,7 @@ class SettingsDataStoreTest {
                 it[SettingsDataStore.Cles.LICENCE] = "Apache-2.0"
                 it[SettingsDataStore.Cles.VERBOSITE] = "BAVARD"
                 it[SettingsDataStore.Cles.EDITEUR_THEME] = "OCEAN"
+                it[SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION] = "SEIZE"
             }
 
             val relu = source.current().succes()
@@ -207,6 +211,7 @@ class SettingsDataStoreTest {
             assertEquals(defauts.defaultLicense, relu.defaultLicense)
             assertEquals(defauts.logLevel, relu.logLevel)
             assertEquals(defauts.editorThemeEditeur, relu.editorThemeEditeur)
+            assertEquals(defauts.editorTailleTabulation, relu.editorTailleTabulation)
         }
 
     @Test

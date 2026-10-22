@@ -157,6 +157,11 @@
     <string name="settings_caracteres_non_imprimables_sous">Espaces, tabulations et fins de ligne visibles</string>
     <string name="settings_chips_diagnostics">Badges de diagnostic</string>
     <string name="settings_chips_diagnostics_sous">Raccourci des diagnostics en fin de ligne</string>
+    <string name="settings_tabulation">Largeur de tabulation</string>
+    <string name="settings_tabulation_sous">Mise en forme du code : largeur d’indentation envoyée au serveur de langue</string>
+    <string name="settings_tabulation_2">2</string>
+    <string name="settings_tabulation_4">4</string>
+    <string name="settings_tabulation_8">8</string>
     <string name="settings_sauvegarde_auto">Sauvegarde automatique</string>
     <string name="settings_sauvegarde_auto_sous">Enregistre le fichier après une courte pause de saisie</string>
 

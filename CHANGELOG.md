@@ -1,5 +1,113 @@
 # Journal des modifications
 
+## [0.168.0] – 2026-10-23
+
+### Montée code-editor 3.74.0 : « Formater » piloté par `canFormat()`, formatage de la sélection, le réglage « Largeur de tabulation » enfin consommé — phase 2 de « Capacités LSP fermées par défaut » (ADR 0136)
+
+#### Ajouté
+
+- **La bibliothèque d'édition passe de 3.72.0 à 3.74.0** (ADR 0136 —
+  phase 2 démarrée sur la note de passage du dépôt frère, les 4
+  conditions vérifiées : tag `v3.74.0`, publish vert, JitPack ok pour
+  cel-ui/cel-lsp/cel-lsp-api, section `## 3.74.0` complète). La montée
+  franchit AUSSI la 3.73.0 (carte d'aperçu « goutte d'eau », IME au
+  niveau plateforme) : aucun contournement clavier à retirer — vérifié,
+  seul le filtre logcat masque le clavier, hors `EditorView`. Aucune
+  rupture d'API (tout est additif) ; la correction majeure est
+  `LspEditor.disconnect()` qui restaure `EmptyLanguage` : un onglet sans
+  serveur n'hérite PLUS des capacités LSP du fichier précédent —
+  comportement obtenu DANS LA BIBLIOTHÈQUE, AUCUN contournement local
+  (ADR 0136 D1). Notices tierces et `libs.versions.toml` suivent.
+- **La montée s'étend au PONT des serveurs : codeide-lsp 1.2.0 → 1.3.0**
+  (l'entrelacement a été découvert en vérifiant la résolution effective,
+  règle 9) : `:lsp:host` — build composite substitué — porte `cel-lsp`
+  depuis le PROPRE catalogue du frère, encore à **3.72.0** : sans
+  alignement, l'APK aurait embarqué l'ANCIEN pont et le correctif de
+  déconnexion n'aurait pas été ACTIF. Le frère portait en outre un 1.3.0
+  COMPLET et CI-vert sur son main — non publié — dont la note de passage
+  demande sa publication « depuis CodeIDE »
+  (`scripts/bump-frere.sh lsp minor`). Le pin du frère a d'abord été
+  aligné (code-editor 3.72.0 → 3.74.0, commit `ee1fbe7` du frère,
+  vérifié par ses 140 tests `:lsp:host` verts contre le nouveau pont),
+  puis 1.3.0 publié par le script maison (publish.yml SUCCESS, registre
+  1.3.0 visible) et épinglé dans le catalogue.
+- **Les capacités servies par 1.3.0 arrivent dans l'écran « Intelligence
+  du code » SANS changement de code** : Kotlin annonce le FORMATAGE
+  (RÉ-INDENTATION seule — le contenu n'est jamais réécrit) et les
+  INDICES EN LIGNE, XML les RÉFÉRENCES — les interrupteurs dérivent de
+  `CapacitesAnnoncees` du frère via [TableCapacitesLspHote] (source
+  unique, jamais recopiée, lot LSP-3) : trois lignes nouvelles deviennent
+  effectives. Le miroir vivant est RE-VERROUILLÉ ([PortLspEspaceTest] :
+  Kotlin les DIX, XML HUIT sans signatures ni indices) ; les textes
+  « Kotlin ne l'annonce pas » sont retirés du menu, de l'ADR 0136 et
+  des scénarios d'appareil (le message d'indisponibilité ne reste vrai
+  que pour un fichier sans serveur ou une capacité coupée).
+- **La visibilité de « Formater » suit désormais `canFormat()`** (ADR
+  0136 D4) : la disponibilité interroge le FORMATEUR de la vue, plus le
+  proxy de session (`serveurPretDe` ne porte plus que le branchement).
+  Le branchement étant ASYNCHRONE (le langage est posé au thread UI à la
+  fin de `connect()`), `CoordonnateurLsp.brancher` reçoit un rappel
+  exécuté APRÈS la pose (file FIFO de la vue) : l'action apparaît dès la
+  connexion, sans attendre le prochain changement d'état ; la
+  déconnexion la retire d'elle-même (`EmptyLanguage` → `canFormat()`
+  faux).
+- **« Formater la sélection » rejoint la pill flottante de sélection**
+  (ADR 0136 D4) : `SelectionAction` de la bibliothèque — la pill
+  n'existe qu'avec une VRAIE sélection (« sélection vide ⇒ entrée
+  masquée » vient du contrat), l'entrée est GRISÉE par
+  `canFormatSelection()` (formateur installé ET plages gérées :
+  `supportsRange()`), le tap RELAIE `formatSelection` (requête
+  `rangeFormatting` : UN seul pas d'undo, caret et sélection conservés ;
+  le document entier n'est JAMAIS formaté à la place). Les refus portent
+  les MÊMES messages que le document (`false` « Déjà formaté » — refus
+  propre de plage, `null` message d'indisponibilité), la décision reste
+  PURE ([DecisionFormater] ; +1 test JVM de partage des retours). Le
+  raccourci physique `Ctrl+Shift+K` (`EditorCommands.FORMAT_SELECTION`)
+  vit côté bibliothèque — rien à brancher pour un clavier physique.
+- **Le réglage « Largeur de tabulation » est RÉINTRODUIT et consommé**
+  (ADR 0136 D6 — l'investigation a révélé que le « réglage persisté » du
+  prompt N'EXISTAIT PLUS : l'enum `TailleTabulation`, supprimée par
+  l'ADR 0066/v0.37.0, avait été ressuscitée PAR ERREUR par le commit
+  d'import « Apply local CodeIDE changes » — sans champ, sans clé, sans
+  UI ; la promesse de l'ADR 0066 « réintroduits si la bibliothèque
+  expose un jour les setters » est TENUE, `setFormattingOptions` EST ce
+  setter) : champ `AppSettings.editorTailleTabulation` (défaut QUATRE),
+  clé DataStore `editor_tab_size` (projection tolérante, aller-retour et
+  valeur inconnue testés), trio 2/4/8 dans la carte Édition des
+  Paramètres (miroir exact du trio de police, icône `ic_tabulation`,
+  textes FR/EN), consommation au fil de l'eau
+  `OptionsEditeur.largeurTabulation()` → `setFormattingOptions` (+1
+  test). La NATURE de l'indentation est une POLITIQUE : ESPACES
+  (accesseur `indenterAvecEspaces()`, convention Java/Kotlin Android) — la largeur
+  reste à l'utilisateur, le DESSIN de l'éditeur reste auto-détecté par
+  fichier (IndentDetection), seule la requête LSP est concernée ; la
+  KDoc de `TailleTabulation` ne dit plus « persistée avant
+  consommation » (aucun texte d'écran ne disait « pas encore appliqué » —
+  la rangée avait été retirée tout entière).
+
+#### Corrigé
+
+- **L'action ✥ Move de la pill de sélection n'est plus injectée en
+  boucle** (défaut découvert en préparant la phase 2, même fichier) :
+  `BuiltinSelectionActions.blockDrag` vivait dans
+  `appliquerReglagesEditeur` — donc RÉINJECTÉE à chaque émission des
+  réglages (`EditorView.addSelectionAction` ne déduplique PAS, la pill
+  dupliquait l'item) ; les actions d'hôte de la pill sont posées UNE
+  fois à la création (`installerActionsSelection`, avec « Formater la
+  sélection »).
+
+#### Vérifié
+
+- Chaîne locale racine complète : spotlessApply/Check, detekt,
+  checkModuleDependencies, checkUiTokens ; tests des 4 modules touchés
+  (`:core:model`, `:core:datastore`, `:feature:settings`,
+  `:feature:editor` — 421 tests) + 140 tests `:lsp:host` du frère contre
+  le pont 3.74.0 ; résolutions effectives vérifiées (règle 9) :
+  cel-ui/cel-lsp/cel-lsp-api **3.74.0** et codeide-lsp **1.3.0**. Scénarios
+  d'appareil 1 à 8 du chantier portés dans `docs/TESTS_MANUELS.md` — les
+  scénarios 2 à 4 (fermeture des capacités) sont DÉBLOQUÉS par la montée,
+  à vérifier sur appareil à la prochaine séance.
+
 ## [0.167.0] – 2026-10-22
 
 ### Action « Formater » au toucher et journal LSP honnête — phase 1 de « Capacités LSP fermées par défaut » (ADR 0136)

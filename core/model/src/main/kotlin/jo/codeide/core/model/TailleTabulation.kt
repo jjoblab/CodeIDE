@@ -6,13 +6,18 @@ package jo.codeide.core.model
  *
  * Trois largeurs standards suffisent : 2 (feuilles de style et langages
  * concis), 4 (défaut des projets Java/Kotlin Android Studio) et 8
- * (convention Unix historique). Le réglage est **persisté avant
- * consommation** : le moteur d'édition s'y abonnera quand la
- * coloration/indentation intelligente existera.
+ * (convention Unix historique). Le réglage est **consommé** (v0.168.0,
+ * ADR 0136 phase 2) : `EditorView.setFormattingOptions` (code-editor
+ * 3.74.0) l'envoie dans les requêtes LSP de mise en forme — il avait
+ * été retiré en v0.37.0 (ADR 0066) faute de consommateur, la
+ * bibliothèque expose désormais le setter promis. L'INDENTATION
+ * AFFICHÉE, elle, reste auto-détectée par fichier côté bibliothèque
+ * (IndentDetection) — le réglage ne change pas le dessin.
  */
 @Suppress("MagicNumber") // Exemption ciblée (règle 16) : les largeurs 2/4/8 sont la sémantique même de l'enum.
 public enum class TailleTabulation(
-    /** Largeur en espaces — exposée au moteur d'édition. */
+    /** Largeur en espaces — consommée par les requêtes de mise en forme
+     * LSP (`AppSettings.editorTailleTabulation` → `setFormattingOptions`). */
     public val espaces: Int,
 ) {
     /** Largeur compacte (langages concis). */

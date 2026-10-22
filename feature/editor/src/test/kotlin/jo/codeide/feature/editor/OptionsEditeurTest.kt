@@ -4,6 +4,7 @@ import jo.codeeditor.view.chrome.EditorTheme
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.TaillePoliceEditeur
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.testing.FakeSettingsRepository
 import jo.codeide.core.testing.MainDispatcherRule
@@ -73,6 +74,26 @@ class OptionsEditeurTest {
             depot.updateSettings { it.copy(editorTaillePolice = TaillePoliceEditeur.GRANDE) }
             advanceUntilIdle()
             assertEquals(1.2f, options.facteurPolice())
+        }
+
+    @Test
+    fun `la largeur de tabulation suit le reglage choisi`() =
+        runTest(regleMain.dispatcher.scheduler) {
+            // ADR 0136 phase 2 : le réglage réintroduit nourrit les requêtes
+            // de mise en forme LSP (setFormattingOptions) — le défaut est
+            // QUATRE (convention Android), l'émission suit la persistance.
+            val options = creerOptions()
+            advanceUntilIdle()
+
+            assertEquals(4, options.largeurTabulation())
+
+            depot.updateSettings { it.copy(editorTailleTabulation = TailleTabulation.DEUX) }
+            advanceUntilIdle()
+            assertEquals(2, options.largeurTabulation())
+
+            depot.updateSettings { it.copy(editorTailleTabulation = TailleTabulation.HUIT) }
+            advanceUntilIdle()
+            assertEquals(8, options.largeurTabulation())
         }
 
     @Test

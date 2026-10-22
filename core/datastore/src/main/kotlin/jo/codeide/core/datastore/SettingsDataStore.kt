@@ -18,6 +18,7 @@ import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
@@ -136,6 +137,7 @@ public class SettingsDataStore(
             booleanPreferencesKey("editor_diagnostic_chips")
         internal val EDITEUR_SAUVEGARDE_AUTO: Preferences.Key<Boolean> = booleanPreferencesKey("editor_autosave")
         internal val EDITEUR_TAILLE_POLICE: Preferences.Key<String> = stringPreferencesKey("editor_font_size")
+        internal val EDITEUR_TAILLE_TABULATION: Preferences.Key<String> = stringPreferencesKey("editor_tab_size")
         internal val STYLE_CURSEUR: Preferences.Key<String> = stringPreferencesKey("terminal_cursor_style")
         internal val COPIE_SELECTION: Preferences.Key<Boolean> = booleanPreferencesKey("terminal_auto_copy")
         internal val AUTORISATION_TRAVAIL: Preferences.Key<String> = stringPreferencesKey("workspace_grant_uri")
@@ -223,6 +225,9 @@ private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings =
         editorTaillePolice =
             TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
                 ?: defaults.editorTaillePolice,
+        editorTailleTabulation =
+            TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION])
+                ?: defaults.editorTailleTabulation,
         styleCurseurTerminal =
             StyleCurseurTerminal.depuisNom(this[SettingsDataStore.Cles.STYLE_CURSEUR])
                 ?: defaults.styleCurseurTerminal,
@@ -281,6 +286,7 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC, reglage.editorChipsDiagnostics)
     set(SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO, reglage.editorSauvegardeAuto)
     set(SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE, reglage.editorTaillePolice.name)
+    set(SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION, reglage.editorTailleTabulation.name)
     set(SettingsDataStore.Cles.STYLE_CURSEUR, reglage.styleCurseurTerminal.name)
     set(SettingsDataStore.Cles.COPIE_SELECTION, reglage.copieSelectionAuto)
     set(SettingsDataStore.Cles.NOM_AUTEUR, reglage.authorName)

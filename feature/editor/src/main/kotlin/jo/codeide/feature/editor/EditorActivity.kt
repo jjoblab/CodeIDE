@@ -395,8 +395,8 @@ class EditorActivity :
             // plus que la VISIBILITÉ du menu (classification directe de
             // l'onglet actif ; la session est au registre des sources).
             majMenuApercu()
-            // ADR 0136 (P1-b) : « Formater » suit la session de langue de
-            // l'onglet actif (phase 1 — canFormat() en phase 2).
+            // ADR 0136 (D4, phase 2) : « Formater » suit la
+            // disponibilité du formateur de la vue (canFormat()).
             majActionFormater()
         }
         viewModel.effets.collectWithLifecycle(this, Lifecycle.State.STARTED) { effet -> appliquer(effet) }
@@ -658,6 +658,10 @@ class EditorActivity :
         construireRail()
         selectionnerDestination(destinationCourante)
         installerIntegrationIa()
+        // ADR 0136 (D4, phase 2) : les actions d'hôte de la pill de
+        // sélection vivent une fois — l'injection n'est pas idempotente
+        // côté bibliothèque.
+        installerActionsSelection()
     }
 
     // ------------------------------------------------------------------
@@ -770,6 +774,34 @@ class EditorActivity :
                 IDENTIFIANT_ACTION_IA,
                 getString(R.string.ia_action_selection),
             ) { montrerBarreConsigne() },
+        )
+    }
+
+    /**
+     * Installe les actions d'hôte de la pill de sélection — UNE fois à
+     * la création (la bibliothèque n'ajoute JAMAIS deux fois le même
+     * id : elles vivent aussi longtemps que la vue, qui vit aussi
+     * longtemps que l'activité) : le bloc déplaçable ✥ de la
+     * bibliothèque (CE6, B13 — l'injection vivait dans
+     * [appliquerReglagesEditeur], répétée à CHAQUE émission des
+     * réglages : duplicata latente corrigée) et « Formater la
+     * sélection » (ADR 0136 D4 — phase 2 : grisée par
+     * `canFormatSelection()`, la disponibilité se lit au dessin de la
+     * pill — plus d'état à suivre).
+     */
+    private fun installerActionsSelection() {
+        val vue = liaison.vueEditeur
+        vue.addSelectionAction(
+            jo.codeeditor.view.BuiltinSelectionActions
+                .blockDrag(vue),
+        )
+        vue.addSelectionAction(
+            jo.codeeditor.view.SelectionAction(
+                IDENTIFIANT_ACTION_FORMATER_SELECTION,
+                getString(R.string.editor_formater_selection),
+                java.lang.Runnable { formaterSelection() },
+                java.util.function.BooleanSupplier { vue.canFormatSelection() },
+            ),
         )
     }
 
@@ -2079,8 +2111,9 @@ class EditorActivity :
      * LSP_KOTLIN.md §5, XE1 : la garde est PAR LANGUE — l'onglet
      * Kotlin exige SA session, l'onglet XML la sienne ; la dégradation
      * honnête d'un moteur ne doit pas priver un onglet `.java` de la
-     * sienne. Partagée par le BRANCHEMENT et la VISIBILITÉ de
-     * « Formater » — une seule écriture de la règle.)
+     * sienne. Elle porte le BRANCHEMENT SEUL — depuis la phase 2 (ADR
+     * 0136 D4), la VISIBILITÉ de « Formater » suit `canFormat()` : la
+     * vue répond du formateur, la session n'est plus un proxy.)
      */
     private fun serveurPretDe(onglet: EditorTabState?): Boolean {
         val session = viewModel.sessionLsp.value
@@ -2092,11 +2125,15 @@ class EditorActivity :
     }
 
     /**
-     * La VISIBILITÉ de « Formater » suit la session de langue de
-     * l'onglet actif (ADR 0136 P1-b — phase 1 : la vue ne reçoit le
-     * formateur que d'un serveur CONNECTÉ ; la phase 2 la pilotera par
-     * `canFormat()`, code-editor 3.74.0). La décision est PURE
-     * ([DecisionFormater.visible]) — motif [majMenuApercu].
+     * La VISIBILITÉ de « Formater » suit la disponibilité du formateur
+     * de la vue (ADR 0136 D4 — phase 2, code-editor 3.74.0 :
+     * `canFormat()` ; la DÉCONNEXION restaure `EmptyLanguage`, la
+     * réponse repasse fausse d'elle-même — plus de suivi de session).
+     * La décision est PURE ([DecisionFormater.visible]) — motif
+     * [majMenuApercu] ; rappelée à chaque émission d'état ET au
+     * branchement (le langage est posé au thread UI APRÈS la
+     * connexion — le rappel du coordinateur re-évalue, sans lui
+     * l'action resterait cachée jusqu'au prochain état).
      */
     private fun majActionFormater() {
         val action = liaison.toolbarEditeur.menu.findItem(R.id.action_formater) ?: return
@@ -2105,7 +2142,7 @@ class EditorActivity :
         action.isVisible =
             DecisionFormater.visible(
                 ongletOuvert = onglet != null,
-                sessionVivante = serveurPretDe(onglet),
+                formateurDisponible = liaison.vueEditeur.canFormat(),
             )
     }
 
@@ -2123,6 +2160,29 @@ class EditorActivity :
         val etatCourant = viewModel.etat.value
         if (etatCourant.onglets.getOrNull(etatCourant.indexOngletActif) == null) return
         liaison.vueEditeur.formatDocument(
+            java.util.function.Consumer<Boolean> { resultat ->
+                DecisionFormater.messagePour(resultat)?.let { message ->
+                    Snackbar.make(liaison.racineEditeur, message, Snackbar.LENGTH_SHORT).show()
+                }
+            },
+        )
+    }
+
+    /**
+     * FORMATE la SÉLECTION courante (ADR 0136 D4 — phase 2) : action de
+     * la pill de sélection ([installerActionsSelection]) — la pill
+     * n'existe qu'avec une VRAIE sélection (« sélection vide ⇒ entrée
+     * masquée » vient du contrat de la pill), l'entrée est grisée par
+     * `canFormatSelection()` (formateur installé ET plages gérées).
+     * La vue mène (`formatSelection`, requête rangeFormatting, UN
+     * seul pas d'undo, caret et sélection conservés) — l'activité ne
+     * fait que RELAYER le clic (règle 1) ; `false` (refus propre :
+     * formateur sans plages, sélection déjà conforme) et `null` (aucun
+     * formateur) portent les MÊMES messages que le document
+     * ([DecisionFormater.messagePour], Snackbar).
+     */
+    private fun formaterSelection() {
+        liaison.vueEditeur.formatSelection(
             java.util.function.Consumer<Boolean> { resultat ->
                 DecisionFormater.messagePour(resultat)?.let { message ->
                     Snackbar.make(liaison.racineEditeur, message, Snackbar.LENGTH_SHORT).show()
@@ -2312,7 +2372,9 @@ class EditorActivity :
 
     /** Applique les réglages de l'éditeur à la vue cel (v0.37.0) : chaque
      *  setter projette une API publique d'EditorView ; idempotent, donc
-     *  rappelé sans coût à chaque émission du détenteur. */
+     *  rappelé sans coût à chaque émission du détenteur. Les actions de
+     *  la pill de sélection vivent à part ([installerActionsSelection]) —
+     *  posées UNE fois, l'injection n'est pas idempotente. */
     private fun appliquerReglagesEditeur() {
         val vue = liaison.vueEditeur
         vue.setTheme(themeActuel())
@@ -2322,12 +2384,11 @@ class EditorActivity :
         vue.setShowNonPrintable(optionsEditeur.courants.editorCaracteresNonImprimables)
         vue.setFontLigatures(optionsEditeur.courants.editorLigatures)
         vue.setDiagnosticChipsEnabled(optionsEditeur.courants.editorChipsDiagnostics)
-        // CE6 (B13) : item ✥ Move de la pill — permet de déplacer un bloc
-        // en le glissant après sélection + appui long.
-        vue.addSelectionAction(
-            jo.codeeditor.view.BuiltinSelectionActions
-                .blockDrag(vue),
-        )
+        // ADR 0136 (D4, phase 2) : options de formatage LSP — largeur du
+        // réglage « Largeur de tabulation », espaces par politique (le
+        // formateur détecte l'indentation du document tant que l'hôte ne
+        // pose rien ; posées, elles portent TOUTES les requêtes serveur).
+        vue.setFormattingOptions(optionsEditeur.largeurTabulation(), optionsEditeur.indenterAvecEspaces())
     }
 
     // ------------------------------------------------------------------
@@ -2422,7 +2483,13 @@ class EditorActivity :
                 }
                 return@launch
             }
-            coordonnateurLsp.brancher(session, sessionKotlin, sessionXml, uri, chemin, liaison.vueEditeur)
+            coordonnateurLsp.brancher(session, sessionKotlin, sessionXml, uri, chemin, liaison.vueEditeur) {
+                // ADR 0136 (D4, phase 2) : la disponibilité du formateur
+                // n'est vraie qu'APRÈS la pose du langage (file FIFO de la
+                // vue — le coordinateur poste ce rappel après elle) ; sans
+                // lui, l'action resterait cachée jusqu'au prochain état.
+                majActionFormater()
+            }
         }
     }
 
@@ -3111,6 +3178,11 @@ class EditorActivity :
         /** Identifiant de l'action de sélection « IA » (lot IA-5) —
          * stable : l'éditeur la retire/la ré-ajoute par ce nom. */
         const val IDENTIFIANT_ACTION_IA = "codeide_ia"
+
+        /** Identifiant de l'action de sélection « Formater la
+         * sélection » (ADR 0136 D4, phase 2) — stable pour un éventuel
+         * retrait ciblé. */
+        const val IDENTIFIANT_ACTION_FORMATER_SELECTION = "codeide_formater_selection"
 
         /** Étiquette LSP de l'activité — la MÊME que
          * [CoordonnateurLsp] ("LspEditeur") : la séquence « branchement
