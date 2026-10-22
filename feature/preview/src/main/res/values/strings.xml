@@ -533,9 +533,11 @@
     <string name="preview_coin_bas_droite">bas d.</string>
     <string name="preview_coin_bas_gauche">bas g.</string>
     <string name="preview_coin_cd">%1$s coin %2$s</string>
-    <!-- PE11 § 7 — validations des champs texte (tools:context, onClick). -->
-    <string name="preview_attr_activite_attendue">Nom d\'activité attendu, par exemple .MainActivity.</string>
-    <string name="preview_attr_methode_attendue">Nom de méthode Java attendu, par exemple onConnexion.</string>
+    <!-- PE11 § 7 — validations des champs texte (tools:context, onClick).
+         « exemple » est le français correct — le dictionnaire Typos de lint est
+         ANGLAIS (faux positif, même précédent que preview_attr_ratio_invalide). -->
+    <string name="preview_attr_activite_attendue" tools:ignore="Typos">Nom d\'activité attendu, par exemple .MainActivity.</string>
+    <string name="preview_attr_methode_attendue" tools:ignore="Typos">Nom de méthode Java attendu, par exemple onConnexion.</string>
     <string name="preview_section_autres">Autres attributs</string>
     <string name="preview_attr_supprimer_glyphe">✕</string>
     <string name="preview_attr_supprimer_desc">Supprimer %1$s</string>
