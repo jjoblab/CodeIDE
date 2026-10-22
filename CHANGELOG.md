@@ -73,7 +73,11 @@
   `MaterialButtonToggleGroup` (sans entrée, le tag court partait en
   `android.widget.{tag}` → introuvable → MockView). Tag v3.4.9 publié
   sur GitHub Packages (run 39781772586), épinglé dans le catalogue
-  (`layoutlib = "3.4.9"`) et `docs/THIRD_PARTY_NOTICES.md`.
+  (`layoutlib = "3.4.9"`) et `docs/THIRD_PARTY_NOTICES.md`. Correctif CI
+  du lint de la 3.4.9 : l'arrivée d'appcompat par module-inflater ARME
+  la règle `UseCompatLoadingForDrawables` sur le chargement par
+  réflexion des drawables SYSTÈME de `parseBackground` — exemption
+  ciblée (minSdk 26 ≥ API 21, `AppCompatResources` n'apporte rien).
 
 ## [0.166.3] – 2026-10-22
 
