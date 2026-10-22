@@ -48,7 +48,7 @@ class RenduLayoutLibV3Test {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = false,
             )
-        return pipeline.rendre(requete, compresser = false).rendu
+        return pipeline.rendre(requete).rendu
     }
 
     // ============================================================
@@ -99,7 +99,7 @@ class RenduLayoutLibV3Test {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = false,
             )
-        val resultat = pipeline.rendre(requete, compresser = false).rendu
+        val resultat = pipeline.rendre(requete).rendu
         // Le drawable layer-list doit être rendu (P0 résolu) — pas un
         // placeholder vide.
         assertTrue("le rendu drawable layer-list doit réussir", resultat.ok)
@@ -123,7 +123,7 @@ class RenduLayoutLibV3Test {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = false,
             )
-        val resultat = pipeline.rendre(requete, compresser = false).rendu
+        val resultat = pipeline.rendre(requete).rendu
         assertTrue("le rendu drawable ripple doit réussir", resultat.ok)
     }
 
@@ -150,7 +150,7 @@ class RenduLayoutLibV3Test {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = false,
             )
-        val resultat = pipeline.rendre(requete, compresser = false).rendu
+        val resultat = pipeline.rendre(requete).rendu
         assertTrue("le rendu drawable inset doit réussir", resultat.ok)
     }
 
@@ -228,7 +228,7 @@ class RenduLayoutLibV3Test {
                 nuit = false,
                 langue = "fr",
             )
-        val resultat = pipeline.rendre(requete, compresser = false).rendu
+        val resultat = pipeline.rendre(requete).rendu
         assertTrue("le rendu avec langue=fr doit réussir", resultat.ok)
     }
 
@@ -256,7 +256,7 @@ class RenduLayoutLibV3Test {
                 nuit = false,
                 langue = "en",
             )
-        val resultat = pipeline.rendre(requete, compresser = false).rendu
+        val resultat = pipeline.rendre(requete).rendu
         assertTrue("le rendu avec langue=en doit réussir", resultat.ok)
     }
 
@@ -290,7 +290,6 @@ class RenduLayoutLibV3Test {
                     profil = ProfilPeripherique.PAR_DEFAUT,
                     nuit = false,
                 ),
-                compresser = false,
             )
         assertTrue("le rendu doit réussir", resultat.rendu.ok)
         val bitmap = resultat.bitmap
@@ -378,7 +377,7 @@ class RenduLayoutLibV3Test {
                 themeName = "Theme.MaterialComponents.DayNight",
                 barreNavigation = barreNavigation,
             )
-        return pipeline.rendre(requete, compresser = false).rendu
+        return pipeline.rendre(requete).rendu
     }
 
     /** XML racine LinearLayout vertical + TextView, en match_parent. */

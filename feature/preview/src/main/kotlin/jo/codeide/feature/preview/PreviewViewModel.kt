@@ -944,12 +944,22 @@ public class PreviewViewModel
          * le `mutate` groupé de la maquette —
          * [EditionAttributsXml.ecrireDimensions]). `false` = sélection non
          * éditable (racine) ou span périmé.
+         *
+         * v0.166.4 — LA RACINE EST AUTORISÉE (retour propriétaire : « le
+         * redimensionnement a aussi d'autres problèmes ») : l'aperçu
+         * dessine les POIGNÉES sur la racine (elle est sélectionnable),
+         * mais le refus silencieux rendait ces poignées MUETTES. La racine
+         * reste éditable pour ses dimensions (PE7e : ses attributs de
+         * disposition sont éditables, et l'inflater honore les dimensions
+         * DÉCLARÉES de la racine depuis LayoutLib v3.4.6) — le geste
+         * écrit `layout_width`/`layout_height` sur le tag racine et le
+         * rendu suit.
          */
         public fun redimensionnerSelection(
             largeurDp: Int,
             hauteurDp: Int,
         ): Boolean =
-            editerSelection { rendu, span ->
+            editerSelection(autoriserRacine = true) { rendu, span ->
                 EditionAttributsXml.ecrireDimensions(rendu, span, largeurDp, hauteurDp)
             }
 

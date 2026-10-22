@@ -60,6 +60,63 @@ class VuePreviewXmlTest {
         )
 
     @Test
+    fun `v0_166_4 - le zoom survit a un nouveau rendu de meme planche`() {
+        // Retour propriétaire 2026-10-22 : « le zoom pendant l'édition
+        // n'est pas respecté » — AVANT, chaque rendu repassait par
+        // l'ajustement (fit) et dézoomait la planche sous les doigts.
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        // PREMIER rendu : ajustement (comportement inchangé).
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        val echelleAjustee = vue.echelleCourante
+        assertTrue("premier rendu ajusté", echelleAjustee > 0f)
+        // L'utilisateur zoome.
+        vue.zoomer(2f)
+        val echelleUtilisateur = vue.echelleCourante
+        assertTrue("l'utilisateur a zoomé", echelleUtilisateur > echelleAjustee)
+        // NOUVEAU rendu de MÊMES dimensions (le cas de TOUTE édition —
+        // la taille vient du profil) : le zoom doit rester.
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        assertEquals(
+            "l'édition ne dézoome plus (zoom préservé)",
+            echelleUtilisateur,
+            vue.echelleCourante,
+            0.0001f,
+        )
+    }
+
+    @Test
+    fun `v0_166_4 - le zoom survit aussi quand la planche est retaillee`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        vue.zoomer(2f)
+        val echelleUtilisateur = vue.echelleCourante
+        // Changement de profil/paysage : AUTRES dimensions — le zoom
+        // reste, seul le décalage se ré-ancre.
+        vue.afficherRendu(Bitmap.createBitmap(234, 108, Bitmap.Config.ARGB_8888))
+        assertEquals(
+            "zoom conservé sur planche retaillée",
+            echelleUtilisateur,
+            vue.echelleCourante,
+            0.0001f,
+        )
+    }
+
+    @Test
+    fun `v0_166_4 - le premier rendu s ajuste toujours`() {
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        // Aucun bitmap avant : le PREMIER rendu s'ajuste (fit) —
+        // l'arrivée sur l'aperçu reste lisible.
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        assertEquals(512f / 234f, vue.echelleCourante, 0.0001f)
+    }
+
+    @Test
     fun `mesure layout dessin - aucun lever`() {
         val vue = vue()
         vue.measure(512, 512)
