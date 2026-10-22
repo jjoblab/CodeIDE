@@ -60,6 +60,12 @@ public object EditionAttributsXml {
     private const val ATTR_LARGEUR_MINIMALE: String = "android:minWidth"
     private const val ATTR_HAUTEUR_MINIMALE: String = "android:minHeight"
 
+    /** PE11h — l'attribut posé par « Remplir l'espace restant ». */
+    private const val ATTR_POIDS: String = "android:layout_weight"
+
+    /** PE11h — la valeur `0dp` (match_constraint) de la dimension calculée. */
+    private const val ZERO_DP: String = "0dp"
+
     /** Les DEUX axes du correctif de cible : dimension → minimum (PE11g). */
     private val AXES_CIBLE: List<Pair<String, String>> =
         listOf(ATTR_LARGEUR to ATTR_LARGEUR_MINIMALE, ATTR_HAUTEUR to ATTR_HAUTEUR_MINIMALE)
@@ -269,6 +275,51 @@ public object EditionAttributsXml {
         // Rien n'a changé (déjà ≥ 48 dp partout) : pas d'édition — le
         // DRAPEAU décide, pas le delta (deux remplacements de MÊME
         // longueur, 44dp → 48dp, laissent un delta cumulé nul).
+        if (!ecrit) return null
+        // UNE édition : la balise ouvrante originale remplacée par la remaniée.
+        val finBaliseOriginale = localise.chevron + 1
+        val baliseRemaniee = texteCourant.substring(localise.debut, finBaliseOriginale + deltaCumule)
+        return EditionAttributsXmlResultat(localise.debut, finBaliseOriginale, baliseRemaniee)
+    }
+
+    /**
+     * ACTION RAPIDE « Remplir l'espace restant » (PE11h — miroir l'`items`
+     * du `quick` linéaire de la maquette : `setEx(layout_weight, '1')` +
+     * `v.w/v.h = 0dp` selon l'orientation du parent) : pose
+     * `android:layout_weight="1"` ET passe la dimension de l'[axe] à
+     * `0dp` (match_constraint) en UNE SEULE édition (patron
+     * [elargirCibleTactile] : composition des écritures sur le texte
+     * remanié, puis remplacement ATOMIQUE de la balise ouvrante — un
+     * geste = une entrée d'historique).
+     *
+     * `null` si RIEN ne change (poids déjà 1 ET dimension déjà `0dp`) ou
+     * span périmé (jamais d'exception, règle 6).
+     */
+    public fun remplirEspaceRestant(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        axe: Axe,
+    ): EditionAttributsXmlResultat? {
+        val localise = localiser(texte, span) ?: return null
+        val dimension = if (axe == Axe.LARGEUR) ATTR_LARGEUR else ATTR_HAUTEUR
+        var texteCourant = texte
+        var deltaCumule = 0
+        var ecrit = false
+        for ((nom, valeur) in listOf(ATTR_POIDS to "1", dimension to ZERO_DP)) {
+            val edition =
+                ecrireAttribut(
+                    texteCourant,
+                    InsertionXml.SpanParent(span.debut, span.fin + deltaCumule),
+                    nom,
+                    valeur,
+                ) ?: continue
+            texteCourant = appliquer(texteCourant, edition)
+            deltaCumule += delta(edition)
+            ecrit = true
+        }
+        // Déjà rempli (poids 1 + dimension 0dp) : pas d'édition — le
+        // DRAPEAU décide, pas le delta (deux remplacements de MÊME
+        // longueur laisseraient un delta nul).
         if (!ecrit) return null
         // UNE édition : la balise ouvrante originale remplacée par la remaniée.
         val finBaliseOriginale = localise.chevron + 1

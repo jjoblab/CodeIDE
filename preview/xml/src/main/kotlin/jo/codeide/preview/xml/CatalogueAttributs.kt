@@ -83,6 +83,10 @@ public object CatalogueAttributs {
 
         /** PE12c — § 5.1 : la section Carte de MaterialCardView (ex-Conteneur). */
         CARTE,
+
+        /** PE11h — la section « Autres attributs » (miroir `{other:true}`) :
+         * les attributs du document hors catalogue + l'ajout libre. */
+        AUTRES,
     }
 
     /** Les ÉTIQUETTES de contrôles (clés sémantiques — traduites au chrome). */
@@ -182,6 +186,17 @@ public object CatalogueAttributs {
         LARGEUR_BORDURE,
         COULEUR_RIPPLE,
         PADDING_COMPAT,
+
+        // ── PE11h — action rapide, contraintes en lecture, attribut libre ─
+
+        /** Le LIBELLÉ d'une action rapide (miroir `l:'Actions'` — cherchable, jamais rendue). */
+        ACTIONS,
+
+        /** L'étiquette du bloc de contraintes LUES (miroir `l:'dans le ConstraintLayout'`). */
+        CONTRAINTES_LUES,
+
+        /** Le libellé de l'action « Remplir l'espace restant » (miroir `.qa .linkbtn`). */
+        REMPLIR_ESPACE,
     }
 
     /** UN contrôle de l'éditeur (variante scellée — miroir § 4.1). */
@@ -678,17 +693,78 @@ public object CatalogueAttributs {
                 val libelle: Etiquette,
             )
         }
+
+        /**
+         * Les ACTIONS RAPIDES d'une section (PE11h — miroir `quick` de la
+         * maquette) : une rangée de boutons « lien » SANS champ ni en-tête
+         * (le layout `controle_action` ne porte PAS d'étiquette visible) ;
+         * chaque action écrit UNE ÉDITION GROUPÉE. Composite sans champ :
+         * [nomsAttributs] vide (l'action ne compte jamais dans le badge
+         * « n définis », miroir un `quick` sans `a`), l'[Etiquette.ACTIONS]
+         * ne sert qu'à la RECHERCHE.
+         */
+        public data class ActionRapide(
+            val actions: List<Action>,
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : composite sans champ, rien à compter. */
+            override val nomsAttributs: List<String> = emptyList()
+
+            /** [ControleAttribut.etiquette] : clé de RECHERCHE uniquement (jamais rendue). */
+            override val etiquette: Etiquette? = Etiquette.ACTIONS
+
+            /**
+             * UNE action rapide : le [libelle] (clé sémantique du bouton)
+             * et son [ecriture] (l'édition groupée, composée par
+             * [EditionAttributsXml.remplirEspaceRestant] au port).
+             */
+            public data class Action(
+                val libelle: Etiquette,
+                val ecriture: Ecriture,
+            )
+
+            /** L'ÉCRITURE d'une action rapide (une édition groupée — pure donnée). */
+            public sealed interface Ecriture {
+                /**
+                 * « Remplir l'espace restant » (miroir l'`items` du `quick`
+                 * linéaire) : `layout_weight=1` + la dimension de l'AXE DU
+                 * PARENT passée à `0dp` — l'axe se résout au CLIC sur
+                 * l'orientation du parent dans le texte vivant.
+                 */
+                public data object RemplirEspaceRestant : Ecriture
+            }
+        }
+
+        /**
+         * Les contraintes EN LECTURE (PE11h — miroir `con` de la maquette,
+         * annexe § 7 « Contraintes — ancres lues ») : le bloc qui MONTRE
+         * toutes les ancres `app:layout_constraint*` telles qu'écrites
+         * (y compris celles que l'édition par côtés ne couvre pas — ligne
+         * de base, marges de disparition…). L'ÉDITION réelle reste le
+         * composite [Contraintes] (PE8b) : la section les porte À LA SUITE.
+         */
+        public data class ContraintesLecture(
+            override val etiquette: Etiquette,
+            override val courant: Boolean = true,
+        ) : ControleAttribut() {
+            /** [ControleAttribut.nomsAttributs] : composite sans champ, rien à compter. */
+            override val nomsAttributs: List<String> = emptyList()
+        }
     }
 
     /**
      * UNE section repliable (titre + contrôles — miroir `.sec2`). La
      * [note] optionnelle (PE12c — miroir `sc.note` de la maquette) se
-     * rend EN TÊTE du corps, avant les contrôles.
+     * rend EN TÊTE du corps, avant les contrôles ; [autres] marque la
+     * section « Autres attributs » (PE11h — miroir `{other:true}`) : son
+     * corps ne vient PAS du catalogue mais du DOCUMENT (attributs hors
+     * catalogue + rangée d'ajout libre, [controles] vide).
      */
     public data class SectionAttributs(
         val titre: TitreSection,
         val controles: List<ControleAttribut>,
         val note: NoteSection? = null,
+        val autres: Boolean = false,
     )
 
     /** Les notes de section (clés sémantiques — traduites au chrome). */
@@ -848,21 +924,19 @@ public object CatalogueAttributs {
                     listOf(
                         SectionAttributs(
                             TitreSection.CONTRAINTES,
-                            listOf(ControleAttribut.Contraintes),
+                            listOf(
+                                // PE11h — les ancres LUES d'abord (annexe
+                                // § 7 « Contraintes — ancres lues »), l'édition
+                                // par côtés juste après (PE8b).
+                                ControleAttribut.ContraintesLecture(Etiquette.CONTRAINTES_LUES),
+                                ControleAttribut.Contraintes,
+                            ),
                         ),
                     )
                 }
 
                 FamilleParent.LINEAR -> {
-                    listOf(
-                        SectionAttributs(
-                            TitreSection.DANS_PARENT,
-                            listOf(
-                                ControleAttribut.Nombre("android:layout_weight", Etiquette.POIDS, ""),
-                                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
-                            ),
-                        ),
-                    )
+                    listOf(sectionDansParentLineaire())
                 }
 
                 FamilleParent.FRAME -> {
@@ -890,7 +964,16 @@ public object CatalogueAttributs {
         // L'IDENTITÉ ouvre TOUTE fiche (PE8a) : le renommage est
         // indépendant de la classe — la racine y a droit aussi (l'édit de
         // la racine reste borné à Identité/Disposition/Affichage).
-        return listOf(sectionIdentite()) + propres + conteneur + duParent + generiques()
+        // PE11h — la section « Autres attributs » clôt TOUTE fiche NON
+        // RACINE (miroir le `sec('Autres attributs', [], {other:true})` de
+        // `sectionsFor`, absent du retour anticipé de la racine).
+        val autres =
+            if (familleParent == FamilleParent.AUCUN) {
+                emptyList()
+            } else {
+                listOf(SectionAttributs(TitreSection.AUTRES, emptyList(), autres = true))
+            }
+        return listOf(sectionIdentite()) + propres + conteneur + duParent + generiques() + autres
     }
 
     /**
@@ -1198,6 +1281,29 @@ public object CatalogueAttributs {
             ),
         )
 
+    /**
+     * La section DANS PARENT d'un enfant LINÉAIRE (miroir le `genre ===
+     * 'lin'` de la maquette) : poids, gravité de mise en page, puis
+     * l'ACTION RAPIDE groupée « Remplir l'espace restant » (PE11h —
+     * annexe § 7 : `—` ActionRapide, courant).
+     */
+    private fun sectionDansParentLineaire(): SectionAttributs =
+        SectionAttributs(
+            TitreSection.DANS_PARENT,
+            listOf(
+                ControleAttribut.Nombre("android:layout_weight", Etiquette.POIDS, ""),
+                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+                ControleAttribut.ActionRapide(
+                    listOf(
+                        ControleAttribut.ActionRapide.Action(
+                            Etiquette.REMPLIR_ESPACE,
+                            ControleAttribut.ActionRapide.Ecriture.RemplirEspaceRestant,
+                        ),
+                    ),
+                ),
+            ),
+        )
+
     /** RELATIVE (§ 5.2) : l'ANCRAGE AU PARENT (7 bascules) + alignWithParentIfMissing. */
     private fun sectionDansParentRelatif(): SectionAttributs =
         SectionAttributs(
@@ -1443,6 +1549,57 @@ public object CatalogueAttributs {
         )
 
     // ── Familles par héritage (miroir § 4.1) ─────────────────────────────
+
+    /**
+     * Les NOMS d'attributs CONNUS du catalogue pour une vue (PE11h —
+     * miroir `knownNames` de la maquette) : les noms portés par les
+     * contrôles de ses sections, PLUS les cinq fixes que les composites
+     * couvrent sans les porter (`id`, dimensions, marges, padding). La
+     * section « Autres attributs » y oppose les attributs du DOCUMENT :
+     * tout nom HORS de cet ensemble est une rangée libre.
+     */
+    public fun nomsConnus(
+        classe: String,
+        familleParent: FamilleParent,
+        familleVue: FamilleParent,
+    ): Set<String> =
+        sections(classe, familleParent, familleVue)
+            .flatMap { section -> section.controles.flatMap { controle -> controle.nomsAttributs } }
+            .toSet() + NOMS_FIXES
+
+    /**
+     * Les cinq attributs couverts par les COMPOSITES sans noms portés
+     * (miroir la liste `[…].forEach(x => s.add(x))` de `knownNames`).
+     */
+    private val NOMS_FIXES: Set<String> =
+        setOf(
+            "android:id",
+            "android:layout_width",
+            "android:layout_height",
+            "android:layout_margin",
+            "android:padding",
+        )
+
+    /**
+     * Les NOMS suggérés par la complétion de l'ajout libre (PE11h —
+     * miroir `FREE_NAMES` de la maquette : des attributs réels hors
+     * catalogue 1re vague, en exemple pour guider la saisie).
+     */
+    public val NOMS_LIBRES_SUGGERES: List<String> =
+        listOf(
+            "android:tag",
+            "android:textDirection",
+            "android:layoutDirection",
+            "android:fadingEdge",
+            "android:saveEnabled",
+            "android:soundEffectsEnabled",
+            "android:hapticFeedbackEnabled",
+            "android:keepScreenOn",
+            "android:requiresFadingEdge",
+            "android:transitionName",
+            "app:layout_goneMarginTop",
+            "app:layout_constraintHorizontal_chainStyle",
+        )
 
     /** TextView et ses descendants à TEXTE éditable (Button/CheckBox/Switch). */
     private fun familleTexte(classe: String): Boolean =

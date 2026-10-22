@@ -609,4 +609,82 @@ public class EditionAttributsXmlTest {
             EditionAttributsXml.elargirCibleTactile(formate, InsertionXml.SpanParent(3, 7)),
         )
     }
+
+    // ── PE11h — action rapide « Remplir l'espace restant » ───────────────
+
+    @Test
+    fun `remplirEspaceRestant pose poids et 0dp sur l axe en une seule edition`() {
+        // Miroir le `items` du `quick` linéaire de la maquette :
+        // `setEx(layout_weight, '1')` + `v.h = 'm'` sur un parent VERTICAL
+        // (défaut) — la hauteur wrap_content devient 0dp, le poids absent
+        // s'insère, UNE édition atomique, le reste de la balise reste.
+        val edition =
+            EditionAttributsXml.remplirEspaceRestant(
+                formate,
+                spanBouton(),
+                EditionAttributsXml.Axe.HAUTEUR,
+            )!!
+        val resultat = appliquer(formate, edition)
+        assertTrue("""android:layout_weight="1"""" in resultat)
+        assertTrue("la hauteur calculée passe à 0dp", """android:layout_height="0dp"""" in resultat)
+        assertFalse("la largeur ne bouge pas", """android:layout_width="0dp"""" in resultat)
+        assertTrue("""android:id="@+id/button"""" in resultat)
+        assertEquals("le document reste bien formé", 3, AligneurElementsXml.aligner(resultat, null).size)
+    }
+
+    @Test
+    fun `remplirEspaceRestant sur l axe largeur remplace la valeur fixe existante`() {
+        // Parent HORIZONTAL : c'est la LARGEUR qui devient 0dp (miroir
+        // `if (par.orient === 'h') v.w = 'm'`), même fixe à 96 dp.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+    <Button android:id="@+id/second" android:layout_width="96dp" android:layout_height="wrap_content" />
+</LinearLayout>
+""".trimStart()
+        val edition =
+            EditionAttributsXml.remplirEspaceRestant(
+                texte,
+                spanDe(texte, 1)!!,
+                EditionAttributsXml.Axe.LARGEUR,
+            )!!
+        val resultat = appliquer(texte, edition)
+        assertTrue("""android:layout_width="0dp"""" in resultat)
+        assertFalse("""android:layout_width="96dp"""" in resultat)
+        assertTrue("""android:layout_weight="1"""" in resultat)
+        assertTrue("la hauteur ne bouge pas", """android:layout_height="wrap_content"""" in resultat)
+    }
+
+    @Test
+    fun `remplirEspaceRestant deja rempli refuse null idempotence`() {
+        // Poids 1 ET dimension 0dp déjà posés : le geste n'écrit rien —
+        // le DRAPEAU décide, pas le delta.
+        val texte =
+            """<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <Button android:layout_width="wrap_content" android:layout_height="0dp" android:layout_weight="1" />
+</LinearLayout>
+""".trimStart()
+        assertNull(
+            "aucune édition attendue",
+            EditionAttributsXml.remplirEspaceRestant(texte, spanDe(texte, 1)!!, EditionAttributsXml.Axe.HAUTEUR),
+        )
+    }
+
+    @Test
+    fun `remplirEspaceRestant sur un span perime refuse null`() {
+        assertNull(
+            "span périmé : jamais d'exception (règle 6)",
+            EditionAttributsXml.remplirEspaceRestant(
+                formate,
+                InsertionXml.SpanParent(3, 7),
+                EditionAttributsXml.Axe.HAUTEUR,
+            ),
+        )
+    }
 }

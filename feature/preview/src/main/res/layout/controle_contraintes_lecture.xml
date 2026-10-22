@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contraintes en LECTURE SEULE (PE11h, maquette `t:'con'` — « Contraintes :
+  ancres lues » de l'annexe § 7) : bloc `.fld .ro` (fond surface 2, rayon 8,
+  mono 12, une ligne « ancre = cible » par contrainte, 374×32.8 pour une
+  ligne) + note. L'ÉDITION par côtés reste `controle_contrainte` (PE8b),
+  portée par la même section juste après.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_contraintes_lecture"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <TextView
+        android:id="@+id/valeur_lecture_seule"
+        style="@style/Widget.CodeIDE.Apercu.LectureSeule"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+</LinearLayout>

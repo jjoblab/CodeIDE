@@ -363,4 +363,76 @@ class VoletsPreviewLayoutTest {
             controle.findViewById<View>(R.id.message_controle).isVisible,
         )
     }
+
+    // ── PE11h : action rapide, contraintes en lecture, attribut libre ────
+
+    @Test
+    fun `le controle action est un groupe de puces sans etiquette`() {
+        // Miroir `.qa` : un ChipGroup de boutons « lien » (les puces se
+        // posent au liage), SANS en-tête de champ (pas de libellé).
+        val controle = gonfler(R.layout.controle_action)
+        assertTrue(
+            "Le contrôle est un ChipGroup (miroir .qa)",
+            controle is ChipGroup,
+        )
+        assertEquals(
+            "L'écart horizontal des puces suit .qa (gap 6)",
+            controle.resources.getDimensionPixelSize(R.dimen.apercu_couleur_gap),
+            (controle as ChipGroup).chipSpacingHorizontal,
+        )
+    }
+
+    @Test
+    fun `l item action est une puce du style Action`() {
+        // Miroir `.qa .linkbtn` : une Chip « assist » à contour dont le
+        // libellé et le geste se posent au liage.
+        val puce = gonfler(R.layout.item_action)
+        assertNotNull(puce.findViewById<View>(R.id.action))
+    }
+
+    @Test
+    fun `le controle contraintes lecture porte son entete et son bloc lecture seule`() {
+        // Miroir `con` : l'étiquette (« dans le ConstraintLayout ») puis
+        // le bloc mono multi-lignes « ancre = cible » (posé au liage) —
+        // l'édition réelle reste controle_contrainte.
+        val controle = gonfler(R.layout.controle_contraintes_lecture)
+        assertNotNull(controle.findViewById<View>(R.id.entete))
+        assertNotNull(controle.findViewById<View>(R.id.valeur_lecture_seule))
+    }
+
+    @Test
+    fun `le controle attribut libre porte sa liste et sa rangee d ajout`() {
+        // Miroir `.other` : la liste des rangées existantes (posées au
+        // liage depuis item_attribut_libre) PUIS la rangée d'AJOUT — nom
+        // à complétion, valeur, bouton « Ajouter ».
+        val controle = gonfler(R.layout.controle_attribut_libre)
+        assertNotNull(controle.findViewById<View>(R.id.liste_attributs_libres))
+        val ajout = controle.findViewById<View>(R.id.rangee_ajout_attribut)
+        assertNotNull(ajout)
+        assertTrue(
+            "La rangée d'ajout est visible au gonflage (le mode Courants la CACHE au liage)",
+            ajout.isVisible,
+        )
+        assertNotNull(controle.findViewById<View>(R.id.champ_nouveau_nom))
+        assertNotNull(controle.findViewById<View>(R.id.champ_nouvelle_valeur))
+        assertNotNull(controle.findViewById<View>(R.id.bouton_ajouter_attribut))
+    }
+
+    @Test
+    fun `l item attribut libre porte son nom sa valeur et sa suppression`() {
+        // Miroir `.other` sans l'ajout : le nom en mono tronqué, la valeur
+        // éditable, le bouton ✕ de RETRAIT (cible tactile 24 dp).
+        val rangee = gonfler(R.layout.item_attribut_libre)
+        assertNotNull(rangee.findViewById<View>(R.id.nom_attribut_libre))
+        val valeur = rangee.findViewById<View>(R.id.valeur_attribut_libre)
+        assertNotNull(valeur)
+        assertTrue("La valeur est un champ éditable", valeur is EditText)
+        val suppression = rangee.findViewById<View>(R.id.bouton_retirer_attribut_libre)
+        assertNotNull(suppression)
+        assertEquals(
+            "La cible tactile du ✕ suit .rst (24 dp)",
+            rangee.resources.getDimensionPixelSize(R.dimen.apercu_reset_cible),
+            suppression.minimumWidth,
+        )
+    }
 }

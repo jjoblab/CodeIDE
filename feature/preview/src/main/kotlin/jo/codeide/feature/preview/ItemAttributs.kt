@@ -120,4 +120,15 @@ internal sealed interface ItemAttributs {
     data class BoutonAutres(
         val texte: String,
     ) : ItemAttributs
+
+    /**
+     * La SUGGESTION « Ajouter android:xxx comme attribut libre »
+     * (PE11h — miroir le `linkbtn` sous le `<p class="empty">` : une
+     * recherche qui RESSEMBLE à un nom d'attribut sans résultat la
+     * propose). Le tap passe en mode Tous, ouvre la section Autres
+     * attributs et préremplit le champ de nom — SANS édition.
+     */
+    data class SuggestionLibre(
+        val nom: String,
+    ) : ItemAttributs
 }
