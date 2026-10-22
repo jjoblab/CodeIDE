@@ -11,18 +11,20 @@ import org.robolectric.annotation.Config
 
 /**
  * Contrat du catalogue de la palette (PE7a, maquette § « Catalogue et
- * insertion XML, en fonctions pures » ; PE12h — six entrées parents) :
- * 22 widgets, 6 catégories (miroir `WIDGETS`/`CATS`), dépendances
- * requises signalées, extraits bienformés (re-marchés par l'aligneur —
- * le moteur de rendu doit les inflater) et filtres de la grille
- * (catégorie + recherche, miroir `fillGrid`).
+ * insertion XML, en fonctions pures » ; PE12h — six entrées parents ;
+ * v0.166.3 — extension propriétaire « palette plus complète », 19 entrées
+ * au-delà de la maquette) : 41 widgets, 6 catégories (miroir `WIDGETS`/
+ * `CATS` pour les 22 premières, MÊMES conventions pour l'extension),
+ * dépendances requises signalées, extraits bienformés (re-marchés par
+ * l'aligneur — le moteur de rendu doit les inflater) et filtres de la
+ * grille (catégorie + recherche, miroir `fillGrid`).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
 public class CataloguePaletteTest {
     @Test
-    fun `le catalogue porte les vingt-deux widgets de la maquette`() {
-        assertEquals(22, CataloguePalette.CATALOGUE.size)
+    fun `le catalogue porte les vingt-deux widgets de la maquette plus les dix-neuf extensions`() {
+        assertEquals(41, CataloguePalette.CATALOGUE.size)
         assertEquals(6, CataloguePalette.CATEGORIES.size)
         assertEquals(
             listOf("Texte", "Boutons", "Conteneurs", "Médias", "Listes", "Autres"),
@@ -35,6 +37,35 @@ public class CataloguePaletteTest {
                 .map { it.id }
                 .distinct()
                 .size,
+        )
+        // L'ordre des 22 entrées de la maquette est INTACT (miroir
+        // `WIDGETS` — l'extension s'append, elle ne réordonne rien).
+        assertEquals(
+            listOf(
+                "tv",
+                "et",
+                "til",
+                "btn",
+                "ib",
+                "cb",
+                "sw",
+                "llv",
+                "llh",
+                "card",
+                "fl",
+                "rl",
+                "cl",
+                "abl",
+                "tb",
+                "fab",
+                "iv",
+                "rv",
+                "pb",
+                "sk",
+                "dv",
+                "sp",
+            ),
+            CataloguePalette.CATALOGUE.take(22).map { it.id },
         )
     }
 
@@ -51,7 +82,15 @@ public class CataloguePaletteTest {
         assertEquals(CataloguePalette.DEPENDANCE_MATERIAL, parId.getValue("abl").dependanceRequise)
         assertEquals(CataloguePalette.DEPENDANCE_MATERIAL, parId.getValue("tb").dependanceRequise)
         assertEquals(CataloguePalette.DEPENDANCE_MATERIAL, parId.getValue("fab").dependanceRequise)
-        // Les widgets du SDK n'exigent rien (fl et rl compris).
+        // v0.166.3 — les extensions : MaterialButton, Chip et TabLayout à
+        // Material ; ConstraintLayout et ViewPager2 à leurs coordonnées.
+        assertEquals(CataloguePalette.DEPENDANCE_MATERIAL, parId.getValue("mb").dependanceRequise)
+        assertEquals(CataloguePalette.DEPENDANCE_MATERIAL, parId.getValue("chip").dependanceRequise)
+        assertEquals(CataloguePalette.DEPENDANCE_MATERIAL, parId.getValue("tl").dependanceRequise)
+        assertEquals(CataloguePalette.DEPENDANCE_CONSTRAINTLAYOUT, parId.getValue("ctl").dependanceRequise)
+        assertEquals(CataloguePalette.DEPENDANCE_VIEWPAGER2, parId.getValue("vp").dependanceRequise)
+        // Les widgets du SDK n'exigent rien (fl, rl, sv, nsv… compris —
+        // androidx.core est transitive de tout projet AndroidX/Material).
         assertTrue(
             CataloguePalette.CATALOGUE
                 .filter { it.id !in IDS_AVEC_DEPENDANCE }
@@ -146,20 +185,88 @@ public class CataloguePaletteTest {
     @Test
     fun `filtres de la grille — catégorie et recherche (miroir fillGrid)`() {
         assertEquals(CataloguePalette.CATALOGUE, CataloguePalette.parCategorie(CataloguePalette.TOUTES))
-        // PE12h : Conteneurs passe de 3 (llv, llh, card) à 7 avec fl,
-        // rl, cl et abl.
-        assertEquals(7, CataloguePalette.parCategorie("Conteneurs").size)
-        assertEquals(1, CataloguePalette.parCategorie("Listes").size)
+        // v0.166.3 : Conteneurs 7 → 14, Listes 1 → 4, Médias 1 → 2,
+        // Boutons 5 → 9, Texte 3 → 4, Autres 5 → 8 (41 au total).
+        assertEquals(14, CataloguePalette.parCategorie("Conteneurs").size)
+        assertEquals(4, CataloguePalette.parCategorie("Listes").size)
+        assertEquals(2, CataloguePalette.parCategorie("Médias").size)
+        assertEquals(9, CataloguePalette.parCategorie("Boutons").size)
+        assertEquals(4, CataloguePalette.parCategorie("Texte").size)
+        assertEquals(8, CataloguePalette.parCategorie("Autres").size)
         // La recherche porte sur nom + classe, insensible à la casse :
-        // « button » attrape désormais AUSSI FloatingActionButton.
+        // « button » attrape désormais AUSSI MaterialButton, ToggleButton
+        // et RadioButton.
         assertEquals(listOf("et"), CataloguePalette.rechercher(CataloguePalette.TOUTES, "plain text").map { it.id })
-        assertEquals(3, CataloguePalette.rechercher(CataloguePalette.TOUTES, "button").size)
+        assertEquals(6, CataloguePalette.rechercher(CataloguePalette.TOUTES, "button").size)
         assertEquals(1, CataloguePalette.rechercher("Boutons", "IMAGE").size)
         assertTrue(CataloguePalette.rechercher(CataloguePalette.TOUTES, "inexistant").isEmpty())
         // Les nouveaux parents se trouvent par leur nom comme les autres.
         assertEquals(listOf("fl"), CataloguePalette.rechercher("Conteneurs", "frame").map { it.id })
         assertEquals(listOf("rl"), CataloguePalette.rechercher("Conteneurs", "relative").map { it.id })
         assertEquals(listOf("cl"), CataloguePalette.rechercher("Conteneurs", "coordinator").map { it.id })
+        assertEquals(
+            listOf("sv", "hsv", "nsv"),
+            CataloguePalette.rechercher("Conteneurs", "scroll").map { it.id },
+        )
+    }
+
+    @Test
+    fun `l extension v0_166_3 — conventions des dix-neuf entrees et libelle court des dependances`() {
+        val parId = CataloguePalette.CATALOGUE.associateBy { it.id }
+        // Les 19 extensions dans l'ordre du catalogue, catégorisées comme
+        // les autres (MÊMES conventions que la maquette).
+        assertEquals(
+            listOf(
+                "act",
+                "rb",
+                "tg",
+                "mb",
+                "chip",
+                "sv",
+                "hsv",
+                "nsv",
+                "ctl",
+                "gl",
+                "tl",
+                "vp",
+                "vv",
+                "spn",
+                "lv",
+                "gv",
+                "web",
+                "rat",
+                "srch",
+            ),
+            CataloguePalette.CATALOGUE.drop(22).map { it.id },
+        )
+        // Conteneurs étendus : plancher 96 dp comme fl/rl (wrap_content).
+        listOf("sv", "hsv", "nsv", "ctl", "gl").forEach { identifiant ->
+            assertTrue(
+                "$identifiant devrait porter minHeight 96dp",
+                parId.getValue(identifiant).extraitXml.contains("android:minHeight=\"96dp\""),
+            )
+        }
+        // Zones FIXES 160 dp : pager et vues de contenu, miroir rv/cl.
+        listOf("vp", "lv", "gv", "web", "vv").forEach { identifiant ->
+            assertTrue(
+                "$identifiant devrait porter layout_height 160dp",
+                parId.getValue(identifiant).extraitXml.contains("android:layout_height=\"160dp\""),
+            )
+        }
+        // Le libellé COURT des tags de dépendance (le badge est étroit).
+        assertEquals("Material", CataloguePalette.libelleCourtDependance(CataloguePalette.DEPENDANCE_MATERIAL))
+        assertEquals(
+            "ConstraintLayout",
+            CataloguePalette.libelleCourtDependance(CataloguePalette.DEPENDANCE_CONSTRAINTLAYOUT),
+        )
+        assertEquals(
+            "ViewPager2",
+            CataloguePalette.libelleCourtDependance(CataloguePalette.DEPENDANCE_VIEWPAGER2),
+        )
+        assertEquals(
+            "org.exemple:bibliotheque",
+            CataloguePalette.libelleCourtDependance("org.exemple:bibliotheque"),
+        )
     }
 
     @Test
@@ -171,6 +278,6 @@ public class CataloguePaletteTest {
     private companion object {
         /** Les entrées qui portent une dépendance requise (les autres : SDK pur). */
         private val IDS_AVEC_DEPENDANCE: Set<String> =
-            setOf("til", "card", "rv", "cl", "abl", "tb", "fab")
+            setOf("til", "card", "rv", "cl", "abl", "tb", "fab", "mb", "chip", "tl", "ctl", "vp")
     }
 }

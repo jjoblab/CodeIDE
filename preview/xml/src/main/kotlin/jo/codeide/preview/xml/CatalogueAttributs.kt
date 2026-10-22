@@ -2540,13 +2540,14 @@ public object CatalogueAttributs {
         }
 
     /**
-     * La section PROGRESSION (ProgressBar/SeekBar — miroir v6 § 7) : max
-     * et progression en courants, minimum et progression secondaire
-     * ensuite ; puis les teintes (ProgressBar) ou le pouce et son repère
-     * (SeekBar).
+     * La section PROGRESSION (ProgressBar/SeekBar — miroir v6 § 7, PUIS
+     * RatingBar v0.166.3 : la barre à étoiles porte max/progress comme
+     * ses sœurs, sans les variantes indéterminées) : max et progression
+     * en courants, minimum et progression secondaire ensuite ; puis les
+     * teintes (ProgressBar) ou le pouce et son repère (SeekBar).
      */
     private fun sectionProgression(classe: String): SectionAttributs? {
-        if (classe != "ProgressBar" && classe != "SeekBar") return null
+        if (classe != "ProgressBar" && classe != "SeekBar" && classe != "RatingBar") return null
         val controles =
             mutableListOf<ControleAttribut>(
                 ControleAttribut.Nombre("android:max", Etiquette.MAXIMUM, "", Bornes(1f)),
@@ -2584,7 +2585,7 @@ public object CatalogueAttributs {
                     Etiquette.TEINTE_INDETERMINEE,
                     courant = false,
                 )
-        } else {
+        } else if (classe == "SeekBar") {
             controles += ControleAttribut.Couleur("android:thumbTint", Etiquette.TEINTE_POUCE)
             controles += ControleAttribut.Couleur("android:progressTint", Etiquette.TEINTE_PROGRESSION)
             controles += ControleAttribut.Ressource("android:thumb", Etiquette.POUCE, TYPES_DESSINABLE, courant = false)
@@ -2974,14 +2975,22 @@ public object CatalogueAttributs {
             familleBouton(classe) ||
             familleEtat(classe)
 
-    /** EditText et TextInputEditText. */
-    private fun familleSaisie(classe: String): Boolean = classe == "EditText" || classe == "TextInputEditText"
+    /** EditText, TextInputEditText et AutoCompleteTextView (v0.166.3). */
+    private fun familleSaisie(classe: String): Boolean =
+        classe == "EditText" || classe == "TextInputEditText" || classe == "AutoCompleteTextView"
 
     /** Button et MaterialButton. */
     private fun familleBouton(classe: String): Boolean = classe == "Button" || classe == "MaterialButton"
 
-    /** CompoundButton et ses descendants (CheckBox, Switch, SwitchMaterial). */
-    private fun familleEtat(classe: String): Boolean = classe == "CheckBox" || familleInterrupteur(classe)
+    /**
+     * CompoundButton et ses descendants (CheckBox, Switch, SwitchMaterial)
+     * PUIS les extensions v0.166.3 de la palette (RadioButton, ToggleButton,
+     * Chip — sous-classe d'AppCompatCheckBox) : la section État porte
+     * `android:checked`, commun aux quatre.
+     */
+    private fun familleEtat(classe: String): Boolean =
+        classe == "CheckBox" || familleInterrupteur(classe) ||
+            classe == "RadioButton" || classe == "ToggleButton" || classe == "Chip"
 
     /** Les INTERRUPTEURS seuls (Switch, SwitchMaterial) — PAS d'icônes du texte (§ 7). */
     private fun familleInterrupteur(classe: String): Boolean = classe == "Switch" || classe == "SwitchMaterial"

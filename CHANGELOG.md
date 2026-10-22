@@ -1,5 +1,93 @@
 # Journal des modifications
 
+## [0.166.3] – 2026-10-22
+
+### La palette se complète, les vues custom se rendent enfin en vraies vues, et le repli des sections se déplie
+
+#### Corrigé
+
+- **Le repli des sections de l'onglet Attributs ne répondait plus au
+  tap** (rapport propriétaire du 2026-10-22 : « quand j'appuie sur les
+  sections, elle ne se déplie pas ») — régression de PE11 § 7 : le
+  nouveau calcul d'ouverture par défaut (`ouvertureParDefaut`, les DEUX
+  premières sections visibles hors Identité) avait REMPLACÉ la lecture de
+  l'état mémorisé (`etatSections[...] ?:`) au lieu de la précéder ; le tap
+  ÉCRIVAIT dans la carte (`basculerSection`) mais personne ne la relisait.
+  La branche `else` de `sectionOuverte` relit désormais l'état MÉMORISÉ
+  d'abord (miroir exact `S.so[d.t] ?? (… ++opened <= 2)` de `fill` v6),
+  l'ouverture par défaut ne reste qu'un repli.
+- **`PreviewViewModel.suivreProjet` ne branchait JAMAIS le classpath du
+  rendu** : le pipeline G1/Phase 2 (v0.132.0 — `DexViewFactory`,
+  `CacheClasspath`, Parcel `RequeteRendu.classpath`) était complet mais
+  `MoteurPreviewXml.definirClasspath` n'avait AUCUN appelant — toute vue
+  custom du projet (`com.example.FooView`) dégradait en MockView (G15)
+  alors que le maillage attendait ses entrées depuis quatorze versions.
+
+#### Ajouté
+
+- **Vraies vues — l'APK debug dexé alimente le classpath de rendu** («
+  régler la question de mockview pour utiliser les vraies vues »,
+  propriétaire 2026-10-22) : `ClasspathApercu` (feature:preview,
+  fonctions pures java.io) découvre l'APK le plus récent des sorties
+  standards d'AGP (`app/build/outputs/apk/debug` d'abord, puis tout
+  module direct, puis la racine — le plus récent gagne sur les variantes
+  suffixées) et le passe en entrée `GenreEntreeClasspath.APK` (genre
+  APPENDÉ, compat ascendante du Parcel) ; `suivreProjet` le branche
+  AVANT le reste (le classpath ne dépend ni de res/ ni du manifest) et
+  le RÉINITIALISE quand le projet disparaît. Pourquoi l'APK et pas le
+  classpath LSP persisté (ADR 0058) : ses jars de `.class` ne se chargent
+  PAS sur ART (le dexage D8 promis en v0.133 reste ouvert), l'APK du
+  build on-device est déjà dexé par AGP et embarque les classes du projet
+  ET ses dépendances aux BONNES versions — `PathClassLoader` le charge
+  nativement. Sans build : liste vide, repli honnête MockView + problème
+  « classe absente » ; les widgets Material/AndroidX rendus par le
+  ViewFactory de LayoutLib via le classloader de l'IDE ne changent pas.
+  Tests : `ClasspathApercuTest` (7 — sans build, module app, le plus
+  récent gagne, multi-modules, racine, non-APK ignorés, barre finale).
+- **La palette passe de 22 à 41 widgets** (« l'écran palettes n'affiche
+  que peu, il faut qu'il soit plus complet », propriétaire 2026-10-22) :
+  19 entrées AU-DELÀ de la maquette v6 (`WIDGETS` reste la source de
+  vérité de SES 22 entrées, l'ordre est intact, l'extension s'append et
+  suit les MÊMES conventions — id camelCase renuméroté, extrait
+  multi-lignes sans contrainte) : Texte +AutoCompleteTextView ; Boutons
+  +RadioButton, ToggleButton, MaterialButton, Chip ; Conteneurs
+  +ScrollView, HorizontalScrollView, NestedScrollView, ConstraintLayout,
+  GridLayout, TabLayout, ViewPager2 ; Médias +VideoView ; Listes
+  +Spinner, ListView, GridView ; Autres +WebView, RatingBar, SearchView.
+  Dépendances requises étendues (Material sur mb/chip/tl,
+  `androidx.constraintlayout:constraintlayout` sur ctl,
+  `androidx.viewpager2:viewpager2` sur vp), tag de tuile en libellé
+  COURT (`CataloguePalette.libelleCourtDependance` — le badge est
+  étroit), 19 icônes `ic_tuile_*` au style PE7c (24 dp, trait 1.8, jeton
+  violet) vérifiées gonflables par `IconesTuilesPaletteTest`, fiches
+  d'attributs suivies (Saisie pour AutoCompleteTextView, État pour
+  RadioButton/ToggleButton/Chip, Progression pour RatingBar,
+  `FamilleParent.deBalise` étendu pour HorizontalScrollView/TabLayout/
+  ViewPager2 → FRAME), planchers 96 dp des conteneurs et zones 160 dp
+  miroir rv/cl. Tests : CataloguePaletteTest étendu (41 entrées, ordre
+  intact, filtres recousus, conventions de l'extension),
+  `CatalogueAttributsTest` +1, `FamilleParentTest` +1.
+- **L'entrée CHANGELOG de PE11 § 7 est rattrapée** : livré sur les
+  commits post-v0.166.2 (49093125 + correctif CI 677fc069) — le catalogue
+  curé de la deuxième vague (~130 attributs, 13 nouvelles sections,
+  Courants/Tous « Afficher les N autres », contrôle COINS, LISTE au
+  dernier segment, validations tools:context/onClick, Identité non
+  courante → fiche Courants ≤ 8 sections) n'était jamais passé au
+  journal des modifications.
+
+#### Dépendances
+
+- **LayoutLib 3.4.7 → 3.4.8** (« mettre à jour LayoutLib ») : le
+  `MockView` devient le **cadre de remplacement de la maquette** (miroir
+  `v.mock` — contour pointillé gris neutre, hachures 45° translucides,
+  nom SIMPLE de la classe originale centré et rogné aux limites) au lieu
+  du rectangle ambre anonyme dont le diagnostic ne vivait que dans les
+  journaux ; pinceaux préparés paresseusement au premier tracé (les
+  tests JVM de BridgeInflater instancient le MockView avec un contexte
+  factice), `libelleDe` pure testable JVM, publication GitHub Packages
+  (workflow publish.yml, run 39767586105 — succès), catalogue et
+  notices alignés (3.4.8).
+
 ## [0.166.2] – 2026-10-21
 
 ### Le brief PE12 et le manifeste du lot rejoignent le dépôt (documentation)

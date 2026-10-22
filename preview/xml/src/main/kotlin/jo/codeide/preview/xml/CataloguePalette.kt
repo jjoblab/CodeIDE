@@ -10,7 +10,10 @@ package jo.codeide.preview.xml
  * `:feature:preview`, PE7c).
  *
  * Miroir fidèle de `WIDGETS` de la maquette (22 entrées après PE12h,
- * 6 catégories) : chaque entrée porte un EXTRAIT XML prêt à insérer —
+ * 6 catégories) PUIS extension propriétaire v0.166.3 (+19 entrées,
+ * demande « palette plus complète » — la maquette reste la source de
+ * vérité de SES entrées, l'extension suit ses conventions) : chaque
+ * entrée porte un EXTRAIT XML prêt à insérer —
  * balise multi-lignes, un attribut par ligne, l'identifiant en
  * `@+id/base` (la base est renumérotée au premier suffixe libre par
  * [InsertionXml.renumeroter], miroir `nextId`). L'extrait ne porte
@@ -65,6 +68,28 @@ public object CataloguePalette {
 
     /** Coordonnée Maven de RecyclerView (miroir `dep` de la tuile rv). */
     public const val DEPENDANCE_RECYCLERVIEW: String = "androidx.recyclerview:recyclerview"
+
+    /** ConstraintLayout — extension propriétaire (v0.166.3, « palette plus complète »). */
+    public const val DEPENDANCE_CONSTRAINTLAYOUT: String = "androidx.constraintlayout:constraintlayout"
+
+    /** ViewPager2 — extension propriétaire (v0.166.3, « palette plus complète »). */
+    public const val DEPENDANCE_VIEWPAGER2: String = "androidx.viewpager2:viewpager2"
+
+    /**
+     * Le libellé COURT du tag de dépendance d'une tuile (v0.166.3) : le
+     * badge est étroit — la coordonnée Maven entière ne tient pas sur un
+     * tag, la maquette n'affiche que « Material ». Les coordonnées
+     * connues portent leur nom d'artefact, une coordonnée inconnue
+     * s'affiche TELLE QUELLE (jamais tronquée à tort).
+     */
+    public fun libelleCourtDependance(coordonnee: String): String =
+        when (coordonnee) {
+            DEPENDANCE_MATERIAL -> "Material"
+            DEPENDANCE_RECYCLERVIEW -> "RecyclerView"
+            DEPENDANCE_CONSTRAINTLAYOUT -> "ConstraintLayout"
+            DEPENDANCE_VIEWPAGER2 -> "ViewPager2"
+            else -> coordonnee
+        }
 
     /**
      * Le catalogue COMPLET (miroir `WIDGETS`, même ordre) : les extraits
@@ -354,6 +379,255 @@ public object CataloguePalette {
                         "    android:layout_width=\"match_parent\"\n" +
                         "    android:layout_height=\"16dp\" />",
             ),
+            // ── v0.166.3 — EXTENSION PROPRIÉTAIRE « palette plus complète »
+            // ────────────────────────────────────────────────────────────
+            // 19 entrées AU-DELÀ de la maquette v6 (demande propriétaire du
+            // 2026-10-22 : « l'écran palettes n'affiche que peu, il faut
+            // qu'il soit plus complet »). La maquette reste la source de
+            // vérité pour ses 22 entrées (ordre du catalogue inchangé,
+            // miroir `WIDGETS`) ; les extensions s'APPENDENT à la fin,
+            // catégorisées comme les autres, avec les MÊMES conventions :
+            // identifiant en base camelCase du nom simple de classe
+            // (miroir `nextId` — renuméroté par [InsertionXml.renumeroter]),
+            // extrait multi-lignes sans contrainte ni marge (le façonnage
+            // au dépôt reste [InsertionXml.ajouterAttributs]). Les
+            // fiches d'attributs suivent la même extension côté
+            // [CatalogueAttributs] (familleSaisie/État/Progression).
+            // Texte — AutoCompleteTextView (EditText descendant).
+            EntreePalette(
+                id = "act",
+                nomAffiche = "AutoCompleteTextView",
+                classe = "AutoCompleteTextView",
+                categorie = "Texte",
+                extraitXml =
+                    "<AutoCompleteTextView\n" +
+                        "    android:id=\"@+id/autoCompleteTextView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"48dp\"\n" +
+                        "    android:hint=\"Recherche\" />",
+            ),
+            // Boutons — RadioButton, ToggleButton, MaterialButton, Chip.
+            EntreePalette(
+                id = "rb",
+                nomAffiche = "RadioButton",
+                classe = "RadioButton",
+                categorie = "Boutons",
+                extraitXml =
+                    "<RadioButton\n" +
+                        "    android:id=\"@+id/radioButton\"\n" +
+                        "    android:layout_width=\"wrap_content\"\n" +
+                        "    android:layout_height=\"48dp\"\n" +
+                        "    android:text=\"RadioButton\" />",
+            ),
+            EntreePalette(
+                id = "tg",
+                nomAffiche = "ToggleButton",
+                classe = "ToggleButton",
+                categorie = "Boutons",
+                extraitXml =
+                    "<ToggleButton\n" +
+                        "    android:id=\"@+id/toggleButton\"\n" +
+                        "    android:layout_width=\"wrap_content\"\n" +
+                        "    android:layout_height=\"48dp\" />",
+            ),
+            EntreePalette(
+                id = "mb",
+                nomAffiche = "MaterialButton",
+                classe = "MaterialButton",
+                categorie = "Boutons",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<com.google.android.material.button.MaterialButton\n" +
+                        "    android:id=\"@+id/materialButton\"\n" +
+                        "    android:layout_width=\"wrap_content\"\n" +
+                        "    android:layout_height=\"48dp\"\n" +
+                        "    android:text=\"MaterialButton\" />",
+            ),
+            EntreePalette(
+                id = "chip",
+                nomAffiche = "Chip",
+                classe = "Chip",
+                categorie = "Boutons",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<com.google.android.material.chip.Chip\n" +
+                        "    android:id=\"@+id/chip\"\n" +
+                        "    android:layout_width=\"wrap_content\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:text=\"Chip\" />",
+            ),
+            // Conteneurs — ScrollView, HorizontalScrollView, NestedScrollView,
+            // ConstraintLayout, GridLayout, TabLayout, ViewPager2.
+            EntreePalette(
+                id = "sv",
+                nomAffiche = "ScrollView",
+                classe = "ScrollView",
+                categorie = "Conteneurs",
+                extraitXml =
+                    "<ScrollView\n" +
+                        "    android:id=\"@+id/scrollView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\" />",
+            ),
+            EntreePalette(
+                id = "hsv",
+                nomAffiche = "HorizontalScrollView",
+                classe = "HorizontalScrollView",
+                categorie = "Conteneurs",
+                extraitXml =
+                    "<HorizontalScrollView\n" +
+                        "    android:id=\"@+id/horizontalScrollView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\" />",
+            ),
+            EntreePalette(
+                id = "nsv",
+                nomAffiche = "NestedScrollView",
+                classe = "NestedScrollView",
+                categorie = "Conteneurs",
+                // androidx.core est transitive de TOUT projet AndroidX ou
+                // Material : aucune coordonnée à signaler sur la tuile.
+                extraitXml =
+                    "<androidx.core.widget.NestedScrollView\n" +
+                        "    android:id=\"@+id/nestedScrollView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\" />",
+            ),
+            EntreePalette(
+                id = "ctl",
+                nomAffiche = "ConstraintLayout",
+                classe = "ConstraintLayout",
+                categorie = "Conteneurs",
+                dependanceRequise = DEPENDANCE_CONSTRAINTLAYOUT,
+                extraitXml =
+                    "<androidx.constraintlayout.widget.ConstraintLayout\n" +
+                        "    android:id=\"@+id/constraintLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\" />",
+            ),
+            EntreePalette(
+                id = "gl",
+                nomAffiche = "GridLayout",
+                classe = "GridLayout",
+                categorie = "Conteneurs",
+                extraitXml =
+                    "<GridLayout\n" +
+                        "    android:id=\"@+id/gridLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:minHeight=\"96dp\"\n" +
+                        "    android:columnCount=\"2\" />",
+            ),
+            EntreePalette(
+                id = "tl",
+                nomAffiche = "TabLayout",
+                classe = "TabLayout",
+                categorie = "Conteneurs",
+                dependanceRequise = DEPENDANCE_MATERIAL,
+                extraitXml =
+                    "<com.google.android.material.tabs.TabLayout\n" +
+                        "    android:id=\"@+id/tabLayout\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"48dp\" />",
+            ),
+            EntreePalette(
+                id = "vp",
+                nomAffiche = "ViewPager2",
+                classe = "ViewPager2",
+                categorie = "Conteneurs",
+                dependanceRequise = DEPENDANCE_VIEWPAGER2,
+                extraitXml =
+                    "<androidx.viewpager2.widget.ViewPager2\n" +
+                        "    android:id=\"@+id/viewPager2\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"160dp\" />",
+            ),
+            // Médias — VideoView.
+            EntreePalette(
+                id = "vv",
+                nomAffiche = "VideoView",
+                classe = "VideoView",
+                categorie = "Médias",
+                extraitXml =
+                    "<VideoView\n" +
+                        "    android:id=\"@+id/videoView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"160dp\" />",
+            ),
+            // Listes — Spinner, ListView, GridView.
+            EntreePalette(
+                id = "spn",
+                nomAffiche = "Spinner",
+                classe = "Spinner",
+                categorie = "Listes",
+                extraitXml =
+                    "<Spinner\n" +
+                        "    android:id=\"@+id/spinner\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"48dp\" />",
+            ),
+            EntreePalette(
+                id = "lv",
+                nomAffiche = "ListView",
+                classe = "ListView",
+                categorie = "Listes",
+                extraitXml =
+                    "<ListView\n" +
+                        "    android:id=\"@+id/listView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"160dp\" />",
+            ),
+            EntreePalette(
+                id = "gv",
+                nomAffiche = "GridView",
+                classe = "GridView",
+                categorie = "Listes",
+                extraitXml =
+                    "<GridView\n" +
+                        "    android:id=\"@+id/gridView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"160dp\"\n" +
+                        "    android:numColumns=\"auto_fit\" />",
+            ),
+            // Autres — WebView, RatingBar, SearchView.
+            EntreePalette(
+                id = "web",
+                nomAffiche = "WebView",
+                classe = "WebView",
+                categorie = "Autres",
+                extraitXml =
+                    "<WebView\n" +
+                        "    android:id=\"@+id/webView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"160dp\" />",
+            ),
+            EntreePalette(
+                id = "rat",
+                nomAffiche = "RatingBar",
+                classe = "RatingBar",
+                categorie = "Autres",
+                extraitXml =
+                    "<RatingBar\n" +
+                        "    android:id=\"@+id/ratingBar\"\n" +
+                        "    android:layout_width=\"wrap_content\"\n" +
+                        "    android:layout_height=\"wrap_content\"\n" +
+                        "    android:numStars=\"5\" />",
+            ),
+            EntreePalette(
+                id = "srch",
+                nomAffiche = "SearchView",
+                classe = "SearchView",
+                categorie = "Autres",
+                extraitXml =
+                    "<SearchView\n" +
+                        "    android:id=\"@+id/searchView\"\n" +
+                        "    android:layout_width=\"match_parent\"\n" +
+                        "    android:layout_height=\"48dp\" />",
+            ),
         )
 
     // NB PE12h : les six entrées de la vague parents portent la même
@@ -361,6 +635,11 @@ public object CataloguePalette {
     // du nom simple de classe (miroir `nextId`) : frameLayout,
     // relativeLayout, coordinatorLayout, appBarLayout, materialToolbar,
     // floatingActionButton.
+    // NB v0.166.3 : les 19 extensions suivent la même convention —
+    // autoCompleteTextView, radioButton, toggleButton, materialButton,
+    // chip, scrollView, horizontalScrollView, nestedScrollView,
+    // constraintLayout, gridLayout, tabLayout, viewPager2, videoView,
+    // spinner, listView, gridView, webView, ratingBar, searchView.
 
     /** L'entrée par identifiant (miroir `wById` — récents, PE7c). */
     public fun parId(id: String): EntreePalette? = CATALOGUE.firstOrNull { it.id == id }
