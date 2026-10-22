@@ -157,6 +157,11 @@
     <string name="settings_caracteres_non_imprimables_sous">Spaces, tabs and line endings visible</string>
     <string name="settings_chips_diagnostics">Diagnostic badges</string>
     <string name="settings_chips_diagnostics_sous">Diagnostic shortcut at the end of the line</string>
+    <string name="settings_tabulation">Tab width</string>
+    <string name="settings_tabulation_sous">Code formatting: indentation width sent to the language server</string>
+    <string name="settings_tabulation_2">2</string>
+    <string name="settings_tabulation_4">4</string>
+    <string name="settings_tabulation_8">8</string>
     <string name="settings_sauvegarde_auto">Auto-save</string>
     <string name="settings_sauvegarde_auto_sous">Saves the file after a short typing pause</string>
 

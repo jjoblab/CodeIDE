@@ -78,6 +78,27 @@ class OptionsEditeur
             }
 
         /**
+         * Largeur de tabulation des requêtes de mise en forme LSP (v0.168.0,
+         * ADR 0136 phase 2 — réglage réintroduit, la promesse de l'ADR 0066
+         * est tenue) : miroir de [facteurPolice], la valeur suit la section
+         * Paramètres — Éditeur, carte Édition (`EditorView.setFormattingOptions`,
+         * code-editor 3.74.0). L'indentation AFFICHÉE reste auto-détectée par
+         * fichier côté bibliothèque — le réglage ne change pas le dessin.
+         */
+        internal fun largeurTabulation(): Int = courants.editorTailleTabulation.espaces
+
+        /**
+         * Politique d'espaces des requêtes de mise en forme (ADR 0136 D6,
+         * phase 2) : indenter avec des ESPACES, convention des projets
+         * Java/Kotlin Android — le réglage utilisateur porte la LARGEUR,
+         * la politique porte la NATURE ; le dessin de l'éditeur reste
+         * auto-détecté par fichier (IndentDetection). Const privée
+         * ([INDENTER_AVEC_ESPACES]) servie par cet accesseur testable,
+         * motif [facteurPolice]/[largeurTabulation].
+         */
+        internal fun indenterAvecEspaces(): Boolean = INDENTER_AVEC_ESPACES
+
+        /**
          * Thème cel correspondant au réglage : les neuf thèmes embarqués de
          * la bibliothèque, ou le couple clair/sombre de l'application en
          * mode automatique (le comportement d'avant v0.37.0).
@@ -114,5 +135,15 @@ class OptionsEditeur
             const val ECHELLE_PETITE = 0.85f
             const val ECHELLE_MOYENNE = 1.0f
             const val ECHELLE_GRANDE = 1.2f
+
+            /**
+             * Politique d'espaces des requêtes de mise en forme (ADR 0136
+             * D6, phase 2) : indenter avec des ESPACES, convention des
+             * projets Java/Kotlin Android — le réglage utilisateur porte
+             * la LARGEUR, la politique porte la NATURE ; le dessin de
+             * l'éditeur reste auto-détecté par fichier (IndentDetection).
+             * Servie par [indenterAvecEspaces].
+             */
+            const val INDENTER_AVEC_ESPACES = true
         }
     }

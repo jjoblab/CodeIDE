@@ -9,6 +9,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.TaillePoliceEditeur
+import jo.codeide.core.model.TailleTabulation
 import jo.codeide.core.model.ThemeEditeur
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
@@ -24,13 +25,15 @@ import javax.inject.Inject
  * section, comme le maître des Paramètres : Apparence de l'éditeur (thème
  * de coloration parmi les neuf embarqués de la bibliothèque + automatique,
  * taille de police, ligatures), Affichage (retour à la ligne, minimap,
- * caractères non imprimables, badges de diagnostic) et Édition (sauvegarde
- * automatique).
+ * caractères non imprimables, badges de diagnostic) et Édition (largeur de
+ * tabulation — réintroduite v0.168.0 : elle nourrit les requêtes de mise
+ * en forme LSP (`setFormattingOptions`, ADR 0136 phase 2, la promesse de
+ * l'ADR 0066 est tenue) — et sauvegarde automatique).
  *
  * Les réglages « persistés avant consommation » d'ADR 0059 que cel-ui
  * n'honore pas (numéros de ligne et bandeau de ligne courante toujours
- * dessinés, indentation auto-détectée par fichier) ont été retirés : la
- * section n'affiche plus que des contrôles réels.
+ * dessinés, indentation affichée auto-détectée par fichier) restent
+ * retirés : la section n'affiche plus que des contrôles réels.
  */
 @AndroidEntryPoint
 class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
@@ -70,6 +73,11 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
                 viewModel.onAction(ActionParametres.ChangerTaillePoliceEditeur(tailleDeLId(id)))
             }
         }
+        binding.groupeTabulation.addOnButtonCheckedListener { _, id, coche ->
+            if (coche && !renduEnCours) {
+                viewModel.onAction(ActionParametres.ChangerTailleTabulation(tabulationDeLId(id)))
+            }
+        }
         binding.rangeeLigatures.setSurChangementCoche { activees ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerLigatures(activees))
         }
@@ -99,6 +107,11 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
                 TaillePoliceEditeur.PETITE -> binding.groupePoliceEditeur.check(R.id.bouton_police_editeur_1)
                 TaillePoliceEditeur.MOYENNE -> binding.groupePoliceEditeur.check(R.id.bouton_police_editeur_2)
                 TaillePoliceEditeur.GRANDE -> binding.groupePoliceEditeur.check(R.id.bouton_police_editeur_3)
+            }
+            when (reglages.editorTailleTabulation) {
+                TailleTabulation.DEUX -> binding.groupeTabulation.check(R.id.bouton_tabulation_1)
+                TailleTabulation.QUATRE -> binding.groupeTabulation.check(R.id.bouton_tabulation_2)
+                TailleTabulation.HUIT -> binding.groupeTabulation.check(R.id.bouton_tabulation_3)
             }
             binding.rangeeLigatures.coche = reglages.editorLigatures
             binding.rangeeRetourLigne.coche = reglages.editorRetourLigne
@@ -138,6 +151,14 @@ private fun tailleDeLId(id: Int): TaillePoliceEditeur =
         R.id.bouton_police_editeur_1 -> TaillePoliceEditeur.PETITE
         R.id.bouton_police_editeur_3 -> TaillePoliceEditeur.GRANDE
         else -> TaillePoliceEditeur.MOYENNE
+    }
+
+/** Largeur de tabulation du bouton coché (QUATRE par défaut). */
+private fun tabulationDeLId(id: Int): TailleTabulation =
+    when (id) {
+        R.id.bouton_tabulation_1 -> TailleTabulation.DEUX
+        R.id.bouton_tabulation_3 -> TailleTabulation.HUIT
+        else -> TailleTabulation.QUATRE
     }
 
 /** Ressource du libellé localisé d'un thème de l'éditeur. */
