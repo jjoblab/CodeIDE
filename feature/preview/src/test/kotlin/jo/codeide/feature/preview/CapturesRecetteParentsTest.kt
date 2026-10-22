@@ -136,7 +136,7 @@ public class CapturesRecetteParentsTest {
                 // qualifiées du fil dégradent en MockView.
                 classpath = listOf(entreeClasspath()),
             )
-        return RenduLayoutLib(contexte, journal = null).rendre(requete, compresser = false)
+        return RenduLayoutLib(contexte, journal = null).rendre(requete)
     }
 
     /** Le régime courant (posé par la méthode de test, jour par défaut). */

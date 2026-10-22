@@ -536,10 +536,24 @@ public class VuePreviewXml :
         setOnDragListener(this)
     }
 
-    /** Affiche un rendu valide (remplace le bitmap, réajuste le zoom).
-     *  Si la vue n'a pas encore ses dimensions (width/height = 0 — layout
-     *  pas encore passé), l'ajustement est reporté au prochain layout via
-     *  [onSizeChanged].
+    /** Affiche un rendu valide (remplace le bitmap).
+     *
+     * v0.166.4 — LE ZOOM SURVIT AUX ÉDITIONS (retour propriétaire du
+     * 2026-10-22 : « le zoom pendant l'édition n'est pas respecté »).
+     * Avant, CHAQUE rendu repassait par [ajusterALaVue] : éditer une vue,
+     * interagir avec le volet des attributs ou relâcher une poignée de
+     * redimensionnement DÉZOOMAIT la planche — le geste suivant partait
+     * d'une vue sautée. Désormais :
+     *  - PREMIER rendu (pas de bitmap précédent) → ajustement [ajusterALaVue] ;
+     *  - rendu suivant de MÊME planche (dimensions bitmap identiques — le
+     *    cas de TOUTE édition : la taille vient du profil, pas du layout)
+     *    → zoom et décalage INTACTS ;
+     *  - planche RETAILLÉE (changement de profil, paysage, échelle de
+     *    police) → zoom conservé, décalage ré-ancré sur le centre de
+     *    contenu visible ([recadrerSurNouvellePlanche]) ;
+     *  - vue NON MESURÉE (width/height = 0) → repli, [onSizeChanged]
+     *    ajustera au prochain layout.
+     * Le double-tap reste l'ajustement EXPLICITE de l'utilisateur.
      *
      *  PE6a : [densiteDpiProfil] (conversion dp des libellés de calques,
      *  0 = repli px). PE10a : la durée et le nombre de vues partent à la
@@ -549,25 +563,65 @@ public class VuePreviewXml :
         vuesRendues: List<InfoVueRendu> = emptyList(),
         densiteDpiProfil: Int = 0,
     ) {
+        val ancien = this.bitmap
+        val memesDimensions =
+            ancien != null && ancien.width == bitmap.width && ancien.height == bitmap.height
         this.bitmap = bitmap
         this.vues = vuesRendues
         densiteDpi = densiteDpiProfil
         problemes = emptyList()
         accueilAffiche = false
         indiceSurligne = -1
-        if (width > 0 && height > 0) {
-            ajusterALaVue()
-        } else {
-            // La vue n'a pas encore été mesurée — on reporte l'ajustement.
-            // onSizeChanged re-appellera ajusterALaVue() + invalidate().
-            // En attendant, on met une échelle de repli pour ne pas
-            // dessiner à échelle 0 (invisible).
-            echelle = ECHELLE_REPLI
-            decalageX = 0f
-            decalageY = 0f
+        when {
+            width <= 0 || height <= 0 -> {
+                // La vue n'a pas encore été mesurée — on reporte l'ajustement.
+                // onSizeChanged re-appellera ajusterALaVue() + invalidate().
+                // En attendant, on met une échelle de repli pour ne pas
+                // dessiner à échelle 0 (invisible).
+                echelle = ECHELLE_REPLI
+                decalageX = 0f
+                decalageY = 0f
+            }
+
+            ancien == null -> {
+                ajusterALaVue()
+            }
+
+            !memesDimensions -> {
+                recadrerSurNouvellePlanche(ancien)
+            }
+
+            // Même planche, vue mesurée : zoom et pan INTACTS — c'est le
+            // correctif du retour propriétaire (l'édition ne dézoome plus).
+            else -> {
+                Unit
+            }
         }
         notifierEchelle()
         invalidate()
+    }
+
+    /**
+     * La planche a été RETAILLÉE (profil, paysage, échelle de police) :
+     * le zoom de l'utilisateur est conservé, le décalage est ré-ancré
+     * pour que le CENTRE de contenu visible AVANT le changement reste
+     * au centre APRÈS (v0.166.4 — miroir du point focal du pincement).
+     */
+    private fun recadrerSurNouvellePlanche(ancien: Bitmap) {
+        val bmp = bitmap ?: return
+        val (centreX, centreY) =
+            CalculsVuePreview.coordonneesContenu(
+                xVue = width / 2f,
+                yVue = height / 2f,
+                decalageX = decalageX,
+                decalageY = decalageY,
+                echelle = echelle,
+            )
+        val rapportX = if (ancien.width > 0) bmp.width.toFloat() / ancien.width else 1f
+        val rapportY = if (ancien.height > 0) bmp.height.toFloat() / ancien.height else 1f
+        decalageX = width / 2f - centreX * rapportX * echelle
+        decalageY = height / 2f - centreY * rapportY * echelle
+        bornerPan()
     }
 
     /**

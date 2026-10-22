@@ -9,20 +9,29 @@ import java.lang.reflect.Constructor
 import java.lang.reflect.InvocationTargetException
 
 /**
- * Factory2 adapter pour vues custom du projet — G1 / Phase 2 (v0.132.0).
+ * Factory2 adapter pour vues custom du projet — G1 / Phase 2 (v0.132.0),
+ * corrigé v0.166.4 (retour propriétaire du 2026-10-22 : « j'ai ajouté un
+ * chip, ça a replié sur MockView, bien d'autres vues aussi »).
  *
- * **Problème résolu** : `ViewFactory.createView(tag)` fait
+ * **Problème résolu (v0.132.0)** : `ViewFactory.createView(tag)` fait
  * `Class.forName(className, false, context.getClass().getClassLoader())`
  * — c'est le classloader de l'IDE, qui contient les AndroidX/Material
  * bundlés par l'app mais JAMAIS les classes du projet (`com.example.FooView`)
  * ni les versions de bibliothèques déclarées par le projet.
  *
- * **Solution** : un `LayoutInflater.Factory2` qui, pour les tags DOTTED
- * (`com.example.FooView`, `androidx.compose...`), consulte un classloader
- * PROJET (construit à partir des `.class`/`.jar` du classpath Gradle).
- * Le classloader est parenté au BOOT classloader (`View::class.java.classLoader`),
- * PAS au classloader de l'IDE — sinon les `androidx.*` du projet retomberaient
- * sur ceux de l'IDE (mauvaise version).
+ * **Régression corrigée (v0.166.4)** : depuis le branchement de l'APK
+ * debug dexé du projet (v0.166.3), cette factory dérobait TOUS les tags
+ * dotted au classloader projet — y compris `com.google.android.material.*`
+ * et `androidx.*`. Les classes Material chargées depuis l'APK projet
+ * résolvent leurs ressources par les IDS DE L'APK, qui ne sont PAS ceux
+ * de l'app hôte → theme-enforcement échoue → MockView. Les 19 nouvelles
+ * tuiles de la palette insèrent JUSTEMENT des balises FQN (Chip,
+ * MaterialCardView, CoordinatorLayout, AppBarLayout, TabLayout,
+ * ViewPager2…). La règle est désormais : un tag dotted résolvable par
+ * le classloader de l'HÔTE n'est PAS une vue projet — le chemin nominal
+ * (ViewTagRegistry/ViewFactory) le rend en VRAIE vue, avec les bons ids
+ * de ressources et le bon thème. Le classloader projet ne sert QUE les
+ * vues que l'hôte ne connaît PAS (les vraies vues custom).
  *
  * **Contract AOSP `LayoutInflater.Factory2`** :
  * - `onCreateView(parent, name, ctx, attrs)` retourne la vue ou `null`.
@@ -35,9 +44,14 @@ import java.lang.reflect.InvocationTargetException
  *   nominal du ViewTagRegistry).
  * - Tag dotted boot-loadable (`android.view.View`, `android.widget.Button`)
  *   → retourne `null` (le ViewFactory par défaut les gère déjà).
- * - Tag dotted projet (`com.example.FooView`) → essaie `Class.forName` sur
- *   le classloader projet. Si trouvé et `View.isAssignableFrom`, instancie
- *   via `(Context, AttributeSet)` puis `(Context)` puis `()`.
+ * - Tag kotlin.* / kotlinx.* → retourne `null` (stdlib de l'hôte).
+ * - Tag dotted RÉSOLVABLE PAR L'HÔTE (`androidx.*`,
+ *   `com.google.android.material.*`, toute bibliothèque bundlée) →
+ *   retourne `null` : chemin nominal, ids et thème de l'hôte (v0.166.4).
+ * - Tag dotted INCONNU de l'hôte (`com.example.FooView` — vue custom
+ *   projet) → essaie `Class.forName` sur le classloader projet. Si
+ *   trouvé et `View.isAssignableFrom`, instancie via `(Context,
+ *   AttributeSet)` puis `(Context)` puis `()`.
  * - Si non trouvé ou pas une View → retourne `null` (ViewFactory par défaut
  *   lèvera InflateException → G15 MockView fallback).
  *
@@ -85,7 +99,7 @@ class DexViewFactory : LayoutInflater.Factory2 {
      * Tente de créer la vue `name` via le classloader projet.
      *
      * @return la vue instanciée, ou `null` si le tag est court, boot-loadable,
-     *         non trouvé, ou pas une sous-classe de View.
+     *         connu de l'hôte, non trouvé, ou pas une sous-classe de View.
      */
     private fun essayerCreation(
         name: String,
@@ -94,9 +108,6 @@ class DexViewFactory : LayoutInflater.Factory2 {
     ): View? {
         // Tag court (pas de `.`) → pas pour nous : ViewTagRegistry gère.
         if (!name.contains('.')) return null
-
-        // Pas de classloader projet configuré → on dégrade (retour null).
-        val classLoader = loader ?: return null
 
         // Tag boot-loadable (android.*, java.*) → on laisse ViewFactory s'en
         // charger (il utilise context.getClass().getClassLoader() qui
@@ -109,12 +120,44 @@ class DexViewFactory : LayoutInflater.Factory2 {
         // c'est probablement la stdlib Kotlin bundlée — laisser ViewFactory.
         if (name.startsWith("kotlin.") || name.startsWith("kotlinx.")) return null
 
+        // v0.166.4 — L'HÔTE D'ABORD (correctif Chip → MockView) : une classe
+        // que l'app hôte SAIT charger n'est pas une vue « projet ». Les vues
+        // Material/AndroidX chargées depuis l'APK projet résolvent leurs
+        // ressources (styles, attrs) par des IDS qui n'existent pas dans
+        // l'app hôte — le theme-enforcement échoue et BridgeInflater dégrade
+        // en MockView. En laissant le chemin nominal faire (ViewFactory sur
+        // le classloader hôte), Chip, MaterialCardView, CoordinatorLayout,
+        // TabLayout, ViewPager2… rendent en VRAIES vues. Le classloader
+        // projet ne prend QUE les vues que l'hôte ne connaît pas.
+        if (chargableParLhote(context, name)) return null
+
+        // Pas de classloader projet configuré → on dégrade (retour null).
+        val classLoader = loader ?: return null
+
         // Note : `attrs` est passé null par BridgeInflater (ligne 552) —
         // on ne le transmet PAS au constructeur de la vue (on utilise
         // le constructeur (Context) par défaut). Les attributs sont
         // appliqués APRÈS par AttributeApplier (le pattern LayoutLib).
         return creerVueParNom(name, context, classLoader)
     }
+
+    /**
+     * La classe est-elle résolvable par le classloader de l'HÔTE (l'app
+     * qui embarque la preview) ? Probe SANS initialisation (aucun effet
+     * de bord de static initializer), résultat mis en cache par ART.
+     */
+    private fun chargableParLhote(
+        context: Context,
+        className: String,
+    ): Boolean =
+        try {
+            Class.forName(className, false, context.classLoader)
+            true
+        } catch (_: ClassNotFoundException) {
+            false
+        } catch (_: NoClassDefFoundError) {
+            false
+        }
 
     /**
      * Charge la classe `className` via `classLoader` et instancie la vue

@@ -1,6 +1,6 @@
 package jo.codeide.preview.xml
 
-import android.graphics.BitmapFactory
+import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -47,14 +47,15 @@ class ServicePreviewTest {
     }
 
     @Test
-    fun `rendu - PNG compressé + métriques`() {
+    fun `rendu - bitmap parcelable + métriques`() {
+        // v0.166.4 — le bitmap voyage en PARCELABLE (ashmem), plus en PNG :
+        // le résultat du service porte directement le Bitmap ARGB_8888.
         val resultat = binder().rendre(requete(layoutLineaire))
         assertTrue("rendu attendu réussi : ${resultat.message}", resultat.ok)
         assertEquals(null, resultat.message)
-        assertTrue(resultat.png.isNotEmpty())
-        val bitmap = BitmapFactory.decodeByteArray(resultat.png, 0, resultat.png.size)
-        assertNotNull("PNG doit se décoder", bitmap)
-        assertTrue(bitmap!!.width > 0)
+        assertNotNull("le bitmap doit voyager avec le résultat", resultat.bitmap)
+        assertTrue(resultat.bitmap!!.width > 0)
+        assertTrue(resultat.bitmap!!.height > 0)
         assertTrue(resultat.largeur > 0)
         assertTrue(resultat.hauteur > 0)
         assertTrue(resultat.nombreVues >= 2)
@@ -66,7 +67,7 @@ class ServicePreviewTest {
         val resultat = binder().rendre(requete("<LinearLayout><TextView"))
         assertFalse(resultat.ok)
         assertEquals(XML_MALFORME, resultat.message)
-        assertTrue(resultat.png.isEmpty())
+        assertNull("pas de bitmap sur un échec", resultat.bitmap)
     }
 
     @Test
@@ -89,7 +90,7 @@ class ServicePreviewTest {
                 hauteur = 34,
                 nombreVues = 5,
                 dureeMs = 67L,
-                png = byteArrayOf(1, 2, 3, 4),
+                bitmap = Bitmap.createBitmap(12, 34, Bitmap.Config.ARGB_8888),
                 vues =
                     arrayOf(
                         InfoVueRendu(0, 0, 10, 10, "TextView @+id/titre", 3, 40, -1, 0),
@@ -108,7 +109,11 @@ class ServicePreviewTest {
             assertEquals(source.hauteur, relu.hauteur)
             assertEquals(source.nombreVues, relu.nombreVues)
             assertEquals(source.dureeMs, relu.dureeMs)
-            assertTrue(relu.png.contentEquals(source.png))
+            // v0.166.4 — le bitmap PARCELABLE survit à la frontière
+            // (mêmes dimensions ; les pixels sont en mémoire partagée).
+            assertNotNull(relu.bitmap)
+            assertEquals(source.bitmap!!.width, relu.bitmap!!.width)
+            assertEquals(source.bitmap!!.height, relu.bitmap!!.height)
             // PE3 : les vues (hit-test P6) survivent à la frontière.
             assertEquals(source.vues.size, relu.vues.size)
             assertEquals(source.vues[0], relu.vues[0])

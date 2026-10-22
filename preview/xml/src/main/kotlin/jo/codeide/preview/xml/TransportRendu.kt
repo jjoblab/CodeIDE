@@ -2,7 +2,6 @@ package jo.codeide.preview.xml
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -102,7 +101,7 @@ public class TransportRenduLocal(
         // v0.133.5 — si fermé ou HandlerThread mort, rendu inline.
         if (ferme) return ResultatTransport.Erreur("transport fermé")
         return if (Looper.myLooper() != null) {
-            val resultat = pipeline.rendre(requete, compresser = false)
+            val resultat = pipeline.rendre(requete)
             depuisPipeline(resultat)
         } else {
             val handler = handlerRendu
@@ -110,7 +109,7 @@ public class TransportRenduLocal(
                 rendreSurLooper(handler, requete)
             } else {
                 // HandlerThread mort — rendu inline sur le thread courant.
-                val resultat = pipeline.rendre(requete, compresser = false)
+                val resultat = pipeline.rendre(requete)
                 depuisPipeline(resultat)
             }
         }
@@ -125,7 +124,7 @@ public class TransportRenduLocal(
             val runnable =
                 Runnable {
                     try {
-                        val resultat = pipeline.rendre(requete, compresser = false)
+                        val resultat = pipeline.rendre(requete)
                         cont.resume(dansPipeline(resultat))
                     } catch (t: Throwable) {
                         cont.resume(ResultatTransport.Erreur(t.message ?: "rendu échoué"))
@@ -139,9 +138,9 @@ public class TransportRenduLocal(
     private fun dansPipeline(resultat: RenduLayoutLib.ResultatPipeline): ResultatTransport = depuisPipeline(resultat)
 
     private fun depuisPipeline(resultat: RenduLayoutLib.ResultatPipeline): ResultatTransport =
-        if (resultat.rendu.ok && resultat.bitmap != null) {
+        if (resultat.rendu.ok && resultat.rendu.bitmap != null) {
             ResultatTransport.Succes(
-                bitmap = resultat.bitmap,
+                bitmap = resultat.rendu.bitmap,
                 dureeMs = resultat.rendu.dureeMs,
                 nombreVues = resultat.rendu.nombreVues,
                 largeur = resultat.rendu.largeur,
@@ -169,8 +168,12 @@ public class TransportRenduLocal(
 
 /**
  * Transport PROCESSUS (régime isolé) — liaison Binder paresseuse au
- * [ServicePreview] du processus `:preview`, appel AIDL synchrone
- * décompressé en bitmap.
+ * [ServicePreview] du processus `:preview`, appel AIDL synchrone.
+ *
+ * v0.166.4 — le bitmap traverse en PARCELABLE (mémoire partagée ashmem,
+ * API 26+) : plus de PNG compressé ni de BitmapFactory côté app (retour
+ * propriétaire du 2026-10-22 — l'encode/décode coûtait la majorité de
+ * la latence perçue avant chaque mise à jour du rendu).
  *
  * Robustesse (P3) :
  *  - la liaison est ATTENDUE (délai borné) à la première demande —
@@ -230,9 +233,12 @@ internal class TransportRenduProcess(
         if (!brut.ok) {
             return ResultatTransport.Erreur(brut.message ?: "rendu :preview échoué")
         }
+        // v0.166.4 — le bitmap arrive déjà en Bitmap Parcelable (ashmem) :
+        // le PNG de la frontière et son BitmapFactory.decodeByteArray sont
+        // retirés (retour propriétaire : la compression + décompression
+        // coûtaient la majorité de la latence « ça gèle un peu avant »).
         val bitmap =
-            BitmapFactory.decodeByteArray(brut.png, 0, brut.png.size)
-                ?: return ResultatTransport.Erreur("PNG du :preview illisible")
+            brut.bitmap ?: return ResultatTransport.Erreur("bitmap du :preview absent")
         return ResultatTransport.Succes(
             bitmap = bitmap,
             dureeMs = brut.dureeMs,

@@ -63,6 +63,34 @@ class DexViewFactoryTest {
     }
 
     @Test
+    fun `v0_166_4 - classe connue de l hote retourne null meme avec un loader`() {
+        // Correctif « Chip → MockView » (retour propriétaire 2026-10-22) :
+        // une classe résolvable par le classloader de l'HÔTE (toute vue
+        // androidx.*/com.google.android.material.*/classe de l'app) ne doit
+        // JAMAIS passer par le classloader projet — ses ids de ressources
+        // et son thème sont ceux de l'hôte. VuePreviewXml est une classe
+        // View de l'app : parfaite sonde.
+        factory.loader = ClassLoader.getSystemClassLoader()
+        val view =
+            factory.onCreateView(null, "jo.codeide.preview.xml.VuePreviewXml", context, emptyAttrs())
+        assertNull(
+            "une classe de l'hôte dégrade vers le chemin nominal (ViewFactory hôte)",
+            view,
+        )
+    }
+
+    @Test
+    fun `v0_166_4 - classe inconnue de l hote tente le loader projet`() {
+        // Le classpath projet reste la VOIE ROYALE des vues custom
+        // (com.example.*) : inconnue de l'hôte, la classe passe au loader
+        // — comportement G1 inchangé.
+        factory.loader = ClassLoader.getSystemClassLoader()
+        val view =
+            factory.onCreateView(null, "com.example.VraimentPasDansLhote", context, emptyAttrs())
+        assertNull("classe introuvable des DEUX côtés → null (MockView)", view)
+    }
+
+    @Test
     fun `loader null retourne null pour tag dotted`() {
         factory.loader = null
         val view = factory.onCreateView(null, "com.example.FooView", context, emptyAttrs())

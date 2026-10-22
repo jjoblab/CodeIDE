@@ -174,7 +174,7 @@ public class MesureRenduParentsTest {
                 classpath = listOf(entreeClasspath()),
             )
         val pipeline = RenduLayoutLib(contexte, journal = null)
-        val resultat = pipeline.rendre(requete, compresser = false)
+        val resultat = pipeline.rendre(requete)
         assertTrue(
             "le rendu de $nom a échoué : ${resultat.rendu.message}",
             resultat.rendu.ok,

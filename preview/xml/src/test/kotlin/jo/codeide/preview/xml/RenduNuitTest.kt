@@ -128,13 +128,9 @@ public class RenduNuitTest {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = nuit,
             )
-        val resultat = pipeline.rendre(requete, compresser = false)
+        val resultat = pipeline.rendre(requete)
         assertTrue("le rendu doit réussir (nuit=$nuit) : ${resultat.rendu.message}", resultat.rendu.ok)
-        val bitmap: Bitmap? =
-            resultat.bitmap
-                ?: resultat.rendu.png
-                    .takeIf { it.isNotEmpty() }
-                    ?.let { BitmapFactory.decodeByteArray(it, 0, it.size) }
+        val bitmap: Bitmap? = resultat.bitmap
         assertTrue("le bitmap doit être présent (nuit=$nuit)", bitmap != null)
         return bitmap!!.getPixel(bitmap.width / 2, bitmap.height / 2)
     }
