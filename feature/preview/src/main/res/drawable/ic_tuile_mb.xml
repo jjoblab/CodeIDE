@@ -1,0 +1,17 @@
+<!-- Icône de tuile de la palette — extension propriétaire v0.166.3
+     (« palette plus complète ») : le glyphe n'est PAS dans le ICO de la
+     maquette v6, il suit le style des icônes PE7c (24 dp, trait 1.8,
+     jeton violet de la feature). Couleur = jeton violet de la feature. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:pathData="M5,8h14a2,2 0 0 1 2,2v4a2,2 0 0 1 -2,2h-14a2,2 0 0 1 -2,-2v-4a2,2 0 0 1 2,-2z M8,12h8"
+        android:strokeColor="@color/preview_palette_icone"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000" />
+</vector>

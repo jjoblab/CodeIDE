@@ -187,8 +187,11 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                             ?: false
                     }
 
+                    // L'état MÉMORISÉ d'abord (miroir `S.so[t] ?? …`), sinon
+                    // l'ouverture par défaut — le tap ÉCRIT dans la carte
+                    // (basculerSection), c'est ici qu'on la RELIT.
                     else -> {
-                        ouvertureParDefaut(section, position)
+                        etatSections[section.titre.name] ?: ouvertureParDefaut(section, position)
                     }
                 }
 

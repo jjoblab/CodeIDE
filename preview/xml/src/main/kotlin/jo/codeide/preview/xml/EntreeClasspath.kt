@@ -73,4 +73,18 @@ public enum class GenreEntreeClasspath {
 
     /** Sortie de module Gradle (`.jar` ou dossier, selon la variante). */
     MODULE,
+
+    /**
+     * APK DEXÉ du projet (v0.166.3 — « vraies vues ») : le chemin pointe
+     * vers un APK de sortie du dossier `build/outputs/apk/debug`
+     * (l'app-debug.apk du dernier build) ; `PathClassLoader` le charge
+     * NATIVEMENT — les jars de `.class` du protocole LSP ne se chargent
+     * PAS sur ART (le dexage D8 différé de v0.133 reste ouvert, l'APK
+     * l'évite : AGP l'a déjà fait). L'APK embarque les classes du projet
+     * ET ses dépendances aux BONNES versions — les vues custom s'y
+     * rendent en vraies vues au lieu du repli MockView (G15) ; sans
+     * build, la dégradation honnête MockView + problème « classe
+     * absente » reste.
+     */
+    APK,
 }

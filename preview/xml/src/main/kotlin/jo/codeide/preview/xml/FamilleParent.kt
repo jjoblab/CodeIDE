@@ -69,6 +69,9 @@ public enum class FamilleParent {
          * les sous-classes connues qui ne portent PAS le nom de leur
          * ancêtre — un « MaterialCardView » de balise vaut FRAME, la
          * chaîne réelle n'étant pas atteignable sans classe chargée.
+         * v0.166.3 : les extensions de la palette (HorizontalScrollView,
+         * TabLayout — HorizontalScrollView, ViewPager2 — FrameLayout)
+         * y tombent aussi, leurs dépôts usagers arrivent par balise.
          */
         private val PAR_BALISE: Map<String, FamilleParent> =
             mapOf(
@@ -82,7 +85,10 @@ public enum class FamilleParent {
                 "MaterialCardView" to FRAME,
                 "NestedScrollView" to FRAME,
                 "ScrollView" to FRAME,
+                "HorizontalScrollView" to FRAME,
                 "CollapsingToolbarLayout" to FRAME,
+                "TabLayout" to FRAME,
+                "ViewPager2" to FRAME,
             )
 
         /**

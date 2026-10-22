@@ -1115,6 +1115,9 @@ public class PreviewViewModel
                 moteur.definirDossierRes(null)
                 moteur.definirThemeName(null)
                 moteur.definirLabelActivite(null)
+                // v0.166.3 — vraies vues : sans projet, PLUS de classpath
+                // (un APK précédent ne doit pas fuiter sur un projet vide).
+                moteur.definirClasspath(emptyList())
                 dossierResCourant = null
                 couleursProjetInterne.value = emptyList()
                 drawablesProjetInterne.value = emptySet()
@@ -1124,6 +1127,14 @@ public class PreviewViewModel
             suiviProjet =
                 viewModelScope.launch {
                     val racine = resolveurChemin.resoudreEntree(uriProjet) ?: return@launch
+                    // v0.166.3 — VRAIES VUES : l'APK debug dexé du projet
+                    // alimente le pipeline G1/Phase 2 (DexViewFactory +
+                    // CacheClasspath) — AVANT le reste : le classpath ne
+                    // dépend NI de res/ NI du manifest, et les vues custom
+                    // doivent se charger dès CE rendu, pas du suivant. Sans
+                    // APK (projet jamais buildé) la liste est vide et le
+                    // repli honnête MockView + « classe absente » reste.
+                    moteur.definirClasspath(ClasspathApercu.entrees(racine))
                     val cheminRes = dossierResProjet(racine, sourceBranchee.cheminRelatif)
                     if (cheminRes == null) {
                         dossierResCourant = null

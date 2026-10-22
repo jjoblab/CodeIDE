@@ -445,15 +445,12 @@ public class TuilesPaletteAdapter(
                 }
 
                 // Miroir `depTag` : la coordonnée requise en tag de contour
-                // (.tag.old : surface 2 + trait — l'état par défaut du style).
+                // (.tag.old : surface 2 + trait — l'état par défaut du style),
+                // libellée COURT (v0.166.3 — le badge est étroit, une
+                // coordonnée Maven entière n'y tient pas).
                 entree.dependanceRequise != null -> {
                     tag.isVisible = true
-                    tag.text =
-                        if (entree.dependanceRequise == CataloguePalette.DEPENDANCE_MATERIAL) {
-                            "Material"
-                        } else {
-                            entree.dependanceRequise
-                        }
+                    tag.text = CataloguePalette.libelleCourtDependance(entree.dependanceRequise!!)
                     tag.background = ContextCompat.getDrawable(contexte, R.drawable.apercu_tag_ancien_fond)
                     tag.setTextColor(StyleVolet.couleur(contexte, R.attr.apercuTexteDoux))
                 }
