@@ -16,9 +16,14 @@ import jo.layoutlib.inflater.AttributeApplier
 import jo.layoutlib.inflater.BridgeInflater
 import jo.layoutlib.inflater.ViewInfoCollector
 import jo.layoutlib.inflater.ViewTagRegistry
+import jo.layoutlib.inflater.bridge.bars.ChromeSysteme
+import jo.layoutlib.inflater.bridge.bars.ConfigChrome
+import jo.layoutlib.inflater.bridge.bars.InsetsDecor
+import jo.layoutlib.inflater.bridge.bars.ModePlacementDecor
 import jo.layoutlib.layout.LayoutEngineImpl
 import jo.layoutlib.resources.DimensionConverter
 import jo.layoutlib.resources.ResourceResolverImpl
+import jo.layoutlib.themes.ThemeResolver
 import jo.layoutlib.themes.ThemeResolverImpl
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
@@ -139,6 +144,16 @@ public class RenduLayoutLib(
 
     /** Résolveur de thèmes du projet (null = repli natif) — PE3 jour/nuit. */
     private var themeResolver: ThemeResolverImpl? = null
+
+    /**
+     * Résolveur de REPLI portant le régime NUIT du chrome (PE13, ADR 0137
+     * D2) : la nuit vit dans les RÉSOLVEURS, jamais dans un drapeau du
+     * chrome — en repli natif (dossier res/ absent), ce résolveur MINIMAL
+     * (aucun thème enregistré) porte le régime nuit pour que les couleurs
+     * PAR DÉFAUT de la planche suivent la requête, comme au temps du
+     * drapeau historique (zéro changement visuel — garde-fou G2).
+     */
+    private val resolverRepliNuit: ThemeResolverImpl = ThemeResolverImpl()
 
     /** Résolveur de drawables du projet (null = repli natif). */
     private var drawableResolver: DrawableResolverImpl? = null
@@ -323,10 +338,11 @@ public class RenduLayoutLib(
             )
         }
         // v0.133.0 — G5 : envelopper dans le chrome système (status bar +
-        // action bar) si un thème est configuré. La vue racine devient le
-        // conteneur chrome (LinearLayout vertical). Si pas de thème, on
-        // garde la racine telle quelle (comportement v0.132.x).
-        val vueRendue = envelopperChromeSiNecessaire(racine, densite, requete)
+        // action bar). PE13 (ADR 0137) : le chrome appartient au MOTEUR —
+        // le pipeline passe un ConfigChrome de session (titre résolu,
+        // surcharge « Barre de navigation »), le frère pose le décor.
+        val decor = envelopperChromeSiNecessaire(racine, densite, requete)
+        val vueRendue = decor.vue
         // PE6e-f : l'échelle de police de la REQUÊTE pilote le moteur de
         // mesure (LayoutLib v3 `setFontScale` — `scaledDensity = density ×
         // échelle`) ; les dimensions du profil sont PERMUTÉES en paysage
@@ -338,26 +354,33 @@ public class RenduLayoutLib(
         val hauteur = if (requete.paysage) largeurPortrait else hauteurPortrait
         layoutEngine.render(vueRendue, largeur, hauteur)
         val bitmap = dessiner(vueRendue)
-        // v0.134.2 — offset du CONTENU dans l'arbre rendu, calculé APRÈS le
-        // layout (les positions left/top ne valent rien avant). Les bounds
-        // ViewInfoCollector sont relatives à la racine passée ; on les
-        // translate dans l'espace du BITMAP dès la collecte — invariant :
-        // draw, hit-test et surlignage partagent LE MÊME espace de
-        // coordonnées, aucune compensation en aval (le décalage chrome
-        // v0.133.5 compensait en aval, une direction sur deux, et ne
-        // traversait pas la frontière AIDL).
-        val (decalageGauche, decalageHaut) = decalageContenuDansArbreRendu(racine)
-        val vues = collecterVues(requete, racine, decalageGauche, decalageHaut)
-        // v0.133.4 — utiliser vueRendue (chrome) pour les dimensions, pas
-        // racine. Si le chrome enveloppe la racine, c'est le chrome qui est
-        // mesuré par layoutEngine.render — racine n'est qu'un enfant.
+        // PE13 (ADR 0137 D5) — COLLECTE DUALE du moteur : les bounds du
+        // CONTENU arrivent DÉJÀ translatées dans l'espace du bitmap
+        // (l'offset du décor est appliqué À LA COLLECTE, côté frère) et
+        // l'arbre SYSTÈME marqué ViewType reste disponible pour une future
+        // section « système ». L'invariant v0.134.2 — draw, hit-test et
+        // surlignage partagent LE MÊME espace de coordonnées — devient une
+        // PROPRIÉTÉ DU MOTEUR ; le recalage IDE (decalageContenu-
+        // DansArbreRendu) part ENTIER.
+        val collecte =
+            ViewInfoCollector.collectDecor(
+                vueRendue,
+                racine,
+                decor.insets,
+                decor.modePlacement,
+            )
+        val vues = collecterVues(requete, racine, collecte.contenu)
+        // v0.133.4 — les dimensions viennent du DÉCOR (vue rendue), pas de
+        // la racine. PE13 : nombreVues compte le CONTENU SEUL — la pastille
+        // « rendue • n vues » parle des vues de l'UTILISATEUR, pas du chrome
+        // (changement de sémantique documenté au CHANGELOG, ADR 0137 D5).
         val rendu =
             ResultatRendu(
                 ok = true,
                 message = null,
                 largeur = vueRendue.measuredWidth,
                 hauteur = vueRendue.measuredHeight,
-                nombreVues = compterVues(vueRendue),
+                nombreVues = compterVues(racine),
                 dureeMs = (System.nanoTime() - debut) / 1_000_000,
                 bitmap = bitmap,
                 vues = vues,
@@ -451,27 +474,23 @@ public class RenduLayoutLib(
     }
 
     /**
-     * Collecte l'arbre rendu (ViewInfoCollector — bounds relatives à la
-     * racine passée) et l'aligne aux éléments du texte original
+     * Collecte l'arbre rendu et l'aligne aux éléments du texte original
      * ([AligneurElementsXml]) : chaque vue aplatie porte le span de SON
      * élément (P6). Un écart de séquence (défense : miroir imparfait de
      * l'inflater) désarme TOUTE la sélection — jamais de faux span (X4).
      *
-     * v0.134.2 — les bounds sont TRANSLATÉES par
-     * ([decalageGauche], [decalageHaut]) : l'offset du contenu dans l'arbre
-     * rendu (le chrome G5 le décale vers le bas). Les `InfoVueRendu`
-     * produites sont donc ABSOLUES dans le BITMAP — le contrat documenté
-     * de [InfoVueRendu] — quel que soit le régime de transport (local OU
-     * processus :preview, la translation vit dans les données, pas dans un
-     * champ parallèle à faire voyager).
+     * PE13 (ADR 0137 D5) — la racine d'infos vient de la COLLECTE DUALE du
+     * moteur : bounds DÉJÀ absolues dans le BITMAP (l'offset du décor est
+     * appliqué à la collecte, côté frère). Le contrat documenté de
+     * [InfoVueRendu] — bounds absolues bitmap — ne bouge pas d'un pixel,
+     * quel que soit le régime de transport (local OU processus :preview).
      */
     private fun collecterVues(
         requete: RequeteRendu,
         racine: View,
-        decalageGauche: Int = 0,
-        decalageHaut: Int = 0,
+        racineInfo: ViewInfoCollector.ViewInfo,
     ): Array<InfoVueRendu> {
-        val infos = aplatir(ViewInfoCollector.collect(racine))
+        val infos = aplatir(racineInfo)
         // PE6c : attributs VIVANTS que ViewInfoCollector ne porte pas
         // (cliquable, orientation) — marche PARALLÈLE de l'arbre réel,
         // MÊME ordre pré-ordre que le collecteur (enfants ViewGroup,
@@ -491,8 +510,6 @@ public class RenduLayoutLib(
                 infos[indice].versInfoVue(
                     InfoVueRendu.SANS_ELEMENT,
                     InfoVueRendu.SANS_ELEMENT,
-                    decalageGauche,
-                    decalageHaut,
                     attributs[indice],
                     famille = familleDefinitive(attributs[indice], ""),
                 )
@@ -503,8 +520,6 @@ public class RenduLayoutLib(
             infos[indice].versInfoVue(
                 element.debut,
                 element.fin,
-                decalageGauche,
-                decalageHaut,
                 attributs[indice],
                 texteCodeDur = ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin),
                 famille = familleDefinitive(attributs[indice], element.nomBalise),
@@ -652,17 +667,15 @@ public class RenduLayoutLib(
         fun versInfoVue(
             debutElement: Int,
             finElement: Int,
-            decalageGauche: Int = 0,
-            decalageHaut: Int = 0,
             attributs: AttributsVue,
             texteCodeDur: Boolean = false,
             famille: FamilleParent = FamilleParent.AUTRE,
         ): InfoVueRendu =
             InfoVueRendu(
-                gauche = info.left + decalageGauche,
-                haut = info.top + decalageHaut,
-                droite = info.right + decalageGauche,
-                bas = info.bottom + decalageHaut,
+                gauche = info.left,
+                haut = info.top,
+                droite = info.right,
+                bas = info.bottom,
                 libelle = info.simpleName + (info.idName?.let { nom -> " @$nom" } ?: ""),
                 debutElement = debutElement,
                 finElement = finElement,
@@ -968,6 +981,10 @@ public class RenduLayoutLib(
         themeNameConfigure = themeName
         paysageConfigure = paysage
         echellePoliceConfigure = echellePolice
+        // PE13 (ADR 0137 D2) — le repli nuit suit TOUJOURS le régime de la
+        // requête (les couleurs par défaut de la planche restent rendues
+        // en repli natif, miroir du drapeau historique — garde-fou G2).
+        resolverRepliNuit.setNightMode(nuit)
     }
 
     /**
@@ -988,61 +1005,59 @@ public class RenduLayoutLib(
         classpathConfigure = entries.takeIf { it.isNotEmpty() }?.let { cacheClasspath.toString() }
     }
 
-    /**
-     * v0.134.2 — Offset de [racine] dans l'arbre RENDU (espace bitmap).
-     *
-     * `ViewInfoCollector.collect(racine)` produit des bounds relatives à
-     * la racine passée (elles incluent `racine.left/top`). Quand le chrome
-     * système enveloppe le contenu (G5), la racine vit dans un
-     * FrameLayout lui-même empilé SOUS la status bar + action bar du
-     * LinearLayout decor : les bounds sont alors décalées d'autant par
-     * rapport au bitmap dessiné. La remontée de la chaîne des parents
-     * cumule les positions (left/top) en défaquant le scroll
-     * (scrollX/scrollY) — les bounds s'alignent 1:1 sur le bitmap par
-     * CONSTRUCTION. Sans chrome, la racine n'a pas de parent Vue : l'offset
-     * est (0, 0) et le comportement v0.132.x est inchangé.
-     */
-    private fun decalageContenuDansArbreRendu(racine: View): Pair<Int, Int> {
-        var gauche = 0
-        var haut = 0
-        var parent = racine.parent as? View
-        while (parent != null) {
-            gauche += parent.left - parent.scrollX
-            haut += parent.top - parent.scrollY
-            parent = parent.parent as? View
-        }
-        return Pair(gauche, haut)
-    }
-
     @Suppress("ReturnCount")
     private fun envelopperChromeSiNecessaire(
         racine: View,
         densite: Float,
         requete: RequeteRendu,
-    ): View {
-        // v0.133.2 — Chrome activé seulement quand themeName est présent
+    ): DecorPose {
+        // v0.133.2 — chrome activé seulement quand themeName est présent
         // (manifest résolu par ControleurPreviewXml). Les tests sans
         // themeName → pas de chrome (comportement v0.132.x).
-        if (requete.themeName == null) return racine
-
-        val resolver = themeResolver
+        if (requete.themeName == null) {
+            return DecorPose(racine, InsetsDecor.aucun(), ModePlacementDecor.PADDE_PAR_DEFAUT)
+        }
         // v0.134.4 — titre de l'action bar : le LABEL d'activité du
         // manifest (littéral ou @string/… résolu par le résolveur du
         // projet) au lieu du themeName brut ; repli themeName si absent
         // (comportement d'avant v0.134.4).
         val titre = titreActionBar(requete)
-        // PE11j : le chrome suit la REQUÊTE — nuit (fond de la barre de
-        // navigation) et barreNavigation (option du menu Calques).
-        val chrome =
-            ChromeSysteme(
-                contexte,
-                resolver,
-                titreActivite = titre,
-                nuit = requete.nuit,
-                barreNavigation = requete.barreNavigation,
-            )
-        return chrome.envelopper(racine, densite)
+        // PE13 (ADR 0137) — la CONFIG DE SESSION : l'hôte ne construit plus
+        // AUCUNE vue chrome, il décrit la session — titre RÉSOLU + la
+        // SURCHARGE « Barre de navigation » du menu Calques (PE11j). Le
+        // MOTEUR dérive les présences du thème, résout les couleurs,
+        // calcule les insets et pose le décor.
+        val config =
+            ConfigChrome
+                .Builder()
+                .appLabel(titre)
+                .surchargeNavigationBar(requete.barreNavigation)
+                .build()
+        val chrome = ChromeSysteme(contexte, resolverPourChrome(), config)
+        val vue = chrome.envelopper(racine, densite)
+        // Thème plein écran sans barres : vue === racine, insets NULS — la
+        // collecte duale retombe sur le contenu tel quel (miroir moteur).
+        return DecorPose(vue, chrome.insets(), config.modePlacement)
     }
+
+    /**
+     * Le décor posé par le chrome MOTEUR (PE13, ADR 0137) : la vue rendue
+     * (décor ou contenu tel quel), les insets calculés et le mode de
+     * placement — TOUT ce que la collecte duale du frère attend.
+     */
+    private data class DecorPose(
+        val vue: View,
+        val insets: InsetsDecor,
+        val modePlacement: ModePlacementDecor,
+    )
+
+    /**
+     * Le résolveur pour le chrome (PE13, ADR 0137 D2) : celui du PROJET, ou
+     * le résolveur de REPLI portant le régime nuit — la nuit vit dans les
+     * RÉSOLVEURS (jamais un drapeau du chrome : le moteur relit
+     * `isNightMode()`).
+     */
+    private fun resolverPourChrome(): ThemeResolver = themeResolver ?: resolverRepliNuit
 
     /**
      * Titre de l'action bar du chrome (v0.134.4) — `labelActivite` de la

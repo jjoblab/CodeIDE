@@ -1168,3 +1168,39 @@ bibliothèque — ADR 0136 D1/D4) : les scénarios 2 à 4 sont désormais VÉRIF
    sélection après retour arrière : l'IME est au niveau plateforme depuis la 3.73.0 — CodeIDE
    n'a AUCUN contournement à retirer (vérifié : seul le filtre logcat masque le clavier), la
    saisie doit être fluide, la composition et les suggestions intactes.
+
+## Chrome système possédé par le moteur (chantier PE13 → v0.169.0, LayoutLib 3.5.0, ADR 0137)
+
+Écran : aperçu XML (`PreviewActivity`), un projet AVEC `res/values/themes.xml` (thème standard
+Material), un document simple (LinearLayout + TextView), profil Pixel 4. À vérifier sur
+appareil, clair ET nuit. Le chrome est passé au MOTEUR de rendu (zéro vue chrome côté IDE) :
+le rendu doit être PIXEL-IDENTIQUE à v0.168.0 en régime nominal (garde-fou G2 de l'ADR 0137) —
+c'est le fil conducteur de toute la section.
+
+1. **Planche inchangée (G2)** — rendre le document : status bar 24 dp avec « 9:41 / 5G ▮▮▮
+   100% », action bar 56 dp au titre de l'activité, contenu, barre de navigation 48 dp aux
+   trois glyphes — la MÊME planche qu'avant la migration, au pixel près (les captures
+   éventuelles d'avant/après sont l'outil de contrôle). Taper sur une vue : la SÉLECTION
+   tombe JUSTE (le recalage est passé au moteur — si le surlignage se décale d'un pixel, c'est
+   une régression R3 à signaler immédiatement).
+2. **Nuit par le régime des résolveurs (D2)** — puces Jour/Nuit : nuit, SANS dossier res/
+   attaché, les barres par défaut suivent toujours la planche (`#0C1030`/`#BAC4FF`/barre
+   `#000`) ; AVEC le dossier res/, le NUIT suit les thèmes `values-night` — les deux régimes
+   doivent être identiques à v0.168.0 (le drapeau interne n'existe plus, le résolveur porte
+   le régime).
+3. **Interrupteur « Barre de navigation » (D1)** — menu Calques → Chrome système : éteindre
+   la barre → le rendu PERD la 4e pièce et le contenu descend jusqu'en bas ; rallumer → la
+   pièce revient. La relance du rendu est immédiate (comportement PE11j inchangé).
+4. **Thèmes de fenêtre (correctif C1 conservé)** — un thème `windowNoTitle`/`windowActionBar=
+   false` rend SANS action bar du chrome (le fil « noBar » de la maquette) ; un thème
+   `windowFullscreen` SANS barres rend le CONTENU SEUL, plein cadre.
+5. **Pastille « rendue • n vues » (D5, NOUVEAU)** — un document de 5 vues affiche désormais
+   « 5 vues » : le chrome n'EST PLUS COMPTÉ (le compte suit le document, pas le décor). Un
+   document à 1 vue affiche « 1 vue » — vérifier qu'aucun compte « 6 » ou « 8 » (vues chrome)
+   n'apparaît.
+6. **Hauteurs thémées (D4)** — si le thème du projet déclare `android:actionBarSize` (p. ex.
+   64dp), l'action bar du chrome suit l'attribut au rendu suivant ; sans déclaration, repli
+   56 dp. (Nouveauté miroir `Layout.Builder` AOSP : à signaler si un écart vous surprend.)
+7. **Arbre de composants** — l'onglet Arbre ne montre PAS les vues du chrome (déjà le cas
+   avant) ; la future section « système » (infos marquées `ViewType`) n'est PAS branchée —
+   rien à vérifier de ce côté, le moteur l'expose pour un chantier ultérieur.
