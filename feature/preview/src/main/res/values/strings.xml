@@ -3,7 +3,7 @@
      chrome PE6b). Français par défaut (convention du dépôt), l'anglais
      vit dans values-en/. Les libellés de rendu (accueil, erreur)
      restent dans :preview:xml. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="preview_titre">Aperçu XML</string>
     <string name="preview_retour_cd">Retour à l\'éditeur</string>
     <string name="preview_choisir_fichier">Choisir le fichier…</string>
@@ -373,6 +373,15 @@
     </plurals>
     <string name="preview_attr_palette_fermee">palette fermée</string>
     <string name="preview_attr_ratio_separateur">:</string>
+    <string name="preview_attr_curseur_valeur">%1$s (valeur)</string>
+    <string name="preview_attr_curseur_bornes">Valeur entre %1$s et %2$s.</string>
+    <string name="preview_attr_ratio_largeur">ratio, largeur</string>
+    <string name="preview_attr_ratio_hauteur">ratio, hauteur</string>
+    <!-- « exemple » est le français correct — le dictionnaire Typos de lint est ANGLAIS
+         (faux positif, miroir le message `ratio` de la maquette). -->
+    <string name="preview_attr_ratio_invalide" tools:ignore="Typos">Deux nombres positifs, par exemple 16 et 9.</string>
+    <string name="preview_attr_verrou_aucun">aucun</string>
+    <string name="preview_attr_ratio_note">Nécessite une dimension à 0dp (match constraint). W ou H désigne le côté calculé.</string>
     <string name="preview_attr_nom_hint">android:nom</string>
     <string name="preview_attr_valeur_hint">valeur</string>
     <string name="preview_attr_ajouter">Ajouter</string>

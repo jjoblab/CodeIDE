@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Contrôle RATIO (maquette `.ratio`) : deux nombres séparés par « : » (grille 1fr | auto | 1fr, écart 6),
+  puis ratios prédéfinis (drapeaux 1:1, 4:3, 16:9, 3:4), puis verrou aucun/W/H (segments), puis note
+  (« Nécessite une dimension à 0dp… », TOUJOURS visible — miroir `note2` du `ratio` de la maquette).
+
+  Écart documenté (PE11g-contrôles) : la référence N'a PAS de vue de message — la maquette AJOUTE un
+  bloc `.fmsg` au DOM à la volée (showMsg). Le message de validation (« Deux nombres positifs… »)
+  vit donc ICI, invisible au repos, même patron que `controle_couleur` (comportement showMsg).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/controle_ratio"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <include
+        android:id="@+id/entete"
+        layout="@layout/entete_champ" />
+
+    <LinearLayout
+        android:id="@+id/rangee_ratio"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/champ_ratio_a"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:imeOptions="actionDone"
+            android:inputType="numberDecimal" />
+
+        <TextView
+            style="@style/Widget.CodeIDE.Apercu.Texte"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/apercu_ratio_gap"
+            android:layout_marginEnd="@dimen/apercu_ratio_gap"
+            android:importantForAccessibility="no"
+            android:text="@string/preview_attr_ratio_separateur" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/champ_ratio_b"
+            style="@style/Widget.CodeIDE.Apercu.Champ"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:imeOptions="actionDone"
+            android:inputType="numberDecimal" />
+    </LinearLayout>
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/groupe_ratios"
+        style="@style/Widget.CodeIDE.Apercu.GroupeDrapeaux"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+
+    <com.google.android.material.chip.ChipGroup
+        android:id="@+id/groupe_verrou_ratio"
+        style="@style/Widget.CodeIDE.Apercu.GroupeSegments"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette" />
+
+    <TextView
+        android:id="@+id/note_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:text="@string/preview_attr_ratio_note" />
+
+    <TextView
+        android:id="@+id/message_controle"
+        style="@style/Widget.CodeIDE.Apercu.Note"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/apercu_gap_etiquette"
+        android:visibility="gone" />
+</LinearLayout>
