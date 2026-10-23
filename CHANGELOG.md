@@ -1,5 +1,26 @@
 # Journal des modifications
 
+## [0.175.1] – 2026-10-24
+
+### Correctif CI : les fabriques de modificateurs C2 deviennent des EXTENSIONS de Modifier
+
+#### Corrigé
+
+- **La CI de v0.175.0 échouait sur `:preview:compose:lintDebug`** (4
+  erreurs lint Compose `ModifierFactoryExtensionFunction` — le
+  correctif PrivateApi de v0.175.0 a BIEN fonctionné, ces erreurs sont
+  nées du NOUVEAU code C2) : la règle `androidx.compose.ui` exige que
+  toute fonction qui FABRIQUE un modificateur soit une EXTENSION de
+  Modifier (les appelants composent `Modifier.bornesDe(…)` —
+  l'idiome Compose, jamais une fabrique nue).
+  `ContexteRendu.modificateurBornes(noeud)` devient l'extension
+  top-level `Modifier.bornesDe(noeud, contexte)` et
+  `espaceDe(noeud, contexte)` devient `Modifier.espaceDu(noeud,
+  contexte)` (les bornes se posent en QUEUE de chaîne — l'étendue
+  publiée reste l'étendue dessinée). **Aucun changement de
+  comportement** — mêmes modificateurs, même ordre de chaîne, mêmes
+  bornes extraites.
+
 ## [0.175.0] – 2026-10-24
 
 ### Correctif CI de v0.174.0 + montée code-editor 4.0.0 (bump-frère) + la preview Compose résout les RESSOURCES et le THÈME du projet et gagne le surlignage caret → nœud — mission « Previews » C2 (PREVIEW.md §4.4, ADR 0141)
