@@ -1432,3 +1432,51 @@ ouvre la carte, la carte ne se vide jamais, et le rendu suit les frappes.
    suivant (ré-ouvrir la carte) ; si le processus ne revient pas, le
    message d'indisponibilité remplace honnêtement le rendu — l'ÉDITEUR, lui,
    n'a JAMAIS bougé ni gelé (c'est tout l'objet de PC4).
+
+## Preview Compose — ressources, thème du projet et surlignage caret (mission « Previews » C2 → v0.175.0, ADR 0141)
+
+Écran : éditeur, un fichier Kotlin du projet avec une `@Preview` dont le
+corps référence les ressources du projet : `Text(R.string.…)` et
+`Text("littéral", color = MaterialTheme.colorScheme.primary)`, un
+`Spacer(height = R.dimen.…)` ; le projet DOIT avoir `res/values/colors.xml`
+(ex. `accent`), `res/values/themes.xml` (`Theme.…` portant `colorPrimary`),
+`res/values/dimens.xml` et `res/values-fr/strings.xml` pour le scénario 3.
+
+1. **Les couleurs du THÈME du projet remplacent les défauts** — ouvrir la
+   carte : les `Text`/`Button` prennent les couleurs du thème du manifeste
+   (ex. `colorPrimary` du projet — PAS le violet Material par défaut du
+   runtime) ; le rendu change si on édite `colorPrimary` puis re-rend au
+   prochain rendu du document.
+2. **`R.string` / `R.color` / `R.dimen` résolus** — le `Text` référençant
+   `R.string.…` affiche la chaîne du projet (pas le nom du nœud) ; le
+   `Text` avec `color = R.color.…` prend la couleur du projet ; le
+   `Spacer(R.dimen.…)` prend la hauteur du projet.
+3. **Langue** (projet bilingue) — la carte rend les chaînes de la locale
+   SYSTÈME (C2 ne transporte pas encore de sélecteur — D7 ADR 0141) ;
+   basculer la langue du système recharge `values-<lang>/` au rendu
+   suivant (candidat sélecteur : chantier ultérieur).
+4. **SURLIGNAGE caret → nœud** — poser le caret sur la LIGNE d'un appel du
+   registre (`Text(…)`, `Column { … }`) : la carte dessine IMMÉDIATEMENT
+   un contour bleu (`#43559E`) + remplissage translucide sur LE nœud de
+   cette ligne, par-dessus le bitmap ; déplacer le caret d'une ligne :
+   le rectangle suit (ou disparaît si la ligne n'a pas de nœud) — jamais
+   de rectangle périmé.
+5. **Référence introuvable = pastille honnête, jamais un échec** — pointer
+   `R.string` vers un nom absent (`R.string.inexistante`) : le rendu
+   REVIENT (pas d'échec), le `Text` retombe sur son défaut et l'erreur
+   typée accompagne le rendu ; le reste de la composition est intact.
+6. **Sans projet ouvert** (fichier hors projet) : la carte rend aux
+   DÉFAUTS DU RUNTIME (comportement C1 exact) — aucune erreur bloquante,
+   le surlignage caret fonctionne toujours (l'extraction ne dépend pas
+   du projet).
+
+### Montée code-editor 4.0.0 (bump-frère — v0.175.0)
+
+7. **13 nouveaux langages colorés** — ouvrir des fichiers `x.c`, `x.cpp`,
+   `x.go`, `x.json`, `x.php`, `x.rb`, `x.rs`, `sh`, `x.sql`, `x.toml`,
+   `x.ts`, `x.yaml`, `Dockerfile` : la coloration lexicale s'active sans
+   redémarrage (corpus cel-textmate 10 → 23 grammaires).
+8. **Régime progressif des grands documents** — coller un très grand
+   fichier (plusieurs dizaines de milliers de lignes) : l'ouverture reste
+   fluide (plus de coupure sèche à 800 lignes), la coloration suit le
+   scroll (remplissage arrière-plan), l'édition ne ralentit pas la vue.

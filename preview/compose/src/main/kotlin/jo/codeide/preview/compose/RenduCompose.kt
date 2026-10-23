@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
@@ -28,6 +29,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Recomposer
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -108,12 +110,16 @@ import java.util.concurrent.TimeUnit
  *        rendus (production : `Dispatchers.Main` du processus ;
  *        tests : dispatcheur de test).
  * @param journal sorties de diagnostic (pannes d'attach, délais).
+ * @param resolveurs C2 — les résolveurs du PROJET (cache du service) ;
+ *        `null` = la composition rend sur les DÉFAUTS DU RUNTIME
+ *        (comportement C1 exact — tests et rendu sans projet).
  */
 internal class RenduCompose(
     private val contexte: Context,
     private val executeur: Executor,
     private val dispatcheurComposition: CoroutineDispatcher,
     private val journal: (String) -> Unit = {},
+    private val resolveurs: ResolveursCompose? = null,
 ) {
     /** Sessions vivantes : identité → composition persistante. */
     private val sessions = LinkedHashMap<String, Session>()
@@ -177,9 +183,15 @@ internal class RenduCompose(
     /** Le rendu proprement dit — coroutine SUSPENDANTE du fil de composition. */
     private suspend fun rendreSurFil(requete: RequeteRenduCompose): ResultatRenduCompose {
         val debut = SystemClock.elapsedRealtime()
+        // C2 : les résolveurs du projet AVANT la session — la création
+        // d'une session NOUVELLE doit déjà voir ses résolveurs (la
+        // première composition peut partir à l'ATTACH de la vue, états
+        // fondateurs complets — leçon du correctif C2).
+        val resolveur = resolveurDe(requete)
+        val premiereSession = synchronized(this) { sessions[requete.identite] == null }
         val session =
             synchronized(this) {
-                sessions.getOrPut(requete.identite) { creerSession(requete) }
+                sessions.getOrPut(requete.identite) { creerSession(requete, resolveur) }
             }
         if (!session.verrou.tryLock()) {
             // Un rendu précédent de CETTE session a dépassé son budget
@@ -192,10 +204,24 @@ internal class RenduCompose(
             // c'est la recomposition qui diff (état préservé, PC1) ;
             // le régime nuit et la densité du profil SUIVENT (re-theme
             // et re-mesure par recomposition, jamais gelés à la
-            // création de session).
+            // création de session). C2 : le SCHÉMA du projet suit AUSSI
+            // (les résolveurs viennent du cache du service — un scan
+            // disque par changement de combinaison, pas par rendu) et
+            // le contexte du registre est RE-POLARISÉ (les bornes et
+            // erreurs du rendu précédent sont vidées, jamais reportées).
+            // Premier rendu : la composition d'ATTACH a déjà collecté —
+            // POLARISER sans vider ; rendus suivants : VIDER avant la
+            // recomposition qui re-collecte (bornes et erreurs ne
+            // survivent JAMAIS au rendu précédent).
+            if (premiereSession) {
+                session.etats.contexte.polariser(resolveur)
+            } else {
+                session.etats.contexte.debuter(resolveur)
+            }
             session.etats.programme.value = requete.programme
             session.etats.nuit.value = requete.nuit
             session.etats.densite.value = Density(requete.densiteDpi / DENSITE_REFERENCE, 1f)
+            session.etats.schema.value = schemaDe(requete, resolveur)
             session.horloge.sendFrame(System.nanoTime())
             attendreRecomposition(session)
             val densite = requete.densiteDpi / DENSITE_REFERENCE
@@ -214,7 +240,8 @@ internal class RenduCompose(
                 ok = true,
                 message = null,
                 bitmap = bitmap,
-                erreurs = emptyArray(),
+                erreurs = session.etats.contexte.erreurs.toTypedArray(),
+                noeuds = session.etats.contexte.noeuds,
                 metriques =
                 MetriquesRenduCompose(
                     dureeMs = SystemClock.elapsedRealtime() - debut,
@@ -228,8 +255,29 @@ internal class RenduCompose(
         }
     }
 
+    /**
+     * Les résolveurs du projet d'UNE requête — cache du service : un
+     * scan disque par changement de combinaison, jamais par rendu.
+     */
+    private fun resolveurDe(requete: RequeteRenduCompose): ResolveurCompose? = resolveurs?.pour(
+        dossierRes = requete.dossierRes,
+        nuit = requete.nuit,
+        langue = requete.langue,
+        themeName = requete.themeName,
+        densiteDpi = requete.densiteDpi,
+    )
+
+    /**
+     * Le SCHÉMA Material du rendu : celui du PROJET (slots résolus sur
+     * le thème du manifeste), à défaut les couleurs PAR DÉFAUT du
+     * runtime (comportement C1).
+     */
+    private fun schemaDe(requete: RequeteRenduCompose, resolveur: ResolveurCompose?): ColorScheme =
+        resolveur?.schema(requete.nuit)
+            ?: if (requete.nuit) darkColorScheme() else lightColorScheme()
+
     /** Crée la session persistante d'une identité (composition vivante). */
-    private fun creerSession(requete: RequeteRenduCompose): Session {
+    private fun creerSession(requete: RequeteRenduCompose, resolveur: ResolveurCompose?): Session {
         val vue = ComposeView(contexte)
         val proprietaire = ProprietaireFenetreFactice()
         vue.setViewTreeLifecycleOwner(proprietaire)
@@ -237,21 +285,35 @@ internal class RenduCompose(
         val horloge = BroadcastFrameClock()
         val portee = CoroutineScope(SupervisorJob() + dispatcheurComposition + horloge)
         val recomposer = Recomposer(portee.coroutineContext)
-        portee.launch { recomposer.runRecomposeAndApplyChanges() }
+        portee.launch { recomposer.runRecomposeAndApplyChanges() }.invokeOnCompletion { erreur ->
+            // La mort du recomposer est un ÉVÉNEMENT DE DIAGNOSTIC : une
+            // composition qui lève laisse un rendu VIDE (bitmap de fond)
+            // sans qu'AUCUNE exception ne remonte au moteur — le journal
+            // porte la cause (règle 14 : jamais de stderr direct).
+            if (erreur != null) {
+                journal("recomposer mort : ${erreur.javaClass.simpleName} : ${erreur.message}")
+            }
+        }
         vue.setParentCompositionContext(recomposer)
         val programme = mutableStateOf(requete.programme)
         val nuit = mutableStateOf(requete.nuit)
         val densite = mutableStateOf(Density(requete.densiteDpi / DENSITE_REFERENCE, 1f))
-        val etats = EtatsRendu(programme, nuit, densite)
+        val schema =
+            mutableStateOf(
+                resolveur?.schema(requete.nuit) ?: if (requete.nuit) darkColorScheme() else lightColorScheme(),
+            )
+        val contexteRendu = ContexteRendu(journal = journal)
+        contexteRendu.debuter(resolveur)
+        val etats = EtatsRendu(programme, nuit, densite, schema, contexteRendu)
         vue.setContent {
             CompositionLocalProvider(
                 LocalInspectionMode provides true,
                 LocalDensity provides etats.densite.value,
             ) {
                 MaterialTheme(
-                    colorScheme = if (etats.nuit.value) darkColorScheme() else lightColorScheme(),
+                    colorScheme = etats.schema.value,
                 ) {
-                    ContenuProgramme(etats.programme.value)
+                    ContenuProgramme(etats.programme.value, etats.contexte)
                 }
             }
         }
@@ -332,10 +394,12 @@ internal class RenduCompose(
     }
 
     /**
-     * Les trois états OBSERVÉS de la composition (programme, régime
-     * nuit, densité) — regroupés : le live-edit pousse le NOUVEAU
-     * programme dans l'état SANS recréer la session, la recomposition
-     * diff les groupes inchangés (PC1) ; le regroupement garde le
+     * Les états OBSERVÉS de la composition — regroupés : le live-edit
+     * pousse le NOUVEAU programme dans l'état SANS recréer la session,
+     * la recomposition diff les groupes inchangés (PC1) ; C2 ajoute le
+     * SCHÉMA du projet (re-thème par recomposition, miroir du régime
+     * nuit) et le CONTEXTE de rendu (résolveur + collecteur de bornes,
+     * re-lus à chaque recomposition) ; le regroupement garde le
      * constructeur de [Session] lisible (detekt LongParameterList tué
      * par RESTRUCTURE, pas par desserrage).
      */
@@ -343,6 +407,8 @@ internal class RenduCompose(
         val programme: MutableState<ProgrammeCompose>,
         val nuit: MutableState<Boolean>,
         val densite: MutableState<Density>,
+        val schema: MutableState<ColorScheme>,
+        val contexte: ContexteRendu,
     )
 
     /**
@@ -415,59 +481,91 @@ internal class RenduCompose(
  * rend son composable réel de la bibliothèque embarquée ; les pastilles
  * d'erreur isolent le nœud fautif (le reste se rend — miroir
  * `createMockView` de la référence : jamais un rendu tout-ou-rien).
+ * C2 : [contexte] porte les RÉSOLVEURS du projet (chaque référence
+ * `R.string/x`/`R.color/x`/`R.dimen/x`/`MaterialTheme.colorScheme.x`
+ * se RÉSOUT ici, au rendu) et le COLLECTEUR de bornes (chaque nœud
+ * publie sa géométrie bitmap + sa ligne source — le sésame
+ * surlignage de la carte, écho `ComposeViewInfoParser`).
  */
 @Composable
-internal fun ContenuProgramme(programme: ProgrammeCompose) {
+internal fun ContenuProgramme(programme: ProgrammeCompose, contexte: ContexteRendu) {
     Column {
-        programme.racine.forEach { RendreNoeud(it) }
+        programme.racine.forEach { RendreNoeud(it, contexte) }
         if (programme.coupureBudget) {
             PastilleErreur("Interprétation tronquée (budget)", GenreErreurCompose.BUDGET_INTERPRETATION)
         }
     }
 }
 
-/** Rend UN nœud du programme (dispatch du registre C1). */
+/** Rend UN nœud du programme (dispatch du registre C1 + résolution C2 + bornes C2). */
 @Composable
-internal fun RendreNoeud(noeud: NoeudProgramme) {
+internal fun RendreNoeud(noeud: NoeudProgramme, contexte: ContexteRendu) {
     when (noeud.genre) {
-        GenreNoeudCompose.TEXTE -> Text(text = texteDe(noeud))
+        GenreNoeudCompose.TEXTE -> RendreTexte(noeud, contexte)
 
         GenreNoeudCompose.COLONNE ->
-            Column {
-                noeud.contenu.forEach { RendreNoeud(it) }
+            Column(modifier = contexte.modificateurBornes(noeud)) {
+                noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
         GenreNoeudCompose.RANGEE ->
-            Row {
-                noeud.contenu.forEach { RendreNoeud(it) }
+            Row(modifier = contexte.modificateurBornes(noeud)) {
+                noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
         GenreNoeudCompose.BOITE ->
-            Box {
-                noeud.contenu.forEach { RendreNoeud(it) }
+            Box(modifier = contexte.modificateurBornes(noeud)) {
+                noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
-        GenreNoeudCompose.ESPACE -> Spacer(modifier = espaceDe(noeud))
+        GenreNoeudCompose.ESPACE -> Spacer(modifier = espaceDe(noeud, contexte))
 
         GenreNoeudCompose.BOUTON ->
             // C1 statique : le clic n'est PAS transmis (C3 interactif) —
             // l'exigence de M3 est honorée par un no-op honnête.
-            Button(onClick = {}) {
-                noeud.contenu.forEach { RendreNoeud(it) }
+            Button(
+                onClick = {},
+                modifier = contexte.modificateurBornes(noeud),
+            ) {
+                noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
         GenreNoeudCompose.INCONNU ->
-            PastilleErreur("« ${noeud.nom} » hors registre (C1)", GenreErreurCompose.COMPOSABLE_INCONNU)
+            PastilleErreur(
+                "« ${noeud.nom} » hors registre (C1)",
+                GenreErreurCompose.COMPOSABLE_INCONNU,
+                modificateur = contexte.modificateurBornes(noeud),
+            )
 
         GenreNoeudCompose.ERREUR_EXPRESSION ->
             PastilleErreur(
                 "Non interprété : ${ellipseNom(noeud.nom)}",
                 GenreErreurCompose.EXPRESSION_NON_INTERPRETEE,
+                modificateur = contexte.modificateurBornes(noeud),
             )
 
         GenreNoeudCompose.ERREUR_INLINE ->
-            PastilleErreur("« ${noeud.nom} » non inliné (projet)", GenreErreurCompose.COMPOSABLE_PROJET_PARAMETRES)
+            PastilleErreur(
+                "« ${noeud.nom} » non inliné (projet)",
+                GenreErreurCompose.COMPOSABLE_PROJET_PARAMETRES,
+                modificateur = contexte.modificateurBornes(noeud),
+            )
     }
+}
+
+/**
+ * Le TEXTE du registre — extrait du dispatch : sa résolution C2
+ * (chaîne du projet, couleur du projet ou du THÈME) est la PLUS
+ * riche du registre et portait la complexité du when au-delà du
+ * seuil detekt (règle 16 : RESTRUCTURE, pas de desserrage).
+ */
+@Composable
+private fun RendreTexte(noeud: NoeudProgramme, contexte: ContexteRendu) {
+    Text(
+        text = texteDe(noeud, contexte),
+        color = couleurTexteDe(noeud, contexte) ?: Color.Unspecified,
+        modifier = contexte.modificateurBornes(noeud),
+    )
 }
 
 /**
@@ -483,51 +581,115 @@ private const val LONGUEUR_PASTILLE: Int = 32
 private fun ellipseNom(nom: String): String =
     if (nom.length <= LONGUEUR_PASTILLE) nom else nom.take(LONGUEUR_PASTILLE - 1) + "…"
 
-/** La chaîne d'un Text : `text`/`texte` nommé ou premier littéral chaîne. */
-private fun texteDe(noeud: NoeudProgramme): String {
+/** Les genres d'argument acceptés comme TEXTE d'un nœud. */
+private val GENRES_TEXTE: Set<GenreArgumentCompose> =
+    setOf(GenreArgumentCompose.LITTERAL_CHAINE, GenreArgumentCompose.REFERENCE_CHAINE)
+
+/**
+ * La chaîne d'un Text : `text`/`texte` nommé ou premier texte — C2 : la
+ * référence `R.string.NOM` se RÉSOUT sur le résolveur du projet ; une
+ * référence introuvable rend le message par DÉFAUT de C1 (le nom du
+ * nœud) ET l'erreur typée [GenreErreurCompose.RESSOURCE_INCONNUE]
+ * accompagne le rendu (jamais un faux rendu silencieux).
+ */
+private fun texteDe(noeud: NoeudProgramme, contexte: ContexteRendu): String {
     val arguments = noeud.arguments
     val cible =
-        arguments.firstOrNull {
-            it.genre == GenreArgumentCompose.LITTERAL_CHAINE && (it.nom == "text" || it.nom == "texte")
-        } ?: arguments.firstOrNull { it.genre == GenreArgumentCompose.LITTERAL_CHAINE }
-    return cible?.valeur ?: noeud.nom
+        arguments.firstOrNull { it.genre in GENRES_TEXTE && (it.nom == "text" || it.nom == "texte") }
+            ?: arguments.firstOrNull { it.genre in GENRES_TEXTE }
+    return when (cible?.genre) {
+        GenreArgumentCompose.LITTERAL_CHAINE -> cible.valeur ?: noeud.nom
+
+        GenreArgumentCompose.REFERENCE_CHAINE ->
+            cible.valeur?.let { nom -> contexte.chaine(nom, noeud.ligne) } ?: noeud.nom
+
+        else -> noeud.nom
+    }
+}
+
+/** Les genres d'argument acceptés comme COULEUR d'un nœud. */
+private val GENRES_COULEUR: Set<GenreArgumentCompose> =
+    setOf(GenreArgumentCompose.REFERENCE_COULEUR, GenreArgumentCompose.REFERENCE_THEME)
+
+/**
+ * La couleur explicite d'un Text (`color`/`couleur` nommé) : C2 — la
+ * référence `R.color.NOM` ou `MaterialTheme.colorScheme.SLOT` se RÉSOUT
+ * sur le thème/les ressources du PROJET (`null` = la couleur Material
+ * par défaut du contenu, comportement C1).
+ */
+private fun couleurTexteDe(noeud: NoeudProgramme, contexte: ContexteRendu): Color? {
+    val cible =
+        noeud.arguments.firstOrNull {
+            it.genre in GENRES_COULEUR && (it.nom == "color" || it.nom == "couleur")
+        } ?: return null
+    return when (cible.genre) {
+        GenreArgumentCompose.REFERENCE_COULEUR ->
+            cible.valeur?.let { nom -> contexte.couleur(nom, noeud.ligne) }
+
+        GenreArgumentCompose.REFERENCE_THEME ->
+            cible.valeur?.let { slot -> contexte.couleurDuSlot(slot, noeud.ligne) }
+
+        else -> null
+    }
 }
 
 /**
  * Le modificateur d'un ESPACE : hauteur explicite, sinon largeur
  * explicite, sinon pleine largeur (extraction — la complexité du
- * dispatch du registre reste sous les seuils detekt).
+ * dispatch du registre reste sous les seuils detekt). C2 : les
+ * références `R.dimen.NOM` se résolvent sur le projet.
  */
-private fun espaceDe(noeud: NoeudProgramme): Modifier = hauteurDe(noeud)?.let { hauteur -> Modifier.height(hauteur) }
-    ?: largeurDe(noeud)?.let { largeur -> Modifier.width(largeur) }
-    ?: Modifier.fillMaxWidth()
+private fun espaceDe(noeud: NoeudProgramme, contexte: ContexteRendu): Modifier {
+    val bornes = contexte.modificateurBornes(noeud)
+    return hauteurDe(noeud, contexte)?.let { hauteur -> Modifier.height(hauteur).then(bornes) }
+        ?: largeurDe(noeud, contexte)?.let { largeur -> Modifier.width(largeur).then(bornes) }
+        ?: Modifier
+            .fillMaxWidth()
+            .then(bornes)
+}
 
-/** La hauteur dp d'un Spacer (`height`/`hauteur` ou positionnel). */
-private fun hauteurDe(noeud: NoeudProgramme): Dp? = noeud.arguments
-    .firstOrNull {
-        it.genre == GenreArgumentCompose.VALEUR_DP &&
-            (it.nom == "height" || it.nom == "hauteur" || it.nom == null)
-    }
-    ?.valeur
-    ?.toFloatOrNull()
-    ?.dp
+/** Les genres d'argument acceptés comme DIMENSION d'un nœud. */
+private val GENRES_DIMENSION: Set<GenreArgumentCompose> =
+    setOf(GenreArgumentCompose.VALEUR_DP, GenreArgumentCompose.REFERENCE_DIMENSION)
 
-/** La largeur dp d'un Spacer (`width`/`largeur`). */
-private fun largeurDe(noeud: NoeudProgramme): Dp? = noeud.arguments
-    .firstOrNull {
-        it.genre == GenreArgumentCompose.VALEUR_DP &&
-            (it.nom == "width" || it.nom == "largeur")
+/** La hauteur dp d'un Spacer (`height`/`hauteur` ou positionnel) — littéral ou `R.dimen.NOM` du projet. */
+private fun hauteurDe(noeud: NoeudProgramme, contexte: ContexteRendu): Dp? {
+    val cible =
+        noeud.arguments.firstOrNull {
+            it.genre in GENRES_DIMENSION && (it.nom == "height" || it.nom == "hauteur" || it.nom == null)
+        } ?: return null
+    return when (cible.genre) {
+        GenreArgumentCompose.VALEUR_DP -> cible.valeur?.toFloatOrNull()?.dp
+
+        GenreArgumentCompose.REFERENCE_DIMENSION ->
+            cible.valeur?.let { nom -> contexte.dimensionDp(nom, noeud.ligne) }
+
+        else -> null
     }
-    ?.valeur
-    ?.toFloatOrNull()
-    ?.dp
+}
+
+/** La largeur dp d'un Spacer (`width`/`largeur`) — littéral ou `R.dimen.NOM` du projet. */
+private fun largeurDe(noeud: NoeudProgramme, contexte: ContexteRendu): Dp? {
+    val cible =
+        noeud.arguments.firstOrNull {
+            it.genre in GENRES_DIMENSION && (it.nom == "width" || it.nom == "largeur")
+        } ?: return null
+    return when (cible.genre) {
+        GenreArgumentCompose.VALEUR_DP -> cible.valeur?.toFloatOrNull()?.dp
+
+        GenreArgumentCompose.REFERENCE_DIMENSION ->
+            cible.valeur?.let { nom -> contexte.dimensionDp(nom, noeud.ligne) }
+
+        else -> null
+    }
+}
 
 /** Pastille d'erreur inline (isole le nœud fautif — le reste se rend). */
 @Composable
-private fun PastilleErreur(message: String, genre: GenreErreurCompose) {
+private fun PastilleErreur(message: String, genre: GenreErreurCompose, modificateur: Modifier = Modifier) {
     Box(
         modifier =
-        Modifier
+        modificateur
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.errorContainer),
     ) {
@@ -564,7 +726,16 @@ private fun PastilleErreur(message: String, genre: GenreErreurCompose) {
  * 2. la session est le stub `IWindowSession.Default()` SANS binder —
  *    exactement la référence : aucune IPC fenêtre n'est possible, les
  *    appels relayout retombent en silencieux par construction.
+ *
+ * **Lint PrivateApi** : l'accès réflexif aux API internes de la
+ * plateforme (`IWindowSession[.Default]`, `View.AttachInfo`,
+ * `ViewRootImpl`, `WindowLayout`, champs/méthodes `m*` de `View` et de
+ * l'AttachInfo) est flagué par lint `PrivateApi`. C'est DELIBÉRÉ —
+ * miroir exact de `AttacheurVue` (:preview:xml) : c'est l'approche
+ * d'Android Studio lui-même (RenderSessionImpl/`AttachInfo_Accessor`
+ * font exactement la même chose). Supprimé au niveau de la classe.
  */
+@Suppress("PrivateApi") // Réflexion View.AttachInfo/ViewRootImpl — approche AS RenderSessionImpl, miroir AttacheurVue.
 internal object AttacherCompose {
     /** `android.view.IWindowSession` (absente du SDK public — réflexion). */
     private val classeSession: Class<*> by lazy { Class.forName("android.view.IWindowSession") }

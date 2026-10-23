@@ -15,6 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import java.nio.file.Files
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
 
@@ -70,6 +71,7 @@ class RenduComposeTest {
         vararg noeuds: NoeudProgramme,
         nuit: Boolean = false,
         densiteDpi: Int = 440,
+        dossierRes: String? = null,
     ): RequeteRenduCompose = RequeteRenduCompose(
         identite = identite,
         programme =
@@ -82,6 +84,7 @@ class RenduComposeTest {
         hauteurDp = 851,
         densiteDpi = densiteDpi,
         nuit = nuit,
+        dossierRes = dossierRes,
     )
 
     private fun texte(chaine: String): NoeudProgramme = NoeudProgramme(
@@ -254,6 +257,100 @@ class RenduComposeTest {
         val resultat = rendreSync(rendu, requete("file:///a.kt#Apercu#0"))
         assertTrue("un corps vide rend une planche vide, pas un échec : ${resultat.message}", resultat.ok)
         assertEquals(0, resultat.metriques.nombreNoeuds)
+        rendu.fermer()
+    }
+
+    // ── C2 : extraction bounds/fichier:ligne + résolution références ──
+
+    /** Un Text dont le texte est une RÉFÉRENCE `R.string.NOM`. */
+    private fun texteReference(nom: String, ligne: Int): NoeudProgramme = NoeudProgramme(
+        genre = GenreNoeudCompose.TEXTE,
+        nom = "Text",
+        ligne = ligne,
+        arguments =
+        listOf(
+            ArgumentProgramme(nom = "text", genre = GenreArgumentCompose.REFERENCE_CHAINE, valeur = nom),
+        ),
+        contenu = emptyList(),
+    )
+
+    @Test
+    fun `extraction bounds - un noeud par appel rendu, bornes bitmap et ligne source`() {
+        val rendu = executeur()
+        val colonne =
+            NoeudProgramme(
+                genre = GenreNoeudCompose.COLONNE,
+                nom = "Column",
+                ligne = 2,
+                arguments = emptyList(),
+                contenu = listOf(texte("Bonjour")),
+            )
+        val resultat = rendreSync(rendu, requete("file:///a.kt#Apercu#0", colonne))
+        assertTrue("le rendu extrait accompagnent TOUJOURS le bitmap : ${resultat.message}", resultat.ok)
+        assertEquals("un noeud extrait PAR appel rendu", 2, resultat.noeuds.size)
+        val colonneExtraite = resultat.noeuds.first { it.ligne == 2 }
+        val texteExtrait = resultat.noeuds.first { it.ligne == 3 }
+        assertEquals(GenreNoeudCompose.COLONNE, colonneExtraite.genre)
+        assertEquals(GenreNoeudCompose.TEXTE, texteExtrait.genre)
+        assertTrue("bornes de la colonne DANS le bitmap", colonneExtraite.gauche >= 0 && colonneExtraite.haut >= 0)
+        assertTrue(colonneExtraite.droite <= 1080 && colonneExtraite.bas <= 2340)
+        assertTrue(
+            "le texte a une étendue non vide",
+            texteExtrait.droite > texteExtrait.gauche && texteExtrait.bas > texteExtrait.haut,
+        )
+        assertTrue(
+            "le CONTENEUR couvre son contenu",
+            colonneExtraite.gauche <= texteExtrait.gauche &&
+                colonneExtraite.droite >= texteExtrait.droite &&
+                colonneExtraite.haut <= texteExtrait.haut &&
+                colonneExtraite.bas >= texteExtrait.bas,
+        )
+        rendu.fermer()
+    }
+
+    @Test
+    fun `reference manquante - erreur typée RESSOURCE_INCONNUE, le rendu reussit quand même`() {
+        val rendu = executeur()
+        // Sans dossier res/ (comportement C1) : la référence ne peut PAS
+        // se résoudre — l'erreur typée accompagne le rendu, le Text
+        // retombe sur son DÉFAUT honnête (le nom du nœud).
+        val resultat = rendreSync(rendu, requete("file:///a.kt#Apercu#0", texteReference("absente", ligne = 5)))
+        assertTrue("jamais d'échec pour une ressource absente : ${resultat.message}", resultat.ok)
+        assertEquals(1, resultat.noeuds.size)
+        assertEquals(5, resultat.noeuds.single().ligne)
+        val erreur = resultat.erreurs.singleOrNull { it.genre == GenreErreurCompose.RESSOURCE_INCONNUE }
+        assertNotNull("l'erreur typée accompagne le rendu", erreur)
+        assertEquals("R.string/absente", erreur?.nom)
+        assertEquals(5, erreur?.ligne)
+        rendu.fermer()
+    }
+
+    @Test
+    fun `reference resolue par le projet - aucune erreur, le texte prend la chaine`() {
+        val res = Files.createTempDirectory("res-c2-rendu")
+        Files.createDirectories(res.resolve("values"))
+        Files.write(
+            res.resolve("values/strings.xml"),
+            """<resources><string name="bonjour">Salut le projet</string></resources>""".toByteArray(),
+        )
+        val rendu =
+            RenduCompose(
+                contexte = contexte,
+                executeur = ContextCompat.getMainExecutor(contexte),
+                dispatcheurComposition = kotlinx.coroutines.Dispatchers.Main,
+                journal = { journalCapte += it },
+                resolveurs = ResolveursCompose(contexte),
+            )
+        val resultat =
+            rendreSync(
+                rendu,
+                requete("file:///a.kt#Apercu#0", texteReference("bonjour", ligne = 7), dossierRes = res.toString()),
+            )
+        assertTrue("la chaîne du projet a nourri le rendu : ${resultat.message}", resultat.ok)
+        assertTrue(
+            "ressource résolue : AUCUNE erreur de résolution",
+            resultat.erreurs.none { it.genre == GenreErreurCompose.RESSOURCE_INCONNUE },
+        )
         rendu.fermer()
     }
 }

@@ -248,6 +248,71 @@ class MoteurPreviewComposeTest {
         moteur.close()
     }
 
+    // ── C2 : le PROJET suit la requête (dossier res, langue, thème) ──
+
+    @Test
+    fun `definirProjet - un CHANGEMENT re-rend malgré le digeste inchangé`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        assertEquals(1, transport.requetes.size)
+        assertEquals(null, transport.requetes[0].dossierRes)
+
+        // Le PROJET arrive APRÈS le premier rendu : même document, même
+        // digeste — mais les paramètres ONT changé : re-rendu COMPLET
+        // (miroir definirNuit/definirProfil du frère XML).
+        moteur.definirProjet("/proj/app/src/main/res", "fr", "Theme.MonApp")
+        advanceUntilIdle()
+        assertEquals("un changement de projet RE-REND", 2, transport.requetes.size)
+        assertEquals("/proj/app/src/main/res", transport.requetes[1].dossierRes)
+        assertEquals("fr", transport.requetes[1].langue)
+        assertEquals("Theme.MonApp", transport.requetes[1].themeName)
+
+        // Le MÊME projet re-posé : rien (anti-boucle honnête).
+        moteur.definirProjet("/proj/app/src/main/res", "fr", "Theme.MonApp")
+        advanceUntilIdle()
+        assertEquals("projet inchangé → aucun re-rendu", 2, transport.requetes.size)
+
+        // Retour SANS projet : re-rendu vers les défaults du runtime.
+        moteur.definirProjet(null)
+        advanceUntilIdle()
+        assertEquals(3, transport.requetes.size)
+        assertEquals(null, transport.requetes[2].dossierRes)
+        moteur.close()
+    }
+
+    @Test
+    fun `geometries C2 - les noeuds du transport nourrissent l'etat par onglet`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport =
+            object : TransportCompose by FauxTransport() {
+                override suspend fun rendre(requete: RequeteRenduCompose): ResultatTransportCompose =
+                    ResultatTransportCompose.Succes(
+                        bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888),
+                        metriques = MetriquesRenduCompose(1L, 1, 4, 4),
+                        noeuds = listOf(
+                            InfoNoeudCompose(
+                                ligne = 5,
+                                genre = GenreNoeudCompose.TEXTE,
+                                gauche = 0,
+                                haut = 0,
+                                droite = 4,
+                                bas = 4,
+                            ),
+                        ),
+                    )
+            }
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        val etat = moteur.etat.value as EtatPreviewCompose.RenduValide
+        assertEquals("les géométries traversent l'état", 1, etat.rendus.single().noeuds.size)
+        assertEquals(5, etat.rendus.single().noeuds.single().ligne)
+        moteur.close()
+    }
+
     private fun moteur(dispatcher: TestDispatcher, transport: TransportCompose): MoteurPreviewCompose {
         val contexte: Context = ApplicationProvider.getApplicationContext()
         return MoteurPreviewCompose(

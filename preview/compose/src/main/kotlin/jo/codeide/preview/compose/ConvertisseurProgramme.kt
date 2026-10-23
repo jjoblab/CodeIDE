@@ -153,7 +153,7 @@ internal object ConvertisseurProgramme {
         )
     }
 
-    /** Convertit UN argument : seuls les littéraux et `N.dp` traversent. */
+    /** Convertit UN argument : littéraux, `N.dp` et — C2 — les RÉFÉRENCES de ressources/thème. */
     private fun convertirArgument(
         argument: ArgumentAppelKotlin,
         erreurs: MutableList<ErreurCompose>,
@@ -163,7 +163,7 @@ internal object ConvertisseurProgramme {
         val genreEtValeur: Pair<GenreArgumentCompose, String?>? =
             when (argument.genre) {
                 GenreArgumentAppelKotlin.LITTERAL -> litteralDe(texte)
-                GenreArgumentAppelKotlin.REFERENCE -> dpDe(texte)
+                GenreArgumentAppelKotlin.REFERENCE -> dpDe(texte) ?: ReferencesCompose.referenceDe(texte)
                 GenreArgumentAppelKotlin.AUTRE -> null
             }
         if (genreEtValeur == null) {
@@ -210,4 +210,60 @@ internal object ConvertisseurProgramme {
             restant--
         }
     }
+}
+
+/**
+ * C2 — Reconnaissance des RÉFÉRENCES de ressources et de thème (objet
+ * pur détaché du convertisseur — detekt TooManyFunctions tué par
+ * RESTRUCTURE, règle 16, miroir du détachement [SlotsThemeCompose]) :
+ * `R.string.NOM`, `R.color.NOM`, `R.dimen.NOM` et
+ * `MaterialTheme.colorScheme.SLOT`. La référence voyage par SON NOM —
+ * la RÉSOLUTION vit au rendu sur les résolveurs du projet (PE1). Un
+ * slot hors table ou un nom malformé rend la référence NON
+ * interprétée (erreur typée honnête, jamais un faux rendu).
+ */
+internal object ReferencesCompose {
+    /** La référence reconnue (genre C2 + valeur NOM/SLOT) — `null` si non reconnaissable. */
+    internal fun referenceDe(texte: String?): Pair<GenreArgumentCompose, String?>? {
+        val nu = texte?.trim() ?: return null
+        return referenceRessource(nu) ?: referenceTheme(nu)
+    }
+
+    /** `R.<type>.<nom>` reconnu — le genre de la famille C2 et le NOM. */
+    private fun referenceRessource(nu: String): Pair<GenreArgumentCompose, String?>? =
+        REGEX_RESSOURCE.matchEntire(nu)?.let { correspondance ->
+            val nom = correspondance.groupValues[NOM_RESSOURCE]
+            genreRessource(correspondance.groupValues[TYPE_RESSOURCE])
+                ?.takeIf { nom.isNotEmpty() }
+                ?.let { genre -> genre to nom }
+        }
+
+    /** Le genre d'une famille de ressource interprétable C2 (`null` = hors C2). */
+    private fun genreRessource(type: String): GenreArgumentCompose? = when (type) {
+        "string" -> GenreArgumentCompose.REFERENCE_CHAINE
+        "color" -> GenreArgumentCompose.REFERENCE_COULEUR
+        "dimen" -> GenreArgumentCompose.REFERENCE_DIMENSION
+        else -> null
+    }
+
+    /** `MaterialTheme.colorScheme.<slot>` reconnu — le slot VALIDÉ contre la table M3. */
+    private fun referenceTheme(nu: String): Pair<GenreArgumentCompose, String?>? =
+        REGEX_THEME.matchEntire(nu)?.groupValues?.get(SLOT_THEME)
+            ?.takeIf { slot -> slot in SlotsThemeCompose.ATTR_PAR_SLOT }
+            ?.let { slot -> GenreArgumentCompose.REFERENCE_THEME to slot }
+
+    /** `R.<type>.<nom>` — le type restreint aux trois familles interprétables C2. */
+    private val REGEX_RESSOURCE: Regex = Regex("R\\.(string|color|dimen)\\.([A-Za-z_][A-Za-z0-9_]*)")
+
+    /** `MaterialTheme.colorScheme.<slot>` — le slot validé contre la table M3. */
+    private val REGEX_THEME: Regex = Regex("MaterialTheme\\.colorScheme\\.([A-Za-z][A-Za-z0-9]*)")
+
+    /** Groupe regex : le TYPE de la référence (string/color/dimen). */
+    private const val TYPE_RESSOURCE: Int = 1
+
+    /** Groupe regex : le NOM de la ressource. */
+    private const val NOM_RESSOURCE: Int = 2
+
+    /** Groupe regex : le SLOT du schéma Material. */
+    private const val SLOT_THEME: Int = 1
 }

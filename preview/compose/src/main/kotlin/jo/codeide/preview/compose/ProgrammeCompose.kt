@@ -42,8 +42,14 @@ public enum class GenreNoeudCompose {
 }
 
 /**
- * Genre de la VALEUR d'un argument interprété (C1) — seuls les
- * LITTÉRAUX et les `N.dp` traversent l'interprétation.
+ * Genre de la VALEUR d'un argument interprété (C1) — les LITTÉRAUX et
+ * les `N.dp` traversent l'interprétation ; C2 ajoute les RÉFÉRENCES de
+ * RESSOURCES et de THÈME (`R.string.x`, `R.color.x`, `R.dimen.x`,
+ * `MaterialTheme.colorScheme.x`) : la référence voyage par SON NOM (la
+ * résolution vit au RENDU, dans le processus `:preview`, sur les
+ * résolveurs PE1 — le digeste couvre le NOM, jamais la valeur résolue :
+ * un `colors.xml` édité re-rend au prochain rendu du document, jamais
+ * en silence).
  */
 public enum class GenreArgumentCompose {
     /** Chaîne littérale (guillemets retirés par la conversion). */
@@ -57,6 +63,18 @@ public enum class GenreArgumentCompose {
 
     /** Valeur dp écrite `N.dp` / `N.f.dp` (valeur = le nombre, SANS unité). */
     VALEUR_DP,
+
+    /** C2 — référence `R.string.NOM` (valeur = le NOM, sans préfixe). */
+    REFERENCE_CHAINE,
+
+    /** C2 — référence `R.color.NOM` (valeur = le NOM). */
+    REFERENCE_COULEUR,
+
+    /** C2 — référence `R.dimen.NOM` (valeur = le NOM). */
+    REFERENCE_DIMENSION,
+
+    /** C2 — référence `MaterialTheme.colorScheme.SLOT` (valeur = le SLOT, p. ex. `primary`). */
+    REFERENCE_THEME,
 
     /** Référence ou expression non interprétable — l'argument est rendu par son DÉFAUT. */
     NON_INTERPRETE,

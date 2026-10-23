@@ -322,10 +322,10 @@ la raison de l'avoir fait proprement dès le départ.
 
 | Étape | Contenu |
 |-------|---------|
-| C0 | Spike : interpréter un `@Composable` trivial sur l'arbre résolu K3 dans un processus `:preview` jetable ; mesure de latence rendu. |
-| C1 | Rendu statique : session persistante, streaming bitmap, live-edit par diff d'identité (état préservé). |
-| C2 | Ressources et thème du projet dans la composition distante (réutilise les résolveurs PE1 + index LSP_XML). |
-| C3 | Interactif : forwarding des entrées, animations (frame clock réelle), garde-fous PC4 complets. |
+| C0 ✅ | Spike : interpréter un `@Composable` trivial sur l'arbre résolu K3 dans un processus `:preview` jetable ; mesure de latence rendu. (v0.173.0 — S9, DANS le frère LayoutLib 3.7.0) |
+| C1 ✅ | Rendu statique : session persistante, streaming bitmap, live-edit par diff d'identité (état préservé). (v0.174.0, ADR 0140 — la carte « goutte d'eau ») |
+| C2 ✅ | Ressources et thème du projet dans la composition distante (réutilise les résolveurs PE1) + extraction bounds/fichier:ligne pour le surlignage caret → nœud. (v0.175.0, ADR 0141 — l'index LSP_XML n'est pas consommé : les résolveurs PE1 lisent `res/` directement, même source de vérité que le frère XML) |
+| C3 | Interactif : forwarding des entrées, animations (frame clock réelle), garde-fous PC4 complets (watchdog KILL), tap nœud → saut source (évolution cel-ui : le corps de la carte engloutit les taps). |
 
 ## 5. Séquencement global (synthèse)
 

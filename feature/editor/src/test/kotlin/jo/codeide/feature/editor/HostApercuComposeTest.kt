@@ -9,6 +9,8 @@ import jo.codeeditor.document.EditorDocument
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
 import jo.codeide.preview.compose.EtatPreviewCompose
+import jo.codeide.preview.compose.GenreNoeudCompose
+import jo.codeide.preview.compose.InfoNoeudCompose
 import jo.codeide.preview.compose.MetriquesRenduCompose
 import jo.codeide.preview.compose.RenduPreviewCompose
 import jo.lspkotlin.api.PreviewKotlin
@@ -20,6 +22,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -64,6 +67,7 @@ class HostApercuComposeTest {
         val etatInterne = MutableStateFlow<EtatPreviewCompose>(EtatPreviewCompose.Inactif)
         override val etat: StateFlow<EtatPreviewCompose> = etatInterne.asStateFlow()
         val branchements = mutableListOf<String>()
+        val projets = mutableListOf<Triple<String?, String?, String?>>()
         var soumissions = 0
             private set
         var reactivations = 0
@@ -81,6 +85,10 @@ class HostApercuComposeTest {
             reactivations++
         }
 
+        override fun definirProjet(dossierRes: String?, langue: String?, themeName: String?) {
+            projets += Triple(dossierRes, langue, themeName)
+        }
+
         override fun close() = Unit
     }
 
@@ -90,6 +98,7 @@ class HostApercuComposeTest {
         index: Int = 0,
         bitmap: Bitmap? = null,
         messageErreur: String? = null,
+        noeuds: List<InfoNoeudCompose> = emptyList(),
     ): RenduPreviewCompose = RenduPreviewCompose(
         nom = nom,
         index = index,
@@ -103,6 +112,7 @@ class HostApercuComposeTest {
         ),
         erreurs = emptyList(),
         messageErreur = messageErreur,
+        noeuds = noeuds,
     )
 
     /** Un bitmap CARRÉ plein de la couleur donnée (vrais pixels NATIVE). */
@@ -118,12 +128,14 @@ class HostApercuComposeTest {
         moteur: FauxMoteur,
         etatEditeur: MutableStateFlow<EtatEditor> = MutableStateFlow(EtatEditor()),
         scope: CoroutineScope,
+        fournisseurProjet: suspend (String) -> ProjetApercuCompose? = { null },
     ): HostApercuCompose = HostApercuCompose(
         contexte = contexte,
         etat = etatEditeur,
         sessionKotlin = MutableStateFlow(null),
         scope = scope,
         moteur = moteur,
+        fournisseurProjet = fournisseurProjet,
     )
 
     @Test
@@ -282,5 +294,122 @@ class HostApercuComposeTest {
         moteur.etatInterne.value =
             EtatPreviewCompose.RenduValide(listOf(rendu("A", bitmap = carre(4, Color.GREEN)), rendu("B")))
         assertEquals("aucune ré-ouverture parasite", reactivations, moteur.reactivations)
+    }
+
+    @Test
+    fun `projet - le moteur suit le PROJET de l'onglet actif (dossier res + thème du manifeste)`() = runTest {
+        val moteur = FauxMoteur()
+        val etatEditeur = MutableStateFlow(etatAvecOnglet("file:///a.kt", "a.kt"))
+        val hote =
+            hote(
+                moteur,
+                etatEditeur,
+                CoroutineScope(UnconfinedTestDispatcher(testScheduler)),
+                fournisseurProjet = { uri ->
+                    if (uri == "file:///a.kt") ProjetApercuCompose("/proj/app/src/main/res", "Theme.MonApp") else null
+                },
+            )
+        assertEquals(
+            "le projet de l'onglet actif est poussé au branchement",
+            listOf(Triple("/proj/app/src/main/res", null, "Theme.MonApp")),
+            moteur.projets,
+        )
+
+        // Changement d'onglet : le PROJET suit (ici sans projet →
+        // défauts du runtime, comportement C1).
+        etatEditeur.value = etatAvecOnglet("file:///b.kt", "b.kt")
+        assertEquals(
+            "l'onglet sans projet retombe sur les défauts du runtime",
+            listOf(
+                Triple("/proj/app/src/main/res", null, "Theme.MonApp"),
+                Triple(null, null, null),
+            ),
+            moteur.projets,
+        )
+    }
+
+    @Test
+    fun `surlignage - le nœud de la ligne du caret se contourne par-dessus le bitmap (vrais pixels)`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+
+        // Document DEUX lignes (`Text("a")\n` fait 10 caractères) ; le
+        // nœud extrait vit sur la ligne 1 (1-indexée — PREMIÈRE ligne).
+        // Bitmap blanc 8×8 FIT ×5 dans 40×60 → zone bitmap [0,40]×[10,50] ;
+        // nœud px bitmap (2,2)-(6,6) → carte (10,20)-(30,40) : le CONTOUR
+        // est aux bords, le REMPLISSAGE translucide au centre.
+        val vue = EditorView(contexte)
+        vue.setSession(EditorSession(EditorDocument.of("Text(\"a\")\nText(\"b\")\n")))
+        hote.installerSur(vue)
+        vue.session!!.setSelection(0)
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(
+                listOf(
+                    rendu(
+                        "A",
+                        bitmap = carre(8, Color.WHITE),
+                        noeuds =
+                        listOf(
+                            InfoNoeudCompose(
+                                ligne = 1,
+                                genre = GenreNoeudCompose.TEXTE,
+                                gauche = 2,
+                                haut = 2,
+                                droite = 6,
+                                bas = 6,
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+        val cible = Bitmap.createBitmap(40, 60, Bitmap.Config.ARGB_8888)
+        hote.drawDropPreview(Canvas(cible), 0f, 0f, 40f, 60f, 0)
+        assertNotEquals("le coin du CONTOUR n'est plus le blanc du bitmap", Color.WHITE, cible.getPixel(10, 20))
+        assertNotEquals("le centre du REMPLISSAGE translucide teinte le bitmap", Color.WHITE, cible.getPixel(20, 30))
+        assertEquals("dans le bitmap mais HORS nœud : intact", Color.WHITE, cible.getPixel(35, 45))
+        assertEquals("letterbox transparent", Color.TRANSPARENT, cible.getPixel(20, 5))
+
+        // Le caret passe à la ligne 2 (offset 10 — début 0-based ligne 1)
+        // : PLUS de nœud sur SA ligne → bitmap nu, aucun rectangle
+        // résiduel (jamais de faux surlignage périmé).
+        val cibleSans = Bitmap.createBitmap(40, 60, Bitmap.Config.ARGB_8888)
+        vue.session!!.setSelection(10)
+        hote.drawDropPreview(Canvas(cibleSans), 0f, 0f, 40f, 60f, 0)
+        assertEquals("caret hors ligne du nœud : bitmap nu", Color.WHITE, cibleSans.getPixel(10, 20))
+        assertEquals(Color.WHITE, cibleSans.getPixel(20, 30))
+    }
+
+    @Test
+    fun `surlignage - sans vue ni nœud de la ligne, RIEN (aucun faux rectangle)`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(
+                listOf(
+                    rendu(
+                        "A",
+                        bitmap = carre(8, Color.WHITE),
+                        noeuds =
+                        listOf(
+                            InfoNoeudCompose(
+                                ligne = 7,
+                                genre = GenreNoeudCompose.COLONNE,
+                                gauche = 0,
+                                haut = 0,
+                                droite = 8,
+                                bas = 8,
+                            ),
+                        ),
+                    ),
+                ),
+            )
+
+        // AUCUNE vue posée : ligneCaret null → bitmap nu, jamais de
+        // rectangle sur un état périmé.
+        val cible = Bitmap.createBitmap(40, 60, Bitmap.Config.ARGB_8888)
+        hote.drawDropPreview(Canvas(cible), 0f, 0f, 40f, 60f, 0)
+        assertEquals("sans vue : bitmap nu", Color.WHITE, cible.getPixel(10, 20))
+        assertEquals(Color.WHITE, cible.getPixel(20, 30))
     }
 }
