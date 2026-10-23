@@ -14,16 +14,21 @@ import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
  * propriétaire du 2026-10-22 : « l'expansion doit aussi arriver jusqu'au
  * appbar » ; « le bottomsheet même en collapse ne cache plus aussi la
  * partie bottom du preview » ; « la feuille expanded avec le clavier
- * visible pose problème ») : l'activité lui DÈLÈGUE la géométrie de la
- * feuille — montage du comportement, insets (navigation + CLAVIER,
- * `adjustResize` au manifeste, miroir ADR 0118 de l'éditeur), hauteur des
- * volets et RETRAIT DU CANVAS au bord courant de la feuille.
+ * visible pose problème » ; v0.173.0 — retour du même jour : « deux
+ * niveaux pour expand à moitié puis total sous le appbar », « le canva
+ * ne doit pas glisser pour disparaitre », « feuille expand + édition :
+ * le rendu ne doit plus retomber dézoomé ») : l'activité lui DÈLÈGUE la
+ * géométrie de la feuille — montage du comportement, insets (navigation
+ * + CLAVIER, `adjustResize` au manifeste, miroir ADR 0118 de l'éditeur),
+ * hauteur des volets et RETRAIT BORNÉ du canvas au bord courant de la
+ * feuille.
  *
  * Décisions ([GeometrieFeuilleApercu] porte les formules pures) :
- * - DÉPLOYÉE JUSQU'À L'APPBAR : les volets remplissent l'espace sous
- *   l'en-tête moins le clavier — la feuille `wrap_content` égalant cet
- *   espace, l'état `expanded` (fit-to-contents) cale son bord haut SUR le
- *   bas de l'en-tête, clavier exclu ;
+ * - DEUX NIVEAUX (v0.173.0) : `fitToContents` FAUX dès le montage —
+ *   sinon le GLISSEMENT saute le demi-niveau (source Material 1.14.0,
+ *   `onViewReleased` : `fitToContents` → `STATE_EXPANDED` direct) ; le
+ *   niveau TOTAL est l'`expandedOffset` = bas de l'EN-TÊTE (posé quand
+ *   ses mesures arrivent), le niveau MOITIÉ le `halfExpandedRatio` ;
  * - LE CANVAS SE RETIRE : le conteneur du rendu se termine au bord
  *   courant de la feuille + la marge du HUD — le rendu, le zoom
  *   (bas-droite) et la pastille « Rendu · N vues » (bas-gauche) ne
@@ -31,6 +36,15 @@ import jo.codeide.feature.preview.databinding.ActivityPreviewBinding
  *   `translationY` ne couvrait ni l'état half-expanded ni la barre de
  *   gestes) ; la même valeur porte la réserve de la bulle (miroir le
  *   `sh` unique de la maquette) ;
+ * - LE CANVAS NE DISPARAIT JAMAIS (v0.173.0) : le retrait est BORNÉ à
+ *   la hauteur du conteneur moins la bande minimale ([GeometrieFeuille
+ *   Apercu.BANDE_CANVAS_MIN_DP]) — au niveau TOTAL la vue du rendu
+ *   reste MESURÉE derrière la feuille (opaque) : éditer un attribut
+ *   feuille déployée ne pulvérise PLUS le zoom, replier le fait
+ *   réapparaître le rendu INTACT ;
+ * - CLAVIER au niveau MOITIÉ (v0.173.0) : l'IME ouvre la feuille au
+ *   TOTAL (les volets perdent l'IME, le bord BAS remonte au-dessus du
+ *   clavier — prolongement v0.166.5) et le refermer rend la MOITIÉ ;
  * - la pose s'ANIME 250 ms (miroir `transition: bottom .25s ease`).
  */
 internal class GestionnaireFeuilleApercu(
@@ -46,16 +60,28 @@ internal class GestionnaireFeuilleApercu(
     /** Le dernier inset du CLAVIER reçu (ime — 0 fermé). */
     private var insetClavier = 0
 
+    /**
+     * La feuille était-elle au niveau MOITIÉ quand le CLAVIER s'est ouvert
+     * (v0.173.0) : fermer l'IME lui rend la MOITIÉ — la feuille ouverte au
+     * TOTAL par le CLAVIER ne s'y accroche pas sans le vouloir.
+     */
+    private var moitieAvantClavier = false
+
     /** L'animation du retrait du canvas (une seule à la fois). */
     private var animateurRetrait: ValueAnimator? = null
 
     /**
      * Monte la feuille (fragment + comportement + callbacks) : le retrait
-     * du canvas se pose aux états POSÉS (collapsed, expanded, half,
+     * du canvas se pose aux états POSÉS (collapsed, half, expanded,
      * hidden) — pendant le glissement la feuille passe PAR-DESSUS le
      * canvas comme dans la maquette, puis le canvas rétrécit à l'arrivée
      * (miroir `applySheet` sur les toggles). La pose initiale suit le
      * premier layout (le bord de la feuille n'est posé qu'alors).
+     *
+     * v0.173.0 : `fitToContents` FAUX ICI, AVANT tout changement d'état
+     * (la source Material convertit un demi-existant en total au passage
+     * fitToContents → faux) ; l'`expandedOffset` attend les mesures de
+     * l'en-tête ([majGeometrie]).
      */
     internal fun monter() {
         gestion
@@ -68,6 +94,11 @@ internal class GestionnaireFeuilleApercu(
         // vue du fragment (enfant du conteneur : from() planterait).
         val comportement = BottomSheetBehavior.from(liaison.conteneurFeuille)
         this.comportement = comportement
+        // DEUX NIVEAUX : fitToContents FAUX, sinon le glissement vise le
+        // TOTAL direct (Material 1.14.0, onViewReleased) et le demi-
+        // niveau ne vit qu'aux changements d'état programmatiques.
+        comportement.isFitToContents = false
+        comportement.halfExpandedRatio = GeometrieFeuilleApercu.RATIO_DEMI_EXPANSION
         comportement.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
                 override fun onStateChanged(
@@ -95,13 +126,34 @@ internal class GestionnaireFeuilleApercu(
      * l'écran) : la barre de navigation et le CLAVIER redéclenchent la
      * géométrie — le peek couvre les gestes, la hauteur des volets suit
      * l'IME.
+     *
+     * v0.173.0 — CLAVIER × NIVEAUX : l'IME qui s'OUVRE au niveau MOITIÉ
+     * monte la feuille au TOTAL (les volets perdant l'IME, le bord BAS
+     * remonte au-dessus du clavier — la moitié fixée par ratio ne le
+     * connaît pas) ; l'IME qui se FERME rend la MOITIÉ si c'est bien lui
+     * qui avait monté la feuille ([moitieAvantClavier]).
      */
     internal fun poserInsets(
         bas: Int,
         clavier: Int,
     ) {
         insetBas = bas
+        val clavierSOuvre = clavier > 0 && insetClavier == 0
+        val clavierSeFerme = clavier == 0 && insetClavier > 0
         insetClavier = clavier
+        if (clavierSOuvre) {
+            moitieAvantClavier =
+                comportement?.state == BottomSheetBehavior.STATE_HALF_EXPANDED
+            if (moitieAvantClavier) {
+                comportement?.state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+        if (clavierSeFerme && moitieAvantClavier) {
+            moitieAvantClavier = false
+            if (comportement?.state == BottomSheetBehavior.STATE_EXPANDED) {
+                comportement?.state = BottomSheetBehavior.STATE_HALF_EXPANDED
+            }
+        }
         majGeometrie()
     }
 
@@ -142,6 +194,12 @@ internal class GestionnaireFeuilleApercu(
                     insetNavigationPx = insetBas,
                 )
         }
+        // v0.173.0 — le niveau TOTAL vise le BAS DE L'EN-TÊTE :
+        // `expandedOffset` ne vit que fitToContents FAUX (posé au
+        // montage) ; la source Material exige un offset ≤ demi-niveau —
+        // l'en-tête (≈ 200 px) est toujours au-dessus de la moitié
+        // d'écran (halfExpandedOffset = 0,5 × écran).
+        comportement.expandedOffset = entete
         // La feuille s'est déplacée (volets retaillés, IME ouvert/fermé) :
         // le bord lu au layout suivant alimente le retrait du canvas.
         liaison.racinePreview.post { majRetrait() }
@@ -166,6 +224,12 @@ internal class GestionnaireFeuilleApercu(
      * courant de la feuille + la marge du HUD ; la même valeur porte la
      * réserve de la bulle (miroir le `sh` de la maquette). Inchangé, la
      * pose est immédiate ; sinon elle s'anime.
+     *
+     * v0.173.0 — BORNÉ ([GeometrieFeuilleApercu.retraitCanvasPx]) : le
+     * niveau TOTAL (feuille sous l'appbar) ne réduit plus le canvas à
+     * néant — il garde sa bande minimale MESURÉE derrière la feuille : le
+     * zoom survit aux éditions faites feuille déployée (« le canva ne
+     * doit pas glisser pour disparaitre »).
      */
     private fun majRetrait() {
         val feuille = liaison.conteneurFeuille.getChildAt(0)
@@ -175,6 +239,11 @@ internal class GestionnaireFeuilleApercu(
             GeometrieFeuilleApercu.retraitCanvasPx(
                 hauteurVisibleFeuillePx = hauteurVisible,
                 margeHudPx = liaison.root.resources.getDimensionPixelSize(R.dimen.apercu_hud_marge),
+                hauteurConteneurPx = liaison.conteneurRendu.height,
+                bandeCanvasMinPx =
+                    GeometrieFeuilleApercu.bandeCanvasMinPx(
+                        densite = liaison.root.resources.displayMetrics.density,
+                    ),
             )
         if (liaison.conteneurRendu.paddingBottom == cible) {
             liaison.bullePalette.reserveBas = cible
