@@ -35,6 +35,7 @@ public data class ProfilApercuCompose(
  * le reste se rend) ; [erreurs] les rapporte pour l'affichage inline
  * côté éditeur (la C3 les surlignera dans le code).
  */
+@Suppress("LongParameterList") // Porte TOUS les champs du rendu d'un onglet — état de la carte
 public class RenduPreviewCompose(
     /** Nom de la fonction `@Preview` (libellé de l'onglet de la carte). */
     public val nom: String,
@@ -48,6 +49,13 @@ public class RenduPreviewCompose(
     public val erreurs: List<ErreurCompose>,
     /** Message d'échec de CE rendu (null si [bitmap] présent). */
     public val messageErreur: String?,
+    /**
+     * C2 — géométries extraites de la composition (bounds px bitmap +
+     * ligne source par nœud) : le SÉSAME surlignage de la carte — le
+     * caret de l'éditeur sélectionne le nœud de SA ligne ; vide sur un
+     * échec local (aucun bitmap, aucun overlay).
+     */
+    public val noeuds: List<InfoNoeudCompose> = emptyList(),
 )
 
 /**

@@ -89,7 +89,28 @@ androidx-viewpager2 = "1.1.0"
 # rupture d'API (note de passage §3.74.0 du dépôt frère : tout est
 # additif, méthodes default ou nouvelles) ; artefacts JitPack v3.74.0
 # vérifiés HTTP 200 (cel-ui, cel-lsp, cel-lsp-api).
-code-editor = "3.74.0"
+# Montée 3.74.0 → 4.0.0 (bump-frère du 2026-10-24, instruction
+# propriétaire « mettre à jour la version des dépôts frères et aussi
+# dans CodeIDE ») : refonte INTERNE de cel-textmate (moteur natif du
+# dialecte, plan 10 — les 7 règles markdown à récursion et la règle CSS
+# selector compilent nativement, budget 100 ms par essai : un motif
+# catastrophique se replie en non-correspondance) + régime PROGRESSIF
+# des grands documents dans cel-core (plan 11 : au-delà de 800 lignes
+# plus AUCUNE passe complète — états en arrière-plan interruptibles,
+# spans à la demande, cache LRU 4 096 lignes ; ouverture 480k lignes
+# ~619 ms → ~200-330 ms, tas 147 Mo → ~26 Mo) + corpus de grammaires
+# porté de 10 à 23 (c, cpp, dockerfile, go, json, php, ruby, rust,
+# shell, sql, toml, typescript, yaml MIT/Apache-2.0 VERBATIM) — le
+# panneau couleur de CodeIDE gagne 13 langages SANS AUCUN changement
+# de code. API hôte : UNIQUEMENT l'additif `hintViewport(first,last)`
+# (EditorView, plan 11 — optionnel, non consommé pour l'instant) ; la
+# constante renommée TEXTMATE_LINE_LIMIT → TEXTMATE_EAGER_LIMIT est
+# interne à cel-core (vérifié : aucun usage côté CodeIDE). Le tag
+# v4.0.0 porte le correctif des plafonds de bancs sur runners CI
+# partagés (849bf3c — la 4.0.0 tagée EST la 4.0.0 testée) ; build
+# JitPack v4.0.0 « ok » (API builds, vérifié le 2026-10-24 : 4.0.0 et
+# v4.0.0 tous deux ok).
+code-editor = "4.0.0"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"
@@ -289,6 +310,16 @@ kotlin-metadata-jvm = { group = "org.jetbrains.kotlin", name = "kotlin-metadata-
 # personnel jjoblab, composite source P2 révisée ; les modules frères
 # transitent par les api(project(...)) du build inclus).
 layoutlib-inflater = { group = "com.github.jjoblab.LayoutLib", name = "module-inflater", version.ref = "layoutlib" }
+
+# Mission « Previews » C2 (PREVIEW.md §4.4) : la composition Compose
+# CONSULTE les MÊMES résolveurs PE1 que le moteur XML (réutilisation,
+# jamais réinvention — étude PE14 §5.3-1 « une seule machinerie, deux
+# dialectes ») : module-resources (qualifiers night/lang, chaînage des
+# références) + module-themes (chaîne d'héritage des styles). Statut
+# hors audit ProjectDependency de :preview:compose — coordonnées
+# EXTERNES, même statut que lsp-kotlin côté feature:editor (ADR 0140).
+layoutlib-resources = { group = "com.github.jjoblab.LayoutLib", name = "module-resources", version.ref = "layoutlib" }
+layoutlib-themes = { group = "com.github.jjoblab.LayoutLib", name = "module-themes", version.ref = "layoutlib" }
 
 # Dépôts séparés (bascule 2026-10-17) — voir la section versions.
 tooling-protocol = { group = "com.github.jjoblab.codeide-tooling", name = "protocol", version.ref = "codeide-tooling" }

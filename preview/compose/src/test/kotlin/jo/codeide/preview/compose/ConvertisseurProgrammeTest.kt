@@ -238,4 +238,108 @@ class ConvertisseurProgrammeTest {
         assertNotEquals("contenu différent, digeste différent", programme1.digeste, programme3.digeste)
         assertEquals(64, programme1.digeste.length)
     }
+
+    // ── C2 : les RÉFÉRENCES de ressources et de thème ───────────────
+
+    /** Un appel du registre avec UN argument RÉFÉRENCE. */
+    private fun appelReference(nomAppel: String, nomArgument: String?, texteReference: String): AppelFonctionKotlin =
+        AppelFonctionKotlin(
+            nom = nomAppel,
+            recepteur = null,
+            ligne = 7,
+            arguments =
+            listOf(
+                ArgumentAppelKotlin(
+                    nom = nomArgument,
+                    genre = GenreArgumentAppelKotlin.REFERENCE,
+                    texte = texteReference,
+                ),
+            ),
+            contenu = emptyList(),
+        )
+
+    @Test
+    fun `référence R string - genre REFERENCE_CHAINE, la référence voyage par SON NOM`() {
+        val (programme, erreurs) =
+            ConvertisseurProgramme.convertir(previewTexte(appelReference("Text", "text", "R.string.bonjour")))
+        assertEquals(GenreArgumentCompose.REFERENCE_CHAINE, programme.racine.single().arguments.single().genre)
+        assertEquals("bonjour", programme.racine.single().arguments.single().valeur)
+        assertTrue("une référence VALIDE ne produit AUCUNE erreur (la résolution vit au rendu)", erreurs.isEmpty())
+    }
+
+    @Test
+    fun `référence R color - genre REFERENCE_COULEUR`() {
+        val (programme, erreurs) =
+            ConvertisseurProgramme.convertir(previewTexte(appelReference("Text", "color", "R.color.accent")))
+        assertEquals(GenreArgumentCompose.REFERENCE_COULEUR, programme.racine.single().arguments.single().genre)
+        assertEquals("accent", programme.racine.single().arguments.single().valeur)
+        assertTrue(erreurs.isEmpty())
+    }
+
+    @Test
+    fun `référence R dimen - genre REFERENCE_DIMENSION`() {
+        val (programme, erreurs) =
+            ConvertisseurProgramme.convertir(previewTexte(appelReference("Spacer", "height", "R.dimen.carton")))
+        assertEquals(GenreArgumentCompose.REFERENCE_DIMENSION, programme.racine.single().arguments.single().genre)
+        assertEquals("carton", programme.racine.single().arguments.single().valeur)
+        assertTrue(erreurs.isEmpty())
+    }
+
+    @Test
+    fun `référence MaterialTheme colorScheme primary - genre REFERENCE_THEME, valeur = le SLOT`() {
+        val (programme, erreurs) =
+            ConvertisseurProgramme.convertir(
+                previewTexte(appelReference("Text", "color", "MaterialTheme.colorScheme.primary")),
+            )
+        assertEquals(GenreArgumentCompose.REFERENCE_THEME, programme.racine.single().arguments.single().genre)
+        assertEquals("primary", programme.racine.single().arguments.single().valeur)
+        assertTrue(erreurs.isEmpty())
+    }
+
+    @Test
+    fun `référence thème hors table - NON interprétée, erreur typée honnête`() {
+        val (programme, erreurs) =
+            ConvertisseurProgramme.convertir(
+                previewTexte(appelReference("Text", "color", "MaterialTheme.colorScheme.surfaceBright")),
+            )
+        assertEquals(GenreArgumentCompose.NON_INTERPRETE, programme.racine.single().arguments.single().genre)
+        assertTrue(erreurs.any { it.genre == GenreErreurCompose.ARGUMENT_NON_INTERPRETABLE })
+    }
+
+    @Test
+    fun `référence malformée ou famille hors C2 - NON interprétée`() {
+        listOf(
+            "R.string.",
+            "R.bool.ok",
+            "R.layout.carte",
+            "R.string.1x",
+            "Color.Red",
+            "MaterialTheme.typography.titleLarge",
+        ).forEach { brut ->
+            val (programme, erreurs) = ConvertisseurProgramme.convertir(
+                previewTexte(appelReference("Text", "color", brut)),
+            )
+            assertEquals(
+                "hors C2 : $brut",
+                GenreArgumentCompose.NON_INTERPRETE,
+                programme.racine.single().arguments.single().genre,
+            )
+            assertTrue(erreurs.any { it.genre == GenreErreurCompose.ARGUMENT_NON_INTERPRETABLE })
+        }
+    }
+
+    @Test
+    fun `digeste - sensible au NOM de la référence (pas à la valeur résolue)`() {
+        val programme1 = ConvertisseurProgramme.convertir(
+            previewTexte(appelReference("Text", "text", "R.string.bonjour")),
+        ).first
+        val programme2 = ConvertisseurProgramme.convertir(
+            previewTexte(appelReference("Text", "text", "R.string.auRevoir")),
+        ).first
+        assertNotEquals(
+            "deux noms de références différents, deux programmes différents",
+            programme1.digeste,
+            programme2.digeste,
+        )
+    }
 }

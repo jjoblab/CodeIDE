@@ -1,5 +1,108 @@
 # Journal des modifications
 
+## [0.175.0] – 2026-10-24
+
+### Correctif CI de v0.174.0 + montée code-editor 4.0.0 (bump-frère) + la preview Compose résout les RESSOURCES et le THÈME du projet et gagne le surlignage caret → nœud — mission « Previews » C2 (PREVIEW.md §4.4, ADR 0141)
+
+#### Corrigé
+
+- **La CI de v0.174.0 échouait sur `:preview:compose:lintDebug`** (7
+  erreurs `PrivateApi`, premier échec à `RenduCompose.kt:570` — le
+  module C1 venait d'être livré) : tous les accès réflexifs aux API
+  internes de la plateforme (`IWindowSession[.Default]`,
+  `View.AttachInfo`, `ViewRootImpl`, `WindowLayout`,
+  `dispatchAttachedToWindow`, champ `mParent` de `View`) vivent dans
+  l'objet `AttacherCompose` — le miroir assumé de la technique
+  `AttachInfo_Accessor`/RenderSessionImpl d'Android Studio que le rendu
+  hors-fenêtre exige (sans attach, une composition
+  `AbstractComposeView` ne démarre jamais) — mais la suppression lint
+  qui accompagne ce miroir côté XML manquait : `AttacheurVue`
+  (`:preview:xml`) la porte au niveau de la CLASSE avec son paragraphe
+  KDoc de justification. Posée à l'identique : `@Suppress("PrivateApi")`
+  + paragraphe KDoc documentant la délibération. **Aucun changement de
+  comportement** — la réflexion est inchangée, seul lint se tait ;
+  `SoonBlockedPrivateApi` reste supprimé au niveau de la méthode
+  (`poserFauxParent`, cible `targetSdk=28`, ADR 0045) comme côté XML.
+
+#### Montée (bump-frère — instruction propriétaire « mettre à jour la
+version des dépôts frères et aussi dans CodeIDE »)
+
+- **code-editor 3.74.0 → 4.0.0** (JitPack v4.0.0 vérifié `ok`, tag posé
+  sur le correctif de bancs 849bf3c) : refonte INTERNE de cel-textmate
+  (moteur natif du dialecte — les règles markdown à récursion et la
+  règle CSS `selector` compilent nativement, budget 100 ms par essai) +
+  régime PROGRESSIF des grands documents (au-delà de 800 lignes plus
+  AUCUNE passe complète — états arrière-plan interruptibles, ouverture
+  480k lignes ~619 ms → ~200-330 ms, tas 147 Mo → ~26 Mo) + corpus de
+  grammaires porté de 10 à **23** : le panneau couleur gagne 13
+  langages (c, cpp, dockerfile, go, json, php, ruby, rust, shell, sql,
+  toml, typescript, yaml) SANS AUCUN changement de code. API hôte
+  uniquement additive (`hintViewport`, non consommé) ; les autres
+  frères sont DÉJÀ à jour (LayoutLib 3.7.0, codeide-lsp 1.4.0,
+  codeide-tooling 1.0.0).
+
+#### Ajouté
+
+- **C2 — LES RESSOURCES ET LE THÈME DU PROJET VIVENT DANS LA
+  COMPOSITION** (PREVIEW.md §4.4 « réutilise les résolveurs PE1 »,
+  ADR 0141 D1-D4) : la requête transporte le PROJET
+  (`RequeteRenduCompose.dossierRes/langue/themeName`, champs en QUEUE
+  du parcel — miroir `vuesSysteme` du frère XML ; `null` = les
+  couleurs/material PAR DÉFAUT du runtime se rendent, comportement C1
+  exact). La composition CONSULTE les MÊMES résolveurs que le moteur
+  XML du même processus `:preview` (`ResolveursCompose` :
+  `ResourceResolverImpl`/`ThemeResolverImpl` de LayoutLib 3.7.0,
+  coordonnées externes hors audit ProjectDependency de
+  `:preview:compose` — même statut que lsp-kotlin) : `R.string.x`,
+  `R.color.x`, `R.dimen.x` et `MaterialTheme.colorScheme.SLOT` se
+  RÉSOLVENT AU RENDU (le digeste couvre le NOM de la référence — un
+  `colors.xml` édité re-rend au prochain rendu du document, jamais de
+  valeur résolue gelée) ; le THÈME du manifeste devient le SCHÉMA
+  Material de la composition (table unique `SlotsThemeCompose`, 21
+  slots principaux M3 ↔ attributs XML ; slots absents → défaults du
+  runtime — miroir S7 « le thème prévisualisé devient le thème des
+  vues ») ; le convertisseur reconnaît les références (`REFERENCE_*` en
+  queue des genres d'argument, slot hors table = NON interprété
+  honnête) ; une référence introuvable est l'erreur TYPIQUE
+  `RESSOURCE_INCONNUE` qui accompagne le rendu (l'argument retombe sur
+  son défaut — jamais un faux rendu, jamais un échec).
+- **C2 — EXTRACTION BOUNDS/FICHIER:LIGNE + SURLIGNAGE CARET → NŒUD**
+  (écho `ComposeViewInfoParser` de la référence — « le sésame
+  sélection/surlignage/navigation », ADR 0141 D5-D6) : chaque nœud du
+  registre publie sa GÉOMÉTRIE (`onGloballyPositioned` en queue de
+  chaîne = l'étendue dessinée, `boundsInRoot` = l'origine du bitmap)
+  + sa LIGNE source ; les `InfoNoeudCompose` traversent la frontière
+  AIDL (queue du `ResultatRenduCompose`) et nourrissent
+  `RenduPreviewCompose.noeuds`. La carte « goutte d'eau » dessine
+  par-dessus le bitmap FIT le CONTOUR 2 dp (`#43559E`, la teinte
+  d'appui du chrome de la planche XML) + remplissage translucide du
+  PREMIER nœud de la ligne du CARET — dessiné à CHAQUE frame, le
+  surlignage suit le caret en DIRECT (miroir « Ligne n » du frère
+  XML : le caret désigne, la carte montre). Le sens INVERSE (tap sur
+  un nœud → saut source) vit au chantier C3 — le corps de la carte
+  engloutit les taps (contrat cel-ui B27), une évolution de la
+  bibliothèque serait nécessaire.
+- **C2 — CÂBLAGE** : `MoteurPreviewCompose.definirProjet(dossierRes,
+  langue, themeName)` (un changement re-rend complet, miroir
+  `definirDossierRes` du frère XML) ; l'hôte pousse le projet au
+  changement d'onglet via `fournisseurProjet` (`EditorViewModel` :
+  dossier `res/` par marqueur `/res/` ou emplacements standards + thème
+  du manifeste — MIROIR `dossierResProjet`/`resoudreThemeActivite` du
+  PreviewViewModel) ; la LANGUE est transportée mais reste `null` au
+  C2 (aucun sélecteur dans la carte — miroir ADR 0140 qui reporte les
+  sélecteurs profil/jour-nuit).
+
+#### Docs
+
+- ADR 0141 ACCEPTÉE (C2 : requête projet + réutilisation PE1 + table
+  des slots + extraction bounds + surlignage caret → nœud + report du
+  tap inverse à C3) ; ROADMAP (C2 livré, prochaines étapes compose
+  listées) ; PREVIEW.md §4.4 (rangée C2 cochée) ; TESTS_MANUELS (4
+  scénarios appareil C2 : couleurs du projet dans la carte, chaîne
+  `values-fr`, surlignage caret, référence introuvable) ; note de
+  passage 4.0.0 complétée dans MISE-A-JOUR-CODEIDE.md du dépôt
+  code-editor.
+
 ## [0.174.0] – 2026-10-24
 
 ### La preview Compose vit dans la carte « goutte d'eau » : rendu statique persistant, live-edit par diff d'identité, erreurs typées — mission « Previews » C1 (PREVIEW.md §4, ADR 0140)

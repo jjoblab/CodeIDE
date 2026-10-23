@@ -40,6 +40,15 @@ public enum class GenreErreurCompose {
 
     /** Le rendu lui-même a échoué (composition/measure/draw) — message brut du moteur. */
     ERREUR_RENDU,
+
+    /**
+     * C2 — une référence de ressource ou de thème (`R.string.x`,
+     * `R.color.x`, `MaterialTheme.colorScheme.x`) n'a pas été résolue
+     * dans le PROJET : l'argument retombe sur son DÉFAUT honnête
+     * (miroir `createMockView` : jamais de faux rendu, l'erreur
+     * accompagne le rendu).
+     */
+    RESSOURCE_INCONNUE,
 }
 
 /**
