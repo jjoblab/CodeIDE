@@ -14,6 +14,7 @@ import jo.codeide.core.domain.AppLogger
 import jo.layoutlib.drawables.DrawableResolverImpl
 import jo.layoutlib.inflater.AttributeApplier
 import jo.layoutlib.inflater.BridgeInflater
+import jo.layoutlib.inflater.DirectionRendu
 import jo.layoutlib.inflater.ViewInfoCollector
 import jo.layoutlib.inflater.ViewTagRegistry
 import jo.layoutlib.inflater.bridge.bars.ChromeSysteme
@@ -110,6 +111,18 @@ internal fun ligneDeMessageRendu(message: String): Int? =
         ?.toIntOrNull()
 
 private val LIGNE_DANS_MESSAGE = Regex("line #(\\d+)")
+
+/**
+ * La DIRECTION de mise en page dérivée de la LANGUE d'aperçu (v0.173.0 —
+ * PE14 S8, RTL « gratuit ») : une locale RTL (ar, fa, he, ur…) passe le
+ * qualificateur RTL au moteur, tout le reste rend INDEFINI (le framework
+ * suit sa propre locale, comportement d'avant). La DÉRIVATION vit côté
+ * MOTEUR ([DirectionRendu.directionDepuisLangue] — une EXTENSION Android
+ * de `java.util.Locale`, invisible du compilateur Kotlin quand le JDK
+ * fournit la classe) ; ce passe-plat existe pour le TEST Robolectric
+ * ([DirectionDepuisLangueTest] — la table CLDR y est la table Android).
+ */
+internal fun directionDepuisLangue(langue: String?): Int = DirectionRendu.directionDepuisLangue(langue)
 
 @Suppress("TooManyFunctions", "LargeClass") // Pipeline nommé de PE1, étendu en PE3 (profils, nuit,
 // genres, sélection) puis PE6c/PE11g (collecte enrichie, détections problèmes) : l'éclater disperserait
@@ -317,6 +330,14 @@ public class RenduLayoutLib(
         // si le classpath a changé. Le cache (CacheClasspath) survit entre
         // rendus — signature inchangée → pas de reconstruction.
         reconfigurerClasspathSiNecessaire(requete.classpath)
+        // v0.173.0 — PE14 S8 (LayoutLib 3.7.0, étude § 2.4-5) : la
+        // direction de mise en page est GRATUITE quand la LANGUE d'aperçu
+        // est RTL — le qualificateur du moteur (miroir
+        // LayoutDirectionQualifier) suit la locale de la requête ; `null`
+        // ou locale LTR → INDEFINI (le framework seul décide, comportement
+        // d'avant). Les marges/paddings RELATIFS survivent maintenant au
+        // préprocesseur et DirectionRendu les résout au rendu.
+        inflater.setLayoutDirectionRendu(directionDepuisLangue(requete.langue))
         inflater.reset()
         val racine = inflater.inflate(requete.texte)
         // v0.130.1 : l'AttributeApplier (installé par défaut dès init{})
@@ -371,6 +392,10 @@ public class RenduLayoutLib(
                 racine,
                 decor.insets,
                 decor.modePlacement,
+                // v0.173.0 — PE14 S8 (LayoutLib 3.7.0) : les cookies de
+                // nœuds sources posés par l'inflater TRAVERSENT la
+                // collecte — l'appariement vue ↔ élément devient IDENTITAIRE.
+                inflater.viewCookies,
             )
         val vues = collecterVues(requete, racine, collecte.contenu)
         // PE14-S1 (ADR 0139) — la section « Système » de l'arbre : les
@@ -511,27 +536,46 @@ public class RenduLayoutLib(
                 AligneurElementsXml.ResolveurLayout { reference -> r.getLayout(reference) }
             }
         val elements = AligneurElementsXml.aligner(requete.texte, resolveur)
-        if (elements.size != infos.size) {
+
+        // v0.173.0 — PE14 S8 (LayoutLib 3.7.0) : appariement IDENTITAIRE
+        // par VIEWCOOKIE d'abord (« site:ordinal » posé par l'inflater,
+        // le MÊME schéma que l'aligneur) — un écart de COMPTE (include
+        // résolu nativement, ViewStub, rangée d'adapter) ne désarme PLUS
+        // la suite du document : chaque vue retrouve SON nœud par
+        // identité. Le repli PAR ORDRE reste pour les vues sans cookie
+        // (moteur d'avant 3.7.0 — compat) et n'apparie QUE si les
+        // comptes coïncident (le contrat d'avant, X4 : jamais de devinette).
+        val elementsParCookie: Map<String, AligneurElementsXml.ElementSource> =
+            elements.filter { it.cookie.isNotEmpty() }.associateBy { it.cookie }
+        val appariementOrdre = infos.size == elements.size
+        if (!appariementOrdre && elementsParCookie.isEmpty()) {
             journal?.w(TAG) {
                 "alignement sélection désarmé : ${infos.size} vues vs ${elements.size} éléments"
             }
-            return Array(infos.size) { indice ->
-                infos[indice].versInfoVue(
-                    InfoVueRendu.SANS_ELEMENT,
-                    InfoVueRendu.SANS_ELEMENT,
-                    attributs[indice],
-                    famille = familleDefinitive(attributs[indice], ""),
-                )
-            }
         }
         return Array(infos.size) { indice ->
-            val element = elements[indice]
-            infos[indice].versInfoVue(
-                element.debut,
-                element.fin,
+            val info = infos[indice]
+            val cookie = info.info.viewCookie
+            val element =
+                if (cookie != null) {
+                    elementsParCookie[cookie]
+                } else if (appariementOrdre) {
+                    elements[indice]
+                } else {
+                    null
+                }
+            info.versInfoVue(
+                element?.debut ?: InfoVueRendu.SANS_ELEMENT,
+                element?.fin ?: InfoVueRendu.SANS_ELEMENT,
                 attributs[indice],
-                texteCodeDur = ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin),
-                famille = familleDefinitive(attributs[indice], element.nomBalise),
+                texteCodeDur =
+                    if (element != null) {
+                        ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin)
+                    } else {
+                        false
+                    },
+                famille = familleDefinitive(attributs[indice], element?.nomBalise ?: ""),
+                cookie = cookie ?: "",
             )
         }
     }
@@ -704,6 +748,7 @@ public class RenduLayoutLib(
             attributs: AttributsVue,
             texteCodeDur: Boolean = false,
             famille: FamilleParent = FamilleParent.AUTRE,
+            cookie: String = "",
         ): InfoVueRendu =
             InfoVueRendu(
                 gauche = info.left,
@@ -736,8 +781,10 @@ public class RenduLayoutLib(
                 texteTronque = attributs.texteTronque,
                 sansContentDescription = attributs.sansContentDescription,
                 texteCodeDur = texteCodeDur,
-                // PE12a — famille de CONTENEUR (spec § 2.2), DERNIER champ.
+                // PE12a — famille de CONTENEUR (spec § 2.2).
                 famille = famille.name,
+                // v0.173.0 — PE14 S8 : l'identité du NŒUD XML SOURCE.
+                cookie = cookie,
             )
     }
 

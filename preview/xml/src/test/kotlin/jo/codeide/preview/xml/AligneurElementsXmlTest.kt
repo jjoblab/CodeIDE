@@ -127,7 +127,7 @@ class AligneurElementsXmlTest {
     }
 
     @Test
-    fun `include non résoluble - désalignement honnête (suite non sélectionnable)`() {
+    fun `include non résoluble - le span tient, le cookie rendra l appariement`() {
         val principal =
             """
             <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -139,14 +139,18 @@ class AligneurElementsXmlTest {
             """.trimIndent()
         // Resolveur qui ne connaît RIEN : l'include échoue → l'include
         // lui-même ne produit AUCUN élément (l'inflater gonfle nativement,
-        // hors de portée de l'aligneur) et la SUITE est désarmée (jamais
-        // de span deviné).
+        // hors de portée de l'aligneur). v0.173.0 (S8) : le Button APRÈS
+        // la rupture GARDE son span — l'appariement par ORDRE sautera
+        // (comptes divergents), le COOKIE le rendra par IDENTITÉ (les
+        // ordinaux des deux marches coïncident toujours : l'include a
+        // consommé le sien des deux côtés).
         val elements = AligneurElementsXml.aligner(principal, null)
         assertEquals("root + Button (l'include ne produit rien)", 2, elements.size)
-        // Le Button APRÈS la rupture est désarmé.
+        // Le Button APRÈS la rupture garde son span (rendu par cookie).
         assertEquals("Button", elements[1].nomBalise)
-        assertEquals(-1, elements[1].debut)
-        assertEquals(-1, elements[1].fin)
+        val debutButton = principal.indexOf("<Button")
+        assertEquals(debutButton, elements[1].debut)
+        assertTrue(elements[1].fin > elements[1].debut)
         // Le root, AVANT la rupture, garde son span.
         assertTrue(elements[0].debut >= 0)
         assertTrue(elements[0].fin > elements[0].debut)
@@ -208,5 +212,61 @@ class AligneurElementsXmlTest {
             val offset = AligneurElementsXml.debutLigne(doc, ligne)
             assertEquals(ligne, AligneurElementsXml.numeroLigne(doc, offset))
         }
+    }
+
+    // ── v0.173.0 — PE14 S8 : le VIEWCOOKIE « site:ordinal », MÊME schéma
+    //    que `BridgeInflater.poserCookie` (un ordinal par START_TAG, la
+    //    chaîne des <include> forme le site).
+
+    @Test
+    fun `cookies - un ordinal par START_TAG, les producteurs seuls en portent un`() {
+        // LinearLayout=0, TextView=1, Button=2, requestFocus=3 (consommé,
+        // SANS cookie — la balise ne produit rien).
+        val elements = AligneurElementsXml.aligner(document, null)
+        assertEquals(listOf(":0", ":1", ":2"), elements.map { it.cookie })
+    }
+
+    @Test
+    fun `cookies - deux includes du meme fichier, sites distincts`() {
+        val inclus = "<TextView />"
+        val principal = "<LinearLayout><include layout=\"@layout/x\"/><include layout=\"@layout/x\"/></LinearLayout>"
+        val resolveur = AligneurElementsXml.ResolveurLayout { if (it == "@layout/x") inclus else null }
+        val elements = AligneurElementsXml.aligner(principal, resolveur)
+        // LinearLayout=:0, les TextView inclus portent les SITES des
+        // includes (ordinaux 1 et 2) — les vues jumelles restent discernables.
+        assertEquals(listOf(":0", "1:0", "2:0"), elements.map { it.cookie })
+    }
+
+    @Test
+    fun `cookies - les balises sans vue consument un ordinal`() {
+        val doc = "<LinearLayout><requestFocus/><Button/></LinearLayout>"
+        val elements = AligneurElementsXml.aligner(doc, null)
+        // requestFocus consomme l'ordinal 1 : le Button vit en « :2 » —
+        // MÊME comptage que l'inflater (parité des marches).
+        assertEquals(listOf(":0", ":2"), elements.map { it.cookie })
+    }
+
+    @Test
+    fun `cookies - include imbrique, la chaine des sites se compose`() {
+        val externe = "<Button />"
+        val milieu = "<LinearLayout><include layout=\"@layout/externe\"/></LinearLayout>"
+        val principal = "<LinearLayout><include layout=\"@layout/milieu\"/></LinearLayout>"
+        val layouts = mapOf("@layout/milieu" to milieu, "@layout/externe" to externe)
+        val resolveur = AligneurElementsXml.ResolveurLayout { layouts[it] }
+        val elements = AligneurElementsXml.aligner(principal, resolveur)
+        // :0 racine ; 1:0 le LinearLayout du milieu ; 1>1:0 le Button du
+        // document DEUX niveaux plus bas — la CHAÎNE « site>site ».
+        assertEquals(listOf(":0", "1:0", "1>1:0"), elements.map { it.cookie })
+    }
+
+    @Test
+    fun `cookies - fragment producteur, sous-arbre ignore`() {
+        val doc = "<LinearLayout><fragment class=\"MonFragment\"><TextView/></fragment><Button/></LinearLayout>"
+        val elements = AligneurElementsXml.aligner(doc, null)
+        // Parité `parseFragmentPlaceholder` : le fragment produit UNE vue,
+        // son <TextView> intérieur ne compte PAS (skipElement côté
+        // inflater) — le Button suit directement.
+        assertEquals(listOf("LinearLayout", "fragment", "Button"), elements.map { it.nomBalise })
+        assertEquals(listOf(":0", ":1", ":2"), elements.map { it.cookie })
     }
 }

@@ -107,6 +107,13 @@ public class InfoVueRendu(
      * [FamilleParent] (PE12a), DERNIER champ du contrat Parcel ; vide
      * quand l'information manque (spec § 2.2). */
     public val famille: String = "",
+    /** Le VIEWCOOKIE du nœud XML SOURCE (v0.173.0 — PE14 S8, LayoutLib
+     * 3.7.0 : « site:ordinal » — l'identité du nœud du document, chaîne
+     * des `<include>` comprise ; vide = moteur sans cookie (compat) ou
+     * vue synthétique). L'appariement vue ↔ élément se fait par
+     * IDENTITÉ : un écart de compte (include natif, ViewStub) ne désarme
+     * plus la sélection de la SUITE du document. */
+    public val cookie: String = "",
 ) : Parcelable {
     private constructor(parcel: Parcel) : this(
         gauche = parcel.readInt(),
@@ -135,6 +142,7 @@ public class InfoVueRendu(
         sansContentDescription = parcel.readByte() != 0.toByte(),
         texteCodeDur = parcel.readByte() != 0.toByte(),
         famille = parcel.readString() ?: "",
+        cookie = parcel.readString() ?: "",
     )
 
     override fun writeToParcel(
@@ -168,8 +176,10 @@ public class InfoVueRendu(
         parcel.writeByte(if (texteTronque) 1 else 0)
         parcel.writeByte(if (sansContentDescription) 1 else 0)
         parcel.writeByte(if (texteCodeDur) 1 else 0)
-        // PE12a — DERNIER champ du contrat Parcel (spec § 2.2 : ajouté à la fin).
+        // PE12a — champ du contrat Parcel (spec § 2.2 : ajouté à la fin).
         parcel.writeString(famille)
+        // v0.173.0 — DERNIER champ du contrat Parcel (ajouté à la fin).
+        parcel.writeString(cookie)
     }
 
     override fun describeContents(): Int = 0
@@ -206,7 +216,8 @@ public class InfoVueRendu(
             other.texteTronque == texteTronque &&
             other.sansContentDescription == sansContentDescription &&
             other.texteCodeDur == texteCodeDur &&
-            other.famille == famille
+            other.famille == famille &&
+            other.cookie == cookie
 
     override fun hashCode(): Int {
         var resultat = gauche
@@ -235,6 +246,7 @@ public class InfoVueRendu(
         resultat = 31 * resultat + if (sansContentDescription) 1 else 0
         resultat = 31 * resultat + if (texteCodeDur) 1 else 0
         resultat = 31 * resultat + famille.hashCode()
+        resultat = 31 * resultat + cookie.hashCode()
         return resultat
     }
 

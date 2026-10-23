@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
  * insertion XML, en fonctions pures ») : l'édition `(debut, fin,
  * remplacement)` est vérifiée PAR APPLICATION au texte (le résultat doit
  * rester du XML bienformé et porter l'extrait à sa place) — plus les
- * refus X4 (span périmé, malforme, include non résolu) et les deux
+ * refus X4 (span périmé, malforme, élément EXTERNE sans span) et les deux
  * façonnages ([renumeroter], [contraindre]).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -180,7 +180,7 @@ public class InsertionXmlTest {
     }
 
     @Test
-    fun `include non résolu — insertion avant un frère sans span refusée, append accepté`() {
+    fun `include non résolu — le frère suivant garde son span, append accepté`() {
         val document =
             """<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -191,8 +191,12 @@ public class InsertionXmlTest {
 </LinearLayout>
 """.trimStart()
         val elements = AligneurElementsXml.aligner(document, null)
-        // Le TextView APRÈS l'include non résolu a perdu son span (désalignement).
-        assertTrue(elements.drop(1).all { it.debut < 0 })
+        // v0.173.0 (S8) : le TextView APRÈS l'include non résolu GARDE son
+        // span — le span est RÉEL (le texte est bien dans CE document) et
+        // l'appariement par COOKIE le rendra (jamais l'ordre, comptes
+        // divergents) ; le span externe (fichier inclus RÉSOLU) reste la
+        // seule forme désarmée.
+        assertTrue(elements.drop(1).all { it.debut >= 0 })
         val span = InsertionXml.SpanParent(elements.first().debut, elements.first().fin)
         // Append (index borné à la fin) : la fermante reste fiable.
         val append = InsertionXml.inserer(document, span, 5, bouton)!!
