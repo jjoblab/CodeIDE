@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -232,7 +233,7 @@ internal class RenduCompose(
                 View.MeasureSpec.makeMeasureSpec(hauteurPx, View.MeasureSpec.EXACTLY),
             )
             session.vue.layout(0, 0, largeurPx, hauteurPx)
-            val bitmap = Bitmap.createBitmap(largeurPx, hauteurPx, Bitmap.Config.ARGB_8888)
+            val bitmap = createBitmap(largeurPx, hauteurPx, Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(if (requete.nuit) COULEUR_FOND_NUIT else COULEUR_FOND_JOUR)
             val canevas = Canvas(bitmap)
             session.vue.draw(canevas)

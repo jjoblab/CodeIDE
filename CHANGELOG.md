@@ -1,5 +1,24 @@
 # Journal des modifications
 
+## [0.175.3] – 2026-10-24
+
+### Correctif CI : le bitmap du rendu naît par createBitmap KTX
+
+#### Corrigé
+
+- **La CI de v0.175.2 échouait sur `:preview:compose:lintDebug`** (règle
+  lint `UseKtx` : le module consomme déjà androidx.core-ktx —
+  `Bitmap.createBitmap(w, h, config)` devient
+  `androidx.core.graphics.createBitmap(w, h, config)`) : la ligne date
+  de C1 mais le module n'a été LINTÉ pour la première fois qu'à
+  v0.174.0 — dont la CI est morte sur PrivateApi avant d'atteindre
+  cette règle ; les correctifs précédents (PrivateApi v0.175.0,
+  fabriques → extensions v0.175.1, paramètre `modifier` v0.175.2) ont
+  successivement éteint chaque règle, UseKtx est la DERNIÈRE du
+  rapport. **Aucun changement de comportement** — même bitmap, même
+  configuration ARGB_8888 (l'extension KTX délègue à la même API
+  plateforme).
+
 ## [0.175.2] – 2026-10-24
 
 ### Correctif CI : le paramètre Modifier de la pastille d'erreur s'appelle `modifier`
