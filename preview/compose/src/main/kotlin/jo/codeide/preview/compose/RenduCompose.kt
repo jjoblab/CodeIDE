@@ -534,21 +534,21 @@ internal fun RendreNoeud(noeud: NoeudProgramme, contexte: ContexteRendu) {
             PastilleErreur(
                 "« ${noeud.nom} » hors registre (C1)",
                 GenreErreurCompose.COMPOSABLE_INCONNU,
-                modificateur = Modifier.bornesDe(noeud, contexte),
+                modifier = Modifier.bornesDe(noeud, contexte),
             )
 
         GenreNoeudCompose.ERREUR_EXPRESSION ->
             PastilleErreur(
                 "Non interprété : ${ellipseNom(noeud.nom)}",
                 GenreErreurCompose.EXPRESSION_NON_INTERPRETEE,
-                modificateur = Modifier.bornesDe(noeud, contexte),
+                modifier = Modifier.bornesDe(noeud, contexte),
             )
 
         GenreNoeudCompose.ERREUR_INLINE ->
             PastilleErreur(
                 "« ${noeud.nom} » non inliné (projet)",
                 GenreErreurCompose.COMPOSABLE_PROJET_PARAMETRES,
-                modificateur = Modifier.bornesDe(noeud, contexte),
+                modifier = Modifier.bornesDe(noeud, contexte),
             )
     }
 }
@@ -684,10 +684,10 @@ private fun largeurDe(noeud: NoeudProgramme, contexte: ContexteRendu): Dp? {
 
 /** Pastille d'erreur inline (isole le nœud fautif — le reste se rend). */
 @Composable
-private fun PastilleErreur(message: String, genre: GenreErreurCompose, modificateur: Modifier = Modifier) {
+private fun PastilleErreur(message: String, genre: GenreErreurCompose, modifier: Modifier = Modifier) {
     Box(
         modifier =
-        modificateur
+        modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.errorContainer),
     ) {

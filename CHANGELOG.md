@@ -1,5 +1,21 @@
 # Journal des modifications
 
+## [0.175.2] – 2026-10-24
+
+### Correctif CI : le paramètre Modifier de la pastille d'erreur s'appelle `modifier`
+
+#### Corrigé
+
+- **La CI de v0.175.1 échouait sur `:preview:compose:lintDebug`** (règle
+  lint Compose `ModifierParameter` d'androidx.compose.ui : le paramètre
+  de type Modifier d'un composable DOIT s'appeler `modifier`) : le
+  troisième paramètre de `PastilleErreur` portait le nom francisé
+  `modificateur` — renommé `modifier` (les extensions de la v0.175.1
+  ont BIEN fonctionné, la règle précédente est éteinte ; kover est
+  VERT sur cette même livraison — tous les tests passent en CI).
+  **Aucun changement de comportement** — même paramètre, même valeur
+  par défaut, même chaîne de modificateurs.
+
 ## [0.175.1] – 2026-10-24
 
 ### Correctif CI : les fabriques de modificateurs C2 deviennent des EXTENSIONS de Modifier
