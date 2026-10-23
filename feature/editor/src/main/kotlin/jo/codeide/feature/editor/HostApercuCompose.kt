@@ -35,9 +35,16 @@ internal interface PortMoteurPreviewCompose : AutoCloseable {
 
     /** Ré-activation du processus `:preview` (ré-ouverture = nouvelle tentative). */
     fun reactiverIsolation()
+
+    /**
+     * C2 — Définit le PROJET du rendu (dossier `res/`, langue, thème
+     * d'activité) : ressources et thème de la composition. Un
+     * changement relance un rendu complet.
+     */
+    fun definirProjet(dossierRes: String?, langue: String?, themeName: String?)
 }
 
-/** Adaptateur 1:1 du moteur réel sur le port (quatre délégations pures). */
+/** Adaptateur 1:1 du moteur réel sur le port (cinq délégations pures). */
 private class MoteurComposeSurPort(private val moteur: MoteurPreviewCompose) : PortMoteurPreviewCompose {
     override val etat: StateFlow<EtatPreviewCompose> = moteur.etat
 
@@ -47,11 +54,28 @@ private class MoteurComposeSurPort(private val moteur: MoteurPreviewCompose) : P
 
     override fun reactiverIsolation() = moteur.reactiverIsolation()
 
+    override fun definirProjet(dossierRes: String?, langue: String?, themeName: String?) =
+        moteur.definirProjet(dossierRes, langue, themeName)
+
     override fun close() = moteur.close()
 }
 
 /** Enveloppe le moteur réel dans le port consommé par l'hôte. */
 internal fun MoteurPreviewCompose.enPort(): PortMoteurPreviewCompose = MoteurComposeSurPort(this)
+
+/**
+ * Le PROJET de l'aperçu Compose d'un document (C2) — résolu par
+ * [HostApercuCompose.fournisseurProjet] côté [EditorViewModel] :
+ * dossier `res/` (ressources + thème de la composition) et thème
+ * d'activité du manifeste (miroir PE1). `null`/absent = la composition
+ * rend sur les DÉFAUTS DU RUNTIME (comportement C1).
+ */
+internal data class ProjetApercuCompose(
+    /** Dossier `res/` du projet (`null` = repli défaults runtime). */
+    val dossierRes: String?,
+    /** Thème d'activité du manifeste (`null` = chaîne par défaut du résolveur). */
+    val themeName: String?,
+)
 
 /**
  * Hôte de la carte d'aperçu « goutte d'eau » pour les previews Compose
@@ -102,6 +126,12 @@ internal class HostApercuCompose(
     private val sessionKotlin: StateFlow<SessionLspKotlin?>,
     scope: CoroutineScope,
     private val moteur: PortMoteurPreviewCompose,
+    /**
+     * C2 — le PROJET de l'onglet actif (dossier res/ + thème du
+     * manifeste), résolu au changement d'onglet (suspend : résolution
+     * FUSE en IO) ; null = défauts runtime.
+     */
+    private val fournisseurProjet: suspend (String) -> ProjetApercuCompose? = { null },
 ) : EditorPreviewHost,
     AutoCloseable {
     /** Dernier rendu VALIDE (contrat « jamais de carte vide » — survit aux signaux discrets). */
@@ -138,6 +168,12 @@ internal class HostApercuCompose(
     /** Peinture des messages honnêtes (état vide / échec). */
     private val peintureTexte = Paint(Paint.ANTI_ALIAS_FLAG)
 
+    /** Peinture du CONTOUR de surlignage (C2 — trait 2 dp, teinte d'appui du chrome). */
+    private val peintureContour = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+
+    /** Peinture du REMPLISSAGE de surlignage (C2 — même teinte translucide). */
+    private val peintureRemplissage = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
+
     init {
         scope.launch {
             // L'onglet ACTIF suit l'état de l'espace : chaque CHANGEMENT
@@ -154,6 +190,15 @@ internal class HostApercuCompose(
                 }.distinctUntilChanged()
                 .collect { actif ->
                     document = actif
+                    // C2 — le PROJET suit l'onglet actif : ressources et
+                    // thème de la composition (un CHANGEMENT relance un
+                    // rendu complet côté moteur ; null = défauts du
+                    // runtime, comportement C1 — projet absent).
+                    var projet: ProjetApercuCompose? = null
+                    if (actif != null) {
+                        projet = fournisseurProjet(actif.first)
+                    }
+                    moteur.definirProjet(projet?.dossierRes, null, projet?.themeName)
                     val uri = actif?.first ?: return@collect
                     // Le fournisseur vit sur le FIL DU MOTEUR (après le
                     // debounce) : la session est relue À CHAQUE passe —
@@ -255,6 +300,13 @@ internal class HostApercuCompose(
                 RectF(gauche, haut, gauche + bitmap.width * echelle, haut + bitmap.height * echelle),
                 peintureBitmap,
             )
+            // C2 — SURLIGNAGE du nœud du caret : les géométries extraites
+            // (rendu.noeuds — bounds bitmap + ligne source, écho
+            // ComposeViewInfoParser) désignent le nœud de la LIGNE du
+            // caret de l'éditeur ; le sens inverse (tap sur un nœud →
+            // saut source) exige une évolution cel-ui (le corps de la
+            // carte engloutit les taps) et vit au chantier C3.
+            dessinerSurlignage(canvas, rendu, echelle, gauche, haut)
             return
         }
         dessinerMessage(canvas, RectF(x, y, x + w, y + h), messageDe(tab))
@@ -322,6 +374,60 @@ internal class HostApercuCompose(
         }
     }
 
+    /**
+     * C2 — SURLIGNAGE du nœud du caret (miroir « Ligne n » de la planche
+     * XML : le caret désigne, la carte montre) : le nœud de la ligne du
+     * caret reçoit un contour 2 dp + remplissage translucide de la MÊME
+     * teinte d'appui, par-dessus le bitmap FIT. Dessiné à CHAQUE frame —
+     * le surlignage suit le caret en DIRECT.
+     */
+    internal fun dessinerSurlignage(
+        canvas: Canvas,
+        rendu: RenduPreviewCompose,
+        echelle: Float,
+        gauche: Float,
+        haut: Float,
+    ) {
+        val rectangle = rectangleDuCaret(rendu, echelle, gauche, haut) ?: return
+        val densite = contexte.resources.displayMetrics.density
+        peintureRemplissage.color = COULEUR_SURLIGNAGE
+        peintureRemplissage.alpha = ALPHA_SURLIGNAGE
+        canvas.drawRect(rectangle, peintureRemplissage)
+        peintureContour.color = COULEUR_SURLIGNAGE
+        peintureContour.strokeWidth = EPAISSEUR_SURLIGNAGE_DP * densite
+        canvas.drawRect(rectangle, peintureContour)
+    }
+
+    /**
+     * Le rectangle CARTE du nœud du caret (bornes px bitmap passées à
+     * l'échelle du FIT) — `null` sans vue, sans nœud de la ligne, ou
+     * géométrie vide : RIEN (aucun faux rectangle sur un état périmé).
+     * Le PREMIER nœud de la ligne l'emporte (l'appel le plus externe —
+     * le construct de la ligne).
+     */
+    private fun rectangleDuCaret(rendu: RenduPreviewCompose, echelle: Float, gauche: Float, haut: Float): RectF? =
+        ligneCaret()?.let { ligne ->
+            rendu.noeuds.firstOrNull {
+                it.ligne == ligne && it.droite > it.gauche && it.bas > it.haut
+            }
+        }?.let { noeud ->
+            RectF(
+                gauche + noeud.gauche * echelle,
+                haut + noeud.haut * echelle,
+                gauche + noeud.droite * echelle,
+                haut + noeud.bas * echelle,
+            )
+        }
+
+    /**
+     * La ligne 1-indexée du caret de l'éditeur (0 → 1) — null sans vue
+     * ni session (aucun surlignage possible, la carte reste au bitmap).
+     */
+    internal fun ligneCaret(): Int? {
+        val session = vueEditeur?.session ?: return null
+        return session.getDocument().lineForOffset(session.getSelection().start) + 1
+    }
+
     /** Message centré dans l'écran du mini-téléphone (couleur d'appui sur fond clair de la carte). */
     private fun dessinerMessage(canvas: Canvas, ecran: RectF, message: String) {
         val densite = contexte.resources.displayMetrics.density
@@ -356,5 +462,19 @@ internal class HostApercuCompose(
 
         /** Gris d'appui M3 sur l'écran clair de la carte (0xFF6D6D72 — onSurfaceVariant). */
         internal const val COULEUR_MESSAGE: Int = 0xFF6D6D72.toInt()
+
+        /**
+         * Teinte d'appui du surlignage C2 : le `--s-pri` CLAIR du chrome
+         * de la planche XML (`#43559E`) — la carte partage sa couleur
+         * d'appui avec le chrome de l'aperçu (cohérence maison, une
+         * seule teinte pour « vous êtes ici »).
+         */
+        internal const val COULEUR_SURLIGNAGE: Int = 0xFF43559E.toInt()
+
+        /** Translucide du remplissage de surlignage (14 % — le bitmap reste lisible dessous). */
+        internal const val ALPHA_SURLIGNAGE: Int = 36
+
+        /** Épaisseur du contour de surlignage (dp — coordonnées carte). */
+        internal const val EPAISSEUR_SURLIGNAGE_DP: Float = 2f
     }
 }

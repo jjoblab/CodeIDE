@@ -24,6 +24,9 @@ public class ServicePreviewCompose : Service() {
     /** L'exécuteur du processus : le fil principal (Choreographer y vit). */
     private val executeurPrincipal: Executor by lazy { ContextCompat.getMainExecutor(this) }
 
+    /** C2 — les résolveurs du projet (cache d'un scan disque par combinaison). */
+    private val resolveurs: ResolveursCompose by lazy { ResolveursCompose(this) }
+
     /** Le moteur de rendu — paresseux, possédé par le service. */
     private val rendu: RenduCompose by lazy {
         RenduCompose(
@@ -31,6 +34,7 @@ public class ServicePreviewCompose : Service() {
             executeur = executeurPrincipal,
             dispatcheurComposition = Dispatchers.Main,
             journal = { },
+            resolveurs = resolveurs,
         )
     }
 

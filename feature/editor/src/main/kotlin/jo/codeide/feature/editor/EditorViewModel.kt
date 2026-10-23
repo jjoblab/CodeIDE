@@ -475,6 +475,10 @@ constructor(
                     journal,
                     viewModelScope,
                 ).enPort(),
+                // C2 — le PROJET de l'aperçu suit l'onglet actif :
+                // dossier `res/` + thème du manifeste (miroir PE1 du
+                // frère XML, résolution suspend FUSE).
+                fournisseurProjet = ::projetApercuCompose,
             )
         }
 
@@ -1458,6 +1462,68 @@ constructor(
         // résolveur), l'empreinte Gradle et le sync-state.
         ?.documentUri
         ?.let { resolveurChemin(it) }
+
+    /**
+     * C2 — Le PROJET de l'aperçu Compose d'un document (miroir PE1 du
+     * frère XML, PREVIEW.md §4.4) : dossier `res/` du projet (marqueur
+     * `/res/` du chemin relatif de la session, à défaut emplacements
+     * standard — MIROIR `dossierResProjet` du PreviewViewModel) et
+     * thème d'activité du manifeste (premier `android:theme` — MIROIR
+     * `resoudreThemeActivite`). `null` sans projet ouvert : la
+     * composition rend sur les DÉFAUTS DU RUNTIME (comportement C1).
+     */
+    internal suspend fun projetApercuCompose(uri: String): ProjetApercuCompose? {
+        val racine = resoudreCheminProjet() ?: return null
+        val dossierRes =
+            dossierResApercuCompose(
+                racine,
+                sessions[uri]?.sourceApercu?.cheminRelatif,
+            )
+        val themeName = themeManifesteApercuCompose(racine)
+        return if (dossierRes == null && themeName == null) null else ProjetApercuCompose(dossierRes, themeName)
+    }
+
+    /**
+     * Le dossier `res/` du projet (marqueur `/res/` du chemin relatif,
+     * à défaut emplacements standard — miroir `dossierResProjet` du
+     * frère XML : le document `app/src/main/res/values/…` désigne le
+     * `res/` de SON module).
+     */
+    private fun dossierResApercuCompose(racineProjet: String, cheminRelatif: String?): String? {
+        val marqueur = "/res/"
+        cheminRelatif?.indexOf(marqueur)?.takeIf { it > 0 }?.let { debut ->
+            val candidat = racineProjet.trimEnd('/') + "/" + cheminRelatif.substring(0, debut + marqueur.length - 1)
+            if (java.io.File(candidat).isDirectory) return candidat
+        }
+        val base = racineProjet.trimEnd('/')
+        return listOf("$base/app/src/main/res", "$base/src/main/res", "$base/res")
+            .firstOrNull { java.io.File(it).isDirectory }
+    }
+
+    /**
+     * Le thème d'activité du manifeste (premier `android:theme` du
+     * premier manifest trouvé — miroir `lireManifeste` +
+     * `resoudreThemeActivite` du frère XML, chemins standards).
+     */
+    private fun themeManifesteApercuCompose(racineProjet: String): String? {
+        val base = racineProjet.trimEnd('/')
+        val manifeste =
+            listOf(
+                "$base/app/src/main/AndroidManifest.xml",
+                "$base/src/main/AndroidManifest.xml",
+                "$base/AndroidManifest.xml",
+            ).firstOrNull { java.io.File(it).isFile } ?: return null
+        val contenu =
+            try {
+                java.io.File(manifeste).readText()
+            } catch (_: Throwable) {
+                return null
+            }
+        return Regex("""android:theme\s*=\s*"(@style/[^"]+|@android:style/[^"]+)"""")
+            .find(contenu)
+            ?.groupValues
+            ?.get(1)
+    }
 
     /**
      * Chemin FUSE résolu du dossier projet (mission IA, lot IA-3,

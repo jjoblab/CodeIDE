@@ -150,4 +150,100 @@ class ContratsComposeTest {
         val relue = allerRetour(programme, ProgrammeCompose.CREATOR)
         assertEquals(programme.digeste, ProgrammeCompose.digesteDe(relue.racine, relue.coupureBudget))
     }
+
+    // ── C2 : le PROJET de la requête et les géométries du résultat ───
+
+    @Test
+    fun `requete C2 - le projet (dossier res, langue, thème) survit au parcel`() {
+        val requete =
+            RequeteRenduCompose(
+                identite = "file:///x.kt#Apercu#0",
+                programme = programmeImbrique(),
+                largeurDp = 393,
+                hauteurDp = 851,
+                densiteDpi = 440,
+                nuit = false,
+                dossierRes = "/proj/app/src/main/res",
+                langue = "fr",
+                themeName = "@style/Theme.MonApp",
+            )
+        val relue = allerRetour(requete, RequeteRenduCompose.CREATOR)
+        assertEquals("/proj/app/src/main/res", relue.dossierRes)
+        assertEquals("fr", relue.langue)
+        assertEquals("@style/Theme.MonApp", relue.themeName)
+        assertEquals(requete, relue)
+    }
+
+    @Test
+    fun `requete C2 - sans projet, les défauts null (comportement C1)`() {
+        val requete =
+            RequeteRenduCompose(
+                identite = "file:///x.kt#Apercu#0",
+                programme = programmeImbrique(),
+                largeurDp = 393,
+                hauteurDp = 851,
+                densiteDpi = 440,
+                nuit = false,
+            )
+        val relue = allerRetour(requete, RequeteRenduCompose.CREATOR)
+        assertEquals(null, relue.dossierRes)
+        assertEquals(null, relue.langue)
+        assertEquals(null, relue.themeName)
+    }
+
+    @Test
+    fun `resultat C2 - les géométries extraites survivent au parcel`() {
+        val bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(0xFF112233.toInt())
+        val noeuds =
+            arrayOf(
+                InfoNoeudCompose(
+                    ligne = 12,
+                    genre = GenreNoeudCompose.COLONNE,
+                    gauche = 0,
+                    haut = 0,
+                    droite = 1080,
+                    bas = 800,
+                ),
+                InfoNoeudCompose(
+                    ligne = 13,
+                    genre = GenreNoeudCompose.TEXTE,
+                    gauche = 22,
+                    haut = 44,
+                    droite = 300,
+                    bas = 90,
+                ),
+            )
+        val resultat =
+            ResultatRenduCompose(
+                ok = true,
+                message = null,
+                bitmap = bitmap,
+                erreurs = emptyArray(),
+                metriques = MetriquesRenduCompose(11L, 2, 4, 4),
+                noeuds = noeuds,
+            )
+        val relue = allerRetour(resultat, ResultatRenduCompose.CREATOR)
+        assertEquals(2, relue.noeuds.size)
+        assertEquals(13, relue.noeuds[1].ligne)
+        assertEquals(GenreNoeudCompose.TEXTE, relue.noeuds[1].genre)
+        assertEquals(22, relue.noeuds[1].gauche)
+        assertEquals(90, relue.noeuds[1].bas)
+        assertEquals(resultat, relue)
+    }
+
+    @Test
+    fun `info noeud - aller-retour parcel`() {
+        val info =
+            InfoNoeudCompose(
+                ligne = 7,
+                genre = GenreNoeudCompose.ERREUR_EXPRESSION,
+                gauche = 1,
+                haut = 2,
+                droite = 3,
+                bas = 4,
+            )
+        val relue = allerRetour(info, InfoNoeudCompose.CREATOR)
+        assertEquals(info, relue)
+    }
 }

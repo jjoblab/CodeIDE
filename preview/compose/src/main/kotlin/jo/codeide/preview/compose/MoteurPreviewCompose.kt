@@ -49,6 +49,7 @@ import kotlinx.coroutines.withContext
  * Cycle de vie : [close] coupe debounce, worker ET transport
  * (déliaison → le processus :preview meurt seul — idle-shutdown).
  */
+@Suppress("TooManyFunctions") // Contrat miroir du frère XML : un setter par paramètre de rendu
 @OptIn(kotlinx.coroutines.FlowPreview::class)
 public class MoteurPreviewCompose(
     contexte: Context,
@@ -104,6 +105,15 @@ public class MoteurPreviewCompose(
 
     /** Régime nuit courant (thème Material clair/sombre du rendu). */
     private var nuitCourante: Boolean = false
+
+    /** C2 — le PROJET courant : dossier `res/` du rendu (null = défauts runtime). */
+    private var dossierResCourant: String? = null
+
+    /** C2 — la langue du rendu (`values-<lang>/`, null = défaut). */
+    private var langueCourante: String? = null
+
+    /** C2 — le thème d'activité du manifeste (null = chaîne par défaut du résolveur). */
+    private var themeCourant: String? = null
 
     /** Document branché : (uri, fournisseur paresseux de previews). */
     private var documentCourant: Document? = null
@@ -182,6 +192,28 @@ public class MoteurPreviewCompose(
     public fun definirNuit(nuit: Boolean) {
         if (ferme || nuit == nuitCourante) return
         nuitCourante = nuit
+        relancerSiPreviews()
+    }
+
+    /**
+     * C2 — Définit le PROJET du rendu : dossier `res/` (ressources et
+     * thème de la composition, miroir `definirDossierRes` du frère
+     * XML), langue et thème d'activité. Un CHANGEMENT relance un rendu
+     * complet (le schéma, les chaînes et les dimensions du projet
+     * suivent — la session vivante se re-thème par recomposition).
+     * `null` sur les trois = retour aux DÉFAUTS DU RUNTIME (C1).
+     */
+    public fun definirProjet(dossierRes: String?, langue: String? = null, themeName: String? = null) {
+        if (ferme) return
+        if (dossierRes == dossierResCourant &&
+            langue == langueCourante &&
+            themeName == themeCourant
+        ) {
+            return
+        }
+        dossierResCourant = dossierRes
+        langueCourante = langue
+        themeCourant = themeName
         relancerSiPreviews()
     }
 
@@ -275,6 +307,9 @@ public class MoteurPreviewCompose(
                 hauteurDp = profilCourant.hauteurDp,
                 densiteDpi = profilCourant.densiteDpi,
                 nuit = nuitCourante,
+                dossierRes = dossierResCourant,
+                langue = langueCourante,
+                themeName = themeCourant,
             )
         val rendu: RenduPreviewCompose =
             when (val resultat = withContext(dispatchers.default) { transport.rendre(requete) }) {
@@ -285,6 +320,7 @@ public class MoteurPreviewCompose(
                         bitmap = resultat.bitmap,
                         metriques = resultat.metriques,
                         erreurs = erreursConversion + resultat.erreurs,
+                        noeuds = resultat.noeuds,
                         messageErreur = null,
                     )
                 }
@@ -296,6 +332,7 @@ public class MoteurPreviewCompose(
                         bitmap = null,
                         metriques = MetriquesRenduCompose.NULLES,
                         erreurs = erreursConversion + resultat.erreurs,
+                        noeuds = emptyList(),
                         messageErreur = resultat.message,
                     )
                 }

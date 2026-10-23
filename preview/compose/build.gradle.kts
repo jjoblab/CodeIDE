@@ -41,6 +41,15 @@ dependencies {
     // frontière D6 du LSP Kotlin, pack 1.4.0 requis pour previews(uri)).
     api(libs.lsp.kotlin)
 
+    // C2 (PREVIEW.md §4.4) — RÉUTILISATION des résolveurs PE1 : la
+    // composition CONSULTE les ressources/thèmes du projet par les
+    // MÊMES classes que le moteur XML du même processus :preview
+    // (« une seule machinerie, deux dialectes », étude PE14 §5.3-1).
+    // Coordonnées EXTERNES hors audit ProjectDependency — même statut
+    // que lsp-kotlin ci-dessus (ADR 0140/0141).
+    implementation(libs.layoutlib.resources)
+    implementation(libs.layoutlib.themes)
+
     // Flows d'état du moteur.
     implementation(libs.kotlinx.coroutines.core)
 

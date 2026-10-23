@@ -54,13 +54,19 @@ public interface TransportCompose : AutoCloseable {
  * siens — le moteur fusionne).
  */
 public sealed interface ResultatTransportCompose {
-    /** Rendu valide : bitmap + métriques + erreurs typées du pipeline. */
+    /**
+     * Rendu valide : bitmap + métriques + erreurs typées du pipeline +
+     * géométries extraites (C2 — [InfoNoeudCompose], bounds bitmap +
+     * ligne source par nœud : le sésame surlignage de la carte).
+     */
     public class Succes(
         public val bitmap: android.graphics.Bitmap,
         /** Métriques du rendu — PASSERELLE du résultat du processus (bloc opaque). */
         public val metriques: MetriquesRenduCompose,
         /** Erreurs typées rencontrées côté PROCESSUS (vide en nominal). */
         public val erreurs: List<ErreurCompose> = emptyList(),
+        /** C2 — géométries extraites de la composition (vide si aucune). */
+        public val noeuds: List<InfoNoeudCompose> = emptyList(),
     ) : ResultatTransportCompose
 
     /** Rendu échoué (composition/measure/draw, délai du processus). */
@@ -141,6 +147,7 @@ internal class TransportComposeProcess(private val liaison: LiaisonServiceCompos
             bitmap = bitmap,
             metriques = brut.metriques,
             erreurs = brut.erreurs.toList(),
+            noeuds = brut.noeuds.toList(),
         )
     }
 
