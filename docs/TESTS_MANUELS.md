@@ -1312,3 +1312,35 @@ avec la palette elle-même.
    l'onglet Problèmes porte la carte rouge « Contenu venu de
    l'adaptateur » — le correctif « Retirer les enfants » répare le
    document en une édition.
+
+## Preview de listes + thème prévisualisé et textAppearance (PE14 S6/S7 → v0.172.0, LayoutLib 3.6.0)
+
+Écran : aperçu XML (`PreviewActivity`), clair ET nuit, profil Pixel 4, sur un projet AVEC dossier
+`res/` (thème déclaré au manifest, layouts d'items disponibles). Les listes de l'aperçu ne sont
+plus des tuiles mortes et le rendu adopte ENFIN les styles par défaut du thème du projet.
+
+1. **Une liste nue se remplit seule** — insérer un ListView ou un RecyclerView (palette) dans un
+   LinearLayout : l'aperçu montre des rangées « Item 1, Item 2, … » (le vrai layout framework
+   `simple_list_item_1`, thématé) — une GridView se remplit en grille, un Spinner affiche
+   « Item 1 » en état fermé. La pastille « rendue • n vues » compte SEULEMENT les vues du
+   document (les rangées synthétisées ne comptent pas).
+2. **tools:listitem et tools:itemCount** — taper au source une RecyclerView portant
+   `tools:itemCount="4"` : exactement 4 rangées ; avec `tools:listitem="@layout/<un item du
+   projet>"`, chaque rangée gonfle CE layout (id/text/outils de prévisualisation dedans) ;
+   un `tools:listitem` introuvable retombe aux items texte sans faire échouer le rendu.
+3. **android:entries garde la priorité** — un ListView avec `android:entries="@array/…"` du
+   dossier res/ montre SES chaînes (pas d'items « Item N » par-dessus).
+4. **Entête et pied de ListView** — `tools:listheader`/`tools:listfooter` pointant des layouts
+   du projet apparaissent en tête et pied de liste (avant les rangées).
+5. **Le thème du projet s'applique aux styles par défaut** — rendre un document de Buttons et
+   EditTexts depuis un projet déclarant `Theme.MaterialComponents.DayNight` (ou un thème métier
+   dont il hérite) : les boutons prennent le look MaterialComponents (et non plus celui du thème
+   CodeIDE) ; avec un projet AppCompat, look AppCompat. Un thème introuvable retombe au thème
+   hôte sans erreur.
+6. **android:textAppearance enfin honoré** — un TextView portant
+   `android:textAppearance="@style/<style du projet>"` (textSize/textColor/textStyle/fontFamily
+   posés dans styles.xml) affiche la typographie du style ; un `android:textColor` propre au tag
+   L'EMPORTE sur la couleur de l'apparence (sémantique Android).
+7. **Aucune régression de rendu** — les documents des scénarios précédents (conformité, palettes,
+   chrome système, resize) se rendent à l'identique : la section « Système » de l'arbre, la
+   sélection, les cotes et la pastille de vues restent inchangées.

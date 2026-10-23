@@ -1,5 +1,106 @@
 # Journal des modifications
 
+## [0.172.0] – 2026-10-23
+
+### Preview de listes (tools:listitem) + attributs fidèles 1/2 (thème prévisualisé, textAppearance) — PE14 S6/S7 (LayoutLib 3.6.0)
+
+#### Ajouté
+
+- **LES LISTES DE L'APERÇU NE SONT PLUS VIDES (PE14 S6, étude
+  `docs/PE14-redimensionnement-layoutlib-conformite-compose-etude.md`
+  § 2.4-3, décision D6 « Oui — miroir AdapterBinding »)** : le package
+  `bridge/binding` (coquille morte depuis 1.0) est BRANCHÉ —
+  `BridgeInflater.brancherApercuListe` lit `tools:listitem`,
+  `tools:itemCount`, `tools:listheader` et `tools:listfooter` (le
+  `XmlPreprocessor` ne les strippe plus — la déclaration `xmlns:tools`
+  SURVIT avec eux, lecture par l'URI <em>tools</em> miroir `TOOLS_URI`
+  AOSP) et remplit la vue : `tools:listitem="@layout/…"` gonfle LE
+  layout référencé par rangée (inflater enfant — résolveurs, registre
+  `app:*`, Factory2 et THÈME projet propagés) ; SANS `tools:listitem`,
+  items texte par défaut « Item N » gonflés depuis le VRAI
+  `@android:layout/simple_list_item_1` framework (Android Studio remplit
+  de même une liste nue) ; `tools:itemCount` borne les rangées (défaut
+  200 : la vraie AdapterView ne demande que les rangées visibles —
+  l'avantage appareil, la référence doit deviner un compte desktop) ;
+  `android:entries` GAGNE sur `tools:listitem` (précédence Android
+  Studio) ; ListView reçoit entête/pied `tools:listheader`/`listfooter`
+  AVANT l'adapter (exigence framework) ; `RecyclerView` (embarquée —
+  la référence doit passer par la réflexion `RecyclerViewUtil`, ici
+  classe directe) reçoit un `FakeRecyclerAdapter` ET un
+  `LinearLayoutManager` vertical par défaut (`android:orientation`/
+  `app:orientation` honorés) — sans LayoutManager une RecyclerView est
+  vide ; `ExpandableListView` épargnée (son setAdapter jette
+  ExpandableListConnector) ; TOUTE défaillance est journalisée sans
+  tuer le rendu (miroir `attacherSansAbandonner`).
+- **LA COLLECTE DU DOCUMENT NE DESCEND PAS DANS LES ADAPTATEURS
+  (LayoutLib 3.6.0, `ViewInfoCollector`)** : les enfants d'un
+  AdapterView/RecyclerView sont TOUJOURS des rangées synthétisées (le
+  XML ne peut pas en porter — l'isolement v3.5.2 les détache), la
+  collecte du document les ignore — la contractuelle
+  « collecte == arbre » reste vraie et la pastille « rendue • n vues »
+  compte le CONTENU du projet (miroir Android Studio, où le viewCookie
+  distingue les rangées — le nôtre viendra avec S8).
+- **LE THÈME PRÉVISUALISÉ DEVIENT LE THÈME DES VUES (PE14 S7-1/2, étude
+  § 2.4-2 — « l'écart de fidélité n° 2 »)** : `ThemeContexteResolver`
+  (module-themes) marche la chaîne d'héritage du thème projet
+  (`Theme.MonApp` n'existe pas dans les resources de l'hôte, son parent
+  `Theme.Material3.DayNight`/`MaterialComponents`/`AppCompat`/framework
+  si — les resources des bibliothèques EMBARQUÉES vivent dans l'hôte)
+  et rend l'identifiant résoluble ; `BridgeInflater.setThemeProjet`
+  instancie alors TOUTES les vues sous un `ContextThemeWrapper` — les
+  constructeurs (`new Button(ctx)` → `obtainStyledAttributes(null,
+  buttonStyle)`) résolvent les styles PAR DÉFAUT de la famille contre le
+  thème du PROJET, pas celui de CodeIDE : un projet MaterialComponents
+  voit enfin ses boutons Material, SANS la table `defStyleAttr` par
+  famille de l'étude (le vrai framework fait le travail — l'avantage
+  appareil) ; `RenduLayoutLib.reconfigurerSiNecessaire` câble le résid
+  par requête (`inflater.setThemeProjet`) et enveloppe le contexte de
+  l'`AttributeApplier` (les ArrayAdapter d'`entries` héritent du thème) ;
+  thème introuvable → repli hôte (comportement d'avant, jamais
+  d'échec) ; `repliNatif` rétablit le thème hôte ; le résid est propagé
+  aux inflaters enfants (`<include>`, rangées d'items).
+- **`android:textAppearance` HONORÉ (PE14 S7-1/2, étude § 2.4-1 — « le
+  plus gros écart de fidélité » : l'attribut était ignoré en silence)** :
+  `AttributeApplier.appliquerTextAppearance` résout le style par
+  référence — `?attr/textAppearanceX` contre le thème (la valeur du
+  thème est le nom du style), `@style/X`/`@android:style/X` dans
+  l'hôte puis le framework, sinon la chaîne d'héritage du PROJET via
+  `ThemeResolver.getStyleAttribute` (vocabulaire d'apparence :
+  textSize, textColor, textColorHint, textStyle, fontFamily,
+  textAllCaps, letterSpacing — chaque valeur avec les MÊMES helpers que
+  les attributs du tag) ; posé AVANT les attributs propres du tag —
+  ces derniers l'emportent TOUJOURS (sémantique Android, testé par
+  ordre d'appels) ; `textAppearance` entre au registre strict
+  (`FrameworkAttributeRegistry`).
+
+#### Modifié
+
+- **`XmlPreprocessor` : ordre de normalisation** — conversion
+  `tools:*` → strip des non-listes → suppression de `xmlns:tools`
+  SEULEMENT si plus aucun attribut `tools:` ne survit (avant :
+  xmlns:tools parti en premier, listitem avec lui depuis v3.4.5).
+- **`RenderService.setThemeDuProjet`** : nouvelle API de session (miroir
+  `setThemeResolver`) — le résid est re-résolu quand le résolveur de thèmes
+  change (nouvelles themes.xml = nouvelle chaîne d'héritage).
+- `gradle/libs.versions.toml` : LayoutLib **3.5.2 → 3.6.0** (composite
+  `-Pfreres.sources` vérifié, GitHub Packages au tag `v3.6.0`).
+
+#### Tests
+
+- LayoutLib 3.6.0 : **979 tests** (944 + 35) — `XmlPreprocessorListPreviewTest` (7)
+  (survie des `tools:list*` + xmlns:tools conditionnel + non-régressions),
+  `BridgeInflaterListPreviewTest` (adapter posé/retour direct — l'interception
+  Mockito des vues android.jar n'est PAS fiable depuis le bytecode de
+  production, constat expérimenté : les corps mockables s'exécutent sans
+  enregistrer l'appel ; le RETOUR de `brancherApercuListe` sert d'observable),
+  `BridgeInflaterThemeProjetTest` (contexte enveloppé capturé par Factory2),
+  `ThemeContexteResolverTest` (chaîne d'héritage, cycle, préfixes, repli
+  identité), `AttributeApplierTextAppearanceTest` (chemin projet, `?attr`,
+  priorité des attributs du tag).
+- CodeIDE : 671 tests (2 modules) TOUS VERTS contre le composite 3.6.0 —
+  `MesureRenduParentsTest` (la fixture `activity_fil` porte une
+  RecyclerView) repasse à 9 == 9 grâce au garde-fou collecte.
+
 ## [0.170.0] – 2026-10-23
 
 ### Le redimensionnement devient fidèle (compensation de préhension, fantôme persistant, par-layout au relâchement) + la section « Système » de l'arbre et le réglage « Mode gestuel » — PE14 S1/S2 (ADR 0138, ADR 0139)

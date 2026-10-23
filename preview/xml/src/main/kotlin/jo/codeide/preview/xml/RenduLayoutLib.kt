@@ -25,6 +25,7 @@ import jo.layoutlib.inflater.bridge.impl.SystemViewInfo
 import jo.layoutlib.layout.LayoutEngineImpl
 import jo.layoutlib.resources.DimensionConverter
 import jo.layoutlib.resources.ResourceResolverImpl
+import jo.layoutlib.themes.ThemeContexteResolver
 import jo.layoutlib.themes.ThemeResolver
 import jo.layoutlib.themes.ThemeResolverImpl
 import org.xmlpull.v1.XmlPullParser
@@ -978,9 +979,7 @@ public class RenduLayoutLib(
                 nouvellesRessources.setLandscape(paysage)
                 inflater.setResourceResolver(nouvellesRessources)
 
-                val applier = AttributeApplier(contexte, convertisseur, nouvellesRessources)
                 val drawableResolverNeuf = DrawableResolverImpl(nouvellesRessources, convertisseur)
-                applier.setDrawableResolver(drawableResolverNeuf)
                 val themeResolverNeuf = ThemeResolverImpl(nouvellesRessources, convertisseur)
                 enregistrerThemes(themeResolverNeuf, dossier)
                 themeResolverNeuf.setNightMode(nuit)
@@ -992,6 +991,26 @@ public class RenduLayoutLib(
                     val nomSimple = themeName.removePrefix("@style/").removePrefix("@android:style/")
                     themeResolverNeuf.setTheme(nomSimple)
                 }
+                // v0.172.0 (PE14 S7, LayoutLib 3.6.0) — LE THÈME PRÉVISUALISÉ
+                // DEVIENT LE THÈME DES VUES : l'ancêtre RÉSOLVABLE du thème
+                // projet (Material3/MaterialComponents/AppCompat/framework —
+                // les resources des bibliothèques EMBARQUÉES vivent dans
+                // l'hôte ; un thème métier Theme.MonApp n'y est PAS, son
+                // parent si) enveloppe le contexte d'instanciation — les
+                // constructeurs résolvent alors leurs styles PAR DÉFAUT
+                // (buttonStyle, editTextStyle…) contre le thème du PROJET,
+                // pas celui de CodeIDE. Thème introuvable → repli hôte
+                // (comportement d'avant, jamais d'échec).
+                val idThemeProjet =
+                    if (themeName != null) {
+                        ThemeContexteResolver.resIdResolvable(contexte, themeResolverNeuf, themeName)
+                    } else {
+                        0
+                    }
+                inflater.setThemeProjet(idThemeProjet)
+                val contexteTheme = ThemeContexteResolver.envelopper(contexte, idThemeProjet)
+                val applier = AttributeApplier(contexteTheme, convertisseur, nouvellesRessources)
+                applier.setDrawableResolver(drawableResolverNeuf)
                 applier.setThemeResolver(themeResolverNeuf)
                 inflater.setAttributeApplier(applier)
 
@@ -1139,6 +1158,9 @@ public class RenduLayoutLib(
         themeResolver = null
         drawableResolver = null
         convertisseurCourant = null
+        // v0.172.0 (PE14 S7) — repli natif = plus de thème projet : les
+        // vues reviennent au thème hôte (comportement d'avant v0.172.0).
+        inflater.setThemeProjet(0)
         installerAttributeApplierParDefaut()
     }
 
