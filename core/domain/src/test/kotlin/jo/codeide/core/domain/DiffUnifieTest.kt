@@ -10,14 +10,13 @@ import org.junit.Test
  * identiques, vides, et le repli honnête des cœurs trop grands.
  */
 class DiffUnifieTest {
-    private fun types(lignes: List<LigneDiff>): String =
-        lignes.joinToString("") {
-            when (it.type) {
-                TypeLigneDiff.INCHANGE -> "="
-                TypeLigneDiff.AJOUT -> "+"
-                TypeLigneDiff.RETRAIT -> "-"
-            }
+    private fun types(lignes: List<LigneDiff>): String = lignes.joinToString("") {
+        when (it.type) {
+            TypeLigneDiff.INCHANGE -> "="
+            TypeLigneDiff.AJOUT -> "+"
+            TypeLigneDiff.RETRAIT -> "-"
         }
+    }
 
     private fun textes(lignes: List<LigneDiff>): List<String> = lignes.map { it.texte }
 

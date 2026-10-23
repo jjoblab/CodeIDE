@@ -35,3 +35,14 @@ exceptions:
     active: true
   TooGenericExceptionCaught:
     active: false # le domaine capture volontairement des exceptions génériques avant typage
+
+naming:
+  # Mission « Previews » Compose C1 (PREVIEW.md §4) : :preview:compose
+  # embarque le runtime Compose comme bibliothèque d'interprétation —
+  # ses @Composable suivent la convention PascalCase du framework
+  # (usines de type). Exception canonique des projets Compose
+  # (configuration detekt 1.21+), INERTE pour tout code sans
+  # @Composable ; miroir de la même exception côté ktlint (.editorconfig
+  # + convention spotless).
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']

@@ -103,12 +103,11 @@ class SseParserTest {
             object : InputStream() {
                 private var position = 0
 
-                override fun read(): Int =
-                    if (position < texte.toByteArray().size) {
-                        texte.toByteArray()[position++].toInt() and 0xFF
-                    } else {
-                        -1
-                    }
+                override fun read(): Int = if (position < texte.toByteArray().size) {
+                    texte.toByteArray()[position++].toInt() and 0xFF
+                } else {
+                    -1
+                }
             }
 
         val evenements = parseur.parseBytes(goutteAGoutte).toList()

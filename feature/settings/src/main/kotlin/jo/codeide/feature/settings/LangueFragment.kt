@@ -36,10 +36,7 @@ class LangueFragment : BaseFragment<FragmentSettingsLangueBinding>() {
         attachToRoot: Boolean,
     ): FragmentSettingsLangueBinding = FragmentSettingsLangueBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -72,9 +69,8 @@ class LangueFragment : BaseFragment<FragmentSettingsLangueBinding>() {
 }
 
 /** Tag BCP 47 du bouton de langue — l'ordre suit le gabarit du groupe. */
-private fun langueDeLId(id: Int): String =
-    when (id) {
-        R.id.bouton_langue_2 -> "fr"
-        R.id.bouton_langue_3 -> "en"
-        else -> ""
-    }
+private fun langueDeLId(id: Int): String = when (id) {
+    R.id.bouton_langue_2 -> "fr"
+    R.id.bouton_langue_3 -> "en"
+    else -> ""
+}

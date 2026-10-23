@@ -57,35 +57,30 @@ import java.io.IOException
  * du type de build pour la verbosité de journalisation (section 5.7 :
  * `NORMAL` en release, `DETAILED` en debug).
  */
-public class SettingsDataStore(
-    private val dataStore: DataStore<Preferences>,
-    private val defaults: AppSettings,
-) {
+public class SettingsDataStore(private val dataStore: DataStore<Preferences>, private val defaults: AppSettings) {
     /**
      * Observe les paramètres applicatifs.
      *
      * @return le flot des paramètres courants (les défauts tant que rien
      * n'est écrit), qui ne s'interrompt pas sur une erreur de lecture.
      */
-    public fun observe(): Flow<AppSettings> =
-        dataStore.data
-            .catch { erreur ->
-                // Lecture impossible (fichier illisible, E/S ponctuelle) :
-                // publier les défauts plutôt que de couper le collecteur.
-                if (erreur is IOException) emit(emptyPreferences()) else throw erreur
-            }.map { preferences -> preferences.toAppSettings(defaults) }
+    public fun observe(): Flow<AppSettings> = dataStore.data
+        .catch { erreur ->
+            // Lecture impossible (fichier illisible, E/S ponctuelle) :
+            // publier les défauts plutôt que de couper le collecteur.
+            if (erreur is IOException) emit(emptyPreferences()) else throw erreur
+        }.map { preferences -> preferences.toAppSettings(defaults) }
 
     /**
      * Lit les paramètres de manière ponctuelle.
      *
      * @return les paramètres courants, ou l'échec de lecture typé.
      */
-    public suspend fun current(): AppResult<AppSettings> =
-        try {
-            AppResult.Success(dataStore.data.first().toAppSettings(defaults))
-        } catch (erreur: IOException) {
-            AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
-        }
+    public suspend fun current(): AppResult<AppSettings> = try {
+        AppResult.Success(dataStore.data.first().toAppSettings(defaults))
+    } catch (erreur: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
+    }
 
     /**
      * Met à jour les paramètres par transformation atomique de l'état
@@ -94,16 +89,15 @@ public class SettingsDataStore(
      * @param update transformation pure appliquée à l'état courant.
      * @return le succès, ou l'échec d'écriture typé (`Storage.Io`).
      */
-    public suspend fun update(update: (AppSettings) -> AppSettings): AppResult<Unit> =
-        try {
-            dataStore.edit { preferences ->
-                val actuel = preferences.toAppSettings(defaults)
-                preferences.ecrire(update(actuel))
-            }
-            AppResult.Success(Unit)
-        } catch (erreur: IOException) {
-            AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
+    public suspend fun update(update: (AppSettings) -> AppSettings): AppResult<Unit> = try {
+        dataStore.edit { preferences ->
+            val actuel = preferences.toAppSettings(defaults)
+            preferences.ecrire(update(actuel))
         }
+        AppResult.Success(Unit)
+    } catch (erreur: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
+    }
 
     /**
      * Définit (ou efface) le dossier de travail.
@@ -174,16 +168,15 @@ public class SettingsDataStore(
  * l'aperçu XML (PE7c) la surchargent via [AppSettings.copy] — chaque
  * fonction reste sous la limite detekt LongMethod (60 lignes).
  */
-internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
-    toBaseAppSettings(defaults).copy(
-        apercuBulleFixe = this[SettingsDataStore.Cles.APERCU_BULLE_FIXE] ?: defaults.apercuBulleFixe,
-        apercuBulleADroite = this[SettingsDataStore.Cles.APERCU_BULLE_A_DROITE] ?: defaults.apercuBulleADroite,
-        apercuBulleY =
-            this[SettingsDataStore.Cles.APERCU_BULLE_Y]?.toFloatOrNull()?.coerceIn(0f, 1f)
-                ?: defaults.apercuBulleY,
-        apercuPaletteParPopup =
-            this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
-    )
+internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings = toBaseAppSettings(defaults).copy(
+    apercuBulleFixe = this[SettingsDataStore.Cles.APERCU_BULLE_FIXE] ?: defaults.apercuBulleFixe,
+    apercuBulleADroite = this[SettingsDataStore.Cles.APERCU_BULLE_A_DROITE] ?: defaults.apercuBulleADroite,
+    apercuBulleY =
+    this[SettingsDataStore.Cles.APERCU_BULLE_Y]?.toFloatOrNull()?.coerceIn(0f, 1f)
+        ?: defaults.apercuBulleY,
+    apercuPaletteParPopup =
+    this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
+)
 
 /**
  * Projette les réglages hors aperçu vers [AppSettings], en retombant sur
@@ -197,63 +190,62 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings =
  * clarifier.
  */
 @Suppress("CyclomaticComplexMethod")
-private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings =
-    AppSettings(
-        themeMode =
-            ThemeMode.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.MODE_THEME] }
-                ?: defaults.themeMode,
-        useDynamicColor = this[SettingsDataStore.Cles.COULEURS_DYNAMIQUES] ?: defaults.useDynamicColor,
-        paletteCouleur =
-            PaletteCouleur.depuisNom(this[SettingsDataStore.Cles.PALETTE])
-                ?: defaults.paletteCouleur,
-        languageTag = this[SettingsDataStore.Cles.LANGUE] ?: defaults.languageTag,
-        notificationsSync = this[SettingsDataStore.Cles.NOTIFICATIONS_SYNC] ?: defaults.notificationsSync,
-        notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
-        sonNotifications = this[SettingsDataStore.Cles.SON_NOTIFICATIONS] ?: defaults.sonNotifications,
-        editorRetourLigne = this[SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE] ?: defaults.editorRetourLigne,
-        editorThemeEditeur =
-            ThemeEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_THEME])
-                ?: defaults.editorThemeEditeur,
-        editorMinimap = this[SettingsDataStore.Cles.EDITEUR_MINIMAP] ?: defaults.editorMinimap,
-        editorCaracteresNonImprimables =
-            this[SettingsDataStore.Cles.EDITEUR_CARACTERES_NON_IMPRIMABLES]
-                ?: defaults.editorCaracteresNonImprimables,
-        editorLigatures = this[SettingsDataStore.Cles.EDITEUR_LIGATURES] ?: defaults.editorLigatures,
-        editorChipsDiagnostics =
-            this[SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC] ?: defaults.editorChipsDiagnostics,
-        editorSauvegardeAuto = this[SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO] ?: defaults.editorSauvegardeAuto,
-        editorTaillePolice =
-            TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
-                ?: defaults.editorTaillePolice,
-        editorTailleTabulation =
-            TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION])
-                ?: defaults.editorTailleTabulation,
-        styleCurseurTerminal =
-            StyleCurseurTerminal.depuisNom(this[SettingsDataStore.Cles.STYLE_CURSEUR])
-                ?: defaults.styleCurseurTerminal,
-        copieSelectionAuto = this[SettingsDataStore.Cles.COPIE_SELECTION] ?: defaults.copieSelectionAuto,
-        workspace = emplacementTravail() ?: defaults.workspace,
-        authorName = this[SettingsDataStore.Cles.NOM_AUTEUR] ?: defaults.authorName,
-        defaultLicense =
-            this[SettingsDataStore.Cles.LICENCE]
-                ?.let(License.Companion::fromPersistedName)
-                ?: defaults.defaultLicense,
-        logLevel =
-            LogVerbosity.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.VERBOSITE] }
-                ?: defaults.logLevel,
-        taillePoliceTerminal =
-            TaillePoliceTerminal.depuisNom(this[SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL])
-                ?: defaults.taillePoliceTerminal,
-        toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
-        toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
-        toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
-        injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
-        retentionHistorique =
-            this[SettingsDataStore.Cles.RETENTION_HISTORIQUE]
-                ?.let(RetentionHistorique.Companion::fromPersistedName)
-                ?: defaults.retentionHistorique,
-        isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
-    )
+private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings = AppSettings(
+    themeMode =
+    ThemeMode.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.MODE_THEME] }
+        ?: defaults.themeMode,
+    useDynamicColor = this[SettingsDataStore.Cles.COULEURS_DYNAMIQUES] ?: defaults.useDynamicColor,
+    paletteCouleur =
+    PaletteCouleur.depuisNom(this[SettingsDataStore.Cles.PALETTE])
+        ?: defaults.paletteCouleur,
+    languageTag = this[SettingsDataStore.Cles.LANGUE] ?: defaults.languageTag,
+    notificationsSync = this[SettingsDataStore.Cles.NOTIFICATIONS_SYNC] ?: defaults.notificationsSync,
+    notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
+    sonNotifications = this[SettingsDataStore.Cles.SON_NOTIFICATIONS] ?: defaults.sonNotifications,
+    editorRetourLigne = this[SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE] ?: defaults.editorRetourLigne,
+    editorThemeEditeur =
+    ThemeEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_THEME])
+        ?: defaults.editorThemeEditeur,
+    editorMinimap = this[SettingsDataStore.Cles.EDITEUR_MINIMAP] ?: defaults.editorMinimap,
+    editorCaracteresNonImprimables =
+    this[SettingsDataStore.Cles.EDITEUR_CARACTERES_NON_IMPRIMABLES]
+        ?: defaults.editorCaracteresNonImprimables,
+    editorLigatures = this[SettingsDataStore.Cles.EDITEUR_LIGATURES] ?: defaults.editorLigatures,
+    editorChipsDiagnostics =
+    this[SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC] ?: defaults.editorChipsDiagnostics,
+    editorSauvegardeAuto = this[SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO] ?: defaults.editorSauvegardeAuto,
+    editorTaillePolice =
+    TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
+        ?: defaults.editorTaillePolice,
+    editorTailleTabulation =
+    TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION])
+        ?: defaults.editorTailleTabulation,
+    styleCurseurTerminal =
+    StyleCurseurTerminal.depuisNom(this[SettingsDataStore.Cles.STYLE_CURSEUR])
+        ?: defaults.styleCurseurTerminal,
+    copieSelectionAuto = this[SettingsDataStore.Cles.COPIE_SELECTION] ?: defaults.copieSelectionAuto,
+    workspace = emplacementTravail() ?: defaults.workspace,
+    authorName = this[SettingsDataStore.Cles.NOM_AUTEUR] ?: defaults.authorName,
+    defaultLicense =
+    this[SettingsDataStore.Cles.LICENCE]
+        ?.let(License.Companion::fromPersistedName)
+        ?: defaults.defaultLicense,
+    logLevel =
+    LogVerbosity.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.VERBOSITE] }
+        ?: defaults.logLevel,
+    taillePoliceTerminal =
+    TaillePoliceTerminal.depuisNom(this[SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL])
+        ?: defaults.taillePoliceTerminal,
+    toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
+    toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
+    toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
+    injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
+    retentionHistorique =
+    this[SettingsDataStore.Cles.RETENTION_HISTORIQUE]
+        ?.let(RetentionHistorique.Companion::fromPersistedName)
+        ?: defaults.retentionHistorique,
+    isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
+)
 
 /** Reconstitue l'emplacement du dossier de travail, ou `null` si incomplet. */
 private fun Preferences.emplacementTravail(): StorageLocation? {

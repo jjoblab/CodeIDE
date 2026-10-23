@@ -15,10 +15,7 @@ import javax.inject.Inject
  * @property chemin chemin relatif sous la racine du projet (affichage).
  */
 @Serializable
-public data class OngletEspace(
-    public val uri: String,
-    public val chemin: String,
-)
+public data class OngletEspace(public val uri: String, public val chemin: String)
 
 /**
  * État de l'espace de travail d'un projet, persisté dans
@@ -51,18 +48,17 @@ public data class EtatEspace(
  * `file-name` — une seule source de vérité pour la validation des noms.
  */
 public class EvaluerNomFichierUseCase
-    @Inject
-    constructor() {
-        /**
-         * Évalue un nom de fichier ou de dossier.
-         *
-         * @param nom valeur saisie (un simple segment, jamais un chemin).
-         * @return `null` si le nom est valide, sinon la raison typée —
-         *   l'interface la traduit en ressource localisée.
-         */
-        public operator fun invoke(nom: String): RaisonValidation? =
-            TemplateValidators.evaluer("file-name", nom)?.raison
-    }
+@Inject
+constructor() {
+    /**
+     * Évalue un nom de fichier ou de dossier.
+     *
+     * @param nom valeur saisie (un simple segment, jamais un chemin).
+     * @return `null` si le nom est valide, sinon la raison typée —
+     *   l'interface la traduit en ressource localisée.
+     */
+    public operator fun invoke(nom: String): RaisonValidation? = TemplateValidators.evaluer("file-name", nom)?.raison
+}
 
 /**
  * Cas d'usage « enregistrer l'état de l'espace de travail » (étape 17) :
@@ -77,71 +73,69 @@ public class EvaluerNomFichierUseCase
  */
 @Suppress("ReturnCount")
 public class EnregistrerEtatEspaceUseCase
-    @Inject
-    constructor(
-        private val fichiers: FileSystem,
-    ) {
-        /**
-         * Enregistre l'état des onglets du projet.
-         *
-         * @param uriRacine URI de document du dossier racine du projet.
-         * @param onglets onglets ouverts (uri, chemin relatif).
-         * @param indexActif position de l'onglet actif, −1 si aucun.
-         * @return le succès, ou l'échec typé (journalisé par l'appelant,
-         *   jamais bloquant pour l'édition).
-         */
-        public suspend operator fun invoke(
-            uriRacine: String,
-            onglets: List<OngletEspace>,
-            indexActif: Int,
-        ): AppResult<Unit> {
-            val dossier =
-                resoudreDossierLocal(uriRacine)
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.Io, "dossier .codeide/local injoignable"),
-                    )
-            val cible =
-                (fichiers.list(dossier) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { !it.isDirectory && it.name == CheminsEtatEspace.NOM_FICHIER }
-                    ?.uri
-                    ?: (
-                        fichiers.createFile(
-                            dossier,
-                            CheminsEtatEspace.NOM_FICHIER,
-                            CheminsEtatEspace.MIME_JSON,
-                        ) as? AppResult.Success
-                    )?.value
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.Io, "workspace-state.json incréable"),
-                    )
-            return fichiers.writeText(
-                cible,
-                CODEC.encodeToString(EtatEspace.serializer(), EtatEspace(onglets = onglets, indexActif = indexActif)),
-            )
-        }
-
-        /** Résout (crée au besoin) `.codeide/local` sous la racine. */
-        private suspend fun resoudreDossierLocal(uriRacine: String): String? {
-            val codeide =
-                (fichiers.list(uriRacine) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { it.isDirectory && it.name == CheminsEtatEspace.DOSSIER_CODEIDE }
-                    ?.uri
-                    ?: (
-                        fichiers.createDirectory(
-                            uriRacine,
-                            CheminsEtatEspace.DOSSIER_CODEIDE,
-                        ) as? AppResult.Success
-                    )?.value
-                    ?: return null
-            return (fichiers.list(codeide) as? AppResult.Success)
+@Inject
+constructor(private val fichiers: FileSystem) {
+    /**
+     * Enregistre l'état des onglets du projet.
+     *
+     * @param uriRacine URI de document du dossier racine du projet.
+     * @param onglets onglets ouverts (uri, chemin relatif).
+     * @param indexActif position de l'onglet actif, −1 si aucun.
+     * @return le succès, ou l'échec typé (journalisé par l'appelant,
+     *   jamais bloquant pour l'édition).
+     */
+    public suspend operator fun invoke(
+        uriRacine: String,
+        onglets: List<OngletEspace>,
+        indexActif: Int,
+    ): AppResult<Unit> {
+        val dossier =
+            resoudreDossierLocal(uriRacine)
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.Io, "dossier .codeide/local injoignable"),
+                )
+        val cible =
+            (fichiers.list(dossier) as? AppResult.Success)
                 ?.value
-                ?.firstOrNull { it.isDirectory && it.name == CheminsEtatEspace.DOSSIER_LOCAL }
+                ?.firstOrNull { !it.isDirectory && it.name == CheminsEtatEspace.NOM_FICHIER }
                 ?.uri
-                ?: (fichiers.createDirectory(codeide, CheminsEtatEspace.DOSSIER_LOCAL) as? AppResult.Success)?.value
-        }
+                ?: (
+                    fichiers.createFile(
+                        dossier,
+                        CheminsEtatEspace.NOM_FICHIER,
+                        CheminsEtatEspace.MIME_JSON,
+                    ) as? AppResult.Success
+                    )?.value
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.Io, "workspace-state.json incréable"),
+                )
+        return fichiers.writeText(
+            cible,
+            CODEC.encodeToString(EtatEspace.serializer(), EtatEspace(onglets = onglets, indexActif = indexActif)),
+        )
     }
+
+    /** Résout (crée au besoin) `.codeide/local` sous la racine. */
+    private suspend fun resoudreDossierLocal(uriRacine: String): String? {
+        val codeide =
+            (fichiers.list(uriRacine) as? AppResult.Success)
+                ?.value
+                ?.firstOrNull { it.isDirectory && it.name == CheminsEtatEspace.DOSSIER_CODEIDE }
+                ?.uri
+                ?: (
+                    fichiers.createDirectory(
+                        uriRacine,
+                        CheminsEtatEspace.DOSSIER_CODEIDE,
+                    ) as? AppResult.Success
+                    )?.value
+                ?: return null
+        return (fichiers.list(codeide) as? AppResult.Success)
+            ?.value
+            ?.firstOrNull { it.isDirectory && it.name == CheminsEtatEspace.DOSSIER_LOCAL }
+            ?.uri
+            ?: (fichiers.createDirectory(codeide, CheminsEtatEspace.DOSSIER_LOCAL) as? AppResult.Success)?.value
+    }
+}
 
 /**
  * Cas d'usage « lire l'état de l'espace de travail » (étape 17) : lit
@@ -158,38 +152,33 @@ public class EnregistrerEtatEspaceUseCase
  */
 @Suppress("ReturnCount")
 public class LireEtatEspaceUseCase
-    @Inject
-    constructor(
-        private val fichiers: FileSystem,
-    ) {
-        /**
-         * Lit l'état persisté du projet.
-         *
-         * @param uriRacine URI de document du dossier racine du projet.
-         * @return l'état enregistré, ou `null` si absent/illisible/corrompu.
-         */
-        public suspend operator fun invoke(uriRacine: String): EtatEspace? {
-            val dossierCodeide = dossierEnfant(uriRacine, CheminsEtatEspace.DOSSIER_CODEIDE) ?: return null
-            val dossierLocal = dossierEnfant(dossierCodeide, CheminsEtatEspace.DOSSIER_LOCAL) ?: return null
-            val fichier =
-                (fichiers.list(dossierLocal) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { !it.isDirectory && it.name == CheminsEtatEspace.NOM_FICHIER }
-                    ?: return null
-            val contenu = (fichiers.readText(fichier.uri) as? AppResult.Success)?.value ?: return null
-            return runCatching { CODEC.decodeFromString(EtatEspace.serializer(), contenu) }.getOrNull()
-        }
-
-        /** Premier sous-dossier direct de [uriParent] portant ce nom. */
-        private suspend fun dossierEnfant(
-            uriParent: String,
-            nom: String,
-        ): String? =
-            (fichiers.list(uriParent) as? AppResult.Success)
+@Inject
+constructor(private val fichiers: FileSystem) {
+    /**
+     * Lit l'état persisté du projet.
+     *
+     * @param uriRacine URI de document du dossier racine du projet.
+     * @return l'état enregistré, ou `null` si absent/illisible/corrompu.
+     */
+    public suspend operator fun invoke(uriRacine: String): EtatEspace? {
+        val dossierCodeide = dossierEnfant(uriRacine, CheminsEtatEspace.DOSSIER_CODEIDE) ?: return null
+        val dossierLocal = dossierEnfant(dossierCodeide, CheminsEtatEspace.DOSSIER_LOCAL) ?: return null
+        val fichier =
+            (fichiers.list(dossierLocal) as? AppResult.Success)
                 ?.value
-                ?.firstOrNull { it.isDirectory && it.name == nom }
-                ?.uri
+                ?.firstOrNull { !it.isDirectory && it.name == CheminsEtatEspace.NOM_FICHIER }
+                ?: return null
+        val contenu = (fichiers.readText(fichier.uri) as? AppResult.Success)?.value ?: return null
+        return runCatching { CODEC.decodeFromString(EtatEspace.serializer(), contenu) }.getOrNull()
     }
+
+    /** Premier sous-dossier direct de [uriParent] portant ce nom. */
+    private suspend fun dossierEnfant(uriParent: String, nom: String): String? =
+        (fichiers.list(uriParent) as? AppResult.Success)
+            ?.value
+            ?.firstOrNull { it.isDirectory && it.name == nom }
+            ?.uri
+}
 
 /** Emplacements internes du fichier d'état (partagés lecture/écriture). */
 private object CheminsEtatEspace {

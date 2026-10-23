@@ -41,19 +41,12 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
 
     private lateinit var adaptateur: AdaptateurListeTravail
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentDetailIndexationBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         super.onViewCreated(vue, etat)
         adaptateur = AdaptateurListeTravail()
         liaison.listeTravailDetail.layoutManager = LinearLayoutManager(requireContext())
@@ -86,14 +79,13 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
         liaison.sousTitreDetail.text = resoudreTexte(entete.sousTitre)
     }
 
-    private fun traduireEtatPastille(etat: EtatPastilleIndexation): VuePointIndexation.Etat =
-        when (etat) {
-            EtatPastilleIndexation.INITIAL -> VuePointIndexation.Etat.INITIAL
-            EtatPastilleIndexation.CONSTRUCTION -> VuePointIndexation.Etat.CONSTRUCTION
-            EtatPastilleIndexation.PRET -> VuePointIndexation.Etat.PRET
-            EtatPastilleIndexation.PARTIEL -> VuePointIndexation.Etat.PARTIEL
-            EtatPastilleIndexation.ERREUR -> VuePointIndexation.Etat.ERREUR
-        }
+    private fun traduireEtatPastille(etat: EtatPastilleIndexation): VuePointIndexation.Etat = when (etat) {
+        EtatPastilleIndexation.INITIAL -> VuePointIndexation.Etat.INITIAL
+        EtatPastilleIndexation.CONSTRUCTION -> VuePointIndexation.Etat.CONSTRUCTION
+        EtatPastilleIndexation.PRET -> VuePointIndexation.Etat.PRET
+        EtatPastilleIndexation.PARTIEL -> VuePointIndexation.Etat.PARTIEL
+        EtatPastilleIndexation.ERREUR -> VuePointIndexation.Etat.ERREUR
+    }
 
     private fun rendreProgression(progression: ProgressionDetailIndexation) {
         val barre = liaison.progressionDetail
@@ -179,11 +171,7 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
         }
     }
 
-    private fun ajouterLigneBilan(
-        conteneur: ViewGroup,
-        labelRes: Int,
-        valeur: String,
-    ) {
+    private fun ajouterLigneBilan(conteneur: ViewGroup, labelRes: Int, valeur: String) {
         val ligne = LigneBilanBinding.inflate(layoutInflater, conteneur, true)
         ligne.labelBilan.text = getString(labelRes)
         ligne.valeurBilan.text = valeur
@@ -220,27 +208,25 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
         }
     }
 
-    private fun libelleAction(action: ActionDetailIndexation): String =
-        when (action) {
-            ActionDetailIndexation.REINDEXER -> getString(R.string.editor_indexation_action_reindexer)
-            ActionDetailIndexation.REESSAYER_ECHECS -> getString(R.string.editor_indexation_action_reeessayer_echecs)
-            ActionDetailIndexation.ANNULER -> getString(R.string.editor_indexation_action_annuler)
-        }
+    private fun libelleAction(action: ActionDetailIndexation): String = when (action) {
+        ActionDetailIndexation.REINDEXER -> getString(R.string.editor_indexation_action_reindexer)
+        ActionDetailIndexation.REESSAYER_ECHECS -> getString(R.string.editor_indexation_action_reeessayer_echecs)
+        ActionDetailIndexation.ANNULER -> getString(R.string.editor_indexation_action_annuler)
+    }
 
-    private fun resoudreTexte(texte: TexteIndexation): String =
-        when (texte) {
-            is TexteIndexation.Ressource -> {
-                if (texte.args.isEmpty()) {
-                    getString(texte.id)
-                } else {
-                    getString(texte.id, *texte.args.toTypedArray())
-                }
-            }
-
-            is TexteIndexation.Brut -> {
-                texte.texte
+    private fun resoudreTexte(texte: TexteIndexation): String = when (texte) {
+        is TexteIndexation.Ressource -> {
+            if (texte.args.isEmpty()) {
+                getString(texte.id)
+            } else {
+                getString(texte.id, *texte.args.toTypedArray())
             }
         }
+
+        is TexteIndexation.Brut -> {
+            texte.texte
+        }
+    }
 
     private fun formatDuree(ms: Long): String {
         if (ms < 1_000) return "$ms ms"
@@ -256,64 +242,49 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
 
 /** Adaptateur de la liste de travail (RecyclerView avec DiffUtil). */
 private class AdaptateurListeTravail : ListAdapter<EntreeDetailIndexation, LigneTravailViewHolder>(DIFF_ENTREE) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): LigneTravailViewHolder =
-        LigneTravailViewHolder(
-            LigneTravailIndexationBinding.inflate(
-                LayoutInflater.from(parent.context),
-                parent,
-                false,
-            ),
-        )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LigneTravailViewHolder = LigneTravailViewHolder(
+        LigneTravailIndexationBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        ),
+    )
 
-    override fun onBindViewHolder(
-        holder: LigneTravailViewHolder,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: LigneTravailViewHolder, position: Int) {
         holder.lier(getItem(position))
     }
 }
 
-private class LigneTravailViewHolder(
-    private val liaison: LigneTravailIndexationBinding,
-) : RecyclerView.ViewHolder(liaison.root) {
+private class LigneTravailViewHolder(private val liaison: LigneTravailIndexationBinding) :
+    RecyclerView.ViewHolder(liaison.root) {
     fun lier(entree: EntreeDetailIndexation) {
         liaison.nomEntree.text = entree.nom
         liaison.etatEntree.text = libelleEtat(entree.etat)
         liaison.iconeEntree.setImageResource(iconeEtat(entree.etat))
     }
 
-    private fun libelleEtat(etat: EtatEntreeDetail): String =
-        when (etat) {
-            EtatEntreeDetail.EN_ATTENTE -> liaison.root.context.getString(R.string.editor_indexation_entree_attente)
-            EtatEntreeDetail.ACTIF -> liaison.root.context.getString(R.string.editor_indexation_entree_actif)
-            EtatEntreeDetail.TERMINE -> liaison.root.context.getString(R.string.editor_indexation_entree_termine)
-            EtatEntreeDetail.REPRIS -> liaison.root.context.getString(R.string.editor_indexation_entree_repris)
-            EtatEntreeDetail.ECARTE -> liaison.root.context.getString(R.string.editor_indexation_entree_ecarte)
-        }
+    private fun libelleEtat(etat: EtatEntreeDetail): String = when (etat) {
+        EtatEntreeDetail.EN_ATTENTE -> liaison.root.context.getString(R.string.editor_indexation_entree_attente)
+        EtatEntreeDetail.ACTIF -> liaison.root.context.getString(R.string.editor_indexation_entree_actif)
+        EtatEntreeDetail.TERMINE -> liaison.root.context.getString(R.string.editor_indexation_entree_termine)
+        EtatEntreeDetail.REPRIS -> liaison.root.context.getString(R.string.editor_indexation_entree_repris)
+        EtatEntreeDetail.ECARTE -> liaison.root.context.getString(R.string.editor_indexation_entree_ecarte)
+    }
 
-    private fun iconeEtat(etat: EtatEntreeDetail): Int =
-        when (etat) {
-            EtatEntreeDetail.EN_ATTENTE -> android.R.drawable.checkbox_off_background
-            EtatEntreeDetail.ACTIF -> android.R.drawable.ic_menu_rotate
-            EtatEntreeDetail.TERMINE -> android.R.drawable.checkbox_on_background
-            EtatEntreeDetail.REPRIS -> android.R.drawable.checkbox_on_background
-            EtatEntreeDetail.ECARTE -> android.R.drawable.ic_menu_close_clear_cancel
-        }
+    private fun iconeEtat(etat: EtatEntreeDetail): Int = when (etat) {
+        EtatEntreeDetail.EN_ATTENTE -> android.R.drawable.checkbox_off_background
+        EtatEntreeDetail.ACTIF -> android.R.drawable.ic_menu_rotate
+        EtatEntreeDetail.TERMINE -> android.R.drawable.checkbox_on_background
+        EtatEntreeDetail.REPRIS -> android.R.drawable.checkbox_on_background
+        EtatEntreeDetail.ECARTE -> android.R.drawable.ic_menu_close_clear_cancel
+    }
 }
 
 /** DiffUtil pour la liste de travail. */
 private val DIFF_ENTREE =
     object : DiffUtil.ItemCallback<EntreeDetailIndexation>() {
-        override fun areItemsTheSame(
-            old: EntreeDetailIndexation,
-            new: EntreeDetailIndexation,
-        ): Boolean = old.nom == new.nom
+        override fun areItemsTheSame(old: EntreeDetailIndexation, new: EntreeDetailIndexation): Boolean =
+            old.nom == new.nom
 
-        override fun areContentsTheSame(
-            old: EntreeDetailIndexation,
-            new: EntreeDetailIndexation,
-        ): Boolean = old == new
+        override fun areContentsTheSame(old: EntreeDetailIndexation, new: EntreeDetailIndexation): Boolean = old == new
     }

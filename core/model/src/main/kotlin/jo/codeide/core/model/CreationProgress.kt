@@ -16,9 +16,7 @@ public sealed interface CreationProgress {
     public data object Preparation : CreationProgress
 
     /** Création du dossier racine du projet. */
-    public data class CreationDossierRacine(
-        public val nomProjet: String,
-    ) : CreationProgress
+    public data class CreationDossierRacine(public val nomProjet: String) : CreationProgress
 
     /** Génération d'un fichier du plan. */
     public data class GenerationFichier(

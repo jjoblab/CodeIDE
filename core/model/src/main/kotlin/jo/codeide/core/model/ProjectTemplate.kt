@@ -103,10 +103,7 @@ public enum class TemplateSection {
 }
 
 /** Variable calculée d'un modèle, évaluée par expression à chaque rendu. */
-public data class TemplateComputedVariable(
-    public val name: String,
-    public val expression: String,
-)
+public data class TemplateComputedVariable(public val name: String, public val expression: String)
 
 /**
  * Entrée de fichier d'un manifeste de modèle (étape 8 — section 11).

@@ -106,12 +106,7 @@ public class BulleFlottante : FrameLayout {
     /** Appui initial (drag en cours : état de départ). */
     private var appui: PointDepart? = null
 
-    private class PointDepart(
-        val x: Float,
-        val y: Float,
-        val gaucheVue: Int,
-        val hautVue: Int,
-    )
+    private class PointDepart(val x: Float, val y: Float, val gaucheVue: Int, val hautVue: Int)
 
     /**
      * Le TAP ouvre la palette, le GLISSER aimante (miroir `bindBubble`) :
@@ -222,12 +217,7 @@ public class BulleFlottante : FrameLayout {
         invalidate()
     }
 
-    override fun onSizeChanged(
-        largeur: Int,
-        hauteur: Int,
-        ancienneLargeur: Int,
-        ancienneHauteur: Int,
-    ) {
+    override fun onSizeChanged(largeur: Int, hauteur: Int, ancienneLargeur: Int, ancienneHauteur: Int) {
         super.onSizeChanged(largeur, hauteur, ancienneLargeur, ancienneHauteur)
         if (largeur > 0) reposer()
     }
@@ -257,11 +247,7 @@ public object PlacementBulle {
      * La position normalisée (0..1) d'un haut en pixels (miroir
      * `S.bub.y = (b.offsetTop - lo) / (hi - lo)`, bornée).
      */
-    public fun normaliserY(
-        hautPx: Int,
-        hauteurConteneur: Int,
-        reserveBas: Int,
-    ): Float {
+    public fun normaliserY(hautPx: Int, hauteurConteneur: Int, reserveBas: Int): Float {
         val haut = hautDu(hauteurConteneur, reserveBas, yNormalise = 0f)
         val bas = hautDu(hauteurConteneur, reserveBas, yNormalise = 1f)
         val plage = (bas - haut).coerceAtLeast(1)
@@ -274,11 +260,7 @@ public object PlacementBulle {
      * réserve du bas (miroir `hi = ch - sh - (side === 'l' ? 90 : 170)`,
      * portée par [reserveBas] — le propriétaire mesure ses HUD).
      */
-    public fun hautDu(
-        hauteurConteneur: Int,
-        reserveBas: Int,
-        yNormalise: Float,
-    ): Int {
+    public fun hautDu(hauteurConteneur: Int, reserveBas: Int, yNormalise: Float): Int {
         val hautLibre = (hauteurConteneur - reserveBas).coerceAtLeast(0)
         return (hautLibre * yNormalise.coerceIn(0f, 1f)).toInt()
     }
@@ -317,8 +299,5 @@ public object PlacementBulle {
     public fun margeCotePx(densite: Float): Int = (MARGE_COTE_DP * densite).toInt()
 
     /** Le côté AIMANTÉ d'un centre x (miroir `offsetLeft + 25 < cw/2`). */
-    public fun coteParCentre(
-        centreX: Int,
-        largeurConteneur: Int,
-    ): Boolean = centreX > largeurConteneur / 2
+    public fun coteParCentre(centreX: Int, largeurConteneur: Int): Boolean = centreX > largeurConteneur / 2
 }

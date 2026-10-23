@@ -67,10 +67,8 @@ public class ExtractionRessourceTest {
     }
 
     /** L'application de l'édition (le contrat : le résultat est le nouveau texte). */
-    private fun appliquer(
-        texte: String,
-        edition: EditionAttributsXml.EditionAttributsXmlResultat,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: EditionAttributsXml.EditionAttributsXmlResultat): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     @Test
     fun `extraire remplace le literal par la reference`() {

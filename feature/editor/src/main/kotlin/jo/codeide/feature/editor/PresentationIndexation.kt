@@ -96,15 +96,10 @@ internal data class EnteteDetailIndexation(
  */
 internal sealed interface TexteIndexation {
     /** Libellé d'une ressource de chaîne (identifiant + arguments). */
-    data class Ressource(
-        val id: Int,
-        val args: List<String> = emptyList(),
-    ) : TexteIndexation
+    data class Ressource(val id: Int, val args: List<String> = emptyList()) : TexteIndexation
 
     /** Libellé brut (message technique déjà formulé). */
-    data class Brut(
-        val texte: String,
-    ) : TexteIndexation
+    data class Brut(val texte: String) : TexteIndexation
 }
 
 /**
@@ -268,56 +263,54 @@ internal object PresentationIndexation {
      * @param etat état d'indexation (Java, transmis par l'activité).
      * @return modèle d'affichage (pastille + panneau de détail).
      */
-    fun afficher(etat: EtatIndexation): ModeleAffichageIndexation =
-        ModeleAffichageIndexation(
-            pastille = pastilleDe(etat),
-            panneau = panneauDe(etat),
-        )
+    fun afficher(etat: EtatIndexation): ModeleAffichageIndexation = ModeleAffichageIndexation(
+        pastille = pastilleDe(etat),
+        panneau = panneauDe(etat),
+    )
 
     /** Pastille de toolbar selon l'état. */
-    private fun pastilleDe(etat: EtatIndexation): PastilleIndexation =
-        when (etat.phase) {
-            PhaseIndexation.INITIAL -> {
-                PastilleIndexation(
-                    etat = EtatPastilleIndexation.INITIAL,
-                    pourcentage = null,
-                    masqueeEtroit = true,
-                )
-            }
-
-            PhaseIndexation.CONSTRUCTION -> {
-                val pct = pourcentageDe(etat.faits, etat.total)
-                PastilleIndexation(
-                    etat = EtatPastilleIndexation.CONSTRUCTION,
-                    pourcentage = pct,
-                    masqueeEtroit = false,
-                )
-            }
-
-            PhaseIndexation.PRET -> {
-                PastilleIndexation(
-                    etat = EtatPastilleIndexation.PRET,
-                    pourcentage = null,
-                    masqueeEtroit = true,
-                )
-            }
-
-            PhaseIndexation.PARTIEL -> {
-                PastilleIndexation(
-                    etat = EtatPastilleIndexation.PARTIEL,
-                    pourcentage = null,
-                    masqueeEtroit = false,
-                )
-            }
-
-            PhaseIndexation.ERREUR -> {
-                PastilleIndexation(
-                    etat = EtatPastilleIndexation.ERREUR,
-                    pourcentage = null,
-                    masqueeEtroit = false,
-                )
-            }
+    private fun pastilleDe(etat: EtatIndexation): PastilleIndexation = when (etat.phase) {
+        PhaseIndexation.INITIAL -> {
+            PastilleIndexation(
+                etat = EtatPastilleIndexation.INITIAL,
+                pourcentage = null,
+                masqueeEtroit = true,
+            )
         }
+
+        PhaseIndexation.CONSTRUCTION -> {
+            val pct = pourcentageDe(etat.faits, etat.total)
+            PastilleIndexation(
+                etat = EtatPastilleIndexation.CONSTRUCTION,
+                pourcentage = pct,
+                masqueeEtroit = false,
+            )
+        }
+
+        PhaseIndexation.PRET -> {
+            PastilleIndexation(
+                etat = EtatPastilleIndexation.PRET,
+                pourcentage = null,
+                masqueeEtroit = true,
+            )
+        }
+
+        PhaseIndexation.PARTIEL -> {
+            PastilleIndexation(
+                etat = EtatPastilleIndexation.PARTIEL,
+                pourcentage = null,
+                masqueeEtroit = false,
+            )
+        }
+
+        PhaseIndexation.ERREUR -> {
+            PastilleIndexation(
+                etat = EtatPastilleIndexation.ERREUR,
+                pourcentage = null,
+                masqueeEtroit = false,
+            )
+        }
+    }
 
     /** Panneau de détail selon l'état. */
     @Suppress("LongMethod") // traduction exhaustive de tous les états
@@ -332,92 +325,90 @@ internal object PresentationIndexation {
             noteImpact = noteImpactDe(etat),
         )
 
-    private fun enteteDe(etat: EtatIndexation): EnteteDetailIndexation =
-        when (etat.phase) {
-            PhaseIndexation.INITIAL -> {
-                EnteteDetailIndexation(
-                    etat = EtatPastilleIndexation.INITIAL,
-                    titre = R.string.editor_indexation_initial_titre,
-                    sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_initial_soustitre),
-                )
-            }
-
-            PhaseIndexation.CONSTRUCTION -> {
-                EnteteDetailIndexation(
-                    etat = EtatPastilleIndexation.CONSTRUCTION,
-                    titre = R.string.editor_indexation_construction_titre,
-                    sousTitre =
-                        if (etat.total > 0) {
-                            TexteIndexation.Ressource(
-                                R.string.editor_indexation_construction_soustitre_n,
-                                listOf("${etat.faits}", "${etat.total}"),
-                            )
-                        } else {
-                            TexteIndexation.Ressource(R.string.editor_indexation_construction_soustitre)
-                        },
-                )
-            }
-
-            PhaseIndexation.PRET -> {
-                EnteteDetailIndexation(
-                    etat = EtatPastilleIndexation.PRET,
-                    titre = R.string.editor_indexation_pret_titre,
-                    sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_pret_soustitre),
-                )
-            }
-
-            PhaseIndexation.PARTIEL -> {
-                EnteteDetailIndexation(
-                    etat = EtatPastilleIndexation.PARTIEL,
-                    titre = R.string.editor_indexation_partiel_titre,
-                    sousTitre =
-                        TexteIndexation.Ressource(
-                            R.string.editor_indexation_partiel_soustitre,
-                            listOf("${etat.faits}", "${etat.total}"),
-                        ),
-                )
-            }
-
-            PhaseIndexation.ERREUR -> {
-                EnteteDetailIndexation(
-                    etat = EtatPastilleIndexation.ERREUR,
-                    titre = R.string.editor_indexation_erreur_titre,
-                    sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_erreur_soustitre),
-                )
-            }
+    private fun enteteDe(etat: EtatIndexation): EnteteDetailIndexation = when (etat.phase) {
+        PhaseIndexation.INITIAL -> {
+            EnteteDetailIndexation(
+                etat = EtatPastilleIndexation.INITIAL,
+                titre = R.string.editor_indexation_initial_titre,
+                sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_initial_soustitre),
+            )
         }
 
-    private fun progressionDe(etat: EtatIndexation): ProgressionDetailIndexation =
-        when (etat.phase) {
-            PhaseIndexation.CONSTRUCTION -> {
-                val indeterminee = etat.total <= 0
-                val fraction = if (etat.total > 0) etat.faits.toFloat() / etat.total else 0f
-                val compteur =
-                    if (etat.total > 0) {
-                        TexteIndexation.Ressource(
-                            R.string.editor_indexation_compteur_n_sur_n,
-                            listOf("${etat.faits}", "${etat.total}"),
-                        )
-                    } else {
-                        null
-                    }
-                ProgressionDetailIndexation(
-                    indeterminee = indeterminee,
-                    fraction = fraction,
-                    compteur = compteur,
-                    tempsRestantMs = null, // pas d'estimation fiable dans B4
-                )
-            }
-
-            else -> {
-                ProgressionDetailIndexation(
-                    indeterminee = false,
-                    fraction = 1f,
-                    compteur = null,
-                    tempsRestantMs = null,
-                )
-            }
+        PhaseIndexation.CONSTRUCTION -> {
+            EnteteDetailIndexation(
+                etat = EtatPastilleIndexation.CONSTRUCTION,
+                titre = R.string.editor_indexation_construction_titre,
+                sousTitre =
+                if (etat.total > 0) {
+                    TexteIndexation.Ressource(
+                        R.string.editor_indexation_construction_soustitre_n,
+                        listOf("${etat.faits}", "${etat.total}"),
+                    )
+                } else {
+                    TexteIndexation.Ressource(R.string.editor_indexation_construction_soustitre)
+                },
+            )
         }
+
+        PhaseIndexation.PRET -> {
+            EnteteDetailIndexation(
+                etat = EtatPastilleIndexation.PRET,
+                titre = R.string.editor_indexation_pret_titre,
+                sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_pret_soustitre),
+            )
+        }
+
+        PhaseIndexation.PARTIEL -> {
+            EnteteDetailIndexation(
+                etat = EtatPastilleIndexation.PARTIEL,
+                titre = R.string.editor_indexation_partiel_titre,
+                sousTitre =
+                TexteIndexation.Ressource(
+                    R.string.editor_indexation_partiel_soustitre,
+                    listOf("${etat.faits}", "${etat.total}"),
+                ),
+            )
+        }
+
+        PhaseIndexation.ERREUR -> {
+            EnteteDetailIndexation(
+                etat = EtatPastilleIndexation.ERREUR,
+                titre = R.string.editor_indexation_erreur_titre,
+                sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_erreur_soustitre),
+            )
+        }
+    }
+
+    private fun progressionDe(etat: EtatIndexation): ProgressionDetailIndexation = when (etat.phase) {
+        PhaseIndexation.CONSTRUCTION -> {
+            val indeterminee = etat.total <= 0
+            val fraction = if (etat.total > 0) etat.faits.toFloat() / etat.total else 0f
+            val compteur =
+                if (etat.total > 0) {
+                    TexteIndexation.Ressource(
+                        R.string.editor_indexation_compteur_n_sur_n,
+                        listOf("${etat.faits}", "${etat.total}"),
+                    )
+                } else {
+                    null
+                }
+            ProgressionDetailIndexation(
+                indeterminee = indeterminee,
+                fraction = fraction,
+                compteur = compteur,
+                tempsRestantMs = null, // pas d'estimation fiable dans B4
+            )
+        }
+
+        else -> {
+            ProgressionDetailIndexation(
+                indeterminee = false,
+                fraction = 1f,
+                compteur = null,
+                tempsRestantMs = null,
+            )
+        }
+    }
 
     private fun listeTravailDe(etat: EtatIndexation): List<EntreeDetailIndexation>? =
         if (etat.phase == PhaseIndexation.CONSTRUCTION && etat.listeTravail.isNotEmpty()) {
@@ -456,132 +447,123 @@ internal object PresentationIndexation {
             null
         }
 
-    private fun traduireEtatMoteur(phase: PhaseIndexation): EtatMoteurDetail =
-        when (phase) {
-            PhaseIndexation.INITIAL -> EtatMoteurDetail.CONSTRUCTION
-            PhaseIndexation.CONSTRUCTION -> EtatMoteurDetail.CONSTRUCTION
-            PhaseIndexation.PRET -> EtatMoteurDetail.PRET
-            PhaseIndexation.PARTIEL -> EtatMoteurDetail.PARTIEL
-            PhaseIndexation.ERREUR -> EtatMoteurDetail.ERREUR
-        }
+    private fun traduireEtatMoteur(phase: PhaseIndexation): EtatMoteurDetail = when (phase) {
+        PhaseIndexation.INITIAL -> EtatMoteurDetail.CONSTRUCTION
+        PhaseIndexation.CONSTRUCTION -> EtatMoteurDetail.CONSTRUCTION
+        PhaseIndexation.PRET -> EtatMoteurDetail.PRET
+        PhaseIndexation.PARTIEL -> EtatMoteurDetail.PARTIEL
+        PhaseIndexation.ERREUR -> EtatMoteurDetail.ERREUR
+    }
 
-    private fun detailMoteurJava(etat: EtatIndexation): TexteIndexation? =
-        when (etat.phase) {
-            PhaseIndexation.CONSTRUCTION -> {
-                if (etat.total > 0) {
-                    TexteIndexation.Ressource(
-                        R.string.editor_indexation_compteur_n_sur_n,
-                        listOf("${etat.faits}", "${etat.total}"),
-                    )
-                } else {
-                    null
-                }
-            }
-
-            PhaseIndexation.PRET -> {
-                TexteIndexation.Ressource(R.string.editor_indexation_moteur_pret)
-            }
-
-            PhaseIndexation.PARTIEL -> {
-                TexteIndexation.Ressource(R.string.editor_indexation_moteur_partiel)
-            }
-
-            PhaseIndexation.ERREUR -> {
-                TexteIndexation.Ressource(R.string.editor_indexation_moteur_erreur)
-            }
-
-            PhaseIndexation.INITIAL -> {
+    private fun detailMoteurJava(etat: EtatIndexation): TexteIndexation? = when (etat.phase) {
+        PhaseIndexation.CONSTRUCTION -> {
+            if (etat.total > 0) {
+                TexteIndexation.Ressource(
+                    R.string.editor_indexation_compteur_n_sur_n,
+                    listOf("${etat.faits}", "${etat.total}"),
+                )
+            } else {
                 null
             }
         }
+
+        PhaseIndexation.PRET -> {
+            TexteIndexation.Ressource(R.string.editor_indexation_moteur_pret)
+        }
+
+        PhaseIndexation.PARTIEL -> {
+            TexteIndexation.Ressource(R.string.editor_indexation_moteur_partiel)
+        }
+
+        PhaseIndexation.ERREUR -> {
+            TexteIndexation.Ressource(R.string.editor_indexation_moteur_erreur)
+        }
+
+        PhaseIndexation.INITIAL -> {
+            null
+        }
+    }
 
     private fun bilanDe(etat: EtatIndexation): BilanDetailIndexation? = etat.bilanDernierPassage?.let(::traduireBilan)
 
-    private fun traduireBilan(b: BilanDernierPassageIndexation): BilanDetailIndexation =
-        BilanDetailIndexation(
-            dureeMs = b.dureeMs,
-            artefactsTotal = b.artefactsTotal,
-            artefactsRepris = b.artefactsRepris,
-            artefactsReconstruits = b.artefactsReconstruits,
-            fichiersParcourus = b.fichiersParcourus,
-            fichiersReanalyses = b.fichiersReanalyses,
-            indexeurPlusCouteux = b.indexeurPlusCouteux,
-            horodatageMs = b.horodatageMs,
-        )
+    private fun traduireBilan(b: BilanDernierPassageIndexation): BilanDetailIndexation = BilanDetailIndexation(
+        dureeMs = b.dureeMs,
+        artefactsTotal = b.artefactsTotal,
+        artefactsRepris = b.artefactsRepris,
+        artefactsReconstruits = b.artefactsReconstruits,
+        fichiersParcourus = b.fichiersParcourus,
+        fichiersReanalyses = b.fichiersReanalyses,
+        indexeurPlusCouteux = b.indexeurPlusCouteux,
+        horodatageMs = b.horodatageMs,
+    )
 
-    private fun actionsDe(etat: EtatIndexation): List<ActionDetailIndexation> =
-        when (etat.phase) {
-            PhaseIndexation.CONSTRUCTION -> {
-                listOf(ActionDetailIndexation.ANNULER)
-            }
+    private fun actionsDe(etat: EtatIndexation): List<ActionDetailIndexation> = when (etat.phase) {
+        PhaseIndexation.CONSTRUCTION -> {
+            listOf(ActionDetailIndexation.ANNULER)
+        }
 
-            PhaseIndexation.PARTIEL -> {
-                if (etat.avertissements.isNotEmpty()) {
-                    listOf(ActionDetailIndexation.REESSAYER_ECHECS, ActionDetailIndexation.REINDEXER)
-                } else {
-                    listOf(ActionDetailIndexation.REINDEXER)
-                }
-            }
-
-            PhaseIndexation.ERREUR -> {
+        PhaseIndexation.PARTIEL -> {
+            if (etat.avertissements.isNotEmpty()) {
+                listOf(ActionDetailIndexation.REESSAYER_ECHECS, ActionDetailIndexation.REINDEXER)
+            } else {
                 listOf(ActionDetailIndexation.REINDEXER)
-            }
-
-            PhaseIndexation.PRET -> {
-                listOf(ActionDetailIndexation.REINDEXER)
-            }
-
-            PhaseIndexation.INITIAL -> {
-                emptyList()
             }
         }
 
-    private fun noteImpactDe(etat: EtatIndexation): NoteImpactIndexation? =
-        when (etat.phase) {
-            PhaseIndexation.CONSTRUCTION -> {
+        PhaseIndexation.ERREUR -> {
+            listOf(ActionDetailIndexation.REINDEXER)
+        }
+
+        PhaseIndexation.PRET -> {
+            listOf(ActionDetailIndexation.REINDEXER)
+        }
+
+        PhaseIndexation.INITIAL -> {
+            emptyList()
+        }
+    }
+
+    private fun noteImpactDe(etat: EtatIndexation): NoteImpactIndexation? = when (etat.phase) {
+        PhaseIndexation.CONSTRUCTION -> {
+            NoteImpactIndexation(
+                niveau = NiveauNoteImpact.INFO,
+                texte = TexteIndexation.Ressource(R.string.editor_indexation_note_construction),
+            )
+        }
+
+        PhaseIndexation.PARTIEL -> {
+            if (etat.avertissements.isNotEmpty()) {
                 NoteImpactIndexation(
-                    niveau = NiveauNoteImpact.INFO,
-                    texte = TexteIndexation.Ressource(R.string.editor_indexation_note_construction),
+                    niveau = NiveauNoteImpact.AVERTISSEMENT,
+                    texte = TexteIndexation.Ressource(R.string.editor_indexation_note_partiel),
                 )
-            }
-
-            PhaseIndexation.PARTIEL -> {
-                if (etat.avertissements.isNotEmpty()) {
-                    NoteImpactIndexation(
-                        niveau = NiveauNoteImpact.AVERTISSEMENT,
-                        texte = TexteIndexation.Ressource(R.string.editor_indexation_note_partiel),
-                    )
-                } else {
-                    null
-                }
-            }
-
-            PhaseIndexation.ERREUR -> {
-                NoteImpactIndexation(
-                    niveau = NiveauNoteImpact.ERREUR,
-                    texte = TexteIndexation.Ressource(R.string.editor_indexation_note_erreur),
-                )
-            }
-
-            PhaseIndexation.PRET -> {
-                null
-            }
-
-            PhaseIndexation.INITIAL -> {
+            } else {
                 null
             }
         }
 
-    /** Calcule le pourcentage de progression (0-100), `null` si indéterminé. */
-    private fun pourcentageDe(
-        faits: Int,
-        total: Int,
-    ): Int? =
-        if (total > 0) {
-            ((faits.toFloat() / total) * POURCENTAGE_MAX).toInt().coerceIn(0, POURCENTAGE_MAX)
-        } else {
+        PhaseIndexation.ERREUR -> {
+            NoteImpactIndexation(
+                niveau = NiveauNoteImpact.ERREUR,
+                texte = TexteIndexation.Ressource(R.string.editor_indexation_note_erreur),
+            )
+        }
+
+        PhaseIndexation.PRET -> {
             null
         }
+
+        PhaseIndexation.INITIAL -> {
+            null
+        }
+    }
+
+    /** Calcule le pourcentage de progression (0-100), `null` si indéterminé. */
+    private fun pourcentageDe(faits: Int, total: Int): Int? = if (total > 0) {
+        ((faits.toFloat() / total) * POURCENTAGE_MAX).toInt().coerceIn(0, POURCENTAGE_MAX)
+    } else {
+        null
+    }
 
     /** Plafond du pourcentage de progression (0-100). */
     private const val POURCENTAGE_MAX: Int = 100

@@ -62,8 +62,5 @@ public interface ArborescencesSaf {
      * ADR 0015) : l'URI reconstruite partage le préfixe de l'arbre, ce que
      * la règle de libération conditionnelle des permissions sait comparer.
      */
-    public fun uriDocumentDansArbre(
-        grantUri: String,
-        idDocument: String,
-    ): String?
+    public fun uriDocumentDansArbre(grantUri: String, idDocument: String): String?
 }

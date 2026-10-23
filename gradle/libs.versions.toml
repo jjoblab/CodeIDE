@@ -171,7 +171,18 @@ layoutlib = "3.7.0"
 # composite, de la publication en binaire ; la substitution ignore la
 # version déclarée — la mise à jour = bump ici + ref du clonage CI.
 codeide-tooling = "1.0.0"
-codeide-lsp = "1.3.0"
+codeide-lsp = "1.4.0"
+
+# Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
+# EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
+# ADR 0002 intact — pas de Compose pour l'UI CodeIDE). BOM vérifiée sur
+# Google Maven ; le plugin compose est livré AVEC Kotlin (2.0+).
+compose-bom = "2026.09.00"
+
+# Propriétaire d'état sauvegardé hors fenêtre (SavedStateRegistry factice
+# de l'exécuteur off-screen :preview:compose) — version stable vérifiée
+# sur Google Maven.
+savedstate = "1.3.3"
 
 # Interface ViewBinding pour core:ui (même version que l'AGP, vérifié sur Google Maven ;
 # AGP l'ajoute automatiquement aux modules qui activent viewBinding, core:ui la déclare explicitement).
@@ -285,6 +296,19 @@ tooling-api = { group = "com.github.jjoblab.codeide-tooling", name = "api", vers
 tooling-server = { group = "com.github.jjoblab.codeide-tooling", name = "server", version.ref = "codeide-tooling" }
 tooling-testing = { group = "com.github.jjoblab.codeide-tooling", name = "testing", version.ref = "codeide-tooling" }
 lsp-host = { group = "com.github.jjoblab.codeide-lsp", name = "host", version.ref = "codeide-lsp" }
+lsp-kotlin = { group = "com.github.jjoblab.codeide-lsp", name = "kotlin", version.ref = "codeide-lsp" }
+
+# Runtime Compose embarqué (PC1/PC2 — bibliothèque d'interprétation du
+# module :preview:compose, Jamais l'UI CodeIDE — ADR 0002).
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "compose-bom" }
+compose-runtime = { group = "androidx.compose.runtime", name = "runtime" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-text = { group = "androidx.compose.ui", name = "ui-text" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+androidx-savedstate = { group = "androidx.savedstate", name = "savedstate-ktx", version.ref = "savedstate" }
 
 # Tests unitaires JVM.
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
@@ -300,6 +324,7 @@ leakcanary-android = { group = "com.squareup.leakcanary", name = "leakcanary-and
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }

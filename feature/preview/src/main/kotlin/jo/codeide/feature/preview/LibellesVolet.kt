@@ -12,10 +12,7 @@ import jo.codeide.preview.xml.InfoVueRendu
  */
 internal object LibellesVolet {
     /** Le libellé d'une vue (« Classe · @+id/x », sans id : la classe seule). */
-    internal fun libelleVue(
-        contexte: Context,
-        vue: InfoVueRendu,
-    ): String {
+    internal fun libelleVue(contexte: Context, vue: InfoVueRendu): String {
         val idNom = vue.idRes.substringAfterLast('/')
         return if (idNom.isEmpty()) {
             vue.classe

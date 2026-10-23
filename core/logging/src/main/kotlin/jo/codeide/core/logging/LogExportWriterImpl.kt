@@ -38,124 +38,113 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class LogExportWriterImpl
-    @Inject
-    constructor(
-        // Cible d'annotation explicite : le qualificatif Hilt s'adresse au
-        // paramètre du constructeur (Kotlin 2.2 sans ambiguïté de site).
-        @param:ApplicationContext private val context: Context,
-        private val dispatchers: DispatcherProvider,
-        private val timeProvider: TimeProvider,
-        private val buildInfo: BuildInfo,
-        private val deviceSummary: DeviceSummary,
-        private val json: Json,
-    ) : LogExportWriter {
-        override suspend fun write(entries: List<LogEntry>): AppResult<ExportedLogs> =
-            withContext(dispatchers.io) {
-                try {
-                    val dossier =
-                        File(context.cacheDir, LoggingLimits.EXPORTS_DIR_NAME).apply {
-                            mkdirs()
-                        }
-
-                    val nomArchive = nomArchive(timeProvider.nowMillis())
-                    val destination = File(dossier, nomArchive)
-                    FileOutputStream(destination).use { flux -> ecrireArchive(entries, flux) }
-                    // Nettoyage APRÈS écriture : le plafond compte l'archive
-                    // qui vient d'être produite.
-                    supprimerAnciensExports(dossier)
-                    AppResult.Success(ExportedLogs(fileName = nomArchive, location = destination.absolutePath))
-                } catch (e: IOException) {
-                    AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+@Inject
+constructor(
+    // Cible d'annotation explicite : le qualificatif Hilt s'adresse au
+    // paramètre du constructeur (Kotlin 2.2 sans ambiguïté de site).
+    @param:ApplicationContext private val context: Context,
+    private val dispatchers: DispatcherProvider,
+    private val timeProvider: TimeProvider,
+    private val buildInfo: BuildInfo,
+    private val deviceSummary: DeviceSummary,
+    private val json: Json,
+) : LogExportWriter {
+    override suspend fun write(entries: List<LogEntry>): AppResult<ExportedLogs> = withContext(dispatchers.io) {
+        try {
+            val dossier =
+                File(context.cacheDir, LoggingLimits.EXPORTS_DIR_NAME).apply {
+                    mkdirs()
                 }
-            }
 
-        override suspend fun write(
-            entries: List<LogEntry>,
-            destinationUri: String,
-        ): AppResult<Unit> =
-            withContext(dispatchers.io) {
-                try {
-                    val uri = destinationUri.toUri()
-                    context.contentResolver.openOutputStream(uri, "w")?.use { flux ->
-                        ecrireArchive(entries, flux)
-                    } ?: return@withContext AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.NotWritable, "openOutputStream"),
-                    )
-                    AppResult.Success(Unit)
-                } catch (e: IOException) {
-                    AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
-                } catch (e: SecurityException) {
-                    // Destination SAF révoquée entre la sélection et l'écriture :
-                    // échec typé, jamais une exception jusqu'à l'UI.
-                    AppResult.Failure(AppError.Storage(AppError.StorageReason.PermissionLost, e.javaClass.simpleName))
-                }
-            }
-
-        /**
-         * Écrit l'archive (JSON Lines + `device-info.txt`) vers le flux.
-         *
-         * Unique point d'empaquetage : l'export vers le cache et
-         * l'enregistrement direct à une destination SAF produisent la même
-         * archive, octet pour octet.
-         */
-        private fun ecrireArchive(
-            entries: List<LogEntry>,
-            flux: java.io.OutputStream,
-        ) {
-            ZipOutputStream(flux).use { archive ->
-                archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_LOGS))
-                entries.forEach { entree ->
-                    archive.write(
-                        (json.encodeToString(LogEntry.serializer(), entree) + "\n")
-                            .toByteArray(Charsets.UTF_8),
-                    )
-                }
-                archive.closeEntry()
-
-                archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_DEVICE_INFO))
-                archive.write(
-                    infosAppareil(entries, timeProvider.nowMillis()).toByteArray(Charsets.UTF_8),
-                )
-                archive.closeEntry()
-            }
-        }
-
-        /** Nom de l'archive : `codeide-logs-yyyy-MM-dd-HHmmss.zip` (UTC). */
-        private fun nomArchive(nowMillis: Long): String {
-            val horodatage =
-                SimpleDateFormat(LoggingLimits.EXPORT_TIMESTAMP_FORMAT, Locale.US)
-                    .apply {
-                        // UTC : le nom ne doit pas dépendre du fuseau de l'appareil.
-                        timeZone = TimeZone.getTimeZone("UTC")
-                    }.format(Date(nowMillis))
-            return "${LoggingLimits.EXPORT_FILE_PREFIX}$horodatage.zip"
-        }
-
-        /**
-         * Contenu texte de `device-info.txt` : version, build, appareil,
-         * sessions distinctes et volume — rien de personnel.
-         */
-        private fun infosAppareil(
-            entries: List<LogEntry>,
-            nowMillis: Long,
-        ): String =
-            buildString {
-                appendLine("CodeIDE ${buildInfo.versionName} (${buildInfo.versionCode}, ${buildInfo.buildType})")
-                appendLine(deviceSummary.summary())
-                appendLine("Généré le : $nowMillis")
-                appendLine("Entrées exportées : ${entries.size}")
-                appendLine("Sessions distinctes : ${entries.map { it.sessionId }.distinct().size}")
-                appendLine("Niveau minimal du journal : ${entries.minOfOrNull { it.level } ?: "aucune entrée"}")
-            }
-
-        /** Ne conserve que les plus récentes archives d'export. */
-        private fun supprimerAnciensExports(dossier: File) {
-            dossier
-                .listFiles()
-                .orEmpty()
-                .filter { it.isFile && it.name.startsWith(LoggingLimits.EXPORT_FILE_PREFIX) }
-                .sortedByDescending { it.lastModified() }
-                .drop(LoggingLimits.MAX_EXPORTS_KEPT)
-                .forEach { it.delete() }
+            val nomArchive = nomArchive(timeProvider.nowMillis())
+            val destination = File(dossier, nomArchive)
+            FileOutputStream(destination).use { flux -> ecrireArchive(entries, flux) }
+            // Nettoyage APRÈS écriture : le plafond compte l'archive
+            // qui vient d'être produite.
+            supprimerAnciensExports(dossier)
+            AppResult.Success(ExportedLogs(fileName = nomArchive, location = destination.absolutePath))
+        } catch (e: IOException) {
+            AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
         }
     }
+
+    override suspend fun write(entries: List<LogEntry>, destinationUri: String): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            try {
+                val uri = destinationUri.toUri()
+                context.contentResolver.openOutputStream(uri, "w")?.use { flux ->
+                    ecrireArchive(entries, flux)
+                } ?: return@withContext AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.NotWritable, "openOutputStream"),
+                )
+                AppResult.Success(Unit)
+            } catch (e: IOException) {
+                AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+            } catch (e: SecurityException) {
+                // Destination SAF révoquée entre la sélection et l'écriture :
+                // échec typé, jamais une exception jusqu'à l'UI.
+                AppResult.Failure(AppError.Storage(AppError.StorageReason.PermissionLost, e.javaClass.simpleName))
+            }
+        }
+
+    /**
+     * Écrit l'archive (JSON Lines + `device-info.txt`) vers le flux.
+     *
+     * Unique point d'empaquetage : l'export vers le cache et
+     * l'enregistrement direct à une destination SAF produisent la même
+     * archive, octet pour octet.
+     */
+    private fun ecrireArchive(entries: List<LogEntry>, flux: java.io.OutputStream) {
+        ZipOutputStream(flux).use { archive ->
+            archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_LOGS))
+            entries.forEach { entree ->
+                archive.write(
+                    (json.encodeToString(LogEntry.serializer(), entree) + "\n")
+                        .toByteArray(Charsets.UTF_8),
+                )
+            }
+            archive.closeEntry()
+
+            archive.putNextEntry(ZipEntry(LoggingLimits.ZIP_ENTRY_DEVICE_INFO))
+            archive.write(
+                infosAppareil(entries, timeProvider.nowMillis()).toByteArray(Charsets.UTF_8),
+            )
+            archive.closeEntry()
+        }
+    }
+
+    /** Nom de l'archive : `codeide-logs-yyyy-MM-dd-HHmmss.zip` (UTC). */
+    private fun nomArchive(nowMillis: Long): String {
+        val horodatage =
+            SimpleDateFormat(LoggingLimits.EXPORT_TIMESTAMP_FORMAT, Locale.US)
+                .apply {
+                    // UTC : le nom ne doit pas dépendre du fuseau de l'appareil.
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }.format(Date(nowMillis))
+        return "${LoggingLimits.EXPORT_FILE_PREFIX}$horodatage.zip"
+    }
+
+    /**
+     * Contenu texte de `device-info.txt` : version, build, appareil,
+     * sessions distinctes et volume — rien de personnel.
+     */
+    private fun infosAppareil(entries: List<LogEntry>, nowMillis: Long): String = buildString {
+        appendLine("CodeIDE ${buildInfo.versionName} (${buildInfo.versionCode}, ${buildInfo.buildType})")
+        appendLine(deviceSummary.summary())
+        appendLine("Généré le : $nowMillis")
+        appendLine("Entrées exportées : ${entries.size}")
+        appendLine("Sessions distinctes : ${entries.map { it.sessionId }.distinct().size}")
+        appendLine("Niveau minimal du journal : ${entries.minOfOrNull { it.level } ?: "aucune entrée"}")
+    }
+
+    /** Ne conserve que les plus récentes archives d'export. */
+    private fun supprimerAnciensExports(dossier: File) {
+        dossier
+            .listFiles()
+            .orEmpty()
+            .filter { it.isFile && it.name.startsWith(LoggingLimits.EXPORT_FILE_PREFIX) }
+            .sortedByDescending { it.lastModified() }
+            .drop(LoggingLimits.MAX_EXPORTS_KEPT)
+            .forEach { it.delete() }
+    }
+}

@@ -85,146 +85,132 @@ internal class CleMaitreKeystore : CleMaitreFournisseur {
  * l'écran affiche « Clé à ressaisir » (critère d'acceptation IA-2).
  */
 public class CoffreClesKeystore
-    @Inject
-    constructor(
-        @param:ApplicationContext private val contexte: Context,
-        private val dispatchers: DispatcherProvider,
-        private val cleMaitre: CleMaitreFournisseur,
-    ) : CoffreClesIa {
-        private fun fichier(
-            identifiant: String,
-            extension: String,
-        ): File {
-            require(REGEX_IDENTIFIANT.matches(identifiant)) { "identifiant de clé invalide" }
-            return File(contexte.noBackupFilesDir, "$PREFIXE_FICHIER$identifiant$extension")
-        }
+@Inject
+constructor(
+    @param:ApplicationContext private val contexte: Context,
+    private val dispatchers: DispatcherProvider,
+    private val cleMaitre: CleMaitreFournisseur,
+) : CoffreClesIa {
+    private fun fichier(identifiant: String, extension: String): File {
+        require(REGEX_IDENTIFIANT.matches(identifiant)) { "identifiant de clé invalide" }
+        return File(contexte.noBackupFilesDir, "$PREFIXE_FICHIER$identifiant$extension")
+    }
 
-        override suspend fun enregistrer(
-            identifiant: String,
-            cle: CharArray,
-        ): AppResult<Unit> =
-            withContext(dispatchers.io) {
-                try {
-                    val chiffre = chiffre().apply { init(Cipher.ENCRYPT_MODE, cleMaitre.obtenirOuCreer()) }
-                    val iv = chiffre.iv
-                    require(iv.size == TAILLE_IV_ATTENDUE) { "IV inattendu (${iv.size} octets)" }
-                    val blob =
-                        ByteArray(1 + iv.size) { index -> if (index == 0) VERSION_BLOB else iv[index - 1] } +
-                            chiffre.doFinal(cle.concatToString().toByteArray(Charsets.UTF_8))
-                    ecrireAtomiquement(fichier(identifiant, EXTENSION_BLOB), blob)
-                    ecrireAtomiquement(
-                        fichier(identifiant, EXTENSION_APERCU),
-                        apercuDe(cle).toByteArray(Charsets.UTF_8),
-                    )
-                    cle.fill('\u0000')
-                    AppResult.Success(Unit)
-                } catch (erreur: Exception) {
-                    if (erreur.estAnnulation()) throw erreur
-                    val cause = erreur.javaClass.simpleName
-                    AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.NotWritable, "enregistrement impossible : $cause"),
-                    )
-                }
-            }
-
-        override suspend fun lire(identifiant: String): AppResult<CharArray> =
-            withContext(dispatchers.io) {
-                val blob = fichier(identifiant, EXTENSION_BLOB)
-                if (!blob.exists()) {
-                    val absente = AppError.Storage(AppError.StorageReason.NotFound, "aucune clé")
-                    return@withContext AppResult.Failure(absente)
-                }
-                try {
-                    val contenu = blob.readBytes()
-                    if (contenu.size < 1 + TAILLE_IV_ATTENDUE + ETIQUETTE_GCM_MINIMUM || contenu[0] != VERSION_BLOB) {
-                        return@withContext AppResult.Failure(erreurClePerdue("blob illisible"))
-                    }
-                    val cle = cleMaitre.obtenirOuCreer()
-                    val iv = contenu.copyOfRange(1, 1 + TAILLE_IV_ATTENDUE)
-                    val chiffre = chiffre()
-                    chiffre.init(Cipher.DECRYPT_MODE, cle, GCMParameterSpec(ETIQUETTE_GCM_BITS, iv))
-                    val clair =
-                        chiffre.doFinal(contenu, 1 + TAILLE_IV_ATTENDUE, contenu.size - 1 - TAILLE_IV_ATTENDUE)
-                    AppResult.Success(String(clair, Charsets.UTF_8).toCharArray())
-                } catch (erreur: Exception) {
-                    val traduite = cleIllisible(erreur)
-                    if (traduite != null) {
-                        return@withContext traduite
-                    }
-                    val cause = erreur.javaClass.simpleName
-                    return@withContext AppResult.Failure(AppError.Unknown("lecture coffre : $cause"))
-                }
-            }
-
-        override suspend fun supprimer(identifiant: String): AppResult<Unit> =
-            withContext(dispatchers.io) {
-                fichier(identifiant, EXTENSION_BLOB).delete()
-                fichier(identifiant, EXTENSION_APERCU).delete()
+    override suspend fun enregistrer(identifiant: String, cle: CharArray): AppResult<Unit> =
+        withContext(dispatchers.io) {
+            try {
+                val chiffre = chiffre().apply { init(Cipher.ENCRYPT_MODE, cleMaitre.obtenirOuCreer()) }
+                val iv = chiffre.iv
+                require(iv.size == TAILLE_IV_ATTENDUE) { "IV inattendu (${iv.size} octets)" }
+                val blob =
+                    ByteArray(1 + iv.size) { index -> if (index == 0) VERSION_BLOB else iv[index - 1] } +
+                        chiffre.doFinal(cle.concatToString().toByteArray(Charsets.UTF_8))
+                ecrireAtomiquement(fichier(identifiant, EXTENSION_BLOB), blob)
+                ecrireAtomiquement(
+                    fichier(identifiant, EXTENSION_APERCU),
+                    apercuDe(cle).toByteArray(Charsets.UTF_8),
+                )
+                cle.fill('\u0000')
                 AppResult.Success(Unit)
-            }
-
-        override suspend fun contient(identifiant: String): Boolean =
-            withContext(dispatchers.io) { fichier(identifiant, EXTENSION_BLOB).exists() }
-
-        override suspend fun apercu(identifiant: String): String? =
-            withContext(dispatchers.io) {
-                fichier(identifiant, EXTENSION_APERCU)
-                    .takeIf { it.exists() }
-                    ?.readText(Charsets.UTF_8)
-                    ?.ifBlank { null }
-            }
-
-        private fun chiffre(): Cipher = Cipher.getInstance("AES/GCM/NoPadding")
-
-        private fun ecrireAtomiquement(
-            cible: File,
-            contenu: ByteArray,
-        ) {
-            val temporaire = File(cible.parentFile, "${cible.name}.tmp")
-            temporaire.writeBytes(contenu)
-            if (!temporaire.renameTo(cible)) {
-                temporaire.delete()
-                throw IOException("renommage refusé : ${cible.name}")
+            } catch (erreur: Exception) {
+                if (erreur.estAnnulation()) throw erreur
+                val cause = erreur.javaClass.simpleName
+                AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.NotWritable, "enregistrement impossible : $cause"),
+                )
             }
         }
 
-        private companion object {
-            const val PREFIXE_FICHIER = "codeide_ia_cle_"
-            const val EXTENSION_BLOB = ".blob"
-            const val EXTENSION_APERCU = ".apercu"
-            const val VERSION_BLOB: Byte = 1
-            const val TAILLE_IV_ATTENDUE = 12
-            const val ETIQUETTE_GCM_MINIMUM = 16
-            const val ETIQUETTE_GCM_BITS = 128
-
-            /** Identifiants autorisés (identifiants de [jo.codeide.core.domain.FournisseursIa]). */
-            val REGEX_IDENTIFIANT = Regex("""^[a-z0-9_]{1,64}$""")
+    override suspend fun lire(identifiant: String): AppResult<CharArray> = withContext(dispatchers.io) {
+        val blob = fichier(identifiant, EXTENSION_BLOB)
+        if (!blob.exists()) {
+            val absente = AppError.Storage(AppError.StorageReason.NotFound, "aucune clé")
+            return@withContext AppResult.Failure(absente)
+        }
+        try {
+            val contenu = blob.readBytes()
+            if (contenu.size < 1 + TAILLE_IV_ATTENDUE + ETIQUETTE_GCM_MINIMUM || contenu[0] != VERSION_BLOB) {
+                return@withContext AppResult.Failure(erreurClePerdue("blob illisible"))
+            }
+            val cle = cleMaitre.obtenirOuCreer()
+            val iv = contenu.copyOfRange(1, 1 + TAILLE_IV_ATTENDUE)
+            val chiffre = chiffre()
+            chiffre.init(Cipher.DECRYPT_MODE, cle, GCMParameterSpec(ETIQUETTE_GCM_BITS, iv))
+            val clair =
+                chiffre.doFinal(contenu, 1 + TAILLE_IV_ATTENDUE, contenu.size - 1 - TAILLE_IV_ATTENDUE)
+            AppResult.Success(String(clair, Charsets.UTF_8).toCharArray())
+        } catch (erreur: Exception) {
+            val traduite = cleIllisible(erreur)
+            if (traduite != null) {
+                return@withContext traduite
+            }
+            val cause = erreur.javaClass.simpleName
+            return@withContext AppResult.Failure(AppError.Unknown("lecture coffre : $cause"))
         }
     }
+
+    override suspend fun supprimer(identifiant: String): AppResult<Unit> = withContext(dispatchers.io) {
+        fichier(identifiant, EXTENSION_BLOB).delete()
+        fichier(identifiant, EXTENSION_APERCU).delete()
+        AppResult.Success(Unit)
+    }
+
+    override suspend fun contient(identifiant: String): Boolean =
+        withContext(dispatchers.io) { fichier(identifiant, EXTENSION_BLOB).exists() }
+
+    override suspend fun apercu(identifiant: String): String? = withContext(dispatchers.io) {
+        fichier(identifiant, EXTENSION_APERCU)
+            .takeIf { it.exists() }
+            ?.readText(Charsets.UTF_8)
+            ?.ifBlank { null }
+    }
+
+    private fun chiffre(): Cipher = Cipher.getInstance("AES/GCM/NoPadding")
+
+    private fun ecrireAtomiquement(cible: File, contenu: ByteArray) {
+        val temporaire = File(cible.parentFile, "${cible.name}.tmp")
+        temporaire.writeBytes(contenu)
+        if (!temporaire.renameTo(cible)) {
+            temporaire.delete()
+            throw IOException("renommage refusé : ${cible.name}")
+        }
+    }
+
+    private companion object {
+        const val PREFIXE_FICHIER = "codeide_ia_cle_"
+        const val EXTENSION_BLOB = ".blob"
+        const val EXTENSION_APERCU = ".apercu"
+        const val VERSION_BLOB: Byte = 1
+        const val TAILLE_IV_ATTENDUE = 12
+        const val ETIQUETTE_GCM_MINIMUM = 16
+        const val ETIQUETTE_GCM_BITS = 128
+
+        /** Identifiants autorisés (identifiants de [jo.codeide.core.domain.FournisseursIa]). */
+        val REGEX_IDENTIFIANT = Regex("""^[a-z0-9_]{1,64}$""")
+    }
+}
 
 /** Caractères visibles de l'aperçu (ADR 0124 §1 : les 4 derniers). */
 private const val APERCU_VISIBLES = 4
 
 /** Aperçu `••••` + 4 derniers caractères — clé courte intégralement masquée. */
-private fun apercuDe(cle: CharArray): String =
-    if (cle.size <= APERCU_VISIBLES) {
-        "•".repeat(cle.size)
-    } else {
-        "•".repeat(APERCU_VISIBLES) + cle.concatToString().takeLast(APERCU_VISIBLES)
-    }
+private fun apercuDe(cle: CharArray): String = if (cle.size <= APERCU_VISIBLES) {
+    "•".repeat(cle.size)
+} else {
+    "•".repeat(APERCU_VISIBLES) + cle.concatToString().takeLast(APERCU_VISIBLES)
+}
 
 /** Traduction des incidents de déchiffrement en « clé à ressaisir ». */
-private fun cleIllisible(erreur: Exception): AppResult<CharArray>? =
-    when (erreur) {
-        is AEADBadTagException,
-        is InvalidKeyException,
-        is IllegalBlockSizeException,
-        is NoSuchAlgorithmException,
-        is ProviderException,
-        -> AppResult.Failure(erreurClePerdue(erreur.javaClass.simpleName))
+private fun cleIllisible(erreur: Exception): AppResult<CharArray>? = when (erreur) {
+    is AEADBadTagException,
+    is InvalidKeyException,
+    is IllegalBlockSizeException,
+    is NoSuchAlgorithmException,
+    is ProviderException,
+    -> AppResult.Failure(erreurClePerdue(erreur.javaClass.simpleName))
 
-        else -> null
-    }
+    else -> null
+}
 
 private fun erreurClePerdue(details: String): AppError =
     AppError.Storage(AppError.StorageReason.KeyUnavailable, "clé à ressaisir : $details")

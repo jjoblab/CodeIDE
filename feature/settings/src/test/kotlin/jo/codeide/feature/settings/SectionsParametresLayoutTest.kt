@@ -93,10 +93,7 @@ class SectionsParametresLayoutTest {
     }
 
     /** Gonfle le layout, le mesure et le pose à taille d'écran réelle. */
-    private fun gonflerEtPoser(
-        contexte: Context,
-        layout: Int,
-    ): View {
+    private fun gonflerEtPoser(contexte: Context, layout: Int): View {
         val racine = LayoutInflater.from(contexte).inflate(layout, null, false)
         val largeur = View.MeasureSpec.makeMeasureSpec(LARGEUR_ECRAN, View.MeasureSpec.EXACTLY)
         val hauteur = View.MeasureSpec.makeMeasureSpec(HAUTEUR_ECRAN, View.MeasureSpec.EXACTLY)
@@ -124,10 +121,7 @@ class SectionsParametresLayoutTest {
      * rangées sœurs directement sous la carte se superposent au lieu de
      * s'empiler — le bug d'affichage des sections.
      */
-    private fun assertConteneurUnique(
-        section: String,
-        carte: MaterialCardView,
-    ) {
+    private fun assertConteneurUnique(section: String, carte: MaterialCardView) {
         assertEquals(
             "$section : la carte doit porter un unique enfant, pas ${carte.childCount}",
             1,
@@ -156,11 +150,7 @@ class SectionsParametresLayoutTest {
         }
 
     /** Les rangées visibles du conteneur doivent descendre sans se recouvrir. */
-    private fun assertRangeesNonEmpilees(
-        contexte: Context,
-        section: String,
-        conteneur: ViewGroup,
-    ) {
+    private fun assertRangeesNonEmpilees(contexte: Context, section: String, conteneur: ViewGroup) {
         val visibles =
             (0 until conteneur.childCount)
                 .map { conteneur.getChildAt(it) }
@@ -177,19 +167,15 @@ class SectionsParametresLayoutTest {
     }
 
     /** Nom lisible d'une vue pour les messages d'échec. */
-    private fun nom(
-        contexte: Context,
-        vue: View,
-    ): String =
-        if (vue.id != View.NO_ID) {
-            try {
-                contexte.resources.getResourceEntryName(vue.id)
-            } catch (_: android.content.res.Resources.NotFoundException) {
-                vue.javaClass.simpleName
-            }
-        } else {
+    private fun nom(contexte: Context, vue: View): String = if (vue.id != View.NO_ID) {
+        try {
+            contexte.resources.getResourceEntryName(vue.id)
+        } catch (_: android.content.res.Resources.NotFoundException) {
             vue.javaClass.simpleName
         }
+    } else {
+        vue.javaClass.simpleName
+    }
 
     private companion object {
         /** Écran plein format typique, en pixels Robolectric (mdpi). */

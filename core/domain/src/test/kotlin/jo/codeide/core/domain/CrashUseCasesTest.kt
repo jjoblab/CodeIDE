@@ -21,24 +21,20 @@ import org.junit.Test
  * dépôt, les fakes n'ayant pas à être testés ici.
  */
 class CrashUseCasesTest {
-    private fun rapport(
-        id: String,
-        horodatage: Long,
-    ): CrashReport =
-        CrashReport(
-            id = id,
-            type = CrashType.EXCEPTION,
-            timestampMillis = horodatage,
-            sessionId = "session",
-            application = CrashAppInfo("0.4.0", 400, "debug", "jo.codeide"),
-            device = DeviceInfo.inconnu(),
-            threadName = "main",
-            exception = FlattenedException("java.lang.RuntimeException", "boum $id", emptyList(), null),
-            breadcrumbs = emptyList(),
-            lastScreen = null,
-            processUptimeMs = 0,
-            isCrashLoop = false,
-        )
+    private fun rapport(id: String, horodatage: Long): CrashReport = CrashReport(
+        id = id,
+        type = CrashType.EXCEPTION,
+        timestampMillis = horodatage,
+        sessionId = "session",
+        application = CrashAppInfo("0.4.0", 400, "debug", "jo.codeide"),
+        device = DeviceInfo.inconnu(),
+        threadName = "main",
+        exception = FlattenedException("java.lang.RuntimeException", "boum $id", emptyList(), null),
+        breadcrumbs = emptyList(),
+        lastScreen = null,
+        processUptimeMs = 0,
+        isCrashLoop = false,
+    )
 
     /** Peuple le dépôt et marque éventuellement des rapports consultés. */
     private fun depotePeuple(): FakeCrashReportRepository {
@@ -51,76 +47,70 @@ class CrashUseCasesTest {
     }
 
     @Test
-    fun `observer renvoie les résumés du plus récent au plus ancien`() =
-        runTest {
-            val depot = depotePeuple()
+    fun `observer renvoie les résumés du plus récent au plus ancien`() = runTest {
+        val depot = depotePeuple()
 
-            val resumes = ObserveCrashReportsUseCase(depot).invoke().first()
+        val resumes = ObserveCrashReportsUseCase(depot).invoke().first()
 
-            assertEquals(listOf("recent", "ancien"), resumes.map { it.id })
-            assertEquals(CrashType.EXCEPTION, resumes.first().type)
-            assertEquals("java.lang.RuntimeException", resumes.first().exceptionClassName)
-        }
-
-    @Test
-    fun `lire un rapport existant puis un rapport absent`() =
-        runTest {
-            val depot = depotePeuple()
-            val lire = GetCrashReportUseCase(depot)
-
-            assertEquals("recent", lire.invoke("recent")?.id)
-            assertNull(lire.invoke("introuvable"))
-        }
+        assertEquals(listOf("recent", "ancien"), resumes.map { it.id })
+        assertEquals(CrashType.EXCEPTION, resumes.first().type)
+        assertEquals("java.lang.RuntimeException", resumes.first().exceptionClassName)
+    }
 
     @Test
-    fun `le dernier non consulté suit la consultation`() =
-        runTest {
-            val depot = depotePeuple()
-            val dernierNonConsulte = GetLatestUnreviewedCrashReportUseCase(depot)
-            val marquer = MarkCrashReportReviewedUseCase(depot)
+    fun `lire un rapport existant puis un rapport absent`() = runTest {
+        val depot = depotePeuple()
+        val lire = GetCrashReportUseCase(depot)
 
-            assertEquals("recent", dernierNonConsulte.invoke()?.id)
-            assertTrue(marquer.invoke("recent"))
-            // Le plus ancien devient le dernier non consulté.
-            assertEquals("ancien", dernierNonConsulte.invoke()?.id)
-            assertTrue(marquer.invoke("ancien"))
-            assertNull(dernierNonConsulte.invoke())
-        }
+        assertEquals("recent", lire.invoke("recent")?.id)
+        assertNull(lire.invoke("introuvable"))
+    }
 
     @Test
-    fun `supprimer un rapport puis tous les rapports`() =
-        runTest {
-            val depot = depotePeuple()
-            val supprimer = DeleteCrashReportUseCase(depot)
-            val toutSupprimer = DeleteAllCrashReportsUseCase(depot)
+    fun `le dernier non consulté suit la consultation`() = runTest {
+        val depot = depotePeuple()
+        val dernierNonConsulte = GetLatestUnreviewedCrashReportUseCase(depot)
+        val marquer = MarkCrashReportReviewedUseCase(depot)
 
-            assertTrue(supprimer.invoke("ancien"))
-            assertFalse(supprimer.invoke("ancien"))
-            assertEquals(1, toutSupprimer.invoke())
-            assertTrue(ObserveCrashReportsUseCase(depot).invoke().first().isEmpty())
-        }
-
-    @Test
-    fun `la présence d'un non consulté suit les mutations`() =
-        runTest {
-            val depot = depotePeuple()
-            val presence = HasUnreviewedCrashReportsUseCase(depot)
-            val marquer = MarkCrashReportReviewedUseCase(depot)
-
-            assertTrue(presence.invoke())
-            marquer.invoke("recent")
-            assertTrue(presence.invoke())
-            marquer.invoke("ancien")
-            assertFalse(presence.invoke())
-        }
+        assertEquals("recent", dernierNonConsulte.invoke()?.id)
+        assertTrue(marquer.invoke("recent"))
+        // Le plus ancien devient le dernier non consulté.
+        assertEquals("ancien", dernierNonConsulte.invoke()?.id)
+        assertTrue(marquer.invoke("ancien"))
+        assertNull(dernierNonConsulte.invoke())
+    }
 
     @Test
-    fun `l'enregistrement des sorties délègue au port`() =
-        runTest {
-            val port = FakePendingExitInfoRecorder().apply { aRetourner = 2 }
-            val enregistrer = RecordPendingExitInfosUseCase(port)
+    fun `supprimer un rapport puis tous les rapports`() = runTest {
+        val depot = depotePeuple()
+        val supprimer = DeleteCrashReportUseCase(depot)
+        val toutSupprimer = DeleteAllCrashReportsUseCase(depot)
 
-            assertEquals(2, enregistrer.invoke())
-            assertEquals(1, port.appels)
-        }
+        assertTrue(supprimer.invoke("ancien"))
+        assertFalse(supprimer.invoke("ancien"))
+        assertEquals(1, toutSupprimer.invoke())
+        assertTrue(ObserveCrashReportsUseCase(depot).invoke().first().isEmpty())
+    }
+
+    @Test
+    fun `la présence d'un non consulté suit les mutations`() = runTest {
+        val depot = depotePeuple()
+        val presence = HasUnreviewedCrashReportsUseCase(depot)
+        val marquer = MarkCrashReportReviewedUseCase(depot)
+
+        assertTrue(presence.invoke())
+        marquer.invoke("recent")
+        assertTrue(presence.invoke())
+        marquer.invoke("ancien")
+        assertFalse(presence.invoke())
+    }
+
+    @Test
+    fun `l'enregistrement des sorties délègue au port`() = runTest {
+        val port = FakePendingExitInfoRecorder().apply { aRetourner = 2 }
+        val enregistrer = RecordPendingExitInfosUseCase(port)
+
+        assertEquals(2, enregistrer.invoke())
+        assertEquals(1, port.appels)
+    }
 }

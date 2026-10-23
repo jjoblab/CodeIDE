@@ -30,19 +30,12 @@ class EnvironnementFragment : Fragment() {
     private var liaisonPrivee: FragmentEnvironnementBinding? = null
     private val liaison: FragmentEnvironnementBinding get() = liaisonPrivee!!
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaisonPrivee = FragmentEnvironnementBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val adaptateur =
             ComposantsEnvAdapter { composant ->

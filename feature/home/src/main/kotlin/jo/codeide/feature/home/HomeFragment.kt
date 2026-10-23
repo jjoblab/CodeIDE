@@ -83,10 +83,7 @@ class HomeFragment :
         attachToRoot: Boolean,
     ): FragmentHomeBinding = FragmentHomeBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Contenu edge-to-edge : la racine absorbe les barres système.
@@ -122,19 +119,9 @@ class HomeFragment :
         // frappes successives avec le délai (250 ms).
         binding.saisieRecherche.addTextChangedListener(
             object : TextWatcher {
-                override fun beforeTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    nombre: Int,
-                    apres: Int,
-                ) = Unit
+                override fun beforeTextChanged(texte: CharSequence?, debut: Int, nombre: Int, apres: Int) = Unit
 
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) = Unit
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) = Unit
 
                 override fun afterTextChanged(texte: Editable?) {
                     viewModel.action(ActionAccueil.Rechercher(texte?.toString().orEmpty()))
@@ -340,15 +327,11 @@ class HomeFragment :
     }
 
     /** Message d'échec de clonage, suffixé si un résidu subsiste. */
-    private fun messageClonage(
-        message: String,
-        rollback: Boolean,
-    ): String =
-        if (rollback) {
-            message
-        } else {
-            getString(R.string.accueil_cloner_residu, message)
-        }
+    private fun messageClonage(message: String, rollback: Boolean): String = if (rollback) {
+        message
+    } else {
+        getString(R.string.accueil_cloner_residu, message)
+    }
 
     /**
      * Dialogue « Cloner un dépôt » (G5, v0.80.4) : URL + nom de dossier
@@ -364,19 +347,9 @@ class HomeFragment :
         // l'utilisateur ne l'a pas touché).
         vue.saisieUrlClone.addTextChangedListener(
             object : TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
                 override fun afterTextChanged(s: Editable?) {
                     if (!nomManuel) {
@@ -387,19 +360,9 @@ class HomeFragment :
         )
         vue.saisieNomClone.addTextChangedListener(
             object : TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
                 override fun afterTextChanged(s: Editable?) {
                     nomManuel = true
@@ -428,19 +391,15 @@ class HomeFragment :
 
     /** Nom de dossier dérivé d'une URL de dépôt (dernier segment, sans
      *  `.git`) — vide si l'URL ne dit rien d'utilisable. */
-    private fun nomDepuisUrl(url: String): String =
-        url
-            .trim()
-            .trimEnd('/')
-            .substringAfterLast('/')
-            .removeSuffix(".git")
-            .trim()
+    private fun nomDepuisUrl(url: String): String = url
+        .trim()
+        .trimEnd('/')
+        .substringAfterLast('/')
+        .removeSuffix(".git")
+        .trim()
 
     /** Toucher une carte : ouvrir le projet, ou ses actions si l'accès est rompu. */
-    override fun surClicProjet(
-        projet: Project,
-        acces: ProjectAccessState?,
-    ) {
+    override fun surClicProjet(projet: Project, acces: ProjectAccessState?) {
         if (acces == ProjectAccessState.Missing || acces == ProjectAccessState.PermissionLost) {
             ouvrirMenuActions(ProjetAffiche(projet, acces))
         } else {
@@ -449,10 +408,7 @@ class HomeFragment :
     }
 
     /** Toucher le bouton d'actions d'une ligne : menu contextuel. */
-    override fun surMenuProjet(
-        projet: Project,
-        acces: ProjectAccessState?,
-    ) {
+    override fun surMenuProjet(projet: Project, acces: ProjectAccessState?) {
         ouvrirMenuActions(ProjetAffiche(projet, acces))
     }
 

@@ -27,33 +27,32 @@ internal interface DesinstalleurComposants {
 /** Implémentation Android : suppression réelle sous `filesDir`. */
 @Singleton
 internal class DesinstalleurComposantsAndroid
-    @Inject
-    constructor(
-        @ApplicationContext contexte: Context,
-        private val dispatchers: DispatcherProvider,
-    ) : DesinstalleurComposants {
-        private val racine: File = contexte.filesDir
+@Inject
+constructor(
+    @ApplicationContext contexte: Context,
+    private val dispatchers: DispatcherProvider,
+) : DesinstalleurComposants {
+    private val racine: File = contexte.filesDir
 
-        /** Supprime l'`installPath` du composant — idempotent (absent = succès). */
-        override suspend fun desinstaller(composant: InstalledComponent): AppResult<Unit> =
-            withContext(dispatchers.io) {
-                val installPath =
-                    composant.installPath
-                        ?: return@withContext AppResult.Failure(
-                            AppError.EnvironmentSetup(
-                                reason = EnvironmentSetupReason.ManifesteInvalide,
-                                details = "composant ${composant.id} sans installPath — état pré-E4",
-                            ),
-                        )
-                val cible = File(racineSdk(racine), installPath)
-                if (cible.exists() && !cible.deleteRecursively()) {
-                    return@withContext AppResult.Failure(
-                        AppError.EnvironmentSetup(
-                            reason = EnvironmentSetupReason.Permissions,
-                            details = "suppression de « $installPath » impossible",
-                        ),
-                    )
-                }
-                AppResult.Success(Unit)
-            }
+    /** Supprime l'`installPath` du composant — idempotent (absent = succès). */
+    override suspend fun desinstaller(composant: InstalledComponent): AppResult<Unit> = withContext(dispatchers.io) {
+        val installPath =
+            composant.installPath
+                ?: return@withContext AppResult.Failure(
+                    AppError.EnvironmentSetup(
+                        reason = EnvironmentSetupReason.ManifesteInvalide,
+                        details = "composant ${composant.id} sans installPath — état pré-E4",
+                    ),
+                )
+        val cible = File(racineSdk(racine), installPath)
+        if (cible.exists() && !cible.deleteRecursively()) {
+            return@withContext AppResult.Failure(
+                AppError.EnvironmentSetup(
+                    reason = EnvironmentSetupReason.Permissions,
+                    details = "suppression de « $installPath » impossible",
+                ),
+            )
+        }
+        AppResult.Success(Unit)
     }
+}

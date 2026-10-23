@@ -31,9 +31,7 @@ import java.util.concurrent.atomic.AtomicLong
  *        anormale (2 s par défaut : au-delà, l'utilisateur perçoit le
  *        retard à l'affichage).
  */
-public class AccumulateurLatence(
-    private val seuilAlerteMs: Long = SEUIL_ALERTE_MS,
-) {
+public class AccumulateurLatence(private val seuilAlerteMs: Long = SEUIL_ALERTE_MS) {
     private val compteur = AtomicLong(0)
     private val total = AtomicLong(0)
     private val minimum = AtomicLong(Long.MAX_VALUE)

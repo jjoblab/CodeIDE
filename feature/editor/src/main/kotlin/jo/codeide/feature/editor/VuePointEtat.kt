@@ -34,173 +34,167 @@ import jo.codeide.core.ui.R as RUi
  * propriétés — interpolation de couleurs ici).
  */
 internal class VuePointEtat
-    @JvmOverloads
-    constructor(
-        contexte: Context,
-        attributs: AttributeSet? = null,
-    ) : View(contexte, attributs) {
-        /** État rendu (§ 7). */
-        internal enum class EtatPoint {
-            /** Fichier non ouvert : bordure grise, fond transparent. */
-            DEFAUT,
+@JvmOverloads
+constructor(contexte: Context, attributs: AttributeSet? = null) :
+    View(contexte, attributs) {
+    /** État rendu (§ 7). */
+    internal enum class EtatPoint {
+        /** Fichier non ouvert : bordure grise, fond transparent. */
+        DEFAUT,
 
-            /** Ouvert dans un onglet inactif : bordure verte, fond transparent. */
-            OUVERT,
+        /** Ouvert dans un onglet inactif : bordure verte, fond transparent. */
+        OUVERT,
 
-            /** Fichier de l'onglet actif : bordure + fond verts + halo. */
-            ACTIF,
+        /** Fichier de l'onglet actif : bordure + fond verts + halo. */
+        ACTIF,
 
-            /** Nœud sélectionné : bordure + fond accent. */
-            SELECTIONNE,
+        /** Nœud sélectionné : bordure + fond accent. */
+        SELECTIONNE,
 
-            /** Sélectionné ET onglet actif : bordure accent, fond vert, anneau. */
-            SELECTION_ACTIF,
-        }
+        /** Sélectionné ET onglet actif : bordure accent, fond vert, anneau. */
+        SELECTION_ACTIF,
+    }
 
-        private var etat = EtatPoint.DEFAUT
+    private var etat = EtatPoint.DEFAUT
 
-        /** Couleurs interpolées pendant la transition (0,16 s). */
-        private var bordureCourante = couleur(EtatPoint.DEFAUT, Role.BORDURE)
-        private var fondCourant = couleur(EtatPoint.DEFAUT, Role.FOND)
+    /** Couleurs interpolées pendant la transition (0,16 s). */
+    private var bordureCourante = couleur(EtatPoint.DEFAUT, Role.BORDURE)
+    private var fondCourant = couleur(EtatPoint.DEFAUT, Role.FOND)
 
-        private companion object {
-            /** Rayon extérieur du disque (§ 7 : 7 dp de diamètre). */
-            const val RAYON_EXTERIEUR_DP = 3.5f
+    private companion object {
+        /** Rayon extérieur du disque (§ 7 : 7 dp de diamètre). */
+        const val RAYON_EXTERIEUR_DP = 3.5f
 
-            /** Épaisseur de la bordure (§ 7 : 2 dp). */
-            const val EPAISSEUR_BORDURE_DP = 2f
+        /** Épaisseur de la bordure (§ 7 : 2 dp). */
+        const val EPAISSEUR_BORDURE_DP = 2f
 
-            /** Épaisseur de l'anneau externe (sélection + actif, § 7 : 3 dp). */
-            const val EPAISSEUR_ANNEAU_DP = 3f
+        /** Épaisseur de l'anneau externe (sélection + actif, § 7 : 3 dp). */
+        const val EPAISSEUR_ANNEAU_DP = 3f
 
-            /** Débordement du halo de l'état actif (§ 7). */
-            const val DEBORDEMENT_HALO_DP = 3.5f
+        /** Débordement du halo de l'état actif (§ 7). */
+        const val DEBORDEMENT_HALO_DP = 3.5f
 
-            /** Épaisseur du trait du halo (§ 7). */
-            const val EPAISSEUR_HALO_DP = 2f
+        /** Épaisseur du trait du halo (§ 7). */
+        const val EPAISSEUR_HALO_DP = 2f
 
-            /** Durée du changement d'état (§ 16 : 0,16 s). */
-            const val DUREE_CHANGEMENT_MS = 160L
-        }
+        /** Durée du changement d'état (§ 16 : 0,16 s). */
+        const val DUREE_CHANGEMENT_MS = 160L
+    }
 
-        private val pinceau = Paint(Paint.ANTI_ALIAS_FLAG)
-        private val dp = contexte.resources.displayMetrics.density
-        private var animation: ValueAnimator? = null
+    private val pinceau = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val dp = contexte.resources.displayMetrics.density
+    private var animation: ValueAnimator? = null
 
-        /** Programme l'état du point (animation 0,16 s au changement). */
-        fun programmer(nouvelEtat: EtatPoint) {
-            if (nouvelEtat == etat) return
-            val ancien = etat
-            etat = nouvelEtat
-            animation?.cancel()
-            animation =
-                ValueAnimator.ofFloat(0f, 1f).apply {
-                    duration = DUREE_CHANGEMENT_MS
-                    interpolator = DecelerateInterpolator()
-                    addUpdateListener { animateur ->
-                        val t = animateur.animatedValue as Float
-                        bordureCourante =
-                            androidx.core.graphics.ColorUtils.blendARGB(
-                                couleur(ancien, Role.BORDURE),
-                                couleur(nouvelEtat, Role.BORDURE),
-                                t,
-                            )
-                        fondCourant =
-                            androidx.core.graphics.ColorUtils.blendARGB(
-                                couleur(ancien, Role.FOND),
-                                couleur(nouvelEtat, Role.FOND),
-                                t,
-                            )
-                        invalidate()
-                    }
-                    start()
+    /** Programme l'état du point (animation 0,16 s au changement). */
+    fun programmer(nouvelEtat: EtatPoint) {
+        if (nouvelEtat == etat) return
+        val ancien = etat
+        etat = nouvelEtat
+        animation?.cancel()
+        animation =
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = DUREE_CHANGEMENT_MS
+                interpolator = DecelerateInterpolator()
+                addUpdateListener { animateur ->
+                    val t = animateur.animatedValue as Float
+                    bordureCourante =
+                        androidx.core.graphics.ColorUtils.blendARGB(
+                            couleur(ancien, Role.BORDURE),
+                            couleur(nouvelEtat, Role.BORDURE),
+                            t,
+                        )
+                    fondCourant =
+                        androidx.core.graphics.ColorUtils.blendARGB(
+                            couleur(ancien, Role.FOND),
+                            couleur(nouvelEtat, Role.FOND),
+                            t,
+                        )
+                    invalidate()
                 }
-        }
-
-        override fun onDraw(canevas: Canvas) {
-            // Centre de la zone (20 dp), disque extérieur 7 dp + bordure.
-            val cx = width / 2f
-            val cy = height / 2f
-            val rayonExterieur = RAYON_EXTERIEUR_DP * dp
-            val bordure = EPAISSEUR_BORDURE_DP * dp
-
-            // Anneau externe (sélection + actif) : 3 dp d'accent doux.
-            if (etat == EtatPoint.SELECTION_ACTIF) {
-                pinceau.style = Paint.Style.FILL
-                pinceau.color = context.couleurConteneurPrimaire()
-                canevas.drawCircle(cx, cy, rayonExterieur + EPAISSEUR_ANNEAU_DP * dp, pinceau)
+                start()
             }
+    }
 
-            // Disque : fond (rempli pour les états pleins).
+    override fun onDraw(canevas: Canvas) {
+        // Centre de la zone (20 dp), disque extérieur 7 dp + bordure.
+        val cx = width / 2f
+        val cy = height / 2f
+        val rayonExterieur = RAYON_EXTERIEUR_DP * dp
+        val bordure = EPAISSEUR_BORDURE_DP * dp
+
+        // Anneau externe (sélection + actif) : 3 dp d'accent doux.
+        if (etat == EtatPoint.SELECTION_ACTIF) {
             pinceau.style = Paint.Style.FILL
-            pinceau.color = fondCourant
-            canevas.drawCircle(cx, cy, rayonExterieur - bordure / 2f, pinceau)
-
-            // Bordure 2 dp.
-            pinceau.style = Paint.Style.STROKE
-            pinceau.strokeWidth = bordure
-            pinceau.color = bordureCourante
-            canevas.drawCircle(cx, cy, rayonExterieur - bordure / 2f, pinceau)
-
-            // Halo de l'état actif (débordement doux de 7 dp).
-            if (etat == EtatPoint.ACTIF) {
-                pinceau.style = Paint.Style.STROKE
-                pinceau.strokeWidth = EPAISSEUR_HALO_DP * dp
-                pinceau.color =
-                    ContextCompat.getColor(
-                        context,
-                        jo.codeide.core.ui.R.color.codeide_explorateur_vert_fond_onglet,
-                    )
-                canevas.drawCircle(cx, cy, rayonExterieur + DEBORDEMENT_HALO_DP * dp, pinceau)
-            }
+            pinceau.color = context.couleurConteneurPrimaire()
+            canevas.drawCircle(cx, cy, rayonExterieur + EPAISSEUR_ANNEAU_DP * dp, pinceau)
         }
 
-        /** Couleur stable d'un état (interpolation initiale). */
-        private fun couleur(
-            etat: EtatPoint,
-            role: Role,
-        ): Int =
-            when (role) {
-                Role.BORDURE -> {
-                    when (etat) {
-                        EtatPoint.DEFAUT -> {
-                            context.couleurSurSurfaceDiscret()
-                        }
+        // Disque : fond (rempli pour les états pleins).
+        pinceau.style = Paint.Style.FILL
+        pinceau.color = fondCourant
+        canevas.drawCircle(cx, cy, rayonExterieur - bordure / 2f, pinceau)
 
-                        EtatPoint.OUVERT, EtatPoint.ACTIF -> {
-                            ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
-                        }
+        // Bordure 2 dp.
+        pinceau.style = Paint.Style.STROKE
+        pinceau.strokeWidth = bordure
+        pinceau.color = bordureCourante
+        canevas.drawCircle(cx, cy, rayonExterieur - bordure / 2f, pinceau)
 
-                        EtatPoint.SELECTIONNE, EtatPoint.SELECTION_ACTIF -> {
-                            context.couleurPrimaire()
-                        }
-                    }
-                }
-
-                Role.FOND -> {
-                    when (etat) {
-                        EtatPoint.DEFAUT, EtatPoint.OUVERT -> {
-                            android.graphics.Color.TRANSPARENT
-                        }
-
-                        EtatPoint.ACTIF -> {
-                            ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
-                        }
-
-                        EtatPoint.SELECTIONNE -> {
-                            context.couleurPrimaire()
-                        }
-
-                        EtatPoint.SELECTION_ACTIF -> {
-                            ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
-                        }
-                    }
-                }
-            }
-
-        /** Rôle de couleur demandé par l'interpolation. */
-        private enum class Role {
-            BORDURE,
-            FOND,
+        // Halo de l'état actif (débordement doux de 7 dp).
+        if (etat == EtatPoint.ACTIF) {
+            pinceau.style = Paint.Style.STROKE
+            pinceau.strokeWidth = EPAISSEUR_HALO_DP * dp
+            pinceau.color =
+                ContextCompat.getColor(
+                    context,
+                    jo.codeide.core.ui.R.color.codeide_explorateur_vert_fond_onglet,
+                )
+            canevas.drawCircle(cx, cy, rayonExterieur + DEBORDEMENT_HALO_DP * dp, pinceau)
         }
     }
+
+    /** Couleur stable d'un état (interpolation initiale). */
+    private fun couleur(etat: EtatPoint, role: Role): Int = when (role) {
+        Role.BORDURE -> {
+            when (etat) {
+                EtatPoint.DEFAUT -> {
+                    context.couleurSurSurfaceDiscret()
+                }
+
+                EtatPoint.OUVERT, EtatPoint.ACTIF -> {
+                    ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
+                }
+
+                EtatPoint.SELECTIONNE, EtatPoint.SELECTION_ACTIF -> {
+                    context.couleurPrimaire()
+                }
+            }
+        }
+
+        Role.FOND -> {
+            when (etat) {
+                EtatPoint.DEFAUT, EtatPoint.OUVERT -> {
+                    android.graphics.Color.TRANSPARENT
+                }
+
+                EtatPoint.ACTIF -> {
+                    ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
+                }
+
+                EtatPoint.SELECTIONNE -> {
+                    context.couleurPrimaire()
+                }
+
+                EtatPoint.SELECTION_ACTIF -> {
+                    ContextCompat.getColor(context, RUi.color.codeide_explorateur_vert)
+                }
+            }
+        }
+    }
+
+    /** Rôle de couleur demandé par l'interpolation. */
+    private enum class Role {
+        BORDURE,
+        FOND,
+    }
+}

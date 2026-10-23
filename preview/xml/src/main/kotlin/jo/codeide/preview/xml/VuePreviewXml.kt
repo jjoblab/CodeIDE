@@ -516,12 +516,7 @@ public class VuePreviewXml :
         GestureDetector(
             context,
             object : GestureDetector.SimpleOnGestureListener() {
-                override fun onScroll(
-                    e1: MotionEvent?,
-                    e2: MotionEvent,
-                    distanceX: Float,
-                    distanceY: Float,
-                ): Boolean {
+                override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
                     decalageX -= distanceX
                     decalageY -= distanceY
                     bornerPan()
@@ -777,12 +772,7 @@ public class VuePreviewXml :
         invalidate()
     }
 
-    override fun onSizeChanged(
-        largeur: Int,
-        hauteur: Int,
-        ancienneLargeur: Int,
-        ancienneHauteur: Int,
-    ) {
+    override fun onSizeChanged(largeur: Int, hauteur: Int, ancienneLargeur: Int, ancienneHauteur: Int) {
         super.onSizeChanged(largeur, hauteur, ancienneLargeur, ancienneHauteur)
         if (largeur != ancienneLargeur || hauteur != ancienneHauteur) {
             if (largeur <= 0 || hauteur <= 0) return
@@ -836,11 +826,7 @@ public class VuePreviewXml :
      * DISTINCTES, même patron que la machine de drag.
      */
     @Suppress("ReturnCount")
-    internal fun traiterRedimension(
-        action: Int,
-        xVue: Float,
-        yVue: Float,
-    ): Boolean {
+    internal fun traiterRedimension(action: Int, xVue: Float, yVue: Float): Boolean {
         val (xCourant, yCourant) =
             CalculsVuePreview.coordonneesContenu(xVue, yVue, decalageX, decalageY, echelle)
         val xContenu = Math.round(xCourant)
@@ -910,10 +896,7 @@ public class VuePreviewXml :
     }
 
     /** Le point de contact RAMENÉ au coin visuel (C1 — contact + compensation de préhension). */
-    private fun pointCompense(
-        xContenu: Int,
-        yContenu: Int,
-    ): Pair<Int, Int> {
+    private fun pointCompense(xContenu: Int, yContenu: Int): Pair<Int, Int> {
         val decalage = redimensionDecalage ?: return xContenu to yContenu
         return (xContenu + decalage.first) to (yContenu + decalage.second)
     }
@@ -931,56 +914,52 @@ public class VuePreviewXml :
         ancre: Pair<Int, Int>,
         depart: Pair<Int, Int>?,
         point: Pair<Int, Int>?,
-    ): RedimensionApercu.CibleRedimension? =
-        when {
-            action != MotionEvent.ACTION_UP -> {
-                null
-            }
+    ): RedimensionApercu.CibleRedimension? = when {
+        action != MotionEvent.ACTION_UP -> {
+            null
+        }
 
-            point == null || depart == null -> {
-                null
-            }
+        point == null || depart == null -> {
+            null
+        }
 
-            !RedimensionApercu.aDerive(
-                depart.first,
-                depart.second,
-                point.first,
-                point.second,
-                seuilContactPx(),
-            ) -> {
-                null
-            }
+        !RedimensionApercu.aDerive(
+            depart.first,
+            depart.second,
+            point.first,
+            point.second,
+            seuilContactPx(),
+        ) -> {
+            null
+        }
 
-            else -> {
-                RedimensionApercu
-                    .dimensions(
+        else -> {
+            RedimensionApercu
+                .dimensions(
+                    ancreX = ancre.first,
+                    ancreY = ancre.second,
+                    pointX = point.first,
+                    pointY = point.second,
+                    densiteDpi = densiteDpi,
+                )?.let { dimensions ->
+                    RedimensionApercu.CibleRedimension(
+                        largeurDp = dimensions.first,
+                        hauteurDp = dimensions.second,
                         ancreX = ancre.first,
                         ancreY = ancre.second,
-                        pointX = point.first,
-                        pointY = point.second,
-                        densiteDpi = densiteDpi,
-                    )?.let { dimensions ->
-                        RedimensionApercu.CibleRedimension(
-                            largeurDp = dimensions.first,
-                            hauteurDp = dimensions.second,
-                            ancreX = ancre.first,
-                            ancreY = ancre.second,
-                            coinX = point.first,
-                            coinY = point.second,
-                        )
-                    }
-            }
+                        coinX = point.first,
+                        coinY = point.second,
+                    )
+                }
         }
+    }
 
     /**
      * La poignée saisie sous le point, s'il y en a une : la sélection
      * doit exister et la densité du profil être CONNUE (sans elle le
      * geste ne peut pas produire de dp — aucun faux repli en px).
      */
-    private fun saisirPoignee(
-        xContenu: Int,
-        yContenu: Int,
-    ): RedimensionApercu.PoigneeSaisie? {
+    private fun saisirPoignee(xContenu: Int, yContenu: Int): RedimensionApercu.PoigneeSaisie? {
         if (densiteDpi <= 0 || indiceSurligne !in vues.indices) return null
         return RedimensionApercu.poigneeSous(
             vue = vues[indiceSurligne],
@@ -1003,10 +982,8 @@ public class VuePreviewXml :
      * seuls les drags portant un [ZonesDepot.ContenuDepot] en localState
      * sont acceptés (les autres — internes au système — passent au travers).
      */
-    override fun onDrag(
-        vue: View?,
-        evenement: DragEvent,
-    ): Boolean = traiterEvenementDrag(evenement.action, evenement.x, evenement.y, evenement.localState)
+    override fun onDrag(vue: View?, evenement: DragEvent): Boolean =
+        traiterEvenementDrag(evenement.action, evenement.x, evenement.y, evenement.localState)
 
     /**
      * La MACHINE d'états du drag (internal : testée sans [DragEvent],
@@ -1142,10 +1119,7 @@ public class VuePreviewXml :
      * dessous) ; la sélection y dessine son cadre plein (miroir le
      * surlignage accent qui traverse les deux planches).
      */
-    private fun dessinerPlan(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerPlan(canevas: Canvas, jetons: JetonsCalques) {
         peintPlan.color = jetons.accent
         peintPlan.pathEffect = EFFET_PLAN
         peintPlan.strokeWidth = tailleEcran(LARGEUR_TRAIT_PLAN)
@@ -1209,10 +1183,7 @@ public class VuePreviewXml :
     }
 
     /** Calque « frères » (PE11i, § 3.5 `.sib`) : BORD 1 dp accent à 35 % (plus d'aplat). */
-    private fun dessinerFreres(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerFreres(canevas: Canvas, jetons: JetonsCalques) {
         if (!calquesParentFreres || zonesDepotAffichees) return
         if (indiceSurligne !in vues.indices) return
         peintFrere.color = jetons.accent
@@ -1252,11 +1223,7 @@ public class VuePreviewXml :
      * la densité du rendu), au-dessus du bitmap — le pas suit l'écran
      * simulé, pas l'appareil hôte.
      */
-    private fun dessinerGrille(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        bmp: Bitmap,
-    ) {
+    private fun dessinerGrille(canevas: Canvas, jetons: JetonsCalques, bmp: Bitmap) {
         if (!grilleAffichee || densiteDpi <= 0) return
         val pas = PAS_GRILLE_DP * densiteDpi / DENSITE_REFERENCE
         if (pas < 2) return
@@ -1276,10 +1243,7 @@ public class VuePreviewXml :
     }
 
     /** Calque « Bornes de toutes les vues » (PE6b, miroir `.bnd` — jeton `apercuBornes`). */
-    private fun dessinerBornes(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerBornes(canevas: Canvas, jetons: JetonsCalques) {
         if (!calquesBornes) return
         peintBorne.color = jetons.bornes
         peintBorne.strokeWidth = tailleEcran(LARGEUR_TRAIT_BORNE)
@@ -1293,10 +1257,7 @@ public class VuePreviewXml :
     }
 
     /** Calque « Contraintes » (PE6c, miroir `drawConstraints` — jeton accent). */
-    private fun dessinerContraintes(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerContraintes(canevas: Canvas, jetons: JetonsCalques) {
         if (!calquesContraintes) return
         peintContrainte.color = jetons.accent
         peintContrainte.strokeWidth = tailleEcran(LARGEUR_TRAIT_CONTRAINTE)
@@ -1334,10 +1295,7 @@ public class VuePreviewXml :
      * la règle, « parent », « anchor · gravité ») ne se dessine que pour
      * la vue SÉLECTIONNÉE.
      */
-    private fun dessinerRelations(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerRelations(canevas: Canvas, jetons: JetonsCalques) {
         if (!calquesContraintes || lignesRelations.isEmpty()) return
         peintContrainte.color = jetons.accent
         peintContrainte.strokeWidth = tailleEcran(LARGEUR_TRAIT_RELATION_DP)
@@ -1362,11 +1320,7 @@ public class VuePreviewXml :
     }
 
     /** L'ÉTIQUETTE d'une relation de la vue sélectionnée (miroir chip `dim`, au milieu du segment). */
-    private fun etiquetteRelation(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        relation: CalquesApercu.LigneRelation,
-    ) {
+    private fun etiquetteRelation(canevas: Canvas, jetons: JetonsCalques, relation: CalquesApercu.LigneRelation) {
         val texte = relation.etiquette ?: return
         val centreX = (relation.x1 + relation.x2) / 2f
         val centreY = (relation.y1 + relation.y2) / 2f - tailleEcran(DECALAGE_ETIQUETTE_RELATION_DP)
@@ -1389,10 +1343,7 @@ public class VuePreviewXml :
      * pointillé) et bandes VERTES à l'intérieur (padding) de la
      * sélection, valeurs en dp du profil aux centres.
      */
-    private fun dessinerMargesPadding(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerMargesPadding(canevas: Canvas, jetons: JetonsCalques) {
         if (!calquesMargesPadding || zonesDepotAffichees || indiceSurligne !in vues.indices) return
         val vue = vues[indiceSurligne]
         if (vue.droite <= vue.gauche || vue.bas <= vue.haut) return
@@ -1401,11 +1352,7 @@ public class VuePreviewXml :
     }
 
     /** Bandes de MARGE autour du cadre — orange, contour pointillé (miroir `.mg`). */
-    private fun dessinerBandesMarges(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        vue: InfoVueRendu,
-    ) {
+    private fun dessinerBandesMarges(canevas: Canvas, jetons: JetonsCalques, vue: InfoVueRendu) {
         if (uneBandeSignificative(vue.margesHaut, vue.margesGauche, vue.margesDroite, vue.margesBas)) {
             val gauche = vue.gauche.toFloat()
             val haut = vue.haut.toFloat()
@@ -1443,11 +1390,7 @@ public class VuePreviewXml :
     }
 
     /** Bandes de PADDING à l'intérieur du cadre — vertes (miroir `.pd`). */
-    private fun dessinerBandesPadding(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        vue: InfoVueRendu,
-    ) {
+    private fun dessinerBandesPadding(canevas: Canvas, jetons: JetonsCalques, vue: InfoVueRendu) {
         if (uneBandeSignificative(vue.paddingHaut, vue.paddingGauche, vue.paddingDroite, vue.paddingBas)) {
             val gauche = vue.gauche.toFloat()
             val haut = vue.haut.toFloat()
@@ -1480,12 +1423,8 @@ public class VuePreviewXml :
     }
 
     /** Au moins UNE des quatre bandes (haut/gauche/droite/bas) est non nulle ? */
-    private fun uneBandeSignificative(
-        haut: Int,
-        gauche: Int,
-        droite: Int,
-        bas: Int,
-    ): Boolean = haut > 0 || gauche > 0 || droite > 0 || bas > 0
+    private fun uneBandeSignificative(haut: Int, gauche: Int, droite: Int, bas: Int): Boolean =
+        haut > 0 || gauche > 0 || droite > 0 || bas > 0
 
     /**
      * Calque « Problèmes » (PE6c, miroir des pins de `drawOverlay`) :
@@ -1493,10 +1432,7 @@ public class VuePreviewXml :
      * (avertissement) ou rouge (erreur), compteur quand plusieurs
      * problèmes se partagent la vue.
      */
-    private fun dessinerPastillesProblemes(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerPastillesProblemes(canevas: Canvas, jetons: JetonsCalques) {
         if (!calquesProblemes || zonesDepotAffichees || problemes.isEmpty()) return
         val comptes = LinkedHashMap<Int, Int>()
         val indicesErreur = HashSet<Int>()
@@ -1545,10 +1481,7 @@ public class VuePreviewXml :
      * MagicNumber — les alphas reproduisent le miroir CSS de la maquette.
      */
     @Suppress("ReturnCount")
-    private fun dessinerZonesDepot(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerZonesDepot(canevas: Canvas, jetons: JetonsCalques) {
         if (!zonesDepotAffichees || vues.isEmpty()) return
         // 1. Tous les conteneurs : contour pointillé 1,5 dp à 75 % (miroir `.dz` — jeton nouveau).
         peintZone.color = jetons.nouveau
@@ -1754,25 +1687,14 @@ public class VuePreviewXml :
     }
 
     /** Les extrémités d'un trait de règle (dessin — pas de quadruplet en Kotlin). */
-    private class LigneRegle(
-        val x1: Float,
-        val y1: Float,
-        val x2: Float,
-        val y2: Float,
-    )
+    private class LigneRegle(val x1: Float, val y1: Float, val x2: Float, val y2: Float)
 
     /**
      * Pill d'insertion (miroir `.lab.nw` : fond `nouveau`, texte
      * `surNouveau`), ancrée au bord gauche — le centre vertical est
      * calculé par l'appelant ([centreEtiquetteBord]).
      */
-    private fun pillInsertion(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        texte: String,
-        gaucheX: Float,
-        centreY: Float,
-    ) {
+    private fun pillInsertion(canevas: Canvas, jetons: JetonsCalques, texte: String, gaucheX: Float, centreY: Float) {
         if (texte.isEmpty()) return
         peintPill.color = jetons.nouveau
         peintEtiquette.color = jetons.surNouveau
@@ -1783,10 +1705,7 @@ public class VuePreviewXml :
      * Le centre VERTICAL d'une étiquette posée au BORD d'un conteneur
      * (AU-DESSUS sinon dessous) — la taille de texte doit être posée.
      */
-    private fun centreEtiquetteBord(
-        bordY: Float,
-        auDessus: Boolean,
-    ): Float {
+    private fun centreEtiquetteBord(bordY: Float, auDessus: Boolean): Float {
         val demiHauteur = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
         val margeV = tailleEcran(MARGE_ETIQUETTE_V_DP)
         return if (auDessus) bordY - demiHauteur * 2f - margeV * 2f else bordY + demiHauteur + margeV
@@ -1821,12 +1740,7 @@ public class VuePreviewXml :
      * accent/surCalque pour la sélection, texte/fond pour les cotes,
      * nouveau/surNouveau pour l'insertion).
      */
-    private fun dessinerEtiquetteRectangle(
-        canevas: Canvas,
-        texte: String,
-        gauche: Float,
-        centreY: Float,
-    ) {
+    private fun dessinerEtiquetteRectangle(canevas: Canvas, texte: String, gauche: Float, centreY: Float) {
         peintEtiquette.textSize = tailleTexteEcran(TAILLE_TEXTE_ETIQUETTE_DP)
         val largeurTexte = peintEtiquette.measureText(texte)
         val demiHauteur = (peintEtiquette.descent() + peintEtiquette.ascent()) / 2f
@@ -1852,10 +1766,7 @@ public class VuePreviewXml :
      * la vue surlignée, POIGNÉES d'angle, étiquette « nom · dimensions
      * en dp » au-dessus — tout à épaisseur/taille ÉCRAN constante.
      */
-    private fun dessinerSurlignage(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerSurlignage(canevas: Canvas, jetons: JetonsCalques) {
         if (zonesDepotAffichees) return
         if (indiceSurligne !in vues.indices) return
         val vue = vues[indiceSurligne]
@@ -1880,11 +1791,7 @@ public class VuePreviewXml :
     }
 
     /** Poignées d'angle (PE11i, § 3.5 `.sel .h`) : CARRÉ 9 dp centré sur le coin. */
-    private fun dessinerPoignees(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        rect: RectF,
-    ) {
+    private fun dessinerPoignees(canevas: Canvas, jetons: JetonsCalques, rect: RectF) {
         val demi = tailleEcran(TAILLE_POIGNEE_DP) / 2f
         val rayon = tailleEcran(RAYON_COIN_POIGNEE_DP)
         peintTraitPoignee.strokeWidth = tailleEcran(TRAIT_POIGNEE_DP)
@@ -1909,10 +1816,7 @@ public class VuePreviewXml :
      * [RedimensionApercu.DUREE_FONDU_FANTOME_MS] — le panneau n'a
      * jamais d'instant vide.
      */
-    private fun dessinerRedimensionnement(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerRedimensionnement(canevas: Canvas, jetons: JetonsCalques) {
         val ancre = redimensionAncre
         if (ancre == null) {
             dessinerFantomePersistant(canevas, jetons)
@@ -1929,10 +1833,7 @@ public class VuePreviewXml :
      * la boucle de dessin s'auto-réinvalide tant que le fondu vit, et
      * nettoie les champs à son terme (jamais de résidu).
      */
-    private fun dessinerFantomePersistant(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerFantomePersistant(canevas: Canvas, jetons: JetonsCalques) {
         val rect = fantomePersistant ?: return
         val depart = debutFonduFantome
         val alpha =
@@ -1954,12 +1855,7 @@ public class VuePreviewXml :
      * pointillé accent + pill dp — l'alpha porte le fondu (C4), posé sur
      * les peintures puis RESTAURÉ (elles sont partagées avec le plan).
      */
-    private fun dessinerFantome(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        rect: RectF,
-        alpha: Float,
-    ) {
+    private fun dessinerFantome(canevas: Canvas, jetons: JetonsCalques, rect: RectF, alpha: Float) {
         peintPlan.color = jetons.accent
         peintPlan.alpha = (alpha * ALPHA_PLEIN).toInt()
         peintPlan.pathEffect = EFFET_POINTILLES
@@ -2057,12 +1953,7 @@ public class VuePreviewXml :
     }
 
     /** Étiquette « nom · dimensions en dp » (PE11i, `.lab`) au-dessus du cadre, bornée au contenu. */
-    private fun dessinerEtiquette(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        rect: RectF,
-        vue: InfoVueRendu,
-    ) {
+    private fun dessinerEtiquette(canevas: Canvas, jetons: JetonsCalques, rect: RectF, vue: InfoVueRendu) {
         val texte =
             CalquesApercu.libelleSelection(
                 vue.libelle,
@@ -2084,10 +1975,7 @@ public class VuePreviewXml :
      * de **8 dp** `apercuDamierCase` (identique clair et nuit), origine
      * (0, 0) — cases en PIXELS ÉCRAN (le damier vit AVANT le zoom).
      */
-    private fun dessinerDamier(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerDamier(canevas: Canvas, jetons: JetonsCalques) {
         peintFondCanvas.color = jetons.surface2
         canevas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), peintFondCanvas)
         val cote = TAILLE_CASE_DAMIER_DP * resources.displayMetrics.density
@@ -2110,10 +1998,7 @@ public class VuePreviewXml :
         }
     }
 
-    private fun dessinerAccueil(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-    ) {
+    private fun dessinerAccueil(canevas: Canvas, jetons: JetonsCalques) {
         val libelle = context.getString(R.string.preview_accueil)
         peintTexteEtat.color = jetons.texteDoux
         peintTexteEtat.textAlign = Paint.Align.CENTER
@@ -2128,12 +2013,7 @@ public class VuePreviewXml :
      * planche, alignée à gauche. Dessinée dans l'espace CONTENU (sous
      * le zoom, comme la planche qu'elle nomme).
      */
-    private fun dessinerLegendePlanche(
-        canevas: Canvas,
-        jetons: JetonsCalques,
-        decalageX: Int,
-        estPlan: Boolean,
-    ) {
+    private fun dessinerLegendePlanche(canevas: Canvas, jetons: JetonsCalques, decalageX: Int, estPlan: Boolean) {
         if (libelleProfil.isBlank()) return
         val libellePlanche =
             if (estPlan) {
@@ -2388,20 +2268,14 @@ internal object CalculsVuePreview {
         decalageX: Float,
         decalageY: Float,
         echelle: Float,
-    ): Pair<Float, Float> =
-        if (echelle <= 0f) {
-            Pair(0f, 0f)
-        } else {
-            Pair((xVue - decalageX) / echelle, (yVue - decalageY) / echelle)
-        }
+    ): Pair<Float, Float> = if (echelle <= 0f) {
+        Pair(0f, 0f)
+    } else {
+        Pair((xVue - decalageX) / echelle, (yVue - decalageY) / echelle)
+    }
 
     /** Échelle ajustée (fit) : le contenu ENTIER tient dans la vue ; ≥ 0,1. */
-    internal fun echelleAjustee(
-        largeurContenu: Int,
-        hauteurContenu: Int,
-        largeurVue: Int,
-        hauteurVue: Int,
-    ): Float {
+    internal fun echelleAjustee(largeurContenu: Int, hauteurContenu: Int, largeurVue: Int, hauteurVue: Int): Float {
         val contenuInvalide = largeurContenu <= 0 || hauteurContenu <= 0
         val vueInvalide = largeurVue <= 0 || hauteurVue <= 0
         if (contenuInvalide || vueInvalide) return 1f
@@ -2421,11 +2295,7 @@ internal object CalculsVuePreview {
      * l'arbre rendu est identique. `decalagePlanche <= 0` : mode à une
      * planche, aucune conversion.
      */
-    internal fun coordonneesPlanche(
-        xContenu: Float,
-        yContenu: Float,
-        decalagePlanche: Float,
-    ): Pair<Float, Float> =
+    internal fun coordonneesPlanche(xContenu: Float, yContenu: Float, decalagePlanche: Float): Pair<Float, Float> =
         if (decalagePlanche > 0f && xContenu >= decalagePlanche) {
             Pair(xContenu - decalagePlanche, yContenu)
         } else {
@@ -2441,11 +2311,7 @@ internal object CalculsVuePreview {
      * plan). Le fit cadre [largeurContenu] — une planche Plan dessinée
      * au-delà de sa propre largeur sortirait du cadre (écran vide).
      */
-    internal fun decalagePlancheAffichage(
-        mode: ModeApercu,
-        largeurPlanchePx: Int,
-        ecartPx: Int,
-    ): Int =
+    internal fun decalagePlancheAffichage(mode: ModeApercu, largeurPlanchePx: Int, ecartPx: Int): Int =
         if (mode == ModeApercu.LES_DEUX) {
             largeurPlanchePx + ecartPx
         } else {
@@ -2457,11 +2323,7 @@ internal object CalculsVuePreview {
      * plus PETIT que la vue : centré (décalage fixé) ; plus grand : au
      * moins un bord reste visible.
      */
-    internal fun bornerDecalage(
-        decalage: Float,
-        tailleVue: Float,
-        tailleContenu: Float,
-    ): Float =
+    internal fun bornerDecalage(decalage: Float, tailleVue: Float, tailleContenu: Float): Float =
         if (tailleContenu <= tailleVue) {
             (tailleVue - tailleContenu) / 2f
         } else {

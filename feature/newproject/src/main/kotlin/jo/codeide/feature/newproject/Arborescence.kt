@@ -18,9 +18,7 @@ import jo.codeide.core.model.TemplatePlan
  *
  * @property racine dossier racine (nom vide, jamais affiché tel quel).
  */
-data class Arborescence(
-    val racine: Noeud.Dossier,
-) {
+data class Arborescence(val racine: Noeud.Dossier) {
     /** Nombre total de fichiers de l'arbre (feuilles). */
     val nombreFichiers: Int get() = racine.nombreFichiers()
 
@@ -85,13 +83,12 @@ sealed interface Noeud {
             get() = enfants.values.sortedWith(compareBy({ it !is Dossier }, Noeud::nom))
 
         /** Nombre de fichiers (récursif). */
-        fun nombreFichiers(): Int =
-            enfants.values.sumOf { noeud ->
-                when (noeud) {
-                    is Fichier -> 1
-                    is Dossier -> noeud.nombreFichiers()
-                }
+        fun nombreFichiers(): Int = enfants.values.sumOf { noeud ->
+            when (noeud) {
+                is Fichier -> 1
+                is Dossier -> noeud.nombreFichiers()
             }
+        }
 
         /** Cherche récursivement le nœud d'identité [cheminOriginal]. */
         @Suppress("ReturnCount") // Récursion : trouvé, sinon descendu (règle 16).
@@ -119,10 +116,7 @@ sealed interface Noeud {
     }
 
     /** Fichier feuille. */
-    data class Fichier(
-        override val nom: String,
-        override val cheminOriginal: String,
-    ) : Noeud
+    data class Fichier(override val nom: String, override val cheminOriginal: String) : Noeud
 }
 
 /** Erreur de saisie d'un renommage au dialogue du récapitulatif (ADR 0077). */
@@ -150,10 +144,7 @@ private const val NOM_MAX = 96
  * échoue explicitement et le bouton « Réessayer » réaffiche l'arbre.
  */
 @Suppress("ReturnCount") // Validation : une clause de garde par famille d'erreur (règle 16).
-fun Arborescence.validerRenommage(
-    cheminOriginal: String,
-    nom: String,
-): ErreurRenommage? {
+fun Arborescence.validerRenommage(cheminOriginal: String, nom: String): ErreurRenommage? {
     val nettoye = nom.trim()
     if (nettoye.isEmpty()) return ErreurRenommage.VIDE
     if ('/' in nettoye || '\\' in nettoye) return ErreurRenommage.SEPARATEUR

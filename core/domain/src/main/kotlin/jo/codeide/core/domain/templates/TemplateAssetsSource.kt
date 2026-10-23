@@ -30,10 +30,7 @@ public interface TemplateAssetsSource {
      * @param cheminRelatif chemin relatif **dans** le répertoire du modèle.
      * @return les octets bruts, ou l'échec typé (`NotFound` si absent).
      */
-    public suspend fun readTemplateFile(
-        templateId: String,
-        cheminRelatif: String,
-    ): AppResult<ByteArray>
+    public suspend fun readTemplateFile(templateId: String, cheminRelatif: String): AppResult<ByteArray>
 
     /**
      * Lit un fichier de licence de référence (`assets/licenses/`).

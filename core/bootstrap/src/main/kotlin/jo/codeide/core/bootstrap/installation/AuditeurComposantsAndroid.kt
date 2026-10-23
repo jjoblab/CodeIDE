@@ -19,32 +19,30 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class AuditeurComposantsAndroid
-    @Inject
-    constructor(
-        @ApplicationContext contexte: Context,
-        private val dispatchers: DispatcherProvider,
-    ) : AuditeurComposants {
-        private val racine: File = contexte.filesDir
-        private val localisateur = LocalisationOutils
+@Inject
+constructor(
+    @ApplicationContext contexte: Context,
+    private val dispatchers: DispatcherProvider,
+) : AuditeurComposants {
+    private val racine: File = contexte.filesDir
+    private val localisateur = LocalisationOutils
 
-        /** Taille de l'`installPath` du composant — `null` si absent du disque. */
-        override suspend fun tailleOctets(composant: InstalledComponent): Long? =
-            withContext(dispatchers.io) {
-                val installPath =
-                    composant.installPath
-                        ?: return@withContext null
-                val cible = File(racineSdk(racine), installPath)
-                if (!cible.exists()) {
-                    null
-                } else {
-                    cible.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
-                }
-            }
-
-        /** Taille du JDK (`JAVA_HOME` résolu) — `null` s'il est absent. */
-        override suspend fun tailleJdkOctets(): Long? =
-            withContext(dispatchers.io) {
-                val javaHome = localisateur.trouverJavaHome(racine) ?: return@withContext null
-                javaHome.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
-            }
+    /** Taille de l'`installPath` du composant — `null` si absent du disque. */
+    override suspend fun tailleOctets(composant: InstalledComponent): Long? = withContext(dispatchers.io) {
+        val installPath =
+            composant.installPath
+                ?: return@withContext null
+        val cible = File(racineSdk(racine), installPath)
+        if (!cible.exists()) {
+            null
+        } else {
+            cible.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+        }
     }
+
+    /** Taille du JDK (`JAVA_HOME` résolu) — `null` s'il est absent. */
+    override suspend fun tailleJdkOctets(): Long? = withContext(dispatchers.io) {
+        val javaHome = localisateur.trouverJavaHome(racine) ?: return@withContext null
+        javaHome.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+    }
+}

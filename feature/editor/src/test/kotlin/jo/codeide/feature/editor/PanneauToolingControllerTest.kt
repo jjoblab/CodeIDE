@@ -58,10 +58,7 @@ class PanneauToolingControllerTest {
     }
 
     /** Contrôleur + liaison pour les assertions. */
-    private data class TrioControleur(
-        val liaison: ActivityEditorBinding,
-        val controleur: PanneauToolingController,
-    )
+    private data class TrioControleur(val liaison: ActivityEditorBinding, val controleur: PanneauToolingController)
 
     /** Onglet par défaut du contrôleur : JOURNAL. */
     @Test

@@ -37,23 +37,14 @@ import jo.codeide.core.ui.SimpleTextWatcher
  * modification, et le registre reste modifiable sans toucher au moteur.
  */
 @Suppress("TooManyFunctions") // Un constructeur par composant du rendu (règle 16).
-class RenduParametres(
-    private val conteneur: ViewGroup,
-    private val ecouteur: Ecouteur,
-) {
+class RenduParametres(private val conteneur: ViewGroup, private val ecouteur: Ecouteur) {
     /** Interactions émises par les champs dynamiques. */
     interface Ecouteur {
         /** Saisie d'un paramètre texte (dérivation figée). */
-        fun saisirTexte(
-            parametreId: String,
-            valeur: String,
-        )
+        fun saisirTexte(parametreId: String, valeur: String)
 
         /** Choix d'une valeur (choix ou interrupteur). */
-        fun choisirValeur(
-            parametreId: String,
-            valeur: String,
-        )
+        fun choisirValeur(parametreId: String, valeur: String)
 
         /** Resynchronisation d'un champ dérivé. */
         fun resynchroniser(parametreId: String)
@@ -114,14 +105,13 @@ class RenduParametres(
     }
 
     /** Construit la vue du composant choisi pour [parametre]. */
-    private fun construire(parametre: TemplateParameterEvaluation): View =
-        when (composantPour(parametre)) {
-            Composant.TUILES_SEGMENTEES -> construireTuiles(parametre)
-            Composant.CARTES_RADIO -> construireCartesRadio(parametre)
-            Composant.LISTE_DEROULANTE -> construireListeDeroulante(parametre)
-            Composant.INTERRUPTEUR -> construireInterrupteur(parametre)
-            Composant.CHAMP_TEXTE -> construireChampTexte(parametre)
-        }
+    private fun construire(parametre: TemplateParameterEvaluation): View = when (composantPour(parametre)) {
+        Composant.TUILES_SEGMENTEES -> construireTuiles(parametre)
+        Composant.CARTES_RADIO -> construireCartesRadio(parametre)
+        Composant.LISTE_DEROULANTE -> construireListeDeroulante(parametre)
+        Composant.INTERRUPTEUR -> construireInterrupteur(parametre)
+        Composant.CHAMP_TEXTE -> construireChampTexte(parametre)
+    }
 
     /** Met à jour la vue existante (valeur, erreur, aide, sous-titres). */
     @Suppress("LongMethod") // Un branch par composant, symétrique de construire.
@@ -276,12 +266,7 @@ class RenduParametres(
         val saisie = racine.findViewById<TextInputEditText>(R.id.saisie_texte)
         saisie.addTextChangedListener(
             object : SimpleTextWatcher() {
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) {
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) {
                     ecouteur.saisirTexte(parametre.parameterId, texte?.toString().orEmpty())
                 }
             },
@@ -296,10 +281,8 @@ class RenduParametres(
     }
 
     /** Gonfle une vue de composant dans le conteneur (sans l'attacher). */
-    private fun gonfler(
-        layoutRes: Int,
-        parent: ViewGroup = conteneur,
-    ): View = LayoutInflater.from(parent.context).inflate(layoutRes, parent, false)
+    private fun gonfler(layoutRes: Int, parent: ViewGroup = conteneur): View =
+        LayoutInflater.from(parent.context).inflate(layoutRes, parent, false)
 
     // ---------------------------------------------------- registres
 
@@ -342,74 +325,58 @@ class RenduParametres(
         }
 
     /** Sous-titre d'une tuile (icône et sous-titre, spec 12.3). */
-    private fun sousTitreChoix(
-        parametreId: String,
-        valeur: String,
-    ): String =
-        when (parametreId to valeur) {
-            "projectType" to "application" -> conteneur.context.getString(R.string.wizard_sous_titre_application)
-            "projectType" to "library" -> conteneur.context.getString(R.string.wizard_sous_titre_bibliotheque)
-            "language" to "kotlin" -> conteneur.context.getString(R.string.wizard_sous_titre_kotlin)
-            "language" to "java" -> conteneur.context.getString(R.string.wizard_sous_titre_java)
-            else -> ""
-        }
+    private fun sousTitreChoix(parametreId: String, valeur: String): String = when (parametreId to valeur) {
+        "projectType" to "application" -> conteneur.context.getString(R.string.wizard_sous_titre_application)
+        "projectType" to "library" -> conteneur.context.getString(R.string.wizard_sous_titre_bibliotheque)
+        "language" to "kotlin" -> conteneur.context.getString(R.string.wizard_sous_titre_kotlin)
+        "language" to "java" -> conteneur.context.getString(R.string.wizard_sous_titre_java)
+        else -> ""
+    }
 
     /** Monogramme d'icône maison d'une tuile (aucun logo officiel). */
-    private fun iconeChoix(
-        parametreId: String,
-        valeur: String,
-    ): String? =
-        when (parametreId to valeur) {
-            "projectType" to "application" -> conteneur.context.getString(R.string.wizard_icone_application)
-            "projectType" to "library" -> conteneur.context.getString(R.string.wizard_icone_bibliotheque)
-            "language" to "kotlin" -> conteneur.context.getString(R.string.wizard_icone_kotlin)
-            "language" to "java" -> conteneur.context.getString(R.string.wizard_icone_java)
-            else -> null
-        }
+    private fun iconeChoix(parametreId: String, valeur: String): String? = when (parametreId to valeur) {
+        "projectType" to "application" -> conteneur.context.getString(R.string.wizard_icone_application)
+        "projectType" to "library" -> conteneur.context.getString(R.string.wizard_icone_bibliotheque)
+        "language" to "kotlin" -> conteneur.context.getString(R.string.wizard_icone_kotlin)
+        "language" to "java" -> conteneur.context.getString(R.string.wizard_icone_java)
+        else -> null
+    }
 
     /** Explication d'une carte radio. */
-    private fun explicationChoix(
-        parametreId: String,
-        valeur: String,
-    ): String =
-        when (parametreId to valeur) {
-            "buildSystem" to "gradle-kts" -> {
-                conteneur.context.getString(R.string.wizard_explication_gradle)
-            }
-
-            "buildSystem" to "maven" -> {
-                conteneur.context.getString(R.string.wizard_explication_maven)
-            }
-
-            "buildSystem" to "none" -> {
-                conteneur.context.getString(R.string.wizard_explication_sources)
-            }
-
-            "projectType" to "empty-activity" -> {
-                conteneur.context.getString(R.string.wizard_explication_activite_vide)
-            }
-
-            "projectType" to "no-activity" -> {
-                conteneur.context.getString(R.string.wizard_explication_sans_activite)
-            }
-
-            "projectType" to "basic-activity" -> {
-                conteneur.context.getString(
-                    R.string.wizard_explication_activite_tiroir,
-                )
-            }
-
-            else -> {
-                ""
-            }
+    private fun explicationChoix(parametreId: String, valeur: String): String = when (parametreId to valeur) {
+        "buildSystem" to "gradle-kts" -> {
+            conteneur.context.getString(R.string.wizard_explication_gradle)
         }
 
+        "buildSystem" to "maven" -> {
+            conteneur.context.getString(R.string.wizard_explication_maven)
+        }
+
+        "buildSystem" to "none" -> {
+            conteneur.context.getString(R.string.wizard_explication_sources)
+        }
+
+        "projectType" to "empty-activity" -> {
+            conteneur.context.getString(R.string.wizard_explication_activite_vide)
+        }
+
+        "projectType" to "no-activity" -> {
+            conteneur.context.getString(R.string.wizard_explication_sans_activite)
+        }
+
+        "projectType" to "basic-activity" -> {
+            conteneur.context.getString(
+                R.string.wizard_explication_activite_tiroir,
+            )
+        }
+
+        else -> {
+            ""
+        }
+    }
+
     /** Ligne d'aide dynamique sous la sélection (spec 12.3). */
-    private fun aideSousSelection(
-        parametreId: String,
-        valeur: String,
-        contexte: Context,
-    ): String =
+    private fun aideSousSelection(parametreId: String, valeur: String, contexte: Context): String =
         when (parametreId to valeur) {
             "buildSystem" to "none" -> contexte.getString(R.string.wizard_aide_sans_build)
             else -> ""

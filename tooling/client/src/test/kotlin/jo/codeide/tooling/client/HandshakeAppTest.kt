@@ -19,10 +19,7 @@ import org.junit.Test
 class HandshakeAppTest {
     private val protocole = GradleProtocol.PROTOCOL_VERSION
 
-    private fun bonjour(
-        secret: String = SECRET,
-        version: Int = protocole,
-    ) = HelloRequest(
+    private fun bonjour(secret: String = SECRET, version: Int = protocole) = HelloRequest(
         id = "hello-1",
         protocolVersion = version,
         clientVersion = "0.27.0",
@@ -30,57 +27,54 @@ class HandshakeAppTest {
     )
 
     @Test
-    fun `le bon secret recoit la reponse HelloResponse`() =
-        runBlocking {
-            val session = SessionFactice()
-            HandshakeApp.valider(session, bonjour(SECRET), SECRET, "app-test")
+    fun `le bon secret recoit la reponse HelloResponse`() = runBlocking {
+        val session = SessionFactice()
+        HandshakeApp.valider(session, bonjour(SECRET), SECRET, "app-test")
 
-            val reponse = session.messages.single()
-            assertTrue(reponse is HelloResponse)
-            reponse as HelloResponse
-            assertEquals("hello-1", reponse.id)
-            assertEquals(protocole, reponse.protocolVersion)
-            assertEquals("app-test", reponse.serverVersion)
-            assertTrue("build" in reponse.supportedFeatures)
-            assertEquals(false, session.fermee)
-        }
-
-    @Test
-    fun `un secret invalide est refuse par une erreur typée puis fermeture`() =
-        runBlocking {
-            val session = SessionFactice()
-            try {
-                HandshakeApp.valider(session, bonjour("mauvais-secret"), SECRET, "app-test")
-                fail("le handshake devait être refusé")
-            } catch (attendu: EchecHandshakeClient) {
-                assertEquals(true, attendu.message!!.contains("secret"))
-            }
-            val reponse = session.messages.single()
-            assertTrue(reponse is ErrorResponse)
-            reponse as ErrorResponse
-            assertEquals(ErrorCode.HANDSHAKE_FAILED, reponse.code)
-            assertEquals("hello-1", reponse.requestId)
-            assertEquals("la connexion doit être fermée après le refus", true, session.fermee)
-        }
+        val reponse = session.messages.single()
+        assertTrue(reponse is HelloResponse)
+        reponse as HelloResponse
+        assertEquals("hello-1", reponse.id)
+        assertEquals(protocole, reponse.protocolVersion)
+        assertEquals("app-test", reponse.serverVersion)
+        assertTrue("build" in reponse.supportedFeatures)
+        assertEquals(false, session.fermee)
+    }
 
     @Test
-    fun `une version incompatible est refusee avec un message clair`() =
-        runBlocking {
-            val session = SessionFactice()
-            try {
-                HandshakeApp.valider(session, bonjour(SECRET, version = protocole - 1), SECRET, "app-test")
-                fail("le handshake devait être refusé")
-            } catch (attendu: EchecHandshakeClient) {
-                assertEquals(true, attendu.message!!.contains("version"))
-            }
-            val reponse = session.messages.single() as ErrorResponse
-            assertEquals(ErrorCode.PROTOCOL_VERSION_MISMATCH, reponse.code)
-            assertTrue(
-                "le message doit parler de versions",
-                reponse.message.contains("v$protocole"),
-            )
-            assertEquals(true, session.fermee)
+    fun `un secret invalide est refuse par une erreur typée puis fermeture`() = runBlocking {
+        val session = SessionFactice()
+        try {
+            HandshakeApp.valider(session, bonjour("mauvais-secret"), SECRET, "app-test")
+            fail("le handshake devait être refusé")
+        } catch (attendu: EchecHandshakeClient) {
+            assertEquals(true, attendu.message!!.contains("secret"))
         }
+        val reponse = session.messages.single()
+        assertTrue(reponse is ErrorResponse)
+        reponse as ErrorResponse
+        assertEquals(ErrorCode.HANDSHAKE_FAILED, reponse.code)
+        assertEquals("hello-1", reponse.requestId)
+        assertEquals("la connexion doit être fermée après le refus", true, session.fermee)
+    }
+
+    @Test
+    fun `une version incompatible est refusee avec un message clair`() = runBlocking {
+        val session = SessionFactice()
+        try {
+            HandshakeApp.valider(session, bonjour(SECRET, version = protocole - 1), SECRET, "app-test")
+            fail("le handshake devait être refusé")
+        } catch (attendu: EchecHandshakeClient) {
+            assertEquals(true, attendu.message!!.contains("version"))
+        }
+        val reponse = session.messages.single() as ErrorResponse
+        assertEquals(ErrorCode.PROTOCOL_VERSION_MISMATCH, reponse.code)
+        assertTrue(
+            "le message doit parler de versions",
+            reponse.message.contains("v$protocole"),
+        )
+        assertEquals(true, session.fermee)
+    }
 
     private companion object {
         const val SECRET = "secret-de-test"

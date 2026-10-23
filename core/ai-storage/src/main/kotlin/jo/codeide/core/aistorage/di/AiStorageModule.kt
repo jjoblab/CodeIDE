@@ -40,26 +40,20 @@ internal object AiStorageModule {
 
     @Provides
     @Singleton
-    internal fun coffreClesIa(
-        @ApplicationContext contexte: Context,
-        dispatchers: DispatcherProvider,
-    ): CoffreClesIa = CoffreClesKeystore(contexte, dispatchers, CleMaitreKeystore())
+    internal fun coffreClesIa(@ApplicationContext contexte: Context, dispatchers: DispatcherProvider): CoffreClesIa =
+        CoffreClesKeystore(contexte, dispatchers, CleMaitreKeystore())
 
     @Provides
     @Singleton
-    internal fun aiSettingsStore(
-        @ApplicationContext contexte: Context,
-    ): AiSettingsStore =
-        AiSettingsStore(
-            dataStore = creerDataStore(contexte),
-        )
+    internal fun aiSettingsStore(@ApplicationContext contexte: Context): AiSettingsStore = AiSettingsStore(
+        dataStore = creerDataStore(contexte),
+    )
 
-    private fun creerDataStore(contexte: Context): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            corruptionHandler =
-                ReplaceFileCorruptionHandler { emptyPreferences() },
-            produceFile = { contexte.preferencesDataStoreFile(NOM_FICHIER) },
-        )
+    private fun creerDataStore(contexte: Context): DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        corruptionHandler =
+        ReplaceFileCorruptionHandler { emptyPreferences() },
+        produceFile = { contexte.preferencesDataStoreFile(NOM_FICHIER) },
+    )
 }
 
 /** Liaison du port des réglages IA sur son implémentation. */

@@ -44,10 +44,7 @@ public class FakeDownloadManager : DownloadManager {
     /** Progressions publiées par appel (pour vérifier la conflation côté orchestrateur). */
     public val progressions: MutableList<Progress> = CopyOnWriteArrayList()
 
-    override suspend fun download(
-        request: DownloadRequest,
-        onProgress: (Progress) -> Unit,
-    ): AppResult<File> {
+    override suspend fun download(request: DownloadRequest, onProgress: (Progress) -> Unit): AppResult<File> {
         demandes += request
         nombreDemandes.incrementAndGet()
         return when {
@@ -74,10 +71,7 @@ public class FakeDownloadManager : DownloadManager {
         }
     }
 
-    private fun restituer(
-        fichier: File,
-        onProgress: (Progress) -> Unit,
-    ): AppResult<File> {
+    private fun restituer(fichier: File, onProgress: (Progress) -> Unit): AppResult<File> {
         val progression = Progress.Bytes(received = fichier.length(), total = fichier.length())
         onProgress(progression)
         progressions += progression

@@ -50,54 +50,49 @@ class ResolveurCheminHistoriqueTest {
     }
 
     @Test
-    fun `resoud un chemin relatif segment par segment`() =
-        runTest {
-            semerArbre()
-            source.racineDocument = "content://racine"
-            val resolveur = ResolveurCheminHistorique(fichiers, source)
+    fun `resoud un chemin relatif segment par segment`() = runTest {
+        semerArbre()
+        source.racineDocument = "content://racine"
+        val resolveur = ResolveurCheminHistorique(fichiers, source)
 
-            assertEquals("content://racine/src/com/Main.kt", resolveur.resoudre("src/com/Main.kt"))
-        }
-
-    @Test
-    fun `le chemin vide designe la racine du projet`() =
-        runTest {
-            semerArbre()
-            source.racineDocument = "content://racine"
-            val resolveur = ResolveurCheminHistorique(fichiers, source)
-
-            assertEquals("content://racine", resolveur.resoudre(""))
-        }
+        assertEquals("content://racine/src/com/Main.kt", resolveur.resoudre("src/com/Main.kt"))
+    }
 
     @Test
-    fun `un segment manquant retourne null - jamais d uri inventee`() =
-        runTest {
-            semerArbre()
-            source.racineDocument = "content://racine"
-            val resolveur = ResolveurCheminHistorique(fichiers, source)
+    fun `le chemin vide designe la racine du projet`() = runTest {
+        semerArbre()
+        source.racineDocument = "content://racine"
+        val resolveur = ResolveurCheminHistorique(fichiers, source)
 
-            assertNull(resolveur.resoudre("src/com/Absent.kt"))
-            assertNull(resolveur.resoudre("dossierInconnu/Fichier.kt"))
-        }
+        assertEquals("content://racine", resolveur.resoudre(""))
+    }
 
     @Test
-    fun `hors projet aucune resolution`() =
-        runTest {
-            semerArbre()
-            source.racineDocument = null
-            val resolveur = ResolveurCheminHistorique(fichiers, source)
+    fun `un segment manquant retourne null - jamais d uri inventee`() = runTest {
+        semerArbre()
+        source.racineDocument = "content://racine"
+        val resolveur = ResolveurCheminHistorique(fichiers, source)
 
-            assertNull(resolveur.resoudre("src/com/Main.kt"))
-        }
+        assertNull(resolveur.resoudre("src/com/Absent.kt"))
+        assertNull(resolveur.resoudre("dossierInconnu/Fichier.kt"))
+    }
 
     @Test
-    fun `un chemin trop profond est refuse - garde d enumeration`() =
-        runTest {
-            semerArbre()
-            source.racineDocument = "content://racine"
-            val resolveur = ResolveurCheminHistorique(fichiers, source)
-            val cheminProfond = List(17) { "d$it" }.joinToString("/")
+    fun `hors projet aucune resolution`() = runTest {
+        semerArbre()
+        source.racineDocument = null
+        val resolveur = ResolveurCheminHistorique(fichiers, source)
 
-            assertNull(resolveur.resoudre(cheminProfond))
-        }
+        assertNull(resolveur.resoudre("src/com/Main.kt"))
+    }
+
+    @Test
+    fun `un chemin trop profond est refuse - garde d enumeration`() = runTest {
+        semerArbre()
+        source.racineDocument = "content://racine"
+        val resolveur = ResolveurCheminHistorique(fichiers, source)
+        val cheminProfond = List(17) { "d$it" }.joinToString("/")
+
+        assertNull(resolveur.resoudre(cheminProfond))
+    }
 }

@@ -33,10 +33,7 @@ class TerminalPage : BaseFragment<PageTerminalBinding>() {
         attachToRoot: Boolean,
     ): PageTerminalBinding = PageTerminalBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.boutonInstaller.setOnClickListener {

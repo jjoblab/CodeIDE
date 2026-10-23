@@ -728,4 +728,10 @@
     <string name="ia_corriger_ia_cd">Corriger avec l\'IA</string>
     <string name="ia_expliquer_ia_cd">Expliquer avec l\'IA</string>
 
+    <!-- Mission « Previews » C1 : messages honnêtes de la carte
+         « goutte d'eau » Compose (dessinés dans l'écran du
+         mini-téléphone — pas de vue, pas de layout). -->
+    <string name="apercu_compose_recherche">Recherche des @Preview…</string>
+    <string name="apercu_compose_aucune">Aucune @Preview à afficher</string>
+
 </resources>

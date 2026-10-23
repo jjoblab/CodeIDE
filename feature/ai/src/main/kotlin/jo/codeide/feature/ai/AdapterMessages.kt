@@ -30,10 +30,7 @@ public class AdapterMessages(
     public override fun getItemViewType(position: Int): Int =
         if (getItem(position).utilisateur) TYPE_UTILISATEUR else TYPE_ASSISTANT
 
-    public override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): RecyclerView.ViewHolder =
+    public override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
         if (viewType == TYPE_UTILISATEUR) {
             TitulaireUtilisateur(
                 LigneMessageUtilisateurBinding.inflate(LayoutInflater.from(parent.context), parent, false),
@@ -42,10 +39,7 @@ public class AdapterMessages(
             TitulaireAssistant(LigneMessageAssistantBinding.inflate(LayoutInflater.from(parent.context), parent, false))
         }
 
-    public override fun onBindViewHolder(
-        titulaire: RecyclerView.ViewHolder,
-        position: Int,
-    ) {
+    public override fun onBindViewHolder(titulaire: RecyclerView.ViewHolder, position: Int) {
         val message = getItem(position)
         if (titulaire is TitulaireUtilisateur) {
             titulaire.lier(message)
@@ -55,9 +49,8 @@ public class AdapterMessages(
     }
 
     /** Titulaire du message utilisateur (bulle). */
-    public class TitulaireUtilisateur(
-        private val liaison: LigneMessageUtilisateurBinding,
-    ) : RecyclerView.ViewHolder(liaison.root) {
+    public class TitulaireUtilisateur(private val liaison: LigneMessageUtilisateurBinding) :
+        RecyclerView.ViewHolder(liaison.root) {
         public fun lier(message: MessageChatUi) {
             liaison.texteMessage.text = message.texte
             // TalkBack : chaque message est annoncé avec son rôle.
@@ -67,9 +60,8 @@ public class AdapterMessages(
     }
 
     /** Titulaire du message assistant (blocs Markdown + erreur inline). */
-    public class TitulaireAssistant(
-        private val liaison: LigneMessageAssistantBinding,
-    ) : RecyclerView.ViewHolder(liaison.root) {
+    public class TitulaireAssistant(private val liaison: LigneMessageAssistantBinding) :
+        RecyclerView.ViewHolder(liaison.root) {
         public fun lier(
             message: MessageChatUi,
             onCopierMessage: (String) -> Unit,
@@ -156,11 +148,7 @@ public class AdapterMessages(
         }
 
         /** Texte spanné (Markdown en ligne) avec l'apparence du thème. */
-        private fun texte(
-            contenu: String,
-            apparence: Int,
-            liens: Boolean = false,
-        ): TextView {
+        private fun texte(contenu: String, apparence: Int, liens: Boolean = false): TextView {
             val vue = TextView(liaison.root.context)
             vue.text = SpansMarkdown.de(contenu)
             vue.setTextAppearance(apparence)
@@ -176,15 +164,11 @@ public class AdapterMessages(
     }
 
     private object ComparateurMessages : DiffUtil.ItemCallback<MessageChatUi>() {
-        public override fun areItemsTheSame(
-            ancien: MessageChatUi,
-            nouveau: MessageChatUi,
-        ): Boolean = ancien.identifiant == nouveau.identifiant
+        public override fun areItemsTheSame(ancien: MessageChatUi, nouveau: MessageChatUi): Boolean =
+            ancien.identifiant == nouveau.identifiant
 
-        public override fun areContentsTheSame(
-            ancien: MessageChatUi,
-            nouveau: MessageChatUi,
-        ): Boolean = ancien == nouveau
+        public override fun areContentsTheSame(ancien: MessageChatUi, nouveau: MessageChatUi): Boolean =
+            ancien == nouveau
     }
 
     private companion object {

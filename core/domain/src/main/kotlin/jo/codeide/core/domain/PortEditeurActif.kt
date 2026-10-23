@@ -11,11 +11,7 @@ import jo.codeide.core.model.AppResult
  * @property texte contenu sélectionné — ce que l'utilisateur voit est ce
  * qui part vers le fournisseur (ADR 0124 §4) ; rien d'implicite.
  */
-public data class SelectionEditeur(
-    public val debut: Int,
-    public val fin: Int,
-    public val texte: String,
-)
+public data class SelectionEditeur(public val debut: Int, public val fin: Int, public val texte: String)
 
 /** Gravité d'un diagnostic exposé au domaine IA (mission IA, ADR 0122). */
 public enum class GraviteDiagnostic {
@@ -88,9 +84,5 @@ public interface PortEditeurActif {
      * génération (conflit — jamais d'écrasement silencieux) ou si la
      * plage est invalide ; `AppResult.Succes` sinon.
      */
-    public fun appliquerRemplacement(
-        debut: Int,
-        fin: Int,
-        texte: String,
-    ): AppResult<Unit>
+    public fun appliquerRemplacement(debut: Int, fin: Int, texte: String): AppResult<Unit>
 }

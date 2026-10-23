@@ -76,102 +76,93 @@ class PlantagesViewModelTest {
     }
 
     @Test
-    fun `l historique se charge du plus recent au plus ancien`() =
-        runTest {
-            depot.peupler(rapport("ancien", 1_000L), rapport("recent", 2_000L))
-            advanceUntilIdle()
+    fun `l historique se charge du plus recent au plus ancien`() = runTest {
+        depot.peupler(rapport("ancien", 1_000L), rapport("recent", 2_000L))
+        advanceUntilIdle()
 
-            val etat = viewModel.etat.value
-            assertFalse(etat.chargement)
-            assertEquals(listOf("recent", "ancien"), etat.rapports.map { it.id })
-            assertNull(etat.erreur)
-        }
-
-    @Test
-    fun `la suppression d un rapport reemet l historique a jour`() =
-        runTest {
-            depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
-            advanceUntilIdle()
-
-            viewModel.onAction(ActionPlantages.Supprimer("un"))
-            advanceUntilIdle()
-
-            assertEquals(
-                listOf("deux"),
-                viewModel.etat.value.rapports
-                    .map { it.id },
-            )
-        }
+        val etat = viewModel.etat.value
+        assertFalse(etat.chargement)
+        assertEquals(listOf("recent", "ancien"), etat.rapports.map { it.id })
+        assertNull(etat.erreur)
+    }
 
     @Test
-    fun `la suppression globale vide l historique`() =
-        runTest {
-            depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
-            advanceUntilIdle()
+    fun `la suppression d un rapport reemet l historique a jour`() = runTest {
+        depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionPlantages.ToutSupprimer)
-            advanceUntilIdle()
+        viewModel.onAction(ActionPlantages.Supprimer("un"))
+        advanceUntilIdle()
 
-            assertEquals(0, viewModel.etat.value.rapports.size)
-        }
-
-    @Test
-    fun `l export produit l archive de tous les rapports conserves`() =
-        runTest {
-            depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
-            advanceUntilIdle()
-            collecterEffets()
-
-            viewModel.onAction(ActionPlantages.Exporter)
-            advanceUntilIdle()
-            arreterCollecteEffets()
-
-            val prete = effetsRecus.filterIsInstance<EffetPlantages.ArchivePrete>().single()
-            assertEquals("codeide-crashes-test.zip", prete.archive.fileName)
-            // Le dépôt sert les résumés du plus récent au plus ancien :
-            // l'archive suit le même ordre.
-            assertEquals(listOf("deux", "un"), exporteur.derniersRapports?.map { it.id })
-        }
+        assertEquals(
+            listOf("deux"),
+            viewModel.etat.value.rapports
+                .map { it.id },
+        )
+    }
 
     @Test
-    fun `l echec d export laisse une erreur typée sans effet`() =
-        runTest {
-            depot.peupler(rapport("un", 1_000L))
-            advanceUntilIdle()
-            collecterEffets()
-            exporteur.erreur = AppError.Storage(AppError.StorageReason.Io, "zip")
+    fun `la suppression globale vide l historique`() = runTest {
+        depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionPlantages.Exporter)
-            advanceUntilIdle()
-            arreterCollecteEffets()
+        viewModel.onAction(ActionPlantages.ToutSupprimer)
+        advanceUntilIdle()
 
-            assertTrue(effetsRecus.isEmpty())
-            assertTrue(viewModel.etat.value.erreur is AppError.Storage)
-        }
+        assertEquals(0, viewModel.etat.value.rapports.size)
+    }
+
+    @Test
+    fun `l export produit l archive de tous les rapports conserves`() = runTest {
+        depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
+        advanceUntilIdle()
+        collecterEffets()
+
+        viewModel.onAction(ActionPlantages.Exporter)
+        advanceUntilIdle()
+        arreterCollecteEffets()
+
+        val prete = effetsRecus.filterIsInstance<EffetPlantages.ArchivePrete>().single()
+        assertEquals("codeide-crashes-test.zip", prete.archive.fileName)
+        // Le dépôt sert les résumés du plus récent au plus ancien :
+        // l'archive suit le même ordre.
+        assertEquals(listOf("deux", "un"), exporteur.derniersRapports?.map { it.id })
+    }
+
+    @Test
+    fun `l echec d export laisse une erreur typée sans effet`() = runTest {
+        depot.peupler(rapport("un", 1_000L))
+        advanceUntilIdle()
+        collecterEffets()
+        exporteur.erreur = AppError.Storage(AppError.StorageReason.Io, "zip")
+
+        viewModel.onAction(ActionPlantages.Exporter)
+        advanceUntilIdle()
+        arreterCollecteEffets()
+
+        assertTrue(effetsRecus.isEmpty())
+        assertTrue(viewModel.etat.value.erreur is AppError.Storage)
+    }
 
     // ------------------------------------------------------------------
     // Outils
     // ------------------------------------------------------------------
 
     /** Construit un rapport complet de test. */
-    private fun rapport(
-        id: String,
-        horodatage: Long,
-    ): CrashReport =
-        CrashReport(
-            id = id,
-            type = CrashType.EXCEPTION,
-            timestampMillis = horodatage,
-            sessionId = "session",
-            application = CrashAppInfo("0.13.0", 1_300, "debug", "jo.codeide"),
-            device = DeviceInfo.inconnu(),
-            threadName = "main",
-            exception = FlattenedException("IllegalStateException", "test", emptyList(), null),
-            breadcrumbs = emptyList(),
-            lastScreen = null,
-            processUptimeMs = 0,
-            isCrashLoop = false,
-        )
+    private fun rapport(id: String, horodatage: Long): CrashReport = CrashReport(
+        id = id,
+        type = CrashType.EXCEPTION,
+        timestampMillis = horodatage,
+        sessionId = "session",
+        application = CrashAppInfo("0.13.0", 1_300, "debug", "jo.codeide"),
+        device = DeviceInfo.inconnu(),
+        threadName = "main",
+        exception = FlattenedException("IllegalStateException", "test", emptyList(), null),
+        breadcrumbs = emptyList(),
+        lastScreen = null,
+        processUptimeMs = 0,
+        isCrashLoop = false,
+    )
 }
 
 /** Écrivain d'export local : enregistre les écritures, jamais d'I/O. */
@@ -185,10 +176,7 @@ private class FauxExporteurRapports : CrashReportsExportWriter {
             ?: AppResult.Success(ExportedLogs("codeide-crashes-test.zip", "/cache/exports/codeide-crashes-test.zip"))
     }
 
-    override suspend fun write(
-        reports: List<CrashReport>,
-        destinationUri: String,
-    ): AppResult<Unit> {
+    override suspend fun write(reports: List<CrashReport>, destinationUri: String): AppResult<Unit> {
         derniersRapports = reports
         return erreur?.let { AppResult.Failure(it) } ?: AppResult.Success(Unit)
     }

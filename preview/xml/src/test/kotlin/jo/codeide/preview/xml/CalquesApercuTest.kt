@@ -12,19 +12,14 @@ import org.junit.Test
  */
 class CalquesApercuTest {
     /** Arbre de référence : racine(0) → [gauche(1), droite(2)] — pré-ordre parent-avant-enfants. */
-    private fun arbre(): List<InfoVueRendu> =
-        listOf(
-            vue("FrameLayout", indiceParent = -1, profondeur = 0),
-            vue("TextView", indiceParent = 0, profondeur = 1),
-            vue("Button", indiceParent = 0, profondeur = 1),
-        )
+    private fun arbre(): List<InfoVueRendu> = listOf(
+        vue("FrameLayout", indiceParent = -1, profondeur = 0),
+        vue("TextView", indiceParent = 0, profondeur = 1),
+        vue("Button", indiceParent = 0, profondeur = 1),
+    )
 
     /** Une vue du rendu avec IDENTIFIANT, famille de conteneur et drapeau conteneur (PE12e). */
-    private fun InfoVueRendu.avecId(
-        id: String,
-        famille: String = "",
-        conteneur: Boolean = false,
-    ): InfoVueRendu =
+    private fun InfoVueRendu.avecId(id: String, famille: String = "", conteneur: Boolean = false): InfoVueRendu =
         InfoVueRendu(
             gauche = gauche,
             haut = haut,
@@ -47,18 +42,17 @@ class CalquesApercuTest {
         profondeur: Int,
         largeurPx: Int = 120,
         hauteurPx: Int = 48,
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = 0,
-            haut = 0,
-            droite = largeurPx,
-            bas = hauteurPx,
-            libelle = nom,
-            debutElement = 0,
-            finElement = 10,
-            indiceParent = indiceParent,
-            profondeur = profondeur,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = 0,
+        haut = 0,
+        droite = largeurPx,
+        bas = hauteurPx,
+        libelle = nom,
+        debutElement = 0,
+        finElement = 10,
+        indiceParent = indiceParent,
+        profondeur = profondeur,
+    )
 
     @Test
     fun `conversion dp - densité du profil`() {
@@ -120,31 +114,24 @@ class CalquesApercuTest {
     // ── Lignes de contrainte (PE6c — miroir drawConstraints de la maquette) ──
 
     /** Enfants directs de la racine, décalés : 24 px de marge gauche, 8 px entre eux. */
-    private fun arbreContraintes(): List<InfoVueRendu> =
-        listOf(
-            vue("FrameLayout", indiceParent = -1, profondeur = 0).copierBounds(0, 0, 400, 800),
-            vue("TextView", indiceParent = 0, profondeur = 1).copierBounds(24, 8, 376, 60),
-            vue("Button", indiceParent = 0, profondeur = 1).copierBounds(24, 68, 200, 120),
-        )
+    private fun arbreContraintes(): List<InfoVueRendu> = listOf(
+        vue("FrameLayout", indiceParent = -1, profondeur = 0).copierBounds(0, 0, 400, 800),
+        vue("TextView", indiceParent = 0, profondeur = 1).copierBounds(24, 8, 376, 60),
+        vue("Button", indiceParent = 0, profondeur = 1).copierBounds(24, 68, 200, 120),
+    )
 
-    private fun InfoVueRendu.copierBounds(
-        gauche: Int,
-        haut: Int,
-        droite: Int,
-        bas: Int,
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = libelle,
-            debutElement = debutElement,
-            finElement = finElement,
-            indiceParent = indiceParent,
-            profondeur = profondeur,
-            classe = classe,
-        )
+    private fun InfoVueRendu.copierBounds(gauche: Int, haut: Int, droite: Int, bas: Int): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = libelle,
+        debutElement = debutElement,
+        finElement = finElement,
+        indiceParent = indiceParent,
+        profondeur = profondeur,
+        classe = classe,
+    )
 
     @Test
     fun `contraintes - ecart au frere precedent en vertical`() {
@@ -210,11 +197,8 @@ class CalquesApercuTest {
      * exige Robolectric).
      */
     private fun arbreRelatif(): List<ArbreAttributsXml.Noeud> {
-        fun noeud(
-            balise: String,
-            id: String?,
-            attributs: Map<String, String> = emptyMap(),
-        ): ArbreAttributsXml.Noeud = ArbreAttributsXml.Noeud(balise, id, attributs, 0, 1, 0, emptyList())
+        fun noeud(balise: String, id: String?, attributs: Map<String, String> = emptyMap()): ArbreAttributsXml.Noeud =
+            ArbreAttributsXml.Noeud(balise, id, attributs, 0, 1, 0, emptyList())
         val racine =
             ArbreAttributsXml.Noeud(
                 "RelativeLayout",
@@ -255,26 +239,22 @@ class CalquesApercuTest {
     }
 
     /** Le rendu correspondant (bornes calquées sur la maquette profil). */
-    private fun renduRelatif(): List<InfoVueRendu> =
-        listOf(
-            vue(
-                "RelativeLayout",
-                indiceParent = -1,
-                profondeur = 0,
-            ).copierBounds(0, 0, 360, 640).avecId("root", famille = "RELATIVE", conteneur = true),
-            vue("ImageView", indiceParent = 0, profondeur = 1).copierBounds(16, 16, 96, 96).avecId("avatar"),
-            vue("TextView", indiceParent = 0, profondeur = 1).copierBounds(112, 16, 250, 40).avecId("nom"),
-            vue("TextView", indiceParent = 0, profondeur = 1).copierBounds(112, 44, 240, 64).avecId("role"),
-            vue("Button", indiceParent = 0, profondeur = 1).copierBounds(108, 296, 252, 344).avecId("bouton"),
-        )
+    private fun renduRelatif(): List<InfoVueRendu> = listOf(
+        vue(
+            "RelativeLayout",
+            indiceParent = -1,
+            profondeur = 0,
+        ).copierBounds(0, 0, 360, 640).avecId("root", famille = "RELATIVE", conteneur = true),
+        vue("ImageView", indiceParent = 0, profondeur = 1).copierBounds(16, 16, 96, 96).avecId("avatar"),
+        vue("TextView", indiceParent = 0, profondeur = 1).copierBounds(112, 16, 250, 40).avecId("nom"),
+        vue("TextView", indiceParent = 0, profondeur = 1).copierBounds(112, 44, 240, 64).avecId("role"),
+        vue("Button", indiceParent = 0, profondeur = 1).copierBounds(108, 296, 252, 344).avecId("bouton"),
+    )
 
     /** L'arbre FIL (CoordinatorLayout + ancre, nœuds construits à la main). */
     private fun arbreCoordonnateur(): List<ArbreAttributsXml.Noeud> {
-        fun noeud(
-            balise: String,
-            id: String?,
-            attributs: Map<String, String> = emptyMap(),
-        ): ArbreAttributsXml.Noeud = ArbreAttributsXml.Noeud(balise, id, attributs, 0, 1, 0, emptyList())
+        fun noeud(balise: String, id: String?, attributs: Map<String, String> = emptyMap()): ArbreAttributsXml.Noeud =
+            ArbreAttributsXml.Noeud(balise, id, attributs, 0, 1, 0, emptyList())
         val racine =
             ArbreAttributsXml.Noeud(
                 "CoordinatorLayout",
@@ -296,20 +276,19 @@ class CalquesApercuTest {
     }
 
     /** Le rendu correspondant. */
-    private fun renduCoordonnateur(): List<InfoVueRendu> =
-        listOf(
-            vue(
-                "CoordinatorLayout",
-                indiceParent = -1,
-                profondeur = 0,
-            ).copierBounds(0, 0, 360, 640).avecId("root", famille = "COORDINATOR", conteneur = true),
-            vue("RecyclerView", indiceParent = 0, profondeur = 1).copierBounds(0, 104, 360, 640).avecId("liste"),
-            vue(
-                "FloatingActionButton",
-                indiceParent = 0,
-                profondeur = 1,
-            ).copierBounds(288, 568, 344, 624).avecId("fab"),
-        )
+    private fun renduCoordonnateur(): List<InfoVueRendu> = listOf(
+        vue(
+            "CoordinatorLayout",
+            indiceParent = -1,
+            profondeur = 0,
+        ).copierBounds(0, 0, 360, 640).avecId("root", famille = "COORDINATOR", conteneur = true),
+        vue("RecyclerView", indiceParent = 0, profondeur = 1).copierBounds(0, 104, 360, 640).avecId("liste"),
+        vue(
+            "FloatingActionButton",
+            indiceParent = 0,
+            profondeur = 1,
+        ).copierBounds(288, 568, 344, 624).avecId("fab"),
+    )
 
     @Test
     fun `relations - regle de cote en trait plein, alignement en pointille`() {

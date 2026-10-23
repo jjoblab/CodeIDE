@@ -46,110 +46,104 @@ class AiSettingsStoreTest {
     private fun creerDataStore(nom: String): DataStore<androidx.datastore.preferences.core.Preferences> =
         PreferenceDataStoreFactory.create(
             corruptionHandler =
-                androidx.datastore.core.handlers
-                    .ReplaceFileCorruptionHandler { emptyPreferences() },
+            androidx.datastore.core.handlers
+                .ReplaceFileCorruptionHandler { emptyPreferences() },
             produceFile = { File(contexte.filesDir, "datastore/$nom.preferences_pb") },
             scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher()),
         )
 
     @Test
-    fun `les défauts sont honnêtes — assistant inactif, consentement absent, fournisseur Anthropic`() =
-        runTest {
-            val store = creerStore()
+    fun `les défauts sont honnêtes — assistant inactif, consentement absent, fournisseur Anthropic`() = runTest {
+        val store = creerStore()
 
-            val reglages = store.observe().first()
+        val reglages = store.observe().first()
 
-            assertEquals(AiSettings(), reglages)
-            assertEquals(false, reglages.assistantActive)
-            assertEquals(false, reglages.consentementDonne)
-            assertEquals(0L, reglages.consentementDateEpochMs)
-            assertEquals(FournisseursIa.ANTHROPIC, reglages.fournisseurActif)
-        }
-
-    @Test
-    fun `aller-retour complet de tous les champs`() =
-        runTest {
-            val store = creerStore()
-            val modifie =
-                AiSettings(
-                    assistantActive = true,
-                    consentementDonne = true,
-                    consentementDateEpochMs = 1_700_000_000_000,
-                    fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE,
-                    urlBaseAnthropic = "https://proxy.example",
-                    urlBaseOpenAiCompatible = "http://localhost:8080/v1",
-                    modeleAnthropic = "modele-a",
-                    modeleOpenAiCompatible = "modele-b",
-                    modelesRecensesAnthropic = listOf("m1", "m2"),
-                    modelesRecensesOpenAiCompatible = listOf("m3"),
-                    maxJetonsReponse = 2_048,
-                    delaiSecondes = 90,
-                    envoyerFichierActif = false,
-                    envoyerListeChemins = false,
-                    envoyerDiagnostics = false,
-                )
-
-            store.update { modifie }
-
-            assertEquals(modifie, store.observe().first())
-            assertEquals(modifie, (store.courant() as jo.codeide.core.model.AppResult.Success).value)
-        }
+        assertEquals(AiSettings(), reglages)
+        assertEquals(false, reglages.assistantActive)
+        assertEquals(false, reglages.consentementDonne)
+        assertEquals(0L, reglages.consentementDateEpochMs)
+        assertEquals(FournisseursIa.ANTHROPIC, reglages.fournisseurActif)
+    }
 
     @Test
-    fun `un fournisseur inconnu persisté retombe sur Anthropic à la lecture`() =
-        runTest {
-            val nom = "test-ia-fournisseur-${compteur.incrementAndGet()}"
-            val dataStore = creerDataStore(nom)
-            // Écriture brute d'une valeur inconnue (simulation d'une version future).
-            dataStore.edit { preferences ->
-                preferences[ClesAi.fournisseurActif] = "fournisseur_futur"
-            }
-            val store = AiSettingsStore(dataStore)
+    fun `aller-retour complet de tous les champs`() = runTest {
+        val store = creerStore()
+        val modifie =
+            AiSettings(
+                assistantActive = true,
+                consentementDonne = true,
+                consentementDateEpochMs = 1_700_000_000_000,
+                fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE,
+                urlBaseAnthropic = "https://proxy.example",
+                urlBaseOpenAiCompatible = "http://localhost:8080/v1",
+                modeleAnthropic = "modele-a",
+                modeleOpenAiCompatible = "modele-b",
+                modelesRecensesAnthropic = listOf("m1", "m2"),
+                modelesRecensesOpenAiCompatible = listOf("m3"),
+                maxJetonsReponse = 2_048,
+                delaiSecondes = 90,
+                envoyerFichierActif = false,
+                envoyerListeChemins = false,
+                envoyerDiagnostics = false,
+            )
 
-            assertEquals(FournisseursIa.ANTHROPIC, store.observe().first().fournisseurActif)
-        }
+        store.update { modifie }
 
-    @Test
-    fun `un fichier corrompu retombe sur les défauts sans planter`() =
-        runTest {
-            val nom = "test-ia-corrompu-${compteur.incrementAndGet()}"
-            File(contexte.filesDir, "datastore").mkdirs()
-            File(contexte.filesDir, "datastore/$nom.preferences_pb").writeBytes("pas-du-protobuf".toByteArray())
-
-            val store =
-                AiSettingsStore(
-                    PreferenceDataStoreFactory.create(
-                        corruptionHandler =
-                            androidx.datastore.core.handlers
-                                .ReplaceFileCorruptionHandler { emptyPreferences() },
-                        produceFile = { File(contexte.filesDir, "datastore/$nom.preferences_pb") },
-                        scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher()),
-                    ),
-                )
-
-            assertEquals(AiSettings(), store.observe().first())
-        }
+        assertEquals(modifie, store.observe().first())
+        assertEquals(modifie, (store.courant() as jo.codeide.core.model.AppResult.Success).value)
+    }
 
     @Test
-    fun `la mise à jour est une transformation atomique lecture-transforme-réécrit`() =
-        runTest {
-            val store = creerStore()
-            store.update { it.copy(assistantActive = true) }
-
-            store.update { it.copy(consentementDonne = true) }
-
-            val reglages = store.observe().first()
-            assertTrue(reglages.assistantActive)
-            assertTrue(reglages.consentementDonne)
+    fun `un fournisseur inconnu persisté retombe sur Anthropic à la lecture`() = runTest {
+        val nom = "test-ia-fournisseur-${compteur.incrementAndGet()}"
+        val dataStore = creerDataStore(nom)
+        // Écriture brute d'une valeur inconnue (simulation d'une version future).
+        dataStore.edit { preferences ->
+            preferences[ClesAi.fournisseurActif] = "fournisseur_futur"
         }
+        val store = AiSettingsStore(dataStore)
+
+        assertEquals(FournisseursIa.ANTHROPIC, store.observe().first().fournisseurActif)
+    }
 
     @Test
-    fun `la liste des modèles recensés conserve son ordre et ignore les vides`() =
-        runTest {
-            val store = creerStore()
+    fun `un fichier corrompu retombe sur les défauts sans planter`() = runTest {
+        val nom = "test-ia-corrompu-${compteur.incrementAndGet()}"
+        File(contexte.filesDir, "datastore").mkdirs()
+        File(contexte.filesDir, "datastore/$nom.preferences_pb").writeBytes("pas-du-protobuf".toByteArray())
 
-            store.update { it.copy(modelesRecensesAnthropic = listOf("zeta", "", "alpha")) }
+        val store =
+            AiSettingsStore(
+                PreferenceDataStoreFactory.create(
+                    corruptionHandler =
+                    androidx.datastore.core.handlers
+                        .ReplaceFileCorruptionHandler { emptyPreferences() },
+                    produceFile = { File(contexte.filesDir, "datastore/$nom.preferences_pb") },
+                    scope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher()),
+                ),
+            )
 
-            assertEquals(listOf("zeta", "alpha"), store.observe().first().modelesRecensesAnthropic)
-        }
+        assertEquals(AiSettings(), store.observe().first())
+    }
+
+    @Test
+    fun `la mise à jour est une transformation atomique lecture-transforme-réécrit`() = runTest {
+        val store = creerStore()
+        store.update { it.copy(assistantActive = true) }
+
+        store.update { it.copy(consentementDonne = true) }
+
+        val reglages = store.observe().first()
+        assertTrue(reglages.assistantActive)
+        assertTrue(reglages.consentementDonne)
+    }
+
+    @Test
+    fun `la liste des modèles recensés conserve son ordre et ignore les vides`() = runTest {
+        val store = creerStore()
+
+        store.update { it.copy(modelesRecensesAnthropic = listOf("zeta", "", "alpha")) }
+
+        assertEquals(listOf("zeta", "alpha"), store.observe().first().modelesRecensesAnthropic)
+    }
 }

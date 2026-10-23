@@ -60,19 +60,13 @@ public interface TerminalSessionRepository {
      * @param label libellé ; `null` pour la numérotation automatique.
      * @return l'identifiant de la session créée.
      */
-    public suspend fun createSession(
-        workingDirectory: File,
-        label: String? = null,
-    ): String
+    public suspend fun createSession(workingDirectory: File, label: String? = null): String
 
     /** Définit la session rendue à l'écran. */
     public fun setActiveSession(sessionId: String)
 
     /** Renomme une session (appui long sur l'onglet). */
-    public suspend fun renameSession(
-        sessionId: String,
-        label: String,
-    )
+    public suspend fun renameSession(sessionId: String, label: String)
 
     /**
      * Ferme une session : termine son shell **réellement** (pas seulement
@@ -98,8 +92,5 @@ public interface TerminalSessionRepository {
      * @param sessionId identifiant de la session cible.
      * @param texte texte à envoyer (`\r` vaut Entrée).
      */
-    public fun envoyerTexte(
-        sessionId: String,
-        texte: String,
-    )
+    public fun envoyerTexte(sessionId: String, texte: String)
 }

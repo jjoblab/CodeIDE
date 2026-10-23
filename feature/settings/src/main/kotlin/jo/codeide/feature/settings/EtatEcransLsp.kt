@@ -30,9 +30,7 @@ data class EtatEcransLsp(
 sealed interface EffetEcransLsp {
     /** Cache vidé : message + taille libérée (aucune action « Annuler » —
      *  l'action est reconstructible, spec L3). */
-    data class CacheVide(
-        val octetsLiberes: Long,
-    ) : EffetEcransLsp
+    data class CacheVide(val octetsLiberes: Long) : EffetEcransLsp
 
     /** Refus de vidage PENDANT une indexation (refus en DONNÉE). */
     data object VidageRefuse : EffetEcransLsp
@@ -47,27 +45,19 @@ sealed interface EffetEcransLsp {
      * activité) ; `identifiantProjet` `null` : la session vient de
      * fermer, l'écran reste honnête (message sans effet).
      */
-    data class DetailsIndexationDemandes(
-        val identifiantProjet: String?,
-    ) : EffetEcransLsp
+    data class DetailsIndexationDemandes(val identifiantProjet: String?) : EffetEcransLsp
 }
 
 /** Actions consommables des écrans LSP (patron ActionParametres). */
 sealed interface ActionReglagesLsp {
     /** Budget du cache : `null` = Auto ; persisté puis appliqué sans redémarrer. */
-    data class ChangerBudget(
-        val octets: Long?,
-    ) : ActionReglagesLsp
+    data class ChangerBudget(val octets: Long?) : ActionReglagesLsp
 
     /** Surveillance des fichiers externes ON/OFF (`0` = coupée). */
-    data class BasculerSurveillance(
-        val active: Boolean,
-    ) : ActionReglagesLsp
+    data class BasculerSurveillance(val active: Boolean) : ActionReglagesLsp
 
     /** Période de surveillance (paliers 2/5/10/30 s du modèle). */
-    data class ChangerFrequence(
-        val millisecondes: Long,
-    ) : ActionReglagesLsp
+    data class ChangerFrequence(val millisecondes: Long) : ActionReglagesLsp
 
     /** Relance l'indexation du projet ouvert. */
     data object Reindexer : ActionReglagesLsp

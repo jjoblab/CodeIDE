@@ -22,62 +22,60 @@ import jo.codeide.feature.editor.databinding.VueBarreConsigneIaBinding
  * sont liés en [onFinishInflate], l'hôte ne branche que trois rappels.
  */
 class BarreConsigneIa
-    @JvmOverloads
-    constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-    ) : MaterialCardView(context, attrs) {
-        private lateinit var binding: VueBarreConsigneIaBinding
+@JvmOverloads
+constructor(context: Context, attrs: AttributeSet? = null) :
+    MaterialCardView(context, attrs) {
+    private lateinit var binding: VueBarreConsigneIaBinding
 
-        /** Consigne transmise telle quelle (champ non vide — bouton armé). */
-        var surEnvoyer: ((String) -> Unit)? = null
+    /** Consigne transmise telle quelle (champ non vide — bouton armé). */
+    var surEnvoyer: ((String) -> Unit)? = null
 
-        /** Fermeture par la croix (l'utilisateur garde la main — ADR 0126). */
-        var surFermer: (() -> Unit)? = null
+    /** Fermeture par la croix (l'utilisateur garde la main — ADR 0126). */
+    var surFermer: (() -> Unit)? = null
 
-        override fun onFinishInflate() {
-            super.onFinishInflate()
-            binding = VueBarreConsigneIaBinding.bind(this)
+    override fun onFinishInflate() {
+        super.onFinishInflate()
+        binding = VueBarreConsigneIaBinding.bind(this)
 
-            binding.boutonEnvoyerConsigne.setOnClickListener {
-                val consigne =
-                    binding.saisieConsigne.text
-                        ?.toString()
-                        .orEmpty()
-                        .trim()
-                if (consigne.isNotEmpty()) {
-                    surEnvoyer?.invoke(consigne)
-                }
+        binding.boutonEnvoyerConsigne.setOnClickListener {
+            val consigne =
+                binding.saisieConsigne.text
+                    ?.toString()
+                    .orEmpty()
+                    .trim()
+            if (consigne.isNotEmpty()) {
+                surEnvoyer?.invoke(consigne)
             }
-            binding.boutonFermerBarreIa.setOnClickListener {
-                surFermer?.invoke()
-            }
-            bindersActionsRapides()
         }
-
-        /** Affiche la barre avec la ligne de contexte (sélection + fichier). */
-        fun montrer(ligneContexte: String) {
-            binding.ligneContexteIa.text = ligneContexte
-            isVisible = true
-            binding.saisieConsigne.requestFocus()
+        binding.boutonFermerBarreIa.setOnClickListener {
+            surFermer?.invoke()
         }
-
-        /** Masque la barre (consigne conservée dans le champ — reprise aisée). */
-        fun masquer() {
-            isVisible = false
-        }
-
-        /** Actions rapides : pré-remplissent le champ (l'utilisateur relit). */
-        private fun bindersActionsRapides() {
-            binding.actionExpliquer.setOnClickListener { preRemplir(R.string.ia_barre_consigne_expliquer) }
-            binding.actionCorriger.setOnClickListener { preRemplir(R.string.ia_barre_consigne_corriger) }
-            binding.actionDocumenter.setOnClickListener { preRemplir(R.string.ia_barre_consigne_documenter) }
-            binding.actionTests.setOnClickListener { preRemplir(R.string.ia_barre_consigne_tests) }
-            binding.actionSimplifier.setOnClickListener { preRemplir(R.string.ia_barre_consigne_simplifier) }
-        }
-
-        /** Pose un modèle de consigne dans le champ. */
-        private fun preRemplir(ressource: Int) {
-            binding.saisieConsigne.setText(context.getString(ressource))
-        }
+        bindersActionsRapides()
     }
+
+    /** Affiche la barre avec la ligne de contexte (sélection + fichier). */
+    fun montrer(ligneContexte: String) {
+        binding.ligneContexteIa.text = ligneContexte
+        isVisible = true
+        binding.saisieConsigne.requestFocus()
+    }
+
+    /** Masque la barre (consigne conservée dans le champ — reprise aisée). */
+    fun masquer() {
+        isVisible = false
+    }
+
+    /** Actions rapides : pré-remplissent le champ (l'utilisateur relit). */
+    private fun bindersActionsRapides() {
+        binding.actionExpliquer.setOnClickListener { preRemplir(R.string.ia_barre_consigne_expliquer) }
+        binding.actionCorriger.setOnClickListener { preRemplir(R.string.ia_barre_consigne_corriger) }
+        binding.actionDocumenter.setOnClickListener { preRemplir(R.string.ia_barre_consigne_documenter) }
+        binding.actionTests.setOnClickListener { preRemplir(R.string.ia_barre_consigne_tests) }
+        binding.actionSimplifier.setOnClickListener { preRemplir(R.string.ia_barre_consigne_simplifier) }
+    }
+
+    /** Pose un modèle de consigne dans le champ. */
+    private fun preRemplir(ressource: Int) {
+        binding.saisieConsigne.setText(context.getString(ressource))
+    }
+}

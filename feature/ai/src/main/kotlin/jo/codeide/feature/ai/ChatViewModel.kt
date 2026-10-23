@@ -81,9 +81,7 @@ public data class EtatChatIa(
 /** Actions du chat (UDF). */
 public sealed interface ActionChatIa {
     /** Saisie du compositeur (brouillon — jamais un secret). */
-    public data class ChangerSaisie(
-        public val valeur: String,
-    ) : ActionChatIa
+    public data class ChangerSaisie(public val valeur: String) : ActionChatIa
 
     /** Envoie le message (démarre le streaming). */
     public data object Envoyer : ActionChatIa
@@ -98,22 +96,16 @@ public sealed interface ActionChatIa {
     public data object Regenerer : ActionChatIa
 
     /** Copie le texte d'un message (le fragment porte le presse-papiers). */
-    public data class CopierMessage(
-        public val identifiant: String,
-    ) : ActionChatIa
+    public data class CopierMessage(public val identifiant: String) : ActionChatIa
 
     /** Copie le contenu d'un bloc de code. */
-    public data class CopierBlocCode(
-        public val code: String,
-    ) : ActionChatIa
+    public data class CopierBlocCode(public val code: String) : ActionChatIa
 
     /**
      * Insère un bloc de code **au curseur** via [RegistrePortEditeurActif]
      * (remplace la sélection courante, un seul pas d'annulation).
      */
-    public data class InsererBlocCode(
-        public val code: String,
-    ) : ActionChatIa
+    public data class InsererBlocCode(public val code: String) : ActionChatIa
 
     /**
      * Propose un bloc de code pour la **carte de diff** de l'éditeur
@@ -122,9 +114,7 @@ public sealed interface ActionChatIa {
      * carte ne devine jamais une plage). L'effet [EffetChatIa.AfficherDiff]
      * porte la proposition à l'hôte.
      */
-    public data class AppliquerBlocCode(
-        public val code: String,
-    ) : ActionChatIa
+    public data class AppliquerBlocCode(public val code: String) : ActionChatIa
 
     /** Nouvelle conversation (vide la vue — la suivante part d'un historique frais). */
     public data object NouvelleConversation : ActionChatIa
@@ -134,31 +124,23 @@ public sealed interface ActionChatIa {
      * messages persistés remplissent la vue ; l'envoi suivant poursuit
      * la MÊME conversation (aucune duplication).
      */
-    public data class OuvrirConversation(
-        public val conversationId: String,
-    ) : ActionChatIa
+    public data class OuvrirConversation(public val conversationId: String) : ActionChatIa
 
     /** Ouvre le consentement (IA non activée). */
     public data object OuvrirConsentement : ActionChatIa
 
     /** Ajoute un fichier `@mentionné` (sélecteur `@` — chemin relatif). */
-    public data class AjouterMention(
-        public val cheminRelatif: String,
-    ) : ActionChatIa
+    public data class AjouterMention(public val cheminRelatif: String) : ActionChatIa
 
     /** Retire un fichier `@mentionné` (croix de puce). */
-    public data class RetirerMention(
-        public val cheminRelatif: String,
-    ) : ActionChatIa
+    public data class RetirerMention(public val cheminRelatif: String) : ActionChatIa
 
     /**
      * Retire une pièce de contexte automatique (croix de puce) : elle
      * ne part PAS à l'envoi suivant — persiste jusqu'à la nouvelle
      * conversation (prévisible : rien ne revient silencieusement).
      */
-    public data class RetirerPiece(
-        public val type: TypePieceContexte,
-    ) : ActionChatIa
+    public data class RetirerPiece(public val type: TypePieceContexte) : ActionChatIa
 
     /** Ouvre le sélecteur `@` (charge les chemins du projet). */
     public data object OuvrirSelecteurFichiers : ActionChatIa
@@ -176,9 +158,7 @@ public sealed interface ActionChatIa {
 /** Effets du chat (presse-papiers, navigation, messages). */
 public sealed interface EffetChatIa {
     /** Copie ce texte dans le presse-papiers (le fragment porte l'API). */
-    public data class Copier(
-        public val texte: String,
-    ) : EffetChatIa
+    public data class Copier(public val texte: String) : EffetChatIa
 
     /** Message éphémère (ressource + argument optionnel). */
     public data class Message(
@@ -197,9 +177,7 @@ public sealed interface EffetChatIa {
      * (lot IA-5) — le fragment la porte à [ControleurIaTiroir] ; hôte
      * absent (pas d'éditeur) : aucun effet visible.
      */
-    public data class AfficherDiff(
-        public val proposition: PropositionDiffIa,
-    ) : EffetChatIa
+    public data class AfficherDiff(public val proposition: PropositionDiffIa) : EffetChatIa
 }
 
 /**
@@ -218,504 +196,498 @@ public sealed interface EffetChatIa {
 @Suppress("TooManyFunctions")
 @HiltViewModel
 public class ChatViewModel
-    @Suppress("LongParameterList") // injection Hilt : chaque dépendance est un port du domaine.
-    @Inject
-    constructor(
-        private val envoyer: SendMessageUseCase,
-        private val reglages: ReglagesIaRepository,
-        private val registreEditeur: RegistrePortEditeurActif,
-        private val fournisseurContexte: FournisseurContexteProjet,
-        private val signauxExternes: CanalSignauxIa,
-        private val historique: ConversationStore,
-        private val horloge: TimeProvider,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatChatIa())
+@Suppress("LongParameterList") // injection Hilt : chaque dépendance est un port du domaine.
+@Inject
+constructor(
+    private val envoyer: SendMessageUseCase,
+    private val reglages: ReglagesIaRepository,
+    private val registreEditeur: RegistrePortEditeurActif,
+    private val fournisseurContexte: FournisseurContexteProjet,
+    private val signauxExternes: CanalSignauxIa,
+    private val historique: ConversationStore,
+    private val horloge: TimeProvider,
+) : ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatChatIa())
 
-        private val effetsInternes = Channel<EffetChatIa>(Channel.BUFFERED)
+    private val effetsInternes = Channel<EffetChatIa>(Channel.BUFFERED)
 
-        /** Job du streaming en cours — annulé par [ActionChatIa.Arreter]. */
-        private var generation: Job? = null
+    /** Job du streaming en cours — annulé par [ActionChatIa.Arreter]. */
+    private var generation: Job? = null
 
-        /** Dernier texte utilisateur envoyé (régénération). */
-        private var dernierMessageUtilisateur: String? = null
+    /** Dernier texte utilisateur envoyé (régénération). */
+    private var dernierMessageUtilisateur: String? = null
 
-        /** Compteur d'identifiants de messages (stables pour le DiffUtil). */
-        private var sequence = 0L
+    /** Compteur d'identifiants de messages (stables pour le DiffUtil). */
+    private var sequence = 0L
 
-        /**
-         * Conversation locale en cours (lot IA-6) : créée au premier
-         * message persisté, poursuivie à l'envoi suivant, refermée par
-         * « Nouvelle conversation ». `null` = rien de persisté encore.
-         */
-        private var conversationId: String? = null
+    /**
+     * Conversation locale en cours (lot IA-6) : créée au premier
+     * message persisté, poursuivie à l'envoi suivant, refermée par
+     * « Nouvelle conversation ». `null` = rien de persisté encore.
+     */
+    private var conversationId: String? = null
 
-        /**
-         * Envoi SUSPENDU par le dialogue bloquant de secret (message,
-         * contexte) — tranché par Confirmer/Annuler (ADR 0124 §4).
-         */
-        private var envoiEnAttente: Pair<String, ContexteIa>? = null
+    /**
+     * Envoi SUSPENDU par le dialogue bloquant de secret (message,
+     * contexte) — tranché par Confirmer/Annuler (ADR 0124 §4).
+     */
+    private var envoiEnAttente: Pair<String, ContexteIa>? = null
 
-        /** Texte de contexte du DERNIER envoi — réutilisé par Régénérer. */
-        private var dernierTexteContexte: String = ""
+    /** Texte de contexte du DERNIER envoi — réutilisé par Régénérer. */
+    private var dernierTexteContexte: String = ""
 
-        /** Modèle du DERNIER envoi — étiquette de la conversation (IA-6). */
-        private var dernierModele: String? = null
+    /** Modèle du DERNIER envoi — étiquette de la conversation (IA-6). */
+    private var dernierModele: String? = null
 
-        /** État observable de l'écran. */
-        public val etat: StateFlow<EtatChatIa> = etatInterne.asStateFlow()
+    /** État observable de l'écran. */
+    public val etat: StateFlow<EtatChatIa> = etatInterne.asStateFlow()
 
-        /** Identifiant suivant (propriété — stable pour le DiffUtil). */
-        private val identifiantSuivant: String
-            get() = "ia-${sequence++}"
+    /** Identifiant suivant (propriété — stable pour le DiffUtil). */
+    private val identifiantSuivant: String
+        get() = "ia-${sequence++}"
 
-        /** Effets à collecter par le fragment. */
-        public val effets: Flow<EffetChatIa> = effetsInternes.receiveAsFlow()
+    /** Effets à collecter par le fragment. */
+    public val effets: Flow<EffetChatIa> = effetsInternes.receiveAsFlow()
 
-        init {
-            viewModelScope.launch {
-                reglages.observeAiSettings().collect { courant ->
-                    etatInterne.value =
-                        etatInterne.value.copy(active = courant.assistantActive && courant.consentementDonne)
-                }
+    init {
+        viewModelScope.launch {
+            reglages.observeAiSettings().collect { courant ->
+                etatInterne.value =
+                    etatInterne.value.copy(active = courant.assistantActive && courant.consentementDonne)
             }
-            // Purge de rétention a l'ouverture (lot IA-6, critere IA-6) :
-            // le reglage est lu A CHAQUE ouverture (jamais mis en cache).
-            viewModelScope.launch {
-                when (val courants = reglages.courant()) {
-                    is AppResult.Success -> historique.purgerPerimees(courants.value.retentionConversations)
-                    is AppResult.Failure -> Unit
-                }
+        }
+        // Purge de rétention a l'ouverture (lot IA-6, critere IA-6) :
+        // le reglage est lu A CHAQUE ouverture (jamais mis en cache).
+        viewModelScope.launch {
+            when (val courants = reglages.courant()) {
+                is AppResult.Success -> historique.purgerPerimees(courants.value.retentionConversations)
+                is AppResult.Failure -> Unit
             }
-            // Signaux de l'éditeur (lot IA-5) : consigne de la barre en
-            // ligne (pré-remplissage, envoi immédiat si le geste était
-            // explicite), pré-remplissage Problèmes/Console/Logcat,
-            // relance « Réessayer ». Un signal = un traitement, aucun rejeu.
-            viewModelScope.launch {
-                signauxExternes.signal.collect { signal ->
-                    when (signal) {
-                        null -> {
-                            Unit
-                        }
+        }
+        // Signaux de l'éditeur (lot IA-5) : consigne de la barre en
+        // ligne (pré-remplissage, envoi immédiat si le geste était
+        // explicite), pré-remplissage Problèmes/Console/Logcat,
+        // relance « Réessayer ». Un signal = un traitement, aucun rejeu.
+        viewModelScope.launch {
+            signauxExternes.signal.collect { signal ->
+                when (signal) {
+                    null -> {
+                        Unit
+                    }
 
-                        is SignalIaExterne.Consigne -> {
-                            signauxExternes.consommer()
-                            etatInterne.value = etatInterne.value.copy(saisie = signal.texte)
-                            if (signal.envoiImmediat) {
-                                envoyerMessage(signal.texte)
-                            }
+                    is SignalIaExterne.Consigne -> {
+                        signauxExternes.consommer()
+                        etatInterne.value = etatInterne.value.copy(saisie = signal.texte)
+                        if (signal.envoiImmediat) {
+                            envoyerMessage(signal.texte)
                         }
+                    }
 
-                        SignalIaExterne.Regenerer -> {
-                            signauxExternes.consommer()
-                            regenerer()
-                        }
+                    SignalIaExterne.Regenerer -> {
+                        signauxExternes.consommer()
+                        regenerer()
                     }
                 }
             }
         }
+    }
 
-        /**
-         * Point d'entrée unique des actions (UDF).
-         *
-         * `@Suppress("LongMethod", "CyclomaticComplexMethod")` justifiées :
-         * la fonction EST la table de répartition UDF — une branche par
-         * action fermée, zéro imbrication métier (même convention que
-         * EditorActivity.appliquer, ADR 0029).
-         */
-        @Suppress("LongMethod", "CyclomaticComplexMethod")
-        public fun onAction(action: ActionChatIa) {
-            when (action) {
-                is ActionChatIa.ChangerSaisie -> {
-                    etatInterne.value = etatInterne.value.copy(saisie = action.valeur)
-                }
+    /**
+     * Point d'entrée unique des actions (UDF).
+     *
+     * `@Suppress("LongMethod", "CyclomaticComplexMethod")` justifiées :
+     * la fonction EST la table de répartition UDF — une branche par
+     * action fermée, zéro imbrication métier (même convention que
+     * EditorActivity.appliquer, ADR 0029).
+     */
+    @Suppress("LongMethod", "CyclomaticComplexMethod")
+    public fun onAction(action: ActionChatIa) {
+        when (action) {
+            is ActionChatIa.ChangerSaisie -> {
+                etatInterne.value = etatInterne.value.copy(saisie = action.valeur)
+            }
 
-                ActionChatIa.Envoyer -> {
-                    envoyerMessage(etatInterne.value.saisie)
-                }
+            ActionChatIa.Envoyer -> {
+                envoyerMessage(etatInterne.value.saisie)
+            }
 
-                ActionChatIa.Arreter -> {
-                    arreter()
-                }
+            ActionChatIa.Arreter -> {
+                arreter()
+            }
 
-                ActionChatIa.Regenerer -> {
-                    regenerer()
-                }
+            ActionChatIa.Regenerer -> {
+                regenerer()
+            }
 
-                is ActionChatIa.CopierMessage -> {
-                    val message = etatInterne.value.messages.firstOrNull { it.identifiant == action.identifiant }
-                    if (message != null) {
-                        emettre(EffetChatIa.Copier(message.texte))
-                    }
-                }
-
-                is ActionChatIa.CopierBlocCode -> {
-                    emettre(EffetChatIa.Copier(action.code))
-                }
-
-                is ActionChatIa.InsererBlocCode -> {
-                    insererAuCurseur(action.code)
-                }
-
-                is ActionChatIa.AppliquerBlocCode -> {
-                    proposerDiff(action.code)
-                }
-
-                ActionChatIa.NouvelleConversation -> {
-                    nouvelleConversation()
-                }
-
-                is ActionChatIa.OuvrirConversation -> {
-                    ouvrirConversation(action.conversationId)
-                }
-
-                ActionChatIa.OuvrirConsentement -> {
-                    emettre(EffetChatIa.OuvrirConsentement)
-                }
-
-                is ActionChatIa.AjouterMention -> {
-                    val chemin = action.cheminRelatif.trim().trimStart('/')
-                    if (etatInterne.value.mentions.none { it == chemin }) {
-                        etatInterne.value = etatInterne.value.copy(mentions = etatInterne.value.mentions + chemin)
-                    }
-                }
-
-                is ActionChatIa.RetirerMention -> {
-                    etatInterne.value =
-                        etatInterne.value.copy(mentions = etatInterne.value.mentions - action.cheminRelatif)
-                }
-
-                is ActionChatIa.RetirerPiece -> {
-                    etatInterne.value =
-                        etatInterne.value.copy(piecesRetirees = etatInterne.value.piecesRetirees + action.type)
-                }
-
-                ActionChatIa.OuvrirSelecteurFichiers -> {
-                    viewModelScope.launch {
-                        val chemins =
-                            when (val resultat = fournisseurContexte.listerChemins()) {
-                                is AppResult.Success -> resultat.value
-                                is AppResult.Failure -> emptyList()
-                            }
-                        etatInterne.value = etatInterne.value.copy(cheminsDisponibles = chemins)
-                        emettre(EffetChatIa.OuvrirSelecteurFichiers)
-                    }
-                }
-
-                ActionChatIa.ConfirmerEnvoiSecret -> {
-                    val enAttente = envoiEnAttente
-                    envoiEnAttente = null
-                    etatInterne.value = etatInterne.value.copy(alerteSecret = emptyList())
-                    if (enAttente != null) {
-                        envoyerMaintenant(enAttente.first, enAttente.second)
-                    }
-                }
-
-                ActionChatIa.AnnulerAlerteSecret -> {
-                    val enAttente = envoiEnAttente
-                    envoiEnAttente = null
-                    etatInterne.value =
-                        etatInterne.value.copy(
-                            alerteSecret = emptyList(),
-                            // Le brouillon est RESTAURÉ : l'annulation ne
-                            // doit rien perdre (jamais d'effet silencieux).
-                            saisie = enAttente?.first ?: etatInterne.value.saisie,
-                        )
+            is ActionChatIa.CopierMessage -> {
+                val message = etatInterne.value.messages.firstOrNull { it.identifiant == action.identifiant }
+                if (message != null) {
+                    emettre(EffetChatIa.Copier(message.texte))
                 }
             }
-        }
 
-        private fun envoyerMessage(saisie: String) {
-            val texte = saisie.trim()
-            if (texte.isEmpty()) {
-                return
+            is ActionChatIa.CopierBlocCode -> {
+                emettre(EffetChatIa.Copier(action.code))
             }
-            if (!etatInterne.value.active) {
+
+            is ActionChatIa.InsererBlocCode -> {
+                insererAuCurseur(action.code)
+            }
+
+            is ActionChatIa.AppliquerBlocCode -> {
+                proposerDiff(action.code)
+            }
+
+            ActionChatIa.NouvelleConversation -> {
+                nouvelleConversation()
+            }
+
+            is ActionChatIa.OuvrirConversation -> {
+                ouvrirConversation(action.conversationId)
+            }
+
+            ActionChatIa.OuvrirConsentement -> {
                 emettre(EffetChatIa.OuvrirConsentement)
-                return
             }
+
+            is ActionChatIa.AjouterMention -> {
+                val chemin = action.cheminRelatif.trim().trimStart('/')
+                if (etatInterne.value.mentions.none { it == chemin }) {
+                    etatInterne.value = etatInterne.value.copy(mentions = etatInterne.value.mentions + chemin)
+                }
+            }
+
+            is ActionChatIa.RetirerMention -> {
+                etatInterne.value =
+                    etatInterne.value.copy(mentions = etatInterne.value.mentions - action.cheminRelatif)
+            }
+
+            is ActionChatIa.RetirerPiece -> {
+                etatInterne.value =
+                    etatInterne.value.copy(piecesRetirees = etatInterne.value.piecesRetirees + action.type)
+            }
+
+            ActionChatIa.OuvrirSelecteurFichiers -> {
+                viewModelScope.launch {
+                    val chemins =
+                        when (val resultat = fournisseurContexte.listerChemins()) {
+                            is AppResult.Success -> resultat.value
+                            is AppResult.Failure -> emptyList()
+                        }
+                    etatInterne.value = etatInterne.value.copy(cheminsDisponibles = chemins)
+                    emettre(EffetChatIa.OuvrirSelecteurFichiers)
+                }
+            }
+
+            ActionChatIa.ConfirmerEnvoiSecret -> {
+                val enAttente = envoiEnAttente
+                envoiEnAttente = null
+                etatInterne.value = etatInterne.value.copy(alerteSecret = emptyList())
+                if (enAttente != null) {
+                    envoyerMaintenant(enAttente.first, enAttente.second)
+                }
+            }
+
+            ActionChatIa.AnnulerAlerteSecret -> {
+                val enAttente = envoiEnAttente
+                envoiEnAttente = null
+                etatInterne.value =
+                    etatInterne.value.copy(
+                        alerteSecret = emptyList(),
+                        // Le brouillon est RESTAURÉ : l'annulation ne
+                        // doit rien perdre (jamais d'effet silencieux).
+                        saisie = enAttente?.first ?: etatInterne.value.saisie,
+                    )
+            }
+        }
+    }
+
+    private fun envoyerMessage(saisie: String) {
+        val texte = saisie.trim()
+        if (texte.isEmpty()) {
+            return
+        }
+        if (!etatInterne.value.active) {
+            emettre(EffetChatIa.OuvrirConsentement)
+            return
+        }
+        viewModelScope.launch {
+            val courant = reglages.courant().getOrNull() ?: AiSettings()
+            val port = registreEditeur.actif()
+            val contexte =
+                assemblerContexte(
+                    courant = courant,
+                    fournisseur = fournisseurContexte,
+                    port = port,
+                    mentions = etatInterne.value.mentions,
+                    retiree = etatInterne.value.piecesRetirees,
+                )
+            // Refus d'exclusion : CHACUN est annoncé — jamais avalé
+            // (ADR 0124 §4 « avec message explicite ») — l'envoi du
+            // reste continue.
+            for (refus in contexte.refuses) {
+                val ressource =
+                    when (refus.raison) {
+                        AssemblerContexte.RAISON_ILLISIBLE -> R.string.ia_mention_illisible
+                        AssemblerContexte.RAISON_HORS_PROJET -> R.string.ia_mention_hors_projet
+                        else -> R.string.ia_mention_refusee
+                    }
+                emettre(EffetChatIa.Message(ressource, refus.chemin))
+            }
+            // Détection préventive : alerte bloquante — l'humain
+            // tranche « Envoyer sans / Annuler » (ADR 0124 §4).
+            if (contexte.alertes.isNotEmpty()) {
+                envoiEnAttente = texte to contexte
+                etatInterne.value = etatInterne.value.copy(alerteSecret = contexte.alertes)
+                return@launch
+            }
+            envoyerMaintenant(texte, contexte)
+        }
+    }
+
+    /** Ajoute le message utilisateur et démarre le streaming avec le contexte tranché. */
+    private fun envoyerMaintenant(texte: String, contexte: ContexteIa) {
+        etatInterne.value =
+            etatInterne.value.copy(
+                saisie = "",
+                messages = etatInterne.value.messages + MessageChatUi(identifiantSuivant, true, texte),
+                pieces = contexte.pieces,
+                jetonsContexte = contexte.jetons,
+            )
+        dernierMessageUtilisateur = texte
+        dernierTexteContexte = contexte.texte
+        persister(utilisateur = true, texte = texte)
+        lancerGeneration(contexte.texte)
+    }
+
+    /** Démarre (ou relance) la génération de la réponse en cours. */
+    private fun lancerGeneration(texteContexte: String) {
+        etatInterne.value =
+            etatInterne.value.copy(
+                generationEnCours = true,
+                messages =
+                etatInterne.value.messages +
+                    MessageChatUi(
+                        identifiant = identifiantSuivant,
+                        utilisateur = false,
+                        texte = "",
+                        generationEnCours = true,
+                    ),
+            )
+        generation =
             viewModelScope.launch {
                 val courant = reglages.courant().getOrNull() ?: AiSettings()
-                val port = registreEditeur.actif()
-                val contexte =
-                    assemblerContexte(
-                        courant = courant,
-                        fournisseur = fournisseurContexte,
-                        port = port,
-                        mentions = etatInterne.value.mentions,
-                        retiree = etatInterne.value.piecesRetirees,
-                    )
-                // Refus d'exclusion : CHACUN est annoncé — jamais avalé
-                // (ADR 0124 §4 « avec message explicite ») — l'envoi du
-                // reste continue.
-                for (refus in contexte.refuses) {
-                    val ressource =
-                        when (refus.raison) {
-                            AssemblerContexte.RAISON_ILLISIBLE -> R.string.ia_mention_illisible
-                            AssemblerContexte.RAISON_HORS_PROJET -> R.string.ia_mention_hors_projet
-                            else -> R.string.ia_mention_refusee
+                dernierModele = courant.modeleActif.ifBlank { "modele-a-configurer" }
+                val requete = construireRequete(courant, etatInterne.value.messages, texteContexte)
+                var texte = ""
+                // Le contrat du flux (IA-1) : terminaison PAR Done ou
+                // Failure — chaque branche de fin clôt aussi le drapeau
+                // écran (le compositeur repasse à « Envoyer ») ; l'arrêt
+                // utilisateur, lui, passe par [arreter].
+                envoyer(requete).collect { evenement ->
+                    when (evenement) {
+                        is AiEvent.TextDelta -> {
+                            texte += evenement.text
+                            majDernierAssistant(texte = texte)
                         }
-                    emettre(EffetChatIa.Message(ressource, refus.chemin))
-                }
-                // Détection préventive : alerte bloquante — l'humain
-                // tranche « Envoyer sans / Annuler » (ADR 0124 §4).
-                if (contexte.alertes.isNotEmpty()) {
-                    envoiEnAttente = texte to contexte
-                    etatInterne.value = etatInterne.value.copy(alerteSecret = contexte.alertes)
-                    return@launch
-                }
-                envoyerMaintenant(texte, contexte)
-            }
-        }
 
-        /** Ajoute le message utilisateur et démarre le streaming avec le contexte tranché. */
-        private fun envoyerMaintenant(
-            texte: String,
-            contexte: ContexteIa,
-        ) {
-            etatInterne.value =
-                etatInterne.value.copy(
-                    saisie = "",
-                    messages = etatInterne.value.messages + MessageChatUi(identifiantSuivant, true, texte),
-                    pieces = contexte.pieces,
-                    jetonsContexte = contexte.jetons,
-                )
-            dernierMessageUtilisateur = texte
-            dernierTexteContexte = contexte.texte
-            persister(utilisateur = true, texte = texte)
-            lancerGeneration(contexte.texte)
-        }
+                        is AiEvent.Done -> {
+                            majDernierAssistant(texte = texte, generationEnCours = false)
+                            etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+                            persister(utilisateur = false, texte = texte)
+                        }
 
-        /** Démarre (ou relance) la génération de la réponse en cours. */
-        private fun lancerGeneration(texteContexte: String) {
-            etatInterne.value =
-                etatInterne.value.copy(
-                    generationEnCours = true,
-                    messages =
-                        etatInterne.value.messages +
-                            MessageChatUi(
-                                identifiant = identifiantSuivant,
-                                utilisateur = false,
-                                texte = "",
-                                generationEnCours = true,
-                            ),
-                )
-            generation =
-                viewModelScope.launch {
-                    val courant = reglages.courant().getOrNull() ?: AiSettings()
-                    dernierModele = courant.modeleActif.ifBlank { "modele-a-configurer" }
-                    val requete = construireRequete(courant, etatInterne.value.messages, texteContexte)
-                    var texte = ""
-                    // Le contrat du flux (IA-1) : terminaison PAR Done ou
-                    // Failure — chaque branche de fin clôt aussi le drapeau
-                    // écran (le compositeur repasse à « Envoyer ») ; l'arrêt
-                    // utilisateur, lui, passe par [arreter].
-                    envoyer(requete).collect { evenement ->
-                        when (evenement) {
-                            is AiEvent.TextDelta -> {
-                                texte += evenement.text
-                                majDernierAssistant(texte = texte)
+                        is AiEvent.Failure -> {
+                            majDernierAssistant(erreur = evenement.error, generationEnCours = false)
+                            etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+                            if ((evenement.error as? AppError.Ai)?.reason == AppError.AiReason.ConsentRequired) {
+                                etatInterne.value = etatInterne.value.copy(active = false)
                             }
+                        }
 
-                            is AiEvent.Done -> {
-                                majDernierAssistant(texte = texte, generationEnCours = false)
-                                etatInterne.value = etatInterne.value.copy(generationEnCours = false)
-                                persister(utilisateur = false, texte = texte)
-                            }
-
-                            is AiEvent.Failure -> {
-                                majDernierAssistant(erreur = evenement.error, generationEnCours = false)
-                                etatInterne.value = etatInterne.value.copy(generationEnCours = false)
-                                if ((evenement.error as? AppError.Ai)?.reason == AppError.AiReason.ConsentRequired) {
-                                    etatInterne.value = etatInterne.value.copy(active = false)
-                                }
-                            }
-
-                            else -> {
-                                Unit
-                            }
+                        else -> {
+                            Unit
                         }
                     }
                 }
-        }
-
-        /** Arrête la génération : l'annulation du Job ferme la requête (critère IA-3). */
-        private fun arreter() {
-            generation?.cancel()
-            generation = null
-            majDernierAssistant(generationEnCours = false)
-            etatInterne.value = etatInterne.value.copy(generationEnCours = false)
-        }
-
-        /** Régénère : retire la dernière réponse assistant et relance l'envoi. */
-        private fun regenerer() {
-            val texte = dernierMessageUtilisateur ?: return
-            if (etatInterne.value.generationEnCours) {
-                return
             }
-            val messages = etatInterne.value.messages.dropLastWhile { !it.utilisateur }
-            etatInterne.value = etatInterne.value.copy(messages = messages)
-            lancerGeneration(dernierTexteContexte)
-        }
+    }
 
-        /**
-         * Insertion au curseur : le port de l'éditeur actif remplace la
-         * sélection par le bloc (un seul pas d'annulation). Port absent →
-         * message (aucun effet silencieux).
-         */
-        private fun insererAuCurseur(code: String) {
-            val port = registreEditeur.actif()
-            if (port == null) {
-                emettre(EffetChatIa.Message(R.string.ia_editeur_absent))
-                return
-            }
-            val selection = port.selection
-            val debut = selection?.debut ?: 0
-            val fin = selection?.fin ?: 0
-            when (val resultat = port.appliquerRemplacement(debut, fin, code)) {
-                is AppResult.Success -> emettre(EffetChatIa.Message(R.string.ia_bloc_insere))
-                is AppResult.Failure -> emettre(PresentationErreursIa.message(resultat.error).enEffetChat())
-            }
-        }
+    /** Arrête la génération : l'annulation du Job ferme la requête (critère IA-3). */
+    private fun arreter() {
+        generation?.cancel()
+        generation = null
+        majDernierAssistant(generationEnCours = false)
+        etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+    }
 
-        /**
-         * Propose le bloc à la carte de diff (lot IA-5) : la plage visée
-         * est la sélection courante du port (texte actuel + bornes +
-         * révision capturés MAINTENANT — la garde « Accepter » compare
-         * la révision au clic). Sans port ni sélection : effet message
-         * honnête — la carte ne devine jamais une plage, ne remplace
-         * jamais un fichier entier par un fragment.
-         */
-        private fun proposerDiff(code: String) {
-            val port = registreEditeur.actif()
-            val selection = port?.selection
-            if (port == null || selection == null || selection.texte.isBlank()) {
-                emettre(EffetChatIa.Message(R.string.ia_diff_plage_absente))
-                return
-            }
-            emettre(
-                EffetChatIa.AfficherDiff(
-                    PropositionDiffIa(
-                        texteActuel = selection.texte,
-                        textePropose = code,
-                        debut = selection.debut,
-                        fin = selection.fin,
-                        revision = port.revision(),
-                        cheminRelatif = port.cheminRelatifFichier,
-                    ),
+    /** Régénère : retire la dernière réponse assistant et relance l'envoi. */
+    private fun regenerer() {
+        val texte = dernierMessageUtilisateur ?: return
+        if (etatInterne.value.generationEnCours) {
+            return
+        }
+        val messages = etatInterne.value.messages.dropLastWhile { !it.utilisateur }
+        etatInterne.value = etatInterne.value.copy(messages = messages)
+        lancerGeneration(dernierTexteContexte)
+    }
+
+    /**
+     * Insertion au curseur : le port de l'éditeur actif remplace la
+     * sélection par le bloc (un seul pas d'annulation). Port absent →
+     * message (aucun effet silencieux).
+     */
+    private fun insererAuCurseur(code: String) {
+        val port = registreEditeur.actif()
+        if (port == null) {
+            emettre(EffetChatIa.Message(R.string.ia_editeur_absent))
+            return
+        }
+        val selection = port.selection
+        val debut = selection?.debut ?: 0
+        val fin = selection?.fin ?: 0
+        when (val resultat = port.appliquerRemplacement(debut, fin, code)) {
+            is AppResult.Success -> emettre(EffetChatIa.Message(R.string.ia_bloc_insere))
+            is AppResult.Failure -> emettre(PresentationErreursIa.message(resultat.error).enEffetChat())
+        }
+    }
+
+    /**
+     * Propose le bloc à la carte de diff (lot IA-5) : la plage visée
+     * est la sélection courante du port (texte actuel + bornes +
+     * révision capturés MAINTENANT — la garde « Accepter » compare
+     * la révision au clic). Sans port ni sélection : effet message
+     * honnête — la carte ne devine jamais une plage, ne remplace
+     * jamais un fichier entier par un fragment.
+     */
+    private fun proposerDiff(code: String) {
+        val port = registreEditeur.actif()
+        val selection = port?.selection
+        if (port == null || selection == null || selection.texte.isBlank()) {
+            emettre(EffetChatIa.Message(R.string.ia_diff_plage_absente))
+            return
+        }
+        emettre(
+            EffetChatIa.AfficherDiff(
+                PropositionDiffIa(
+                    texteActuel = selection.texte,
+                    textePropose = code,
+                    debut = selection.debut,
+                    fin = selection.fin,
+                    revision = port.revision(),
+                    cheminRelatif = port.cheminRelatifFichier,
+                ),
+            ),
+        )
+    }
+
+    /**
+     * Persiste un message FINALISÉ (lot IA-6, ADR 0124 §5) : la
+     * conversation est créée au premier message (titre auto) et
+     * poursuivie ensuite ; le streaming en cours et les réponses
+     * échouées ne sont JAMAIS persistés. Aucune journalisation du
+     * contenu — l'écriture est silencieuse en cas d'échec de
+     * stockage (l'historique ne doit jamais gêner le chat).
+     */
+    private fun persister(utilisateur: Boolean, texte: String) {
+        if (texte.isBlank()) {
+            return
+        }
+        val identifiant =
+            conversationId ?: java.util.UUID
+                .randomUUID()
+                .toString()
+        conversationId = identifiant
+        val modeleCourant = dernierModele ?: ""
+        viewModelScope.launch {
+            historique.ajouterMessage(
+                conversationId = identifiant,
+                modele = modeleCourant,
+                message =
+                MessageConversationIa(
+                    identifiant =
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
+                    conversationId = identifiant,
+                    utilisateur = utilisateur,
+                    texte = texte,
+                    creeA = horloge.nowMillis(),
                 ),
             )
         }
+    }
 
-        /**
-         * Persiste un message FINALISÉ (lot IA-6, ADR 0124 §5) : la
-         * conversation est créée au premier message (titre auto) et
-         * poursuivie ensuite ; le streaming en cours et les réponses
-         * échouées ne sont JAMAIS persistés. Aucune journalisation du
-         * contenu — l'écriture est silencieuse en cas d'échec de
-         * stockage (l'historique ne doit jamais gêner le chat).
-         */
-        private fun persister(
-            utilisateur: Boolean,
-            texte: String,
-        ) {
-            if (texte.isBlank()) {
-                return
+    /** Rouvre une conversation de l'historique (lot IA-6, spec E6). */
+    private fun ouvrirConversation(id: String) {
+        arreter()
+        viewModelScope.launch {
+            val messagesPersistes = historique.messages(id)
+            if (messagesPersistes.isEmpty()) {
+                return@launch
             }
-            val identifiant =
-                conversationId ?: java.util.UUID
-                    .randomUUID()
-                    .toString()
-            conversationId = identifiant
-            val modeleCourant = dernierModele ?: ""
-            viewModelScope.launch {
-                historique.ajouterMessage(
-                    conversationId = identifiant,
-                    modele = modeleCourant,
-                    message =
-                        MessageConversationIa(
-                            identifiant =
-                                java.util.UUID
-                                    .randomUUID()
-                                    .toString(),
-                            conversationId = identifiant,
-                            utilisateur = utilisateur,
-                            texte = texte,
-                            creeA = horloge.nowMillis(),
-                        ),
-                )
-            }
-        }
-
-        /** Rouvre une conversation de l'historique (lot IA-6, spec E6). */
-        private fun ouvrirConversation(id: String) {
-            arreter()
-            viewModelScope.launch {
-                val messagesPersistes = historique.messages(id)
-                if (messagesPersistes.isEmpty()) {
-                    return@launch
-                }
-                conversationId = id
-                sequence = 0L
-                dernierMessageUtilisateur =
-                    messagesPersistes.lastOrNull { it.utilisateur }?.texte
-                etatInterne.value =
-                    etatInterne.value.copy(
-                        messages =
-                            messagesPersistes.map { message ->
-                                MessageChatUi(
-                                    identifiant = "ia-h-${sequence++}",
-                                    utilisateur = message.utilisateur,
-                                    texte = message.texte,
-                                )
-                            },
-                        saisie = "",
-                        pieces = emptyList(),
-                        jetonsContexte = 0,
-                        generationEnCours = false,
-                    )
-            }
-        }
-
-        private fun nouvelleConversation() {
-            arreter()
-            dernierMessageUtilisateur = null
-            envoiEnAttente = null
+            conversationId = id
+            sequence = 0L
+            dernierMessageUtilisateur =
+                messagesPersistes.lastOrNull { it.utilisateur }?.texte
             etatInterne.value =
                 etatInterne.value.copy(
-                    messages = emptyList(),
+                    messages =
+                    messagesPersistes.map { message ->
+                        MessageChatUi(
+                            identifiant = "ia-h-${sequence++}",
+                            utilisateur = message.utilisateur,
+                            texte = message.texte,
+                        )
+                    },
+                    saisie = "",
                     pieces = emptyList(),
                     jetonsContexte = 0,
-                    mentions = emptyList(),
-                    piecesRetirees = emptySet(),
-                    alerteSecret = emptyList(),
+                    generationEnCours = false,
                 )
-        }
-
-        /** Met à jour le dernier message assistant (streaming, erreur, fin). */
-        private fun majDernierAssistant(
-            texte: String? = null,
-            erreur: AppError? = null,
-            generationEnCours: Boolean? = null,
-        ) {
-            val messages = etatInterne.value.messages.toMutableList()
-            val index = messages.indexOfLast { !it.utilisateur }
-            if (index < 0) {
-                return
-            }
-            val courant = messages[index]
-            messages[index] =
-                courant.copy(
-                    texte = texte ?: courant.texte,
-                    erreur = erreur ?: courant.erreur,
-                    generationEnCours = generationEnCours ?: courant.generationEnCours,
-                )
-            etatInterne.value = etatInterne.value.copy(messages = messages)
-        }
-
-        private fun emettre(effet: EffetChatIa) {
-            viewModelScope.launch { effetsInternes.send(effet) }
         }
     }
+
+    private fun nouvelleConversation() {
+        arreter()
+        dernierMessageUtilisateur = null
+        envoiEnAttente = null
+        etatInterne.value =
+            etatInterne.value.copy(
+                messages = emptyList(),
+                pieces = emptyList(),
+                jetonsContexte = 0,
+                mentions = emptyList(),
+                piecesRetirees = emptySet(),
+                alerteSecret = emptyList(),
+            )
+    }
+
+    /** Met à jour le dernier message assistant (streaming, erreur, fin). */
+    private fun majDernierAssistant(
+        texte: String? = null,
+        erreur: AppError? = null,
+        generationEnCours: Boolean? = null,
+    ) {
+        val messages = etatInterne.value.messages.toMutableList()
+        val index = messages.indexOfLast { !it.utilisateur }
+        if (index < 0) {
+            return
+        }
+        val courant = messages[index]
+        messages[index] =
+            courant.copy(
+                texte = texte ?: courant.texte,
+                erreur = erreur ?: courant.erreur,
+                generationEnCours = generationEnCours ?: courant.generationEnCours,
+            )
+        etatInterne.value = etatInterne.value.copy(messages = messages)
+    }
+
+    private fun emettre(effet: EffetChatIa) {
+        viewModelScope.launch { effetsInternes.send(effet) }
+    }
+}
 
 /** Message d'erreur du domaine → effet de CET écran (UDF). */
 private fun MessageIa.enEffetChat(): EffetChatIa = EffetChatIa.Message(ressource, argument)
@@ -763,9 +735,9 @@ private suspend fun assemblerContexte(
             selection = if (veutSelection) selectionPort else null,
             diagnostics = if (veutDiagnostics) diagnosticsPort else emptyList(),
             mentions =
-                mentionsFiltrees.map { chemin ->
-                    MentionFichier(chemin, fournisseur.lireFichier(chemin).getOrNull())
-                },
+            mentionsFiltrees.map { chemin ->
+                MentionFichier(chemin, fournisseur.lireFichier(chemin).getOrNull())
+            },
             listeChemins = listerCheminsSi(veutChemins, fournisseur),
             envoyerFichierActif = veutFichier,
             envoyerDiagnostics = veutDiagnostics,
@@ -775,10 +747,7 @@ private suspend fun assemblerContexte(
 }
 
 /** Liste les chemins du projet SI la pièce est voulue (garde de perf). */
-private suspend fun listerCheminsSi(
-    voulu: Boolean,
-    fournisseur: FournisseurContexteProjet,
-): List<String> =
+private suspend fun listerCheminsSi(voulu: Boolean, fournisseur: FournisseurContexteProjet): List<String> =
     if (!voulu) {
         emptyList()
     } else {

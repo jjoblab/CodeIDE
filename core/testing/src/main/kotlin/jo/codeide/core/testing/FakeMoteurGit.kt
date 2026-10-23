@@ -99,55 +99,37 @@ public class FakeMoteurGit : MoteurGit {
         return resultatStatut
     }
 
-    override suspend fun journal(
-        cheminFuse: String,
-        limite: Int,
-    ): ResultatGit<List<CommitGit>> {
+    override suspend fun journal(cheminFuse: String, limite: Int): ResultatGit<List<CommitGit>> {
         attendre()
         operations += "journal:$cheminFuse"
         return resultatJournal
     }
 
-    override suspend fun indexer(
-        cheminFuse: String,
-        chemins: List<String>,
-    ): ResultatGit<Unit> {
+    override suspend fun indexer(cheminFuse: String, chemins: List<String>): ResultatGit<Unit> {
         attendre()
         operations += "indexer:$cheminFuse"
         return resultatUnitaire
     }
 
-    override suspend fun desindexer(
-        cheminFuse: String,
-        chemins: List<String>,
-    ): ResultatGit<Unit> {
+    override suspend fun desindexer(cheminFuse: String, chemins: List<String>): ResultatGit<Unit> {
         attendre()
         operations += "desindexer:$cheminFuse"
         return resultatUnitaire
     }
 
-    override suspend fun committer(
-        cheminFuse: String,
-        message: String,
-    ): ResultatGit<String> {
+    override suspend fun committer(cheminFuse: String, message: String): ResultatGit<String> {
         attendre()
         operations += "committer:$cheminFuse"
         return resultatCommitter
     }
 
-    override suspend fun tirer(
-        cheminFuse: String,
-        rebase: Boolean,
-    ): ResultatGit<Unit> {
+    override suspend fun tirer(cheminFuse: String, rebase: Boolean): ResultatGit<Unit> {
         attendre()
         operations += "tirer:$cheminFuse"
         return resultatUnitaire
     }
 
-    override suspend fun pousser(
-        cheminFuse: String,
-        forceWithLease: Boolean,
-    ): ResultatGit<Unit> {
+    override suspend fun pousser(cheminFuse: String, forceWithLease: Boolean): ResultatGit<Unit> {
         attendre()
         operations += "pousser:$cheminFuse"
         return resultatUnitaire
@@ -165,10 +147,7 @@ public class FakeMoteurGit : MoteurGit {
         return resultatBranches
     }
 
-    override suspend fun basculerBranche(
-        cheminFuse: String,
-        nom: String,
-    ): ResultatGit<Unit> {
+    override suspend fun basculerBranche(cheminFuse: String, nom: String): ResultatGit<Unit> {
         attendre()
         operations += "checkout:$cheminFuse"
         return resultatUnitaire
@@ -196,19 +175,13 @@ public class FakeMoteurGit : MoteurGit {
         return reponseEtatDepot
     }
 
-    override suspend fun diagnostiquer(
-        nomProjet: String?,
-        cheminFuse: String?,
-    ): RapportDiagnosticGit {
+    override suspend fun diagnostiquer(nomProjet: String?, cheminFuse: String?): RapportDiagnosticGit {
         attendre()
         operations += "diagnostiquer:${nomProjet ?: "-"}"
         return rapportDiagnostic
     }
 
-    override suspend fun diff(
-        cheminFuse: String,
-        chemin: String,
-    ): ResultatGit<String> {
+    override suspend fun diff(cheminFuse: String, chemin: String): ResultatGit<String> {
         attendre()
         operations += "diff:$cheminFuse"
         return resultatDiff

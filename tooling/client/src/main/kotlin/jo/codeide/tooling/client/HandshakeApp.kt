@@ -17,10 +17,7 @@ import java.io.IOException
  * par type pour décider d'un échec DÉFINITIF (version incompatible) ou
  * d'une nouvelle tentative.
  */
-class EchecHandshakeClient(
-    message: String,
-    cause: Throwable? = null,
-) : IOException(message, cause)
+class EchecHandshakeClient(message: String, cause: Throwable? = null) : IOException(message, cause)
 
 /**
  * Validation du handshake CÔTÉ APP (§4.4) : AUCUNE requête ne peut
@@ -45,12 +42,7 @@ internal object HandshakeApp {
      * @param secretAttendu secret généré par l'app pour CE démarrage.
      * @param versionApp version de l'app, annoncée dans la réponse.
      */
-    suspend fun valider(
-        session: SessionTooling,
-        recu: HelloRequest,
-        secretAttendu: String,
-        versionApp: String,
-    ) {
+    suspend fun valider(session: SessionTooling, recu: HelloRequest, secretAttendu: String, versionApp: String) {
         when {
             recu.handshakeSecret != secretAttendu -> {
                 refuser(
@@ -87,12 +79,7 @@ internal object HandshakeApp {
     }
 
     /** L'orchestrateur reçoit l'erreur typée AVANT la fermeture (§1.6). */
-    private suspend fun refuser(
-        session: SessionTooling,
-        idRequete: String,
-        code: ErrorCode,
-        message: String,
-    ) {
+    private suspend fun refuser(session: SessionTooling, idRequete: String, code: ErrorCode, message: String) {
         runCatching {
             session.envoyer(
                 ErrorResponse(

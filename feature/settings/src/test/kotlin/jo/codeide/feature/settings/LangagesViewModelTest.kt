@@ -75,10 +75,10 @@ class LangagesViewModelTest {
             LspSettingsStore(
                 PreferenceDataStoreFactory.create(
                     corruptionHandler =
-                        androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
-                            androidx.datastore.preferences.core
-                                .emptyPreferences()
-                        },
+                    androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
+                        androidx.datastore.preferences.core
+                            .emptyPreferences()
+                    },
                     scope = porteeStock,
                     produceFile = { File(dossier, "lsp-vm-test.preferences_pb") },
                 ),
@@ -91,178 +91,170 @@ class LangagesViewModelTest {
             outilchain = OutilchainFaux,
             etatInstallation = MagasinInstallationFaux,
             dispatcheurs =
-                jo.codeide.core.testing
-                    .TestDispatcherProvider(regleMain.dispatcher),
+            jo.codeide.core.testing
+                .TestDispatcherProvider(regleMain.dispatcher),
         )
     }
 
     @Test
-    fun `l'état initial est inactif, sans projet, aux réglages par défaut`() =
-        runTest {
-            val vm = viewModel()
+    fun `l'état initial est inactif, sans projet, aux réglages par défaut`() = runTest {
+        val vm = viewModel()
 
-            val etat = vm.etat.first { it.reglages == LspSettingsFixtures.DEFAUTS }
-            assertFalse(etat.projetOuvert)
-            assertEquals(MoteursLsp.INACTIFS, etat.moteurs)
-            assertNull(etat.environnement)
-        }
+        val etat = vm.etat.first { it.reglages == LspSettingsFixtures.DEFAUTS }
+        assertFalse(etat.projetOuvert)
+        assertEquals(MoteursLsp.INACTIFS, etat.moteurs)
+        assertNull(etat.environnement)
+    }
 
     @Test
-    fun `changer le budget persiste chaque palier dans le dépôt dédié`() =
-        runTest {
-            val vm = viewModel()
-            vm.etat.first { it.reglages == LspSettingsFixtures.DEFAUTS }
+    fun `changer le budget persiste chaque palier dans le dépôt dédié`() = runTest {
+        val vm = viewModel()
+        vm.etat.first { it.reglages == LspSettingsFixtures.DEFAUTS }
 
-            vm.onAction(ActionReglagesLsp.ChangerBudget(256L * 1024 * 1024))
-            advanceUntilIdle()
-            assertEquals(
-                256L * 1024 * 1024,
-                vm.etat
-                    .first { it.reglages.budgetCacheOctets != null }
-                    .reglages.budgetCacheOctets,
+        vm.onAction(ActionReglagesLsp.ChangerBudget(256L * 1024 * 1024))
+        advanceUntilIdle()
+        assertEquals(
+            256L * 1024 * 1024,
+            vm.etat
+                .first { it.reglages.budgetCacheOctets != null }
+                .reglages.budgetCacheOctets,
+        )
+
+        // Palier suivant — le retour à Auto par clé retirée vit dans
+        // LspSettingsStoreTest : l'état résultant serait indistinguable
+        // du défaut PAR VALEUR (attente infinie sur le prédicat).
+        vm.onAction(ActionReglagesLsp.ChangerBudget(512L * 1024 * 1024))
+        advanceUntilIdle()
+        assertEquals(
+            512L * 1024 * 1024,
+            vm.etat
+                .first { it.reglages.budgetCacheOctets != 256L * 1024 * 1024 }
+                .reglages.budgetCacheOctets,
+        )
+    }
+
+    @Test
+    fun `basculer la surveillance coupe puis reprend à la dernière période`() = runTest {
+        val vm = viewModel()
+        vm.etat.first { it.reglages == LspSettingsFixtures.DEFAUTS }
+
+        vm.onAction(ActionReglagesLsp.ChangerFrequence(30_000))
+        advanceUntilIdle()
+        assertEquals(
+            30_000,
+            vm.etat
+                .first { it.reglages.surveillanceFichiersMs == 30_000L }
+                .reglages.surveillanceFichiersMs,
+        )
+
+        vm.onAction(ActionReglagesLsp.BasculerSurveillance(false))
+        advanceUntilIdle()
+        assertEquals(
+            0L,
+            vm.etat
+                .first { it.reglages.surveillanceFichiersMs == 0L }
+                .reglages.surveillanceFichiersMs,
+        )
+
+        // Reprise : la DERNIÈRE période connue, pas le défaut.
+        vm.onAction(ActionReglagesLsp.BasculerSurveillance(true))
+        advanceUntilIdle()
+        assertEquals(
+            30_000,
+            vm.etat
+                .first { it.reglages.surveillanceFichiersMs == 30_000L }
+                .reglages.surveillanceFichiersMs,
+        )
+    }
+
+    @Test
+    fun `l'état suit le port enregistré puis son retrait`() = runTest {
+        val vm = viewModel()
+        registre.enregistrer(portFaux)
+        portFaux.moteursInternes.value =
+            MoteursLsp(
+                java =
+                jo.codeide.core.domain
+                    .EtatMoteurLsp(phase = jo.codeide.core.domain.PhaseMoteurLsp.PRET),
             )
 
-            // Palier suivant — le retour à Auto par clé retirée vit dans
-            // LspSettingsStoreTest : l'état résultant serait indistinguable
-            // du défaut PAR VALEUR (attente infinie sur le prédicat).
-            vm.onAction(ActionReglagesLsp.ChangerBudget(512L * 1024 * 1024))
-            advanceUntilIdle()
-            assertEquals(
-                512L * 1024 * 1024,
-                vm.etat
-                    .first { it.reglages.budgetCacheOctets != 256L * 1024 * 1024 }
-                    .reglages.budgetCacheOctets,
+        val avecPort = vm.etat.first { it.moteurs.java != null }
+        assertEquals(jo.codeide.core.domain.PhaseMoteurLsp.PRET, avecPort.moteurs.java?.phase)
+
+        registre.enregistrer(null)
+        val sansPort = vm.etat.first { it.moteurs == MoteursLsp.INACTIFS }
+        assertNull(sansPort.moteurs.java)
+    }
+
+    @Test
+    fun `vider le cache voyage en données - refus pendant une indexation, vide sinon, absence sans port`() = runTest {
+        val vm = viewModel()
+
+        // Sans port : honnête, rien à vider.
+        vm.onAction(ActionReglagesLsp.ViderCache)
+        advanceUntilIdle()
+        assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
+
+        // Refus en DONNÉE pendant une indexation.
+        registre.enregistrer(portFaux)
+        vm.onAction(ActionReglagesLsp.ViderCache)
+        advanceUntilIdle()
+        assertEquals(EffetEcransLsp.VidageRefuse, vm.effets.first())
+
+        // Cache vidé : taille libérée portée à l'écran.
+        portFaux.refus = null
+        vm.onAction(ActionReglagesLsp.ViderCache)
+        advanceUntilIdle()
+        assertEquals(EffetEcransLsp.CacheVide(octetsLiberes = 1_024), vm.effets.first())
+    }
+
+    @Test
+    fun `les capacités annoncées viennent de la table injectée (source unique)`() = runTest {
+        val vm = viewModel()
+
+        assertEquals(setOf(CapaciteLsp.COMPLETION), vm.capacitesAnnoncees(jo.codeide.core.domain.LangageLsp.JAVA))
+    }
+
+    @Test
+    fun `la demande de détails passe par le port et porte l'identifiant du projet`() = runTest {
+        val vm = viewModel()
+        registre.enregistrer(portFaux)
+        observateurSessionFaux.etatInterne.value =
+            EtatSessionProjetVue.Ouverte(
+                jo.codeide.core.model
+                    .ProjectId("projet-lsp-4"),
             )
-        }
+
+        vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+        advanceUntilIdle()
+
+        // La demande est un ÉTAT posé sur le port (survit au temps de
+        // remontée de l'espace) et l'effet porte l'identifiant pour la
+        // navigation (ADR 0117, lot LSP-4).
+        assertTrue(portFaux.demandeDetailsInterne.value)
+        assertEquals(
+            EffetEcransLsp.DetailsIndexationDemandes("projet-lsp-4"),
+            vm.effets.first(),
+        )
+    }
 
     @Test
-    fun `basculer la surveillance coupe puis reprend à la dernière période`() =
-        runTest {
-            val vm = viewModel()
-            vm.etat.first { it.reglages == LspSettingsFixtures.DEFAUTS }
+    fun `sans port ou sans session la demande de détails reste honnête - AucunMoteur, rien posé`() = runTest {
+        val vm = viewModel()
 
-            vm.onAction(ActionReglagesLsp.ChangerFrequence(30_000))
-            advanceUntilIdle()
-            assertEquals(
-                30_000,
-                vm.etat
-                    .first { it.reglages.surveillanceFichiersMs == 30_000L }
-                    .reglages.surveillanceFichiersMs,
-            )
+        // Sans port (éditeur fermé) : refus honnête, rien à ouvrir.
+        vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+        advanceUntilIdle()
+        assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
 
-            vm.onAction(ActionReglagesLsp.BasculerSurveillance(false))
-            advanceUntilIdle()
-            assertEquals(
-                0L,
-                vm.etat
-                    .first { it.reglages.surveillanceFichiersMs == 0L }
-                    .reglages.surveillanceFichiersMs,
-            )
-
-            // Reprise : la DERNIÈRE période connue, pas le défaut.
-            vm.onAction(ActionReglagesLsp.BasculerSurveillance(true))
-            advanceUntilIdle()
-            assertEquals(
-                30_000,
-                vm.etat
-                    .first { it.reglages.surveillanceFichiersMs == 30_000L }
-                    .reglages.surveillanceFichiersMs,
-            )
-        }
-
-    @Test
-    fun `l'état suit le port enregistré puis son retrait`() =
-        runTest {
-            val vm = viewModel()
-            registre.enregistrer(portFaux)
-            portFaux.moteursInternes.value =
-                MoteursLsp(
-                    java =
-                        jo.codeide.core.domain
-                            .EtatMoteurLsp(phase = jo.codeide.core.domain.PhaseMoteurLsp.PRET),
-                )
-
-            val avecPort = vm.etat.first { it.moteurs.java != null }
-            assertEquals(jo.codeide.core.domain.PhaseMoteurLsp.PRET, avecPort.moteurs.java?.phase)
-
-            registre.enregistrer(null)
-            val sansPort = vm.etat.first { it.moteurs == MoteursLsp.INACTIFS }
-            assertNull(sansPort.moteurs.java)
-        }
-
-    @Test
-    fun `vider le cache voyage en données - refus pendant une indexation, vide sinon, absence sans port`() =
-        runTest {
-            val vm = viewModel()
-
-            // Sans port : honnête, rien à vider.
-            vm.onAction(ActionReglagesLsp.ViderCache)
-            advanceUntilIdle()
-            assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
-
-            // Refus en DONNÉE pendant une indexation.
-            registre.enregistrer(portFaux)
-            vm.onAction(ActionReglagesLsp.ViderCache)
-            advanceUntilIdle()
-            assertEquals(EffetEcransLsp.VidageRefuse, vm.effets.first())
-
-            // Cache vidé : taille libérée portée à l'écran.
-            portFaux.refus = null
-            vm.onAction(ActionReglagesLsp.ViderCache)
-            advanceUntilIdle()
-            assertEquals(EffetEcransLsp.CacheVide(octetsLiberes = 1_024), vm.effets.first())
-        }
-
-    @Test
-    fun `les capacités annoncées viennent de la table injectée (source unique)`() =
-        runTest {
-            val vm = viewModel()
-
-            assertEquals(setOf(CapaciteLsp.COMPLETION), vm.capacitesAnnoncees(jo.codeide.core.domain.LangageLsp.JAVA))
-        }
-
-    @Test
-    fun `la demande de détails passe par le port et porte l'identifiant du projet`() =
-        runTest {
-            val vm = viewModel()
-            registre.enregistrer(portFaux)
-            observateurSessionFaux.etatInterne.value =
-                EtatSessionProjetVue.Ouverte(
-                    jo.codeide.core.model
-                        .ProjectId("projet-lsp-4"),
-                )
-
-            vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
-            advanceUntilIdle()
-
-            // La demande est un ÉTAT posé sur le port (survit au temps de
-            // remontée de l'espace) et l'effet porte l'identifiant pour la
-            // navigation (ADR 0117, lot LSP-4).
-            assertTrue(portFaux.demandeDetailsInterne.value)
-            assertEquals(
-                EffetEcransLsp.DetailsIndexationDemandes("projet-lsp-4"),
-                vm.effets.first(),
-            )
-        }
-
-    @Test
-    fun `sans port ou sans session la demande de détails reste honnête - AucunMoteur, rien posé`() =
-        runTest {
-            val vm = viewModel()
-
-            // Sans port (éditeur fermé) : refus honnête, rien à ouvrir.
-            vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
-            advanceUntilIdle()
-            assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
-
-            // Port vivant mais session fermée en vol : honnête aussi —
-            // la demande n'est JAMAIS posée sans identifiant à remonter.
-            registre.enregistrer(portFaux)
-            vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
-            advanceUntilIdle()
-            assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
-            assertFalse(portFaux.demandeDetailsInterne.value)
-        }
+        // Port vivant mais session fermée en vol : honnête aussi —
+        // la demande n'est JAMAIS posée sans identifiant à remonter.
+        registre.enregistrer(portFaux)
+        vm.onAction(ActionReglagesLsp.OuvrirDetailsIndexation)
+        advanceUntilIdle()
+        assertEquals(EffetEcransLsp.AucunMoteur, vm.effets.first())
+        assertFalse(portFaux.demandeDetailsInterne.value)
+    }
 
     /** Port factice : moteurs pilotables + vidage à commande + demande observable. */
     private class PortLspFaux : PortLsp {
@@ -289,12 +281,11 @@ class LangagesViewModelTest {
 
     /** Table fixe : le test ne dépend jamais de la vraie table du frère. */
     private object TableCapacitesFausse : TableCapacitesLsp {
-        override fun capacitesAnnoncees(langage: jo.codeide.core.domain.LangageLsp): Set<CapaciteLsp> =
-            when (langage) {
-                jo.codeide.core.domain.LangageLsp.JAVA -> setOf(CapaciteLsp.COMPLETION)
-                jo.codeide.core.domain.LangageLsp.KOTLIN -> setOf(CapaciteLsp.COMPLETION, CapaciteLsp.SURVOL)
-                jo.codeide.core.domain.LangageLsp.XML -> setOf(CapaciteLsp.DIAGNOSTICS)
-            }
+        override fun capacitesAnnoncees(langage: jo.codeide.core.domain.LangageLsp): Set<CapaciteLsp> = when (langage) {
+            jo.codeide.core.domain.LangageLsp.JAVA -> setOf(CapaciteLsp.COMPLETION)
+            jo.codeide.core.domain.LangageLsp.KOTLIN -> setOf(CapaciteLsp.COMPLETION, CapaciteLsp.SURVOL)
+            jo.codeide.core.domain.LangageLsp.XML -> setOf(CapaciteLsp.DIAGNOSTICS)
+        }
     }
 
     /** Session PILOTABLE : Aucune par défaut (écran L1 « vide »), Ouverte pour la demande LSP-4. */

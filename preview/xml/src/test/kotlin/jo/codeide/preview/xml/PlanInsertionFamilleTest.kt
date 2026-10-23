@@ -33,39 +33,36 @@ public class PlanInsertionFamilleTest {
     // ── Les documents de la maquette (DOCS.profil / carte / fil) ───────
 
     /** Le document PROFIL : racine `RelativeLayout` (S1-S5). */
-    private fun profil(): List<InfoVueRendu> =
-        arbre(
-            vue(0, 0, 360, 640, "RelativeLayout", "root", parent = -1, conteneur = true, famille = "RELATIVE"),
-            vue(16, 16, 96, 96, "ImageView", "avatar", parent = 0, marges = listOf(16, 16, 0, 0)),
-            vue(112, 16, 250, 40, "TextView", "nom", parent = 0, marges = listOf(16, 4, 0, 0)),
-            vue(112, 44, 240, 64, "TextView", "role", parent = 0),
-            vue(244, 16, 344, 56, "Button", "btn_suivre", parent = 0),
-            vue(16, 112, 344, 113, "View", "separateur", parent = 0, marges = listOf(16, 16, 16, 0)),
-            vue(16, 125, 344, 169, "TextView", "bio", parent = 0, marges = listOf(16, 12, 16, 0)),
-            vue(16, 185, 344, 233, "LinearLayout", "stats", parent = 0, conteneur = true),
-            vue(108, 592, 252, 640, "Button", "btn_message", parent = 0),
-        )
+    private fun profil(): List<InfoVueRendu> = arbre(
+        vue(0, 0, 360, 640, "RelativeLayout", "root", parent = -1, conteneur = true, famille = "RELATIVE"),
+        vue(16, 16, 96, 96, "ImageView", "avatar", parent = 0, marges = listOf(16, 16, 0, 0)),
+        vue(112, 16, 250, 40, "TextView", "nom", parent = 0, marges = listOf(16, 4, 0, 0)),
+        vue(112, 44, 240, 64, "TextView", "role", parent = 0),
+        vue(244, 16, 344, 56, "Button", "btn_suivre", parent = 0),
+        vue(16, 112, 344, 113, "View", "separateur", parent = 0, marges = listOf(16, 16, 16, 0)),
+        vue(16, 125, 344, 169, "TextView", "bio", parent = 0, marges = listOf(16, 12, 16, 0)),
+        vue(16, 185, 344, 233, "LinearLayout", "stats", parent = 0, conteneur = true),
+        vue(108, 592, 252, 640, "Button", "btn_message", parent = 0),
+    )
 
     /** Le document CARTE : racine `FrameLayout` (S6-S8). */
-    private fun carte(): List<InfoVueRendu> =
-        arbre(
-            vue(0, 0, 360, 220, "FrameLayout", "root", parent = -1, conteneur = true, famille = "FRAME"),
-            vue(0, 0, 360, 220, "ImageView", "fond", parent = 0),
-            vue(264, 16, 344, 40, "TextView", "badge", parent = 0),
-            vue(148, 78, 212, 142, "ImageButton", "btn_lecture", parent = 0),
-            vue(0, 158, 360, 220, "LinearLayout", "legende", parent = 0, conteneur = true),
-        )
+    private fun carte(): List<InfoVueRendu> = arbre(
+        vue(0, 0, 360, 220, "FrameLayout", "root", parent = -1, conteneur = true, famille = "FRAME"),
+        vue(0, 0, 360, 220, "ImageView", "fond", parent = 0),
+        vue(264, 16, 344, 40, "TextView", "badge", parent = 0),
+        vue(148, 78, 212, 142, "ImageButton", "btn_lecture", parent = 0),
+        vue(0, 158, 360, 220, "LinearLayout", "legende", parent = 0, conteneur = true),
+    )
 
     /** Le document FIL : racine `CoordinatorLayout` + `AppBarLayout` (S9-S12). */
-    private fun fil(): List<InfoVueRendu> =
-        arbre(
-            vue(0, 0, 360, 640, "CoordinatorLayout", "root", parent = -1, conteneur = true, famille = "COORDINATOR"),
-            vue(0, 0, 360, 104, "AppBarLayout", "appbar", parent = 0, conteneur = true, famille = "APPBAR"),
-            vue(0, 0, 360, 56, "MaterialToolbar", "toolbar", parent = 1),
-            vue(0, 56, 360, 104, "LinearLayout", "filtres", parent = 1, conteneur = true, famille = "LINEAR"),
-            vue(0, 104, 360, 640, "RecyclerView", "liste", parent = 0),
-            vue(288, 568, 344, 624, "FloatingActionButton", "fab_nouveau", parent = 0),
-        )
+    private fun fil(): List<InfoVueRendu> = arbre(
+        vue(0, 0, 360, 640, "CoordinatorLayout", "root", parent = -1, conteneur = true, famille = "COORDINATOR"),
+        vue(0, 0, 360, 104, "AppBarLayout", "appbar", parent = 0, conteneur = true, famille = "APPBAR"),
+        vue(0, 0, 360, 56, "MaterialToolbar", "toolbar", parent = 1),
+        vue(0, 56, 360, 104, "LinearLayout", "filtres", parent = 1, conteneur = true, famille = "LINEAR"),
+        vue(0, 104, 360, 640, "RecyclerView", "liste", parent = 0),
+        vue(288, 568, 344, 624, "FloatingActionButton", "fab_nouveau", parent = 0),
+    )
 
     // ── Les extraits des widgets de la maquette (WIDGETS — defSize) ────
 
@@ -394,11 +391,7 @@ public class PlanInsertionFamilleTest {
      * § 6.5 : « hors id, tailles, texte » — les attributs du WIDGET sont
      * exclus de la comparaison).
      */
-    private fun assertAttributsOr(
-        numero: String,
-        extrait: String,
-        plan: PlanInsertionFamille.Plan,
-    ) {
+    private fun assertAttributsOr(numero: String, extrait: String, plan: PlanInsertionFamille.Plan) {
         // Le numéro suivi d'un espace : « S1 » ne matche pas « S10 ».
         val scenario = scenarios().first { it.optString("scenario").startsWith("$numero ") }
         val lignes = scenario.getJSONArray("ajoute")
@@ -410,12 +403,11 @@ public class PlanInsertionFamilleTest {
     }
 
     /** Les paires attribut/valeur d'un bloc XML, HORS attributs du widget (id, tailles, texte, icône). */
-    private fun attributsDePosition(bloc: String): List<Pair<String, String>> =
-        regexAttribut
-            .findAll(bloc)
-            .map { it.groupValues[1] to it.groupValues[2] }
-            .filter { (nom, _) -> nom !in attributsWidget }
-            .toList()
+    private fun attributsDePosition(bloc: String): List<Pair<String, String>> = regexAttribut
+        .findAll(bloc)
+        .map { it.groupValues[1] to it.groupValues[2] }
+        .filter { (nom, _) -> nom !in attributsWidget }
+        .toList()
 
     /** Les scénarios du fichier d'or (relus à CHAQUE test : la maquette peut être régénérée). */
     private fun scenarios(): List<org.json.JSONObject> {
@@ -469,24 +461,23 @@ public class PlanInsertionFamilleTest {
         marges: List<Int> = listOf(0, 0, 0, 0),
         conteneur: Boolean = false,
         famille: String = "",
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = classe,
-            debutElement = 0,
-            finElement = 1,
-            indiceParent = parent,
-            profondeur = if (parent < 0) 0 else 1,
-            classe = classe,
-            idRes = id,
-            margesGauche = marges[0],
-            margesHaut = marges[1],
-            margesDroite = marges[2],
-            margesBas = marges[3],
-            conteneur = conteneur,
-            famille = famille,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = classe,
+        debutElement = 0,
+        finElement = 1,
+        indiceParent = parent,
+        profondeur = if (parent < 0) 0 else 1,
+        classe = classe,
+        idRes = id,
+        margesGauche = marges[0],
+        margesHaut = marges[1],
+        margesDroite = marges[2],
+        margesBas = marges[3],
+        conteneur = conteneur,
+        famille = famille,
+    )
 }

@@ -69,22 +69,13 @@ internal class FermableEspion(
  */
 internal class JournalEspion : AppLogger {
     /** Une entrée capturée. */
-    data class Entree(
-        val niveau: LogLevel,
-        val tag: String,
-        val message: String,
-    )
+    data class Entree(val niveau: LogLevel, val tag: String, val message: String)
 
     override val sessionId: String = "session-de-test"
 
     val entrees = mutableListOf<Entree>()
 
-    override fun log(
-        level: LogLevel,
-        tag: String,
-        throwable: Throwable?,
-        message: () -> String,
-    ) {
+    override fun log(level: LogLevel, tag: String, throwable: Throwable?, message: () -> String) {
         entrees += Entree(level, tag, message())
     }
 

@@ -126,24 +126,23 @@ public class GenerateurModeles {
     }
 
     /** Traduit une combinaison en demande de création complète. */
-    private fun requete(combinaison: Combinaison): CreateProjectRequest =
-        CreateProjectRequest(
-            templateId = TemplateId(combinaison.templateId),
-            name = combinaison.nom,
-            description = combinaison.description,
-            parentLocation = EMPLACEMENT,
-            parameterValues = combinaison.parametres,
-            manuallySetParameters = combinaison.modifiesManuellement,
-            cheminsRenommes = combinaison.renommages,
-            options =
-                TemplateOptions(
-                    includeReadme = combinaison.options.includeReadme,
-                    includeGitignore = combinaison.options.includeGitignore,
-                    includeEditorconfig = combinaison.options.includeEditorconfig,
-                    license = licence(combinaison.options.license),
-                    contentLanguage = combinaison.options.contentLanguage,
-                ),
-        )
+    private fun requete(combinaison: Combinaison): CreateProjectRequest = CreateProjectRequest(
+        templateId = TemplateId(combinaison.templateId),
+        name = combinaison.nom,
+        description = combinaison.description,
+        parentLocation = EMPLACEMENT,
+        parameterValues = combinaison.parametres,
+        manuallySetParameters = combinaison.modifiesManuellement,
+        cheminsRenommes = combinaison.renommages,
+        options =
+        TemplateOptions(
+            includeReadme = combinaison.options.includeReadme,
+            includeGitignore = combinaison.options.includeGitignore,
+            includeEditorconfig = combinaison.options.includeEditorconfig,
+            license = licence(combinaison.options.license),
+            contentLanguage = combinaison.options.contentLanguage,
+        ),
+    )
 
     /** Analyse les arguments nommés de l'outil. */
     @Suppress("ReturnCount", "CyclomaticComplexMethod") // Options validées en clauses de garde (règle 16).
@@ -167,9 +166,7 @@ public class GenerateurModeles {
     }
 
     /** Paramètres applicatifs figés : seul l'auteur alimente le moteur. */
-    private class ReglagesFixes(
-        auteur: String,
-    ) : SettingsRepository {
+    private class ReglagesFixes(auteur: String) : SettingsRepository {
         private val reglages = AppSettings(authorName = auteur)
 
         public override fun observeSettings(): Flow<AppSettings> = flowOf(reglages)
@@ -184,9 +181,7 @@ public class GenerateurModeles {
     }
 
     /** Version du générateur inscrite dans `.codeide/project.json`. */
-    private class GeneratorVersionFixe(
-        version: String,
-    ) : GeneratorVersion {
+    private class GeneratorVersionFixe(version: String) : GeneratorVersion {
         public override val value: String = "CodeIDE $version"
     }
 
@@ -229,15 +224,14 @@ public class GenerateurModeles {
                 "--annee <AAAA> --auteur <nom> --generateur <version>"
 
         /** Traduit un code de licence en modèle. */
-        fun licence(code: String): License =
-            when (code) {
-                "none" -> License.NONE
-                "mit" -> License.MIT
-                "apache-2.0" -> License.APACHE_2_0
-                "gpl-3.0" -> License.GPL_3_0
-                "bsd-3-clause" -> License.BSD_3_CLAUSE
-                else -> throw IllegalArgumentException("licence inconnue : $code")
-            }
+        fun licence(code: String): License = when (code) {
+            "none" -> License.NONE
+            "mit" -> License.MIT
+            "apache-2.0" -> License.APACHE_2_0
+            "gpl-3.0" -> License.GPL_3_0
+            "bsd-3-clause" -> License.BSD_3_CLAUSE
+            else -> throw IllegalArgumentException("licence inconnue : $code")
+        }
     }
 }
 

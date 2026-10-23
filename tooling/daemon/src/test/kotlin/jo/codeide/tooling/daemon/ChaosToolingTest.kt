@@ -53,99 +53,94 @@ class ChaosToolingTest {
     }
 
     @Test
-    fun `le process tue en plein build echoue proprement puis le daemon relance`() =
-        runBlocking {
-            val fixture = copierFixture("tache-longue")
-            val hote = HoteSocketJvm(dossierTemporaire("chaos-socket"))
-            val lanceur = LanceurProcessusReel()
-            val daemonReel = monterDaemon(hote, lanceur)
-            daemon = daemonReel
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-            portee = scope
-            daemonReel.demarrer(scope)
-            attendreQue(DELAI_CONNEXION) { api.etatConnexion == EtatConnexion.CONNECTEE }
+    fun `le process tue en plein build echoue proprement puis le daemon relance`() = runBlocking {
+        val fixture = copierFixture("tache-longue")
+        val hote = HoteSocketJvm(dossierTemporaire("chaos-socket"))
+        val lanceur = LanceurProcessusReel()
+        val daemonReel = monterDaemon(hote, lanceur)
+        daemon = daemonReel
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        portee = scope
+        daemonReel.demarrer(scope)
+        attendreQue(DELAI_CONNEXION) { api.etatConnexion == EtatConnexion.CONNECTEE }
 
-            // 1. Build LONG (tâche `endormir`, 10 s) : on le laisse
-            //    démarrer, puis kill -9 du VRAI process, en plein milieu —
-            //    le daemon Gradle (froid) prend au moins une quinzaine de
-            //    secondes : tuer après 3 s tombe forcément AVANT la fin.
-            val buildId = api.build(fixture, listOf("endormir"))
-            delay(3_000)
-            assertTrue("un process devait être lancé", lanceur.processus.isNotEmpty())
-            lanceur.tuerDernierProcess(force = true)
+        // 1. Build LONG (tâche `endormir`, 10 s) : on le laisse
+        //    démarrer, puis kill -9 du VRAI process, en plein milieu —
+        //    le daemon Gradle (froid) prend au moins une quinzaine de
+        //    secondes : tuer après 3 s tombe forcément AVANT la fin.
+        val buildId = api.build(fixture, listOf("endormir"))
+        delay(3_000)
+        assertTrue("un process devait être lancé", lanceur.processus.isNotEmpty())
+        lanceur.tuerDernierProcess(force = true)
 
-            // 2. Le build EN COURS se CONCLUT : ECHOUE (connexion perdue),
-            //    pas d'attente infinie — le collecteur de l'onglet Sortie
-            //    draine puis complète (§7.5 : « jamais de suspension
-            //    infinie », correctif G6).
-            val etatFinal =
-                withTimeout(DELAI_CONCLUSION) {
-                    api.observeBuildState(buildId).first { it.statut != StatutBuild.EN_COURS }
-                }
-            assertEquals(StatutBuild.ECHOUE, etatFinal.statut)
-            assertTrue(
-                "le message d'échec devait porter la perte de connexion : ${etatFinal.messageEchec}",
-                etatFinal.messageEchec.orEmpty().contains("perdue"),
-            )
-            withTimeout(DELAI_CONCLUSION) { api.observeBuildOutput(buildId).toList() }
+        // 2. Le build EN COURS se CONCLUT : ECHOUE (connexion perdue),
+        //    pas d'attente infinie — le collecteur de l'onglet Sortie
+        //    draine puis complète (§7.5 : « jamais de suspension
+        //    infinie », correctif G6).
+        val etatFinal =
+            withTimeout(DELAI_CONCLUSION) {
+                api.observeBuildState(buildId).first { it.statut != StatutBuild.EN_COURS }
+            }
+        assertEquals(StatutBuild.ECHOUE, etatFinal.statut)
+        assertTrue(
+            "le message d'échec devait porter la perte de connexion : ${etatFinal.messageEchec}",
+            etatFinal.messageEchec.orEmpty().contains("perdue"),
+        )
+        withTimeout(DELAI_CONCLUSION) { api.observeBuildOutput(buildId).toList() }
 
-            // 3. La connexion retombe (EOF), le daemon RELANCE (borné),
-            //    la connexion remonte avec un secret neuf.
-            attendreQue(DELAI_RELANCES) { api.etatConnexion == EtatConnexion.CONNECTEE }
-            assertTrue(
-                "le daemon devait avoir relancé un NOUVEAU process",
-                lanceur.processus.size >= 2,
-            )
+        // 3. La connexion retombe (EOF), le daemon RELANCE (borné),
+        //    la connexion remonte avec un secret neuf.
+        attendreQue(DELAI_RELANCES) { api.etatConnexion == EtatConnexion.CONNECTEE }
+        assertTrue(
+            "le daemon devait avoir relancé un NOUVEAU process",
+            lanceur.processus.size >= 2,
+        )
 
-            // 4. Arrêt propre : le process relancé est tué, aucun orphelin.
-            daemonReel.arreter()
-            attendreQue(DELAI_ARRET) { lanceur.processus.none { process -> process.isAlive } }
-        }
+        // 4. Arrêt propre : le process relancé est tué, aucun orphelin.
+        daemonReel.arreter()
+        attendreQue(DELAI_ARRET) { lanceur.processus.none { process -> process.isAlive } }
+    }
 
     @Test
-    fun `la perte du socket app fait sortir le process seul sans orphelin`() =
-        runBlocking {
-            val hote = HoteSocketJvm(dossierTemporaire("chaos-socket-2"))
-            val lanceur = LanceurProcessusReel()
-            val daemonReel = monterDaemon(hote, lanceur)
-            daemon = daemonReel
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-            portee = scope
-            daemonReel.demarrer(scope)
-            attendreQue(DELAI_CONNEXION) { api.etatConnexion == EtatConnexion.CONNECTEE }
+    fun `la perte du socket app fait sortir le process seul sans orphelin`() = runBlocking {
+        val hote = HoteSocketJvm(dossierTemporaire("chaos-socket-2"))
+        val lanceur = LanceurProcessusReel()
+        val daemonReel = monterDaemon(hote, lanceur)
+        daemon = daemonReel
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        portee = scope
+        daemonReel.demarrer(scope)
+        attendreQue(DELAI_CONNEXION) { api.etatConnexion == EtatConnexion.CONNECTEE }
 
-            // Le socket de l'« app » disparaît (crash de l'app, mise à
-            // mort) : le process doit voir l'EOF et sortir SEUL — le code
-            // 0 documenté (fin de connexion normale), avant même que le
-            // health check du daemon ne s'en mêle.
-            val premier = lanceur.processus.single()
-            hote.rompreDerniereSession()
+        // Le socket de l'« app » disparaît (crash de l'app, mise à
+        // mort) : le process doit voir l'EOF et sortir SEUL — le code
+        // 0 documenté (fin de connexion normale), avant même que le
+        // health check du daemon ne s'en mêle.
+        val premier = lanceur.processus.single()
+        hote.rompreDerniereSession()
 
-            attendreQue(DELAI_MORT_PROCESS) { !premier.isAlive }
-            assertEquals(
-                "le process devait sortir SEUL (EOF = code 0) : ${journal.entries.take(
-                    30,
-                ).joinToString { "${it.tag}: ${it.message}" }}",
-                0,
-                premier.exitValue(),
-            )
+        attendreQue(DELAI_MORT_PROCESS) { !premier.isAlive }
+        assertEquals(
+            "le process devait sortir SEUL (EOF = code 0) : ${journal.entries.take(
+                30,
+            ).joinToString { "${it.tag}: ${it.message}" }}",
+            0,
+            premier.exitValue(),
+        )
 
-            // Le daemon (vivant, lui) relance : la connexion remonte.
-            attendreQue(DELAI_RELANCES) { api.etatConnexion == EtatConnexion.CONNECTEE }
+        // Le daemon (vivant, lui) relance : la connexion remonte.
+        attendreQue(DELAI_RELANCES) { api.etatConnexion == EtatConnexion.CONNECTEE }
 
-            daemonReel.arreter()
-            attendreQue(DELAI_ARRET) { lanceur.processus.none { process -> process.isAlive } }
-        }
+        daemonReel.arreter()
+        attendreQue(DELAI_ARRET) { lanceur.processus.none { process -> process.isAlive } }
+    }
 
     // ------------------------------------------------------------------
     // Harnais (montage identique au bout-en-bout, lanceur instrumenté).
     // ------------------------------------------------------------------
 
     /** Monte le daemon avec le lanceur instrumenté (process référencés). */
-    private fun monterDaemon(
-        hote: HoteSocketJvm,
-        lanceur: LanceurProcessusReel,
-    ): DaemonManager {
+    private fun monterDaemon(hote: HoteSocketJvm, lanceur: LanceurProcessusReel): DaemonManager {
         val outils =
             FakeToolchainLocator().apply {
                 jdk = File(javaMaison)
@@ -197,10 +192,7 @@ class ChaosToolingTest {
     }
 
     /** Attend une condition par sondage borné. */
-    private fun attendreQue(
-        delaiMs: Long,
-        condition: () -> Boolean,
-    ) {
+    private fun attendreQue(delaiMs: Long, condition: () -> Boolean) {
         val debut = System.currentTimeMillis()
         while (!condition()) {
             if (System.currentTimeMillis() - debut > delaiMs) {

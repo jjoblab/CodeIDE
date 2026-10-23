@@ -470,10 +470,7 @@ class ContraintesHierarchieTest {
     // ── Fixtures ────────────────────────────────────────────────────────
 
     /** Un document racine [balise] au contenu [corps], namespaces déclarés. */
-    private fun document(
-        balise: String,
-        corps: String,
-    ): String =
+    private fun document(balise: String, corps: String): String =
         "<$balise xmlns:android=\"http://schemas.android.com/apk/res/android\" " +
             "xmlns:app=\"http://schemas.android.com/apk/res/auto\" " +
             "android:layout_width=\"match_parent\" android:layout_height=\"match_parent\">$corps</$balise>"
@@ -489,10 +486,7 @@ class ContraintesHierarchieTest {
             "android:layout_width=\"wrap_content\" android:layout_height=\"wrap_content\"/>"
 
     /** Une racine [classe] avec [nombre] enfants TextView conteneurs ou feuilles. */
-    private fun arbreAvecEnfants(
-        classe: String,
-        nombre: Int,
-    ): List<InfoVueRendu> {
+    private fun arbreAvecEnfants(classe: String, nombre: Int): List<InfoVueRendu> {
         val vues =
             mutableListOf(
                 vue(classe = classe, parent = -1, conteneur = true),
@@ -511,19 +505,18 @@ class ContraintesHierarchieTest {
         classe: String,
         parent: Int,
         conteneur: Boolean = false,
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = classe,
-            debutElement = 0,
-            finElement = 1,
-            indiceParent = parent,
-            profondeur = if (parent < 0) 0 else 1,
-            classe = classe,
-            idRes = "",
-            conteneur = conteneur,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = classe,
+        debutElement = 0,
+        finElement = 1,
+        indiceParent = parent,
+        profondeur = if (parent < 0) 0 else 1,
+        classe = classe,
+        idRes = "",
+        conteneur = conteneur,
+    )
 }

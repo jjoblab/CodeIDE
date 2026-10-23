@@ -84,12 +84,7 @@ object MenuDebug {
      * mémorise l'arborescence, prend la permission persistante et
      * journalise le résultat.
      */
-    fun dossierChoisi(
-        fragment: Fragment,
-        logger: AppLogger,
-        fichiers: FileSystem,
-        uri: Uri?,
-    ) {
+    fun dossierChoisi(fragment: Fragment, logger: AppLogger, fichiers: FileSystem, uri: Uri?) {
         val arbre = uri ?: return
         arbreChoisi = arbre
         fragment.viewLifecycleOwner.lifecycleScope.launch {
@@ -113,12 +108,7 @@ object MenuDebug {
     }
 
     /** Ouvre le dialogue des actions de diagnostic. */
-    private fun ouvrirDialogue(
-        fragment: Fragment,
-        logger: AppLogger,
-        fichiers: FileSystem,
-        choisirArbre: () -> Unit,
-    ) {
+    private fun ouvrirDialogue(fragment: Fragment, logger: AppLogger, fichiers: FileSystem, choisirArbre: () -> Unit) {
         val contexte: Context = fragment.requireContext()
         // Paires libellé → action : l'index positionnel ne peut plus dériver.
         val actions: List<Pair<String, () -> Unit>> =
@@ -140,11 +130,7 @@ object MenuDebug {
     }
 
     /** Décrit le dossier choisi (S1) : FileStat complet dans les journaux. */
-    private fun decrireDossier(
-        fragment: Fragment,
-        logger: AppLogger,
-        fichiers: FileSystem,
-    ) {
+    private fun decrireDossier(fragment: Fragment, logger: AppLogger, fichiers: FileSystem) {
         val arbre = arbreChoisi
         if (arbre == null) {
             logger.w(TAG, null) { "SAF : aucun dossier choisi pour l'essai" }
@@ -173,11 +159,7 @@ object MenuDebug {
     }
 
     /** Crée (une fois) le fichier témoin dans le dossier choisi (S2). */
-    private fun creerTemoin(
-        fragment: Fragment,
-        logger: AppLogger,
-        fichiers: FileSystem,
-    ) {
+    private fun creerTemoin(fragment: Fragment, logger: AppLogger, fichiers: FileSystem) {
         val arbre = arbreChoisi
         if (arbre == null) {
             logger.w(TAG, null) { "SAF : aucun dossier choisi pour l'essai" }
@@ -210,10 +192,9 @@ object MenuDebug {
      * complète (rapport, écran dédié en processus séparé) est alors
      * éprouvée (procédure manuelle P1).
      */
-    private fun provoquerPlantage(): Nothing =
-        throw IllegalStateException(
-            "Plantage de test provoqué depuis le menu debug (CodeIDE $versionLisible)",
-        )
+    private fun provoquerPlantage(): Nothing = throw IllegalStateException(
+        "Plantage de test provoqué depuis le menu debug (CodeIDE $versionLisible)",
+    )
 
     /**
      * Journalise une exception **attrapée** — sans interrompre l'application :

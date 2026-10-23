@@ -30,7 +30,7 @@ internal object MarqueursOutils {
                         fichier.name.startsWith("gradle-launcher-") ||
                             fichier.name.startsWith("gradle-core-") ||
                             fichier.name.startsWith("gradle-wrapper-")
-                    ) &&
+                        ) &&
                     fichier.name.endsWith(".jar")
             }
         return !jars.isNullOrEmpty()
@@ -62,10 +62,7 @@ internal object MarqueursOutils {
         Comparator { a, b -> comparerNomsVersions(a.name, b.name) }
 
     /** Comparaison segment par segment, puis lexicographique en dernier recours. */
-    private fun comparerNomsVersions(
-        a: String,
-        b: String,
-    ): Int {
+    private fun comparerNomsVersions(a: String, b: String): Int {
         val segmentsA = extraireSegments(a)
         val segmentsB = extraireSegments(b)
         for (indice in 0 until maxOf(segmentsA.size, segmentsB.size)) {

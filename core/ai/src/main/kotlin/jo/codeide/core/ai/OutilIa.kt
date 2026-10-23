@@ -43,23 +43,17 @@ public enum class NiveauRisqueIa {
 /** Résultat d'un outil — modélisé, jamais une exception. */
 public sealed interface ResultatOutilIa {
     /** Sortie texte (observation pour le modèle, bornée). */
-    public data class Succes(
-        public val sortie: String,
-    ) : ResultatOutilIa
+    public data class Succes(public val sortie: String) : ResultatOutilIa
 
     /** Refus : l'outil n'a pas agi (évasion, fichier exclu, hors limite). */
-    public data class Refuse(
-        public val motif: String,
-    ) : ResultatOutilIa
+    public data class Refuse(public val motif: String) : ResultatOutilIa
 }
 
 /**
  * Registre des outils de l'agent (ADR 0125 action 1) : liste fermée,
  * accès par identifiant, schéma ToolSpec assemblé pour la requête.
  */
-public class RegistreOutilsIa(
-    outils: List<OutilIa>,
-) {
+public class RegistreOutilsIa(outils: List<OutilIa>) {
     private val parIdentifiant: Map<String, OutilIa> =
         outils.associateBy { outil -> outil.identifiant }
 
@@ -70,12 +64,11 @@ public class RegistreOutilsIa(
     public fun parIdentifiant(identifiant: String): OutilIa? = parIdentifiant[identifiant]
 
     /** Spécifications ToolSpec pour la requête du fournisseur. */
-    public fun specifications(): List<ToolSpec> =
-        outils.map { outil ->
-            ToolSpec(
-                name = outil.identifiant,
-                description = outil.description,
-                parametersJsonSchema = outil.parametresJson,
-            )
-        }
+    public fun specifications(): List<ToolSpec> = outils.map { outil ->
+        ToolSpec(
+            name = outil.identifiant,
+            description = outil.description,
+            parametersJsonSchema = outil.parametresJson,
+        )
+    }
 }

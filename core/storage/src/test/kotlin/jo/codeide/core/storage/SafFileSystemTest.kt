@@ -84,367 +84,345 @@ class SafFileSystemTest {
         (echec.error as? AppError.Storage)?.reason
 
     @Test
-    fun `stat décrit un dossier amorcé`() =
-        runTest {
-            val dossier = fournisseur.semerDossier(fournisseur.racine, "Projet")
+    fun `stat décrit un dossier amorcé`() = runTest {
+        val dossier = fournisseur.semerDossier(fournisseur.racine, "Projet")
 
-            val stat = fichiers.stat(uriDocument(dossier))
+        val stat = fichiers.stat(uriDocument(dossier))
 
-            assertTrue(stat is AppResult.Success)
-            val statut = (stat as AppResult.Success).value
-            assertEquals("Projet", statut.name)
-            assertEquals(true, statut.isDirectory)
-        }
-
-    @Test
-    fun `stat d'un absent retourne NotFound, pas d'exception`() =
-        runTest {
-            val resultat = fichiers.stat(uriDocument("${fournisseur.racine}/introuvable"))
-
-            assertEquals(
-                AppError.StorageReason.NotFound,
-                raisonStockage(resultat as AppResult.Failure),
-            )
-        }
+        assertTrue(stat is AppResult.Success)
+        val statut = (stat as AppResult.Success).value
+        assertEquals("Projet", statut.name)
+        assertEquals(true, statut.isDirectory)
+    }
 
     @Test
-    fun `exists distingue présent et absent`() =
-        runTest {
-            val dossier = fournisseur.semerDossier(fournisseur.racine, "Projet")
+    fun `stat d'un absent retourne NotFound, pas d'exception`() = runTest {
+        val resultat = fichiers.stat(uriDocument("${fournisseur.racine}/introuvable"))
 
-            assertTrue(fichiers.exists(uriDocument(dossier)))
-            assertFalse(fichiers.exists(uriDocument("${fournisseur.racine}/introuvable")))
-        }
-
-    @Test
-    fun `list charge les enfants en une seule requête, triés par nom`() =
-        runTest {
-            val parent = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            fournisseur.semerFichier(parent, "zeta.md", "text/plain", "z".toByteArray())
-            fournisseur.semerDossier(parent, "Alpha")
-            fournisseur.semerFichier(parent, "beta.txt", "text/plain", "b".toByteArray())
-            // Petit-fils : ne doit PAS apparaître dans le listing du parent.
-            val alpha = fournisseur.semerDossier(parent, "Alpha")
-            fournisseur.semerFichier(alpha, "interne.md", "text/plain", "i".toByteArray())
-
-            val listing = fichiers.list(uriDocument(parent))
-
-            val statuts = (listing as AppResult.Success).value
-            assertEquals(listOf("Alpha", "beta.txt", "zeta.md"), statuts.map { it.name })
-            // Section 5.6 : requête groupée — une seule interrogation pour tout le dossier.
-            assertEquals(1, fournisseur.requetesQuery)
-        }
+        assertEquals(
+            AppError.StorageReason.NotFound,
+            raisonStockage(resultat as AppResult.Failure),
+        )
+    }
 
     @Test
-    fun `list d'un dossier absent échoue par NotFound`() =
-        runTest {
-            val resultat = fichiers.list(uriDocument("${fournisseur.racine}/introuvable"))
+    fun `exists distingue présent et absent`() = runTest {
+        val dossier = fournisseur.semerDossier(fournisseur.racine, "Projet")
 
-            assertEquals(
-                AppError.StorageReason.NotFound,
-                raisonStockage(resultat as AppResult.Failure),
-            )
-        }
+        assertTrue(fichiers.exists(uriDocument(dossier)))
+        assertFalse(fichiers.exists(uriDocument("${fournisseur.racine}/introuvable")))
+    }
 
     @Test
-    fun `createDirectory crée un dossier et retourne son URI`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `list charge les enfants en une seule requête, triés par nom`() = runTest {
+        val parent = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        fournisseur.semerFichier(parent, "zeta.md", "text/plain", "z".toByteArray())
+        fournisseur.semerDossier(parent, "Alpha")
+        fournisseur.semerFichier(parent, "beta.txt", "text/plain", "b".toByteArray())
+        // Petit-fils : ne doit PAS apparaître dans le listing du parent.
+        val alpha = fournisseur.semerDossier(parent, "Alpha")
+        fournisseur.semerFichier(alpha, "interne.md", "text/plain", "i".toByteArray())
 
-            val creation = fichiers.createDirectory(uriDocument(travail), "MonApplication")
+        val listing = fichiers.list(uriDocument(parent))
 
-            assertTrue(creation is AppResult.Success)
-            val uriCree = (creation as AppResult.Success).value
-            assertTrue(fichiers.exists(uriCree))
-            assertEquals(true, (fichiers.stat(uriCree) as AppResult.Success).value.isDirectory)
-        }
-
-    @Test
-    fun `createDirectory refuse l'écrasement, même à la casse près`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            fichiers.createDirectory(uriDocument(travail), "Projet")
-
-            val collision = fichiers.createDirectory(uriDocument(travail), "PROJET")
-
-            assertEquals(
-                AppError.StorageReason.AlreadyExists,
-                raisonStockage(collision as AppResult.Failure),
-            )
-        }
+        val statuts = (listing as AppResult.Success).value
+        assertEquals(listOf("Alpha", "beta.txt", "zeta.md"), statuts.map { it.name })
+        // Section 5.6 : requête groupée — une seule interrogation pour tout le dossier.
+        assertEquals(1, fournisseur.requetesQuery)
+    }
 
     @Test
-    fun `createFile crée un fichier avec son type MIME`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `list d'un dossier absent échoue par NotFound`() = runTest {
+        val resultat = fichiers.list(uriDocument("${fournisseur.racine}/introuvable"))
 
-            val creation = fichiers.createFile(uriDocument(travail), "README.md", "text/plain")
-
-            val uriCree = (creation as AppResult.Success).value
-            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
-            assertEquals("README.md", statut.name)
-            assertEquals(false, statut.isDirectory)
-        }
+        assertEquals(
+            AppError.StorageReason.NotFound,
+            raisonStockage(resultat as AppResult.Failure),
+        )
+    }
 
     @Test
-    fun `un renommage silencieux du fournisseur est détecté et nettoyé`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            fichiers.createDirectory(uriDocument(travail), "Projet")
+    fun `createDirectory crée un dossier et retourne son URI`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
 
-            // Le fournisseur renomme « Projet » en « Projet (1) » malgré le
-            // pré-contrôle (course simulée) : SafFileSystem doit nettoyer le
-            // document créé et rapporter la collision.
-            fournisseur.provoquerRenommage = true
-            val creation = fichiers.createDirectory(uriDocument(travail), "Projet")
+        val creation = fichiers.createDirectory(uriDocument(travail), "MonApplication")
 
-            assertEquals(
-                AppError.StorageReason.AlreadyExists,
-                raisonStockage(creation as AppResult.Failure),
-            )
-            // Le document renommé a bien été supprimé (nettoyage).
-            val listing = fichiers.list(uriDocument(travail)) as AppResult.Success
-            assertEquals(listOf("Projet"), listing.value.map { it.name })
-        }
+        assertTrue(creation is AppResult.Success)
+        val uriCree = (creation as AppResult.Success).value
+        assertTrue(fichiers.exists(uriCree))
+        assertEquals(true, (fichiers.stat(uriCree) as AppResult.Success).value.isDirectory)
+    }
 
     @Test
-    fun `un nom sans point complete par l extension canonique est accepte`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `createDirectory refuse l'écrasement, même à la casse près`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        fichiers.createDirectory(uriDocument(travail), "Projet")
 
-            // ExternalStorageProvider complète « temoin » + text/plain en
-            // « temoin.txt » : ce n'est ni une collision ni un renommage —
-            // la création doit réussir et retourner l'URI réelle du document.
-            fournisseur.completerExtension = true
-            val creation = fichiers.createFile(uriDocument(travail), "codeide-temoin-1000", "text/plain")
+        val collision = fichiers.createDirectory(uriDocument(travail), "PROJET")
 
-            assertTrue(creation is AppResult.Success)
-            val uriCree = (creation as AppResult.Success).value
-            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
-            assertEquals("codeide-temoin-1000.txt", statut.name)
-        }
+        assertEquals(
+            AppError.StorageReason.AlreadyExists,
+            raisonStockage(collision as AppResult.Failure),
+        )
+    }
 
     @Test
-    fun `un fichier cache complete par le fournisseur est accepte - regression 4a4526aa`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `createFile crée un fichier avec son type MIME`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
 
-            // V0.31.6 (retour d'appareil réel 4a4526aa) : le point INITIAL
-            // d'un fichier caché n'est pas une extension pour le fournisseur
-            // — « .gitattributes » + text/plain est complété en
-            // « .gitattributes.txt ». L'ancien contrôle (contains('.'))
-            // ratait cette famille : complétion lue comme renommage hostile
-            // → fichier fraîchement créé SUPPRIMÉ + AlreadyExists de pure
-            // invention → « un dossier porte déjà ce nom » à CHAQUE création
-            // de projet (.gitattributes est le PREMIER fichier du plan des
-            // modèles JVM — rollback complet sous les yeux de l'utilisateur).
-            fournisseur.completerExtension = true
-            val creation = fichiers.createFile(uriDocument(travail), ".gitattributes", "text/plain")
+        val creation = fichiers.createFile(uriDocument(travail), "README.md", "text/plain")
 
-            assertTrue("la complétion d'un fichier caché n'est pas une collision", creation is AppResult.Success)
-            val uriCree = (creation as AppResult.Success).value
-            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
-            assertEquals(".gitattributes.txt", statut.name)
-        }
+        val uriCree = (creation as AppResult.Success).value
+        val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+        assertEquals("README.md", statut.name)
+        assertEquals(false, statut.isDirectory)
+    }
 
     @Test
-    fun `le mime prive des noms sans extension reelle n est jamais complete`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `un renommage silencieux du fournisseur est détecté et nettoyé`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        fichiers.createDirectory(uriDocument(travail), "Projet")
 
-            // La parade (v0.31.6) : le type privé « text/x-codeide » n'a pas
-            // d'extension canonique — le fournisseur ne complète RIEN et le
-            // nom demandé est préservé EXACTEMENT (.gitattributes reste
-            // .gitattributes dans le projet généré, gradlew reste gradlew).
-            fournisseur.completerExtension = true
-            val cache = fichiers.createFile(uriDocument(travail), ".gitattributes", "text/x-codeide")
-            val gradlew = fichiers.createFile(uriDocument(travail), "gradlew", "text/x-codeide")
+        // Le fournisseur renomme « Projet » en « Projet (1) » malgré le
+        // pré-contrôle (course simulée) : SafFileSystem doit nettoyer le
+        // document créé et rapporter la collision.
+        fournisseur.provoquerRenommage = true
+        val creation = fichiers.createDirectory(uriDocument(travail), "Projet")
 
-            assertTrue(cache is AppResult.Success)
-            assertEquals(
-                ".gitattributes",
-                (fichiers.stat((cache as AppResult.Success).value) as AppResult.Success).value.name,
-            )
-            assertTrue(gradlew is AppResult.Success)
-            assertEquals(
-                "gradlew",
-                (fichiers.stat((gradlew as AppResult.Success).value) as AppResult.Success).value.name,
-            )
-        }
+        assertEquals(
+            AppError.StorageReason.AlreadyExists,
+            raisonStockage(creation as AppResult.Failure),
+        )
+        // Le document renommé a bien été supprimé (nettoyage).
+        val listing = fichiers.list(uriDocument(travail)) as AppResult.Success
+        assertEquals(listOf("Projet"), listing.value.map { it.name })
+    }
 
     @Test
-    fun `readme md avec text plain est complete puis rejete honnetement - v0-31-7`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `un nom sans point complete par l extension canonique est accepte`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
 
-            // V0.31.7 (retour d'appareil réel Android 15) : « README.md » +
-            // `text/plain` → le fournisseur complète en « README.md.txt »
-            // (l'extension « md » est absente de la table système, comme
-            // kts/kt/properties/pro). La complétion n'est PAS tolérable
-            // pour un nom AVEC extension (le projet généré porterait des
-            // fichiers mal nommés : build.gradle.kts.txt casserait Gradle)
-            // : l'échec doit rester honnête — nettoyage du document renommé
-            // + AlreadyExists portant le nom exact, détails visibles.
-            // Ce test DOCUMENTE pourquoi text/plain est désormais interdit
-            // pour les fichiers texte (voir mimeFichierTexte).
-            fournisseur.completerExtension = true
-            val creation = fichiers.createFile(uriDocument(travail), "README.md", "text/plain")
+        // ExternalStorageProvider complète « temoin » + text/plain en
+        // « temoin.txt » : ce n'est ni une collision ni un renommage —
+        // la création doit réussir et retourner l'URI réelle du document.
+        fournisseur.completerExtension = true
+        val creation = fichiers.createFile(uriDocument(travail), "codeide-temoin-1000", "text/plain")
 
-            assertEquals(
-                AppError.StorageReason.AlreadyExists,
-                raisonStockage(creation as AppResult.Failure),
-            )
-            assertEquals(
-                "README.md",
-                (creation as AppResult.Failure)
-                    .error
-                    .toString()
-                    .substringAfter("details=")
-                    .trimEnd(')'),
-            )
-            // Le document complété a été nettoyé : le dossier reste vide.
-            val listing = fichiers.list(uriDocument(travail)) as AppResult.Success
-            assertTrue("le document renommé est nettoyé", listing.value.isEmpty())
-        }
+        assertTrue(creation is AppResult.Success)
+        val uriCree = (creation as AppResult.Success).value
+        val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+        assertEquals("codeide-temoin-1000.txt", statut.name)
+    }
 
     @Test
-    fun `readme md avec le mime conseille est preserve - regression v0-31-7`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `un fichier cache complete par le fournisseur est accepte - regression 4a4526aa`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
 
-            // LA régression : le plan des modèles écrit « README.md » (et
-            // build.gradle.kts, *.kt, gradle.properties…) avec le MIME
-            // conseillé par le domaine — le nom doit être préservé
-            // EXACTEMENT, extension inconnue ou pas.
-            fournisseur.completerExtension = true
-            val readme = fichiers.createFile(uriDocument(travail), "README.md", mimeFichierTexte("README.md"))
-            val script =
-                fichiers.createFile(
-                    uriDocument(travail),
-                    "build.gradle.kts",
-                    mimeFichierTexte("build.gradle.kts"),
-                )
+        // V0.31.6 (retour d'appareil réel 4a4526aa) : le point INITIAL
+        // d'un fichier caché n'est pas une extension pour le fournisseur
+        // — « .gitattributes » + text/plain est complété en
+        // « .gitattributes.txt ». L'ancien contrôle (contains('.'))
+        // ratait cette famille : complétion lue comme renommage hostile
+        // → fichier fraîchement créé SUPPRIMÉ + AlreadyExists de pure
+        // invention → « un dossier porte déjà ce nom » à CHAQUE création
+        // de projet (.gitattributes est le PREMIER fichier du plan des
+        // modèles JVM — rollback complet sous les yeux de l'utilisateur).
+        fournisseur.completerExtension = true
+        val creation = fichiers.createFile(uriDocument(travail), ".gitattributes", "text/plain")
 
-            assertTrue("le type privé ne déclenche aucune complétion", readme is AppResult.Success)
-            assertEquals(
-                "README.md",
-                (fichiers.stat((readme as AppResult.Success).value) as AppResult.Success).value.name,
-            )
-            assertTrue(script is AppResult.Success)
-            assertEquals(
+        assertTrue("la complétion d'un fichier caché n'est pas une collision", creation is AppResult.Success)
+        val uriCree = (creation as AppResult.Success).value
+        val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+        assertEquals(".gitattributes.txt", statut.name)
+    }
+
+    @Test
+    fun `le mime prive des noms sans extension reelle n est jamais complete`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+        // La parade (v0.31.6) : le type privé « text/x-codeide » n'a pas
+        // d'extension canonique — le fournisseur ne complète RIEN et le
+        // nom demandé est préservé EXACTEMENT (.gitattributes reste
+        // .gitattributes dans le projet généré, gradlew reste gradlew).
+        fournisseur.completerExtension = true
+        val cache = fichiers.createFile(uriDocument(travail), ".gitattributes", "text/x-codeide")
+        val gradlew = fichiers.createFile(uriDocument(travail), "gradlew", "text/x-codeide")
+
+        assertTrue(cache is AppResult.Success)
+        assertEquals(
+            ".gitattributes",
+            (fichiers.stat((cache as AppResult.Success).value) as AppResult.Success).value.name,
+        )
+        assertTrue(gradlew is AppResult.Success)
+        assertEquals(
+            "gradlew",
+            (fichiers.stat((gradlew as AppResult.Success).value) as AppResult.Success).value.name,
+        )
+    }
+
+    @Test
+    fun `readme md avec text plain est complete puis rejete honnetement - v0-31-7`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+        // V0.31.7 (retour d'appareil réel Android 15) : « README.md » +
+        // `text/plain` → le fournisseur complète en « README.md.txt »
+        // (l'extension « md » est absente de la table système, comme
+        // kts/kt/properties/pro). La complétion n'est PAS tolérable
+        // pour un nom AVEC extension (le projet généré porterait des
+        // fichiers mal nommés : build.gradle.kts.txt casserait Gradle)
+        // : l'échec doit rester honnête — nettoyage du document renommé
+        // + AlreadyExists portant le nom exact, détails visibles.
+        // Ce test DOCUMENTE pourquoi text/plain est désormais interdit
+        // pour les fichiers texte (voir mimeFichierTexte).
+        fournisseur.completerExtension = true
+        val creation = fichiers.createFile(uriDocument(travail), "README.md", "text/plain")
+
+        assertEquals(
+            AppError.StorageReason.AlreadyExists,
+            raisonStockage(creation as AppResult.Failure),
+        )
+        assertEquals(
+            "README.md",
+            (creation as AppResult.Failure)
+                .error
+                .toString()
+                .substringAfter("details=")
+                .trimEnd(')'),
+        )
+        // Le document complété a été nettoyé : le dossier reste vide.
+        val listing = fichiers.list(uriDocument(travail)) as AppResult.Success
+        assertTrue("le document renommé est nettoyé", listing.value.isEmpty())
+    }
+
+    @Test
+    fun `readme md avec le mime conseille est preserve - regression v0-31-7`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+
+        // LA régression : le plan des modèles écrit « README.md » (et
+        // build.gradle.kts, *.kt, gradle.properties…) avec le MIME
+        // conseillé par le domaine — le nom doit être préservé
+        // EXACTEMENT, extension inconnue ou pas.
+        fournisseur.completerExtension = true
+        val readme = fichiers.createFile(uriDocument(travail), "README.md", mimeFichierTexte("README.md"))
+        val script =
+            fichiers.createFile(
+                uriDocument(travail),
                 "build.gradle.kts",
-                (fichiers.stat((script as AppResult.Success).value) as AppResult.Success).value.name,
+                mimeFichierTexte("build.gradle.kts"),
             )
-        }
+
+        assertTrue("le type privé ne déclenche aucune complétion", readme is AppResult.Success)
+        assertEquals(
+            "README.md",
+            (fichiers.stat((readme as AppResult.Success).value) as AppResult.Success).value.name,
+        )
+        assertTrue(script is AppResult.Success)
+        assertEquals(
+            "build.gradle.kts",
+            (fichiers.stat((script as AppResult.Success).value) as AppResult.Success).value.name,
+        )
+    }
 
     @Test
-    fun `une normalisation fournisseur des espaces et points finaux est acceptee`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+    fun `une normalisation fournisseur des espaces et points finaux est acceptee`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
 
-            // v0.31.5 (retour d'appareil réel, « collision » systématique) :
-            // certaines couches de stockage rabotent les espaces/points
-            // FINAUX — « Projet. » devient « Projet ». Le document créé au
-            // nom normalisé est le nôtre : la création doit RÉUSSIR, pas
-            // rapporter une collision de pure invention (ni détruire le
-            // document fraîchement créé).
-            fournisseur.normaliserNoms = true
-            val creation = fichiers.createDirectory(uriDocument(travail), "MonProjet..")
+        // v0.31.5 (retour d'appareil réel, « collision » systématique) :
+        // certaines couches de stockage rabotent les espaces/points
+        // FINAUX — « Projet. » devient « Projet ». Le document créé au
+        // nom normalisé est le nôtre : la création doit RÉUSSIR, pas
+        // rapporter une collision de pure invention (ni détruire le
+        // document fraîchement créé).
+        fournisseur.normaliserNoms = true
+        val creation = fichiers.createDirectory(uriDocument(travail), "MonProjet..")
 
-            assertTrue(creation is AppResult.Success)
-            val uriCree = (creation as AppResult.Success).value
-            val statut = (fichiers.stat(uriCree) as AppResult.Success).value
-            assertEquals("MonProjet", statut.name)
-        }
-
-    @Test
-    fun `un renommage de collision avec point reste refuse meme avec completion active`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain")
-
-            // Le pré-contrôle d'homonyme doit déjà rapporter la collision.
-            val creation = fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain")
-
-            assertEquals(
-                AppError.StorageReason.AlreadyExists,
-                raisonStockage(creation as AppResult.Failure),
-            )
-        }
+        assertTrue(creation is AppResult.Success)
+        val uriCree = (creation as AppResult.Success).value
+        val statut = (fichiers.stat(uriCree) as AppResult.Success).value
+        assertEquals("MonProjet", statut.name)
+    }
 
     @Test
-    fun `writeText puis readText fait l'aller-retour exact`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            val uri = (fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain") as AppResult.Success).value
+    fun `un renommage de collision avec point reste refuse meme avec completion active`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain")
 
-            val ecriture = fichiers.writeText(uri, "# Bonjour\n")
-            assertTrue(ecriture is AppResult.Success)
+        // Le pré-contrôle d'homonyme doit déjà rapporter la collision.
+        val creation = fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain")
 
-            assertEquals("# Bonjour\n", (fichiers.readText(uri) as AppResult.Success).value)
-        }
-
-    @Test
-    fun `writeBytes préserve le contenu binaire`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            val octets = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D)
-            val uri = (fichiers.createFile(uriDocument(travail), "icone.png", "image/png") as AppResult.Success).value
-
-            fichiers.writeBytes(uri, octets)
-
-            val statut = (fichiers.stat(uri) as AppResult.Success).value
-            assertEquals(octets.size.toLong(), statut.sizeBytes)
-        }
+        assertEquals(
+            AppError.StorageReason.AlreadyExists,
+            raisonStockage(creation as AppResult.Failure),
+        )
+    }
 
     @Test
-    fun `écrire dans un document absent échoue par NotFound`() =
-        runTest {
-            val resultat = fichiers.writeText(uriDocument("${fournisseur.racine}/introuvable.txt"), "texte")
+    fun `writeText puis readText fait l'aller-retour exact`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        val uri = (fichiers.createFile(uriDocument(travail), "notes.txt", "text/plain") as AppResult.Success).value
 
-            assertEquals(
-                AppError.StorageReason.NotFound,
-                raisonStockage(resultat as AppResult.Failure),
-            )
-        }
+        val ecriture = fichiers.writeText(uri, "# Bonjour\n")
+        assertTrue(ecriture is AppResult.Success)
 
-    @Test
-    fun `lire un document absent échoue par NotFound`() =
-        runTest {
-            val resultat = fichiers.readText(uriDocument("${fournisseur.racine}/introuvable.txt"))
-
-            assertEquals(
-                AppError.StorageReason.NotFound,
-                raisonStockage(resultat as AppResult.Failure),
-            )
-        }
+        assertEquals("# Bonjour\n", (fichiers.readText(uri) as AppResult.Success).value)
+    }
 
     @Test
-    fun `delete supprime le document, dossier comme fichier`() =
-        runTest {
-            val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
-            val projet = (fichiers.createDirectory(uriDocument(travail), "Projet") as AppResult.Success).value
-            fichiers.createFile(projet, "fichier.txt", "text/plain")
+    fun `writeBytes préserve le contenu binaire`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        val octets = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D)
+        val uri = (fichiers.createFile(uriDocument(travail), "icone.png", "image/png") as AppResult.Success).value
 
-            val suppression = fichiers.delete(projet)
+        fichiers.writeBytes(uri, octets)
 
-            assertTrue(suppression is AppResult.Success)
-            assertFalse(fichiers.exists(projet))
-        }
+        val statut = (fichiers.stat(uri) as AppResult.Success).value
+        assertEquals(octets.size.toLong(), statut.sizeBytes)
+    }
 
     @Test
-    fun `les permissions persistantes sont prises, consultées et libérées`() =
-        runTest {
-            val arbre = fournisseur.uriArbre()
+    fun `écrire dans un document absent échoue par NotFound`() = runTest {
+        val resultat = fichiers.writeText(uriDocument("${fournisseur.racine}/introuvable.txt"), "texte")
 
-            assertFalse(fichiers.hasPersistablePermission(arbre.toString()))
+        assertEquals(
+            AppError.StorageReason.NotFound,
+            raisonStockage(resultat as AppResult.Failure),
+        )
+    }
 
-            assertTrue(fichiers.takePersistablePermission(arbre.toString()) is AppResult.Success)
-            assertTrue(fichiers.hasPersistablePermission(arbre.toString()))
+    @Test
+    fun `lire un document absent échoue par NotFound`() = runTest {
+        val resultat = fichiers.readText(uriDocument("${fournisseur.racine}/introuvable.txt"))
 
-            assertTrue(fichiers.releasePersistablePermission(arbre.toString()) is AppResult.Success)
-            assertFalse(fichiers.hasPersistablePermission(arbre.toString()))
-        }
+        assertEquals(
+            AppError.StorageReason.NotFound,
+            raisonStockage(resultat as AppResult.Failure),
+        )
+    }
+
+    @Test
+    fun `delete supprime le document, dossier comme fichier`() = runTest {
+        val travail = fournisseur.semerDossier(fournisseur.racine, "Travail")
+        val projet = (fichiers.createDirectory(uriDocument(travail), "Projet") as AppResult.Success).value
+        fichiers.createFile(projet, "fichier.txt", "text/plain")
+
+        val suppression = fichiers.delete(projet)
+
+        assertTrue(suppression is AppResult.Success)
+        assertFalse(fichiers.exists(projet))
+    }
+
+    @Test
+    fun `les permissions persistantes sont prises, consultées et libérées`() = runTest {
+        val arbre = fournisseur.uriArbre()
+
+        assertFalse(fichiers.hasPersistablePermission(arbre.toString()))
+
+        assertTrue(fichiers.takePersistablePermission(arbre.toString()) is AppResult.Success)
+        assertTrue(fichiers.hasPersistablePermission(arbre.toString()))
+
+        assertTrue(fichiers.releasePersistablePermission(arbre.toString()) is AppResult.Success)
+        assertFalse(fichiers.hasPersistablePermission(arbre.toString()))
+    }
 
     @Test
     fun `un dossier de travail refusé par Android est détecté en amont`() {

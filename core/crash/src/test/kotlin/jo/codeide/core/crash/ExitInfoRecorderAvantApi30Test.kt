@@ -31,23 +31,22 @@ class ExitInfoRecorderAvantApi30Test {
     }
 
     @Test
-    fun `aucun rapport n'est créé avant l'API 30`() =
-        runTest {
-            val repertoire = File(contexte.filesDir, CrashLimits.DIRECTORY_NAME)
-            repertoire.deleteRecursively()
+    fun `aucun rapport n'est créé avant l'API 30`() = runTest {
+        val repertoire = File(contexte.filesDir, CrashLimits.DIRECTORY_NAME)
+        repertoire.deleteRecursively()
 
-            val enregistreur =
-                ExitInfoRecorder(
-                    context = contexte,
-                    fileStore = CrashReportFileStore(repertoire),
-                    appInfo = OutilsTestCrash.infosApplication,
-                    timeProvider = Horloge(),
-                    // Ordonnanceur partagé avec runTest : un seul planificateur
-                    // pour le corps du test et le dispatcher injecté.
-                    dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
-                )
+        val enregistreur =
+            ExitInfoRecorder(
+                context = contexte,
+                fileStore = CrashReportFileStore(repertoire),
+                appInfo = OutilsTestCrash.infosApplication,
+                timeProvider = Horloge(),
+                // Ordonnanceur partagé avec runTest : un seul planificateur
+                // pour le corps du test et le dispatcher injecté.
+                dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
+            )
 
-            assertEquals(0, enregistreur.recordPending())
-            assertTrue(repertoire.listFiles().isNullOrEmpty())
-        }
+        assertEquals(0, enregistreur.recordPending())
+        assertTrue(repertoire.listFiles().isNullOrEmpty())
+    }
 }

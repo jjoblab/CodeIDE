@@ -27,62 +27,62 @@ import javax.inject.Inject
  * requêtes SAF sont regroupées par l'implémentation et annulables.
  */
 public class VerifyProjectAccessUseCase
-    @Inject
-    constructor(
-        private val projects: ProjectRepository,
-        private val files: FileSystem,
-    ) {
-        /**
-         * Calcule l'état d'accès d'un projet.
-         *
-         * @param id identifiant du projet.
-         * @return l'état calculé, ou l'échec typé (`NotFound` si le
-         * projet est inconnu, `Storage` si le stockage lui-même est
-         * injoignable au-delà de la permission).
-         */
-        public suspend operator fun invoke(id: ProjectId): AppResult<ProjectAccessState> =
-            when (val lecture = projects.getProject(id)) {
-                is AppResult.Success -> etatDAcces(lecture.value)
-                is AppResult.Failure -> lecture
+@Inject
+constructor(
+    private val projects: ProjectRepository,
+    private val files: FileSystem,
+) {
+    /**
+     * Calcule l'état d'accès d'un projet.
+     *
+     * @param id identifiant du projet.
+     * @return l'état calculé, ou l'échec typé (`NotFound` si le
+     * projet est inconnu, `Storage` si le stockage lui-même est
+     * injoignable au-delà de la permission).
+     */
+    public suspend operator fun invoke(id: ProjectId): AppResult<ProjectAccessState> =
+        when (val lecture = projects.getProject(id)) {
+            is AppResult.Success -> etatDAcces(lecture.value)
+            is AppResult.Failure -> lecture
+        }
+
+    /**
+     * Calcule l'état d'accès d'un projet **connu** du registre :
+     * permission d'abord, existence ensuite.
+     */
+    private suspend fun etatDAcces(projet: Project): AppResult<ProjectAccessState> {
+        // Permission d'abord : c'est elle qui se révoque silencieusement
+        // (redémarrage, restore sans permissions).
+        if (!files.hasPersistablePermission(projet.location.grantUri)) {
+            return AppResult.Success(ProjectAccessState.PermissionLost)
+        }
+
+        return when (val dossier = files.stat(projet.location.documentUri)) {
+            // Dossier joignable et décrit : accès complet.
+            is AppResult.Success -> {
+                AppResult.Success(ProjectAccessState.Available)
             }
 
-        /**
-         * Calcule l'état d'accès d'un projet **connu** du registre :
-         * permission d'abord, existence ensuite.
-         */
-        private suspend fun etatDAcces(projet: Project): AppResult<ProjectAccessState> {
-            // Permission d'abord : c'est elle qui se révoque silencieusement
-            // (redémarrage, restore sans permissions).
-            if (!files.hasPersistablePermission(projet.location.grantUri)) {
-                return AppResult.Success(ProjectAccessState.PermissionLost)
-            }
+            // Dossier disparu alors que la permission tient toujours.
+            is AppResult.Failure -> {
+                when ((dossier.error as? AppError.Storage)?.reason) {
+                    AppError.StorageReason.NotFound -> {
+                        AppResult.Success(ProjectAccessState.Missing)
+                    }
 
-            return when (val dossier = files.stat(projet.location.documentUri)) {
-                // Dossier joignable et décrit : accès complet.
-                is AppResult.Success -> {
-                    AppResult.Success(ProjectAccessState.Available)
-                }
+                    // La permission a pu sauter entre les deux requêtes :
+                    // l'état PermissionLost reste la réponse honnête.
+                    AppError.StorageReason.PermissionLost -> {
+                        AppResult.Success(ProjectAccessState.PermissionLost)
+                    }
 
-                // Dossier disparu alors que la permission tient toujours.
-                is AppResult.Failure -> {
-                    when ((dossier.error as? AppError.Storage)?.reason) {
-                        AppError.StorageReason.NotFound -> {
-                            AppResult.Success(ProjectAccessState.Missing)
-                        }
-
-                        // La permission a pu sauter entre les deux requêtes :
-                        // l'état PermissionLost reste la réponse honnête.
-                        AppError.StorageReason.PermissionLost -> {
-                            AppResult.Success(ProjectAccessState.PermissionLost)
-                        }
-
-                        // Erreur d'E/S non classée : on ne préjuge pas d'une
-                        // disparition — on remonte l'échec à l'appelant.
-                        else -> {
-                            dossier
-                        }
+                    // Erreur d'E/S non classée : on ne préjuge pas d'une
+                    // disparition — on remonte l'échec à l'appelant.
+                    else -> {
+                        dossier
                     }
                 }
             }
         }
     }
+}

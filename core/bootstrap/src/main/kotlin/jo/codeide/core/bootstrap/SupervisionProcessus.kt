@@ -73,27 +73,26 @@ internal object SupervisionProcessus {
         processus: ManagedProcess,
         consommateur: ((String) -> Unit)? = null,
         limiteStderr: Int = LIMITE_LIGNES,
-    ): Sortie =
-        coroutineScope {
-            val erreurs = mutableListOf<String>()
-            val sortieStandard = mutableListOf<String>()
-            val drainages =
-                listOf(
-                    launch {
-                        processus.stdoutLines().collect { ligne ->
-                            sortieStandard += ligne
-                            consommateur?.invoke(ligne)
-                        }
-                    },
-                    launch {
-                        processus.stderrLines().collect { ligne ->
-                            consommateur?.invoke(ligne)
-                            if (erreurs.size < limiteStderr) erreurs += ligne
-                        }
-                    },
-                )
-            val code = processus.awaitExit()
-            drainages.joinAll()
-            Sortie(code, erreurs.toList(), sortieStandard.toList())
-        }
+    ): Sortie = coroutineScope {
+        val erreurs = mutableListOf<String>()
+        val sortieStandard = mutableListOf<String>()
+        val drainages =
+            listOf(
+                launch {
+                    processus.stdoutLines().collect { ligne ->
+                        sortieStandard += ligne
+                        consommateur?.invoke(ligne)
+                    }
+                },
+                launch {
+                    processus.stderrLines().collect { ligne ->
+                        consommateur?.invoke(ligne)
+                        if (erreurs.size < limiteStderr) erreurs += ligne
+                    }
+                },
+            )
+        val code = processus.awaitExit()
+        drainages.joinAll()
+        Sortie(code, erreurs.toList(), sortieStandard.toList())
+    }
 }

@@ -53,9 +53,7 @@ sealed interface ActionOnboarding {
      * @property uri URI d'arborescence (`…/tree/…`) proposée par le
      * sélecteur, avec autorisation persistable.
      */
-    data class DossierChoisi(
-        val uri: String,
-    ) : ActionOnboarding
+    data class DossierChoisi(val uri: String) : ActionOnboarding
 
     /** « Plus tard » : l'étape dossier est passable (bandeau à l'accueil). */
     data object PasserDossier : ActionOnboarding
@@ -87,9 +85,7 @@ sealed interface ActionOnboarding {
      *
      * @property activees notifications autorisées pour l'application.
      */
-    data class ConsignerNotifications(
-        val activees: Boolean,
-    ) : ActionOnboarding
+    data class ConsignerNotifications(val activees: Boolean) : ActionOnboarding
 
     /** Page Notifications : ouvre les réglages de notification de l'app (repli si refus). */
     data object DemanderReglagesNotifications : ActionOnboarding
@@ -109,22 +105,16 @@ sealed interface ActionOnboarding {
      *
      * @property actif stockage partagé accessible à l'application.
      */
-    data class ConsignerStockage(
-        val actif: Boolean,
-    ) : ActionOnboarding
+    data class ConsignerStockage(val actif: Boolean) : ActionOnboarding
 
     /** Page Notifications : ouvre les réglages de stockage de l'app (repli si refus). */
     data object DemanderReglagesStockage : ActionOnboarding
 
     /** Change le thème — persistance et aperçu immédiat. */
-    data class ChangerTheme(
-        val mode: ThemeMode,
-    ) : ActionOnboarding
+    data class ChangerTheme(val mode: ThemeMode) : ActionOnboarding
 
     /** Active ou désactive les couleurs dynamiques. */
-    data class ChangerCouleursDynamiques(
-        val activees: Boolean,
-    ) : ActionOnboarding
+    data class ChangerCouleursDynamiques(val activees: Boolean) : ActionOnboarding
 
     /**
      * Change la langue.
@@ -132,19 +122,13 @@ sealed interface ActionOnboarding {
      * @property tag tag BCP 47 (`"fr"`, `"en"`) ou `""` pour suivre le
      * système.
      */
-    data class ChangerLangue(
-        val tag: String,
-    ) : ActionOnboarding
+    data class ChangerLangue(val tag: String) : ActionOnboarding
 
     /** Frappe dans le champ nom d'auteur (état seul, pas d'écriture disque). */
-    data class SaisirNomAuteur(
-        val nom: String,
-    ) : ActionOnboarding
+    data class SaisirNomAuteur(val nom: String) : ActionOnboarding
 
     /** Change la licence par défaut. */
-    data class ChangerLicence(
-        val licence: License,
-    ) : ActionOnboarding
+    data class ChangerLicence(val licence: License) : ActionOnboarding
 
     /** Termine l'assistant : `isSetupCompleted` et retour à l'accueil. */
     data object Terminer : ActionOnboarding
@@ -220,376 +204,373 @@ sealed interface EffetOnboarding {
 @Suppress("LongParameterList", "TooManyFunctions")
 @HiltViewModel
 class OnboardingViewModel
-    @Inject
-    constructor(
-        private val observerParametres: ObserveSettingsUseCase,
-        private val majParametres: UpdateSettingsUseCase,
-        private val definirDossier: SetWorkspaceUseCase,
-        private val validerDossier: ValidateWorkspaceUseCase,
-        private val fichiers: FileSystem,
-        private val localisateurOutils: ToolchainLocator,
-        private val observerEtatOutils: ObserveToolchainStateUseCase,
-        private val orchestrateurInstallation: jo.codeide.core.domain.EnvironmentSetupOrchestrator,
-        private val logger: AppLogger,
-        savedStateHandle: SavedStateHandle,
-    ) : ViewModel() {
-        private val sauvetage = savedStateHandle
+@Inject
+constructor(
+    private val observerParametres: ObserveSettingsUseCase,
+    private val majParametres: UpdateSettingsUseCase,
+    private val definirDossier: SetWorkspaceUseCase,
+    private val validerDossier: ValidateWorkspaceUseCase,
+    private val fichiers: FileSystem,
+    private val localisateurOutils: ToolchainLocator,
+    private val observerEtatOutils: ObserveToolchainStateUseCase,
+    private val orchestrateurInstallation: jo.codeide.core.domain.EnvironmentSetupOrchestrator,
+    private val logger: AppLogger,
+    savedStateHandle: SavedStateHandle,
+) : ViewModel() {
+    private val sauvetage = savedStateHandle
 
-        private val etatInterne = MutableStateFlow(etatInitial())
-        private val canalEffets = Channel<EffetOnboarding>(Channel.BUFFERED)
+    private val etatInterne = MutableStateFlow(etatInitial())
+    private val canalEffets = Channel<EffetOnboarding>(Channel.BUFFERED)
 
-        /** État observable de l'assistant (UDF, section 5.3). */
-        val etat: StateFlow<EtatOnboarding> = etatInterne.asStateFlow()
+    /** État observable de l'assistant (UDF, section 5.3). */
+    val etat: StateFlow<EtatOnboarding> = etatInterne.asStateFlow()
 
-        /** Effets ponctuels (navigation, sélecteur SAF). */
-        val effets: Flow<EffetOnboarding> = canalEffets.receiveAsFlow()
+    /** Effets ponctuels (navigation, sélecteur SAF). */
+    val effets: Flow<EffetOnboarding> = canalEffets.receiveAsFlow()
 
-        init {
-            amorcerDepuisParametres()
-            // État POUSSÉ des outils (v0.37.3) : la page terminal suivait
-            // un instantané pull — une installation terminée pendant que
-            // l'assistant restait ouvert n'y était jamais visible. Le flot
-            // réémets à chaque transition observable (installation finie
-            // ailleurs, marqueur posé), la page se décoche d'elle-même.
-            viewModelScope.launch {
-                observerEtatOutils().collect { outils ->
-                    // Fix v0.76.0 : terminalInstalle ne doit être vrai que
-                    // si le bootstrap EST installé ET que l'installation
-                    // complète (4 phases) est terminée. Avant, seul le
-                    // marqueur disque était vérifié — l'onboarding disait
-                    // « déjà installé » même si JAVA/ANDROID_SDK restaient
-                    // à faire.
-                    val installationTerminee = orchestrateurInstallation.state.value.estTermine()
-                    etatInterne.update {
-                        it.copy(
-                            terminalInstalle = outils.bootstrapInstalle && installationTerminee,
-                        )
-                    }
-                }
-            }
-        }
-
-        /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
-        fun onAction(action: ActionOnboarding) {
-            when (action) {
-                ActionOnboarding.Commencer -> avancer()
-                ActionOnboarding.PageSuivante -> avancer()
-                ActionOnboarding.PagePrecedente -> reculer()
-                ActionOnboarding.PasserDossier -> avancer()
-                ActionOnboarding.PasserTerminal -> avancer()
-                ActionOnboarding.Terminer -> terminer()
-                else -> onActionTerminal(action)
-            }
-        }
-
-        /** Routage des étapes interactives (terminal, dossier, saisie). */
-        private fun onActionTerminal(action: ActionOnboarding) {
-            when (action) {
-                ActionOnboarding.DemanderSelectionDossier -> {
-                    envoyerEffet(EffetOnboarding.OuvrirSelecteurDossier)
-                }
-
-                is ActionOnboarding.DossierChoisi -> {
-                    verifierDossier(action.uri)
-                }
-
-                ActionOnboarding.InstallerTerminal -> {
-                    envoyerEffet(EffetOnboarding.OuvrirInstallation)
-                }
-
-                ActionOnboarding.VerifierTerminal -> {
-                    verifierTerminal()
-                }
-
-                ActionOnboarding.DemanderNotifications -> {
-                    envoyerEffet(EffetOnboarding.OuvrirAutorisationNotifications)
-                }
-
-                ActionOnboarding.DemanderReglagesNotifications -> {
-                    envoyerEffet(EffetOnboarding.OuvrirReglagesNotifications)
-                }
-
-                is ActionOnboarding.ConsignerNotifications -> {
-                    etatInterne.update { it.copy(notificationsActivees = action.activees) }
-                }
-
-                ActionOnboarding.DemanderStockage -> {
-                    envoyerEffet(EffetOnboarding.OuvrirAutorisationStockage)
-                }
-
-                ActionOnboarding.DemanderReglagesStockage -> {
-                    envoyerEffet(EffetOnboarding.OuvrirReglagesStockage)
-                }
-
-                is ActionOnboarding.ConsignerStockage -> {
-                    etatInterne.update { it.copy(stockagePartageActif = action.actif) }
-                }
-
-                else -> {
-                    onActionSaisie(action)
-                }
-            }
-        }
-
-        /** Routage de la saisie (apparence et profil, écritures différées). */
-        private fun onActionSaisie(action: ActionOnboarding) {
-            when (action) {
-                is ActionOnboarding.ChangerTheme -> changerTheme(action.mode)
-                is ActionOnboarding.ChangerCouleursDynamiques -> changerCouleurs(action.activees)
-                is ActionOnboarding.ChangerLangue -> changerLangue(action.tag)
-                is ActionOnboarding.SaisirNomAuteur -> saisirNom(action.nom)
-                is ActionOnboarding.ChangerLicence -> changerLicence(action.licence)
-                else -> Unit // Routage exhaustif par les trois branches.
-            }
-        }
-
-        /**
-         * État initial : d'abord ce que le sauvetage a conservé (mort du
-         * processus), sinon les valeurs en cours des paramètres — un
-         * dossier déjà validé par une tentative précédente ne se redemande
-         * pas, et l'apparence repart des choix réels.
-         */
-        private fun etatInitial(): EtatOnboarding {
-            val page = sauvetage.get<String>(CLE_PAGE)?.let(PageOnboarding::valueOf)
-            return EtatOnboarding(
-                page = page ?: PageOnboarding.BIENVENUE,
-                modeTheme = sauvetage.get<String>(CLE_THEME)?.let(ThemeMode::valueOf) ?: ThemeMode.SYSTEM,
-                couleursDynamiques = sauvetage.get<Boolean>(CLE_DYNAMIQUE) ?: true,
-                langue = sauvetage.get<String>(CLE_LANGUE) ?: "",
-                nomAuteur = sauvetage.get<String>(CLE_NOM_AUTEUR) ?: "",
-                licenceDefaut = sauvetage.get<String>(CLE_LICENCE)?.let(License::fromPersistedName) ?: License.MIT,
-            )
-        }
-
-        /**
-         * Sème l'état depuis les paramètres réels, une seule fois par
-         * vie du sauvetage : après une mort de processus, le drapeau
-         * [CLE_SEME] est déjà posé et les valeurs conservées gagnent.
-         */
-        private fun amorcerDepuisParametres() {
-            viewModelScope.launch {
-                val reglages = observerParametres().first()
-                if (sauvetage.get<Boolean>(CLE_SEME) == true) return@launch
-                sauvetage[CLE_SEME] = true
-                etatInterne.update { courant ->
-                    courant.copy(
-                        dossier = reglages.workspace?.let(EtatDossier::Configure) ?: courant.dossier,
-                        modeTheme = reglages.themeMode,
-                        couleursDynamiques = reglages.useDynamicColor,
-                        langue = reglages.languageTag,
-                        nomAuteur = reglages.authorName,
-                        licenceDefaut = reglages.defaultLicense,
+    init {
+        amorcerDepuisParametres()
+        // État POUSSÉ des outils (v0.37.3) : la page terminal suivait
+        // un instantané pull — une installation terminée pendant que
+        // l'assistant restait ouvert n'y était jamais visible. Le flot
+        // réémets à chaque transition observable (installation finie
+        // ailleurs, marqueur posé), la page se décoche d'elle-même.
+        viewModelScope.launch {
+            observerEtatOutils().collect { outils ->
+                // Fix v0.76.0 : terminalInstalle ne doit être vrai que
+                // si le bootstrap EST installé ET que l'installation
+                // complète (4 phases) est terminée. Avant, seul le
+                // marqueur disque était vérifié — l'onboarding disait
+                // « déjà installé » même si JAVA/ANDROID_SDK restaient
+                // à faire.
+                val installationTerminee = orchestrateurInstallation.state.value.estTermine()
+                etatInterne.update {
+                    it.copy(
+                        terminalInstalle = outils.bootstrapInstalle && installationTerminee,
                     )
                 }
             }
         }
+    }
 
-        /** Avance d'une page, borné à la page finale. */
-        private fun avancer() {
-            // Sur la page finale, le bouton unique de l'hôte s'affiche
-            // « Terminer » : avancer n'a plus de sens, c'est la finalisation
-            // de l'installation qui est demandée (bug constaté sur appareil
-            // réel : le bouton n'aboutissait à rien, `isSetupCompleted`
-            // restait faux et l'assistant revenait à chaque lancement).
-            if (etatInterne.value.page == PageOnboarding.TERMINE) {
-                terminer()
-                return
+    /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
+    fun onAction(action: ActionOnboarding) {
+        when (action) {
+            ActionOnboarding.Commencer -> avancer()
+            ActionOnboarding.PageSuivante -> avancer()
+            ActionOnboarding.PagePrecedente -> reculer()
+            ActionOnboarding.PasserDossier -> avancer()
+            ActionOnboarding.PasserTerminal -> avancer()
+            ActionOnboarding.Terminer -> terminer()
+            else -> onActionTerminal(action)
+        }
+    }
+
+    /** Routage des étapes interactives (terminal, dossier, saisie). */
+    private fun onActionTerminal(action: ActionOnboarding) {
+        when (action) {
+            ActionOnboarding.DemanderSelectionDossier -> {
+                envoyerEffet(EffetOnboarding.OuvrirSelecteurDossier)
             }
-            etatInterne.update { courant ->
-                val suivante = courant.page.ordinal + 1
-                if (suivante > PageOnboarding.entries.lastIndex) {
-                    courant
-                } else {
-                    val page = PageOnboarding.entries[suivante]
-                    sauvetage[CLE_PAGE] = page.name
-                    courant.copy(page = page)
-                }
+
+            is ActionOnboarding.DossierChoisi -> {
+                verifierDossier(action.uri)
+            }
+
+            ActionOnboarding.InstallerTerminal -> {
+                envoyerEffet(EffetOnboarding.OuvrirInstallation)
+            }
+
+            ActionOnboarding.VerifierTerminal -> {
+                verifierTerminal()
+            }
+
+            ActionOnboarding.DemanderNotifications -> {
+                envoyerEffet(EffetOnboarding.OuvrirAutorisationNotifications)
+            }
+
+            ActionOnboarding.DemanderReglagesNotifications -> {
+                envoyerEffet(EffetOnboarding.OuvrirReglagesNotifications)
+            }
+
+            is ActionOnboarding.ConsignerNotifications -> {
+                etatInterne.update { it.copy(notificationsActivees = action.activees) }
+            }
+
+            ActionOnboarding.DemanderStockage -> {
+                envoyerEffet(EffetOnboarding.OuvrirAutorisationStockage)
+            }
+
+            ActionOnboarding.DemanderReglagesStockage -> {
+                envoyerEffet(EffetOnboarding.OuvrirReglagesStockage)
+            }
+
+            is ActionOnboarding.ConsignerStockage -> {
+                etatInterne.update { it.copy(stockagePartageActif = action.actif) }
+            }
+
+            else -> {
+                onActionSaisie(action)
             }
         }
+    }
 
-        /** Revérifie la présence des outils du terminal (retour d'écran) :
-         *  garde explicite du geste « Vérifier » — le localisateur interroge
-         *  le disque à l'instant exact, le flot observable couvre le reste
-         *  (v0.37.3 : les deux chemins convergent, l'un n'exclut pas
-         *  l'autre).
-         */
-        private fun verifierTerminal() {
-            // Fix v0.76.0 : vérifie aussi estTermine() (pas seulement le marqueur disque).
-            val installationTerminee = orchestrateurInstallation.state.value.estTermine()
-            etatInterne.update {
-                it.copy(
-                    terminalInstalle = localisateurOutils.isBootstrapInstalled() && installationTerminee,
+    /** Routage de la saisie (apparence et profil, écritures différées). */
+    private fun onActionSaisie(action: ActionOnboarding) {
+        when (action) {
+            is ActionOnboarding.ChangerTheme -> changerTheme(action.mode)
+            is ActionOnboarding.ChangerCouleursDynamiques -> changerCouleurs(action.activees)
+            is ActionOnboarding.ChangerLangue -> changerLangue(action.tag)
+            is ActionOnboarding.SaisirNomAuteur -> saisirNom(action.nom)
+            is ActionOnboarding.ChangerLicence -> changerLicence(action.licence)
+            else -> Unit // Routage exhaustif par les trois branches.
+        }
+    }
+
+    /**
+     * État initial : d'abord ce que le sauvetage a conservé (mort du
+     * processus), sinon les valeurs en cours des paramètres — un
+     * dossier déjà validé par une tentative précédente ne se redemande
+     * pas, et l'apparence repart des choix réels.
+     */
+    private fun etatInitial(): EtatOnboarding {
+        val page = sauvetage.get<String>(CLE_PAGE)?.let(PageOnboarding::valueOf)
+        return EtatOnboarding(
+            page = page ?: PageOnboarding.BIENVENUE,
+            modeTheme = sauvetage.get<String>(CLE_THEME)?.let(ThemeMode::valueOf) ?: ThemeMode.SYSTEM,
+            couleursDynamiques = sauvetage.get<Boolean>(CLE_DYNAMIQUE) ?: true,
+            langue = sauvetage.get<String>(CLE_LANGUE) ?: "",
+            nomAuteur = sauvetage.get<String>(CLE_NOM_AUTEUR) ?: "",
+            licenceDefaut = sauvetage.get<String>(CLE_LICENCE)?.let(License::fromPersistedName) ?: License.MIT,
+        )
+    }
+
+    /**
+     * Sème l'état depuis les paramètres réels, une seule fois par
+     * vie du sauvetage : après une mort de processus, le drapeau
+     * [CLE_SEME] est déjà posé et les valeurs conservées gagnent.
+     */
+    private fun amorcerDepuisParametres() {
+        viewModelScope.launch {
+            val reglages = observerParametres().first()
+            if (sauvetage.get<Boolean>(CLE_SEME) == true) return@launch
+            sauvetage[CLE_SEME] = true
+            etatInterne.update { courant ->
+                courant.copy(
+                    dossier = reglages.workspace?.let(EtatDossier::Configure) ?: courant.dossier,
+                    modeTheme = reglages.themeMode,
+                    couleursDynamiques = reglages.useDynamicColor,
+                    langue = reglages.languageTag,
+                    nomAuteur = reglages.authorName,
+                    licenceDefaut = reglages.defaultLicense,
                 )
             }
         }
+    }
 
-        /** Recule d'une page, borné à la bienvenue. */
-        private fun reculer() {
-            etatInterne.update { courant ->
-                val precedente = courant.page.ordinal - 1
-                if (precedente < 0) {
-                    courant
-                } else {
-                    val page = PageOnboarding.entries[precedente]
-                    sauvetage[CLE_PAGE] = page.name
-                    courant.copy(page = page)
-                }
+    /** Avance d'une page, borné à la page finale. */
+    private fun avancer() {
+        // Sur la page finale, le bouton unique de l'hôte s'affiche
+        // « Terminer » : avancer n'a plus de sens, c'est la finalisation
+        // de l'installation qui est demandée (bug constaté sur appareil
+        // réel : le bouton n'aboutissait à rien, `isSetupCompleted`
+        // restait faux et l'assistant revenait à chaque lancement).
+        if (etatInterne.value.page == PageOnboarding.TERMINE) {
+            terminer()
+            return
+        }
+        etatInterne.update { courant ->
+            val suivante = courant.page.ordinal + 1
+            if (suivante > PageOnboarding.entries.lastIndex) {
+                courant
+            } else {
+                val page = PageOnboarding.entries[suivante]
+                sauvetage[CLE_PAGE] = page.name
+                courant.copy(page = page)
             }
-        }
-
-        /** Change le thème et le persiste — l'aperçu suit la persistance. */
-        private fun changerTheme(mode: ThemeMode) {
-            sauvetage[CLE_THEME] = mode.name
-            etatInterne.update { it.copy(modeTheme = mode) }
-            ecrireParametres("thème") { it.copy(themeMode = mode) }
-        }
-
-        /** Active ou désactive les couleurs dynamiques et le persiste. */
-        private fun changerCouleurs(activees: Boolean) {
-            sauvetage[CLE_DYNAMIQUE] = activees
-            etatInterne.update { it.copy(couleursDynamiques = activees) }
-            ecrireParametres("couleurs dynamiques") { it.copy(useDynamicColor = activees) }
-        }
-
-        /** Change la langue et le persiste — recréation et aperçu immédiat. */
-        private fun changerLangue(tag: String) {
-            sauvetage[CLE_LANGUE] = tag
-            etatInterne.update { it.copy(langue = tag) }
-            ecrireParametres("langue") { it.copy(languageTag = tag) }
-        }
-
-        /** Mémorise la frappe (état et sauvetage, écriture différée). */
-        private fun saisirNom(nom: String) {
-            sauvetage[CLE_NOM_AUTEUR] = nom
-            etatInterne.update { it.copy(nomAuteur = nom) }
-        }
-
-        /** Mémorise la licence par défaut (écriture à la fin). */
-        private fun changerLicence(licence: License) {
-            sauvetage[CLE_LICENCE] = licence.name
-            etatInterne.update { it.copy(licenceDefaut = licence) }
-        }
-
-        /**
-         * Termine l'assistant : profile les réglages retenus, marque
-         * l'installation terminée et demande le retour à l'accueil.
-         *
-         * Garde anti double-appui ([EtatOnboarding.finalisation]) : la
-         * finalisation ne se relance pas tant qu'une tentative est en vol ;
-         * un échec d'écriture est **signalé à l'écran** (page Terminé) au
-         * lieu d'un silence — le bouton redevient actif pour réessayer.
-         */
-        private fun terminer() {
-            val final = etatInterne.value
-            if (final.finalisation) return
-            etatInterne.update { it.copy(finalisation = true, erreurFinalisation = false) }
-            viewModelScope.launch {
-                val resultat =
-                    majParametres { reglages ->
-                        reglages.copy(
-                            authorName = final.nomAuteur,
-                            defaultLicense = final.licenceDefaut,
-                            isSetupCompleted = true,
-                        )
-                    }
-                when (resultat) {
-                    is AppResult.Success -> {
-                        logger.i(TAG) { "assistant de premier lancement terminé" }
-                        canalEffets.send(EffetOnboarding.RetourAccueil)
-                    }
-
-                    is AppResult.Failure -> {
-                        // Sans écriture, « Terminé » ne vaut pas confirmation :
-                        // on libère le bouton et la page signale l'échec.
-                        logger.w(TAG) { "échec de la finalisation de l'assistant" }
-                        etatInterne.update { it.copy(finalisation = false, erreurFinalisation = true) }
-                    }
-                }
-            }
-        }
-
-        /**
-         * Valide un dossier revenu du sélecteur SAF — cas d'usage de
-         * domaine (`ValidateWorkspaceUseCase`, partagé avec l'écran
-         * Paramètres de l'étape 6) : dossiers refusés par Android 11+
-         * détectés avant toute prise de permission, permission
-         * persistante, test d'écriture (création puis suppression d'un
-         * fichier témoin). Tout échec du cas d'usage relâche déjà la
-         * permission prise (le système en plafonne le nombre, 512 sur
-         * Android 11+, section 5.6).
-         *
-         * Il reste ici à persister le dossier validé, en relâchant la
-         * permission si cette écriture échoue à son tour.
-         */
-        private fun verifierDossier(uri: String) {
-            etatInterne.update { it.copy(dossier = EtatDossier.Verification) }
-            viewModelScope.launch {
-                when (val resultat = validerDossier(uri)) {
-                    is ValidationDossier.Refuse -> {
-                        logger.w(TAG) { "dossier de travail refusé par la plateforme" }
-                        etatInterne.update { it.copy(dossier = EtatDossier.Refuse(resultat.raison)) }
-                    }
-
-                    is ValidationDossier.Erreur -> {
-                        logger.w(TAG) { "échec de la validation du dossier de travail" }
-                        etatInterne.update { it.copy(dossier = EtatDossier.Erreur(resultat.erreur)) }
-                    }
-
-                    is ValidationDossier.Valide -> {
-                        enregistrerDossier(resultat.emplacement)
-                    }
-                }
-            }
-        }
-
-        /** Persiste le dossier validé comme dossier de travail. */
-        private suspend fun enregistrerDossier(dossier: StorageLocation) {
-            when (val resultat = definirDossier(dossier)) {
-                is AppResult.Failure -> {
-                    fichiers.releasePersistablePermission(dossier.grantUri)
-                    logger.w(TAG) { "échec de persistance du dossier de travail" }
-                    etatInterne.update { it.copy(dossier = EtatDossier.Erreur(resultat.error)) }
-                }
-
-                is AppResult.Success -> {
-                    logger.i(TAG) { "dossier de travail configuré" }
-                    etatInterne.update { it.copy(dossier = EtatDossier.Configure(dossier)) }
-                }
-            }
-        }
-
-        /** Écriture de paramètres avec journalisation du seul échec. */
-        private fun ecrireParametres(
-            quoi: String,
-            transformation: (AppSettings) -> AppSettings,
-        ) {
-            viewModelScope.launch {
-                when (val resultat = majParametres(transformation)) {
-                    is AppResult.Success -> {
-                        Unit
-                    }
-
-                    is AppResult.Failure -> {
-                        logger.w(TAG) { "échec de persistance du réglage : $quoi" }
-                    }
-                }
-            }
-        }
-
-        private fun envoyerEffet(effet: EffetOnboarding) {
-            canalEffets.trySend(effet)
-        }
-
-        private companion object {
-            const val TAG = "Onboarding"
-
-            /** Clés du SavedStateHandle (page et champs du profil). */
-            const val CLE_PAGE = "page"
-            const val CLE_THEME = "theme"
-            const val CLE_DYNAMIQUE = "couleurs_dynamiques"
-            const val CLE_LANGUE = "langue"
-            const val CLE_NOM_AUTEUR = "nom_auteur"
-            const val CLE_LICENCE = "licence"
-            const val CLE_SEME = "seme"
         }
     }
+
+    /** Revérifie la présence des outils du terminal (retour d'écran) :
+     *  garde explicite du geste « Vérifier » — le localisateur interroge
+     *  le disque à l'instant exact, le flot observable couvre le reste
+     *  (v0.37.3 : les deux chemins convergent, l'un n'exclut pas
+     *  l'autre).
+     */
+    private fun verifierTerminal() {
+        // Fix v0.76.0 : vérifie aussi estTermine() (pas seulement le marqueur disque).
+        val installationTerminee = orchestrateurInstallation.state.value.estTermine()
+        etatInterne.update {
+            it.copy(
+                terminalInstalle = localisateurOutils.isBootstrapInstalled() && installationTerminee,
+            )
+        }
+    }
+
+    /** Recule d'une page, borné à la bienvenue. */
+    private fun reculer() {
+        etatInterne.update { courant ->
+            val precedente = courant.page.ordinal - 1
+            if (precedente < 0) {
+                courant
+            } else {
+                val page = PageOnboarding.entries[precedente]
+                sauvetage[CLE_PAGE] = page.name
+                courant.copy(page = page)
+            }
+        }
+    }
+
+    /** Change le thème et le persiste — l'aperçu suit la persistance. */
+    private fun changerTheme(mode: ThemeMode) {
+        sauvetage[CLE_THEME] = mode.name
+        etatInterne.update { it.copy(modeTheme = mode) }
+        ecrireParametres("thème") { it.copy(themeMode = mode) }
+    }
+
+    /** Active ou désactive les couleurs dynamiques et le persiste. */
+    private fun changerCouleurs(activees: Boolean) {
+        sauvetage[CLE_DYNAMIQUE] = activees
+        etatInterne.update { it.copy(couleursDynamiques = activees) }
+        ecrireParametres("couleurs dynamiques") { it.copy(useDynamicColor = activees) }
+    }
+
+    /** Change la langue et le persiste — recréation et aperçu immédiat. */
+    private fun changerLangue(tag: String) {
+        sauvetage[CLE_LANGUE] = tag
+        etatInterne.update { it.copy(langue = tag) }
+        ecrireParametres("langue") { it.copy(languageTag = tag) }
+    }
+
+    /** Mémorise la frappe (état et sauvetage, écriture différée). */
+    private fun saisirNom(nom: String) {
+        sauvetage[CLE_NOM_AUTEUR] = nom
+        etatInterne.update { it.copy(nomAuteur = nom) }
+    }
+
+    /** Mémorise la licence par défaut (écriture à la fin). */
+    private fun changerLicence(licence: License) {
+        sauvetage[CLE_LICENCE] = licence.name
+        etatInterne.update { it.copy(licenceDefaut = licence) }
+    }
+
+    /**
+     * Termine l'assistant : profile les réglages retenus, marque
+     * l'installation terminée et demande le retour à l'accueil.
+     *
+     * Garde anti double-appui ([EtatOnboarding.finalisation]) : la
+     * finalisation ne se relance pas tant qu'une tentative est en vol ;
+     * un échec d'écriture est **signalé à l'écran** (page Terminé) au
+     * lieu d'un silence — le bouton redevient actif pour réessayer.
+     */
+    private fun terminer() {
+        val final = etatInterne.value
+        if (final.finalisation) return
+        etatInterne.update { it.copy(finalisation = true, erreurFinalisation = false) }
+        viewModelScope.launch {
+            val resultat =
+                majParametres { reglages ->
+                    reglages.copy(
+                        authorName = final.nomAuteur,
+                        defaultLicense = final.licenceDefaut,
+                        isSetupCompleted = true,
+                    )
+                }
+            when (resultat) {
+                is AppResult.Success -> {
+                    logger.i(TAG) { "assistant de premier lancement terminé" }
+                    canalEffets.send(EffetOnboarding.RetourAccueil)
+                }
+
+                is AppResult.Failure -> {
+                    // Sans écriture, « Terminé » ne vaut pas confirmation :
+                    // on libère le bouton et la page signale l'échec.
+                    logger.w(TAG) { "échec de la finalisation de l'assistant" }
+                    etatInterne.update { it.copy(finalisation = false, erreurFinalisation = true) }
+                }
+            }
+        }
+    }
+
+    /**
+     * Valide un dossier revenu du sélecteur SAF — cas d'usage de
+     * domaine (`ValidateWorkspaceUseCase`, partagé avec l'écran
+     * Paramètres de l'étape 6) : dossiers refusés par Android 11+
+     * détectés avant toute prise de permission, permission
+     * persistante, test d'écriture (création puis suppression d'un
+     * fichier témoin). Tout échec du cas d'usage relâche déjà la
+     * permission prise (le système en plafonne le nombre, 512 sur
+     * Android 11+, section 5.6).
+     *
+     * Il reste ici à persister le dossier validé, en relâchant la
+     * permission si cette écriture échoue à son tour.
+     */
+    private fun verifierDossier(uri: String) {
+        etatInterne.update { it.copy(dossier = EtatDossier.Verification) }
+        viewModelScope.launch {
+            when (val resultat = validerDossier(uri)) {
+                is ValidationDossier.Refuse -> {
+                    logger.w(TAG) { "dossier de travail refusé par la plateforme" }
+                    etatInterne.update { it.copy(dossier = EtatDossier.Refuse(resultat.raison)) }
+                }
+
+                is ValidationDossier.Erreur -> {
+                    logger.w(TAG) { "échec de la validation du dossier de travail" }
+                    etatInterne.update { it.copy(dossier = EtatDossier.Erreur(resultat.erreur)) }
+                }
+
+                is ValidationDossier.Valide -> {
+                    enregistrerDossier(resultat.emplacement)
+                }
+            }
+        }
+    }
+
+    /** Persiste le dossier validé comme dossier de travail. */
+    private suspend fun enregistrerDossier(dossier: StorageLocation) {
+        when (val resultat = definirDossier(dossier)) {
+            is AppResult.Failure -> {
+                fichiers.releasePersistablePermission(dossier.grantUri)
+                logger.w(TAG) { "échec de persistance du dossier de travail" }
+                etatInterne.update { it.copy(dossier = EtatDossier.Erreur(resultat.error)) }
+            }
+
+            is AppResult.Success -> {
+                logger.i(TAG) { "dossier de travail configuré" }
+                etatInterne.update { it.copy(dossier = EtatDossier.Configure(dossier)) }
+            }
+        }
+    }
+
+    /** Écriture de paramètres avec journalisation du seul échec. */
+    private fun ecrireParametres(quoi: String, transformation: (AppSettings) -> AppSettings) {
+        viewModelScope.launch {
+            when (val resultat = majParametres(transformation)) {
+                is AppResult.Success -> {
+                    Unit
+                }
+
+                is AppResult.Failure -> {
+                    logger.w(TAG) { "échec de persistance du réglage : $quoi" }
+                }
+            }
+        }
+    }
+
+    private fun envoyerEffet(effet: EffetOnboarding) {
+        canalEffets.trySend(effet)
+    }
+
+    private companion object {
+        const val TAG = "Onboarding"
+
+        /** Clés du SavedStateHandle (page et champs du profil). */
+        const val CLE_PAGE = "page"
+        const val CLE_THEME = "theme"
+        const val CLE_DYNAMIQUE = "couleurs_dynamiques"
+        const val CLE_LANGUE = "langue"
+        const val CLE_NOM_AUTEUR = "nom_auteur"
+        const val CLE_LICENCE = "licence"
+        const val CLE_SEME = "seme"
+    }
+}

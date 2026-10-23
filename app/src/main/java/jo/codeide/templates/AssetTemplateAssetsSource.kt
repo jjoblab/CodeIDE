@@ -26,77 +26,71 @@ import javax.inject.Singleton
  */
 @Singleton
 public class AssetTemplateAssetsSource
-    @Inject
-    constructor(
-        @param:ApplicationContext private val contexte: Context,
-        private val dispatchers: DispatcherProvider,
-    ) : TemplateAssetsSource {
-        public override suspend fun listTemplateDirectories(): AppResult<List<String>> =
-            lire { assets ->
-                // Selon la source (appareil réel ou Robolectric), `list` renvoie
-                // soit les enfants directs, soit tous les fichiers descendants :
-                // ne garder que le premier segment de chaque entrée — les vrais
-                // répertoires de modèles, sans doublon, dans un ordre déterministe.
-                entrer(assets)
-                    .map { it.substringBefore('/') }
-                    .filter { it.isNotEmpty() }
-                    .distinct()
-                    .sorted()
-            }
+@Inject
+constructor(
+    @param:ApplicationContext private val contexte: Context,
+    private val dispatchers: DispatcherProvider,
+) : TemplateAssetsSource {
+    public override suspend fun listTemplateDirectories(): AppResult<List<String>> = lire { assets ->
+        // Selon la source (appareil réel ou Robolectric), `list` renvoie
+        // soit les enfants directs, soit tous les fichiers descendants :
+        // ne garder que le premier segment de chaque entrée — les vrais
+        // répertoires de modèles, sans doublon, dans un ordre déterministe.
+        entrer(assets)
+            .map { it.substringBefore('/') }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sorted()
+    }
 
-        public override suspend fun readTemplateFile(
-            templateId: String,
-            cheminRelatif: String,
-        ): AppResult<ByteArray> {
-            if (!idModeleSur(templateId) || !cheminInterne(cheminRelatif)) {
-                return AppResult.Failure(
-                    AppError.Storage(AppError.StorageReason.NotFound, "$templateId/$cheminRelatif"),
-                )
-            }
-            return lire { assets ->
-                assets.open("$REPERTOIRE_MODELES/$templateId/$cheminRelatif").use { it.readBytes() }
-            }
+    public override suspend fun readTemplateFile(templateId: String, cheminRelatif: String): AppResult<ByteArray> {
+        if (!idModeleSur(templateId) || !cheminInterne(cheminRelatif)) {
+            return AppResult.Failure(
+                AppError.Storage(AppError.StorageReason.NotFound, "$templateId/$cheminRelatif"),
+            )
         }
-
-        public override suspend fun readLicenseFile(nomFichier: String): AppResult<ByteArray> {
-            if (!nomFichierSimple(nomFichier)) {
-                return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, nomFichier))
-            }
-            return lire { assets -> assets.open("$REPERTOIRE_LICENCES/$nomFichier").use { it.readBytes() } }
-        }
-
-        /** Exécute [bloc] sur le dispatcher d'E/S et type les pannes. */
-        private suspend fun <T> lire(bloc: (android.content.res.AssetManager) -> T): AppResult<T> =
-            try {
-                AppResult.Success(
-                    kotlinx.coroutines.withContext(dispatchers.io) { bloc(contexte.assets) },
-                )
-            } catch (absent: java.io.FileNotFoundException) {
-                AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, absent.message ?: ""))
-            } catch (io: IOException) {
-                AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, io.message ?: ""))
-            }
-
-        /** Liste les entrées sous `assets/templates/` (vide si la racine manque). */
-        private fun entrer(assets: android.content.res.AssetManager): List<String> =
-            assets.list(REPERTOIRE_MODELES)?.toList() ?: emptyList()
-
-        /** Un identifiant de modèle est un simple nom de répertoire. */
-        private fun idModeleSur(id: String): Boolean = id.isNotEmpty() && "/" !in id && "\\" !in id && ".." !in id
-
-        /** Un chemin interne ne monte jamais et n'est jamais absolu. */
-        private fun cheminInterne(chemin: String): Boolean =
-            !chemin.startsWith("/") && "\\" !in chemin && chemin.split("/").none { it == ".." || it.isEmpty() }
-
-        /** Un nom de fichier de licence est plat, sans traversal. */
-        private fun nomFichierSimple(nom: String): Boolean =
-            nom.isNotEmpty() && "/" !in nom && "\\" !in nom && ".." !in nom
-
-        private companion object {
-            /** Racine des modèles embarqués. */
-            const val REPERTOIRE_MODELES = "templates"
-
-            /** Racine des licences de référence. */
-            const val REPERTOIRE_LICENCES = "licenses"
+        return lire { assets ->
+            assets.open("$REPERTOIRE_MODELES/$templateId/$cheminRelatif").use { it.readBytes() }
         }
     }
+
+    public override suspend fun readLicenseFile(nomFichier: String): AppResult<ByteArray> {
+        if (!nomFichierSimple(nomFichier)) {
+            return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, nomFichier))
+        }
+        return lire { assets -> assets.open("$REPERTOIRE_LICENCES/$nomFichier").use { it.readBytes() } }
+    }
+
+    /** Exécute [bloc] sur le dispatcher d'E/S et type les pannes. */
+    private suspend fun <T> lire(bloc: (android.content.res.AssetManager) -> T): AppResult<T> = try {
+        AppResult.Success(
+            kotlinx.coroutines.withContext(dispatchers.io) { bloc(contexte.assets) },
+        )
+    } catch (absent: java.io.FileNotFoundException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, absent.message ?: ""))
+    } catch (io: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, io.message ?: ""))
+    }
+
+    /** Liste les entrées sous `assets/templates/` (vide si la racine manque). */
+    private fun entrer(assets: android.content.res.AssetManager): List<String> =
+        assets.list(REPERTOIRE_MODELES)?.toList() ?: emptyList()
+
+    /** Un identifiant de modèle est un simple nom de répertoire. */
+    private fun idModeleSur(id: String): Boolean = id.isNotEmpty() && "/" !in id && "\\" !in id && ".." !in id
+
+    /** Un chemin interne ne monte jamais et n'est jamais absolu. */
+    private fun cheminInterne(chemin: String): Boolean =
+        !chemin.startsWith("/") && "\\" !in chemin && chemin.split("/").none { it == ".." || it.isEmpty() }
+
+    /** Un nom de fichier de licence est plat, sans traversal. */
+    private fun nomFichierSimple(nom: String): Boolean = nom.isNotEmpty() && "/" !in nom && "\\" !in nom && ".." !in nom
+
+    private companion object {
+        /** Racine des modèles embarqués. */
+        const val REPERTOIRE_MODELES = "templates"
+
+        /** Racine des licences de référence. */
+        const val REPERTOIRE_LICENCES = "licenses"
+    }
+}

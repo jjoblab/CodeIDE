@@ -41,10 +41,7 @@ class PlantagesFragment : BaseFragment<PagePlantagesBinding>() {
         attachToRoot: Boolean,
     ): PagePlantagesBinding = PagePlantagesBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.listeRapports.layoutManager = LinearLayoutManager(requireContext())

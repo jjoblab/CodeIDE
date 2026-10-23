@@ -117,10 +117,7 @@ private class ClientTermux(
     // Copie demandée par l'utilisateur (C3) : la vraie écriture au
     // presse-papiers — garde sur texte vide incluse — vit dans le
     // copieur injecté, testable sans Android.
-    override fun onCopyTextToClipboard(
-        session: TerminalSession,
-        text: String,
-    ) {
+    override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
         copierTexte(text)
     }
 
@@ -132,51 +129,28 @@ private class ClientTermux(
 
     override fun onTerminalCursorStateChange(state: Boolean) = Unit
 
-    override fun getTerminalCursorStyle(): Int =
-        when (styleCurseur()) {
-            StyleCurseurTerminal.BLOC -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
-            StyleCurseurTerminal.LIGNE -> TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE
-            StyleCurseurTerminal.BARRE -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR
-        }
+    override fun getTerminalCursorStyle(): Int = when (styleCurseur()) {
+        StyleCurseurTerminal.BLOC -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
+        StyleCurseurTerminal.LIGNE -> TerminalEmulator.TERMINAL_CURSOR_STYLE_UNDERLINE
+        StyleCurseurTerminal.BARRE -> TerminalEmulator.TERMINAL_CURSOR_STYLE_BAR
+    }
 
     // Journaux internes de l'émulateur (l'artefact JitPack v0.118.3 les
     // exige sur le client) : silencieux par design — les événements utiles
     // (création, fermeture) passent par l'AppLogger du registre.
-    override fun logError(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logError(tag: String, message: String) = Unit
 
-    override fun logWarn(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logWarn(tag: String, message: String) = Unit
 
-    override fun logInfo(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logInfo(tag: String, message: String) = Unit
 
-    override fun logDebug(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logDebug(tag: String, message: String) = Unit
 
-    override fun logVerbose(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logVerbose(tag: String, message: String) = Unit
 
-    override fun logStackTraceWithMessage(
-        tag: String,
-        message: String,
-        e: Exception,
-    ) = Unit
+    override fun logStackTraceWithMessage(tag: String, message: String, e: Exception) = Unit
 
-    override fun logStackTrace(
-        tag: String,
-        e: Exception,
-    ) = Unit
+    override fun logStackTrace(tag: String, e: Exception) = Unit
 }
 
 /**
@@ -188,79 +162,77 @@ private class ClientTermux(
  * rendu réservée à `feature:terminal` (section 4.4).
  */
 internal class CoquilleTermux
-    internal constructor(
+internal constructor(
+    shell: String,
+    repertoireTravail: String,
+    environnement: Array<String>,
+    ecouteur: EcouteurCoquille,
+    styleCurseur: () -> StyleCurseurTerminal,
+    copierTexte: (String?) -> Unit,
+) : CoquilleSession {
+    internal val session: TerminalSession =
+        TerminalSession(
+            // shellPath =
+            shell,
+            // cwd =
+            repertoireTravail,
+            // args =
+            arrayOfNulls<String>(0),
+            // env =
+            environnement,
+            // transcriptRows =
+            TRANSCRIPT_ROWS,
+            // client =
+            ClientTermux(ecouteur, styleCurseur, copierTexte),
+        )
+
+    override fun estVivante(): Boolean = session.isRunning
+
+    override fun titre(): String? = session.title
+
+    override fun apercuTranscript(): String = session.emulator
+        ?.screen
+        ?.transcriptText
+        .orEmpty()
+
+    override fun terminer() {
+        session.finishIfRunning()
+    }
+
+    // Voie clavier de Termux (`TerminalSession.write` → entrée du
+    // pseudo-terminal) : écho, historique readline et séquences de
+    // contrôle traités par le shell exactement comme une frappe.
+    override fun envoyerTexte(texte: String) {
+        session.write(texte)
+    }
+
+    private companion object {
+        /** Lignes de transcript conservées (même valeur que Termux). */
+        private const val TRANSCRIPT_ROWS = 2000
+    }
+}
+
+/** Fabrique de production : sessions Termux réelles. */
+internal class FabriqueCoquillesTermux
+@Inject
+constructor(
+    private val porteurStyleCurseur: PorteurStyleCurseur,
+    private val copieurPressePapiers: CopieurPressePapiers,
+) : FabriqueCoquilles {
+    override fun creer(
         shell: String,
         repertoireTravail: String,
         environnement: Array<String>,
         ecouteur: EcouteurCoquille,
-        styleCurseur: () -> StyleCurseurTerminal,
-        copierTexte: (String?) -> Unit,
-    ) : CoquilleSession {
-        internal val session: TerminalSession =
-            TerminalSession(
-                // shellPath =
-                shell,
-                // cwd =
-                repertoireTravail,
-                // args =
-                arrayOfNulls<String>(0),
-                // env =
-                environnement,
-                // transcriptRows =
-                TRANSCRIPT_ROWS,
-                // client =
-                ClientTermux(ecouteur, styleCurseur, copierTexte),
-            )
-
-        override fun estVivante(): Boolean = session.isRunning
-
-        override fun titre(): String? = session.title
-
-        override fun apercuTranscript(): String =
-            session.emulator
-                ?.screen
-                ?.transcriptText
-                .orEmpty()
-
-        override fun terminer() {
-            session.finishIfRunning()
-        }
-
-        // Voie clavier de Termux (`TerminalSession.write` → entrée du
-        // pseudo-terminal) : écho, historique readline et séquences de
-        // contrôle traités par le shell exactement comme une frappe.
-        override fun envoyerTexte(texte: String) {
-            session.write(texte)
-        }
-
-        private companion object {
-            /** Lignes de transcript conservées (même valeur que Termux). */
-            private const val TRANSCRIPT_ROWS = 2000
-        }
-    }
-
-/** Fabrique de production : sessions Termux réelles. */
-internal class FabriqueCoquillesTermux
-    @Inject
-    constructor(
-        private val porteurStyleCurseur: PorteurStyleCurseur,
-        private val copieurPressePapiers: CopieurPressePapiers,
-    ) : FabriqueCoquilles {
-        override fun creer(
-            shell: String,
-            repertoireTravail: String,
-            environnement: Array<String>,
-            ecouteur: EcouteurCoquille,
-        ): CoquilleSession =
-            CoquilleTermux(
-                shell,
-                repertoireTravail,
-                environnement,
-                ecouteur,
-                porteurStyleCurseur::lireStyle,
-                copieurPressePapiers::copier,
-            )
-    }
+    ): CoquilleSession = CoquilleTermux(
+        shell,
+        repertoireTravail,
+        environnement,
+        ecouteur,
+        porteurStyleCurseur::lireStyle,
+        copieurPressePapiers::copier,
+    )
+}
 
 /**
  * Détenteur du style de curseur courant (ADR 0059) : collecte les
@@ -276,22 +248,20 @@ internal class FabriqueCoquillesTermux
  */
 @Singleton
 internal class PorteurStyleCurseur
-    @Inject
-    constructor(
-        observeReglages: ObserveSettingsUseCase,
-    ) {
-        /** Dernier style persisté connu (BLOC avant la première émission). */
-        @Volatile
-        internal var style: StyleCurseurTerminal = StyleCurseurTerminal.BLOC
+@Inject
+constructor(observeReglages: ObserveSettingsUseCase) {
+    /** Dernier style persisté connu (BLOC avant la première émission). */
+    @Volatile
+    internal var style: StyleCurseurTerminal = StyleCurseurTerminal.BLOC
 
-        /** Alias de lecture stable pour les coquilles (référence de méthode). */
-        internal fun lireStyle(): StyleCurseurTerminal = style
+    /** Alias de lecture stable pour les coquilles (référence de méthode). */
+    internal fun lireStyle(): StyleCurseurTerminal = style
 
-        private val portee = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val portee = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-        init {
-            portee.launch {
-                observeReglages().collect { reglages -> style = reglages.styleCurseurTerminal }
-            }
+    init {
+        portee.launch {
+            observeReglages().collect { reglages -> style = reglages.styleCurseurTerminal }
         }
     }
+}

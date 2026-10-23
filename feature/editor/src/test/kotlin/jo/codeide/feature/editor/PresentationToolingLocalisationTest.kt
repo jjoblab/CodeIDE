@@ -37,7 +37,7 @@ class PresentationToolingLocalisationFrTest {
                 .libelleActivite(
                     EtatGradle(
                         synchronisationReussie =
-                            ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_100),
+                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_100),
                     ),
                     CanalTooling.SYNC,
                 ).resoudre(contexte),
@@ -102,13 +102,13 @@ class PresentationToolingLocalisationFrTest {
             EtatGradle(
                 synchronisationEnCours = true,
                 etapesSync =
-                    listOf(
-                        EtapeSyncAffichee(
-                            etape = EtapeSync.DEPENDANCES,
-                            octetsRecus = 44_040_192L,
-                            compteur = 3,
-                        ),
+                listOf(
+                    EtapeSyncAffichee(
+                        etape = EtapeSync.DEPENDANCES,
+                        octetsRecus = 44_040_192L,
+                        compteur = 3,
                     ),
+                ),
             )
 
         val entete = PresentationTooling.etatEntete(etat)
@@ -140,12 +140,12 @@ class PresentationToolingLocalisationFrTest {
             PresentationTooling.etatEntete(
                 EtatGradle(
                     synchronisationReussie =
-                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 1_000),
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 1_000),
                     tachesDisponibles =
-                        listOf(
-                            jo.codeide.core.domain
-                                .InfoTache(chemin = ":app:build", nomAffiche = "build"),
-                        ),
+                    listOf(
+                        jo.codeide.core.domain
+                            .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                    ),
                 ),
             )
 
@@ -173,7 +173,7 @@ class PresentationToolingLocalisationEnTest {
                 .libelleActivite(
                     EtatGradle(
                         synchronisationReussie =
-                            ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_100),
+                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_100),
                     ),
                     CanalTooling.SYNC,
                 ).resoudre(contexte),
@@ -238,13 +238,13 @@ class PresentationToolingLocalisationEnTest {
             EtatGradle(
                 synchronisationEnCours = true,
                 etapesSync =
-                    listOf(
-                        EtapeSyncAffichee(
-                            etape = EtapeSync.DEPENDANCES,
-                            octetsRecus = 44_040_192L,
-                            compteur = 3,
-                        ),
+                listOf(
+                    EtapeSyncAffichee(
+                        etape = EtapeSync.DEPENDANCES,
+                        octetsRecus = 44_040_192L,
+                        compteur = 3,
                     ),
+                ),
             )
 
         val entete = PresentationTooling.etatEntete(etat)
@@ -276,12 +276,12 @@ class PresentationToolingLocalisationEnTest {
             PresentationTooling.etatEntete(
                 EtatGradle(
                     synchronisationReussie =
-                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 1_000),
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 1_000),
                     tachesDisponibles =
-                        listOf(
-                            jo.codeide.core.domain
-                                .InfoTache(chemin = ":app:build", nomAffiche = "build"),
-                        ),
+                    listOf(
+                        jo.codeide.core.domain
+                            .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                    ),
                 ),
             )
 

@@ -36,10 +36,7 @@ class EnvironnementLspFragment : BaseFragment<FragmentLspEnvironnementBinding>()
         attachToRoot: Boolean,
     ): FragmentLspEnvironnementBinding = FragmentLspEnvironnementBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }

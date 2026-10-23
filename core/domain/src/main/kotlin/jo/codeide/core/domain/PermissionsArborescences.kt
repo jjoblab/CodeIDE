@@ -60,13 +60,9 @@ internal suspend fun libererPermissionSiInutilisee(
  *
  * @return `true` si le document est l'arbre lui-même ou vit dessous.
  */
-internal fun estDansArbre(
-    racineDocumentUri: String,
-    documentUri: String,
-): Boolean =
-    documentUri == racineDocumentUri ||
-        documentUri.startsWith("$racineDocumentUri%2F") ||
-        documentUri.startsWith("$racineDocumentUri/")
+internal fun estDansArbre(racineDocumentUri: String, documentUri: String): Boolean = documentUri == racineDocumentUri ||
+    documentUri.startsWith("$racineDocumentUri%2F") ||
+    documentUri.startsWith("$racineDocumentUri/")
 
 /**
  * Chemin relatif d'un identifiant de document **décodé** sous une racine
@@ -79,10 +75,7 @@ internal fun estDansArbre(
  * @return le chemin sous la racine (ex. `MonProjet` sous
  * `primary:CodeIDE`), ou `null` hors arbre.
  */
-internal fun cheminRelatifSiSousArbre(
-    racineId: String,
-    idDocument: String,
-): String? {
+internal fun cheminRelatifSiSousArbre(racineId: String, idDocument: String): String? {
     if (!idDocument.startsWith("$racineId/")) return null
     return idDocument.removePrefix("$racineId/")
 }
@@ -97,11 +90,7 @@ internal fun cheminRelatifSiSousArbre(
  * @param idDocument identifiant décodé (repli).
  * @return un libellé non vide.
  */
-internal suspend fun libelleLisible(
-    fichiers: FileSystem,
-    uriDocument: String,
-    idDocument: String,
-): String {
+internal suspend fun libelleLisible(fichiers: FileSystem, uriDocument: String, idDocument: String): String {
     val nom =
         (fichiers.stat(uriDocument) as? AppResult.Success<FileStat>)
             ?.value

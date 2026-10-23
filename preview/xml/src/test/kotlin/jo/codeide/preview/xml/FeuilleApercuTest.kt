@@ -14,52 +14,51 @@ import org.junit.Test
  */
 public class FeuilleApercuTest {
     /** Arbre simple : racine + TextView (2 problèmes) + LinearLayout vide. */
-    private fun vues(): List<InfoVueRendu> =
-        listOf(
-            InfoVueRendu(
-                gauche = 0,
-                haut = 0,
-                droite = 400,
-                bas = 800,
-                libelle = "ConstraintLayout @+id/root",
-                debutElement = 0,
-                finElement = 30,
-                indiceParent = -1,
-                profondeur = 0,
-                classe = "ConstraintLayout",
-                idRes = "root",
-                conteneur = true,
-            ),
-            InfoVueRendu(
-                gauche = 24,
-                haut = 16,
-                droite = 376,
-                bas = 64,
-                libelle = "Button @+id/action",
-                debutElement = 30,
-                finElement = 90,
-                indiceParent = 0,
-                profondeur = 1,
-                classe = "Button",
-                idRes = "action",
-                cliquable = true,
-            ),
-            InfoVueRendu(
-                gauche = 24,
-                haut = 80,
-                droite = 376,
-                bas = 400,
-                libelle = "LinearLayout @+id/panier",
-                debutElement = 90,
-                finElement = 120,
-                indiceParent = 0,
-                profondeur = 1,
-                classe = "LinearLayout",
-                idRes = "panier",
-                conteneur = true,
-                orientation = InfoVueRendu.ORIENTATION_VERTICALE,
-            ),
-        )
+    private fun vues(): List<InfoVueRendu> = listOf(
+        InfoVueRendu(
+            gauche = 0,
+            haut = 0,
+            droite = 400,
+            bas = 800,
+            libelle = "ConstraintLayout @+id/root",
+            debutElement = 0,
+            finElement = 30,
+            indiceParent = -1,
+            profondeur = 0,
+            classe = "ConstraintLayout",
+            idRes = "root",
+            conteneur = true,
+        ),
+        InfoVueRendu(
+            gauche = 24,
+            haut = 16,
+            droite = 376,
+            bas = 64,
+            libelle = "Button @+id/action",
+            debutElement = 30,
+            finElement = 90,
+            indiceParent = 0,
+            profondeur = 1,
+            classe = "Button",
+            idRes = "action",
+            cliquable = true,
+        ),
+        InfoVueRendu(
+            gauche = 24,
+            haut = 80,
+            droite = 376,
+            bas = 400,
+            libelle = "LinearLayout @+id/panier",
+            debutElement = 90,
+            finElement = 120,
+            indiceParent = 0,
+            profondeur = 1,
+            classe = "LinearLayout",
+            idRes = "panier",
+            conteneur = true,
+            orientation = InfoVueRendu.ORIENTATION_VERTICALE,
+        ),
+    )
 
     private val problemes =
         listOf(
@@ -76,25 +75,20 @@ public class FeuilleApercuTest {
         )
 
     /** La vue avec un span refait (InfoVueRendu n'est pas une data class — pas de copy). */
-    private fun avecSpan(
-        vue: InfoVueRendu,
-        debut: Int,
-        fin: Int,
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = vue.gauche,
-            haut = vue.haut,
-            droite = vue.droite,
-            bas = vue.bas,
-            libelle = vue.libelle,
-            debutElement = debut,
-            finElement = fin,
-            indiceParent = vue.indiceParent,
-            profondeur = vue.profondeur,
-            classe = vue.classe,
-            idRes = vue.idRes,
-            conteneur = vue.conteneur,
-        )
+    private fun avecSpan(vue: InfoVueRendu, debut: Int, fin: Int): InfoVueRendu = InfoVueRendu(
+        gauche = vue.gauche,
+        haut = vue.haut,
+        droite = vue.droite,
+        bas = vue.bas,
+        libelle = vue.libelle,
+        debutElement = debut,
+        finElement = fin,
+        indiceParent = vue.indiceParent,
+        profondeur = vue.profondeur,
+        classe = vue.classe,
+        idRes = vue.idRes,
+        conteneur = vue.conteneur,
+    )
 
     @Test
     fun `l'arbre suit le pré-ordre avec indentation par profondeur et badge de problèmes`() {
@@ -191,25 +185,24 @@ public class FeuilleApercuTest {
     // ── PE14-S1 (ADR 0139) — la section « Système » de l'arbre ───────────
 
     /** Les BARRES d'un décor : status bar 24 dp + barre de navigation 48 dp (440 dpi). */
-    private fun barresSysteme(): List<InfoVueSysteme> =
-        listOf(
-            InfoVueSysteme(
-                gauche = 0,
-                haut = 0,
-                droite = 440,
-                bas = 66,
-                classe = "StatusBar",
-                type = InfoVueSysteme.TYPE_STATUS_BAR,
-            ),
-            InfoVueSysteme(
-                gauche = 0,
-                haut = 814,
-                droite = 440,
-                bas = 946,
-                classe = "NavigationBar",
-                type = InfoVueSysteme.TYPE_NAVIGATION_BAR,
-            ),
-        )
+    private fun barresSysteme(): List<InfoVueSysteme> = listOf(
+        InfoVueSysteme(
+            gauche = 0,
+            haut = 0,
+            droite = 440,
+            bas = 66,
+            classe = "StatusBar",
+            type = InfoVueSysteme.TYPE_STATUS_BAR,
+        ),
+        InfoVueSysteme(
+            gauche = 0,
+            haut = 814,
+            droite = 440,
+            bas = 946,
+            classe = "NavigationBar",
+            type = InfoVueSysteme.TYPE_NAVIGATION_BAR,
+        ),
+    )
 
     @Test
     fun `entreesSysteme - une entete puis une rangee par barre, jamais selectionnables`() {

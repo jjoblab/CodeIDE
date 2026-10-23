@@ -23,10 +23,10 @@ class AssemblerContexteTest {
             assembleur.assembler(
                 DonneesContexte(
                     mentions =
-                        listOf(
-                            MentionFichier(".env", "CLE_SUPER_SECRETE=sk-aaaaaaaaaaaaaaaaaaaaaa"),
-                            MentionFichier("app/src/main/MainActivity.kt", "class MainActivity"),
-                        ),
+                    listOf(
+                        MentionFichier(".env", "CLE_SUPER_SECRETE=sk-aaaaaaaaaaaaaaaaaaaaaa"),
+                        MentionFichier("app/src/main/MainActivity.kt", "class MainActivity"),
+                    ),
                 ),
                 ExclusionsIa(),
             )
@@ -82,10 +82,10 @@ class AssemblerContexteTest {
             assembleur.assembler(
                 DonneesContexte(
                     mentions =
-                        listOf(
-                            MentionFichier("/storage/emulated/0/projet/app/secret.kt", "val x = 1"),
-                            MentionFichier("../hors-projet.txt", "val y = 2"),
-                        ),
+                    listOf(
+                        MentionFichier("/storage/emulated/0/projet/app/secret.kt", "val x = 1"),
+                        MentionFichier("../hors-projet.txt", "val y = 2"),
+                    ),
                 ),
                 ExclusionsIa(),
             )
@@ -104,16 +104,16 @@ class AssemblerContexteTest {
                     contenuFichierActif = "class MainActivity",
                     selection = SelectionEditeur(0, 5, "class"),
                     diagnostics =
-                        listOf(
-                            DiagnosticEditeur(
-                                identifiant = "javac:12:3",
-                                gravite = GraviteDiagnostic.ERREUR,
-                                cheminRelatif = "app/src/main/MainActivity.kt",
-                                ligne = 12,
-                                colonne = 3,
-                                message = " incompatible types",
-                            ),
+                    listOf(
+                        DiagnosticEditeur(
+                            identifiant = "javac:12:3",
+                            gravite = GraviteDiagnostic.ERREUR,
+                            cheminRelatif = "app/src/main/MainActivity.kt",
+                            ligne = 12,
+                            colonne = 3,
+                            message = " incompatible types",
                         ),
+                    ),
                     mentions = listOf(MentionFichier("README.md", "# Projet")),
                     listeChemins = listOf("app/src/main/MainActivity.kt", "README.md"),
                 ),

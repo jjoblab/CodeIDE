@@ -51,99 +51,98 @@ enum class NiveauEtat {
  * `indicateurTexte` sont lus depuis le XML.
  */
 public class IndicateurEtat
-    @JvmOverloads
-    constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0,
-    ) : LinearLayout(context, attrs, defStyleAttr) {
-        private val vueIcone: ImageView
-        private val vueTexte: MaterialTextView
+@JvmOverloads
+constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0,
+) : LinearLayout(context, attrs, defStyleAttr) {
+    private val vueIcone: ImageView
+    private val vueTexte: MaterialTextView
 
-        /** Niveau courant de la pastille. */
-        public var etat: NiveauEtat = NiveauEtat.NEUTRE
-            private set
+    /** Niveau courant de la pastille. */
+    public var etat: NiveauEtat = NiveauEtat.NEUTRE
+        private set
 
-        /** Texte court de la pastille (« Prêt », « En cours »…). */
-        public var texte: CharSequence
-            get() = vueTexte.text
-            set(valeur) {
-                vueTexte.text = valeur
-                if (contentDescription.isNullOrBlank()) contentDescription = valeur
-            }
-
-        init {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            val margeHorizontale = resources.getDimensionPixelSize(R.dimen.spacing_sm)
-            val margeVerticale = resources.getDimensionPixelSize(R.dimen.spacing_2xs)
-            updatePadding(
-                left = margeHorizontale,
-                top = margeVerticale,
-                right = margeHorizontale,
-                bottom = margeVerticale,
-            )
-            setBackgroundResource(R.drawable.fond_indicateur)
-            // Changements d'état annoncés sans voler le focus (spec LSP § 5).
-            accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
-            inflate(context, R.layout.vue_indicateur_etat, this)
-
-            vueIcone = findViewById(R.id.indicateur_icone)
-            vueTexte = findViewById(R.id.indicateur_texte)
-
-            val lecteur = context.obtainStyledAttributes(attrs, R.styleable.IndicateurEtat)
-            try {
-                texte = lecteur.getText(R.styleable.IndicateurEtat_indicateurTexte) ?: ""
-                setEtat(lireNiveau(lecteur))
-            } finally {
-                lecteur.recycle()
-            }
+    /** Texte court de la pastille (« Prêt », « En cours »…). */
+    public var texte: CharSequence
+        get() = vueTexte.text
+        set(valeur) {
+            vueTexte.text = valeur
+            if (contentDescription.isNullOrBlank()) contentDescription = valeur
         }
 
-        /**
-         * Change le niveau : forme, teintes de fond et de texte
-         * suivent ensemble, le fond restant le rôle CONTENEUR et le
-         * texte/la forme la teinte PLEINE de l'état.
-         */
-        public fun setEtat(niveau: NiveauEtat) {
-            etat = niveau
-            val (conteneur, pleine) =
-                when (niveau) {
-                    NiveauEtat.OK -> {
-                        Pair(R.attr.colorSuccesContainer, R.attr.colorSucces)
-                    }
+    init {
+        orientation = HORIZONTAL
+        gravity = Gravity.CENTER_VERTICAL
+        val margeHorizontale = resources.getDimensionPixelSize(R.dimen.spacing_sm)
+        val margeVerticale = resources.getDimensionPixelSize(R.dimen.spacing_2xs)
+        updatePadding(
+            left = margeHorizontale,
+            top = margeVerticale,
+            right = margeHorizontale,
+            bottom = margeVerticale,
+        )
+        setBackgroundResource(R.drawable.fond_indicateur)
+        // Changements d'état annoncés sans voler le focus (spec LSP § 5).
+        accessibilityLiveRegion = View.ACCESSIBILITY_LIVE_REGION_POLITE
+        inflate(context, R.layout.vue_indicateur_etat, this)
 
-                    NiveauEtat.AVERTISSEMENT -> {
-                        Pair(R.attr.colorAvertissementContainer, R.attr.colorAvertissement)
-                    }
+        vueIcone = findViewById(R.id.indicateur_icone)
+        vueTexte = findViewById(R.id.indicateur_texte)
 
-                    NiveauEtat.ERREUR -> {
-                        Pair(RMaterial.attr.colorErrorContainer, RAppcompat.attr.colorError)
-                    }
-
-                    NiveauEtat.NEUTRE -> {
-                        Pair(RMaterial.attr.colorSurfaceVariant, RMaterial.attr.colorOnSurfaceVariant)
-                    }
-                }
-            backgroundTintList = ColorStateList.valueOf(MaterialColors.getColor(this, conteneur))
-            vueIcone.setImageResource(iconeDe(niveau))
-            vueIcone.imageTintList = ColorStateList.valueOf(MaterialColors.getColor(this, pleine))
-            vueTexte.setTextColor(MaterialColors.getColor(this, pleine))
+        val lecteur = context.obtainStyledAttributes(attrs, R.styleable.IndicateurEtat)
+        try {
+            texte = lecteur.getText(R.styleable.IndicateurEtat_indicateurTexte) ?: ""
+            setEtat(lireNiveau(lecteur))
+        } finally {
+            lecteur.recycle()
         }
-
-        private fun iconeDe(niveau: NiveauEtat): Int =
-            when (niveau) {
-                NiveauEtat.OK -> R.drawable.ic_indicateur_ok
-                NiveauEtat.AVERTISSEMENT -> R.drawable.ic_indicateur_avertissement
-                NiveauEtat.ERREUR -> R.drawable.ic_indicateur_erreur
-                NiveauEtat.NEUTRE -> R.drawable.ic_indicateur_neutre
-            }
-
-        private fun lireNiveau(lecteur: TypedArray): NiveauEtat =
-            when (lecteur.getInt(R.styleable.IndicateurEtat_indicateurEtat, NiveauEtat.NEUTRE.ordinal)) {
-                NiveauEtat.OK.ordinal -> NiveauEtat.OK
-                NiveauEtat.AVERTISSEMENT.ordinal -> NiveauEtat.AVERTISSEMENT
-                NiveauEtat.ERREUR.ordinal -> NiveauEtat.ERREUR
-                else -> NiveauEtat.NEUTRE
-            }
     }
+
+    /**
+     * Change le niveau : forme, teintes de fond et de texte
+     * suivent ensemble, le fond restant le rôle CONTENEUR et le
+     * texte/la forme la teinte PLEINE de l'état.
+     */
+    public fun setEtat(niveau: NiveauEtat) {
+        etat = niveau
+        val (conteneur, pleine) =
+            when (niveau) {
+                NiveauEtat.OK -> {
+                    Pair(R.attr.colorSuccesContainer, R.attr.colorSucces)
+                }
+
+                NiveauEtat.AVERTISSEMENT -> {
+                    Pair(R.attr.colorAvertissementContainer, R.attr.colorAvertissement)
+                }
+
+                NiveauEtat.ERREUR -> {
+                    Pair(RMaterial.attr.colorErrorContainer, RAppcompat.attr.colorError)
+                }
+
+                NiveauEtat.NEUTRE -> {
+                    Pair(RMaterial.attr.colorSurfaceVariant, RMaterial.attr.colorOnSurfaceVariant)
+                }
+            }
+        backgroundTintList = ColorStateList.valueOf(MaterialColors.getColor(this, conteneur))
+        vueIcone.setImageResource(iconeDe(niveau))
+        vueIcone.imageTintList = ColorStateList.valueOf(MaterialColors.getColor(this, pleine))
+        vueTexte.setTextColor(MaterialColors.getColor(this, pleine))
+    }
+
+    private fun iconeDe(niveau: NiveauEtat): Int = when (niveau) {
+        NiveauEtat.OK -> R.drawable.ic_indicateur_ok
+        NiveauEtat.AVERTISSEMENT -> R.drawable.ic_indicateur_avertissement
+        NiveauEtat.ERREUR -> R.drawable.ic_indicateur_erreur
+        NiveauEtat.NEUTRE -> R.drawable.ic_indicateur_neutre
+    }
+
+    private fun lireNiveau(lecteur: TypedArray): NiveauEtat =
+        when (lecteur.getInt(R.styleable.IndicateurEtat_indicateurEtat, NiveauEtat.NEUTRE.ordinal)) {
+            NiveauEtat.OK.ordinal -> NiveauEtat.OK
+            NiveauEtat.AVERTISSEMENT.ordinal -> NiveauEtat.AVERTISSEMENT
+            NiveauEtat.ERREUR.ordinal -> NiveauEtat.ERREUR
+            else -> NiveauEtat.NEUTRE
+        }
+}

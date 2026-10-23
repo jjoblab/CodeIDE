@@ -22,10 +22,7 @@ class JsonlLogStoreTest {
     private fun store(): JsonlLogStore = JsonlLogStore(dossierTemporaire.root, json)
 
     /** Une ligne JSONL sérialisée d'entrée, d'environ [poids] octets. */
-    private fun ligne(
-        index: Int,
-        poids: Int = 3,
-    ): String {
+    private fun ligne(index: Int, poids: Int = 3): String {
         val bourrage = "x".repeat(poids * 20)
         return """{"timestampMillis":$index,"sessionId":"s","level":"INFO",""" +
             """"tag":"Test","threadName":"main","message":"entrée $index $bourrage"}"""

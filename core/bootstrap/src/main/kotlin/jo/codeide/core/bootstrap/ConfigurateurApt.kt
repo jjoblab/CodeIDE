@@ -68,38 +68,34 @@ internal class ConfigurateurApt(
      * @return `true` si le fichier a été (ré)écrit, `false` s'il était
      * déjà conforme — le test de correction s'appuie sur ce retour.
      */
-    suspend fun ecrireSourcesList(
-        prefixe: File,
-        ligneDepotApt: String,
-    ): Boolean =
-        withContext(dispatchers.io) {
-            // v0.47.0 : AVANT le test de conformité — un préfixe installé
-            // par une version antérieure peut être conforme sur le
-            // `sources.list` tout en manquant les répertoires standard :
-            // guérir à CHAQUE passage, même sans réécriture.
-            assurerRepertoiresApt(prefixe)
-            val sourcesList = File(prefixe, "etc/apt/sources.list")
-            val contenuAttendu = "$EN_TETE_SOURCES\n$ligneDepotApt\n"
-            if (sourcesList.isFile && sourcesList.readText() == contenuAttendu) {
-                return@withContext false
-            }
-            // Le répertoire peut manquer (réinstallation partielle) : il
-            // est créé avant l'écriture atomique.
-            sourcesList.parentFile?.mkdirs()
-            val temporaire = File(sourcesList.parentFile, "sources.list.codeide")
-            try {
-                temporaire.bufferedWriter().use { ecrivain -> ecrivain.write(contenuAttendu) }
-                if (sourcesList.exists() && !sourcesList.delete()) {
-                    throw EchecBootstrap(BootstrapReason.PermissionRefusee, "sources.list existant non remplaçable")
-                }
-                if (!temporaire.renameTo(sourcesList)) {
-                    throw EchecBootstrap(BootstrapReason.PermissionRefusee, "bascule du sources.list impossible")
-                }
-            } finally {
-                temporaire.delete()
-            }
-            true
+    suspend fun ecrireSourcesList(prefixe: File, ligneDepotApt: String): Boolean = withContext(dispatchers.io) {
+        // v0.47.0 : AVANT le test de conformité — un préfixe installé
+        // par une version antérieure peut être conforme sur le
+        // `sources.list` tout en manquant les répertoires standard :
+        // guérir à CHAQUE passage, même sans réécriture.
+        assurerRepertoiresApt(prefixe)
+        val sourcesList = File(prefixe, "etc/apt/sources.list")
+        val contenuAttendu = "$EN_TETE_SOURCES\n$ligneDepotApt\n"
+        if (sourcesList.isFile && sourcesList.readText() == contenuAttendu) {
+            return@withContext false
         }
+        // Le répertoire peut manquer (réinstallation partielle) : il
+        // est créé avant l'écriture atomique.
+        sourcesList.parentFile?.mkdirs()
+        val temporaire = File(sourcesList.parentFile, "sources.list.codeide")
+        try {
+            temporaire.bufferedWriter().use { ecrivain -> ecrivain.write(contenuAttendu) }
+            if (sourcesList.exists() && !sourcesList.delete()) {
+                throw EchecBootstrap(BootstrapReason.PermissionRefusee, "sources.list existant non remplaçable")
+            }
+            if (!temporaire.renameTo(sourcesList)) {
+                throw EchecBootstrap(BootstrapReason.PermissionRefusee, "bascule du sources.list impossible")
+            }
+        } finally {
+            temporaire.delete()
+        }
+        true
+    }
 
     /**
      * Exécute `apt update` contre le dépôt configuré.
@@ -110,10 +106,7 @@ internal class ConfigurateurApt(
      * @throws EchecBootstrap code de sortie non nul (dépôt injoignable,
      * signature refusée…).
      */
-    suspend fun miseAJour(
-        prefixe: File,
-        consommateur: (String) -> Unit,
-    ) {
+    suspend fun miseAJour(prefixe: File, consommateur: (String) -> Unit) {
         val sortie = executerApt(prefixe, listOf("update"), consommateur)
         if (sortie.code != 0) {
             throw EchecBootstrap(
@@ -133,11 +126,7 @@ internal class ConfigurateurApt(
      * l'appelant consigne l'état par paquet sans faire échouer les
      * autres.
      */
-    suspend fun installerPaquet(
-        prefixe: File,
-        paquet: String,
-        consommateur: (String) -> Unit,
-    ): EchecBootstrap? {
+    suspend fun installerPaquet(prefixe: File, paquet: String, consommateur: (String) -> Unit): EchecBootstrap? {
         val sortie = executerApt(prefixe, listOf("install", "-y", paquet), consommateur)
         return if (sortie.code == 0) {
             null

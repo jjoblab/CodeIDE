@@ -48,10 +48,7 @@ public object SuppressionSure {
      * l'objet) ; le [Resultat.referencesRetirees] du succès nourrit le
      * toast du même nom (§ 10).
      */
-    public fun composer(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): Resultat? {
+    public fun composer(texte: String, span: InsertionXml.SpanParent): Resultat? {
         val arbre = ArbreAttributsXml.lire(texte)
         // Le nœud au span : les DEUX bornes (même contrat que la
         // localisation d'[EditionAttributsXml] — les spans de l'arbre et
@@ -88,10 +85,7 @@ public object SuppressionSure {
     )
 
     /** Le retrait d'UN élément survivant : son édition + son décompte de mortes. */
-    private class RetraitMort(
-        val edition: EditionAttributsXml.EditionAttributsXmlResultat,
-        val references: Int,
-    )
+    private class RetraitMort(val edition: EditionAttributsXml.EditionAttributsXmlResultat, val references: Int)
 
     /**
      * Le retrait des références mortes d'UN élément survivant : `null`
@@ -103,22 +97,21 @@ public object SuppressionSure {
         texte: String,
         noeud: ArbreAttributsXml.Noeud,
         identifiantsPartis: Set<String>,
-    ): RetraitMort? =
-        EditionAttributsXml
-            .lire(texte, InsertionXml.SpanParent(noeud.debut, noeud.fin))
-            ?.let { attributs ->
-                val mortes = attributs.filter { estReferenceMorte(it.valeur, identifiantsPartis) }
-                if (mortes.isEmpty()) {
-                    null
-                } else {
-                    EditionAttributsXml
-                        .retirerAttributs(
-                            texte,
-                            InsertionXml.SpanParent(noeud.debut, noeud.fin),
-                            nomsARetirer(attributs, mortes),
-                        )?.let { retrait -> RetraitMort(retrait, mortes.size) }
-                }
+    ): RetraitMort? = EditionAttributsXml
+        .lire(texte, InsertionXml.SpanParent(noeud.debut, noeud.fin))
+        ?.let { attributs ->
+            val mortes = attributs.filter { estReferenceMorte(it.valeur, identifiantsPartis) }
+            if (mortes.isEmpty()) {
+                null
+            } else {
+                EditionAttributsXml
+                    .retirerAttributs(
+                        texte,
+                        InsertionXml.SpanParent(noeud.debut, noeud.fin),
+                        nomsARetirer(attributs, mortes),
+                    )?.let { retrait -> RetraitMort(retrait, mortes.size) }
             }
+        }
 
     /** Le sous-arbre de [racine] (elle-même comprise), en pré-ordre. */
     private fun sousArbre(racine: ArbreAttributsXml.Noeud): List<ArbreAttributsXml.Noeud> =
@@ -129,10 +122,7 @@ public object SuppressionSure {
      * [ArbreAttributsXml.nomId] — même filtre que la maquette `delSel`)
      * vers un identifiant du sous-arbre supprimé ?
      */
-    private fun estReferenceMorte(
-        valeur: String,
-        identifiantsPartis: Set<String>,
-    ): Boolean {
+    private fun estReferenceMorte(valeur: String, identifiantsPartis: Set<String>): Boolean {
         val nom = ArbreAttributsXml.nomId(valeur)
         return nom != null && nom in identifiantsPartis
     }

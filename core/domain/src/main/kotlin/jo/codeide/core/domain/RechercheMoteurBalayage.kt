@@ -21,56 +21,51 @@ import java.io.File
  */
 @Suppress("TooManyFunctions") // Port de recherche : une fonction par étape du balayage.
 public class RechercheMoteurBalayage : RechercheMoteur {
-    override fun rechercher(
-        cheminFuse: String,
-        requete: String,
-        options: OptionsRecherche,
-    ): Flow<LotResultats> =
-        flow {
-            if (requete.isBlank()) return@flow
-            val racine = File(cheminFuse)
-            if (!racine.isDirectory) return@flow
-            val motif = compilerMotif(requete, options) ?: return@flow
-            val resultats = mutableListOf<ResultatRecherche>()
-            var fichiersBalayes = 0
-            var plafondAtteint = false
+    override fun rechercher(cheminFuse: String, requete: String, options: OptionsRecherche): Flow<LotResultats> = flow {
+        if (requete.isBlank()) return@flow
+        val racine = File(cheminFuse)
+        if (!racine.isDirectory) return@flow
+        val motif = compilerMotif(requete, options) ?: return@flow
+        val resultats = mutableListOf<ResultatRecherche>()
+        var fichiersBalayes = 0
+        var plafondAtteint = false
 
-            racine.walkTopDown().forEach { fichier ->
-                if (plafondAtteint) return@forEach
-                if (!fichier.isFile) return@forEach
-                if (estExclu(fichier, racine, options)) return@forEach
-                if (fichier.length() > options.tailleMaxFichier) return@forEach
-                if (estBinaire(fichier)) return@forEach
+        racine.walkTopDown().forEach { fichier ->
+            if (plafondAtteint) return@forEach
+            if (!fichier.isFile) return@forEach
+            if (estExclu(fichier, racine, options)) return@forEach
+            if (fichier.length() > options.tailleMaxFichier) return@forEach
+            if (estBinaire(fichier)) return@forEach
 
-                fichiersBalayes++
-                val cheminRelatif = fichier.relativeTo(racine).path
-                fichier.useLines { lignes ->
-                    lignes.forEachIndexed { index, ligne ->
-                        if (resultats.size >= options.plafondResultats) {
-                            plafondAtteint = true
-                            return@useLines
-                        }
-                        val trouveur = motif.find(ligne)
-                        trouveur?.let { match ->
-                            resultats +=
-                                ResultatRecherche(
-                                    chemin = cheminRelatif,
-                                    numeroLigne = index + 1,
-                                    colonneDebut = match.range.first,
-                                    colonneFin = match.range.last + 1,
-                                    extrait = ligne.take(EXTRAIT_MAX).trim(),
-                                    nomFichier = fichier.name,
-                                )
-                        }
+            fichiersBalayes++
+            val cheminRelatif = fichier.relativeTo(racine).path
+            fichier.useLines { lignes ->
+                lignes.forEachIndexed { index, ligne ->
+                    if (resultats.size >= options.plafondResultats) {
+                        plafondAtteint = true
+                        return@useLines
+                    }
+                    val trouveur = motif.find(ligne)
+                    trouveur?.let { match ->
+                        resultats +=
+                            ResultatRecherche(
+                                chemin = cheminRelatif,
+                                numeroLigne = index + 1,
+                                colonneDebut = match.range.first,
+                                colonneFin = match.range.last + 1,
+                                extrait = ligne.take(EXTRAIT_MAX).trim(),
+                                nomFichier = fichier.name,
+                            )
                     }
                 }
-                if (resultats.size >= LOT_TAILLE || resultats.isNotEmpty()) {
-                    emit(LotResultats(resultats.toList(), fichiersBalayes, plafondAtteint, false))
-                    resultats.clear()
-                }
             }
-            emit(LotResultats(resultats.toList(), fichiersBalayes, plafondAtteint, true))
+            if (resultats.size >= LOT_TAILLE || resultats.isNotEmpty()) {
+                emit(LotResultats(resultats.toList(), fichiersBalayes, plafondAtteint, false))
+                resultats.clear()
+            }
         }
+        emit(LotResultats(resultats.toList(), fichiersBalayes, plafondAtteint, true))
+    }
 
     /** Compile la requête en [Regex] selon les [options]. */
     @Suppress("SwallowedException") // Regex invalide → null (repli, pas de crash).

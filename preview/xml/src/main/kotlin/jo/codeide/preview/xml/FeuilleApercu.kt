@@ -177,16 +177,10 @@ public object FeuilleApercu {
      * UNE paire d'attributs affichée (libellé, valeur) — miroir des
      * groupes `dl.kv` de la maquette.
      */
-    public data class EntreeAttribut(
-        val libelle: String,
-        val valeur: String,
-    )
+    public data class EntreeAttribut(val libelle: String, val valeur: String)
 
     /** UN groupe d'attributs de l'onglet Attributs (miroir `groups`). */
-    public data class GroupeAttributs(
-        val titre: String,
-        val entrees: List<EntreeAttribut>,
-    )
+    public data class GroupeAttributs(val titre: String, val entrees: List<EntreeAttribut>)
 
     /**
      * Les groupes d'attributs de la vue sélectionnée, LECTURE SEULE
@@ -196,10 +190,7 @@ public object FeuilleApercu {
      * conversions px → dp se font par la densité du PROFIL (repli px si
      * densité inconnue — jamais une valeur inventée).
      */
-    public fun groupesAttributs(
-        vue: InfoVueRendu,
-        densiteDpi: Int,
-    ): List<GroupeAttributs> {
+    public fun groupesAttributs(vue: InfoVueRendu, densiteDpi: Int): List<GroupeAttributs> {
         val idNom = vue.idRes.substringAfterLast('/')
         val identite =
             buildList {
@@ -276,10 +267,7 @@ public object FeuilleApercu {
      *        un texte modifié depuis peut décaler les lignes : comportement
      *        assumé, le rendu reste la référence affichée).
      */
-    public fun plageSource(
-        texte: String,
-        vue: InfoVueRendu?,
-    ): IntRange? {
+    public fun plageSource(texte: String, vue: InfoVueRendu?): IntRange? {
         if (vue == null || !vue.selectable || texte.isEmpty()) return null
         val debut = AligneurElementsXml.numeroLigne(texte, vue.debutElement)
         val fin = AligneurElementsXml.numeroLigne(texte, (vue.finElement - 1).coerceAtLeast(vue.debutElement))
@@ -292,11 +280,7 @@ public object FeuilleApercu {
      * Source : la plage posée par une écriture d'insertion, dépôt ou
      * placement). Null si la plage est vide ou hors texte.
      */
-    public fun lignesDePlage(
-        texte: String,
-        debut: Int,
-        fin: Int,
-    ): IntRange? {
+    public fun lignesDePlage(texte: String, debut: Int, fin: Int): IntRange? {
         if (texte.isEmpty() || fin <= debut) return null
         val premiere = AligneurElementsXml.numeroLigne(texte, debut.coerceIn(0, texte.length - 1))
         val derniere =
@@ -316,11 +300,7 @@ public object FeuilleApercu {
      * sélectionne la vue la plus interne présente sur la ligne, jamais la
      * simple indentation qui la précède).
      */
-    public fun vueDeLigne(
-        vues: List<InfoVueRendu>,
-        texte: String,
-        ligne: Int,
-    ): Int {
+    public fun vueDeLigne(vues: List<InfoVueRendu>, texte: String, ligne: Int): Int {
         if (ligne < 1 || vues.isEmpty() || texte.isEmpty()) return -1
         // Ligne INEXISTANTE (au-delà du document) : aucune vue (jamais la
         // dernière ligne du document à sa place).
@@ -334,16 +314,12 @@ public object FeuilleApercu {
     }
 
     /** Le compte de problèmes PAR VUE (compteur de badge et pastilles). */
-    private fun problemeParVue(problemes: List<ProblemesPreview.ProblemeApercu>): Map<Int, Int> =
-        problemes
-            .groupingBy { it.indiceVue }
-            .eachCount()
+    private fun problemeParVue(problemes: List<ProblemesPreview.ProblemeApercu>): Map<Int, Int> = problemes
+        .groupingBy { it.indiceVue }
+        .eachCount()
 
     /** Le badge de dimensions « w×h » en dp (miroir `r0(q.w) + '×' + r0(q.h)`). */
-    private fun badgeDimensions(
-        vue: InfoVueRendu,
-        densiteDpi: Int,
-    ): String {
+    private fun badgeDimensions(vue: InfoVueRendu, densiteDpi: Int): String {
         if (vue.droite <= vue.gauche || vue.bas <= vue.haut) return ""
         if (densiteDpi <= 0) return "${vue.largeurPx}×${vue.hauteurPx}"
         val largeur = CalquesApercu.pxVersDp(vue.largeurPx, densiteDpi)
@@ -355,10 +331,7 @@ public object FeuilleApercu {
      * Le badge de dimensions d'une BARRE SYSTÈME (PE14-S1, ADR 0139 — même
      * convention que [badgeDimensions], sur les bornes du décor).
      */
-    private fun badgeDimensionsSysteme(
-        vue: InfoVueSysteme,
-        densiteDpi: Int,
-    ): String {
+    private fun badgeDimensionsSysteme(vue: InfoVueSysteme, densiteDpi: Int): String {
         if (vue.droite <= vue.gauche || vue.bas <= vue.haut) return ""
         if (densiteDpi <= 0) return "${vue.largeurPx}×${vue.hauteurPx}px"
         val largeur = CalquesApercu.pxVersDp(vue.largeurPx, densiteDpi)
@@ -367,19 +340,14 @@ public object FeuilleApercu {
     }
 
     /** Une bande de marge/padding affichée (0 dp → masquée, miroir maquette `if (mt)`). */
-    private fun bande(
-        px: Int,
-        densiteDpi: Int,
-    ): String? {
+    private fun bande(px: Int, densiteDpi: Int): String? {
         if (px <= 0) return null
         return if (densiteDpi > 0) "${CalquesApercu.pxVersDp(px, densiteDpi)}dp" else "${px}px"
     }
 
     /** Une dimension affichée (dp du profil, repli px si densité inconnue). */
-    private fun dpOuPx(
-        px: Int,
-        densiteDpi: Int,
-    ): String = if (densiteDpi > 0) "${CalquesApercu.pxVersDp(px, densiteDpi)}dp" else "${px}px"
+    private fun dpOuPx(px: Int, densiteDpi: Int): String =
+        if (densiteDpi > 0) "${CalquesApercu.pxVersDp(px, densiteDpi)}dp" else "${px}px"
 
     /** Le monogramme d'une rangée d'arbre (miroir `k` — initiale de la classe). */
     private fun monogramme(classe: String): String = classe.take(1).uppercase()

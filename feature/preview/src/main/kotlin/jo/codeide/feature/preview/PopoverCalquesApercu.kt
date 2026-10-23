@@ -91,30 +91,25 @@ internal class PopoverCalquesApercu(
     }
 
     /** Les SIX calques de la VUE (titre, état lu à la volée, pose). */
-    private fun entrees(): List<EntreeCalque> =
-        listOf(
-            EntreeCalque(R.string.preview_calque_parent_freres, { vueRendu.calquesParentFreres }, {
-                vueRendu.calquesParentFreres = it
-            }),
-            EntreeCalque(R.string.preview_calque_marges_padding, { vueRendu.calquesMargesPadding }, {
-                vueRendu.calquesMargesPadding = it
-            }),
-            EntreeCalque(R.string.preview_calque_relations, { vueRendu.calquesContraintes }, {
-                vueRendu.calquesContraintes = it
-            }),
-            EntreeCalque(
-                R.string.preview_calque_problemes,
-                { vueRendu.calquesProblemes },
-                { vueRendu.calquesProblemes = it },
-            ),
-            EntreeCalque(R.string.preview_calque_bornes, { vueRendu.calquesBornes }, { vueRendu.calquesBornes = it }),
-            EntreeCalque(R.string.preview_calque_grille, { vueRendu.grilleAffichee }, { vueRendu.grilleAffichee = it }),
-        )
+    private fun entrees(): List<EntreeCalque> = listOf(
+        EntreeCalque(R.string.preview_calque_parent_freres, { vueRendu.calquesParentFreres }, {
+            vueRendu.calquesParentFreres = it
+        }),
+        EntreeCalque(R.string.preview_calque_marges_padding, { vueRendu.calquesMargesPadding }, {
+            vueRendu.calquesMargesPadding = it
+        }),
+        EntreeCalque(R.string.preview_calque_relations, { vueRendu.calquesContraintes }, {
+            vueRendu.calquesContraintes = it
+        }),
+        EntreeCalque(
+            R.string.preview_calque_problemes,
+            { vueRendu.calquesProblemes },
+            { vueRendu.calquesProblemes = it },
+        ),
+        EntreeCalque(R.string.preview_calque_bornes, { vueRendu.calquesBornes }, { vueRendu.calquesBornes = it }),
+        EntreeCalque(R.string.preview_calque_grille, { vueRendu.grilleAffichee }, { vueRendu.grilleAffichee = it }),
+    )
 
     /** UNE entrée du popover : titre, état lu à la volée, pose. */
-    private data class EntreeCalque(
-        val titreRes: Int,
-        val estActif: () -> Boolean,
-        val poser: (Boolean) -> Unit,
-    )
+    private data class EntreeCalque(val titreRes: Int, val estActif: () -> Boolean, val poser: (Boolean) -> Unit)
 }

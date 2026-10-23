@@ -1,0 +1,261 @@
+package jo.codeide.preview.compose
+
+import android.content.Context
+import android.graphics.Bitmap
+import androidx.test.core.app.ApplicationProvider
+import jo.codeide.core.testing.TestDispatcherProvider
+import jo.lspkotlin.api.AppelFonctionKotlin
+import jo.lspkotlin.api.ArgumentAppelKotlin
+import jo.lspkotlin.api.GenreArgumentAppelKotlin
+import jo.lspkotlin.api.PreviewKotlin
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/**
+ * Moteur de preview Compose (C1) sous Robolectric, transport FAUX —
+ * l'orchestration sur l'horloge virtuelle : branchement immédiat,
+ * debounce des frappes, diff d'identité par digeste (anti-boucle),
+ * re-rendu des paramètres, état typé de l'indisponibilité.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [26])
+class MoteurPreviewComposeTest {
+    /** Faux transport : enregistre les requêtes, répond à la demande. */
+    private class FauxTransport : TransportCompose {
+        var requetes: MutableList<RequeteRenduCompose> = mutableListOf()
+        var echecs: Int = 0
+
+        var fournitSucces: Boolean = true
+
+        override suspend fun rendre(requete: RequeteRenduCompose): ResultatTransportCompose {
+            requetes.add(requete)
+            return if (fournitSucces && echecs == 0) {
+                ResultatTransportCompose.Succes(
+                    bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888),
+                    metriques = MetriquesRenduCompose(dureeMs = 3, nombreNoeuds = 1, largeur = 4, hauteur = 4),
+                )
+            } else {
+                echecs = (echecs - 1).coerceAtLeast(0)
+                ResultatTransportCompose.Erreur(
+                    message = "processus indisponible",
+                    erreurs = listOf(ErreurCompose(GenreErreurCompose.PROCESSUS_INDISPONIBLE, null, 0)),
+                )
+            }
+        }
+
+        override fun close() = Unit
+    }
+
+    private fun previewTexte(nom: String, chaine: String): PreviewKotlin = PreviewKotlin(
+        nom = nom,
+        paquet = "com.exemple",
+        debutNom = 0,
+        finNom = 0,
+        parametres = emptyList(),
+        corps =
+        listOf(
+            AppelFonctionKotlin(
+                nom = "Text",
+                recepteur = null,
+                ligne = 5,
+                arguments =
+                listOf(
+                    ArgumentAppelKotlin(
+                        nom = "text",
+                        genre = GenreArgumentAppelKotlin.LITTERAL,
+                        texte = "\"$chaine\"",
+                    ),
+                ),
+                contenu = emptyList(),
+            ),
+        ),
+    )
+
+    @Test
+    fun `brancher - rendu immédiat, une entrée par preview`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") {
+            listOf(previewTexte("ApercuUn", "Un"), previewTexte("ApercuDeux", "Deux"))
+        }
+        advanceUntilIdle()
+
+        val etat = moteur.etat.value
+        assertTrue("état attendu RenduValide, trouvé $etat", etat is EtatPreviewCompose.RenduValide)
+        etat as EtatPreviewCompose.RenduValide
+        assertEquals("les DEUX previews rendues", 2, etat.rendus.size)
+        assertEquals("ApercuUn", etat.rendus[0].nom)
+        assertEquals("ApercuDeux", etat.rendus[1].nom)
+        assertEquals("l'indice suit l'ordre du document", 1, etat.rendus[1].index)
+        assertTrue(etat.rendus[0].bitmap != null)
+        assertEquals(2, transport.requetes.size)
+        assertEquals("file:///a.kt#ApercuUn#0", transport.requetes[0].identite)
+        moteur.close()
+    }
+
+    @Test
+    fun `frappes - debounce 400 ms, fournisseur tiré APRÈS`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        var tirages: Int = 0
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") {
+            tirages += 1
+            listOf(previewTexte("Apercu", "Premier"))
+        }
+        advanceUntilIdle()
+        assertEquals(1, tirages)
+        // TROIS frappes rapprochées = UN seul parse + UN seul rendu
+        // (le texte est tiré à la demande, jamais par frappe). PAS de
+        // advanceUntilIdle avant l'assertion : il franchirait LE
+        // debounce lui-même.
+        moteur.soumettre()
+        moteur.soumettre()
+        moteur.soumettre()
+        advanceTimeBy(100)
+        assertEquals("rien avant le debounce", 1, tirages)
+        advanceTimeBy(400)
+        advanceUntilIdle()
+        assertEquals("le fournisseur est tiré APRÈS le debounce", 2, tirages)
+        // Le contenu est INCHANGÉ : le diff d'identité SAUVE l'appel
+        // Binder (requetes reste 1) — c'est l'OBJET du test dédié
+        // « digeste inchangé » ; ici n'est éprouvé que le MÉCANISME
+        // du debounce (parse différé, jamais par frappe).
+        assertEquals("contenu inchangé → le rendu est reporté", 1, transport.requetes.size)
+        moteur.close()
+    }
+
+    @Test
+    fun `digeste inchangé - le rendu précédent est REPORTÉ (zéro appel)`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Pareil")) }
+        advanceUntilIdle()
+        assertEquals(1, transport.requetes.size)
+        // Le même contenu re-soumis (bascule d'onglet retour, rafraîchissement) :
+        // le digeste est IDENTIQUE, la session vivante garde tout.
+        moteur.soumettreImmediat()
+        advanceUntilIdle()
+        assertEquals("le diff d'identité SAUVE l'appel Binder", 1, transport.requetes.size)
+        val etat = moteur.etat.value as EtatPreviewCompose.RenduValide
+        assertTrue("le rendu précédent reste disponible", etat.rendus[0].bitmap != null)
+        moteur.close()
+    }
+
+    @Test
+    fun `contenu changé - re-rendu de la preview éditée`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        var chaine = "Avant"
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", chaine)) }
+        advanceUntilIdle()
+        assertEquals(1, transport.requetes.size)
+        chaine = "Après (édité)"
+        moteur.soumettreImmediat()
+        advanceUntilIdle()
+        assertEquals("le nouveau digeste traverse", 2, transport.requetes.size)
+        assertTrue(moteur.etat.value is EtatPreviewCompose.RenduValide)
+        moteur.close()
+    }
+
+    @Test
+    fun `paramètre nuit - re-rendu complet malgré le digeste inchangé`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Pareil")) }
+        advanceUntilIdle()
+        assertEquals(1, transport.requetes.size)
+        moteur.definirNuit(true)
+        advanceUntilIdle()
+        assertEquals("le régime nuit change le rendu (re-theme)", 2, transport.requetes.size)
+        assertTrue(transport.requetes[1].nuit)
+        moteur.close()
+    }
+
+    @Test
+    fun `plus aucune preview - signal discret, les rendus restent`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        var vivantes = true
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") {
+            if (vivantes) listOf(previewTexte("Apercu", "X")) else emptyList()
+        }
+        advanceUntilIdle()
+        assertTrue(moteur.etat.value is EtatPreviewCompose.RenduValide)
+        // L'utilisateur efface sa preview (frappe en cours) : signal
+        // discret — le DERNIER rendu reste affiché (contrat).
+        vivantes = false
+        moteur.soumettreImmediat()
+        advanceUntilIdle()
+        assertTrue(
+            "le dernier rendu valide RESTE (contrat jamais de carte vide)",
+            moteur.etat.value is EtatPreviewCompose.RenduValide,
+        )
+        moteur.close()
+    }
+
+    @Test
+    fun `erreur de transport - entrée typée sans bitmap, pas d'exception`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport =
+            FauxTransport().apply {
+                echecs = 1
+            }
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "X")) }
+        advanceUntilIdle()
+        val etat = moteur.etat.value
+        assertTrue("état RenduValide (découverte réussie), trouvé $etat", etat is EtatPreviewCompose.RenduValide)
+        etat as EtatPreviewCompose.RenduValide
+        assertEquals("bitmap absent sur l'échec local", null, etat.rendus[0].bitmap)
+        assertEquals("processus indisponible", etat.rendus[0].messageErreur)
+        assertEquals(
+            GenreErreurCompose.PROCESSUS_INDISPONIBLE,
+            etat.rendus[0]
+                .erreurs
+                .last()
+                .genre,
+        )
+        moteur.close()
+    }
+
+    @Test
+    fun `fournisseur hostile - ErreurRendu défensif, le moteur survit`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { throw IllegalStateException("parse hostile") }
+        advanceUntilIdle()
+        val etat = moteur.etat.value
+        assertTrue("état défensif ErreurRendu, trouvé $etat", etat is EtatPreviewCompose.ErreurRendu)
+        moteur.close()
+    }
+
+    private fun moteur(dispatcher: TestDispatcher, transport: TransportCompose): MoteurPreviewCompose {
+        val contexte: Context = ApplicationProvider.getApplicationContext()
+        return MoteurPreviewCompose(
+            contexte = contexte,
+            dispatchers = TestDispatcherProvider(dispatcher),
+            journal = null,
+            scope = TestScope(dispatcher),
+            transport = transport,
+        )
+    }
+}

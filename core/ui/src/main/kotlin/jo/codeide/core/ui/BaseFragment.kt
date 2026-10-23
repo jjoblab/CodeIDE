@@ -49,11 +49,7 @@ public abstract class BaseFragment<VB : ViewBinding> : Fragment() {
      * @param attachToRoot attacher au parent — toujours `false` pour un fragment.
      * @return l'instance de ViewBinding de l'écran.
      */
-    protected abstract fun createBinding(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        attachToRoot: Boolean,
-    ): VB
+    protected abstract fun createBinding(inflater: LayoutInflater, container: ViewGroup?, attachToRoot: Boolean): VB
 
     final override fun onCreateView(
         inflater: LayoutInflater,

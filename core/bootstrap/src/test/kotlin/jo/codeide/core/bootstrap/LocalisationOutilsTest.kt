@@ -33,10 +33,7 @@ class LocalisationOutilsTest {
     }
 
     /** Dépose un fichier binaire marqué exécutable (chemin relatifs depuis la racine). */
-    private fun deposerBinaire(
-        racine: File,
-        vararg chemin: String,
-    ): File {
+    private fun deposerBinaire(racine: File, vararg chemin: String): File {
         val fichier = chemin.fold(racine) { parent, segment -> File(parent, segment) }
         fichier.parentFile!!.mkdirs()
         fichier.writeText("#!/system/bin/sh\n")
@@ -45,10 +42,7 @@ class LocalisationOutilsTest {
     }
 
     /** Dépose un simple fichier texte non exécutable. */
-    private fun deposerFichier(
-        racine: File,
-        vararg chemin: String,
-    ): File {
+    private fun deposerFichier(racine: File, vararg chemin: String): File {
         val fichier = chemin.fold(racine) { parent, segment -> File(parent, segment) }
         fichier.parentFile!!.mkdirs()
         fichier.writeText("contenu\n")

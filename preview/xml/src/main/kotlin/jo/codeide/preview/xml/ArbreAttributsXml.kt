@@ -118,10 +118,7 @@ public object ArbreAttributsXml {
     }
 
     /** État de la marche : texte, lignes, pile d'ancêtres, racines. */
-    private class Marche(
-        val texte: String,
-        val lignes: LignesTexte,
-    ) {
+    private class Marche(val texte: String, val lignes: LignesTexte) {
         /** Nœuds de premier niveau (racine, ou enfants d'un merge racine). */
         val racines = mutableListOf<NoeudMutable>()
 
@@ -149,9 +146,7 @@ public object ArbreAttributsXml {
     }
 
     /** Débuts de ligne du texte (offset du premier caractère de chaque ligne). */
-    private class LignesTexte(
-        private val texte: String,
-    ) {
+    private class LignesTexte(private val texte: String) {
         private val debuts: IntArray
 
         init {
@@ -163,10 +158,7 @@ public object ArbreAttributsXml {
         }
 
         /** Offset (0-based) de la position (ligne 1-based, colonne 1-based). */
-        fun offset(
-            ligne: Int,
-            colonne: Int,
-        ): Int {
+        fun offset(ligne: Int, colonne: Int): Int {
             val debutLigne = debuts[(ligne - 1).coerceIn(0, debuts.size - 1)]
             return debutLigne + (colonne - 1).coerceAtLeast(0)
         }
@@ -176,10 +168,7 @@ public object ArbreAttributsXml {
      * Traite l'élément sur lequel le parseur est positionné (START_TAG) ;
      * au retour le parseur est positionné sur SON END_TAG.
      */
-    private fun traiterElement(
-        parseur: XmlPullParser,
-        marche: Marche,
-    ) {
+    private fun traiterElement(parseur: XmlPullParser, marche: Marche) {
         val balise = parseur.name ?: ""
         when (balise) {
             // L'include ne produit RIEN dans CE texte (le fichier inclus
@@ -204,10 +193,10 @@ public object ArbreAttributsXml {
                 id = idDe(parseur),
                 attributs = attributsDe(parseur),
                 debut =
-                    marche.texte.lastIndexOf(
-                        '<',
-                        (apresChevronOuvrant - 1).coerceAtMost(marche.texte.length - 1),
-                    ),
+                marche.texte.lastIndexOf(
+                    '<',
+                    (apresChevronOuvrant - 1).coerceAtMost(marche.texte.length - 1),
+                ),
                 indice = marche.compteur,
                 indiceParent = parent?.indice ?: SANS_PARENT,
             )
@@ -227,10 +216,7 @@ public object ArbreAttributsXml {
     }
 
     /** Enfants de l'élément courant (parseur juste après son START_TAG). */
-    private fun traiterEnfants(
-        parseur: XmlPullParser,
-        marche: Marche,
-    ) {
+    private fun traiterEnfants(parseur: XmlPullParser, marche: Marche) {
         var evenement = parseur.next()
         while (evenement != XmlPullParser.END_TAG) {
             if (evenement == XmlPullParser.START_TAG) {
@@ -285,29 +271,27 @@ public object ArbreAttributsXml {
     }
 
     /** Parseur KXmlParser sur le texte, configuré comme LayoutLib ; null si impossible. */
-    private fun parseurSur(texte: String): XmlPullParser? =
-        try {
-            val fabrique = XmlPullParserFactory.newInstance()
-            fabrique.isNamespaceAware = true
-            val parseur = fabrique.newPullParser()
-            parseur.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
-            parseur.setInput(StringReader(texte))
-            parseur
-        } catch (_: Exception) {
-            null
-        }
+    private fun parseurSur(texte: String): XmlPullParser? = try {
+        val fabrique = XmlPullParserFactory.newInstance()
+        fabrique.isNamespaceAware = true
+        val parseur = fabrique.newPullParser()
+        parseur.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
+        parseur.setInput(StringReader(texte))
+        parseur
+    } catch (_: Exception) {
+        null
+    }
 
     /** Gel récursif d'un nœud mutable (les enfants d'abord). */
-    private fun geler(noeud: NoeudMutable): Noeud =
-        Noeud(
-            balise = noeud.balise,
-            id = noeud.id,
-            attributs = noeud.attributs,
-            debut = noeud.debut,
-            fin = noeud.fin,
-            indiceParent = noeud.indiceParent,
-            enfants = noeud.enfants.map(::geler),
-        )
+    private fun geler(noeud: NoeudMutable): Noeud = Noeud(
+        balise = noeud.balise,
+        id = noeud.id,
+        attributs = noeud.attributs,
+        debut = noeud.debut,
+        fin = noeud.fin,
+        indiceParent = noeud.indiceParent,
+        enfants = noeud.enfants.map(::geler),
+    )
 
     /** Racines gelées, aplaties en PRÉ-ORDRE — l'ordre du document. */
     private fun figer(racines: List<NoeudMutable>): List<Noeud> {

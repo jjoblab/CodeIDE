@@ -15,32 +15,20 @@ import jo.codeide.feature.ai.R
  */
 public class AdapterEtapesAgent : ListAdapter<EtapeAgentIa, AdapterEtapesAgent.Porteur>(ComparateurEtapes()) {
     private class ComparateurEtapes : DiffUtil.ItemCallback<EtapeAgentIa>() {
-        override fun areItemsTheSame(
-            ancienne: EtapeAgentIa,
-            nouvelle: EtapeAgentIa,
-        ): Boolean = ancienne.libelle == nouvelle.libelle
+        override fun areItemsTheSame(ancienne: EtapeAgentIa, nouvelle: EtapeAgentIa): Boolean =
+            ancienne.libelle == nouvelle.libelle
 
-        override fun areContentsTheSame(
-            ancienne: EtapeAgentIa,
-            nouvelle: EtapeAgentIa,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: EtapeAgentIa, nouvelle: EtapeAgentIa): Boolean = ancienne == nouvelle
     }
 
-    public class Porteur(
-        vue: View,
-    ) : RecyclerView.ViewHolder(vue) {
+    public class Porteur(vue: View) : RecyclerView.ViewHolder(vue) {
         val libelle: TextView = vue.findViewById(R.id.texte_etape)
     }
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Porteur = Porteur(LayoutInflater.from(parent.context).inflate(R.layout.ligne_etape_agent, parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Porteur =
+        Porteur(LayoutInflater.from(parent.context).inflate(R.layout.ligne_etape_agent, parent, false))
 
-    override fun onBindViewHolder(
-        porteur: Porteur,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(porteur: Porteur, position: Int) {
         porteur.libelle.text = getItem(position).libelle
     }
 }

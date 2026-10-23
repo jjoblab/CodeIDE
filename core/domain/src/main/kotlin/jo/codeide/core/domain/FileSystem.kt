@@ -70,10 +70,7 @@ public interface FileSystem {
      * @return l'URI du dossier créé, ou `AlreadyExists` / `PermissionLost`
      * / `NotFound` (parent disparu) / `Io`.
      */
-    public suspend fun createDirectory(
-        parentDirectoryUri: String,
-        name: String,
-    ): AppResult<String>
+    public suspend fun createDirectory(parentDirectoryUri: String, name: String): AppResult<String>
 
     /**
      * Crée un fichier, en **refusant l'écrasement** (même contrat que
@@ -84,11 +81,7 @@ public interface FileSystem {
      * @param mimeType type MIME (ex. `text/plain`, `image/png`).
      * @return l'URI du fichier créé, ou l'échec typé.
      */
-    public suspend fun createFile(
-        parentDirectoryUri: String,
-        name: String,
-        mimeType: String,
-    ): AppResult<String>
+    public suspend fun createFile(parentDirectoryUri: String, name: String, mimeType: String): AppResult<String>
 
     /**
      * Écrit du texte dans un document existant (remplacement intégral du
@@ -97,10 +90,7 @@ public interface FileSystem {
      * @param documentUri URI du document (créé au préalable).
      * @return le succès, ou l'échec typé.
      */
-    public suspend fun writeText(
-        documentUri: String,
-        text: String,
-    ): AppResult<Unit>
+    public suspend fun writeText(documentUri: String, text: String): AppResult<Unit>
 
     /**
      * Écrit des octets dans un document existant (fichiers **binaires**
@@ -110,10 +100,7 @@ public interface FileSystem {
      * @param bytes contenu brut.
      * @return le succès, ou l'échec typé.
      */
-    public suspend fun writeBytes(
-        documentUri: String,
-        bytes: ByteArray,
-    ): AppResult<Unit>
+    public suspend fun writeBytes(documentUri: String, bytes: ByteArray): AppResult<Unit>
 
     /**
      * Lit intégralement un document texte (encodage UTF-8).
@@ -146,10 +133,7 @@ public interface FileSystem {
      *   renommage, l'appelant doit aussitôt utiliser la valeur retournée ;
      *   ou l'échec typé (`NotFound`, `AlreadyExists`, `PermissionLost`…).
      */
-    public suspend fun rename(
-        documentUri: String,
-        nouveauNom: String,
-    ): AppResult<String>
+    public suspend fun rename(documentUri: String, nouveauNom: String): AppResult<String>
 
     /**
      * Supprime un document (dossier ou fichier). Sans effet notable sur

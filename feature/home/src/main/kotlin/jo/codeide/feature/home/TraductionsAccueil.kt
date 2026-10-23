@@ -25,115 +25,111 @@ internal object TraductionsAccueil {
      */
     @Suppress("CyclomaticComplexMethod")
     @StringRes
-    fun message(erreur: AppError): Int =
-        when (erreur) {
-            is AppError.Storage -> {
-                when (erreur.reason) {
-                    AppError.StorageReason.PermissionLost -> R.string.accueil_erreur_permission
+    fun message(erreur: AppError): Int = when (erreur) {
+        is AppError.Storage -> {
+            when (erreur.reason) {
+                AppError.StorageReason.PermissionLost -> R.string.accueil_erreur_permission
 
-                    AppError.StorageReason.NotFound -> R.string.accueil_erreur_introuvable
+                AppError.StorageReason.NotFound -> R.string.accueil_erreur_introuvable
 
-                    AppError.StorageReason.AlreadyExists -> R.string.accueil_erreur_deja_reference
+                AppError.StorageReason.AlreadyExists -> R.string.accueil_erreur_deja_reference
 
-                    AppError.StorageReason.NoSpace -> R.string.accueil_erreur_espace
+                AppError.StorageReason.NoSpace -> R.string.accueil_erreur_espace
 
-                    AppError.StorageReason.NotWritable -> R.string.accueil_erreur_ecriture
+                AppError.StorageReason.NotWritable -> R.string.accueil_erreur_ecriture
 
-                    // Mission IA (lot IA-2) : clé Keystore perdue — le
-                    // message générique de stockage reste honnête ici ;
-                    // l'écran IA, lui, propose la ressaisie.
-                    AppError.StorageReason.KeyUnavailable -> R.string.accueil_erreur_stockage
+                // Mission IA (lot IA-2) : clé Keystore perdue — le
+                // message générique de stockage reste honnête ici ;
+                // l'écran IA, lui, propose la ressaisie.
+                AppError.StorageReason.KeyUnavailable -> R.string.accueil_erreur_stockage
 
-                    AppError.StorageReason.Io -> R.string.accueil_erreur_stockage
-                }
-            }
-
-            is AppError.Validation -> {
-                R.string.accueil_erreur_saisie
-            }
-
-            is AppError.Template -> {
-                R.string.accueil_erreur_modele
-            }
-
-            is AppError.Bootstrap -> {
-                // Les raisons fines (réseau, espace, archive) partent dans
-                // les journaux ; l'accueil donne la marche à suivre.
-                R.string.accueil_erreur_bootstrap
-            }
-
-            is AppError.EnvironmentSetup -> {
-                // Refonte E1 (ADR 0085) : le parcours d'installation de
-                // l'environnement — l'accueil renvoie à l'écran dédié, le
-                // diagnostic complet vit dans l'état du parcours.
-                R.string.accueil_erreur_installation_env
-            }
-
-            is AppError.Tooling -> {
-                // G3 : le code machine (version, handshake, délai…) part
-                // dans les journaux ; l'utilisateur reçoit la marche à
-                // suivre — l'erreur fine guide le diagnostic.
-                R.string.accueil_erreur_tooling
-            }
-
-            is AppError.Session -> {
-                // Cycle de vie, étape B (v0.103.0) : refus coopératif du
-                // contrat de session. Hors périmètre de l'accueil (clonage
-                // et effets du registre) — repli générique du fichier ;
-                // l'étape C donnera à l'éditeur son propre canal d'état.
-                R.string.accueil_erreur_stockage
-            }
-
-            is AppError.Ai -> {
-                // Mission IA (v0.136.0, ADR 0123) : hors périmètre de
-                // l'accueil — l'écran réglages IA (IA-2) porte ses propres
-                // messages ; repli générique du fichier ici.
-                R.string.accueil_erreur_stockage
-            }
-
-            is AppError.Unknown -> {
-                R.string.accueil_erreur_stockage
+                AppError.StorageReason.Io -> R.string.accueil_erreur_stockage
             }
         }
+
+        is AppError.Validation -> {
+            R.string.accueil_erreur_saisie
+        }
+
+        is AppError.Template -> {
+            R.string.accueil_erreur_modele
+        }
+
+        is AppError.Bootstrap -> {
+            // Les raisons fines (réseau, espace, archive) partent dans
+            // les journaux ; l'accueil donne la marche à suivre.
+            R.string.accueil_erreur_bootstrap
+        }
+
+        is AppError.EnvironmentSetup -> {
+            // Refonte E1 (ADR 0085) : le parcours d'installation de
+            // l'environnement — l'accueil renvoie à l'écran dédié, le
+            // diagnostic complet vit dans l'état du parcours.
+            R.string.accueil_erreur_installation_env
+        }
+
+        is AppError.Tooling -> {
+            // G3 : le code machine (version, handshake, délai…) part
+            // dans les journaux ; l'utilisateur reçoit la marche à
+            // suivre — l'erreur fine guide le diagnostic.
+            R.string.accueil_erreur_tooling
+        }
+
+        is AppError.Session -> {
+            // Cycle de vie, étape B (v0.103.0) : refus coopératif du
+            // contrat de session. Hors périmètre de l'accueil (clonage
+            // et effets du registre) — repli générique du fichier ;
+            // l'étape C donnera à l'éditeur son propre canal d'état.
+            R.string.accueil_erreur_stockage
+        }
+
+        is AppError.Ai -> {
+            // Mission IA (v0.136.0, ADR 0123) : hors périmètre de
+            // l'accueil — l'écran réglages IA (IA-2) porte ses propres
+            // messages ; repli générique du fichier ici.
+            R.string.accueil_erreur_stockage
+        }
+
+        is AppError.Unknown -> {
+            R.string.accueil_erreur_stockage
+        }
+    }
 
     /** Message d'un dossier refusé par Android 11+ (étape 7). */
     @StringRes
-    fun refus(raison: ForbiddenFolders.Reason): Int =
-        when (raison) {
-            ForbiddenFolders.Reason.STORAGE_ROOT -> R.string.accueil_refus_racine
-            ForbiddenFolders.Reason.DOWNLOADS -> R.string.accueil_refus_download
-            ForbiddenFolders.Reason.ANDROID_DATA -> R.string.accueil_refus_android_data
-            ForbiddenFolders.Reason.ANDROID_OBB -> R.string.accueil_refus_android_obb
-        }
+    fun refus(raison: ForbiddenFolders.Reason): Int = when (raison) {
+        ForbiddenFolders.Reason.STORAGE_ROOT -> R.string.accueil_refus_racine
+        ForbiddenFolders.Reason.DOWNLOADS -> R.string.accueil_refus_download
+        ForbiddenFolders.Reason.ANDROID_DATA -> R.string.accueil_refus_android_data
+        ForbiddenFolders.Reason.ANDROID_OBB -> R.string.accueil_refus_android_obb
+    }
 
     /** Libellé d'un état d'accès (badge d'un projet). */
     @StringRes
-    fun etat(etat: ProjectAccessState): Int =
-        when (etat) {
-            ProjectAccessState.Available -> R.string.accueil_acces_disponible
-            ProjectAccessState.Missing -> R.string.accueil_acces_introuvable
-            ProjectAccessState.PermissionLost -> R.string.accueil_acces_permission
-        }
+    fun etat(etat: ProjectAccessState): Int = when (etat) {
+        ProjectAccessState.Available -> R.string.accueil_acces_disponible
+        ProjectAccessState.Missing -> R.string.accueil_acces_introuvable
+        ProjectAccessState.PermissionLost -> R.string.accueil_acces_permission
+    }
 
     /**
      * Message d'un nom de dossier de clonage refusé (G5, v0.80.4) —
      * mêmes raisons typées que le wizard, mêmes règles de messages.
      */
     @StringRes
-    fun refusClonage(raison: RaisonValidation): Int =
-        when (raison) {
-            RaisonValidation.LongueurNom -> R.string.accueil_cloner_nom_longueur
+    fun refusClonage(raison: RaisonValidation): Int = when (raison) {
+        RaisonValidation.LongueurNom -> R.string.accueil_cloner_nom_longueur
 
-            is RaisonValidation.CaractereInterditNom -> R.string.accueil_cloner_nom_caractere
+        is RaisonValidation.CaractereInterditNom -> R.string.accueil_cloner_nom_caractere
 
-            RaisonValidation.PointsFictifsNom -> R.string.accueil_cloner_nom_points
+        RaisonValidation.PointsFictifsNom -> R.string.accueil_cloner_nom_points
 
-            RaisonValidation.FinNomInterdite -> R.string.accueil_cloner_nom_fin
+        RaisonValidation.FinNomInterdite -> R.string.accueil_cloner_nom_fin
 
-            RaisonValidation.NomReserveWindows -> R.string.accueil_cloner_nom_reserves
+        RaisonValidation.NomReserveWindows -> R.string.accueil_cloner_nom_reserves
 
-            // Les raisons hors « nom de fichier » ne sortent pas du
-            // validateur `file-name` : repli générique, jamais silencieux.
-            else -> R.string.accueil_erreur_saisie
-        }
+        // Les raisons hors « nom de fichier » ne sortent pas du
+        // validateur `file-name` : repli générique, jamais silencieux.
+        else -> R.string.accueil_erreur_saisie
+    }
 }

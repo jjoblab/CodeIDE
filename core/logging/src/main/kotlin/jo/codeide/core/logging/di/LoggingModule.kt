@@ -67,11 +67,10 @@ internal interface LoggingBindsModule {
 internal object LoggingProvidesModule {
     @Provides
     @Singleton
-    fun provideJson(): Json =
-        Json {
-            ignoreUnknownKeys = true
-            encodeDefaults = true
-        }
+    fun provideJson(): Json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
 
     @Provides
     @Singleton
@@ -80,16 +79,12 @@ internal object LoggingProvidesModule {
     /** Répertoire des journaux : `filesDir/logs/` (section 5.7). */
     @Provides
     @Singleton
-    fun provideLogDirectory(
-        @ApplicationContext context: Context,
-    ): File = File(context.filesDir, LoggingLimits.LOGS_DIR_NAME)
+    fun provideLogDirectory(@ApplicationContext context: Context): File =
+        File(context.filesDir, LoggingLimits.LOGS_DIR_NAME)
 
     @Provides
     @Singleton
-    fun provideJsonlLogStore(
-        directory: File,
-        json: Json,
-    ): JsonlLogStore = JsonlLogStore(directory, json)
+    fun provideJsonlLogStore(directory: File, json: Json): JsonlLogStore = JsonlLogStore(directory, json)
 
     /**
      * Seuil logcat selon la variante réellement installée : `DEBUG+` en
@@ -99,16 +94,13 @@ internal object LoggingProvidesModule {
      */
     @Provides
     @Singleton
-    fun provideLogcatSink(
-        @ApplicationContext context: Context,
-    ): LogcatSink =
-        LogcatSink(
-            if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
-                LogLevel.DEBUG
-            } else {
-                LogLevel.WARN
-            },
-        )
+    fun provideLogcatSink(@ApplicationContext context: Context): LogcatSink = LogcatSink(
+        if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            LogLevel.DEBUG
+        } else {
+            LogLevel.WARN
+        },
+    )
 
     /**
      * Configuration initiale, **selon la variante réellement installée**
@@ -120,9 +112,7 @@ internal object LoggingProvidesModule {
      */
     @Provides
     @Singleton
-    fun provideInitialLogConfig(
-        @ApplicationContext context: Context,
-    ): LogConfig =
+    fun provideInitialLogConfig(@ApplicationContext context: Context): LogConfig =
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
             LogConfig.debugDefault()
         } else {
@@ -153,10 +143,9 @@ internal object LoggingProvidesModule {
      */
     @Provides
     @Singleton
-    fun provideWriteFailureListener(): WriteFailureListener =
-        WriteFailureListener { e ->
-            Log.w("FileSink", "Échec d'écriture du journal", e)
-        }
+    fun provideWriteFailureListener(): WriteFailureListener = WriteFailureListener { e ->
+        Log.w("FileSink", "Échec d'écriture du journal", e)
+    }
 
     /** Moteur du pipeline : logcat toujours, fichier quand il est démarré. */
     @Provides

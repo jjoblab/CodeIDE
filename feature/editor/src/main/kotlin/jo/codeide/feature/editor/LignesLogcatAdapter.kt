@@ -17,15 +17,14 @@ import java.util.Locale
 
 /** Lettre logcat d'un niveau (V D I W E F) — légende § 4.2, partagée
  *  avec la copie brute de ligne du fragment. */
-internal fun lettreNiveauLogcat(niveau: NiveauJournal): String =
-    when (niveau) {
-        NiveauJournal.VERBEUX -> "V"
-        NiveauJournal.DEBOGAGE -> "D"
-        NiveauJournal.INFO -> "I"
-        NiveauJournal.AVERTISSEMENT -> "W"
-        NiveauJournal.ERREUR -> "E"
-        NiveauJournal.ASSERT -> "F"
-    }
+internal fun lettreNiveauLogcat(niveau: NiveauJournal): String = when (niveau) {
+    NiveauJournal.VERBEUX -> "V"
+    NiveauJournal.DEBOGAGE -> "D"
+    NiveauJournal.INFO -> "I"
+    NiveauJournal.AVERTISSEMENT -> "W"
+    NiveauJournal.ERREUR -> "E"
+    NiveauJournal.ASSERT -> "F"
+}
 
 /**
  * Adaptateur des lignes de l'onglet Logcat (mission « Exécuter » R3,
@@ -64,9 +63,8 @@ class LignesLogcatAdapter(
         }
 
     /** Vue d'une ligne de journal. */
-    inner class LigneViewHolder internal constructor(
-        private val liaison: LigneLogLogcatBinding,
-    ) : RecyclerView.ViewHolder(liaison.root) {
+    inner class LigneViewHolder internal constructor(private val liaison: LigneLogLogcatBinding) :
+        RecyclerView.ViewHolder(liaison.root) {
         internal fun lier(entree: LigneLogcatNumerotee) {
             val ligne = entree.ligne
             liaison.horodatageLog.text = formatHeure.format(Date(ligne.horodatageMs))
@@ -92,36 +90,27 @@ class LignesLogcatAdapter(
         }
     }
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): LigneViewHolder =
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LigneViewHolder =
         LigneViewHolder(LigneLogLogcatBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-    override fun onBindViewHolder(
-        holder: LigneViewHolder,
-        position: Int,
-    ) = holder.lier(getItem(position))
+    override fun onBindViewHolder(holder: LigneViewHolder, position: Int) = holder.lier(getItem(position))
 
     /** Ressource de couleur d'un niveau (jetons § 4.2). */
-    private fun couleurDeNiveau(niveau: NiveauJournal): Int =
-        when (niveau) {
-            NiveauJournal.VERBEUX -> R.color.logcat_niveau_verbeux
-            NiveauJournal.DEBOGAGE -> R.color.logcat_niveau_debogage
-            NiveauJournal.INFO -> R.color.logcat_niveau_info
-            NiveauJournal.AVERTISSEMENT -> R.color.logcat_niveau_avertissement
-            NiveauJournal.ERREUR -> R.color.logcat_niveau_erreur
-            NiveauJournal.ASSERT -> R.color.logcat_niveau_erreur
-        }
+    private fun couleurDeNiveau(niveau: NiveauJournal): Int = when (niveau) {
+        NiveauJournal.VERBEUX -> R.color.logcat_niveau_verbeux
+        NiveauJournal.DEBOGAGE -> R.color.logcat_niveau_debogage
+        NiveauJournal.INFO -> R.color.logcat_niveau_info
+        NiveauJournal.AVERTISSEMENT -> R.color.logcat_niveau_avertissement
+        NiveauJournal.ERREUR -> R.color.logcat_niveau_erreur
+        NiveauJournal.ASSERT -> R.color.logcat_niveau_erreur
+    }
 
     private companion object {
         /** Identité = numéro ; contenu = ligne complète. */
         val DIFF =
             object : DiffUtil.ItemCallback<LigneLogcatNumerotee>() {
-                override fun areItemsTheSame(
-                    ancienne: LigneLogcatNumerotee,
-                    nouvelle: LigneLogcatNumerotee,
-                ): Boolean = ancienne.numero == nouvelle.numero
+                override fun areItemsTheSame(ancienne: LigneLogcatNumerotee, nouvelle: LigneLogcatNumerotee): Boolean =
+                    ancienne.numero == nouvelle.numero
 
                 override fun areContentsTheSame(
                     ancienne: LigneLogcatNumerotee,

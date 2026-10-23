@@ -25,15 +25,15 @@ import javax.inject.Singleton
  */
 @Singleton
 public class RegistrePortLsp
-    @Inject
-    constructor() {
-        private val portInterne = MutableStateFlow<PortLsp?>(null)
+@Inject
+constructor() {
+    private val portInterne = MutableStateFlow<PortLsp?>(null)
 
-        /** Le port des moteurs vivants, observable ; `null` si aucun éditeur ne les porte. */
-        public val port: StateFlow<PortLsp?> = portInterne.asStateFlow()
+    /** Le port des moteurs vivants, observable ; `null` si aucun éditeur ne les porte. */
+    public val port: StateFlow<PortLsp?> = portInterne.asStateFlow()
 
-        /** Enregistre (ou remplace) le port des moteurs ; `null` le retire. */
-        public fun enregistrer(port: PortLsp?) {
-            portInterne.value = port
-        }
+    /** Enregistre (ou remplace) le port des moteurs ; `null` le retire. */
+    public fun enregistrer(port: PortLsp?) {
+        portInterne.value = port
     }
+}

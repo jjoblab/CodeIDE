@@ -36,10 +36,8 @@ public object ThemeHarmonizer {
      * @return la couleur effective, teintée vers le primaire courant.
      */
     @ColorInt
-    public fun harmoniserAvecPrimaire(
-        context: Context,
-        @ColorRes base: Int,
-    ): Int = MaterialColors.harmonize(ContextCompat.getColor(context, base), primaire(context))
+    public fun harmoniserAvecPrimaire(context: Context, @ColorRes base: Int): Int =
+        MaterialColors.harmonize(ContextCompat.getColor(context, base), primaire(context))
 
     /**
      * Résout un attr de thème étendu (ex. `colorCanalSync`) puis
@@ -51,10 +49,7 @@ public object ThemeHarmonizer {
      * @return la couleur effective, teintée vers le primaire courant.
      */
     @ColorInt
-    public fun harmoniserAttrAvecPrimaire(
-        context: Context,
-        @AttrRes attr: Int,
-    ): Int {
+    public fun harmoniserAttrAvecPrimaire(context: Context, @AttrRes attr: Int): Int {
         val base =
             MaterialColors.getColor(
                 context,
@@ -66,10 +61,9 @@ public object ThemeHarmonizer {
 
     /** Primaire courant du thème — dynamique ou de marque selon le réglage. */
     @ColorInt
-    private fun primaire(context: Context): Int =
-        MaterialColors.getColor(
-            context,
-            androidx.appcompat.R.attr.colorPrimary,
-            "colorPrimary introuvable",
-        )
+    private fun primaire(context: Context): Int = MaterialColors.getColor(
+        context,
+        androidx.appcompat.R.attr.colorPrimary,
+        "colorPrimary introuvable",
+    )
 }

@@ -22,11 +22,7 @@ public interface PontCompletionFantomeIa {
      * @param suffixe texte APRÈS le curseur (déjà borné).
      * @return le texte suggéré, ou `null` (indisponible/annulé/échec).
      */
-    public suspend fun suggerer(
-        cheminRelatif: String,
-        prefixe: String,
-        suffixe: String,
-    ): String?
+    public suspend fun suggerer(cheminRelatif: String, prefixe: String, suffixe: String): String?
 
     /** Annule la requête en vol (frappe = annulation, ADR 0129 §2). */
     public fun annuler()

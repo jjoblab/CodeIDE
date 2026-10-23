@@ -66,10 +66,7 @@ public enum class StatutAgentIa {
 }
 
 /** Une étape affichée (spec E2 : pastille d'état + titre). */
-public data class EtapeAgentIa(
-    public val libelle: String,
-    public val enCours: Boolean,
-)
+public data class EtapeAgentIa(public val libelle: String, public val enCours: Boolean)
 
 /** Carte d'approbation EXÉCUTION (ADR 0125 : une décision par appel, jamais « toujours autoriser »). */
 public data class DemandeApprobationIa(
@@ -110,253 +107,241 @@ public data class EtatAgentIa(
 // surface d'orchestration de l'écran Agent.
 @Suppress("LongParameterList", "TooManyFunctions")
 public class ControleurAgentIa
-    @Inject
-    constructor(
-        private val fournisseur: jo.codeide.core.ai.AiProvider,
-        private val contextes: FournisseurContexteProjet,
-        private val reglages: ReglagesIaRepository,
-        private val dossierProjet: RegistreDossierProjetIa,
-        private val racineHistorique: SourceProjetHistorique,
-        private val appliqueur: AppliqueurChangeSetIa,
-        private val demarreurService: DemarreurServiceAgentIa,
-    ) {
-        private val _etat = MutableStateFlow(EtatAgentIa())
-        public val etat: StateFlow<EtatAgentIa> = _etat.asStateFlow()
+@Inject
+constructor(
+    private val fournisseur: jo.codeide.core.ai.AiProvider,
+    private val contextes: FournisseurContexteProjet,
+    private val reglages: ReglagesIaRepository,
+    private val dossierProjet: RegistreDossierProjetIa,
+    private val racineHistorique: SourceProjetHistorique,
+    private val appliqueur: AppliqueurChangeSetIa,
+    private val demarreurService: DemarreurServiceAgentIa,
+) {
+    private val _etat = MutableStateFlow(EtatAgentIa())
+    public val etat: StateFlow<EtatAgentIa> = _etat.asStateFlow()
 
-        private val portee = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        private var travail: Job? = null
-        private val changeSetCourant = ChangeSetIaCourant()
+    private val portee = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var travail: Job? = null
+    private val changeSetCourant = ChangeSetIaCourant()
 
-        // Décision d'approbation en vol : la porte suspend l'outil jusqu'à la carte.
-        private var demandeEnVol: Pair<DemandeApprobationIa, CompletableDeferred<Boolean>>? = null
+    // Décision d'approbation en vol : la porte suspend l'outil jusqu'à la carte.
+    private var demandeEnVol: Pair<DemandeApprobationIa, CompletableDeferred<Boolean>>? = null
 
-        /**
-         * Porte d'approbation EXÉCUTION (ADR 0125) : publie la carte et
-         * suspend l'outil jusqu'à une décision explicite de l'utilisateur.
-         */
-        private inner class PorteEcranIa : PorteApprobationIa {
-            override suspend fun approuver(
-                outil: String,
-                arguments: Map<String, String>,
-                raison: String,
-            ): Boolean {
-                val demande =
-                    DemandeApprobationIa(
-                        java.util.UUID
-                            .randomUUID()
-                            .toString(),
-                        outil,
-                        arguments,
-                        raison,
-                    )
-                val decision = CompletableDeferred<Boolean>()
-                demandeEnVol = Pair(demande, decision)
-                _etat.update { courant -> courant.copy(demande = demande) }
-                val accepte = decision.await()
-                demandeEnVol = null
-                _etat.update { courant -> courant.copy(demande = null) }
-                return accepte
-            }
-        }
-
-        /** Note l'objectif (modifiable avant lancement — spec E2). */
-        public fun definirObjectif(objectif: String) {
-            _etat.update { courant -> courant.copy(objectif = objectif) }
-        }
-
-        /** Lance l'exécution (garde : objectif non vide, pas déjà en cours). */
-        public fun lancer() {
-            if (_etat.value.statut == StatutAgentIa.EN_COURS) return
-            val objectif = _etat.value.objectif.trim()
-            if (objectif.isEmpty()) {
-                _etat.update { it.copy(message = "objectif vide") }
-                return
-            }
-            travail =
-                portee.launch {
-                    try {
-                        executer(objectif)
-                    } catch (annulation: CancellationException) {
-                        _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, "exécution annulée") }
-                        throw annulation // règle 6 : toujours relancée
-                    } catch (incident: Exception) {
-                        // l'issue est modélisée (état ECHOUE lisible) — jamais de crash silencieux.
-                        @Suppress("SwallowedException")
-                        _etat.update { etat ->
-                            etat.reprise(StatutAgentIa.ECHOUE, "incident : ${incident.javaClass.simpleName}")
-                        }
-                    } finally {
-                        demarreurService.arreter()
-                    }
-                }
-        }
-
-        /** « Continuer » après une interruption (spec E2) — même objectif, limites conservées. */
-        public fun continuer() {
-            lancer()
-        }
-
-        /** Arrête l'exécution (bouton Arrêter + action de la notification). */
-        public fun arreter() {
-            demandeEnVol?.second?.cancel()
-            travail?.cancel()
-        }
-
-        /** Décision de la carte d'approbation. */
-        public fun deciderApprobation(
-            id: String,
-            accepte: Boolean,
-        ) {
-            demandeEnVol?.takeIf { it.first.id == id }?.second?.complete(accepte)
-        }
-
-        /**
-         * Prépare la revue du ChangeSet en attente (résolution + conflits)
-         * — appelée à l'ouverture de la revue et avant « Tout appliquer ».
-         */
-        public suspend fun preparerRevue(): RevueChangeSetIa? =
-            withContext(Dispatchers.IO) {
-                val revue = appliqueur.preparer(changeSetCourant.depot, racineHistorique.racineDocument)
-                _etat.update { it.copy(revue = revue) }
-                revue
-            }
-
-        /** Applique les fichiers [retenus] (`null` = tous les applicables). */
-        public suspend fun appliquer(retenus: Set<String>? = null) {
-            withContext(Dispatchers.IO) {
-                _etat.update { it.copy(enApplication = true) }
-                val (execution, resultat) =
-                    appliqueur.appliquer(changeSetCourant.depot, racineHistorique.racineDocument, retenus)
-                _etat.update { courant ->
-                    when (resultat) {
-                        is ResultatApplicationIa.Succes -> {
-                            courant.copy(
-                                enApplication = false,
-                                execution = execution,
-                                revue = null,
-                                message = null,
-                            )
-                        }
-
-                        is ResultatApplicationIa.Echec -> {
-                            courant.copy(enApplication = false, message = resultat.motif)
-                        }
-                    }
-                }
-            }
-        }
-
-        /** « Annuler cette exécution » — restauration exacte (ADR 0125). */
-        public suspend fun annulerExecution() {
-            val execution = _etat.value.execution ?: return
-            withContext(Dispatchers.IO) {
-                val resultat = appliqueur.annuler(execution)
-                _etat.update { courant ->
-                    when (resultat) {
-                        is ResultatApplicationIa.Succes -> {
-                            courant.copy(execution = null, message = null)
-                        }
-
-                        is ResultatApplicationIa.Echec -> {
-                            courant.copy(message = resultat.motif)
-                        }
-                    }
-                }
-            }
-        }
-
-        /** Rejette la revue : le ChangeSet en attente est effacé (rien n'a été écrit). */
-        public fun rejeterChangements() {
-            changeSetCourant.depot = ChangeSetIa()
-            _etat.update { it.copy(revue = null) }
-        }
-
-        private suspend fun executer(objectif: String) {
-            val reglagesCourants =
-                when (val lecture = reglages.courant()) {
-                    is AppResult.Success -> {
-                        lecture.value
-                    }
-
-                    is AppResult.Failure -> {
-                        _etat.update { it.reprise(StatutAgentIa.ECHOUE, "réglages IA illisibles") }
-                        return
-                    }
-                }
-            val modele = reglagesCourants.modeleActif.ifBlank { "modele-a-configurer" }
-            val dossier = dossierProjet.dossier()
-            if (dossier == null) {
-                _etat.update { it.reprise(StatutAgentIa.ECHOUE, "aucun projet ouvert") }
-                return
-            }
-
-            _etat.update { etat ->
-                EtatAgentIa(
-                    statut = StatutAgentIa.EN_COURS,
-                    objectif = objectif,
-                    modele = modele,
-                    etapesMax = etat.etapesMax,
-                    execution = etat.execution,
+    /**
+     * Porte d'approbation EXÉCUTION (ADR 0125) : publie la carte et
+     * suspend l'outil jusqu'à une décision explicite de l'utilisateur.
+     */
+    private inner class PorteEcranIa : PorteApprobationIa {
+        override suspend fun approuver(outil: String, arguments: Map<String, String>, raison: String): Boolean {
+            val demande =
+                DemandeApprobationIa(
+                    java.util.UUID
+                        .randomUUID()
+                        .toString(),
+                    outil,
+                    arguments,
+                    raison,
                 )
-            }
-            demarreurService.demarrer()
-
-            changeSetCourant.depot = ChangeSetIa()
-            val resolveur = ResolveurCheminsProjetIa(java.io.File(dossier), ExclusionsIa())
-            val outilsEcriture = OutilsEcritureIa(resolveur, changeSetCourant)
-            val registre =
-                RegistreOutilsIa(
-                    listOf(
-                        OutilListeFichiersIa(contextes),
-                        OutilLireFichierIa(contextes),
-                        OutilProposerModificationIa(outilsEcriture),
-                        OutilProposerCreationIa(outilsEcriture),
-                        OutilProposerSuppressionIa(outilsEcriture),
-                        OutilRunGradleIa(PorteEcranIa(), null),
-                    ),
-                )
-            val runner = AgentRunnerIa(fournisseur, registre, LimitesAgentIa(_etat.value.etapesMax))
-            val (issue, texte) =
-                runner.executer(messagesAgent(objectif), modele, JETONS_REPONSE) { etape ->
-                    _etat.update { courant ->
-                        courant.copy(
-                            etapes = courant.etapes + EtapeAgentIa(etape, enCours = false),
-                        )
-                    }
-                }
-            _etat.update { courant ->
-                courant.copy(statut = statutDe(issue), message = texte.ifBlank { null })
-            }
-        }
-
-        /** Messages d'ouverture de l'exécution (confinement rappelé au modèle). */
-        private fun messagesAgent(objectif: String): List<AiMessage> =
-            listOf(
-                AiMessage.system(
-                    "Tu es l'agent de CodeIDE. Objectif de l'utilisateur : $objectif. " +
-                        "Tu proposes des changements via les outils ; RIEN n'est écrit " +
-                        "sans la revue de l'utilisateur. Termine par une réponse " +
-                        "claire quand l'objectif est couvert.",
-                ),
-                AiMessage.user(objectif),
-            )
-
-        /** Traduction de l'issue du runner en statut d'écran (lisibilité). */
-        private fun statutDe(issue: IssueAgentIa): StatutAgentIa =
-            when (issue) {
-                IssueAgentIa.TERMINE -> StatutAgentIa.TERMINE
-                IssueAgentIa.INTERROMPU -> StatutAgentIa.INTERROMPU
-                IssueAgentIa.ECHOUE -> StatutAgentIa.ECHOUE
-                IssueAgentIa.ANNULE -> StatutAgentIa.ANNULE
-            }
-
-        private fun EtatAgentIa.reprise(
-            statut: StatutAgentIa,
-            message: String?,
-        ): EtatAgentIa = copy(statut = statut, message = message, demande = null)
-
-        private companion object {
-            /** Plafond de jetons par appel du modèle (même ordre de grandeur que le chat). */
-            const val JETONS_REPONSE = 4096
+            val decision = CompletableDeferred<Boolean>()
+            demandeEnVol = Pair(demande, decision)
+            _etat.update { courant -> courant.copy(demande = demande) }
+            val accepte = decision.await()
+            demandeEnVol = null
+            _etat.update { courant -> courant.copy(demande = null) }
+            return accepte
         }
     }
+
+    /** Note l'objectif (modifiable avant lancement — spec E2). */
+    public fun definirObjectif(objectif: String) {
+        _etat.update { courant -> courant.copy(objectif = objectif) }
+    }
+
+    /** Lance l'exécution (garde : objectif non vide, pas déjà en cours). */
+    public fun lancer() {
+        if (_etat.value.statut == StatutAgentIa.EN_COURS) return
+        val objectif = _etat.value.objectif.trim()
+        if (objectif.isEmpty()) {
+            _etat.update { it.copy(message = "objectif vide") }
+            return
+        }
+        travail =
+            portee.launch {
+                try {
+                    executer(objectif)
+                } catch (annulation: CancellationException) {
+                    _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, "exécution annulée") }
+                    throw annulation // règle 6 : toujours relancée
+                } catch (incident: Exception) {
+                    // l'issue est modélisée (état ECHOUE lisible) — jamais de crash silencieux.
+                    @Suppress("SwallowedException")
+                    _etat.update { etat ->
+                        etat.reprise(StatutAgentIa.ECHOUE, "incident : ${incident.javaClass.simpleName}")
+                    }
+                } finally {
+                    demarreurService.arreter()
+                }
+            }
+    }
+
+    /** « Continuer » après une interruption (spec E2) — même objectif, limites conservées. */
+    public fun continuer() {
+        lancer()
+    }
+
+    /** Arrête l'exécution (bouton Arrêter + action de la notification). */
+    public fun arreter() {
+        demandeEnVol?.second?.cancel()
+        travail?.cancel()
+    }
+
+    /** Décision de la carte d'approbation. */
+    public fun deciderApprobation(id: String, accepte: Boolean) {
+        demandeEnVol?.takeIf { it.first.id == id }?.second?.complete(accepte)
+    }
+
+    /**
+     * Prépare la revue du ChangeSet en attente (résolution + conflits)
+     * — appelée à l'ouverture de la revue et avant « Tout appliquer ».
+     */
+    public suspend fun preparerRevue(): RevueChangeSetIa? = withContext(Dispatchers.IO) {
+        val revue = appliqueur.preparer(changeSetCourant.depot, racineHistorique.racineDocument)
+        _etat.update { it.copy(revue = revue) }
+        revue
+    }
+
+    /** Applique les fichiers [retenus] (`null` = tous les applicables). */
+    public suspend fun appliquer(retenus: Set<String>? = null) {
+        withContext(Dispatchers.IO) {
+            _etat.update { it.copy(enApplication = true) }
+            val (execution, resultat) =
+                appliqueur.appliquer(changeSetCourant.depot, racineHistorique.racineDocument, retenus)
+            _etat.update { courant ->
+                when (resultat) {
+                    is ResultatApplicationIa.Succes -> {
+                        courant.copy(
+                            enApplication = false,
+                            execution = execution,
+                            revue = null,
+                            message = null,
+                        )
+                    }
+
+                    is ResultatApplicationIa.Echec -> {
+                        courant.copy(enApplication = false, message = resultat.motif)
+                    }
+                }
+            }
+        }
+    }
+
+    /** « Annuler cette exécution » — restauration exacte (ADR 0125). */
+    public suspend fun annulerExecution() {
+        val execution = _etat.value.execution ?: return
+        withContext(Dispatchers.IO) {
+            val resultat = appliqueur.annuler(execution)
+            _etat.update { courant ->
+                when (resultat) {
+                    is ResultatApplicationIa.Succes -> {
+                        courant.copy(execution = null, message = null)
+                    }
+
+                    is ResultatApplicationIa.Echec -> {
+                        courant.copy(message = resultat.motif)
+                    }
+                }
+            }
+        }
+    }
+
+    /** Rejette la revue : le ChangeSet en attente est effacé (rien n'a été écrit). */
+    public fun rejeterChangements() {
+        changeSetCourant.depot = ChangeSetIa()
+        _etat.update { it.copy(revue = null) }
+    }
+
+    private suspend fun executer(objectif: String) {
+        val reglagesCourants =
+            when (val lecture = reglages.courant()) {
+                is AppResult.Success -> {
+                    lecture.value
+                }
+
+                is AppResult.Failure -> {
+                    _etat.update { it.reprise(StatutAgentIa.ECHOUE, "réglages IA illisibles") }
+                    return
+                }
+            }
+        val modele = reglagesCourants.modeleActif.ifBlank { "modele-a-configurer" }
+        val dossier = dossierProjet.dossier()
+        if (dossier == null) {
+            _etat.update { it.reprise(StatutAgentIa.ECHOUE, "aucun projet ouvert") }
+            return
+        }
+
+        _etat.update { etat ->
+            EtatAgentIa(
+                statut = StatutAgentIa.EN_COURS,
+                objectif = objectif,
+                modele = modele,
+                etapesMax = etat.etapesMax,
+                execution = etat.execution,
+            )
+        }
+        demarreurService.demarrer()
+
+        changeSetCourant.depot = ChangeSetIa()
+        val resolveur = ResolveurCheminsProjetIa(java.io.File(dossier), ExclusionsIa())
+        val outilsEcriture = OutilsEcritureIa(resolveur, changeSetCourant)
+        val registre =
+            RegistreOutilsIa(
+                listOf(
+                    OutilListeFichiersIa(contextes),
+                    OutilLireFichierIa(contextes),
+                    OutilProposerModificationIa(outilsEcriture),
+                    OutilProposerCreationIa(outilsEcriture),
+                    OutilProposerSuppressionIa(outilsEcriture),
+                    OutilRunGradleIa(PorteEcranIa(), null),
+                ),
+            )
+        val runner = AgentRunnerIa(fournisseur, registre, LimitesAgentIa(_etat.value.etapesMax))
+        val (issue, texte) =
+            runner.executer(messagesAgent(objectif), modele, JETONS_REPONSE) { etape ->
+                _etat.update { courant ->
+                    courant.copy(
+                        etapes = courant.etapes + EtapeAgentIa(etape, enCours = false),
+                    )
+                }
+            }
+        _etat.update { courant ->
+            courant.copy(statut = statutDe(issue), message = texte.ifBlank { null })
+        }
+    }
+
+    /** Messages d'ouverture de l'exécution (confinement rappelé au modèle). */
+    private fun messagesAgent(objectif: String): List<AiMessage> = listOf(
+        AiMessage.system(
+            "Tu es l'agent de CodeIDE. Objectif de l'utilisateur : $objectif. " +
+                "Tu proposes des changements via les outils ; RIEN n'est écrit " +
+                "sans la revue de l'utilisateur. Termine par une réponse " +
+                "claire quand l'objectif est couvert.",
+        ),
+        AiMessage.user(objectif),
+    )
+
+    /** Traduction de l'issue du runner en statut d'écran (lisibilité). */
+    private fun statutDe(issue: IssueAgentIa): StatutAgentIa = when (issue) {
+        IssueAgentIa.TERMINE -> StatutAgentIa.TERMINE
+        IssueAgentIa.INTERROMPU -> StatutAgentIa.INTERROMPU
+        IssueAgentIa.ECHOUE -> StatutAgentIa.ECHOUE
+        IssueAgentIa.ANNULE -> StatutAgentIa.ANNULE
+    }
+
+    private fun EtatAgentIa.reprise(statut: StatutAgentIa, message: String?): EtatAgentIa =
+        copy(statut = statut, message = message, demande = null)
+
+    private companion object {
+        /** Plafond de jetons par appel du modèle (même ordre de grandeur que le chat). */
+        const val JETONS_REPONSE = 4096
+    }
+}

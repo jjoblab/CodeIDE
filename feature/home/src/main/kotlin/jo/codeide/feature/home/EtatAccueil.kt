@@ -83,22 +83,16 @@ data class EtatAccueil(
  */
 sealed interface ActionAccueil {
     /** Frappe dans le champ de recherche (appliquée avec délai). */
-    data class Rechercher(
-        val requete: String,
-    ) : ActionAccueil
+    data class Rechercher(val requete: String) : ActionAccueil
 
     /** Change le tri de la liste. */
-    data class ChangerTri(
-        val tri: TriAccueil,
-    ) : ActionAccueil
+    data class ChangerTri(val tri: TriAccueil) : ActionAccueil
 
     /** Revérifie les états d'accès (pull-to-refresh). */
     data object Rafraichir : ActionAccueil
 
     /** Ouvre un projet (marquage « ouvert », tri des récents). */
-    data class OuvrirProjet(
-        val id: ProjectId,
-    ) : ActionAccueil
+    data class OuvrirProjet(val id: ProjectId) : ActionAccueil
 
     /**
      * Renomme un projet (libellé en base uniquement, ADR 0012).
@@ -106,29 +100,19 @@ sealed interface ActionAccueil {
      * @property nom nouveau libellé — validé côté ViewModel, refus
      * typé si vide ou trop long.
      */
-    data class RenommerProjet(
-        val id: ProjectId,
-        val nom: String,
-    ) : ActionAccueil
+    data class RenommerProjet(val id: ProjectId, val nom: String) : ActionAccueil
 
     /** Épingle ou désépingle un projet. */
-    data class EpinglerProjet(
-        val id: ProjectId,
-        val epingle: Boolean,
-    ) : ActionAccueil
+    data class EpinglerProjet(val id: ProjectId, val epingle: Boolean) : ActionAccueil
 
     /** Retire un projet de la liste (le dossier reste sur disque). */
-    data class RetirerProjet(
-        val id: ProjectId,
-    ) : ActionAccueil
+    data class RetirerProjet(val id: ProjectId) : ActionAccueil
 
     /**
      * Supprime un projet **du disque** (dossier + entrée de registre).
      * L'UI a déjà demandé la confirmation avec rappel du nom.
      */
-    data class SupprimerDuDisque(
-        val id: ProjectId,
-    ) : ActionAccueil
+    data class SupprimerDuDisque(val id: ProjectId) : ActionAccueil
 
     /**
      * Un dossier est revenu du sélecteur SAF (« Ouvrir un dossier
@@ -136,18 +120,13 @@ sealed interface ActionAccueil {
      *
      * @property grantUri URI d'arborescence proposée par le sélecteur.
      */
-    data class ImporterDossier(
-        val grantUri: String,
-    ) : ActionAccueil
+    data class ImporterDossier(val grantUri: String) : ActionAccueil
 
     /**
      * Un dossier est revenu du sélecteur SAF pour relocaliser un projet
      * marqué « Permission perdue » ou « Introuvable ».
      */
-    data class RelocaliserProjet(
-        val id: ProjectId,
-        val grantUri: String,
-    ) : ActionAccueil
+    data class RelocaliserProjet(val id: ProjectId, val grantUri: String) : ActionAccueil
 
     /** Réessaie après un échec de lecture du registre. */
     data object Reessayer : ActionAccueil
@@ -164,18 +143,13 @@ sealed interface ActionAccueil {
      * « Get from VCS » mobile : l'URL désigne le dépôt, [nom] le dossier
      * cible (pré-rempli depuis l'URL par le dialogue).
      */
-    data class ClonerDepot(
-        val url: String,
-        val nom: String,
-    ) : ActionAccueil
+    data class ClonerDepot(val url: String, val nom: String) : ActionAccueil
 
     /**
      * Met en évidence le projet créé par le wizard (section 12.3 :
      * « le nouveau projet apparaît, mis en évidence » — étape 11).
      */
-    data class SurlignerProjet(
-        val id: ProjectId,
-    ) : ActionAccueil
+    data class SurlignerProjet(val id: ProjectId) : ActionAccueil
 }
 
 /**
@@ -185,22 +159,16 @@ sealed interface ActionAccueil {
  */
 sealed interface EffetAccueil {
     /** Projet importé avec succès. */
-    data class ProjetImporte(
-        val nom: String,
-    ) : EffetAccueil
+    data class ProjetImporte(val nom: String) : EffetAccueil
 
     /** Le dossier choisi est déjà référencé. */
     data object DossierDejaPresent : EffetAccueil
 
     /** Dossier refusé par Android 11+ (message actionnable). */
-    data class DossierRefuse(
-        val raison: ForbiddenFolders.Reason,
-    ) : EffetAccueil
+    data class DossierRefuse(val raison: ForbiddenFolders.Reason) : EffetAccueil
 
     /** Projet relocalisé avec succès. */
-    data class ProjetDeplace(
-        val nom: String,
-    ) : EffetAccueil
+    data class ProjetDeplace(val nom: String) : EffetAccueil
 
     /** Projet retiré de la liste (dossier intact). */
     data object ProjetRetire : EffetAccueil
@@ -209,9 +177,7 @@ sealed interface EffetAccueil {
     data object ProjetSupprime : EffetAccueil
 
     /** Ouvrir le projet dans l'espace de travail (étape 13). */
-    data class OuvrirEditeur(
-        val id: ProjectId,
-    ) : EffetAccueil
+    data class OuvrirEditeur(val id: ProjectId) : EffetAccueil
 
     /** Ouvrir l'écran plein écran du terminal (T6, bootstrap installé). */
     data object OuvrirTerminalEcran : EffetAccueil
@@ -224,31 +190,21 @@ sealed interface EffetAccueil {
      * [rollback] dit si le dossier a pu être nettoyé — un résidu n'est
      * jamais silencieux (suffixe d'avertissement dans le snackbar).
      */
-    data class EchecClonage(
-        val erreur: AppError,
-        val rollback: Boolean,
-    ) : EffetAccueil
+    data class EchecClonage(val erreur: AppError, val rollback: Boolean) : EffetAccueil
 
     /**
      * Échec de git lui-même pendant un clonage (G5, v0.80.4) : message
      * brut de git (réseau, authentification, dépôt introuvable…) —
      * c'est lui qui dit vrai ; [rollback] comme [EchecClonage].
      */
-    data class EchecClonageGit(
-        val message: String,
-        val rollback: Boolean,
-    ) : EffetAccueil
+    data class EchecClonageGit(val message: String, val rollback: Boolean) : EffetAccueil
 
     /**
      * Nom de dossier de clonage refusé (G5, v0.80.4) : raison typée du
      * validateur partagé — même vocabulaire que le wizard.
      */
-    data class NomClonageRefuse(
-        val raison: jo.codeide.core.model.RaisonValidation,
-    ) : EffetAccueil
+    data class NomClonageRefuse(val raison: jo.codeide.core.model.RaisonValidation) : EffetAccueil
 
     /** Échec typé d'une action (message localisé par l'UI). */
-    data class Echec(
-        val erreur: AppError,
-    ) : EffetAccueil
+    data class Echec(val erreur: AppError) : EffetAccueil
 }

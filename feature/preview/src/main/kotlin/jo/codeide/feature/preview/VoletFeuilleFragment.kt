@@ -76,10 +76,7 @@ internal abstract class VoletFeuilleFragment : Fragment() {
         if (estActif()) marcher()
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Patron repeatOnLifecycle (miroir la collecte de l'ancien
         // fragment) : rebranché à chaque vue recréée.

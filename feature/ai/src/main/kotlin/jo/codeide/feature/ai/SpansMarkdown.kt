@@ -43,10 +43,7 @@ public object SpansMarkdown {
      * de reprise (fin du marqueur fermant, ou fin du lien complet). La
      * boucle ne fait que le MAXIMUM des candidats : chaque règle fermée
      * a son propre détecteur, sans saut dans la boucle. */
-    private fun prochainMotif(
-        texte: String,
-        depuis: Int,
-    ): Motif? {
+    private fun prochainMotif(texte: String, depuis: Int): Motif? {
         var meilleur: Motif? = null
         for (regle in REGLES) {
             val candidat = candidatDe(regle, texte, depuis)
@@ -58,11 +55,7 @@ public object SpansMarkdown {
     }
 
     /** Détecteur générique d'une règle à marqueur doublé (gras, italique, code). */
-    private fun candidatMarqueur(
-        regle: Regle,
-        texte: String,
-        depuis: Int,
-    ): Motif? {
+    private fun candidatMarqueur(regle: Regle, texte: String, depuis: Int): Motif? {
         val debut = texte.indexOf(regle.marqueur, depuis)
         if (debut < 0) return null
         val fin = texte.indexOf(regle.marqueur, debut + regle.marqueur.length)
@@ -77,10 +70,7 @@ public object SpansMarkdown {
      * une recherche de « [ » en doublé ne rendrait jamais un lien. Le
      * marqueur porte « [ » (l'extraction générique saute l'ouvrant) et
      * [Motif.suite] saute APRÈS le « ) » — l'URL n'est jamais dupliquée. */
-    private fun candidatLien(
-        texte: String,
-        depuis: Int,
-    ): Motif? {
+    private fun candidatLien(texte: String, depuis: Int): Motif? {
         val correspondance = regexLien.find(texte, depuis) ?: return null
         return Motif(
             type = Type.LIEN,
@@ -92,16 +82,11 @@ public object SpansMarkdown {
         )
     }
 
-    private fun candidatDe(
-        regle: Regle,
-        texte: String,
-        depuis: Int,
-    ): Motif? =
-        if (regle.type == Type.LIEN) {
-            candidatLien(texte, depuis)
-        } else {
-            candidatMarqueur(regle, texte, depuis)
-        }
+    private fun candidatDe(regle: Regle, texte: String, depuis: Int): Motif? = if (regle.type == Type.LIEN) {
+        candidatLien(texte, depuis)
+    } else {
+        candidatMarqueur(regle, texte, depuis)
+    }
 
     private fun gras(texte: String): Spanned {
         val spannable = SpannableStringBuilder(texte)
@@ -126,10 +111,7 @@ public object SpansMarkdown {
         return spannable
     }
 
-    private fun lien(
-        texte: String,
-        url: String,
-    ): Spanned {
+    private fun lien(texte: String, url: String): Spanned {
         val spannable = SpannableStringBuilder(texte)
         spannable.setSpan(
             object : ClickableSpan() {
@@ -145,10 +127,7 @@ public object SpansMarkdown {
     }
 
     /** Règle de motif en ligne. */
-    private data class Regle(
-        val type: Type,
-        val marqueur: String,
-    )
+    private data class Regle(val type: Type, val marqueur: String)
 
     /** Motif localisé dans le texte — [suite] : index de reprise du balayage. */
     private data class Motif(

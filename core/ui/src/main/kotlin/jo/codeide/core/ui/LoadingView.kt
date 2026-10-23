@@ -16,38 +16,38 @@ import com.google.android.material.textview.MaterialTextView
  * le XML s'il est présent.
  */
 public class LoadingView
-    @JvmOverloads
-    constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0,
-    ) : FrameLayout(context, attrs, defStyleAttr) {
-        private val colonne: ColonneEtat = ColonneEtat(context)
-        private val vueMessage: MaterialTextView
+@JvmOverloads
+constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0,
+) : FrameLayout(context, attrs, defStyleAttr) {
+    private val colonne: ColonneEtat = ColonneEtat(context)
+    private val vueMessage: MaterialTextView
 
-        init {
-            val lecteur = context.obtainStyledAttributes(attrs, R.styleable.LoadingView, defStyleAttr, 0)
-            val message = lecteur.getText(R.styleable.LoadingView_stateMessage)
-            lecteur.recycle()
+    init {
+        val lecteur = context.obtainStyledAttributes(attrs, R.styleable.LoadingView, defStyleAttr, 0)
+        val message = lecteur.getText(R.styleable.LoadingView_stateMessage)
+        lecteur.recycle()
 
-            val espace = resources.getDimensionPixelSize(R.dimen.state_spacing)
-            colonne.addView(
-                CircularProgressIndicator(context),
-                LinearLayout
-                    .LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                    ).apply { bottomMargin = espace },
-            )
-            vueMessage = colonne.ajouterTexte(message, R.style.TextAppearance_CodeIDE_BodyMedium)
+        val espace = resources.getDimensionPixelSize(R.dimen.state_spacing)
+        colonne.addView(
+            CircularProgressIndicator(context),
+            LinearLayout
+                .LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { bottomMargin = espace },
+        )
+        vueMessage = colonne.ajouterTexte(message, R.style.TextAppearance_CodeIDE_BodyMedium)
 
-            addView(colonne, parametresColonneCentree())
-        }
-
-        /** Message affiché sous l'indicateur (peut être vide). */
-        public var message: CharSequence
-            get() = vueMessage.text
-            set(valeur) {
-                vueMessage.text = valeur
-            }
+        addView(colonne, parametresColonneCentree())
     }
+
+    /** Message affiché sous l'indicateur (peut être vide). */
+    public var message: CharSequence
+        get() = vueMessage.text
+        set(valeur) {
+            vueMessage.text = valeur
+        }
+}

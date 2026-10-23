@@ -35,78 +35,73 @@ class OptionsEditeurTest {
 
     private val depot = FakeSettingsRepository()
 
-    private fun creerOptions(): OptionsEditeur =
-        OptionsEditeur(
-            observerReglages = ObserveSettingsUseCase(depot),
-            dispatchers = TestDispatcherProvider(regleMain.dispatcher),
-        )
+    private fun creerOptions(): OptionsEditeur = OptionsEditeur(
+        observerReglages = ObserveSettingsUseCase(depot),
+        dispatchers = TestDispatcherProvider(regleMain.dispatcher),
+    )
 
     @Test
-    fun `la collecte absorbe les reglages courants et chaque changement`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            depot.updateSettings { it.copy(editorMinimap = true) }
-            val options = creerOptions()
-            advanceUntilIdle()
+    fun `la collecte absorbe les reglages courants et chaque changement`() = runTest(regleMain.dispatcher.scheduler) {
+        depot.updateSettings { it.copy(editorMinimap = true) }
+        val options = creerOptions()
+        advanceUntilIdle()
 
-            assertTrue("reglages initiaux absorbés", options.courants.editorMinimap)
+        assertTrue("reglages initiaux absorbés", options.courants.editorMinimap)
 
-            depot.updateSettings {
-                it.copy(editorMinimap = true, editorRetourLigne = false)
-            }
-            advanceUntilIdle()
-
-            assertTrue(options.courants.editorMinimap)
-            assertFalse(options.courants.editorRetourLigne)
+        depot.updateSettings {
+            it.copy(editorMinimap = true, editorRetourLigne = false)
         }
+        advanceUntilIdle()
+
+        assertTrue(options.courants.editorMinimap)
+        assertFalse(options.courants.editorRetourLigne)
+    }
 
     @Test
-    fun `le facteur de police suit la taille choisie`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val options = creerOptions()
-            advanceUntilIdle()
+    fun `le facteur de police suit la taille choisie`() = runTest(regleMain.dispatcher.scheduler) {
+        val options = creerOptions()
+        advanceUntilIdle()
 
-            assertEquals(1.0f, options.facteurPolice())
+        assertEquals(1.0f, options.facteurPolice())
 
-            depot.updateSettings { it.copy(editorTaillePolice = TaillePoliceEditeur.PETITE) }
-            advanceUntilIdle()
-            assertEquals(0.85f, options.facteurPolice())
+        depot.updateSettings { it.copy(editorTaillePolice = TaillePoliceEditeur.PETITE) }
+        advanceUntilIdle()
+        assertEquals(0.85f, options.facteurPolice())
 
-            depot.updateSettings { it.copy(editorTaillePolice = TaillePoliceEditeur.GRANDE) }
-            advanceUntilIdle()
-            assertEquals(1.2f, options.facteurPolice())
-        }
-
-    @Test
-    fun `la largeur de tabulation suit le reglage choisi`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            // ADR 0136 phase 2 : le réglage réintroduit nourrit les requêtes
-            // de mise en forme LSP (setFormattingOptions) — le défaut est
-            // QUATRE (convention Android), l'émission suit la persistance.
-            val options = creerOptions()
-            advanceUntilIdle()
-
-            assertEquals(4, options.largeurTabulation())
-
-            depot.updateSettings { it.copy(editorTailleTabulation = TailleTabulation.DEUX) }
-            advanceUntilIdle()
-            assertEquals(2, options.largeurTabulation())
-
-            depot.updateSettings { it.copy(editorTailleTabulation = TailleTabulation.HUIT) }
-            advanceUntilIdle()
-            assertEquals(8, options.largeurTabulation())
-        }
+        depot.updateSettings { it.copy(editorTaillePolice = TaillePoliceEditeur.GRANDE) }
+        advanceUntilIdle()
+        assertEquals(1.2f, options.facteurPolice())
+    }
 
     @Test
-    fun `le theme automatique suit le mode clair sombre de l application`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val options = creerOptions()
-            advanceUntilIdle()
+    fun `la largeur de tabulation suit le reglage choisi`() = runTest(regleMain.dispatcher.scheduler) {
+        // ADR 0136 phase 2 : le réglage réintroduit nourrit les requêtes
+        // de mise en forme LSP (setFormattingOptions) — le défaut est
+        // QUATRE (convention Android), l'émission suit la persistance.
+        val options = creerOptions()
+        advanceUntilIdle()
 
-            // EditorTheme n'implémente pas equals : les couleurs publiques
-            // (fond de l'éditeur) font foi.
-            assertEquals(EditorTheme.dark().editorBg, options.themePour(nuit = true).editorBg)
-            assertEquals(EditorTheme.light().editorBg, options.themePour(nuit = false).editorBg)
-        }
+        assertEquals(4, options.largeurTabulation())
+
+        depot.updateSettings { it.copy(editorTailleTabulation = TailleTabulation.DEUX) }
+        advanceUntilIdle()
+        assertEquals(2, options.largeurTabulation())
+
+        depot.updateSettings { it.copy(editorTailleTabulation = TailleTabulation.HUIT) }
+        advanceUntilIdle()
+        assertEquals(8, options.largeurTabulation())
+    }
+
+    @Test
+    fun `le theme automatique suit le mode clair sombre de l application`() = runTest(regleMain.dispatcher.scheduler) {
+        val options = creerOptions()
+        advanceUntilIdle()
+
+        // EditorTheme n'implémente pas equals : les couleurs publiques
+        // (fond de l'éditeur) font foi.
+        assertEquals(EditorTheme.dark().editorBg, options.themePour(nuit = true).editorBg)
+        assertEquals(EditorTheme.light().editorBg, options.themePour(nuit = false).editorBg)
+    }
 
     @Test
     fun `un theme force ignore le mode de l application et est mis en cache`() =

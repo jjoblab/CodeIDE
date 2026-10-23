@@ -224,10 +224,7 @@ internal class PanneauToolingController(
     /** Pastille : fond teinté (canal harmonisé / succès / échec), icône
      *  blanche en repos (coche de succès, croix d'échec, glyphe du canal),
      *  SPINNER animé en vol. */
-    private fun rendrePastille(
-        entete: EtatEnteteTooling,
-        canal: CanalTooling,
-    ) {
+    private fun rendrePastille(entete: EtatEnteteTooling, canal: CanalTooling) {
         liaison.pastilleCanalTooling.backgroundTintList =
             ColorStateList.valueOf(couleurStatut(entete.statut, entete.couleur))
         val enVol = entete.statut == StatutEntete.EN_VOL
@@ -247,23 +244,19 @@ internal class PanneauToolingController(
     /** Couleur de la pastille selon le statut visuel : canal harmonisé en
      *  vol/au repos, vert de succès, rouge d'échec (rôles sémantiques
      *  ADR 0059 — suivent les 8 palettes et la nuit). */
-    private fun couleurStatut(
-        statut: StatutEntete,
-        couleurCanal: Int,
-    ): Int =
-        when (statut) {
-            StatutEntete.SUCCES -> {
-                MaterialColors.getColor(liaison.root, jo.codeide.core.ui.R.attr.colorSucces)
-            }
-
-            StatutEntete.ECHOUE -> {
-                MaterialColors.getColor(liaison.root, androidx.appcompat.R.attr.colorError)
-            }
-
-            StatutEntete.EN_VOL, StatutEntete.NEUTRE -> {
-                ThemeHarmonizer.harmoniserAvecPrimaire(activite, couleurCanal)
-            }
+    private fun couleurStatut(statut: StatutEntete, couleurCanal: Int): Int = when (statut) {
+        StatutEntete.SUCCES -> {
+            MaterialColors.getColor(liaison.root, jo.codeide.core.ui.R.attr.colorSucces)
         }
+
+        StatutEntete.ECHOUE -> {
+            MaterialColors.getColor(liaison.root, androidx.appcompat.R.attr.colorError)
+        }
+
+        StatutEntete.EN_VOL, StatutEntete.NEUTRE -> {
+            ThemeHarmonizer.harmoniserAvecPrimaire(activite, couleurCanal)
+        }
+    }
 
     /** Sous-titre (§3.3) : libellé de la phase courante combiné à son
      *  détail (« Phase — 42 Mo · 3 éléments »), ou le texte du repos
@@ -294,10 +287,7 @@ internal class PanneauToolingController(
      *  MASQUER l'indicateur pour basculer de mode. v0.80.2 : la visibilité
      *  mémorisée ([progressionVisiblee]) est distincte de la visibilité
      *  effective (Console uniquement). */
-    private fun rendreProgression(
-        entete: EtatEnteteTooling,
-        etat: EtatGradle,
-    ) {
+    private fun rendreProgression(entete: EtatEnteteTooling, etat: EtatGradle) {
         val indicateur = liaison.progressionTooling
         progressionVisiblee = etat.activiteEnCours || entete.statut == StatutEntete.SUCCES
         val couleurBarre = couleurStatut(entete.statut, entete.couleur)
@@ -322,16 +312,15 @@ internal class PanneauToolingController(
      * bruit sur un build). Correctif n°12 : le ticker ne tourne QUE
      * STARTED (`repeatOnLifecycle`) et lit l'HORLOGE INJECTÉE.
      */
-    private fun lancerMinuteur(depart: Long): Job? =
-        activite.lifecycleScope.launch {
-            activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (isActive) {
-                    val ecoule = (horloge.nowMillis() - depart).coerceAtLeast(0L)
-                    liaison.minuteurTooling.text = DureesLisibles.formater(ecoule)
-                    delay(PERIODE_MINUTEUR_MS)
-                }
+    private fun lancerMinuteur(depart: Long): Job? = activite.lifecycleScope.launch {
+        activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) {
+                val ecoule = (horloge.nowMillis() - depart).coerceAtLeast(0L)
+                liaison.minuteurTooling.text = DureesLisibles.formater(ecoule)
+                delay(PERIODE_MINUTEUR_MS)
             }
         }
+    }
 
     /** Peek du panneau : en-tête seul, + en-tête tooling enrichi (et
      *  progression) quand une activité s'y affiche — l'activité tooling

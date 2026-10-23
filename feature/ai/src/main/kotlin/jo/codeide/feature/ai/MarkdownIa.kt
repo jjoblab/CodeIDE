@@ -18,15 +18,10 @@ package jo.codeide.feature.ai
  */
 public sealed interface BlocMarkdown {
     /** Titre de niveau 1 à 3. */
-    public data class Titre(
-        public val niveau: Int,
-        public val texte: String,
-    ) : BlocMarkdown
+    public data class Titre(public val niveau: Int, public val texte: String) : BlocMarkdown
 
     /** Paragraphe (texte brut — les spans se posent au rendu). */
-    public data class Paragraphe(
-        public val texte: String,
-    ) : BlocMarkdown
+    public data class Paragraphe(public val texte: String) : BlocMarkdown
 
     /** Bloc de code (langue optionnelle) — [provisoire] = ouvrant non fermé. */
     public data class BlocCode(
@@ -36,9 +31,7 @@ public sealed interface BlocMarkdown {
     ) : BlocMarkdown
 
     /** Liste à puces (éléments sans le marqueur). */
-    public data class Liste(
-        public val elements: List<String>,
-    ) : BlocMarkdown
+    public data class Liste(public val elements: List<String>) : BlocMarkdown
 }
 
 /** Analyseur pur (testable en JVM). */

@@ -25,9 +25,7 @@ public interface EntityId {
  * (UUID en base, à ce jour).
  */
 @JvmInline
-public value class ProjectId(
-    public override val value: String,
-) : EntityId {
+public value class ProjectId(public override val value: String) : EntityId {
     init {
         require(value.isNotBlank()) { "Un identifiant de projet ne peut pas être vide." }
     }
@@ -41,9 +39,7 @@ public value class ProjectId(
  * `Project` et dans `.codeide/project.json`.
  */
 @JvmInline
-public value class TemplateId(
-    public override val value: String,
-) : EntityId {
+public value class TemplateId(public override val value: String) : EntityId {
     init {
         require(value.isNotBlank()) { "Un identifiant de modèle ne peut pas être vide." }
     }
@@ -70,9 +66,7 @@ public value class TemplateId(
  * nom de fichier et de clé de consultation depuis l'écran Diagnostic.
  */
 @JvmInline
-public value class CrashReportId(
-    public override val value: String,
-) : EntityId {
+public value class CrashReportId(public override val value: String) : EntityId {
     init {
         require(value.isNotBlank()) { "Un identifiant de rapport de plantage ne peut pas être vide." }
     }

@@ -613,10 +613,7 @@ public object CatalogueAttributs {
      * `min`/`max` du `C.num` de la maquette) : `null` = pas de plancher
      * (ni de plafond) pour ce côté.
      */
-    public data class Bornes(
-        val minimum: Float? = null,
-        val maximum: Float? = null,
-    )
+    public data class Bornes(val minimum: Float? = null, val maximum: Float? = null)
 
     /**
      * Le GENRE de VALIDATION d'un champ TEXTE (PE11 § 7 — miroir les
@@ -660,10 +657,7 @@ public object CatalogueAttributs {
         public abstract val etiquette: Etiquette?
 
         /** L'identifiant de la vue (PE8a : renommage déclaration + références). */
-        public data class Identifiant(
-            val nom: String,
-            override val courant: Boolean = true,
-        ) : ControleAttribut() {
+        public data class Identifiant(val nom: String, override val courant: Boolean = true) : ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : le contrôle porte SON attribut. */
             override val nomsAttributs: List<String> = listOf(nom)
 
@@ -780,10 +774,7 @@ public object CatalogueAttributs {
              * La valeur APRÈS bascule d'un drapeau : les parties retenues,
              * ordonnées selon les options (miroir `join('|')` de la maquette).
              */
-            public fun basculer(
-                valeur: String?,
-                drapeau: String,
-            ): String {
+            public fun basculer(valeur: String?, drapeau: String): String {
                 val posees = parties(valeur).toMutableSet()
                 if (!posees.remove(drapeau)) posees.add(drapeau)
                 return options(valeur).filter { it in posees }.joinToString("|")
@@ -830,10 +821,7 @@ public object CatalogueAttributs {
              * La valeur composée (miroir `write` : `text` sans modificateur
              * retire l'attribut).
              */
-            public fun composer(
-                base: String,
-                modificateurs: List<String>,
-            ): String =
+            public fun composer(base: String, modificateurs: List<String>): String =
                 if (base == "text" && modificateurs.isEmpty()) {
                     ""
                 } else {
@@ -960,11 +948,10 @@ public object CatalogueAttributs {
              * `parseFloat` du préfixe numérique — « 12dp » donne 12),
              * `null` quand il n'y en a pas.
              */
-            private fun nombreDe(valeur: String?): Float? =
-                nombreEnTete
-                    .find(valeur.orEmpty())
-                    ?.value
-                    ?.toFloatOrNull()
+            private fun nombreDe(valeur: String?): Float? = nombreEnTete
+                .find(valeur.orEmpty())
+                ?.value
+                ?.toFloatOrNull()
 
             /** Un préfixe numérique (« 12 », « -0.5 », « 12dp »). */
             private val nombreEnTete: Regex = Regex("""^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?""")
@@ -993,11 +980,7 @@ public object CatalogueAttributs {
              * SAISIS (miroir le regex de la maquette — l'écriture les
              * restitue verbatim).
              */
-            public data class Valeur(
-                val verrou: String?,
-                val a: String,
-                val b: String,
-            )
+            public data class Valeur(val verrou: String?, val a: String, val b: String)
 
             /**
              * La valeur PARSE (miroir
@@ -1016,11 +999,8 @@ public object CatalogueAttributs {
             /**
              * La valeur COMPOSÉE (miroir `(lk ? lk + ',' : '') + x + ':' + y`).
              */
-            public fun ecrire(
-                verrou: String?,
-                a: String,
-                b: String,
-            ): String = (verrou?.let { "$it," }.orEmpty()) + "$a:$b"
+            public fun ecrire(verrou: String?, a: String, b: String): String =
+                (verrou?.let { "$it," }.orEmpty()) + "$a:$b"
 
             /** Le format du ratio, verrou en option (miroir la maquette). */
             private val formatDuRatio: Regex = Regex("""^(?:([WH]),)?(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$""")
@@ -1031,11 +1011,7 @@ public object CatalogueAttributs {
              * `x + ':' + y` calculé côté maquette : le liage ne compose
              * JAMAIS de gabarit d'affichage).
              */
-            public data class Prereglage(
-                val libelle: String,
-                val a: String,
-                val b: String,
-            )
+            public data class Prereglage(val libelle: String, val a: String, val b: String)
 
             public companion object {
                 /** Les PRÉRÉGLAGES de la maquette (boutons 1:1, 4:3, 16:9, 3:4). */
@@ -1154,10 +1130,7 @@ public object CatalogueAttributs {
             override val nomsAttributs: List<String> = entrees.map { entree -> entree.nom }
 
             /** UNE bascule : l'attribut [nom] et la clé de libellé [libelle]. */
-            public data class Entree(
-                val nom: String,
-                val libelle: Etiquette,
-            )
+            public data class Entree(val nom: String, val libelle: Etiquette)
         }
 
         /**
@@ -1169,10 +1142,8 @@ public object CatalogueAttributs {
          * « n définis », miroir un `quick` sans `a`), l'[Etiquette.ACTIONS]
          * ne sert qu'à la RECHERCHE.
          */
-        public data class ActionRapide(
-            val actions: List<Action>,
-            override val courant: Boolean = true,
-        ) : ControleAttribut() {
+        public data class ActionRapide(val actions: List<Action>, override val courant: Boolean = true) :
+            ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : composite sans champ, rien à compter. */
             override val nomsAttributs: List<String> = emptyList()
 
@@ -1184,10 +1155,7 @@ public object CatalogueAttributs {
              * et son [ecriture] (l'édition groupée, composée par
              * [EditionAttributsXml.remplirEspaceRestant] au port).
              */
-            public data class Action(
-                val libelle: Etiquette,
-                val ecriture: Ecriture,
-            )
+            public data class Action(val libelle: Etiquette, val ecriture: Ecriture)
 
             /** L'ÉCRITURE d'une action rapide (une édition groupée — pure donnée). */
             public sealed interface Ecriture {
@@ -1209,10 +1177,8 @@ public object CatalogueAttributs {
          * de base, marges de disparition…). L'ÉDITION réelle reste le
          * composite [Contraintes] (PE8b) : la section les porte À LA SUITE.
          */
-        public data class ContraintesLecture(
-            override val etiquette: Etiquette,
-            override val courant: Boolean = true,
-        ) : ControleAttribut() {
+        public data class ContraintesLecture(override val etiquette: Etiquette, override val courant: Boolean = true) :
+            ControleAttribut() {
             /** [ControleAttribut.nomsAttributs] : composite sans champ, rien à compter. */
             override val nomsAttributs: List<String> = emptyList()
         }
@@ -1436,14 +1402,13 @@ public object CatalogueAttributs {
      */
     private val DOUBLES_RACINE: Set<String> = setOf("android:fitsSystemWindows", "android:clipToPadding")
 
-    private fun List<ControleAttribut>.sansDoublesRacine(racine: Boolean): List<ControleAttribut> =
-        if (!racine) {
-            this
-        } else {
-            filterNot { controle ->
-                controle is ControleAttribut.TriEtat && controle.nom in DOUBLES_RACINE
-            }
+    private fun List<ControleAttribut>.sansDoublesRacine(racine: Boolean): List<ControleAttribut> = if (!racine) {
+        this
+    } else {
+        filterNot { controle ->
+            controle is ControleAttribut.TriEtat && controle.nom in DOUBLES_RACINE
         }
+    }
 
     /**
      * Les SECTIONS de la vue [classe] avec la [familleParent] de son
@@ -1522,63 +1487,62 @@ public object CatalogueAttributs {
      * bas), pourcentage de largeur, RATIO (premier usager du contrôle)
      * et bornes de largeur.
      */
-    private fun sectionContraintes(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.CONTRAINTES,
-            listOf(
-                ControleAttribut.ContraintesLecture(Etiquette.CONTRAINTES_LUES),
-                ControleAttribut.Contraintes,
-                ControleAttribut.Curseur(
-                    "app:layout_constraintHorizontal_bias",
-                    Etiquette.BIAIS_HORIZONTAL,
-                    min = 0f,
-                    max = 1f,
-                    pas = 0.05f,
-                    unite = "",
-                    defaut = 0.5f,
-                ),
-                ControleAttribut.Curseur(
-                    "app:layout_constraintVertical_bias",
-                    Etiquette.BIAIS_VERTICAL,
-                    min = 0f,
-                    max = 1f,
-                    pas = 0.05f,
-                    unite = "",
-                    defaut = 0.5f,
-                    courant = false,
-                    requiertContraintesVerticales = true,
-                ),
-                ControleAttribut.Curseur(
-                    "app:layout_constraintWidth_percent",
-                    Etiquette.POURCENTAGE_LARGEUR,
-                    min = 0.1f,
-                    max = 1f,
-                    pas = 0.05f,
-                    unite = "",
-                    defaut = 1f,
-                    courant = false,
-                ),
-                ControleAttribut.Ratio(
-                    "app:layout_constraintDimensionRatio",
-                    Etiquette.RATIO,
-                    courant = false,
-                ),
-                ControleAttribut.Nombre(
-                    "app:layout_constraintWidth_min",
-                    Etiquette.LARGEUR_MIN_CONTRAINTE,
-                    "dp",
-                    Bornes(minimum = 0f),
-                    courant = false,
-                ),
-                ControleAttribut.Nombre(
-                    "app:layout_constraintWidth_max",
-                    Etiquette.LARGEUR_MAX_CONTRAINTE,
-                    "dp",
-                    Bornes(minimum = 0f),
-                    courant = false,
-                ),
+    private fun sectionContraintes(): SectionAttributs = SectionAttributs(
+        TitreSection.CONTRAINTES,
+        listOf(
+            ControleAttribut.ContraintesLecture(Etiquette.CONTRAINTES_LUES),
+            ControleAttribut.Contraintes,
+            ControleAttribut.Curseur(
+                "app:layout_constraintHorizontal_bias",
+                Etiquette.BIAIS_HORIZONTAL,
+                min = 0f,
+                max = 1f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 0.5f,
             ),
-        )
+            ControleAttribut.Curseur(
+                "app:layout_constraintVertical_bias",
+                Etiquette.BIAIS_VERTICAL,
+                min = 0f,
+                max = 1f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 0.5f,
+                courant = false,
+                requiertContraintesVerticales = true,
+            ),
+            ControleAttribut.Curseur(
+                "app:layout_constraintWidth_percent",
+                Etiquette.POURCENTAGE_LARGEUR,
+                min = 0.1f,
+                max = 1f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 1f,
+                courant = false,
+            ),
+            ControleAttribut.Ratio(
+                "app:layout_constraintDimensionRatio",
+                Etiquette.RATIO,
+                courant = false,
+            ),
+            ControleAttribut.Nombre(
+                "app:layout_constraintWidth_min",
+                Etiquette.LARGEUR_MIN_CONTRAINTE,
+                "dp",
+                Bornes(minimum = 0f),
+                courant = false,
+            ),
+            ControleAttribut.Nombre(
+                "app:layout_constraintWidth_max",
+                Etiquette.LARGEUR_MAX_CONTRAINTE,
+                "dp",
+                Bornes(minimum = 0f),
+                courant = false,
+            ),
+        ),
+    )
 
     /**
      * Variante à DEUX paramètres (PE12c) : la famille de la vue se
@@ -1586,10 +1550,8 @@ public object CatalogueAttributs {
      * (spec § 2.2) ; le rendu réel fournit la sienne via
      * [InfoVueRendu.famille].
      */
-    public fun sections(
-        classe: String,
-        familleParent: FamilleParent,
-    ): List<SectionAttributs> = sections(classe, familleParent, FamilleParent.deBalise(classe))
+    public fun sections(classe: String, familleParent: FamilleParent): List<SectionAttributs> =
+        sections(classe, familleParent, FamilleParent.deBalise(classe))
 
     /**
      * La section IDENTITÉ (PE8a : le renommage ; PE11 § 7 : + `android:tag`).
@@ -1598,14 +1560,13 @@ public object CatalogueAttributs {
      * Courants plafonne à 8 sections, l'Identité s'y cache — la bascule
      * Tous et la recherche la retrouvent.
      */
-    private fun sectionIdentite(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.IDENTITE,
-            listOf(
-                ControleAttribut.Identifiant("android:id", courant = false),
-                ControleAttribut.Texte("android:tag", Etiquette.TAG, courant = false),
-            ),
-        )
+    private fun sectionIdentite(): SectionAttributs = SectionAttributs(
+        TitreSection.IDENTITE,
+        listOf(
+            ControleAttribut.Identifiant("android:id", courant = false),
+            ControleAttribut.Texte("android:tag", Etiquette.TAG, courant = false),
+        ),
+    )
 
     /**
      * La section RACINE (PE11 § 7 — miroir le `sec('Racine', …)` du
@@ -1613,22 +1574,21 @@ public object CatalogueAttributs {
      * ajustement système, découpage au padding, hauteur min — la racine
      * n'a NI Disposition NI Affichage (retour anticipé).
      */
-    private fun sectionRacine(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.RACINE,
-            listOf(
-                ControleAttribut.Texte(
-                    "tools:context",
-                    Etiquette.CONTEXTE,
-                    validation = GenreValidationTexte.NOM_ACTIVITE,
-                ),
-                ControleAttribut.Couleur("android:background", Etiquette.FOND_BRUT),
-                ControleAttribut.Cotes("android:padding", Etiquette.PADDING),
-                ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME, courant = false),
-                ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
-                ControleAttribut.Nombre("android:minHeight", Etiquette.HAUTEUR_MIN, "dp", courant = false),
+    private fun sectionRacine(): SectionAttributs = SectionAttributs(
+        TitreSection.RACINE,
+        listOf(
+            ControleAttribut.Texte(
+                "tools:context",
+                Etiquette.CONTEXTE,
+                validation = GenreValidationTexte.NOM_ACTIVITE,
             ),
-        )
+            ControleAttribut.Couleur("android:background", Etiquette.FOND_BRUT),
+            ControleAttribut.Cotes("android:padding", Etiquette.PADDING),
+            ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME, courant = false),
+            ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+            ControleAttribut.Nombre("android:minHeight", Etiquette.HAUTEUR_MIN, "dp", courant = false),
+        ),
+    )
 
     /**
      * Les sections PROPRES à la classe (miroir les `if (k === …)` de
@@ -1638,58 +1598,56 @@ public object CatalogueAttributs {
      * image, barre d'outils, bouton d'action, conteneur-carte,
      * progression, liste.
      */
-    private fun sectionsPropres(classe: String): List<SectionAttributs> =
-        listOfNotNull(
-            sectionTexte(classe),
-            sectionTypographie(classe),
-            sectionLignes(classe),
-            sectionIconesTexte(classe),
-            sectionSaisie(classe),
-            sectionChamp(classe),
-            sectionAidesCompteur(classe),
-            sectionIconesChamp(classe),
-            sectionContour(classe),
-            sectionBouton(classe),
-            sectionEtat(classe),
-            sectionImage(classe),
-            sectionBarreOutils(classe),
-            sectionBoutonAction(classe),
-            sectionProgression(classe),
-            sectionListe(classe),
-        )
+    private fun sectionsPropres(classe: String): List<SectionAttributs> = listOfNotNull(
+        sectionTexte(classe),
+        sectionTypographie(classe),
+        sectionLignes(classe),
+        sectionIconesTexte(classe),
+        sectionSaisie(classe),
+        sectionChamp(classe),
+        sectionAidesCompteur(classe),
+        sectionIconesChamp(classe),
+        sectionContour(classe),
+        sectionBouton(classe),
+        sectionEtat(classe),
+        sectionImage(classe),
+        sectionBarreOutils(classe),
+        sectionBoutonAction(classe),
+        sectionProgression(classe),
+        sectionListe(classe),
+    )
 
     /**
      * La section TEXTE (TextView et descendants — PAS la saisie, miroir
      * `if (T)` v6) : les cinq courants de la 1re vague puis
      * `textAlignment` et `textAppearance` (§ 7, listes non courantes).
      */
-    private fun sectionTexte(classe: String): SectionAttributs? =
-        if (!familleTexte(classe)) {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.TEXTE,
-                listOf(
-                    ControleAttribut.Texte("android:text", Etiquette.TEXTE, extrayable = true),
-                    ControleAttribut.Nombre("android:textSize", Etiquette.TAILLE_SP, "sp"),
-                    ControleAttribut.Drapeaux("android:textStyle", Etiquette.STYLE, STYLES_DRAPEAUX),
-                    ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
-                    ControleAttribut.Couleur("android:textColor", Etiquette.COULEUR),
-                    ControleAttribut.Liste(
-                        "android:textAlignment",
-                        Etiquette.ALIGNEMENT_TEXTE,
-                        ALIGNEMENTS_TEXTE,
-                        courant = false,
-                    ),
-                    ControleAttribut.Liste(
-                        "android:textAppearance",
-                        Etiquette.APPARENCE_TEXTE,
-                        APPARENCES_TEXTE,
-                        courant = false,
-                    ),
+    private fun sectionTexte(classe: String): SectionAttributs? = if (!familleTexte(classe)) {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.TEXTE,
+            listOf(
+                ControleAttribut.Texte("android:text", Etiquette.TEXTE, extrayable = true),
+                ControleAttribut.Nombre("android:textSize", Etiquette.TAILLE_SP, "sp"),
+                ControleAttribut.Drapeaux("android:textStyle", Etiquette.STYLE, STYLES_DRAPEAUX),
+                ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                ControleAttribut.Couleur("android:textColor", Etiquette.COULEUR),
+                ControleAttribut.Liste(
+                    "android:textAlignment",
+                    Etiquette.ALIGNEMENT_TEXTE,
+                    ALIGNEMENTS_TEXTE,
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Liste(
+                    "android:textAppearance",
+                    Etiquette.APPARENCE_TEXTE,
+                    APPARENCES_TEXTE,
+                    courant = false,
+                ),
+            ),
+        )
+    }
 
     /**
      * La section TYPOGRAPHIE (PE11 § 7 — miroir `if (T || k === 'edit')`) :
@@ -1863,116 +1821,112 @@ public object CatalogueAttributs {
      * en courants ; chiffres, remplissage auto et compagnie ensuite.
      * `maxLines` a déménagé vers LIGNES ET DÉBORDEMENT (§ 7).
      */
-    private fun sectionSaisie(classe: String): SectionAttributs? =
-        if (!familleSaisie(classe)) {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.SAISIE,
-                listOf(
-                    ControleAttribut.Texte("android:hint", Etiquette.HINT, extrayable = true),
-                    ControleAttribut.TypeSaisie("android:inputType", BASES_SAISIE, MODIFICATEURS_SAISIE),
-                    ControleAttribut.Liste("android:imeOptions", Etiquette.OPTIONS_IME, OPTIONS_IME),
-                    ControleAttribut.Nombre("android:maxLength", Etiquette.LONGUEUR_MAX, "", Bornes(1f)),
-                    ControleAttribut.Texte("android:digits", Etiquette.CHIFFRES, courant = false),
-                    ControleAttribut.Liste(
-                        "android:autofillHints",
-                        Etiquette.SUGGESTIONS_AUTOFILL,
-                        SUGGESTIONS_AUTOFILL,
-                        courant = false,
-                    ),
-                    ControleAttribut.Liste(
-                        "android:importantForAutofill",
-                        Etiquette.IMPORTANCE_AUTOFILL,
-                        IMPORTANCE_AUTOFILL,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat(
-                        "android:selectAllOnFocus",
-                        Etiquette.TOUT_SELECTIONNER,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat(
-                        "android:cursorVisible",
-                        Etiquette.CURSEUR_VISIBLE,
-                        courant = false,
-                    ),
-                    ControleAttribut.Couleur(
-                        "android:textColorHint",
-                        Etiquette.COULEUR_INDICATION,
-                        courant = false,
-                    ),
+    private fun sectionSaisie(classe: String): SectionAttributs? = if (!familleSaisie(classe)) {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.SAISIE,
+            listOf(
+                ControleAttribut.Texte("android:hint", Etiquette.HINT, extrayable = true),
+                ControleAttribut.TypeSaisie("android:inputType", BASES_SAISIE, MODIFICATEURS_SAISIE),
+                ControleAttribut.Liste("android:imeOptions", Etiquette.OPTIONS_IME, OPTIONS_IME),
+                ControleAttribut.Nombre("android:maxLength", Etiquette.LONGUEUR_MAX, "", Bornes(1f)),
+                ControleAttribut.Texte("android:digits", Etiquette.CHIFFRES, courant = false),
+                ControleAttribut.Liste(
+                    "android:autofillHints",
+                    Etiquette.SUGGESTIONS_AUTOFILL,
+                    SUGGESTIONS_AUTOFILL,
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Liste(
+                    "android:importantForAutofill",
+                    Etiquette.IMPORTANCE_AUTOFILL,
+                    IMPORTANCE_AUTOFILL,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat(
+                    "android:selectAllOnFocus",
+                    Etiquette.TOUT_SELECTIONNER,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat(
+                    "android:cursorVisible",
+                    Etiquette.CURSEUR_VISIBLE,
+                    courant = false,
+                ),
+                ControleAttribut.Couleur(
+                    "android:textColorHint",
+                    Etiquette.COULEUR_INDICATION,
+                    courant = false,
+                ),
+            ),
+        )
+    }
 
     /**
      * La section CHAMP (TextInputLayout — miroir `if (k === 'field')` v6) :
      * libellé, mode de fond (« none » rejoint le choix § 7), variante de
      * style et activation de l'indication.
      */
-    private fun sectionChamp(classe: String): SectionAttributs? =
-        if (classe != "TextInputLayout") {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.CHAMP,
-                listOf(
-                    ControleAttribut.Texte("android:hint", Etiquette.LIBELLE),
-                    ControleAttribut.Choix("app:boxBackgroundMode", Etiquette.FOND, FONDS),
-                    ControleAttribut.Liste("style", Etiquette.STYLE, STYLES_CHAMP, courant = false),
-                    ControleAttribut.TriEtat("app:hintEnabled", Etiquette.INDICATION_ACTIVEE, courant = false),
-                ),
-            )
-        }
+    private fun sectionChamp(classe: String): SectionAttributs? = if (classe != "TextInputLayout") {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.CHAMP,
+            listOf(
+                ControleAttribut.Texte("android:hint", Etiquette.LIBELLE),
+                ControleAttribut.Choix("app:boxBackgroundMode", Etiquette.FOND, FONDS),
+                ControleAttribut.Liste("style", Etiquette.STYLE, STYLES_CHAMP, courant = false),
+                ControleAttribut.TriEtat("app:hintEnabled", Etiquette.INDICATION_ACTIVEE, courant = false),
+            ),
+        )
+    }
 
     /**
      * La section AIDES ET COMPTEUR (PE11 § 7 — TextInputLayout) : texte
      * d'aide en courant, erreurs, compteur, substitution, préfixe et
      * suffixe.
      */
-    private fun sectionAidesCompteur(classe: String): SectionAttributs? =
-        if (classe != "TextInputLayout") {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.AIDES_CHAMP,
-                listOf(
-                    ControleAttribut.Texte("app:helperText", Etiquette.TEXTE_AIDE),
-                    ControleAttribut.TriEtat("app:errorEnabled", Etiquette.ERREUR_ACTIVEE, courant = false),
-                    ControleAttribut.TriEtat("app:counterEnabled", Etiquette.COMPTEUR_ACTIVE, courant = false),
-                    ControleAttribut.Nombre(
-                        "app:counterMaxLength",
-                        Etiquette.COMPTEUR_LONGUEUR,
-                        "",
-                        Bornes(1f),
-                        courant = false,
-                    ),
-                    ControleAttribut.Texte("app:placeholderText", Etiquette.TEXTE_SUBSTITUTION, courant = false),
-                    ControleAttribut.Texte("app:prefixText", Etiquette.PREFIXE, courant = false),
-                    ControleAttribut.Texte("app:suffixText", Etiquette.SUFFIXE, courant = false),
+    private fun sectionAidesCompteur(classe: String): SectionAttributs? = if (classe != "TextInputLayout") {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.AIDES_CHAMP,
+            listOf(
+                ControleAttribut.Texte("app:helperText", Etiquette.TEXTE_AIDE),
+                ControleAttribut.TriEtat("app:errorEnabled", Etiquette.ERREUR_ACTIVEE, courant = false),
+                ControleAttribut.TriEtat("app:counterEnabled", Etiquette.COMPTEUR_ACTIVE, courant = false),
+                ControleAttribut.Nombre(
+                    "app:counterMaxLength",
+                    Etiquette.COMPTEUR_LONGUEUR,
+                    "",
+                    Bornes(1f),
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Texte("app:placeholderText", Etiquette.TEXTE_SUBSTITUTION, courant = false),
+                ControleAttribut.Texte("app:prefixText", Etiquette.PREFIXE, courant = false),
+                ControleAttribut.Texte("app:suffixText", Etiquette.SUFFIXE, courant = false),
+            ),
+        )
+    }
 
     /**
      * La section ICÔNES du champ (PE11 § 7 — TextInputLayout) : icône de
      * début, mode d'icône de fin (LISTE à cinq valeurs § 7 — miroir
      * `endIconMode` v6) et sa teinte.
      */
-    private fun sectionIconesChamp(classe: String): SectionAttributs? =
-        if (classe != "TextInputLayout") {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.ICONES,
-                listOf(
-                    ControleAttribut.Ressource("app:startIconDrawable", Etiquette.ICONE_DEBUT, TYPES_DESSINABLE),
-                    ControleAttribut.Liste("app:endIconMode", Etiquette.ICONE_FIN, ICONES_FIN),
-                    ControleAttribut.Couleur("app:endIconTint", Etiquette.TEINTE_ICONE_FIN, courant = false),
-                ),
-            )
-        }
+    private fun sectionIconesChamp(classe: String): SectionAttributs? = if (classe != "TextInputLayout") {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.ICONES,
+            listOf(
+                ControleAttribut.Ressource("app:startIconDrawable", Etiquette.ICONE_DEBUT, TYPES_DESSINABLE),
+                ControleAttribut.Liste("app:endIconMode", Etiquette.ICONE_FIN, ICONES_FIN),
+                ControleAttribut.Couleur("app:endIconTint", Etiquette.TEINTE_ICONE_FIN, courant = false),
+            ),
+        )
+    }
 
     /**
      * La section CONTOUR (PE11 § 7 — TextInputLayout) : couleur et
@@ -1980,26 +1934,25 @@ public object CatalogueAttributs {
      * [ControleAttribut.Coins], `controle_cotes` pour layout) — AUCUN
      * courant.
      */
-    private fun sectionContour(classe: String): SectionAttributs? =
-        if (classe != "TextInputLayout") {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.CONTOUR,
-                listOf(
-                    ControleAttribut.Couleur("app:boxStrokeColor", Etiquette.TRAIT_FOND, courant = false),
-                    ControleAttribut.Nombre(
-                        "app:boxStrokeWidth",
-                        Etiquette.EPAISSEUR_TRAIT,
-                        "dp",
-                        Bornes(0f),
-                        courant = false,
-                    ),
-                    ControleAttribut.Couleur("app:boxBackgroundColor", Etiquette.FOND_BOITE, courant = false),
-                    ControleAttribut.Coins("app:boxCornerRadiusTopStart", Etiquette.COINS, courant = false),
+    private fun sectionContour(classe: String): SectionAttributs? = if (classe != "TextInputLayout") {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.CONTOUR,
+            listOf(
+                ControleAttribut.Couleur("app:boxStrokeColor", Etiquette.TRAIT_FOND, courant = false),
+                ControleAttribut.Nombre(
+                    "app:boxStrokeWidth",
+                    Etiquette.EPAISSEUR_TRAIT,
+                    "dp",
+                    Bornes(0f),
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Couleur("app:boxBackgroundColor", Etiquette.FOND_BOITE, courant = false),
+                ControleAttribut.Coins("app:boxCornerRadiusTopStart", Etiquette.COINS, courant = false),
+            ),
+        )
+    }
 
     /**
      * La section BOUTON (Button/MaterialButton — miroir `if (k === 'btn')`
@@ -2007,52 +1960,51 @@ public object CatalogueAttributs {
      * courants ; gravité, écart, taille et teinte de l'icône, bordure,
      * ripple et insets ensuite (§ 7).
      */
-    private fun sectionBouton(classe: String): SectionAttributs? =
-        if (!familleBouton(classe)) {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.BOUTON,
-                listOf(
-                    ControleAttribut.Liste("style", Etiquette.VARIANTE, STYLES_BOUTON),
-                    ControleAttribut.Nombre("app:cornerRadius", Etiquette.ARRONDI, "dp", Bornes(0f)),
-                    ControleAttribut.Couleur("app:backgroundTint", Etiquette.TEINTE_FOND),
-                    ControleAttribut.Ressource("app:icon", Etiquette.ICONE, TYPES_DESSINABLE),
-                    ControleAttribut.Liste(
-                        "app:iconGravity",
-                        Etiquette.GRAVITE_ICONE,
-                        GRAVITES_ICONE,
-                        courant = false,
-                    ),
-                    ControleAttribut.Nombre(
-                        "app:iconPadding",
-                        Etiquette.PADDING_ICONE,
-                        "dp",
-                        Bornes(0f),
-                        courant = false,
-                    ),
-                    ControleAttribut.Couleur("app:iconTint", Etiquette.TEINTE_ICONE, courant = false),
-                    ControleAttribut.Nombre(
-                        "app:iconSize",
-                        Etiquette.TAILLE_ICONE,
-                        "dp",
-                        Bornes(0f),
-                        courant = false,
-                    ),
-                    ControleAttribut.Couleur("app:strokeColor", Etiquette.COULEUR_BORDURE, courant = false),
-                    ControleAttribut.Nombre(
-                        "app:strokeWidth",
-                        Etiquette.EPAISSEUR_BORDURE,
-                        "dp",
-                        Bornes(0f),
-                        courant = false,
-                    ),
-                    ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
-                    ControleAttribut.Nombre("android:insetTop", Etiquette.INSET_HAUT, "dp", courant = false),
-                    ControleAttribut.Nombre("android:insetBottom", Etiquette.INSET_BAS, "dp", courant = false),
+    private fun sectionBouton(classe: String): SectionAttributs? = if (!familleBouton(classe)) {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.BOUTON,
+            listOf(
+                ControleAttribut.Liste("style", Etiquette.VARIANTE, STYLES_BOUTON),
+                ControleAttribut.Nombre("app:cornerRadius", Etiquette.ARRONDI, "dp", Bornes(0f)),
+                ControleAttribut.Couleur("app:backgroundTint", Etiquette.TEINTE_FOND),
+                ControleAttribut.Ressource("app:icon", Etiquette.ICONE, TYPES_DESSINABLE),
+                ControleAttribut.Liste(
+                    "app:iconGravity",
+                    Etiquette.GRAVITE_ICONE,
+                    GRAVITES_ICONE,
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Nombre(
+                    "app:iconPadding",
+                    Etiquette.PADDING_ICONE,
+                    "dp",
+                    Bornes(0f),
+                    courant = false,
+                ),
+                ControleAttribut.Couleur("app:iconTint", Etiquette.TEINTE_ICONE, courant = false),
+                ControleAttribut.Nombre(
+                    "app:iconSize",
+                    Etiquette.TAILLE_ICONE,
+                    "dp",
+                    Bornes(0f),
+                    courant = false,
+                ),
+                ControleAttribut.Couleur("app:strokeColor", Etiquette.COULEUR_BORDURE, courant = false),
+                ControleAttribut.Nombre(
+                    "app:strokeWidth",
+                    Etiquette.EPAISSEUR_BORDURE,
+                    "dp",
+                    Bornes(0f),
+                    courant = false,
+                ),
+                ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
+                ControleAttribut.Nombre("android:insetTop", Etiquette.INSET_HAUT, "dp", courant = false),
+                ControleAttribut.Nombre("android:insetBottom", Etiquette.INSET_BAS, "dp", courant = false),
+            ),
+        )
+    }
 
     /**
      * La section ÉTAT (CompoundButton — miroir `if (k === 'check' || k ===
@@ -2060,30 +2012,29 @@ public object CatalogueAttributs {
      * la case (CheckBox) OU les teintes du pouce et de la piste, le texte
      * affiché et ses deux libellés (Switch).
      */
-    private fun sectionEtat(classe: String): SectionAttributs? =
-        if (!familleEtat(classe)) {
-            null
-        } else {
-            val specifiques =
-                if (classe == "CheckBox") {
-                    listOf(
-                        ControleAttribut.Couleur("app:buttonTint", Etiquette.TEINTE_CASE),
-                        ControleAttribut.Ressource("android:button", Etiquette.CASE, TYPES_DESSINABLE, courant = false),
-                    )
-                } else {
-                    listOf(
-                        ControleAttribut.Couleur("android:thumbTint", Etiquette.TEINTE_POUCE),
-                        ControleAttribut.Couleur("android:trackTint", Etiquette.TEINTE_PISTE),
-                        ControleAttribut.TriEtat("android:showText", Etiquette.AFFICHER_TEXTE, courant = false),
-                        ControleAttribut.Texte("android:textOn", Etiquette.TEXTE_ACTIF, courant = false),
-                        ControleAttribut.Texte("android:textOff", Etiquette.TEXTE_INACTIF, courant = false),
-                    )
-                }
-            SectionAttributs(
-                TitreSection.ETAT,
-                listOf(ControleAttribut.TriEtat("android:checked", Etiquette.COCHE)) + specifiques,
-            )
-        }
+    private fun sectionEtat(classe: String): SectionAttributs? = if (!familleEtat(classe)) {
+        null
+    } else {
+        val specifiques =
+            if (classe == "CheckBox") {
+                listOf(
+                    ControleAttribut.Couleur("app:buttonTint", Etiquette.TEINTE_CASE),
+                    ControleAttribut.Ressource("android:button", Etiquette.CASE, TYPES_DESSINABLE, courant = false),
+                )
+            } else {
+                listOf(
+                    ControleAttribut.Couleur("android:thumbTint", Etiquette.TEINTE_POUCE),
+                    ControleAttribut.Couleur("android:trackTint", Etiquette.TEINTE_PISTE),
+                    ControleAttribut.TriEtat("android:showText", Etiquette.AFFICHER_TEXTE, courant = false),
+                    ControleAttribut.Texte("android:textOn", Etiquette.TEXTE_ACTIF, courant = false),
+                    ControleAttribut.Texte("android:textOff", Etiquette.TEXTE_INACTIF, courant = false),
+                )
+            }
+        SectionAttributs(
+            TitreSection.ETAT,
+            listOf(ControleAttribut.TriEtat("android:checked", Etiquette.COCHE)) + specifiques,
+        )
+    }
 
     /**
      * La section IMAGE (ImageView/ImageButton — miroir
@@ -2092,42 +2043,41 @@ public object CatalogueAttributs {
      * découpage au padding, bornes max ensuite (§ 7 — les maxWidth/
      * maxHeight quittent la Disposition de la famille image).
      */
-    private fun sectionImage(classe: String): SectionAttributs? =
-        if (!familleImage(classe)) {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.IMAGE,
-                listOf(
-                    ControleAttribut.Ressource("android:src", Etiquette.SOURCE, TYPES_DESSINABLE),
-                    ControleAttribut.Ressource(
-                        "app:srcCompat",
-                        Etiquette.SRC_COMPAT,
-                        TYPES_DESSINABLE,
-                        courant = false,
-                    ),
-                    ControleAttribut.Liste("android:scaleType", Etiquette.TYPE_ECHELLE, TYPES_ECHELLE),
-                    ControleAttribut.TriEtat("android:adjustViewBounds", Etiquette.AJUSTER_BORNES, courant = false),
-                    ControleAttribut.Couleur("app:tint", Etiquette.TEINTE, courant = false),
-                    ControleAttribut.Liste("android:tintMode", Etiquette.MODE_TEINTE, MODES_TEINTE, courant = false),
-                    ControleAttribut.TriEtat("android:cropToPadding", Etiquette.ROGNER_PADDING, courant = false),
-                    ControleAttribut.Nombre(
-                        "android:maxWidth",
-                        Etiquette.LARGEUR_MAX,
-                        "dp",
-                        Bornes(0f),
-                        courant = false,
-                    ),
-                    ControleAttribut.Nombre(
-                        "android:maxHeight",
-                        Etiquette.HAUTEUR_MAX,
-                        "dp",
-                        Bornes(0f),
-                        courant = false,
-                    ),
+    private fun sectionImage(classe: String): SectionAttributs? = if (!familleImage(classe)) {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.IMAGE,
+            listOf(
+                ControleAttribut.Ressource("android:src", Etiquette.SOURCE, TYPES_DESSINABLE),
+                ControleAttribut.Ressource(
+                    "app:srcCompat",
+                    Etiquette.SRC_COMPAT,
+                    TYPES_DESSINABLE,
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Liste("android:scaleType", Etiquette.TYPE_ECHELLE, TYPES_ECHELLE),
+                ControleAttribut.TriEtat("android:adjustViewBounds", Etiquette.AJUSTER_BORNES, courant = false),
+                ControleAttribut.Couleur("app:tint", Etiquette.TEINTE, courant = false),
+                ControleAttribut.Liste("android:tintMode", Etiquette.MODE_TEINTE, MODES_TEINTE, courant = false),
+                ControleAttribut.TriEtat("android:cropToPadding", Etiquette.ROGNER_PADDING, courant = false),
+                ControleAttribut.Nombre(
+                    "android:maxWidth",
+                    Etiquette.LARGEUR_MAX,
+                    "dp",
+                    Bornes(0f),
+                    courant = false,
+                ),
+                ControleAttribut.Nombre(
+                    "android:maxHeight",
+                    Etiquette.HAUTEUR_MAX,
+                    "dp",
+                    Bornes(0f),
+                    courant = false,
+                ),
+            ),
+        )
+    }
 
     // ── PE12c — § 5.1 : sections du conteneur par famille ────────────
 
@@ -2137,11 +2087,7 @@ public object CatalogueAttributs {
      * section. MaterialCardView garde SA section Carte, inchangée
      * (§ 5.1 : « + Carte (existant) »).
      */
-    private fun sectionsConteneur(
-        classe: String,
-        familleVue: FamilleParent,
-        racine: Boolean,
-    ): List<SectionAttributs> {
+    private fun sectionsConteneur(classe: String, familleVue: FamilleParent, racine: Boolean): List<SectionAttributs> {
         val conteneur =
             when (familleVue) {
                 FamilleParent.LINEAR -> sectionConteneurLineaire(racine)
@@ -2163,125 +2109,120 @@ public object CatalogueAttributs {
     }
 
     /** LINEAR (§ 5.1, miroir le Conteneur étendu de la maquette) : 11 attributs. */
-    private fun sectionConteneurLineaire(racine: Boolean): List<SectionAttributs> =
-        listOf(
-            SectionAttributs(
-                TitreSection.CONTENEUR,
-                listOf(
-                    ControleAttribut.Choix("android:orientation", Etiquette.ORIENTATION, ORIENTATIONS),
-                    ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
-                    ControleAttribut.TriEtat("android:baselineAligned", Etiquette.BASELINE_ALIGNE, courant = false),
-                    ControleAttribut.Nombre("android:weightSum", Etiquette.SOMME_POIDS, "", courant = false),
-                    ControleAttribut.Drapeaux(
-                        "android:showDividers",
-                        Etiquette.SHOW_DIVIDERS,
-                        SEPARATEURS,
-                        courant = false,
-                    ),
-                    ControleAttribut.Ressource(
-                        "android:divider",
-                        Etiquette.SEPARATEUR,
-                        TYPES_DESSINABLE,
-                        courant = false,
-                    ),
-                    ControleAttribut.Nombre(
-                        "android:dividerPadding",
-                        Etiquette.SEPARATEUR_PADDING,
-                        "dp",
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat(
-                        "android:measureWithLargestChild",
-                        Etiquette.MESURER_PLUS_GRAND,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
-                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
-                    ControleAttribut.TriEtat(
-                        "android:animateLayoutChanges",
-                        Etiquette.ANIMER_MISE_EN_PAGE,
-                        courant = false,
-                    ),
-                ).sansDoublesRacine(racine),
-            ),
-        )
+    private fun sectionConteneurLineaire(racine: Boolean): List<SectionAttributs> = listOf(
+        SectionAttributs(
+            TitreSection.CONTENEUR,
+            listOf(
+                ControleAttribut.Choix("android:orientation", Etiquette.ORIENTATION, ORIENTATIONS),
+                ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
+                ControleAttribut.TriEtat("android:baselineAligned", Etiquette.BASELINE_ALIGNE, courant = false),
+                ControleAttribut.Nombre("android:weightSum", Etiquette.SOMME_POIDS, "", courant = false),
+                ControleAttribut.Drapeaux(
+                    "android:showDividers",
+                    Etiquette.SHOW_DIVIDERS,
+                    SEPARATEURS,
+                    courant = false,
+                ),
+                ControleAttribut.Ressource(
+                    "android:divider",
+                    Etiquette.SEPARATEUR,
+                    TYPES_DESSINABLE,
+                    courant = false,
+                ),
+                ControleAttribut.Nombre(
+                    "android:dividerPadding",
+                    Etiquette.SEPARATEUR_PADDING,
+                    "dp",
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat(
+                    "android:measureWithLargestChild",
+                    Etiquette.MESURER_PLUS_GRAND,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+                ControleAttribut.TriEtat(
+                    "android:animateLayoutChanges",
+                    Etiquette.ANIMER_MISE_EN_PAGE,
+                    courant = false,
+                ),
+            ).sansDoublesRacine(racine),
+        ),
+    )
 
     /** FRAME (§ 5.1) : gravité d'avant-plan, mesure, découpage. */
-    private fun sectionConteneurFrame(racine: Boolean): List<SectionAttributs> =
-        listOf(
-            SectionAttributs(
-                TitreSection.CONTENEUR,
-                listOf(
-                    ControleAttribut.Drapeaux(
-                        "android:foregroundGravity",
-                        Etiquette.GRAVITE_AVANT_PLAN,
-                        GRAVITES,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat(
-                        "android:measureAllChildren",
-                        Etiquette.MESURER_TOUS_ENFANTS,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
-                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
-                ).sansDoublesRacine(racine),
-            ),
-        )
+    private fun sectionConteneurFrame(racine: Boolean): List<SectionAttributs> = listOf(
+        SectionAttributs(
+            TitreSection.CONTENEUR,
+            listOf(
+                ControleAttribut.Drapeaux(
+                    "android:foregroundGravity",
+                    Etiquette.GRAVITE_AVANT_PLAN,
+                    GRAVITES,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat(
+                    "android:measureAllChildren",
+                    Etiquette.MESURER_TOUS_ENFANTS,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+            ).sansDoublesRacine(racine),
+        ),
+    )
 
     /** RELATIVE (§ 5.1) : gravité, gravité ignorée (référence, sous-arbre). */
-    private fun sectionConteneurRelatif(racine: Boolean): List<SectionAttributs> =
-        listOf(
-            SectionAttributs(
-                TitreSection.CONTENEUR,
-                listOf(
-                    ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
-                    ControleAttribut.ReferenceId(
-                        "android:ignoreGravity",
-                        Etiquette.IGNORER_GRAVITE,
-                        ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
-                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
-                ).sansDoublesRacine(racine),
-            ),
-        )
-
-    /** COORDINATOR (§ 5.1) : ajustement système, fond de barre d'état. */
-    private fun sectionConteneurCoordonnateur(racine: Boolean): List<SectionAttributs> =
-        listOf(
-            SectionAttributs(
-                TitreSection.CONTENEUR,
-                listOf(
-                    ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME),
-                    ControleAttribut.Ressource(
-                        "app:statusBarBackground",
-                        Etiquette.FOND_BARRE_ETAT,
-                        TYPES_FOND_BARRE,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
-                ).sansDoublesRacine(racine),
-            ),
-        )
-
-    /** APPBAR (§ 5.1) : la section « Barre d'application » du parent lui-même. */
-    private fun sectionBarreApplication(racine: Boolean): SectionAttributs =
+    private fun sectionConteneurRelatif(racine: Boolean): List<SectionAttributs> = listOf(
         SectionAttributs(
-            TitreSection.BARRE_APPLICATION,
+            TitreSection.CONTENEUR,
             listOf(
-                ControleAttribut.TriEtat("app:liftOnScroll", Etiquette.ELEVER_AU_DEFILEMENT),
+                ControleAttribut.Drapeaux("android:gravity", Etiquette.GRAVITE, GRAVITES),
                 ControleAttribut.ReferenceId(
-                    "app:liftOnScrollTargetViewId",
-                    Etiquette.CIBLE_ELEVEE,
+                    "android:ignoreGravity",
+                    Etiquette.IGNORER_GRAVITE,
                     ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
                     courant = false,
                 ),
-                ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME, courant = false),
-                ControleAttribut.TriEtat("app:expanded", Etiquette.ETENDU, courant = false),
+                ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+                ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
             ).sansDoublesRacine(racine),
-        )
+        ),
+    )
+
+    /** COORDINATOR (§ 5.1) : ajustement système, fond de barre d'état. */
+    private fun sectionConteneurCoordonnateur(racine: Boolean): List<SectionAttributs> = listOf(
+        SectionAttributs(
+            TitreSection.CONTENEUR,
+            listOf(
+                ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME),
+                ControleAttribut.Ressource(
+                    "app:statusBarBackground",
+                    Etiquette.FOND_BARRE_ETAT,
+                    TYPES_FOND_BARRE,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat("android:clipChildren", Etiquette.CLIP_ENFANTS, courant = false),
+            ).sansDoublesRacine(racine),
+        ),
+    )
+
+    /** APPBAR (§ 5.1) : la section « Barre d'application » du parent lui-même. */
+    private fun sectionBarreApplication(racine: Boolean): SectionAttributs = SectionAttributs(
+        TitreSection.BARRE_APPLICATION,
+        listOf(
+            ControleAttribut.TriEtat("app:liftOnScroll", Etiquette.ELEVER_AU_DEFILEMENT),
+            ControleAttribut.ReferenceId(
+                "app:liftOnScrollTargetViewId",
+                Etiquette.CIBLE_ELEVEE,
+                ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
+                courant = false,
+            ),
+            ControleAttribut.TriEtat("android:fitsSystemWindows", Etiquette.AJUSTER_SYSTEME, courant = false),
+            ControleAttribut.TriEtat("app:expanded", Etiquette.ETENDU, courant = false),
+        ).sansDoublesRacine(racine),
+    )
 
     /**
      * La section CARTE de MaterialCardView (§ 5.1 : « + Carte (existant) »
@@ -2289,56 +2230,54 @@ public object CatalogueAttributs {
      * de style, bordure, ripple, padding de contenu et réglages de
      * compatibilité.
      */
-    private fun sectionCarte(classe: String): List<SectionAttributs> =
-        if (classe != "MaterialCardView") {
-            emptyList()
-        } else {
-            listOf(
-                SectionAttributs(
-                    TitreSection.CARTE,
-                    listOf(
-                        ControleAttribut.Couleur("app:cardBackgroundColor", Etiquette.FOND_CARTE),
-                        ControleAttribut.Nombre("app:cardCornerRadius", Etiquette.ARRONDI, "dp", Bornes(0f)),
-                        ControleAttribut.Nombre("app:cardElevation", Etiquette.ELEVATION, "dp", Bornes(0f)),
-                        ControleAttribut.Liste("style", Etiquette.STYLE, STYLES_CARTE, courant = false),
-                        ControleAttribut.Couleur("app:strokeColor", Etiquette.COULEUR_BORDURE, courant = false),
-                        ControleAttribut.Nombre(
-                            "app:strokeWidth",
-                            Etiquette.EPAISSEUR_BORDURE,
-                            "dp",
-                            Bornes(0f),
-                            courant = false,
-                        ),
-                        ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
-                        ControleAttribut.Nombre(
-                            "app:contentPadding",
-                            Etiquette.PADDING_CONTENU,
-                            "dp",
-                            Bornes(0f),
-                            courant = false,
-                        ),
-                        ControleAttribut.TriEtat("app:cardUseCompatPadding", Etiquette.PADDING_COMPAT, courant = false),
-                        ControleAttribut.TriEtat(
-                            "app:cardPreventCornerOverlap",
-                            Etiquette.EMPECHER_CHEVAUCHEMENT,
-                            courant = false,
-                        ),
-                        ControleAttribut.TriEtat("android:checkable", Etiquette.COCHABLE, courant = false),
+    private fun sectionCarte(classe: String): List<SectionAttributs> = if (classe != "MaterialCardView") {
+        emptyList()
+    } else {
+        listOf(
+            SectionAttributs(
+                TitreSection.CARTE,
+                listOf(
+                    ControleAttribut.Couleur("app:cardBackgroundColor", Etiquette.FOND_CARTE),
+                    ControleAttribut.Nombre("app:cardCornerRadius", Etiquette.ARRONDI, "dp", Bornes(0f)),
+                    ControleAttribut.Nombre("app:cardElevation", Etiquette.ELEVATION, "dp", Bornes(0f)),
+                    ControleAttribut.Liste("style", Etiquette.STYLE, STYLES_CARTE, courant = false),
+                    ControleAttribut.Couleur("app:strokeColor", Etiquette.COULEUR_BORDURE, courant = false),
+                    ControleAttribut.Nombre(
+                        "app:strokeWidth",
+                        Etiquette.EPAISSEUR_BORDURE,
+                        "dp",
+                        Bornes(0f),
+                        courant = false,
                     ),
+                    ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
+                    ControleAttribut.Nombre(
+                        "app:contentPadding",
+                        Etiquette.PADDING_CONTENU,
+                        "dp",
+                        Bornes(0f),
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat("app:cardUseCompatPadding", Etiquette.PADDING_COMPAT, courant = false),
+                    ControleAttribut.TriEtat(
+                        "app:cardPreventCornerOverlap",
+                        Etiquette.EMPECHER_CHEVAUCHEMENT,
+                        courant = false,
+                    ),
+                    ControleAttribut.TriEtat("android:checkable", Etiquette.COCHABLE, courant = false),
                 ),
-            )
-        }
+            ),
+        )
+    }
 
     // ── PE12c — § 5.2 : sections « Dans le parent » par famille ───────
 
     /** FRAME (§ 5.2) : la gravité seule. */
-    private fun sectionDansParentFrame(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.DANS_PARENT,
-            listOf(
-                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
-            ),
-        )
+    private fun sectionDansParentFrame(): SectionAttributs = SectionAttributs(
+        TitreSection.DANS_PARENT,
+        listOf(
+            ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+        ),
+    )
 
     /**
      * La section DANS PARENT d'un enfant LINÉAIRE (miroir le `genre ===
@@ -2346,158 +2285,153 @@ public object CatalogueAttributs {
      * l'ACTION RAPIDE groupée « Remplir l'espace restant » (PE11h —
      * annexe § 7 : `—` ActionRapide, courant).
      */
-    private fun sectionDansParentLineaire(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.DANS_PARENT,
-            listOf(
-                ControleAttribut.Nombre("android:layout_weight", Etiquette.POIDS, ""),
-                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
-                ControleAttribut.ActionRapide(
-                    listOf(
-                        ControleAttribut.ActionRapide.Action(
-                            Etiquette.REMPLIR_ESPACE,
-                            ControleAttribut.ActionRapide.Ecriture.RemplirEspaceRestant,
-                        ),
+    private fun sectionDansParentLineaire(): SectionAttributs = SectionAttributs(
+        TitreSection.DANS_PARENT,
+        listOf(
+            ControleAttribut.Nombre("android:layout_weight", Etiquette.POIDS, ""),
+            ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+            ControleAttribut.ActionRapide(
+                listOf(
+                    ControleAttribut.ActionRapide.Action(
+                        Etiquette.REMPLIR_ESPACE,
+                        ControleAttribut.ActionRapide.Ecriture.RemplirEspaceRestant,
                     ),
                 ),
             ),
-        )
+        ),
+    )
 
     /** RELATIVE (§ 5.2) : l'ANCRAGE AU PARENT (7 bascules) + alignWithParentIfMissing. */
-    private fun sectionDansParentRelatif(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.DANS_PARENT,
-            listOf(
-                ControleAttribut.Bascules(
-                    Etiquette.ANCRAGE_PARENT,
-                    listOf(
-                        ControleAttribut.Bascules.Entree("android:layout_alignParentStart", Etiquette.ANCRAGE_DEBUT),
-                        ControleAttribut.Bascules.Entree("android:layout_alignParentEnd", Etiquette.ANCRAGE_FIN),
-                        ControleAttribut.Bascules.Entree("android:layout_alignParentTop", Etiquette.ANCRAGE_HAUT),
-                        ControleAttribut.Bascules.Entree("android:layout_alignParentBottom", Etiquette.ANCRAGE_BAS),
-                        ControleAttribut.Bascules.Entree("android:layout_centerHorizontal", Etiquette.ANCRAGE_CENTRE_H),
-                        ControleAttribut.Bascules.Entree("android:layout_centerVertical", Etiquette.ANCRAGE_CENTRE_V),
-                        ControleAttribut.Bascules.Entree("android:layout_centerInParent", Etiquette.ANCRAGE_CENTRE),
-                    ),
-                ),
-                ControleAttribut.TriEtat(
-                    "android:layout_alignWithParentIfMissing",
-                    Etiquette.ALIGNER_SI_ABSENT,
-                    courant = false,
+    private fun sectionDansParentRelatif(): SectionAttributs = SectionAttributs(
+        TitreSection.DANS_PARENT,
+        listOf(
+            ControleAttribut.Bascules(
+                Etiquette.ANCRAGE_PARENT,
+                listOf(
+                    ControleAttribut.Bascules.Entree("android:layout_alignParentStart", Etiquette.ANCRAGE_DEBUT),
+                    ControleAttribut.Bascules.Entree("android:layout_alignParentEnd", Etiquette.ANCRAGE_FIN),
+                    ControleAttribut.Bascules.Entree("android:layout_alignParentTop", Etiquette.ANCRAGE_HAUT),
+                    ControleAttribut.Bascules.Entree("android:layout_alignParentBottom", Etiquette.ANCRAGE_BAS),
+                    ControleAttribut.Bascules.Entree("android:layout_centerHorizontal", Etiquette.ANCRAGE_CENTRE_H),
+                    ControleAttribut.Bascules.Entree("android:layout_centerVertical", Etiquette.ANCRAGE_CENTRE_V),
+                    ControleAttribut.Bascules.Entree("android:layout_centerInParent", Etiquette.ANCRAGE_CENTRE),
                 ),
             ),
-        )
+            ControleAttribut.TriEtat(
+                "android:layout_alignWithParentIfMissing",
+                Etiquette.ALIGNER_SI_ABSENT,
+                courant = false,
+            ),
+        ),
+    )
 
     /** RELATIVE (§ 5.2) : les 9 règles vers un frère — portée FRÈRES (miroir REL_V + REL_H). */
-    private fun sectionPositionsRelatives(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.POSITIONS_RELATIVES,
-            listOf(
-                ControleAttribut.ReferenceId(
-                    "android:layout_below",
-                    Etiquette.DESSOUS_DE,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_above",
-                    Etiquette.DESSUS_DE,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_alignTop",
-                    Etiquette.ALIGNE_HAUT_AVEC,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_alignBottom",
-                    Etiquette.ALIGNE_BAS_AVEC,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_alignBaseline",
-                    Etiquette.LIGNE_BASE_AVEC,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_toEndOf",
-                    Etiquette.A_DROITE_DE,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_toStartOf",
-                    Etiquette.A_GAUCHE_DE,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_alignStart",
-                    Etiquette.ALIGNE_DEBUT_AVEC,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:layout_alignEnd",
-                    Etiquette.ALIGNE_FIN_AVEC,
-                    ControleAttribut.ReferenceId.Portee.FRERES,
-                    courant = false,
-                ),
+    private fun sectionPositionsRelatives(): SectionAttributs = SectionAttributs(
+        TitreSection.POSITIONS_RELATIVES,
+        listOf(
+            ControleAttribut.ReferenceId(
+                "android:layout_below",
+                Etiquette.DESSOUS_DE,
+                ControleAttribut.ReferenceId.Portee.FRERES,
             ),
-            note = NoteSection.REGLES_SOEURS,
-        )
+            ControleAttribut.ReferenceId(
+                "android:layout_above",
+                Etiquette.DESSUS_DE,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_alignTop",
+                Etiquette.ALIGNE_HAUT_AVEC,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_alignBottom",
+                Etiquette.ALIGNE_BAS_AVEC,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_alignBaseline",
+                Etiquette.LIGNE_BASE_AVEC,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_toEndOf",
+                Etiquette.A_DROITE_DE,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_toStartOf",
+                Etiquette.A_GAUCHE_DE,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_alignStart",
+                Etiquette.ALIGNE_DEBUT_AVEC,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:layout_alignEnd",
+                Etiquette.ALIGNE_FIN_AVEC,
+                ControleAttribut.ReferenceId.Portee.FRERES,
+                courant = false,
+            ),
+        ),
+        note = NoteSection.REGLES_SOEURS,
+    )
 
     /** COORDINATOR (§ 5.2) : gravité, ancre (+ sa gravité), comportement, bords, keyline. */
-    private fun sectionDansParentCoordonnateur(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.DANS_PARENT,
-            listOf(
-                ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
-                ControleAttribut.ReferenceId(
-                    "app:layout_anchor",
-                    Etiquette.ANCRE,
-                    ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
-                ),
-                ControleAttribut.Drapeaux(
-                    "app:layout_anchorGravity",
-                    Etiquette.GRAVITE_ANCRE,
-                    GRAVITES,
-                    requiert = "app:layout_anchor",
-                    courant = false,
-                ),
-                ControleAttribut.Liste("app:layout_behavior", Etiquette.COMPORTEMENT, COMPORTEMENTS),
-                ControleAttribut.Liste("app:layout_insetEdge", Etiquette.BORD_INSET, BORDS_INSET, courant = false),
-                ControleAttribut.Drapeaux(
-                    "app:layout_dodgeInsetEdges",
-                    Etiquette.ESQUIVER_BORDS,
-                    DRAPEAUX_ESQUIVE,
-                    courant = false,
-                ),
-                ControleAttribut.Nombre("app:layout_keyline", Etiquette.KEYLINE, "", courant = false),
+    private fun sectionDansParentCoordonnateur(): SectionAttributs = SectionAttributs(
+        TitreSection.DANS_PARENT,
+        listOf(
+            ControleAttribut.Drapeaux("android:layout_gravity", Etiquette.GRAVITE_PARENT, GRAVITES),
+            ControleAttribut.ReferenceId(
+                "app:layout_anchor",
+                Etiquette.ANCRE,
+                ControleAttribut.ReferenceId.Portee.SOUS_ARBRE,
             ),
-        )
+            ControleAttribut.Drapeaux(
+                "app:layout_anchorGravity",
+                Etiquette.GRAVITE_ANCRE,
+                GRAVITES,
+                requiert = "app:layout_anchor",
+                courant = false,
+            ),
+            ControleAttribut.Liste("app:layout_behavior", Etiquette.COMPORTEMENT, COMPORTEMENTS),
+            ControleAttribut.Liste("app:layout_insetEdge", Etiquette.BORD_INSET, BORDS_INSET, courant = false),
+            ControleAttribut.Drapeaux(
+                "app:layout_dodgeInsetEdges",
+                Etiquette.ESQUIVER_BORDS,
+                DRAPEAUX_ESQUIVE,
+                courant = false,
+            ),
+            ControleAttribut.Nombre("app:layout_keyline", Etiquette.KEYLINE, "", courant = false),
+        ),
+    )
 
     /** APPBAR (§ 5.2) : drapeaux de défilement, interpolateur, gravité. */
-    private fun sectionDansParentBarre(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.DANS_PARENT,
-            listOf(
-                ControleAttribut.Drapeaux("app:layout_scrollFlags", Etiquette.DRAPEAUX_DEFILEMENT, DRAPEAUX_DEFILEMENT),
-                ControleAttribut.Texte(
-                    "app:layout_scrollInterpolator",
-                    Etiquette.INTERPOLATEUR_DEFILEMENT,
-                    courant = false,
-                ),
-                ControleAttribut.Drapeaux(
-                    "android:layout_gravity",
-                    Etiquette.GRAVITE_PARENT,
-                    GRAVITES,
-                    courant = false,
-                ),
+    private fun sectionDansParentBarre(): SectionAttributs = SectionAttributs(
+        TitreSection.DANS_PARENT,
+        listOf(
+            ControleAttribut.Drapeaux("app:layout_scrollFlags", Etiquette.DRAPEAUX_DEFILEMENT, DRAPEAUX_DEFILEMENT),
+            ControleAttribut.Texte(
+                "app:layout_scrollInterpolator",
+                Etiquette.INTERPOLATEUR_DEFILEMENT,
+                courant = false,
             ),
-        )
+            ControleAttribut.Drapeaux(
+                "android:layout_gravity",
+                Etiquette.GRAVITE_PARENT,
+                GRAVITES,
+                courant = false,
+            ),
+        ),
+    )
 
     // ── PE12c — § 5.4 : sections propres des nouvelles classes ───────
 
@@ -2525,24 +2459,23 @@ public object CatalogueAttributs {
         }
 
     /** La section BOUTON D'ACTION du FloatingActionButton (§ 5.4). */
-    private fun sectionBoutonAction(classe: String): SectionAttributs? =
-        if (classe != "FloatingActionButton") {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.BOUTON_ACTION,
-                listOf(
-                    ControleAttribut.Ressource("app:srcCompat", Etiquette.SRC_COMPAT, TYPES_DESSINABLE),
-                    ControleAttribut.Couleur("app:backgroundTint", Etiquette.TEINTE_FOND),
-                    ControleAttribut.Choix("app:fabSize", Etiquette.TAILLE_FAB, TAILLES_FAB),
-                    ControleAttribut.Couleur("app:tint", Etiquette.TEINTE, courant = false),
-                    ControleAttribut.Nombre("app:elevation", Etiquette.ELEVATION, "dp", courant = false),
-                    ControleAttribut.Nombre("app:borderWidth", Etiquette.LARGEUR_BORDURE, "dp", courant = false),
-                    ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
-                    ControleAttribut.TriEtat("app:useCompatPadding", Etiquette.PADDING_COMPAT, courant = false),
-                ),
-            )
-        }
+    private fun sectionBoutonAction(classe: String): SectionAttributs? = if (classe != "FloatingActionButton") {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.BOUTON_ACTION,
+            listOf(
+                ControleAttribut.Ressource("app:srcCompat", Etiquette.SRC_COMPAT, TYPES_DESSINABLE),
+                ControleAttribut.Couleur("app:backgroundTint", Etiquette.TEINTE_FOND),
+                ControleAttribut.Choix("app:fabSize", Etiquette.TAILLE_FAB, TAILLES_FAB),
+                ControleAttribut.Couleur("app:tint", Etiquette.TEINTE, courant = false),
+                ControleAttribut.Nombre("app:elevation", Etiquette.ELEVATION, "dp", courant = false),
+                ControleAttribut.Nombre("app:borderWidth", Etiquette.LARGEUR_BORDURE, "dp", courant = false),
+                ControleAttribut.Couleur("app:rippleColor", Etiquette.COULEUR_RIPPLE, courant = false),
+                ControleAttribut.TriEtat("app:useCompatPadding", Etiquette.PADDING_COMPAT, courant = false),
+            ),
+        )
+    }
 
     /**
      * La section PROGRESSION (ProgressBar/SeekBar — miroir v6 § 7, PUIS
@@ -2608,46 +2541,45 @@ public object CatalogueAttributs {
      * segment) ; orientation, colonnes, sens, empilement, défiling et
      * compagnie ensuite (§ 7).
      */
-    private fun sectionListe(classe: String): SectionAttributs? =
-        if (classe != "RecyclerView") {
-            null
-        } else {
-            SectionAttributs(
-                TitreSection.LISTE,
-                listOf(
-                    ControleAttribut.Ressource("tools:listitem", Etiquette.ITEM_LISTE, listOf("layout")),
-                    ControleAttribut.Liste("app:layoutManager", Etiquette.GESTIONNAIRE, GESTIONNAIRES_LISTE),
-                    ControleAttribut.Choix(
-                        "android:orientation",
-                        Etiquette.ORIENTATION,
-                        ORIENTATIONS,
-                        courant = false,
-                    ),
-                    ControleAttribut.Nombre(
-                        "app:spanCount",
-                        Etiquette.NOMBRE_COLONNES,
-                        "",
-                        Bornes(minimum = 1f, maximum = 12f),
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat("app:reverseLayout", Etiquette.INVERSER, courant = false),
-                    ControleAttribut.TriEtat("app:stackFromEnd", Etiquette.EMPILER_FIN, courant = false),
-                    ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
-                    ControleAttribut.Drapeaux("android:scrollbars", Etiquette.SCROLLBARS, BARRES_DEFILEMENT),
-                    ControleAttribut.Liste(
-                        "android:overScrollMode",
-                        Etiquette.DEBORDEMENT,
-                        MODES_DEBORDEMENT,
-                        courant = false,
-                    ),
-                    ControleAttribut.TriEtat(
-                        "android:nestedScrollingEnabled",
-                        Etiquette.DEFILEMENT_IMBRIQUE,
-                        courant = false,
-                    ),
+    private fun sectionListe(classe: String): SectionAttributs? = if (classe != "RecyclerView") {
+        null
+    } else {
+        SectionAttributs(
+            TitreSection.LISTE,
+            listOf(
+                ControleAttribut.Ressource("tools:listitem", Etiquette.ITEM_LISTE, listOf("layout")),
+                ControleAttribut.Liste("app:layoutManager", Etiquette.GESTIONNAIRE, GESTIONNAIRES_LISTE),
+                ControleAttribut.Choix(
+                    "android:orientation",
+                    Etiquette.ORIENTATION,
+                    ORIENTATIONS,
+                    courant = false,
                 ),
-            )
-        }
+                ControleAttribut.Nombre(
+                    "app:spanCount",
+                    Etiquette.NOMBRE_COLONNES,
+                    "",
+                    Bornes(minimum = 1f, maximum = 12f),
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat("app:reverseLayout", Etiquette.INVERSER, courant = false),
+                ControleAttribut.TriEtat("app:stackFromEnd", Etiquette.EMPILER_FIN, courant = false),
+                ControleAttribut.TriEtat("android:clipToPadding", Etiquette.CLIP_PADDING, courant = false),
+                ControleAttribut.Drapeaux("android:scrollbars", Etiquette.SCROLLBARS, BARRES_DEFILEMENT),
+                ControleAttribut.Liste(
+                    "android:overScrollMode",
+                    Etiquette.DEBORDEMENT,
+                    MODES_DEBORDEMENT,
+                    courant = false,
+                ),
+                ControleAttribut.TriEtat(
+                    "android:nestedScrollingEnabled",
+                    Etiquette.DEFILEMENT_IMBRIQUE,
+                    courant = false,
+                ),
+            ),
+        )
+    }
 
     /**
      * Les sections GÉNÉRIQUES (PE11 § 7 — toutes vues non racine,
@@ -2657,170 +2589,91 @@ public object CatalogueAttributs {
      * Transformation, Interaction, Accessibilité puis Aperçu uniquement
      * (note dédiée) — une fonction par section (règle 8).
      */
-    private fun generiques(classe: String): List<SectionAttributs> =
-        listOf(
-            sectionDisposition(classe),
-            sectionApparence(),
-            SectionAttributs(
-                TitreSection.AFFICHAGE,
-                listOf(
-                    ControleAttribut.Choix("android:visibility", Etiquette.VISIBILITE, VISIBILITES),
-                    ControleAttribut.Curseur(
-                        "android:alpha",
-                        Etiquette.ALPHA,
-                        min = 0f,
-                        max = 1f,
-                        pas = 0.05f,
-                        unite = "",
-                        defaut = 1f,
-                    ),
+    private fun generiques(classe: String): List<SectionAttributs> = listOf(
+        sectionDisposition(classe),
+        sectionApparence(),
+        SectionAttributs(
+            TitreSection.AFFICHAGE,
+            listOf(
+                ControleAttribut.Choix("android:visibility", Etiquette.VISIBILITE, VISIBILITES),
+                ControleAttribut.Curseur(
+                    "android:alpha",
+                    Etiquette.ALPHA,
+                    min = 0f,
+                    max = 1f,
+                    pas = 0.05f,
+                    unite = "",
+                    defaut = 1f,
                 ),
             ),
-            sectionTransformation(),
-            sectionInteraction(),
-            sectionAccessibilite(),
-            SectionAttributs(
-                TitreSection.APERCU,
-                controlesApercu(classe),
-                note = NoteSection.OUTILS_APERCU,
-            ),
-        )
+        ),
+        sectionTransformation(),
+        sectionInteraction(),
+        sectionAccessibilite(),
+        SectionAttributs(
+            TitreSection.APERCU,
+            controlesApercu(classe),
+            note = NoteSection.OUTILS_APERCU,
+        ),
+    )
 
     /**
      * La section DISPOSITION étendue § 7 : les composites 1re vague puis
      * hauteur/largeur min — SANS les max* pour la famille image (ils
      * vivent dans sa section Image, miroir le filtre /max/ v6).
      */
-    private fun sectionDisposition(classe: String): SectionAttributs =
-        SectionAttributs(
-            TitreSection.DISPOSITION,
-            listOf(
-                ControleAttribut.Dimensions,
-                ControleAttribut.Cotes("android:layout_margin", Etiquette.MARGES),
-                ControleAttribut.Cotes("android:padding", Etiquette.PADDING),
-                ControleAttribut.Nombre("android:minHeight", Etiquette.HAUTEUR_MIN, "dp", courant = false),
-                ControleAttribut.Nombre(
-                    "android:minWidth",
-                    Etiquette.LARGEUR_MIN,
-                    "dp",
-                    Bornes(minimum = 0f),
-                    courant = false,
-                ),
-            ) +
-                if (familleImage(classe)) {
-                    emptyList()
-                } else {
-                    listOf(
-                        ControleAttribut.Nombre(
-                            "android:maxWidth",
-                            Etiquette.LARGEUR_MAX,
-                            "dp",
-                            Bornes(minimum = 0f),
-                            courant = false,
-                        ),
-                        ControleAttribut.Nombre(
-                            "android:maxHeight",
-                            Etiquette.HAUTEUR_MAX,
-                            "dp",
-                            Bornes(minimum = 0f),
-                            courant = false,
-                        ),
-                    )
-                },
-        )
+    private fun sectionDisposition(classe: String): SectionAttributs = SectionAttributs(
+        TitreSection.DISPOSITION,
+        listOf(
+            ControleAttribut.Dimensions,
+            ControleAttribut.Cotes("android:layout_margin", Etiquette.MARGES),
+            ControleAttribut.Cotes("android:padding", Etiquette.PADDING),
+            ControleAttribut.Nombre("android:minHeight", Etiquette.HAUTEUR_MIN, "dp", courant = false),
+            ControleAttribut.Nombre(
+                "android:minWidth",
+                Etiquette.LARGEUR_MIN,
+                "dp",
+                Bornes(minimum = 0f),
+                courant = false,
+            ),
+        ) +
+            if (familleImage(classe)) {
+                emptyList()
+            } else {
+                listOf(
+                    ControleAttribut.Nombre(
+                        "android:maxWidth",
+                        Etiquette.LARGEUR_MAX,
+                        "dp",
+                        Bornes(minimum = 0f),
+                        courant = false,
+                    ),
+                    ControleAttribut.Nombre(
+                        "android:maxHeight",
+                        Etiquette.HAUTEUR_MAX,
+                        "dp",
+                        Bornes(minimum = 0f),
+                        courant = false,
+                    ),
+                )
+            },
+    )
 
     /** La section APPARENCE § 7 : fond, teinte, avant-plan, élévation, découpe, thème — AUCUN courant. */
-    private fun sectionApparence(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.APPARENCE,
-            listOf(
-                ControleAttribut.Couleur("android:background", Etiquette.FOND_BRUT, courant = false),
-                ControleAttribut.Couleur("android:backgroundTint", Etiquette.TEINTE_FOND, courant = false),
-                ControleAttribut.Ressource(
-                    "android:foreground",
-                    Etiquette.AVANT_PLAN,
-                    TYPES_DESSINABLE,
-                    courant = false,
-                ),
-                ControleAttribut.Curseur(
-                    "android:elevation",
-                    Etiquette.ELEVATION_BRUTE,
-                    min = 0f,
-                    max = 24f,
-                    pas = 1f,
-                    unite = "dp",
-                    defaut = 0f,
-                    courant = false,
-                ),
-                ControleAttribut.TriEtat("android:clipToOutline", Etiquette.DECOUPE_CONTOUR, courant = false),
-                ControleAttribut.Ressource("android:theme", Etiquette.THEME, TYPES_STYLE, courant = false),
-            ),
-        )
-
-    /** La section TRANSFORMATION § 7 : rotation, échelles, translations — six CURSEURS, AUCUN courant. */
-    private fun sectionTransformation(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.TRANSFORMATION,
-            listOf(
-                ControleAttribut.Curseur(
-                    "android:rotation",
-                    Etiquette.ROTATION,
-                    min = -180f,
-                    max = 180f,
-                    pas = 1f,
-                    unite = "",
-                    defaut = 0f,
-                    courant = false,
-                ),
-                ControleAttribut.Curseur(
-                    "android:scaleX",
-                    Etiquette.ECHELLE_X,
-                    min = 0.1f,
-                    max = 3f,
-                    pas = 0.05f,
-                    unite = "",
-                    defaut = 1f,
-                    courant = false,
-                ),
-                ControleAttribut.Curseur(
-                    "android:scaleY",
-                    Etiquette.ECHELLE_Y,
-                    min = 0.1f,
-                    max = 3f,
-                    pas = 0.05f,
-                    unite = "",
-                    defaut = 1f,
-                    courant = false,
-                ),
-            ) + translations(),
-        )
-
-    /** Les trois TRANSLATIONS (§ 7) : ±100 dp sur les axes, 0 à 24 dp en profondeur — défaut 0, jamais courants. */
-    private fun translations(): List<ControleAttribut> =
+    private fun sectionApparence(): SectionAttributs = SectionAttributs(
+        TitreSection.APPARENCE,
         listOf(
-            ControleAttribut.Curseur(
-                "android:translationX",
-                Etiquette.TRANSLATION_X,
-                min = -100f,
-                max = 100f,
-                pas = 1f,
-                unite = "dp",
-                defaut = 0f,
+            ControleAttribut.Couleur("android:background", Etiquette.FOND_BRUT, courant = false),
+            ControleAttribut.Couleur("android:backgroundTint", Etiquette.TEINTE_FOND, courant = false),
+            ControleAttribut.Ressource(
+                "android:foreground",
+                Etiquette.AVANT_PLAN,
+                TYPES_DESSINABLE,
                 courant = false,
             ),
             ControleAttribut.Curseur(
-                "android:translationY",
-                Etiquette.TRANSLATION_Y,
-                min = -100f,
-                max = 100f,
-                pas = 1f,
-                unite = "dp",
-                defaut = 0f,
-                courant = false,
-            ),
-            ControleAttribut.Curseur(
-                "android:translationZ",
-                Etiquette.TRANSLATION_Z,
+                "android:elevation",
+                Etiquette.ELEVATION_BRUTE,
                 min = 0f,
                 max = 24f,
                 pas = 1f,
@@ -2828,65 +2681,137 @@ public object CatalogueAttributs {
                 defaut = 0f,
                 courant = false,
             ),
-        )
+            ControleAttribut.TriEtat("android:clipToOutline", Etiquette.DECOUPE_CONTOUR, courant = false),
+            ControleAttribut.Ressource("android:theme", Etiquette.THEME, TYPES_STYLE, courant = false),
+        ),
+    )
+
+    /** La section TRANSFORMATION § 7 : rotation, échelles, translations — six CURSEURS, AUCUN courant. */
+    private fun sectionTransformation(): SectionAttributs = SectionAttributs(
+        TitreSection.TRANSFORMATION,
+        listOf(
+            ControleAttribut.Curseur(
+                "android:rotation",
+                Etiquette.ROTATION,
+                min = -180f,
+                max = 180f,
+                pas = 1f,
+                unite = "",
+                defaut = 0f,
+                courant = false,
+            ),
+            ControleAttribut.Curseur(
+                "android:scaleX",
+                Etiquette.ECHELLE_X,
+                min = 0.1f,
+                max = 3f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 1f,
+                courant = false,
+            ),
+            ControleAttribut.Curseur(
+                "android:scaleY",
+                Etiquette.ECHELLE_Y,
+                min = 0.1f,
+                max = 3f,
+                pas = 0.05f,
+                unite = "",
+                defaut = 1f,
+                courant = false,
+            ),
+        ) + translations(),
+    )
+
+    /** Les trois TRANSLATIONS (§ 7) : ±100 dp sur les axes, 0 à 24 dp en profondeur — défaut 0, jamais courants. */
+    private fun translations(): List<ControleAttribut> = listOf(
+        ControleAttribut.Curseur(
+            "android:translationX",
+            Etiquette.TRANSLATION_X,
+            min = -100f,
+            max = 100f,
+            pas = 1f,
+            unite = "dp",
+            defaut = 0f,
+            courant = false,
+        ),
+        ControleAttribut.Curseur(
+            "android:translationY",
+            Etiquette.TRANSLATION_Y,
+            min = -100f,
+            max = 100f,
+            pas = 1f,
+            unite = "dp",
+            defaut = 0f,
+            courant = false,
+        ),
+        ControleAttribut.Curseur(
+            "android:translationZ",
+            Etiquette.TRANSLATION_Z,
+            min = 0f,
+            max = 24f,
+            pas = 1f,
+            unite = "dp",
+            defaut = 0f,
+            courant = false,
+        ),
+    )
 
     /** La section INTERACTION § 7 : enabled et onClick (validé) en courants, le reste en tri-états. */
-    private fun sectionInteraction(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.INTERACTION,
-            listOf(
-                ControleAttribut.TriEtat("android:enabled", Etiquette.ACTIF),
-                ControleAttribut.TriEtat("android:clickable", Etiquette.CLIQUABLE, courant = false),
-                ControleAttribut.TriEtat("android:focusable", Etiquette.FOCUSABLE, courant = false),
-                ControleAttribut.TriEtat(
-                    "android:focusableInTouchMode",
-                    Etiquette.FOCUSABLE_TACTILE,
-                    courant = false,
-                ),
-                ControleAttribut.TriEtat("android:longClickable", Etiquette.CLIQUABLE_LONG, courant = false),
-                ControleAttribut.Texte(
-                    "android:onClick",
-                    Etiquette.AU_CLIC,
-                    validation = GenreValidationTexte.NOM_METHODE_JAVA,
-                ),
+    private fun sectionInteraction(): SectionAttributs = SectionAttributs(
+        TitreSection.INTERACTION,
+        listOf(
+            ControleAttribut.TriEtat("android:enabled", Etiquette.ACTIF),
+            ControleAttribut.TriEtat("android:clickable", Etiquette.CLIQUABLE, courant = false),
+            ControleAttribut.TriEtat("android:focusable", Etiquette.FOCUSABLE, courant = false),
+            ControleAttribut.TriEtat(
+                "android:focusableInTouchMode",
+                Etiquette.FOCUSABLE_TACTILE,
+                courant = false,
             ),
-        )
+            ControleAttribut.TriEtat("android:longClickable", Etiquette.CLIQUABLE_LONG, courant = false),
+            ControleAttribut.Texte(
+                "android:onClick",
+                Etiquette.AU_CLIC,
+                validation = GenreValidationTexte.NOM_METHODE_JAVA,
+            ),
+        ),
+    )
 
     /**
      * La section ACCESSIBILITÉ § 7 : description courante, importance,
      * titre de section, étiquette liée (référence d'id portée TOUT) et
      * infobulle.
      */
-    private fun sectionAccessibilite(): SectionAttributs =
-        SectionAttributs(
-            TitreSection.ACCESSIBILITE,
-            listOf(
-                ControleAttribut.Texte("android:contentDescription", Etiquette.DESCRIPTION, extrayable = true),
-                ControleAttribut.Liste(
-                    "android:importantForAccessibility",
-                    Etiquette.IMPORTANCE_ACCESSIBILITE,
-                    IMPORTANCE_ACCESSIBILITE,
-                    courant = false,
-                ),
-                ControleAttribut.TriEtat(
-                    "android:accessibilityHeading",
-                    Etiquette.TITRE_ACCESSIBILITE,
-                    courant = false,
-                ),
-                ControleAttribut.ReferenceId(
-                    "android:labelFor",
-                    Etiquette.LIBELLE_POUR,
-                    ControleAttribut.ReferenceId.Portee.TOUT,
-                    courant = false,
-                ),
-                ControleAttribut.Texte("android:tooltipText", Etiquette.INFOBULLE, courant = false),
-                ControleAttribut.TriEtat(
-                    "android:screenReaderFocusable",
-                    Etiquette.LECTEUR_ECRAN,
-                    courant = false,
-                ),
+    private fun sectionAccessibilite(): SectionAttributs = SectionAttributs(
+        TitreSection.ACCESSIBILITE,
+        listOf(
+            ControleAttribut.Texte("android:contentDescription", Etiquette.DESCRIPTION, extrayable = true),
+            ControleAttribut.Liste(
+                "android:importantForAccessibility",
+                Etiquette.IMPORTANCE_ACCESSIBILITE,
+                IMPORTANCE_ACCESSIBILITE,
+                courant = false,
             ),
-        )
+            ControleAttribut.TriEtat(
+                "android:accessibilityHeading",
+                Etiquette.TITRE_ACCESSIBILITE,
+                courant = false,
+            ),
+            ControleAttribut.ReferenceId(
+                "android:labelFor",
+                Etiquette.LIBELLE_POUR,
+                ControleAttribut.ReferenceId.Portee.TOUT,
+                courant = false,
+            ),
+            ControleAttribut.Texte("android:tooltipText", Etiquette.INFOBULLE, courant = false),
+            ControleAttribut.TriEtat(
+                "android:screenReaderFocusable",
+                Etiquette.LECTEUR_ECRAN,
+                courant = false,
+            ),
+        ),
+    )
 
     /**
      * Les contrôles de la section APERÇU UNIQUEMENT (miroir le `tl` de
@@ -2895,31 +2820,30 @@ public object CatalogueAttributs {
      * pour RecyclerView — puis `tools:visibility` et `tools:ignore` pour
      * toutes. Seule la première est COURANTE.
      */
-    private fun controlesApercu(classe: String): List<ControleAttribut> =
-        listOfNotNull(
-            if (familleTexte(classe)) {
-                ControleAttribut.Texte("tools:text", Etiquette.TOOLS_TEXTE)
-            } else {
-                null
-            },
-            if (familleImage(classe)) {
-                ControleAttribut.Ressource("tools:src", Etiquette.TOOLS_SRC, TYPES_DESSINABLE)
-            } else {
-                null
-            },
-            if (classe == "RecyclerView") {
-                ControleAttribut.Nombre(
-                    "tools:itemCount",
-                    Etiquette.NOMBRE_ITEMS,
-                    "",
-                    Bornes(minimum = 1f, maximum = 12f),
-                )
-            } else {
-                null
-            },
-            ControleAttribut.Choix("tools:visibility", Etiquette.TOOLS_VISIBILITE, VISIBILITES, courant = false),
-            ControleAttribut.Texte("tools:ignore", Etiquette.TOOLS_IGNORE, courant = false),
-        )
+    private fun controlesApercu(classe: String): List<ControleAttribut> = listOfNotNull(
+        if (familleTexte(classe)) {
+            ControleAttribut.Texte("tools:text", Etiquette.TOOLS_TEXTE)
+        } else {
+            null
+        },
+        if (familleImage(classe)) {
+            ControleAttribut.Ressource("tools:src", Etiquette.TOOLS_SRC, TYPES_DESSINABLE)
+        } else {
+            null
+        },
+        if (classe == "RecyclerView") {
+            ControleAttribut.Nombre(
+                "tools:itemCount",
+                Etiquette.NOMBRE_ITEMS,
+                "",
+                Bornes(minimum = 1f, maximum = 12f),
+            )
+        } else {
+            null
+        },
+        ControleAttribut.Choix("tools:visibility", Etiquette.TOOLS_VISIBILITE, VISIBILITES, courant = false),
+        ControleAttribut.Texte("tools:ignore", Etiquette.TOOLS_IGNORE, courant = false),
+    )
 
     // ── Familles par héritage (miroir § 4.1) ─────────────────────────────
 
@@ -2931,11 +2855,7 @@ public object CatalogueAttributs {
      * section « Autres attributs » y oppose les attributs du DOCUMENT :
      * tout nom HORS de cet ensemble est une rangée libre.
      */
-    public fun nomsConnus(
-        classe: String,
-        familleParent: FamilleParent,
-        familleVue: FamilleParent,
-    ): Set<String> =
+    public fun nomsConnus(classe: String, familleParent: FamilleParent, familleVue: FamilleParent): Set<String> =
         sections(classe, familleParent, familleVue)
             .flatMap { section -> section.controles.flatMap { controle -> controle.nomsAttributs } }
             .toSet() + NOMS_FIXES
@@ -2975,15 +2895,13 @@ public object CatalogueAttributs {
         )
 
     /** TextView et ses descendants à TEXTE éditable (Button/CheckBox/Switch). */
-    private fun familleTexte(classe: String): Boolean =
-        classe == "TextView" ||
-            familleBouton(classe) ||
-            familleEtat(classe)
+    private fun familleTexte(classe: String): Boolean = classe == "TextView" ||
+        familleBouton(classe) ||
+        familleEtat(classe)
 
     /** EditText, TextInputEditText et AutoCompleteTextView (v0.166.3) ; MultiAutoCompleteTextView (v0.170.0, S4). */
-    private fun familleSaisie(classe: String): Boolean =
-        classe == "EditText" || classe == "TextInputEditText" ||
-            classe == "AutoCompleteTextView" || classe == "MultiAutoCompleteTextView"
+    private fun familleSaisie(classe: String): Boolean = classe == "EditText" || classe == "TextInputEditText" ||
+        classe == "AutoCompleteTextView" || classe == "MultiAutoCompleteTextView"
 
     /** Button et MaterialButton. */
     private fun familleBouton(classe: String): Boolean = classe == "Button" || classe == "MaterialButton"
@@ -2995,10 +2913,9 @@ public object CatalogueAttributs {
      * `android:checked`, commun aux quatre. v0.170.0 (S4) : CheckedTextView
      * (TextView à état coché — la section État porte son `android:checked`).
      */
-    private fun familleEtat(classe: String): Boolean =
-        classe == "CheckBox" || familleInterrupteur(classe) ||
-            classe == "RadioButton" || classe == "ToggleButton" ||
-            classe == "Chip" || classe == "CheckedTextView"
+    private fun familleEtat(classe: String): Boolean = classe == "CheckBox" || familleInterrupteur(classe) ||
+        classe == "RadioButton" || classe == "ToggleButton" ||
+        classe == "Chip" || classe == "CheckedTextView"
 
     /**
      * Les INTERRUPTEURS seuls (Switch, SwitchMaterial) — PAS d'icônes du

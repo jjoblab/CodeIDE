@@ -16,61 +16,54 @@ import org.junit.Test
  */
 class InstallPlanResolverTest {
     /** Manifeste factice conforme : profil `default` complet pour aarch64. */
-    private fun manifeste(composants: List<ManifestComponent> = complet()): ToolManifest =
-        ToolManifest(
-            schemaVersion = 2,
-            generatedAtMillis = 1_700_000_000_000,
-            components = composants,
-            profiles =
-                mapOf(
-                    "default" to
-                        listOf(
-                            "build-tools@35.0.2",
-                            "platform-tools@35.0.2",
-                            "platform@android-36",
-                            "cmdline-tools@12.0",
-                        ),
-                ),
-            compat =
+    private fun manifeste(composants: List<ManifestComponent> = complet()): ToolManifest = ToolManifest(
+        schemaVersion = 2,
+        generatedAtMillis = 1_700_000_000_000,
+        components = composants,
+        profiles =
+        mapOf(
+            "default" to
                 listOf(
-                    CompatLine(
-                        agp = "9.4.1",
-                        buildTools = "35.0.2",
-                        aapt2 = "35.0.2",
-                        compileSdk = "android-36",
-                        jdk = ">=17",
-                        status = "tested",
-                    ),
+                    "build-tools@35.0.2",
+                    "platform-tools@35.0.2",
+                    "platform@android-36",
+                    "cmdline-tools@12.0",
                 ),
-        )
-
-    private fun composant(
-        id: String,
-        version: String,
-        arch: String = "aarch64",
-    ): ManifestComponent =
-        ManifestComponent(
-            id = id,
-            version = version,
-            revision = "r1",
-            arch = arch,
-            channel = ManifestComponent.CHANNEL_STABLE,
-            sources = listOf("https://exemple.invalid/$id-$version-r1-$arch.tar.xz"),
-            sha256 = "ab".repeat(32),
-            sizeBytes = 1_000,
-            installPath = "$id/$version",
-            critical = true,
-            verify = VerifySpec(cmd = "$id/$version/outil --version", expect = "[0-9]"),
-        )
-
-    private fun complet(): List<ManifestComponent> =
+        ),
+        compat =
         listOf(
-            composant("build-tools", "35.0.2"),
-            composant("platform-tools", "35.0.2"),
-            composant("platform", "android-36", arch = ManifestComponent.ARCH_ANY),
-            // cmdline-tools : seul composant non critique (ADR 0086).
-            composant("cmdline-tools", "12.0").copy(critical = false),
-        )
+            CompatLine(
+                agp = "9.4.1",
+                buildTools = "35.0.2",
+                aapt2 = "35.0.2",
+                compileSdk = "android-36",
+                jdk = ">=17",
+                status = "tested",
+            ),
+        ),
+    )
+
+    private fun composant(id: String, version: String, arch: String = "aarch64"): ManifestComponent = ManifestComponent(
+        id = id,
+        version = version,
+        revision = "r1",
+        arch = arch,
+        channel = ManifestComponent.CHANNEL_STABLE,
+        sources = listOf("https://exemple.invalid/$id-$version-r1-$arch.tar.xz"),
+        sha256 = "ab".repeat(32),
+        sizeBytes = 1_000,
+        installPath = "$id/$version",
+        critical = true,
+        verify = VerifySpec(cmd = "$id/$version/outil --version", expect = "[0-9]"),
+    )
+
+    private fun complet(): List<ManifestComponent> = listOf(
+        composant("build-tools", "35.0.2"),
+        composant("platform-tools", "35.0.2"),
+        composant("platform", "android-36", arch = ManifestComponent.ARCH_ANY),
+        // cmdline-tools : seul composant non critique (ADR 0086).
+        composant("cmdline-tools", "12.0").copy(critical = false),
+    )
 
     private val catalogue = ToolchainCatalog()
 
@@ -267,16 +260,16 @@ class InstallPlanResolverTest {
                     composant("aapt2", "35.0.2").copy(installPath = "aapt2-standalone"),
             ).copy(
                 profiles =
-                    mapOf(
-                        "default" to
-                            listOf(
-                                "build-tools@35.0.2",
-                                "platform-tools@35.0.2",
-                                "platform@android-36",
-                                "cmdline-tools@12.0",
-                                "aapt2@35.0.2",
-                            ),
-                    ),
+                mapOf(
+                    "default" to
+                        listOf(
+                            "build-tools@35.0.2",
+                            "platform-tools@35.0.2",
+                            "platform@android-36",
+                            "cmdline-tools@12.0",
+                            "aapt2@35.0.2",
+                        ),
+                ),
             )
         val planAvecAapt2 =
             InstallPlanResolver.resolve(catalogue, manifesteAvecAapt2, "aarch64") as AppResult.Success
@@ -343,12 +336,12 @@ class EnvironmentSetupDomaineTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to reussie,
-                        InstallPhase.PACKAGE_TOOLS to reussie,
-                        InstallPhase.JAVA to reussie,
-                        InstallPhase.ANDROID_SDK to degradee,
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to reussie,
+                    InstallPhase.PACKAGE_TOOLS to reussie,
+                    InstallPhase.JAVA to reussie,
+                    InstallPhase.ANDROID_SDK to degradee,
+                ),
                 running = null,
                 sdkLicenseAcceptedAtMillis = 3_000,
             )
@@ -368,11 +361,11 @@ class EnvironmentSetupDomaineTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to reussie,
-                        InstallPhase.PACKAGE_TOOLS to reussie,
-                        InstallPhase.JAVA to enCours,
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to reussie,
+                    InstallPhase.PACKAGE_TOOLS to reussie,
+                    InstallPhase.JAVA to enCours,
+                ),
                 running = InstallPhase.JAVA,
                 sdkLicenseAcceptedAtMillis = null,
             )

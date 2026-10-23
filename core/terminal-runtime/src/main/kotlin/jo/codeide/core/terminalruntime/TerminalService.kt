@@ -48,11 +48,7 @@ internal class TerminalService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int,
-    ): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Service foreground immédiat : Android exige startForeground
         // dans les cinq secondes qui suivent startForegroundService.
         demarrerEnAvantPlan(nombreVivantesInitial())
@@ -160,16 +156,16 @@ internal class TerminalService : Service() {
 
 /** Démarrage réel du service (implémentation Android de [DemarreurService]). */
 internal class DemarreurServiceAndroid
-    @Inject
-    constructor(
-        // Annotation sans `private val` (leçon T1) : évite le warning K2
-        // « appliquée au paramètre seulement » — champ dérivé ci-dessous.
-        @ApplicationContext contexte: Context,
-    ) : DemarreurService {
-        private val contexteApplication: Context = contexte.applicationContext
+@Inject
+constructor(
+    // Annotation sans `private val` (leçon T1) : évite le warning K2
+    // « appliquée au paramètre seulement » — champ dérivé ci-dessous.
+    @ApplicationContext contexte: Context,
+) : DemarreurService {
+    private val contexteApplication: Context = contexte.applicationContext
 
-        override fun demarrer() {
-            val intention = Intent(contexteApplication, TerminalService::class.java)
-            contexteApplication.startForegroundService(intention)
-        }
+    override fun demarrer() {
+        val intention = Intent(contexteApplication, TerminalService::class.java)
+        contexteApplication.startForegroundService(intention)
     }
+}

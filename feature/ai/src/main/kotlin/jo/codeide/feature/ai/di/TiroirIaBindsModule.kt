@@ -40,7 +40,7 @@ internal abstract class TiroirIaBindsModule {
 /** Implémentation : crée le fragment IA du tiroir, prêt à ajouter. */
 @Singleton
 internal class FabriqueFragmentIaTiroirImpl
-    @Inject
-    constructor() : FabriqueFragmentIaTiroir {
-        override fun creer(): Fragment = IaTiroirFragment()
-    }
+@Inject
+constructor() : FabriqueFragmentIaTiroir {
+    override fun creer(): Fragment = IaTiroirFragment()
+}

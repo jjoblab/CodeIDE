@@ -58,18 +58,14 @@ internal object FermablesEspace {
      * @param session la session vivante (jamais refermée par ailleurs).
      * @param detacher remet la référence observable du ViewModel à `null`.
      */
-    internal fun sessionLsp(
-        session: SessionLsp,
-        detacher: () -> Unit,
-    ): Fermable =
-        object : Fermable {
-            override val nom: String = "session-lsp-java"
+    internal fun sessionLsp(session: SessionLsp, detacher: () -> Unit): Fermable = object : Fermable {
+        override val nom: String = "session-lsp-java"
 
-            override suspend fun fermer(contexte: ContexteFermeture) {
-                detacher()
-                session.close()
-            }
+        override suspend fun fermer(contexte: ContexteFermeture) {
+            detacher()
+            session.close()
         }
+    }
 
     /**
      * Session LSP Kotlin → `Fermable` (mission « LSP Kotlin » K2) : même
@@ -80,18 +76,14 @@ internal object FermablesEspace {
      * @param session la session Kotlin vivante.
      * @param detacher remet la référence observable du ViewModel à `null`.
      */
-    internal fun sessionLspKotlin(
-        session: SessionLspKotlin,
-        detacher: () -> Unit,
-    ): Fermable =
-        object : Fermable {
-            override val nom: String = "session-lsp-kotlin"
+    internal fun sessionLspKotlin(session: SessionLspKotlin, detacher: () -> Unit): Fermable = object : Fermable {
+        override val nom: String = "session-lsp-kotlin"
 
-            override suspend fun fermer(contexte: ContexteFermeture) {
-                detacher()
-                session.close()
-            }
+        override suspend fun fermer(contexte: ContexteFermeture) {
+            detacher()
+            session.close()
         }
+    }
 
     /**
      * Session LSP XML → `Fermable` (mission « LSP XML » XE1) : même
@@ -102,18 +94,14 @@ internal object FermablesEspace {
      * @param session la session XML vivante.
      * @param detacher remet la référence observable du ViewModel à `null`.
      */
-    internal fun sessionLspXml(
-        session: SessionLspXml,
-        detacher: () -> Unit,
-    ): Fermable =
-        object : Fermable {
-            override val nom: String = "session-lsp-xml"
+    internal fun sessionLspXml(session: SessionLspXml, detacher: () -> Unit): Fermable = object : Fermable {
+        override val nom: String = "session-lsp-xml"
 
-            override suspend fun fermer(contexte: ContexteFermeture) {
-                detacher()
-                session.close()
-            }
+        override suspend fun fermer(contexte: ContexteFermeture) {
+            detacher()
+            session.close()
         }
+    }
 
     /**
      * Flush des sauvegardes d'onglets → `Fermable` NON annulable (I7) :
@@ -124,12 +112,11 @@ internal object FermablesEspace {
      * @param flusher écriture de tous les onglets sales (idempotente :
      * plus rien à écrire au second appel, les onglets sont propres).
      */
-    internal fun sauvegardesOnglets(flusher: suspend () -> Unit): Fermable =
-        object : Fermable {
-            override val nom: String = "sauvegardes-onglets"
+    internal fun sauvegardesOnglets(flusher: suspend () -> Unit): Fermable = object : Fermable {
+        override val nom: String = "sauvegardes-onglets"
 
-            override suspend fun fermer(contexte: ContexteFermeture) = flusher()
-        }
+        override suspend fun fermer(contexte: ContexteFermeture) = flusher()
+    }
 
     /**
      * Libération du projet côté ORCHESTRATEUR → `Fermable` (mission «
@@ -157,34 +144,33 @@ internal object FermablesEspace {
         cheminDuProjet: () -> String?,
         travailEnVol: () -> Boolean,
         journal: AppLogger,
-    ): Fermable =
-        object : Fermable {
-            override val nom: String = "tooling-projet"
+    ): Fermable = object : Fermable {
+        override val nom: String = "tooling-projet"
 
-            override suspend fun fermer(contexte: ContexteFermeture) {
-                val chemin = cheminDuProjet()
-                if (chemin == null) {
-                    journal.i("FermablesEspace") { "fermeture tooling renoncée : chemin de projet inconnu" }
-                    return
+        override suspend fun fermer(contexte: ContexteFermeture) {
+            val chemin = cheminDuProjet()
+            if (chemin == null) {
+                journal.i("FermablesEspace") { "fermeture tooling renoncée : chemin de projet inconnu" }
+                return
+            }
+            if (travailEnVol()) {
+                journal.w("FermablesEspace") {
+                    "fermeture tooling renoncée : un travail Gradle vit encore " +
+                        "(§2.1c — il continue avec sa connexion)"
                 }
-                if (travailEnVol()) {
-                    journal.w("FermablesEspace") {
-                        "fermeture tooling renoncée : un travail Gradle vit encore " +
-                            "(§2.1c — il continue avec sa connexion)"
+                return
+            }
+            when (val resultat = tooling.fermerProjet(File(chemin))) {
+                is AppResult.Success -> {
+                    journal.i("FermablesEspace") {
+                        "projet fermé côté orchestrateur (connexion libérée, cache purgé)"
                     }
-                    return
                 }
-                when (val resultat = tooling.fermerProjet(File(chemin))) {
-                    is AppResult.Success -> {
-                        journal.i("FermablesEspace") {
-                            "projet fermé côté orchestrateur (connexion libérée, cache purgé)"
-                        }
-                    }
 
-                    is AppResult.Failure -> {
-                        journal.w("FermablesEspace") { "fermeture tooling en échec : ${resultat.error}" }
-                    }
+                is AppResult.Failure -> {
+                    journal.w("FermablesEspace") { "fermeture tooling en échec : ${resultat.error}" }
                 }
             }
         }
+    }
 }

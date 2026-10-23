@@ -57,9 +57,7 @@ internal class ExplorateurAdapter(
     /** Élément de liste : un nœud, ou l'éditeur inline courant (§ 11). */
     internal sealed interface Element {
         /** Ligne de nœud standard. */
-        data class Noeud(
-            val noeud: NoeudExplorateur,
-        ) : Element
+        data class Noeud(val noeud: NoeudExplorateur) : Element
 
         /** Éditeur inline : création ou renommage (§ 11). */
         data class Editeur(
@@ -76,10 +74,7 @@ internal class ExplorateurAdapter(
     /** Chemin affiché dans le badge de la racine (posé par le fragment). */
     internal var cheminRacine: String = ""
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): VueNoeud {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VueNoeud {
         val liaison =
             LigneNoeudArborescenceBinding.inflate(
                 LayoutInflater.from(parent.context),
@@ -90,10 +85,7 @@ internal class ExplorateurAdapter(
         return VueNoeud(liaison)
     }
 
-    override fun onBindViewHolder(
-        holder: VueNoeud,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: VueNoeud, position: Int) {
         when (val element = getItem(position)) {
             is Element.Noeud -> lierNoeud(holder, element.noeud)
             is Element.Editeur -> lierEditeur(holder, element)
@@ -104,10 +96,7 @@ internal class ExplorateurAdapter(
     // Ligne de nœud standard
     // ------------------------------------------------------------------
 
-    private fun lierNoeud(
-        holder: VueNoeud,
-        noeud: NoeudExplorateur,
-    ) {
+    private fun lierNoeud(holder: VueNoeud, noeud: NoeudExplorateur) {
         val liaison = holder.liaison
         val racine = liaison.racineLigne
 
@@ -168,11 +157,7 @@ internal class ExplorateurAdapter(
      * l'indentation vide. La barre d'accent (2,5 dp) suit ce nouveau
      * départ car elle est ancrée au bord gauche du drawable.
      */
-    private fun lierFondEtCoupe(
-        racine: View,
-        liaison: LigneNoeudArborescenceBinding,
-        noeud: NoeudExplorateur,
-    ) {
+    private fun lierFondEtCoupe(racine: View, liaison: LigneNoeudArborescenceBinding, noeud: NoeudExplorateur) {
         val contexte = racine.context
         racine.background = null
         if (noeud.selectionne || noeud.flasher) {
@@ -198,10 +183,7 @@ internal class ExplorateurAdapter(
     }
 
     /** Chevron des dossiers (rotation 0,16 s) ou point d'état (§ 7). */
-    private fun lierChevronOuPoint(
-        liaison: LigneNoeudArborescenceBinding,
-        noeud: NoeudExplorateur,
-    ) {
+    private fun lierChevronOuPoint(liaison: LigneNoeudArborescenceBinding, noeud: NoeudExplorateur) {
         val contexte = liaison.root.context
         liaison.chevronNoeud.isVisible = noeud.estDossier
         liaison.pointEtatNoeud.isVisible = !noeud.estDossier
@@ -228,20 +210,16 @@ internal class ExplorateurAdapter(
     }
 
     /** État du point d'un fichier (précédence § 7). */
-    private fun pointDEtatDe(noeud: NoeudExplorateur): VuePointEtat.EtatPoint =
-        when {
-            noeud.selectionne && noeud.ongletActif -> VuePointEtat.EtatPoint.SELECTION_ACTIF
-            noeud.selectionne -> VuePointEtat.EtatPoint.SELECTIONNE
-            noeud.ongletActif -> VuePointEtat.EtatPoint.ACTIF
-            noeud.ongletOuvert -> VuePointEtat.EtatPoint.OUVERT
-            else -> VuePointEtat.EtatPoint.DEFAUT
-        }
+    private fun pointDEtatDe(noeud: NoeudExplorateur): VuePointEtat.EtatPoint = when {
+        noeud.selectionne && noeud.ongletActif -> VuePointEtat.EtatPoint.SELECTION_ACTIF
+        noeud.selectionne -> VuePointEtat.EtatPoint.SELECTIONNE
+        noeud.ongletActif -> VuePointEtat.EtatPoint.ACTIF
+        noeud.ongletOuvert -> VuePointEtat.EtatPoint.OUVERT
+        else -> VuePointEtat.EtatPoint.DEFAUT
+    }
 
     /** Icône (§ 8) et nom (teintes privées/violettes, racine localisée). */
-    private fun lierIconeEtNom(
-        liaison: LigneNoeudArborescenceBinding,
-        noeud: NoeudExplorateur,
-    ) {
+    private fun lierIconeEtNom(liaison: LigneNoeudArborescenceBinding, noeud: NoeudExplorateur) {
         val contexte = liaison.root.context
         // C1 : le groupe « Gradle Scripts » porte l'icône Gradle dédiée.
         val icone =
@@ -297,10 +275,7 @@ internal class ExplorateurAdapter(
     }
 
     /** Compteur d'enfants, badge de racine, chargement/erreur. */
-    private fun lierCompteursEtEtats(
-        liaison: LigneNoeudArborescenceBinding,
-        noeud: NoeudExplorateur,
-    ) {
+    private fun lierCompteursEtEtats(liaison: LigneNoeudArborescenceBinding, noeud: NoeudExplorateur) {
         liaison.compteNoeud.isVisible = noeud.estDossier && !noeud.estRacine && noeud.nbEnfants >= 0
         if (liaison.compteNoeud.isVisible) {
             liaison.compteNoeud.text = String.format(java.util.Locale.getDefault(), "%d", noeud.nbEnfants)
@@ -331,10 +306,7 @@ internal class ExplorateurAdapter(
     // Éditeur inline (§ 11)
     // ------------------------------------------------------------------
 
-    private fun lierEditeur(
-        holder: VueNoeud,
-        element: Element.Editeur,
-    ) {
+    private fun lierEditeur(holder: VueNoeud, element: Element.Editeur) {
         val liaison = holder.liaison
         val edition = element.edition
         val racine = liaison.racineLigne
@@ -392,10 +364,7 @@ internal class ExplorateurAdapter(
     }
 
     /** Description accessible complète de la ligne (nom + type + état). */
-    private fun decrire(
-        liaison: LigneNoeudArborescenceBinding,
-        noeud: NoeudExplorateur,
-    ): String {
+    private fun decrire(liaison: LigneNoeudArborescenceBinding, noeud: NoeudExplorateur): String {
         val contexte = liaison.root.context
         return when {
             noeud.erreurChargement -> {
@@ -420,34 +389,25 @@ internal class ExplorateurAdapter(
     }
 
     /** Vue d'une ligne : la liaison seule, aucune logique. */
-    internal class VueNoeud(
-        val liaison: LigneNoeudArborescenceBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    internal class VueNoeud(val liaison: LigneNoeudArborescenceBinding) : RecyclerView.ViewHolder(liaison.root)
 
     private object Differences : DiffUtil.ItemCallback<Element>() {
-        override fun areItemsTheSame(
-            ancien: Element,
-            nouveau: Element,
-        ): Boolean =
-            when {
-                ancien is Element.Noeud && nouveau is Element.Noeud -> {
-                    ancien.noeud.uri == nouveau.noeud.uri
-                }
-
-                ancien is Element.Editeur && nouveau is Element.Editeur -> {
-                    ancien.edition.renommage == nouveau.edition.renommage &&
-                        ancien.edition.uriParent == nouveau.edition.uriParent
-                }
-
-                else -> {
-                    false
-                }
+        override fun areItemsTheSame(ancien: Element, nouveau: Element): Boolean = when {
+            ancien is Element.Noeud && nouveau is Element.Noeud -> {
+                ancien.noeud.uri == nouveau.noeud.uri
             }
 
-        override fun areContentsTheSame(
-            ancien: Element,
-            nouveau: Element,
-        ): Boolean = ancien == nouveau
+            ancien is Element.Editeur && nouveau is Element.Editeur -> {
+                ancien.edition.renommage == nouveau.edition.renommage &&
+                    ancien.edition.uriParent == nouveau.edition.uriParent
+            }
+
+            else -> {
+                false
+            }
+        }
+
+        override fun areContentsTheSame(ancien: Element, nouveau: Element): Boolean = ancien == nouveau
     }
 
     private companion object {

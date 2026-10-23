@@ -35,17 +35,16 @@ internal class EcrivainConfigurationGradle private constructor(
      *
      * @return `true` si le fichier final contient l'override demandé.
      */
-    internal suspend fun ecrire(cheminAapt2: String): Boolean =
-        withContext(dispatchers.io) {
-            val dossier = fichier.parentFile
-            if (dossier != null && !dossier.isDirectory) dossier.mkdirs()
-            val lignes = if (fichier.isFile) fichier.readLines() else emptyList()
-            val reecrites = remplacerBloc(lignes, cheminAapt2)
-            if (reecrites != lignes || !fichier.isFile) {
-                ecrireAtomiquement(reecrites)
-            }
-            fichier.readLines().any { it.startsWith("$CLE_OVERRIDE=") }
+    internal suspend fun ecrire(cheminAapt2: String): Boolean = withContext(dispatchers.io) {
+        val dossier = fichier.parentFile
+        if (dossier != null && !dossier.isDirectory) dossier.mkdirs()
+        val lignes = if (fichier.isFile) fichier.readLines() else emptyList()
+        val reecrites = remplacerBloc(lignes, cheminAapt2)
+        if (reecrites != lignes || !fichier.isFile) {
+            ecrireAtomiquement(reecrites)
         }
+        fichier.readLines().any { it.startsWith("$CLE_OVERRIDE=") }
+    }
 
     /**
      * L'override courant du bloc géré, ou `null` (absent ou fichier
@@ -81,10 +80,7 @@ internal class EcrivainConfigurationGradle private constructor(
          * main **hors bloc** est neutralisé par commentaire (jamais
          * silencieusement écrasé).
          */
-        internal fun remplacerBloc(
-            lignes: List<String>,
-            cheminAapt2: String,
-        ): List<String> {
+        internal fun remplacerBloc(lignes: List<String>, cheminAapt2: String): List<String> {
             val bloc = listOf(DEBUT_BLOC, "$CLE_OVERRIDE=$cheminAapt2", FIN_BLOC)
             val debut = lignes.indexOfFirst { it.trim() == DEBUT_BLOC }
             val fin = lignes.indexOfFirst { it.trim() == FIN_BLOC }
@@ -99,10 +95,9 @@ internal class EcrivainConfigurationGradle private constructor(
         }
 
         /** Neutralise par commentaire toute ligne d'override posée hors du bloc géré. */
-        private fun neutraliserOverrides(lignes: List<String>): List<String> =
-            lignes.map { ligne ->
-                if (ligne.trim().startsWith(CLE_OVERRIDE)) "# neutralisé par CodeIDE (bloc géré) : $ligne" else ligne
-            }
+        private fun neutraliserOverrides(lignes: List<String>): List<String> = lignes.map { ligne ->
+            if (ligne.trim().startsWith(CLE_OVERRIDE)) "# neutralisé par CodeIDE (bloc géré) : $ligne" else ligne
+        }
 
         /** Lignes du bloc géré courant, vide s'il n'existe pas. */
         internal fun blocGere(lignes: List<String>): List<String> {
@@ -115,17 +110,14 @@ internal class EcrivainConfigurationGradle private constructor(
     /** Fabrique de production : `$GRADLE_USER_HOME/gradle.properties` sous la racine du parcours. */
     @Singleton
     internal class Fabrique
-        @Inject
-        constructor(
-            dispatchers: DispatcherProvider,
-        ) {
-            private val dispatchersIO = dispatchers
+    @Inject
+    constructor(dispatchers: DispatcherProvider) {
+        private val dispatchersIO = dispatchers
 
-            /** Construit l'écrivain pour la racine du parcours (couture interne). */
-            internal fun pourRacine(racine: File): EcrivainConfigurationGradle =
-                EcrivainConfigurationGradle(
-                    dispatchers = dispatchersIO,
-                    fichier = File(DispositionsBootstrap.gradleUserHome(racine), "gradle.properties"),
-                )
-        }
+        /** Construit l'écrivain pour la racine du parcours (couture interne). */
+        internal fun pourRacine(racine: File): EcrivainConfigurationGradle = EcrivainConfigurationGradle(
+            dispatchers = dispatchersIO,
+            fichier = File(DispositionsBootstrap.gradleUserHome(racine), "gradle.properties"),
+        )
+    }
 }

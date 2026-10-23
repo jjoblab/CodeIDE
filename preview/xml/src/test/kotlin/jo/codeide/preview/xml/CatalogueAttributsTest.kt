@@ -72,10 +72,8 @@ public class CatalogueAttributsTest {
     }
 
     /** Le premier titre de section pour une classe (les assertions des classes propres). */
-    private fun titrePropre(
-        classe: String,
-        indice: Int = 0,
-    ): CatalogueAttributs.TitreSection = CatalogueAttributs.sections(classe, FamilleParent.AUTRE)[indice].titre
+    private fun titrePropre(classe: String, indice: Int = 0): CatalogueAttributs.TitreSection =
+        CatalogueAttributs.sections(classe, FamilleParent.AUTRE)[indice].titre
 
     @Test
     fun `chaque widget reconnu recoit sa section propre`() {
@@ -697,18 +695,16 @@ public class CatalogueAttributsTest {
             listOf("MaterialButton", "SwitchMaterial", "TextInputEditText")
 
     /** Les contrôles CHOIX d'une classe, aplatis avec leur section (helper d'itération). */
-    private fun choixDe(classe: String): List<CatalogueAttributs.ControleAttribut.Choix> =
-        CatalogueAttributs
-            .sections(classe, FamilleParent.AUTRE)
-            .flatMap { it.controles }
-            .filterIsInstance<CatalogueAttributs.ControleAttribut.Choix>()
+    private fun choixDe(classe: String): List<CatalogueAttributs.ControleAttribut.Choix> = CatalogueAttributs
+        .sections(classe, FamilleParent.AUTRE)
+        .flatMap { it.controles }
+        .filterIsInstance<CatalogueAttributs.ControleAttribut.Choix>()
 
     /** Les contrôles LISTE d'une classe (helper d'itération — PE11c). */
-    private fun listesDe(classe: String): List<CatalogueAttributs.ControleAttribut.Liste> =
-        CatalogueAttributs
-            .sections(classe, FamilleParent.AUTRE)
-            .flatMap { it.controles }
-            .filterIsInstance<CatalogueAttributs.ControleAttribut.Liste>()
+    private fun listesDe(classe: String): List<CatalogueAttributs.ControleAttribut.Liste> = CatalogueAttributs
+        .sections(classe, FamilleParent.AUTRE)
+        .flatMap { it.controles }
+        .filterIsInstance<CatalogueAttributs.ControleAttribut.Liste>()
 
     /**
      * Les valeurs de référence des LISTES § 7 (constantes de la maquette
@@ -893,11 +889,10 @@ public class CatalogueAttributsTest {
     // ── PE11d : les masques multi-valeurs (miroir `flags` de la maquette) ─
 
     /** Les contrôles DRAPEAUX d'une classe (helper d'itération — PE11d). */
-    private fun drapeauxDe(classe: String): List<CatalogueAttributs.ControleAttribut.Drapeaux> =
-        CatalogueAttributs
-            .sections(classe, FamilleParent.AUTRE)
-            .flatMap { it.controles }
-            .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
+    private fun drapeauxDe(classe: String): List<CatalogueAttributs.ControleAttribut.Drapeaux> = CatalogueAttributs
+        .sections(classe, FamilleParent.AUTRE)
+        .flatMap { it.controles }
+        .filterIsInstance<CatalogueAttributs.ControleAttribut.Drapeaux>()
 
     @Test
     fun `les masques multi-valeurs sont des drapeaux`() {
@@ -1413,11 +1408,10 @@ public class CatalogueAttributsTest {
     private fun controlesDe(
         classe: String,
         titre: CatalogueAttributs.TitreSection,
-    ): List<CatalogueAttributs.ControleAttribut> =
-        CatalogueAttributs
-            .sections(classe, FamilleParent.AUTRE)
-            .first { it.titre == titre }
-            .controles
+    ): List<CatalogueAttributs.ControleAttribut> = CatalogueAttributs
+        .sections(classe, FamilleParent.AUTRE)
+        .first { it.titre == titre }
+        .controles
 
     @Test
     fun `la saisie gagne imeOptions et longueur max - maxLines demenage en lignes`() {

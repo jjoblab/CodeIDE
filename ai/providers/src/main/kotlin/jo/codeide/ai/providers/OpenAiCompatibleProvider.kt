@@ -62,79 +62,72 @@ public class OpenAiCompatibleProvider(
 ) : AiProvider {
     private val executeur = SseStreamExecutor(transport, dispatchers, backoff, logger)
 
-    override fun stream(request: AiRequest): Flow<AiEvent> =
-        flow {
-            val cle = apiKeySource.obtain()
-            if (cle.isNullOrBlank()) {
-                emit(AiEvent.Failure(AppError.Ai(AppError.AiReason.Authentication, "clé absente")))
-                return@flow
-            }
-            emitAll(executeur.stream(construireSpec(request, cle)) { OpenAiEventMapper() })
+    override fun stream(request: AiRequest): Flow<AiEvent> = flow {
+        val cle = apiKeySource.obtain()
+        if (cle.isNullOrBlank()) {
+            emit(AiEvent.Failure(AppError.Ai(AppError.AiReason.Authentication, "clé absente")))
+            return@flow
         }
+        emitAll(executeur.stream(construireSpec(request, cle)) { OpenAiEventMapper() })
+    }
 
-    override suspend fun listModels(): AppResult<List<AiModelInfo>> =
-        withContext(dispatchers.io) {
-            val cle = apiKeySource.obtain()
-            if (cle.isNullOrBlank()) {
-                return@withContext AppResult.Failure(
-                    AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
-                )
-            }
-            lireListeModeles(
-                transport,
-                AiHttpRequestSpec(
-                    url = "$baseUrl/models",
-                    method = "GET",
-                    headers =
-                        mapOf(
-                            "authorization" to "Bearer $cle",
-                            "accept" to "application/json",
-                        ),
-                ),
-            ) { id, _ -> AiModelInfo(id = id) }
-        }
-
-    override suspend fun ping(): AppResult<Unit> =
-        withContext(dispatchers.io) {
-            val cle = apiKeySource.obtain()
-            if (cle.isNullOrBlank()) {
-                return@withContext AppResult.Failure(
-                    AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
-                )
-            }
-            executerPing(
-                transport,
-                AiHttpRequestSpec(
-                    url = "$baseUrl/models",
-                    method = "GET",
-                    headers =
-                        mapOf(
-                            "authorization" to "Bearer $cle",
-                            "accept" to "application/json",
-                        ),
-                    readTimeoutMs = DUREE_PING_MS,
-                ),
+    override suspend fun listModels(): AppResult<List<AiModelInfo>> = withContext(dispatchers.io) {
+        val cle = apiKeySource.obtain()
+        if (cle.isNullOrBlank()) {
+            return@withContext AppResult.Failure(
+                AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
             )
         }
+        lireListeModeles(
+            transport,
+            AiHttpRequestSpec(
+                url = "$baseUrl/models",
+                method = "GET",
+                headers =
+                mapOf(
+                    "authorization" to "Bearer $cle",
+                    "accept" to "application/json",
+                ),
+            ),
+        ) { id, _ -> AiModelInfo(id = id) }
+    }
+
+    override suspend fun ping(): AppResult<Unit> = withContext(dispatchers.io) {
+        val cle = apiKeySource.obtain()
+        if (cle.isNullOrBlank()) {
+            return@withContext AppResult.Failure(
+                AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
+            )
+        }
+        executerPing(
+            transport,
+            AiHttpRequestSpec(
+                url = "$baseUrl/models",
+                method = "GET",
+                headers =
+                mapOf(
+                    "authorization" to "Bearer $cle",
+                    "accept" to "application/json",
+                ),
+                readTimeoutMs = DUREE_PING_MS,
+            ),
+        )
+    }
 
     /**
      * Construit la spécification HTTP du flux Chat Completions (en-tête
      * `Authorization` inclus — jamais journalisé).
      */
-    private fun construireSpec(
-        request: AiRequest,
-        cle: String,
-    ): AiHttpRequestSpec =
-        AiHttpRequestSpec(
-            url = "$baseUrl/chat/completions",
-            headers =
-                mapOf(
-                    "authorization" to "Bearer $cle",
-                    "content-type" to "application/json",
-                    "accept" to "text/event-stream",
-                ),
-            body = construireCorpsOpenAi(request).toString(),
-        )
+    private fun construireSpec(request: AiRequest, cle: String): AiHttpRequestSpec = AiHttpRequestSpec(
+        url = "$baseUrl/chat/completions",
+        headers =
+        mapOf(
+            "authorization" to "Bearer $cle",
+            "content-type" to "application/json",
+            "accept" to "text/event-stream",
+        ),
+        body = construireCorpsOpenAi(request).toString(),
+    )
 
     private companion object {
         /** Délai de lecture réduit pour le test de connexion. */
@@ -151,79 +144,77 @@ public class OpenAiCompatibleProvider(
  * analysés en JSON : un JSON invalide est une erreur de programmation
  * (l'exception remonte, elle n'est pas avalée).
  */
-internal fun construireCorpsOpenAi(request: AiRequest): JsonObject =
-    buildJsonObject {
-        put("model", request.model)
-        put("stream", true)
-        if (request.maxOutputTokens != null) put("max_tokens", request.maxOutputTokens)
-        if (request.temperature != null) put("temperature", request.temperature)
+internal fun construireCorpsOpenAi(request: AiRequest): JsonObject = buildJsonObject {
+    put("model", request.model)
+    put("stream", true)
+    if (request.maxOutputTokens != null) put("max_tokens", request.maxOutputTokens)
+    if (request.temperature != null) put("temperature", request.temperature)
 
-        if (request.tools.isNotEmpty()) {
-            put(
-                "tools",
-                buildJsonArray {
-                    for (outil in request.tools) {
-                        add(
-                            buildJsonObject {
-                                put("type", "function")
-                                put(
-                                    "function",
-                                    buildJsonObject {
-                                        put("name", outil.name)
-                                        put("description", outil.description)
-                                        put(
-                                            "parameters",
-                                            JsonIa.parseur
-                                                .parseToJsonElement(outil.parametersJsonSchema),
-                                        )
-                                    },
-                                )
-                            },
-                        )
-                    }
-                },
-            )
-        }
-
+    if (request.tools.isNotEmpty()) {
         put(
-            "messages",
+            "tools",
             buildJsonArray {
-                for (message in request.messages) {
-                    add(construireMessageOpenAi(message))
+                for (outil in request.tools) {
+                    add(
+                        buildJsonObject {
+                            put("type", "function")
+                            put(
+                                "function",
+                                buildJsonObject {
+                                    put("name", outil.name)
+                                    put("description", outil.description)
+                                    put(
+                                        "parameters",
+                                        JsonIa.parseur
+                                            .parseToJsonElement(outil.parametersJsonSchema),
+                                    )
+                                },
+                            )
+                        },
+                    )
                 }
             },
         )
     }
 
+    put(
+        "messages",
+        buildJsonArray {
+            for (message in request.messages) {
+                add(construireMessageOpenAi(message))
+            }
+        },
+    )
+}
+
 /** Traduit un [jo.codeide.core.ai.AiMessage] vers le message natif. */
-private fun construireMessageOpenAi(message: jo.codeide.core.ai.AiMessage): JsonObject =
-    when (message.role) {
-        AiRole.Assistant -> {
-            construireMessageAssistantOpenAi(message)
-        }
+private fun construireMessageOpenAi(message: jo.codeide.core.ai.AiMessage): JsonObject = when (message.role) {
+    AiRole.Assistant -> {
+        construireMessageAssistantOpenAi(message)
+    }
 
-        AiRole.Tool -> {
-            // Un message résultat d'outil → un message `tool` par bloc.
-            val bloc = message.blocks.filterIsInstance<AiContentBlock.ToolResult>().first()
-            buildJsonObject {
-                put("role", "tool")
-                put("tool_call_id", bloc.toolCallId)
-                put("content", bloc.content)
-            }
-        }
-
-        else -> {
-            buildJsonObject {
-                put("role", if (message.role == AiRole.System) "system" else "user")
-                put(
-                    "content",
-                    message.blocks
-                        .filterIsInstance<AiContentBlock.Text>()
-                        .joinToString("\n\n") { it.text },
-                )
-            }
+    AiRole.Tool -> {
+        // Un message résultat d'outil → un message `tool` par bloc.
+        val bloc = message.blocks.filterIsInstance<AiContentBlock.ToolResult>().first()
+        buildJsonObject {
+            put("role", "tool")
+            put("tool_call_id", bloc.toolCallId)
+            put("content", bloc.content)
         }
     }
+
+    else -> {
+        buildJsonObject {
+            put("role", if (message.role == AiRole.System) "system" else "user")
+            put(
+                "content",
+                message.blocks
+                    .filterIsInstance<AiContentBlock.Text>()
+                    .joinToString("\n\n") { it.text },
+            )
+        }
+    }
+}
 
 /**
  * Traduit un message d'assistant : texte et/ou appels d'outils natifs
@@ -307,10 +298,7 @@ internal class OpenAiEventMapper : SseEventMapper {
     }
 
     /** Fragments `delta.content` et `delta.tool_calls`. */
-    private suspend fun traiterDelta(
-        choix: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterDelta(choix: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val delta = choix["delta"] as? JsonObject ?: return
 
         val texte =
@@ -330,10 +318,7 @@ internal class OpenAiEventMapper : SseEventMapper {
      * Un fragment `tool_calls` : création au premier index vu, puis
      * accumulation des arguments (le serveur fragmente librement).
      */
-    private suspend fun traiterAppelFragmente(
-        appel: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterAppelFragmente(appel: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val index =
             JsonIa.entier(appel, "index")?.toInt() ?: appelsParIndex.size
 
@@ -361,10 +346,7 @@ internal class OpenAiEventMapper : SseEventMapper {
     }
 
     /** Compteurs `usage` éventuels (chunk final chez certains serveurs). */
-    private suspend fun traiterUsage(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterUsage(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val entree = JsonIa.entier(json, "usage", "prompt_tokens")
         val sortie = JsonIa.entier(json, "usage", "completion_tokens")
         if (entree != null || sortie != null) emit(AiEvent.Usage(entree, sortie))

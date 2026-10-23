@@ -52,12 +52,11 @@ class ClientMavenHttpTest {
     }
 
     @Test
-    fun `parse les versions d'un maven-metadata xml`() =
-        runBlocking {
-            val chemin = "/maven2/org/jetbrains/kotlin/kotlin-stdlib/maven-metadata.xml"
-            serveur.createContext(chemin) { ech ->
-                val xml =
-                    """
+    fun `parse les versions d'un maven-metadata xml`() = runBlocking {
+        val chemin = "/maven2/org/jetbrains/kotlin/kotlin-stdlib/maven-metadata.xml"
+        serveur.createContext(chemin) { ech ->
+            val xml =
+                """
                     <?xml version="1.0" encoding="UTF-8"?>
                     <metadata>
                       <groupId>org.jetbrains.kotlin</groupId>
@@ -73,81 +72,74 @@ class ClientMavenHttpTest {
                         </versions>
                       </versioning>
                     </metadata>
-                    """.trimIndent()
-                repondre(ech, 200, xml)
-            }
-            // NOTE : pour ce test, on accepte http:// — le client ne doit
-            // pas filtrer en production, mais le test contourne en passant
-            // un dépôt local. La garde HTTPS est testée séparément.
-            val resultat =
-                client.versionsLax(
-                    group = "org.jetbrains.kotlin",
-                    name = "kotlin-stdlib",
-                    depots = listOf(depot),
-                )
-            assertTrue(resultat is jo.codeide.core.model.AppResult.Success)
-            val versions = (resultat as jo.codeide.core.model.AppResult.Success).value
-            assertEquals(listOf("2.0.0", "2.1.0", "2.2.0", "2.2.10"), versions)
+                """.trimIndent()
+            repondre(ech, 200, xml)
         }
+        // NOTE : pour ce test, on accepte http:// — le client ne doit
+        // pas filtrer en production, mais le test contourne en passant
+        // un dépôt local. La garde HTTPS est testée séparément.
+        val resultat =
+            client.versionsLax(
+                group = "org.jetbrains.kotlin",
+                name = "kotlin-stdlib",
+                depots = listOf(depot),
+            )
+        assertTrue(resultat is jo.codeide.core.model.AppResult.Success)
+        val versions = (resultat as jo.codeide.core.model.AppResult.Success).value
+        assertEquals(listOf("2.0.0", "2.1.0", "2.2.0", "2.2.10"), versions)
+    }
 
     @Test
-    fun `retourne 404 si le depots ne connait pas l artefact`() =
-        runBlocking {
-            serveur.createContext("/") { ech ->
-                repondre(ech, 404, "Not Found")
-            }
-            val resultat =
-                client.versionsLax(
-                    group = "inconnu",
-                    name = "absent",
-                    depots = listOf(depot),
-                )
-            assertTrue(resultat is jo.codeide.core.model.AppResult.Failure)
+    fun `retourne 404 si le depots ne connait pas l artefact`() = runBlocking {
+        serveur.createContext("/") { ech ->
+            repondre(ech, 404, "Not Found")
         }
+        val resultat =
+            client.versionsLax(
+                group = "inconnu",
+                name = "absent",
+                depots = listOf(depot),
+            )
+        assertTrue(resultat is jo.codeide.core.model.AppResult.Failure)
+    }
 
     @Test
-    fun `essaie le deuxieme depot si le premier ne repond pas`() =
-        runBlocking {
-            serveur.createContext("/maven2/") { ech -> repondre(ech, 404, "Not Found") }
-            serveur.createContext("/google/") { ech ->
-                val xml =
-                    """<metadata><versioning><versions><version>1.0.0</version>""" +
-                        """</versions></versioning></metadata>"""
-                repondre(ech, 200, xml)
-            }
-            val port = serveur.address.port
-            val depotSecondaire = "http://localhost:$port/google/"
-            val resultat =
-                client.versionsLax(
-                    group = "androidx.core",
-                    name = "core-ktx",
-                    depots = listOf(depot, depotSecondaire),
-                )
-            assertTrue(resultat is jo.codeide.core.model.AppResult.Success)
-            assertEquals(listOf("1.0.0"), (resultat as jo.codeide.core.model.AppResult.Success).value)
+    fun `essaie le deuxieme depot si le premier ne repond pas`() = runBlocking {
+        serveur.createContext("/maven2/") { ech -> repondre(ech, 404, "Not Found") }
+        serveur.createContext("/google/") { ech ->
+            val xml =
+                """<metadata><versioning><versions><version>1.0.0</version>""" +
+                    """</versions></versioning></metadata>"""
+            repondre(ech, 200, xml)
         }
+        val port = serveur.address.port
+        val depotSecondaire = "http://localhost:$port/google/"
+        val resultat =
+            client.versionsLax(
+                group = "androidx.core",
+                name = "core-ktx",
+                depots = listOf(depot, depotSecondaire),
+            )
+        assertTrue(resultat is jo.codeide.core.model.AppResult.Success)
+        assertEquals(listOf("1.0.0"), (resultat as jo.codeide.core.model.AppResult.Success).value)
+    }
 
     @Test
-    fun `sert le cache apres une premiere requete`() =
-        runBlocking {
-            var nbRequetes = 0
-            serveur.createContext("/maven2/") { ech ->
-                nbRequetes++
-                val xml =
-                    """<metadata><versioning><versions><version>1.0.0</version>""" +
-                        """</versions></versioning></metadata>"""
-                repondre(ech, 200, xml)
-            }
-            client.versionsLax("g", "n", listOf(depot))
-            client.versionsLax("g", "n", listOf(depot))
-            assertEquals("la 2e requête est servie par le cache", 1, nbRequetes)
+    fun `sert le cache apres une premiere requete`() = runBlocking {
+        var nbRequetes = 0
+        serveur.createContext("/maven2/") { ech ->
+            nbRequetes++
+            val xml =
+                """<metadata><versioning><versions><version>1.0.0</version>""" +
+                    """</versions></versioning></metadata>"""
+            repondre(ech, 200, xml)
         }
+        client.versionsLax("g", "n", listOf(depot))
+        client.versionsLax("g", "n", listOf(depot))
+        assertEquals("la 2e requête est servie par le cache", 1, nbRequetes)
+    }
 
-    private fun repondre(
-        ech: HttpExchange,
-        code: Int,
-        corps: String,
-    ) {
+    private fun repondre(ech: HttpExchange, code: Int, corps: String) {
         val octets = corps.toByteArray(Charsets.UTF_8)
         ech.sendResponseHeaders(code, octets.size.toLong())
         ech.responseBody.use { it.write(octets) }

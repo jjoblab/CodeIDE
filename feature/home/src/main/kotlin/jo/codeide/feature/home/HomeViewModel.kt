@@ -79,484 +79,471 @@ import javax.inject.Inject
 @HiltViewModel
 @Suppress("LongParameterList", "TooManyFunctions")
 class HomeViewModel
-    @Inject
-    constructor(
-        private val observerParametres: ObserveSettingsUseCase,
-        private val observerProjets: ObserveProjectsUseCase,
-        private val observerEtatOutils: ObserveToolchainStateUseCase,
-        private val orchestrateurInstallation: EnvironmentSetupOrchestrator,
-        private val verifierAcces: VerifyProjectAccessUseCase,
-        private val renommerProjet: RenameProjectUseCase,
-        private val epinglerProjet: SetProjectPinnedUseCase,
-        private val retirerProjet: RemoveProjectUseCase,
-        private val supprimerDuDisque: DeleteProjectOnDiskUseCase,
-        private val importerDossier: ImportExistingFolderUseCase,
-        private val relocaliserProjet: RelocalizeProjectUseCase,
-        private val clonerDepot: ClonerDepotUseCase,
-        private val marquerOuvert: MarkProjectOpenedUseCase,
-        private val observateurSession: ObservateurSessionProjet,
-        private val horloge: TimeProvider,
-        private val journal: AppLogger,
-        private val savedState: SavedStateHandle,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatAccueil())
+@Inject
+constructor(
+    private val observerParametres: ObserveSettingsUseCase,
+    private val observerProjets: ObserveProjectsUseCase,
+    private val observerEtatOutils: ObserveToolchainStateUseCase,
+    private val orchestrateurInstallation: EnvironmentSetupOrchestrator,
+    private val verifierAcces: VerifyProjectAccessUseCase,
+    private val renommerProjet: RenameProjectUseCase,
+    private val epinglerProjet: SetProjectPinnedUseCase,
+    private val retirerProjet: RemoveProjectUseCase,
+    private val supprimerDuDisque: DeleteProjectOnDiskUseCase,
+    private val importerDossier: ImportExistingFolderUseCase,
+    private val relocaliserProjet: RelocalizeProjectUseCase,
+    private val clonerDepot: ClonerDepotUseCase,
+    private val marquerOuvert: MarkProjectOpenedUseCase,
+    private val observateurSession: ObservateurSessionProjet,
+    private val horloge: TimeProvider,
+    private val journal: AppLogger,
+    private val savedState: SavedStateHandle,
+) : ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatAccueil())
 
-        /** État observable de l'accueil (UDF, section 5.3). */
-        val etat: StateFlow<EtatAccueil> = etatInterne.asStateFlow()
+    /** État observable de l'accueil (UDF, section 5.3). */
+    val etat: StateFlow<EtatAccueil> = etatInterne.asStateFlow()
 
-        private val effetsInterne = Channel<EffetAccueil>(Channel.BUFFERED)
+    private val effetsInterne = Channel<EffetAccueil>(Channel.BUFFERED)
 
-        /** Événements ponctuels (snackbars), consommés une fois. */
-        val effets: Flow<EffetAccueil> = effetsInterne.receiveAsFlow()
+    /** Événements ponctuels (snackbars), consommés une fois. */
+    val effets: Flow<EffetAccueil> = effetsInterne.receiveAsFlow()
 
-        /** Recherche courante, persistée pour la rotation. */
-        private val requeteInterne = MutableStateFlow(savedState[CLE_REQUETE] ?: "")
+    /** Recherche courante, persistée pour la rotation. */
+    private val requeteInterne = MutableStateFlow(savedState[CLE_REQUETE] ?: "")
 
-        /** Tri choisi, persisté pour la rotation (nom d'énuméré, v0.100.2). */
-        private val triInterne = MutableStateFlow(lireTriPersiste())
+    /** Tri choisi, persisté pour la rotation (nom d'énuméré, v0.100.2). */
+    private val triInterne = MutableStateFlow(lireTriPersiste())
 
-        /** Dernière liste brute du registre (hors filtre), pour les vérifications. */
-        private var derniereListe: List<Project> = emptyList()
+    /** Dernière liste brute du registre (hors filtre), pour les vérifications. */
+    private var derniereListe: List<Project> = emptyList()
 
-        /** Collecteur du registre, remplaçable par « Réessayer ». */
-        private var collecteurRegistre: Job? = null
+    /** Collecteur du registre, remplaçable par « Réessayer ». */
+    private var collecteurRegistre: Job? = null
 
-        /** Vrai pendant une passe de vérification des états d'accès. */
-        private var verificationEnCours = false
+    /** Vrai pendant une passe de vérification des états d'accès. */
+    private var verificationEnCours = false
 
-        /** Le premier changement de recherche s'applique sans délai. */
-        private var premiereEmissionRequete = true
+    /** Le premier changement de recherche s'applique sans délai. */
+    private var premiereEmissionRequete = true
 
-        init {
+    init {
+        viewModelScope.launch {
+            // Bandeaux : le dossier (étape 5) suit les paramètres seuls ;
+            // le terminal (T3) combine paramètres, état du parcours
+            // d'installation (E6 : l'orchestrateur remplace l'ancien
+            // `BootstrapInstaller`) **et état POUSSÉ des outils**
+            // (v0.37.3) — la fin d'une installation lancée depuis
+            // l'écran dédié fait disparaître le bandeau sans retour sur
+            // l'accueil, et une installation en cours le masque (le
+            // bouton rouvrirait le même écran de progression partagé).
+            combine(
+                observerParametres(),
+                orchestrateurInstallation.state,
+                observerEtatOutils(),
+            ) { reglages, parcours, outils ->
+                Triple(reglages, parcours, outils)
+            }.collect { (reglages, parcours, outils) ->
+                val bootstrapVerifie =
+                    parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Succeeded ||
+                        parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Degraded
+                // Correctif v0.69.0 : le bandeau terminal porte sur
+                // l'installation COMPLÈTE (4 phases), pas seulement
+                // BOOTSTRAP — sinon le bandeau disparaît dès que
+                // BOOTSTRAP est vérifié, même si JAVA/ANDROID_SDK
+                // restent à faire (l'utilisateur n'a plus de rappel).
+                val installationIncomplete = !parcours.estTermine()
+                etatInterne.update {
+                    it.copy(
+                        montrerBandeau = reglages.isSetupCompleted && reglages.workspace == null,
+                        libelleDossier = reglages.workspace?.displayPath,
+                        montrerBandeauTerminal =
+                        reglages.isSetupCompleted &&
+                            !outils.bootstrapInstalle &&
+                            installationIncomplete &&
+                            parcours.running == null,
+                        // T6 + v0.37.3 : une installation terminée rend le
+                        // terminal ouvrable SANS attendre un nouveau passage
+                        // — l'état poussé remplace le pull figé (le marqueur
+                        // disque suivait de peu, le pull ne se rejouait pas).
+                        bootstrapInstalle = outils.bootstrapInstalle || bootstrapVerifie,
+                    )
+                }
+            }
+        }
+        observerRegistre()
+
+        // Mission « Cycle de vie » étape E (matrice §6.3 : « session P
+        // ouverte ») : l'accueil reflète l'état RÉEL de la session du
+        // processus — port LECTURE SEULE de `core:domain`, l'implémentation
+        // vit dans feature:editor auprès du gestionnaire qu'elle projette
+        // (règle de dépendance : l'accueil ne voit pas `:core:session`).
+        observateurSession.etatSession
+            .onEach { session -> etatInterne.update { it.copy(session = session) } }
+            .launchIn(viewModelScope)
+    }
+
+    /**
+     * Traite une intention utilisateur (section 5.3).
+     *
+     * Exemption detekt ciblée (règle 16) : CyclomaticComplexMethod —
+     * un branch PAR intention UDF, c'est le dessin même du dispatcher
+     * (même exemption que `EditorViewModel.onAction`).
+     */
+    @Suppress("CyclomaticComplexMethod")
+    fun action(action: ActionAccueil) {
+        when (action) {
+            is ActionAccueil.Rechercher -> {
+                requeteInterne.value = action.requete
+                savedState[CLE_REQUETE] = action.requete
+            }
+
+            is ActionAccueil.ChangerTri -> {
+                triInterne.value = action.tri
+                savedState[CLE_TRI] = action.tri.name
+            }
+
+            ActionAccueil.Rafraichir -> {
+                etatInterne.update { it.copy(rafraichissement = true) }
+                lancerVerification()
+            }
+
+            is ActionAccueil.OuvrirProjet -> {
+                ouvrir(action.id)
+            }
+
+            is ActionAccueil.RenommerProjet -> {
+                renommer(action.id, action.nom)
+            }
+
+            is ActionAccueil.EpinglerProjet -> {
+                epingler(action.id, action.epingle)
+            }
+
+            is ActionAccueil.RetirerProjet -> {
+                retirer(action.id)
+            }
+
+            is ActionAccueil.SupprimerDuDisque -> {
+                supprimer(action.id)
+            }
+
+            is ActionAccueil.ImporterDossier -> {
+                importer(action.grantUri)
+            }
+
+            is ActionAccueil.RelocaliserProjet -> {
+                relocaliser(action.id, action.grantUri)
+            }
+
+            ActionAccueil.Reessayer -> {
+                observerRegistre()
+            }
+
+            ActionAccueil.OuvrirTerminal -> {
+                ouvrirTerminal()
+            }
+
+            is ActionAccueil.ClonerDepot -> {
+                cloner(action.url, action.nom)
+            }
+
+            is ActionAccueil.SurlignerProjet -> {
+                etatInterne.update { it.copy(projetEnEvidence = action.id) }
+            }
+        }
+    }
+
+    /**
+     * Clone un dépôt Git dans le dossier de travail (G5, v0.80.4) :
+     * bandeau de progression pendant l'opération, ouverture de
+     * l'éditeur en cas de succès (comme « Get from VCS » d'Android
+     * Studio — le projet fraîchement cloné devient LE projet),
+     * échec typé en snackbar sinon.
+     */
+    private fun cloner(url: String, nom: String) {
+        if (etatInterne.value.clonageEnCours) return
+        etatInterne.update { it.copy(clonageEnCours = true) }
+        viewModelScope.launch {
+            when (val resultat = clonerDepot(url, nom)) {
+                is ResultatClonage.Succes -> {
+                    journal.i(TAG) { "Projet ${resultat.projet.id.value} cloné." }
+                    etatInterne.update { it.copy(clonageEnCours = false) }
+                    ouvrir(resultat.projet.id)
+                }
+
+                is ResultatClonage.Refuse -> {
+                    etatInterne.update { it.copy(clonageEnCours = false) }
+                    emettre(EffetAccueil.NomClonageRefuse(resultat.raison))
+                }
+
+                is ResultatClonage.Erreur -> {
+                    etatInterne.update { it.copy(clonageEnCours = false) }
+                    emettre(EffetAccueil.EchecClonage(resultat.erreur, resultat.rollback))
+                }
+
+                is ResultatClonage.ErreurGit -> {
+                    etatInterne.update { it.copy(clonageEnCours = false) }
+                    emettre(EffetAccueil.EchecClonageGit(resultat.message, resultat.rollback))
+                }
+            }
+        }
+    }
+
+    /**
+     * Action « Terminal » de la toolbar (T6, section 7) : écran plein
+     * écran si le bootstrap est présent, installation sinon — jamais
+     * un terminal non fonctionnel.
+     */
+    private fun ouvrirTerminal() {
+        val effet =
+            if (etatInterne.value.bootstrapInstalle) {
+                EffetAccueil.OuvrirTerminalEcran
+            } else {
+                EffetAccueil.OuvrirInstallationTerminal
+            }
+        viewModelScope.launch { effetsInterne.send(effet) }
+    }
+
+    /** Épingle ou désépingle un projet. */
+    private fun epingler(id: ProjectId, epingle: Boolean) {
+        viewModelScope.launch {
+            when (val resultat = epinglerProjet(id, epingle)) {
+                is AppResult.Success -> journal.d(TAG) { "Projet ${id.value} épinglé=$epingle." }
+                is AppResult.Failure -> emettre(EffetAccueil.Echec(resultat.error))
+            }
+        }
+    }
+
+    /** Retire un projet de la liste (dossier intact). */
+    private fun retirer(id: ProjectId) {
+        viewModelScope.launch {
+            when (val resultat = retirerProjet(id)) {
+                is AppResult.Success -> {
+                    journal.d(TAG) { "Projet ${id.value} retiré de la liste." }
+                    emettre(EffetAccueil.ProjetRetire)
+                }
+
+                is AppResult.Failure -> {
+                    emettre(EffetAccueil.Echec(resultat.error))
+                }
+            }
+        }
+    }
+
+    /** Supprime un projet du disque (déjà confirmé par l'UI). */
+    private fun supprimer(id: ProjectId) {
+        viewModelScope.launch {
+            when (val resultat = supprimerDuDisque(id)) {
+                is AppResult.Success -> {
+                    journal.i(TAG) { "Projet ${id.value} supprimé du disque." }
+                    emettre(EffetAccueil.ProjetSupprime)
+                    lancerVerification()
+                }
+
+                is AppResult.Failure -> {
+                    emettre(EffetAccueil.Echec(resultat.error))
+                }
+            }
+        }
+    }
+
+    /** Importe un dossier choisi via le sélecteur SAF. */
+    private fun importer(grantUri: String) {
+        viewModelScope.launch {
+            when (val resultat = importerDossier(grantUri)) {
+                is ImportDossier.Ajoute -> {
+                    journal.i(TAG) { "Projet ${resultat.projet.id.value} importé." }
+                    emettre(EffetAccueil.ProjetImporte(resultat.projet.name))
+                    lancerVerification()
+                }
+
+                is ImportDossier.DejaPresent -> {
+                    emettre(EffetAccueil.DossierDejaPresent)
+                }
+
+                is ImportDossier.Refuse -> {
+                    emettre(EffetAccueil.DossierRefuse(resultat.raison))
+                }
+
+                is ImportDossier.Erreur -> {
+                    emettre(EffetAccueil.Echec(resultat.erreur))
+                }
+            }
+        }
+    }
+
+    /** Relocalise un projet vers un dossier choisi via le sélecteur SAF. */
+    private fun relocaliser(id: ProjectId, grantUri: String) {
+        viewModelScope.launch {
+            when (val resultat = relocaliserProjet(id, grantUri)) {
+                is RelocalisationProjet.Deplace -> {
+                    journal.i(TAG) { "Projet ${resultat.projet.id.value} relocalisé." }
+                    emettre(EffetAccueil.ProjetDeplace(resultat.projet.name))
+                    lancerVerification()
+                }
+
+                is RelocalisationProjet.Refuse -> {
+                    emettre(EffetAccueil.DossierRefuse(resultat.raison))
+                }
+
+                is RelocalisationProjet.Erreur -> {
+                    emettre(EffetAccueil.Echec(resultat.erreur))
+                }
+            }
+        }
+    }
+
+    /**
+     * Collecte le registre en combinant recherche (délai appliqué
+     * aux frappes, pas à la restauration) et tri ; un échec de
+     * lecture bascule l'état d'erreur sans crash (section 5.6).
+     */
+    private fun observerRegistre() {
+        collecteurRegistre?.cancel()
+        collecteurRegistre =
             viewModelScope.launch {
-                // Bandeaux : le dossier (étape 5) suit les paramètres seuls ;
-                // le terminal (T3) combine paramètres, état du parcours
-                // d'installation (E6 : l'orchestrateur remplace l'ancien
-                // `BootstrapInstaller`) **et état POUSSÉ des outils**
-                // (v0.37.3) — la fin d'une installation lancée depuis
-                // l'écran dédié fait disparaître le bandeau sans retour sur
-                // l'accueil, et une installation en cours le masque (le
-                // bouton rouvrirait le même écran de progression partagé).
-                combine(
-                    observerParametres(),
-                    orchestrateurInstallation.state,
-                    observerEtatOutils(),
-                ) { reglages, parcours, outils ->
-                    Triple(reglages, parcours, outils)
-                }.collect { (reglages, parcours, outils) ->
-                    val bootstrapVerifie =
-                        parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Succeeded ||
-                            parcours.phase(InstallPhase.BOOTSTRAP) is PhaseState.Degraded
-                    // Correctif v0.69.0 : le bandeau terminal porte sur
-                    // l'installation COMPLÈTE (4 phases), pas seulement
-                    // BOOTSTRAP — sinon le bandeau disparaît dès que
-                    // BOOTSTRAP est vérifié, même si JAVA/ANDROID_SDK
-                    // restent à faire (l'utilisateur n'a plus de rappel).
-                    val installationIncomplete = !parcours.estTermine()
+                try {
+                    combine(observerProjets(), requeteAvecDelai(), triInterne) { liste, requete, tri ->
+                        Triple(liste, requete, tri)
+                    }.collect { (liste, requete, tri) ->
+                        derniereListe = liste
+                        val premiereEmission = etatInterne.value.chargement
+                        etatInterne.update {
+                            it.copy(
+                                chargement = false,
+                                erreur = null,
+                                projets = liste.filtrer(requete).trier(tri),
+                                requete = requete,
+                                tri = tri,
+                            )
+                        }
+                        if (premiereEmission) lancerVerification()
+                    }
+                } catch (annulation: CancellationException) {
+                    throw annulation
+                } catch (echec: Exception) {
+                    journal.w(TAG, echec) { "Registre illisible." }
                     etatInterne.update {
                         it.copy(
-                            montrerBandeau = reglages.isSetupCompleted && reglages.workspace == null,
-                            libelleDossier = reglages.workspace?.displayPath,
-                            montrerBandeauTerminal =
-                                reglages.isSetupCompleted &&
-                                    !outils.bootstrapInstalle &&
-                                    installationIncomplete &&
-                                    parcours.running == null,
-                            // T6 + v0.37.3 : une installation terminée rend le
-                            // terminal ouvrable SANS attendre un nouveau passage
-                            // — l'état poussé remplace le pull figé (le marqueur
-                            // disque suivait de peu, le pull ne se rejouait pas).
-                            bootstrapInstalle = outils.bootstrapInstalle || bootstrapVerifie,
+                            chargement = false,
+                            rafraichissement = false,
+                            erreur = AppError.Storage(AppError.StorageReason.Io, "registre illisible"),
                         )
                     }
                 }
             }
-            observerRegistre()
+    }
 
-            // Mission « Cycle de vie » étape E (matrice §6.3 : « session P
-            // ouverte ») : l'accueil reflète l'état RÉEL de la session du
-            // processus — port LECTURE SEULE de `core:domain`, l'implémentation
-            // vit dans feature:editor auprès du gestionnaire qu'elle projette
-            // (règle de dépendance : l'accueil ne voit pas `:core:session`).
-            observateurSession.etatSession
-                .onEach { session -> etatInterne.update { it.copy(session = session) } }
-                .launchIn(viewModelScope)
-        }
+    /**
+     * Recherche avec délai : les frappes successives se fondent en
+     * une seule application (250 ms) ; la première émission —
+     * valeur restaurée du [SavedStateHandle] — passe sans attendre.
+     *
+     * `debounce` est marqué FlowPreview par kotlinx.coroutines : le
+     * comportement attendu ici (fusion de frappes) est exactement le
+     * sien, l'opt-in est explicite.
+     */
+    @OptIn(FlowPreview::class)
+    private fun requeteAvecDelai(): Flow<String> = requeteInterne
+        .debounce { _ ->
+            if (premiereEmissionRequete) {
+                premiereEmissionRequete = false
+                0L
+            } else {
+                DELAI_RECHERCHE_MS
+            }
+        }.distinctUntilChanged()
 
-        /**
-         * Traite une intention utilisateur (section 5.3).
-         *
-         * Exemption detekt ciblée (règle 16) : CyclomaticComplexMethod —
-         * un branch PAR intention UDF, c'est le dessin même du dispatcher
-         * (même exemption que `EditorViewModel.onAction`).
-         */
-        @Suppress("CyclomaticComplexMethod")
-        fun action(action: ActionAccueil) {
-            when (action) {
-                is ActionAccueil.Rechercher -> {
-                    requeteInterne.value = action.requete
-                    savedState[CLE_REQUETE] = action.requete
+    /** Ouvre un projet : marquage « ouvert » puis placeholder éditeur (étape 13). */
+    private fun ouvrir(id: ProjectId) {
+        viewModelScope.launch {
+            when (val resultat = marquerOuvert(id, horloge.nowMillis())) {
+                is AppResult.Success -> {
+                    journal.i(TAG) { "Projet ${id.value} ouvert." }
+                    emettre(EffetAccueil.OuvrirEditeur(id))
                 }
 
-                is ActionAccueil.ChangerTri -> {
-                    triInterne.value = action.tri
-                    savedState[CLE_TRI] = action.tri.name
-                }
-
-                ActionAccueil.Rafraichir -> {
-                    etatInterne.update { it.copy(rafraichissement = true) }
-                    lancerVerification()
-                }
-
-                is ActionAccueil.OuvrirProjet -> {
-                    ouvrir(action.id)
-                }
-
-                is ActionAccueil.RenommerProjet -> {
-                    renommer(action.id, action.nom)
-                }
-
-                is ActionAccueil.EpinglerProjet -> {
-                    epingler(action.id, action.epingle)
-                }
-
-                is ActionAccueil.RetirerProjet -> {
-                    retirer(action.id)
-                }
-
-                is ActionAccueil.SupprimerDuDisque -> {
-                    supprimer(action.id)
-                }
-
-                is ActionAccueil.ImporterDossier -> {
-                    importer(action.grantUri)
-                }
-
-                is ActionAccueil.RelocaliserProjet -> {
-                    relocaliser(action.id, action.grantUri)
-                }
-
-                ActionAccueil.Reessayer -> {
-                    observerRegistre()
-                }
-
-                ActionAccueil.OuvrirTerminal -> {
-                    ouvrirTerminal()
-                }
-
-                is ActionAccueil.ClonerDepot -> {
-                    cloner(action.url, action.nom)
-                }
-
-                is ActionAccueil.SurlignerProjet -> {
-                    etatInterne.update { it.copy(projetEnEvidence = action.id) }
+                is AppResult.Failure -> {
+                    emettre(EffetAccueil.Echec(resultat.error))
                 }
             }
-        }
-
-        /**
-         * Clone un dépôt Git dans le dossier de travail (G5, v0.80.4) :
-         * bandeau de progression pendant l'opération, ouverture de
-         * l'éditeur en cas de succès (comme « Get from VCS » d'Android
-         * Studio — le projet fraîchement cloné devient LE projet),
-         * échec typé en snackbar sinon.
-         */
-        private fun cloner(
-            url: String,
-            nom: String,
-        ) {
-            if (etatInterne.value.clonageEnCours) return
-            etatInterne.update { it.copy(clonageEnCours = true) }
-            viewModelScope.launch {
-                when (val resultat = clonerDepot(url, nom)) {
-                    is ResultatClonage.Succes -> {
-                        journal.i(TAG) { "Projet ${resultat.projet.id.value} cloné." }
-                        etatInterne.update { it.copy(clonageEnCours = false) }
-                        ouvrir(resultat.projet.id)
-                    }
-
-                    is ResultatClonage.Refuse -> {
-                        etatInterne.update { it.copy(clonageEnCours = false) }
-                        emettre(EffetAccueil.NomClonageRefuse(resultat.raison))
-                    }
-
-                    is ResultatClonage.Erreur -> {
-                        etatInterne.update { it.copy(clonageEnCours = false) }
-                        emettre(EffetAccueil.EchecClonage(resultat.erreur, resultat.rollback))
-                    }
-
-                    is ResultatClonage.ErreurGit -> {
-                        etatInterne.update { it.copy(clonageEnCours = false) }
-                        emettre(EffetAccueil.EchecClonageGit(resultat.message, resultat.rollback))
-                    }
-                }
-            }
-        }
-
-        /**
-         * Action « Terminal » de la toolbar (T6, section 7) : écran plein
-         * écran si le bootstrap est présent, installation sinon — jamais
-         * un terminal non fonctionnel.
-         */
-        private fun ouvrirTerminal() {
-            val effet =
-                if (etatInterne.value.bootstrapInstalle) {
-                    EffetAccueil.OuvrirTerminalEcran
-                } else {
-                    EffetAccueil.OuvrirInstallationTerminal
-                }
-            viewModelScope.launch { effetsInterne.send(effet) }
-        }
-
-        /** Épingle ou désépingle un projet. */
-        private fun epingler(
-            id: ProjectId,
-            epingle: Boolean,
-        ) {
-            viewModelScope.launch {
-                when (val resultat = epinglerProjet(id, epingle)) {
-                    is AppResult.Success -> journal.d(TAG) { "Projet ${id.value} épinglé=$epingle." }
-                    is AppResult.Failure -> emettre(EffetAccueil.Echec(resultat.error))
-                }
-            }
-        }
-
-        /** Retire un projet de la liste (dossier intact). */
-        private fun retirer(id: ProjectId) {
-            viewModelScope.launch {
-                when (val resultat = retirerProjet(id)) {
-                    is AppResult.Success -> {
-                        journal.d(TAG) { "Projet ${id.value} retiré de la liste." }
-                        emettre(EffetAccueil.ProjetRetire)
-                    }
-
-                    is AppResult.Failure -> {
-                        emettre(EffetAccueil.Echec(resultat.error))
-                    }
-                }
-            }
-        }
-
-        /** Supprime un projet du disque (déjà confirmé par l'UI). */
-        private fun supprimer(id: ProjectId) {
-            viewModelScope.launch {
-                when (val resultat = supprimerDuDisque(id)) {
-                    is AppResult.Success -> {
-                        journal.i(TAG) { "Projet ${id.value} supprimé du disque." }
-                        emettre(EffetAccueil.ProjetSupprime)
-                        lancerVerification()
-                    }
-
-                    is AppResult.Failure -> {
-                        emettre(EffetAccueil.Echec(resultat.error))
-                    }
-                }
-            }
-        }
-
-        /** Importe un dossier choisi via le sélecteur SAF. */
-        private fun importer(grantUri: String) {
-            viewModelScope.launch {
-                when (val resultat = importerDossier(grantUri)) {
-                    is ImportDossier.Ajoute -> {
-                        journal.i(TAG) { "Projet ${resultat.projet.id.value} importé." }
-                        emettre(EffetAccueil.ProjetImporte(resultat.projet.name))
-                        lancerVerification()
-                    }
-
-                    is ImportDossier.DejaPresent -> {
-                        emettre(EffetAccueil.DossierDejaPresent)
-                    }
-
-                    is ImportDossier.Refuse -> {
-                        emettre(EffetAccueil.DossierRefuse(resultat.raison))
-                    }
-
-                    is ImportDossier.Erreur -> {
-                        emettre(EffetAccueil.Echec(resultat.erreur))
-                    }
-                }
-            }
-        }
-
-        /** Relocalise un projet vers un dossier choisi via le sélecteur SAF. */
-        private fun relocaliser(
-            id: ProjectId,
-            grantUri: String,
-        ) {
-            viewModelScope.launch {
-                when (val resultat = relocaliserProjet(id, grantUri)) {
-                    is RelocalisationProjet.Deplace -> {
-                        journal.i(TAG) { "Projet ${resultat.projet.id.value} relocalisé." }
-                        emettre(EffetAccueil.ProjetDeplace(resultat.projet.name))
-                        lancerVerification()
-                    }
-
-                    is RelocalisationProjet.Refuse -> {
-                        emettre(EffetAccueil.DossierRefuse(resultat.raison))
-                    }
-
-                    is RelocalisationProjet.Erreur -> {
-                        emettre(EffetAccueil.Echec(resultat.erreur))
-                    }
-                }
-            }
-        }
-
-        /**
-         * Collecte le registre en combinant recherche (délai appliqué
-         * aux frappes, pas à la restauration) et tri ; un échec de
-         * lecture bascule l'état d'erreur sans crash (section 5.6).
-         */
-        private fun observerRegistre() {
-            collecteurRegistre?.cancel()
-            collecteurRegistre =
-                viewModelScope.launch {
-                    try {
-                        combine(observerProjets(), requeteAvecDelai(), triInterne) { liste, requete, tri ->
-                            Triple(liste, requete, tri)
-                        }.collect { (liste, requete, tri) ->
-                            derniereListe = liste
-                            val premiereEmission = etatInterne.value.chargement
-                            etatInterne.update {
-                                it.copy(
-                                    chargement = false,
-                                    erreur = null,
-                                    projets = liste.filtrer(requete).trier(tri),
-                                    requete = requete,
-                                    tri = tri,
-                                )
-                            }
-                            if (premiereEmission) lancerVerification()
-                        }
-                    } catch (annulation: CancellationException) {
-                        throw annulation
-                    } catch (echec: Exception) {
-                        journal.w(TAG, echec) { "Registre illisible." }
-                        etatInterne.update {
-                            it.copy(
-                                chargement = false,
-                                rafraichissement = false,
-                                erreur = AppError.Storage(AppError.StorageReason.Io, "registre illisible"),
-                            )
-                        }
-                    }
-                }
-        }
-
-        /**
-         * Recherche avec délai : les frappes successives se fondent en
-         * une seule application (250 ms) ; la première émission —
-         * valeur restaurée du [SavedStateHandle] — passe sans attendre.
-         *
-         * `debounce` est marqué FlowPreview par kotlinx.coroutines : le
-         * comportement attendu ici (fusion de frappes) est exactement le
-         * sien, l'opt-in est explicite.
-         */
-        @OptIn(FlowPreview::class)
-        private fun requeteAvecDelai(): Flow<String> =
-            requeteInterne
-                .debounce { _ ->
-                    if (premiereEmissionRequete) {
-                        premiereEmissionRequete = false
-                        0L
-                    } else {
-                        DELAI_RECHERCHE_MS
-                    }
-                }.distinctUntilChanged()
-
-        /** Ouvre un projet : marquage « ouvert » puis placeholder éditeur (étape 13). */
-        private fun ouvrir(id: ProjectId) {
-            viewModelScope.launch {
-                when (val resultat = marquerOuvert(id, horloge.nowMillis())) {
-                    is AppResult.Success -> {
-                        journal.i(TAG) { "Projet ${id.value} ouvert." }
-                        emettre(EffetAccueil.OuvrirEditeur(id))
-                    }
-
-                    is AppResult.Failure -> {
-                        emettre(EffetAccueil.Echec(resultat.error))
-                    }
-                }
-            }
-        }
-
-        /** Renomme : validation locale puis cas d'usage (libellé seul, ADR 0012). */
-        private fun renommer(
-            id: ProjectId,
-            nom: String,
-        ) {
-            val nomNettoye = nom.trim()
-            if (nomNettoye.isEmpty() || nomNettoye.length > Project.MAX_NAME_LENGTH) {
-                viewModelScope.launch { emettre(EffetAccueil.Echec(AppError.Validation("nom de projet refusé"))) }
-                return
-            }
-            viewModelScope.launch {
-                when (val resultat = renommerProjet(id, nomNettoye)) {
-                    is AppResult.Success -> journal.d(TAG) { "Projet ${id.value} renommé (libellé)." }
-                    is AppResult.Failure -> emettre(EffetAccueil.Echec(resultat.error))
-                }
-            }
-        }
-
-        /**
-         * Vérifie l'état d'accès de chaque projet du registre, en série :
-         * les requêtes SAF restent modestes (registre personnel) et
-         * l'ordre d'arrivée n'a pas d'importance. Un échec imprévu
-         * n'efface pas les états déjà connus — sans badge, sans crash.
-         */
-        private fun lancerVerification() {
-            if (verificationEnCours) return
-            verificationEnCours = true
-            viewModelScope.launch {
-                val etats = HashMap<ProjectId, ProjectAccessState>()
-                for (projet in derniereListe) {
-                    when (val resultat = verifierAcces(projet.id)) {
-                        is AppResult.Success -> {
-                            etats[projet.id] = resultat.value
-                        }
-
-                        is AppResult.Failure -> {
-                            journal.w(TAG) {
-                                "État d'accès inconnu pour ${projet.id.value} (${resultat.error})."
-                            }
-                        }
-                    }
-                }
-                etatInterne.update { it.copy(etatsAcces = etats, rafraichissement = false) }
-                verificationEnCours = false
-            }
-        }
-
-        /** Publie un événement ponctuel (résilient à l'absence de lecteur). */
-        private suspend fun emettre(effet: EffetAccueil) {
-            effetsInterne.send(effet)
-        }
-
-        /**
-         * Lit le tri persisté du [SavedStateHandle] — correctif v0.100.2
-         * (plantage e69fc0d8) : [ActionAccueil.ChangerTri] écrit le NOM
-         * (`tri.name`, une String, seul type de plateforme persistable)
-         * ; l'ancienne lecture `savedState[CLE_TRI] ?: TriAccueil.RECENTS`
-         * inférait `TriAccueil` et jetait ClassCastException à la
-         * restauration (String vers énuméré) dès que l'accueil revenait
-         * après un changement de tri. On relit une String, on résout le
-         * nom, et toute valeur inconnue retombe sur RECENTS (jamais de
-         * crash pour une préférence).
-         */
-        private fun lireTriPersiste(): TriAccueil {
-            val nom = savedState.get<String>(CLE_TRI) ?: return TriAccueil.RECENTS
-            return TriAccueil.entries.firstOrNull { it.name == nom }
-                ?: TriAccueil.RECENTS
-        }
-
-        private companion object {
-            const val TAG = "Accueil"
-
-            /** Délai de fusion des frappes de recherche. */
-            const val DELAI_RECHERCHE_MS = 250L
-
-            const val CLE_REQUETE = "accueil-requete"
-            const val CLE_TRI = "accueil-tri"
         }
     }
+
+    /** Renomme : validation locale puis cas d'usage (libellé seul, ADR 0012). */
+    private fun renommer(id: ProjectId, nom: String) {
+        val nomNettoye = nom.trim()
+        if (nomNettoye.isEmpty() || nomNettoye.length > Project.MAX_NAME_LENGTH) {
+            viewModelScope.launch { emettre(EffetAccueil.Echec(AppError.Validation("nom de projet refusé"))) }
+            return
+        }
+        viewModelScope.launch {
+            when (val resultat = renommerProjet(id, nomNettoye)) {
+                is AppResult.Success -> journal.d(TAG) { "Projet ${id.value} renommé (libellé)." }
+                is AppResult.Failure -> emettre(EffetAccueil.Echec(resultat.error))
+            }
+        }
+    }
+
+    /**
+     * Vérifie l'état d'accès de chaque projet du registre, en série :
+     * les requêtes SAF restent modestes (registre personnel) et
+     * l'ordre d'arrivée n'a pas d'importance. Un échec imprévu
+     * n'efface pas les états déjà connus — sans badge, sans crash.
+     */
+    private fun lancerVerification() {
+        if (verificationEnCours) return
+        verificationEnCours = true
+        viewModelScope.launch {
+            val etats = HashMap<ProjectId, ProjectAccessState>()
+            for (projet in derniereListe) {
+                when (val resultat = verifierAcces(projet.id)) {
+                    is AppResult.Success -> {
+                        etats[projet.id] = resultat.value
+                    }
+
+                    is AppResult.Failure -> {
+                        journal.w(TAG) {
+                            "État d'accès inconnu pour ${projet.id.value} (${resultat.error})."
+                        }
+                    }
+                }
+            }
+            etatInterne.update { it.copy(etatsAcces = etats, rafraichissement = false) }
+            verificationEnCours = false
+        }
+    }
+
+    /** Publie un événement ponctuel (résilient à l'absence de lecteur). */
+    private suspend fun emettre(effet: EffetAccueil) {
+        effetsInterne.send(effet)
+    }
+
+    /**
+     * Lit le tri persisté du [SavedStateHandle] — correctif v0.100.2
+     * (plantage e69fc0d8) : [ActionAccueil.ChangerTri] écrit le NOM
+     * (`tri.name`, une String, seul type de plateforme persistable)
+     * ; l'ancienne lecture `savedState[CLE_TRI] ?: TriAccueil.RECENTS`
+     * inférait `TriAccueil` et jetait ClassCastException à la
+     * restauration (String vers énuméré) dès que l'accueil revenait
+     * après un changement de tri. On relit une String, on résout le
+     * nom, et toute valeur inconnue retombe sur RECENTS (jamais de
+     * crash pour une préférence).
+     */
+    private fun lireTriPersiste(): TriAccueil {
+        val nom = savedState.get<String>(CLE_TRI) ?: return TriAccueil.RECENTS
+        return TriAccueil.entries.firstOrNull { it.name == nom }
+            ?: TriAccueil.RECENTS
+    }
+
+    private companion object {
+        const val TAG = "Accueil"
+
+        /** Délai de fusion des frappes de recherche. */
+        const val DELAI_RECHERCHE_MS = 250L
+
+        const val CLE_REQUETE = "accueil-requete"
+        const val CLE_TRI = "accueil-tri"
+    }
+}

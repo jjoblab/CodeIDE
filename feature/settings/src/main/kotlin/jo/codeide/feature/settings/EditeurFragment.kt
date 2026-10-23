@@ -52,10 +52,7 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
         attachToRoot: Boolean,
     ): FragmentSettingsEditeurBinding = FragmentSettingsEditeurBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -146,20 +143,18 @@ class EditeurFragment : BaseFragment<FragmentSettingsEditeurBinding>() {
 }
 
 /** Taille de police éditeur du bouton coché (MOYENNE par défaut). */
-private fun tailleDeLId(id: Int): TaillePoliceEditeur =
-    when (id) {
-        R.id.bouton_police_editeur_1 -> TaillePoliceEditeur.PETITE
-        R.id.bouton_police_editeur_3 -> TaillePoliceEditeur.GRANDE
-        else -> TaillePoliceEditeur.MOYENNE
-    }
+private fun tailleDeLId(id: Int): TaillePoliceEditeur = when (id) {
+    R.id.bouton_police_editeur_1 -> TaillePoliceEditeur.PETITE
+    R.id.bouton_police_editeur_3 -> TaillePoliceEditeur.GRANDE
+    else -> TaillePoliceEditeur.MOYENNE
+}
 
 /** Largeur de tabulation du bouton coché (QUATRE par défaut). */
-private fun tabulationDeLId(id: Int): TailleTabulation =
-    when (id) {
-        R.id.bouton_tabulation_1 -> TailleTabulation.DEUX
-        R.id.bouton_tabulation_3 -> TailleTabulation.HUIT
-        else -> TailleTabulation.QUATRE
-    }
+private fun tabulationDeLId(id: Int): TailleTabulation = when (id) {
+    R.id.bouton_tabulation_1 -> TailleTabulation.DEUX
+    R.id.bouton_tabulation_3 -> TailleTabulation.HUIT
+    else -> TailleTabulation.QUATRE
+}
 
 /** Ressource du libellé localisé d'un thème de l'éditeur. */
 @Suppress("CyclomaticComplexMethod") // Une branche par thème embarqué de cel-ui — projection plate.

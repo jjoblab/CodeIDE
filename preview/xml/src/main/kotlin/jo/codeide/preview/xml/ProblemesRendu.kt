@@ -34,32 +34,24 @@ internal object ProblemesRendu {
             (
                 uneLigneDepasse(miseEnPage, largeurUtile) ||
                     miseEnPage.height > hauteurUtile + TOLERANCE_DEPASSEMENT_PX
-            )
+                )
     }
 
     /**
      * Règle « texte codé en dur » au span de l'élément : `android:text`
      * existe et est un LITTÉRAL (ni `@string/…` ni `?attr/…`).
      */
-    fun texteCodeDur(
-        texte: String,
-        debut: Int,
-        fin: Int,
-    ): Boolean =
-        debut != InfoVueRendu.SANS_ELEMENT &&
-            EditionAttributsXml.estLitteral(
-                EditionAttributsXml.valeurAttribut(
-                    texte,
-                    InsertionXml.SpanParent(debut, fin),
-                    ATTRIBUT_TEXTE,
-                ),
-            )
+    fun texteCodeDur(texte: String, debut: Int, fin: Int): Boolean = debut != InfoVueRendu.SANS_ELEMENT &&
+        EditionAttributsXml.estLitteral(
+            EditionAttributsXml.valeurAttribut(
+                texte,
+                InsertionXml.SpanParent(debut, fin),
+                ATTRIBUT_TEXTE,
+            ),
+        )
 
     /** Une ligne du texte déborde : ellipsée ou clippée en largeur. */
-    private fun uneLigneDepasse(
-        miseEnPage: Layout,
-        largeurUtile: Int,
-    ): Boolean =
+    private fun uneLigneDepasse(miseEnPage: Layout, largeurUtile: Int): Boolean =
         (0 until miseEnPage.lineCount).any { ligne ->
             miseEnPage.getEllipsisCount(ligne) > 0 ||
                 miseEnPage.getLineWidth(ligne) > largeurUtile + TOLERANCE_DEPASSEMENT_PX

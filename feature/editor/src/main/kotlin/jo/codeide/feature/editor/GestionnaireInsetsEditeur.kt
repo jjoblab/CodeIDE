@@ -186,11 +186,10 @@ internal class GestionnaireInsetsEditeur(
             insetNavigation: Int,
             insetIme: Int,
             clavierOuvert: Boolean,
-        ): Int =
-            if (clavierOuvert) {
-                insetIme
-            } else {
-                peek + insetNavigation
-            }
+        ): Int = if (clavierOuvert) {
+            insetIme
+        } else {
+            peek + insetNavigation
+        }
     }
 }

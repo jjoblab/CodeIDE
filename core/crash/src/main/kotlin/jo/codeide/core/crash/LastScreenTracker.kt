@@ -34,10 +34,7 @@ internal class LastScreenTracker : Application.ActivityLifecycleCallbacks {
         dernierEcran = activity.javaClass.simpleName
     }
 
-    override fun onActivityCreated(
-        activity: android.app.Activity,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onActivityCreated(activity: android.app.Activity, savedInstanceState: Bundle?) {
         // Seul le résumé compte : géré par onActivityResumed.
     }
 
@@ -53,10 +50,7 @@ internal class LastScreenTracker : Application.ActivityLifecycleCallbacks {
         // L'écran reste « le dernier connu » — c'est le but.
     }
 
-    override fun onActivitySaveInstanceState(
-        activity: android.app.Activity,
-        outState: Bundle,
-    ) {
+    override fun onActivitySaveInstanceState(activity: android.app.Activity, outState: Bundle) {
         // Sans objet pour un pisteur mémoire.
     }
 

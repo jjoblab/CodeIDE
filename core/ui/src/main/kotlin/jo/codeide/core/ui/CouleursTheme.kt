@@ -16,9 +16,7 @@ import com.google.android.material.color.MaterialColors
  * serait un bug de thème, pas un état d'exécution.
  */
 @ColorInt
-public fun Context.couleurRole(
-    @AttrRes attr: Int,
-): Int = MaterialColors.getColor(this, attr, MESSAGE_ATTR_ABSENT)
+public fun Context.couleurRole(@AttrRes attr: Int): Int = MaterialColors.getColor(this, attr, MESSAGE_ATTR_ABSENT)
 
 /** Couleur primaire (accents de l'explorateur). */
 @ColorInt

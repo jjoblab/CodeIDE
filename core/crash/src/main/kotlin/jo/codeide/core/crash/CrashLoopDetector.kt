@@ -42,14 +42,13 @@ internal class CrashLoopDetector(
     }
 
     /** Lit l'historique ; toute erreur se traduit par un historique vide. */
-    private fun lireHistorique(): List<Long> =
-        try {
-            fichierHistorique
-                .readLines()
-                .mapNotNull { ligne -> ligne.trim().toLongOrNull() }
-        } catch (erreur: IOException) {
-            emptyList()
-        }
+    private fun lireHistorique(): List<Long> = try {
+        fichierHistorique
+            .readLines()
+            .mapNotNull { ligne -> ligne.trim().toLongOrNull() }
+    } catch (erreur: IOException) {
+        emptyList()
+    }
 
     /** Écrit l'historique de façon atomique ; l'échec n'est jamais fatal. */
     private fun ecrireHistorique(horodatages: List<Long>) {

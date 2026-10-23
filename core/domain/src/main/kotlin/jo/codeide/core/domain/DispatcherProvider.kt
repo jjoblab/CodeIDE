@@ -38,14 +38,14 @@ public interface DispatcherProvider {
  * `Dispatchers.setMain`.
  */
 public class DefaultDispatcherProvider
-    @Inject
-    constructor() : DispatcherProvider {
-        public override val io: CoroutineDispatcher
-            get() = Dispatchers.IO
+@Inject
+constructor() : DispatcherProvider {
+    public override val io: CoroutineDispatcher
+        get() = Dispatchers.IO
 
-        public override val default: CoroutineDispatcher
-            get() = Dispatchers.Default
+    public override val default: CoroutineDispatcher
+        get() = Dispatchers.Default
 
-        public override val main: CoroutineDispatcher
-            get() = Dispatchers.Main
-    }
+    public override val main: CoroutineDispatcher
+        get() = Dispatchers.Main
+}

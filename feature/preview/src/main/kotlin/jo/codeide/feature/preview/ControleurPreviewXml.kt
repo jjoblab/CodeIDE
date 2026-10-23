@@ -149,10 +149,7 @@ public class ControleurPreviewXml(
      * InfoVueRendu sont ABSOLUES dans le bitmap depuis le pipeline, le
      * tap arrive déjà en coordonnées bitmap.
      */
-    private fun selectionnerVueSous(
-        x: Float,
-        y: Float,
-    ) {
+    private fun selectionnerVueSous(x: Float, y: Float) {
         if (ferme) return
         val cible = SelectionPreview.vueSelectableEn(vue.vuesRendues, x, y) ?: return
         val indice = vue.vuesRendues.indexOf(cible)

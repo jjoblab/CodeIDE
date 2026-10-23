@@ -291,20 +291,14 @@ public class CotesMaquetteTest {
                     attrs: android.util.AttributeSet,
                 ): View? = inflateurMaterial.creer(parent, nom, ctx, attrs)
 
-                override fun onCreateView(
-                    nom: String,
-                    ctx: Context,
-                    attrs: android.util.AttributeSet,
-                ): View? = onCreateView(null, nom, ctx, attrs)
+                override fun onCreateView(nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+                    onCreateView(null, nom, ctx, attrs)
             }
         return inflater.inflate(ressource, null)
     }
 
     /** Mesure une vue à la largeur donnée (densité 1 : px = dp) et rend la hauteur. */
-    private fun mesurer(
-        vue: View,
-        largeurPx: Int = LARGEUR_VOLET,
-    ): Int {
+    private fun mesurer(vue: View, largeurPx: Int = LARGEUR_VOLET): Int {
         val largeur = View.MeasureSpec.makeMeasureSpec(largeurPx, View.MeasureSpec.EXACTLY)
         val hauteur = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         vue.measure(largeur, hauteur)
@@ -312,11 +306,7 @@ public class CotesMaquetteTest {
     }
 
     /** La cote mesurée doit égaler celle de la maquette, à UN dp près. */
-    private fun verifierCote(
-        cle: String,
-        mesuree: Int,
-        tolerance: Double = TOLERANCE_DP,
-    ) {
+    private fun verifierCote(cle: String, mesuree: Int, tolerance: Double = TOLERANCE_DP) {
         val attendue = mesures.getJSONObject(cle).getJSONArray("rect").getDouble(1)
         assertTrue(
             "cote $cle : mesurée $mesuree dp, attendue $attendue dp (±$tolerance)",
@@ -338,12 +328,8 @@ public class CotesMaquetteTest {
     /** L'inflateur Material, avec l'accès public à la création de vues
      * (la surcharge courte est protégée dans AppCompatViewInflater). */
     private class InflateurMaterial : MaterialComponentsViewInflater() {
-        public fun creer(
-            parent: View?,
-            nom: String,
-            ctx: Context,
-            attrs: android.util.AttributeSet,
-        ): View? = createView(parent, nom, ctx, attrs, parent != null, true, true, true)
+        public fun creer(parent: View?, nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+            createView(parent, nom, ctx, attrs, parent != null, true, true, true)
     }
 
     private companion object {

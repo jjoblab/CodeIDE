@@ -23,10 +23,7 @@ public object NomsCopies {
      * sinon le premier « nom (copie) » / « nom (copie N) » disponible
      * (insensible à la casse).
      */
-    public fun prochain(
-        nom: String,
-        existants: Collection<String>,
-    ): String {
+    public fun prochain(nom: String, existants: Collection<String>): String {
         val occupes = existants.mapTo(HashSet()) { it.lowercase() }
         if (nom.lowercase() !in occupes) return nom
         var rang = 1
@@ -97,72 +94,66 @@ public class ArbreMemoire(
  * ADR 0027) : la restauration réinsère les enfants dans le même ordre.
  */
 public class LireArbreUseCase
-    @Inject
-    constructor() {
-        /** Lit [uri] et tout son contenu via [fichiers] ; échoue si le
-         * document disparaît en cours de lecture. */
-        public suspend operator fun invoke(
-            fichiers: FileSystem,
-            uri: String,
-        ): AppResult<ArbreMemoire> {
-            val statut =
-                when (val resultat = fichiers.stat(uri)) {
-                    is AppResult.Success -> resultat.value
-                    is AppResult.Failure -> return resultat
+@Inject
+constructor() {
+    /** Lit [uri] et tout son contenu via [fichiers] ; échoue si le
+     * document disparaît en cours de lecture. */
+    public suspend operator fun invoke(fichiers: FileSystem, uri: String): AppResult<ArbreMemoire> {
+        val statut =
+            when (val resultat = fichiers.stat(uri)) {
+                is AppResult.Success -> resultat.value
+                is AppResult.Failure -> return resultat
+            }
+        return if (statut.isDirectory) {
+            when (val enfants = enfantsTries(fichiers, uri)) {
+                is AppResult.Success -> {
+                    AppResult.Success(
+                        ArbreMemoire(nom = statut.name, estDossier = true, octets = null, enfants = enfants.value),
+                    )
                 }
-            return if (statut.isDirectory) {
-                when (val enfants = enfantsTries(fichiers, uri)) {
-                    is AppResult.Success -> {
-                        AppResult.Success(
-                            ArbreMemoire(nom = statut.name, estDossier = true, octets = null, enfants = enfants.value),
-                        )
-                    }
 
-                    is AppResult.Failure -> {
-                        enfants
-                    }
-                }
-            } else {
-                when (val lecture = fichiers.readBytes(uri)) {
-                    is AppResult.Success -> {
-                        AppResult.Success(ArbreMemoire(nom = statut.name, estDossier = false, octets = lecture.value))
-                    }
-
-                    is AppResult.Failure -> {
-                        lecture
-                    }
+                is AppResult.Failure -> {
+                    enfants
                 }
             }
-        }
-
-        /** Enfants d'un dossier dans l'ordre ADR 0027 (dossiers, puis nom). */
-        private suspend fun enfantsTries(
-            fichiers: FileSystem,
-            uriDossier: String,
-        ): AppResult<List<ArbreMemoire>> {
-            val liste =
-                when (val resultat = fichiers.list(uriDossier)) {
-                    is AppResult.Success -> resultat.value
-                    is AppResult.Failure -> return resultat
+        } else {
+            when (val lecture = fichiers.readBytes(uri)) {
+                is AppResult.Success -> {
+                    AppResult.Success(ArbreMemoire(nom = statut.name, estDossier = false, octets = lecture.value))
                 }
-            val tries = liste.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
-            val instantanes = ArrayList<ArbreMemoire>(tries.size)
-            var echec: AppResult.Failure? = null
-            for (enfant in tries) {
-                when (val instantane = this(fichiers, enfant.uri)) {
-                    is AppResult.Success -> {
-                        instantanes += instantane.value
-                    }
 
-                    is AppResult.Failure -> {
-                        echec = instantane
-                        break
-                    }
+                is AppResult.Failure -> {
+                    lecture
                 }
             }
-            return echec ?: AppResult.Success(instantanes)
         }
     }
+
+    /** Enfants d'un dossier dans l'ordre ADR 0027 (dossiers, puis nom). */
+    private suspend fun enfantsTries(fichiers: FileSystem, uriDossier: String): AppResult<List<ArbreMemoire>> {
+        val liste =
+            when (val resultat = fichiers.list(uriDossier)) {
+                is AppResult.Success -> resultat.value
+                is AppResult.Failure -> return resultat
+            }
+        val tries = liste.sortedWith(compareBy({ !it.isDirectory }, { it.name.lowercase() }))
+        val instantanes = ArrayList<ArbreMemoire>(tries.size)
+        var echec: AppResult.Failure? = null
+        for (enfant in tries) {
+            when (val instantane = this(fichiers, enfant.uri)) {
+                is AppResult.Success -> {
+                    instantanes += instantane.value
+                }
+
+                is AppResult.Failure -> {
+                    echec = instantane
+                    break
+                }
+            }
+        }
+        return echec ?: AppResult.Success(instantanes)
+    }
+}
 
 /**
  * Restaure un [ArbreMemoire] dans un dossier parent — l'action
@@ -171,75 +162,71 @@ public class LireArbreUseCase
  * depuis), contenu et récursivité compris.
  */
 public class RestaurerArbreUseCase
-    @Inject
-    constructor() {
-        /**
-         * Recrée [arbre] dans [uriDossierParent] via [fichiers] ; retourne
-         * l'URI du document restauré (suffixée si un homonyme est apparu).
-         */
-        public suspend operator fun invoke(
-            fichiers: FileSystem,
-            uriDossierParent: String,
-            arbre: ArbreMemoire,
-        ): AppResult<String> {
-            val nomVoulu = nomDisponible(fichiers, arbre.nom, uriDossierParent)
-            return if (arbre.estDossier) {
-                restaurerDossier(fichiers, uriDossierParent, nomVoulu, arbre.enfants)
-            } else {
-                restaurerFichier(fichiers, uriDossierParent, nomVoulu, arbre)
-            }
-        }
-
-        /** Nom garanti sans collision dans le parent (§ 11). */
-        private suspend fun nomDisponible(
-            fichiers: FileSystem,
-            nom: String,
-            uriDossierParent: String,
-        ): String =
-            when (val existants = fichiers.list(uriDossierParent)) {
-                is AppResult.Success -> NomsCopies.prochain(nom, existants.value.map { it.name })
-                is AppResult.Failure -> nom
-            }
-
-        /** Recrée un dossier puis ses enfants, un par un. */
-        private suspend fun restaurerDossier(
-            fichiers: FileSystem,
-            uriDossierParent: String,
-            nomVoulu: String,
-            enfants: List<ArbreMemoire>,
-        ): AppResult<String> {
-            val dossier = fichiers.createDirectory(uriDossierParent, nomVoulu)
-            if (dossier is AppResult.Failure) return dossier
-            var echec: AppResult.Failure? = null
-            for (enfant in enfants) {
-                val restauration = this(fichiers, (dossier as AppResult.Success).value, enfant)
-                if (restauration is AppResult.Failure) {
-                    echec = restauration
-                    break
-                }
-            }
-            return echec ?: AppResult.Success((dossier as AppResult.Success).value)
-        }
-
-        /** Recrée un fichier et son contenu. */
-        private suspend fun restaurerFichier(
-            fichiers: FileSystem,
-            uriDossierParent: String,
-            nomVoulu: String,
-            arbre: ArbreMemoire,
-        ): AppResult<String> {
-            val creation = fichiers.createFile(uriDossierParent, nomVoulu, mimeFichierTexte(arbre.nom))
-            if (creation is AppResult.Failure) return creation
-            val ecriture = fichiers.writeBytes((creation as AppResult.Success).value, arbre.octets ?: ByteArray(0))
-            return if (ecriture is AppResult.Failure) {
-                ecriture
-            } else {
-                AppResult.Success(
-                    (creation as AppResult.Success).value,
-                )
-            }
+@Inject
+constructor() {
+    /**
+     * Recrée [arbre] dans [uriDossierParent] via [fichiers] ; retourne
+     * l'URI du document restauré (suffixée si un homonyme est apparu).
+     */
+    public suspend operator fun invoke(
+        fichiers: FileSystem,
+        uriDossierParent: String,
+        arbre: ArbreMemoire,
+    ): AppResult<String> {
+        val nomVoulu = nomDisponible(fichiers, arbre.nom, uriDossierParent)
+        return if (arbre.estDossier) {
+            restaurerDossier(fichiers, uriDossierParent, nomVoulu, arbre.enfants)
+        } else {
+            restaurerFichier(fichiers, uriDossierParent, nomVoulu, arbre)
         }
     }
+
+    /** Nom garanti sans collision dans le parent (§ 11). */
+    private suspend fun nomDisponible(fichiers: FileSystem, nom: String, uriDossierParent: String): String =
+        when (val existants = fichiers.list(uriDossierParent)) {
+            is AppResult.Success -> NomsCopies.prochain(nom, existants.value.map { it.name })
+            is AppResult.Failure -> nom
+        }
+
+    /** Recrée un dossier puis ses enfants, un par un. */
+    private suspend fun restaurerDossier(
+        fichiers: FileSystem,
+        uriDossierParent: String,
+        nomVoulu: String,
+        enfants: List<ArbreMemoire>,
+    ): AppResult<String> {
+        val dossier = fichiers.createDirectory(uriDossierParent, nomVoulu)
+        if (dossier is AppResult.Failure) return dossier
+        var echec: AppResult.Failure? = null
+        for (enfant in enfants) {
+            val restauration = this(fichiers, (dossier as AppResult.Success).value, enfant)
+            if (restauration is AppResult.Failure) {
+                echec = restauration
+                break
+            }
+        }
+        return echec ?: AppResult.Success((dossier as AppResult.Success).value)
+    }
+
+    /** Recrée un fichier et son contenu. */
+    private suspend fun restaurerFichier(
+        fichiers: FileSystem,
+        uriDossierParent: String,
+        nomVoulu: String,
+        arbre: ArbreMemoire,
+    ): AppResult<String> {
+        val creation = fichiers.createFile(uriDossierParent, nomVoulu, mimeFichierTexte(arbre.nom))
+        if (creation is AppResult.Failure) return creation
+        val ecriture = fichiers.writeBytes((creation as AppResult.Success).value, arbre.octets ?: ByteArray(0))
+        return if (ecriture is AppResult.Failure) {
+            ecriture
+        } else {
+            AppResult.Success(
+                (creation as AppResult.Success).value,
+            )
+        }
+    }
+}
 
 /**
  * Copie un document (fichier ou dossier entier) dans un dossier cible
@@ -248,97 +235,89 @@ public class RestaurerArbreUseCase
  * dans la cible, la récursion suit le même tri que l'explorateur.
  */
 public class CopierArbreUseCase
-    @Inject
-    constructor() {
-        /**
-         * Copie [uriSource] dans [uriDossierCible] via [fichiers] (projet SAF
-         * ou privé — le port est fourni par l'appelant) ; retourne l'URI de
-         * la copie. Le nom prend le suffixe anti-collision de [NomsCopies] si
-         * un homonyme existe déjà dans la cible, la récursion suit le même
-         * tri que l'explorateur.
-         */
-        public suspend operator fun invoke(
-            fichiers: FileSystem,
-            uriSource: String,
-            uriDossierCible: String,
-        ): AppResult<String> {
-            val statut =
-                when (val resultat = fichiers.stat(uriSource)) {
-                    is AppResult.Success -> resultat.value
-                    is AppResult.Failure -> return resultat
-                }
-            val nomVoulu = nomDisponible(fichiers, statut.name, uriDossierCible)
-            return if (statut.isDirectory) {
-                copierDossier(fichiers, uriSource, uriDossierCible, nomVoulu)
-            } else {
-                copierFichier(fichiers, uriSource, uriDossierCible, nomVoulu, statut.name)
+@Inject
+constructor() {
+    /**
+     * Copie [uriSource] dans [uriDossierCible] via [fichiers] (projet SAF
+     * ou privé — le port est fourni par l'appelant) ; retourne l'URI de
+     * la copie. Le nom prend le suffixe anti-collision de [NomsCopies] si
+     * un homonyme existe déjà dans la cible, la récursion suit le même
+     * tri que l'explorateur.
+     */
+    public suspend operator fun invoke(
+        fichiers: FileSystem,
+        uriSource: String,
+        uriDossierCible: String,
+    ): AppResult<String> {
+        val statut =
+            when (val resultat = fichiers.stat(uriSource)) {
+                is AppResult.Success -> resultat.value
+                is AppResult.Failure -> return resultat
             }
+        val nomVoulu = nomDisponible(fichiers, statut.name, uriDossierCible)
+        return if (statut.isDirectory) {
+            copierDossier(fichiers, uriSource, uriDossierCible, nomVoulu)
+        } else {
+            copierFichier(fichiers, uriSource, uriDossierCible, nomVoulu, statut.name)
         }
-
-        /** Nom garanti sans collision dans la cible (§ 11) — le nom brut
-         *  si l'énumération de la cible échoue (la création tranchera). */
-        private suspend fun nomDisponible(
-            fichiers: FileSystem,
-            nom: String,
-            uriDossierCible: String,
-        ): String =
-            when (val existants = fichiers.list(uriDossierCible)) {
-                is AppResult.Success -> NomsCopies.prochain(nom, existants.value.map { it.name })
-                is AppResult.Failure -> nom
-            }
-
-        /** Copie un dossier : création puis récursion sur les enfants triés. */
-        private suspend fun copierDossier(
-            fichiers: FileSystem,
-            uriSource: String,
-            uriDossierCible: String,
-            nomVoulu: String,
-        ): AppResult<String> {
-            val dossier = fichiers.createDirectory(uriDossierCible, nomVoulu)
-            val enfants =
-                when (val resultat = fichiers.list(uriSource)) {
-                    is AppResult.Success -> resultat.value
-                    is AppResult.Failure -> return resultat
-                }
-            var echec: AppResult.Failure? = (dossier as? AppResult.Failure)
-            if (echec == null) {
-                val cible = (dossier as AppResult.Success).value
-                for (enfant in enfants.sortedBy { it.name }) {
-                    val copie = this(fichiers, enfant.uri, cible)
-                    if (copie is AppResult.Failure) {
-                        echec = copie
-                        break
-                    }
-                }
-            }
-            return echec ?: AppResult.Success((dossier as AppResult.Success).value)
-        }
-
-        /** Copie un fichier : création puis octets. */
-        private suspend fun copierFichier(
-            fichiers: FileSystem,
-            uriSource: String,
-            uriDossierCible: String,
-            nomVoulu: String,
-            nomOriginal: String,
-        ): AppResult<String> {
-            val creation = fichiers.createFile(uriDossierCible, nomVoulu, mimeFichierTexte(nomOriginal))
-            if (creation is AppResult.Failure) return creation
-            val copie = copierOctets(fichiers, uriSource, (creation as AppResult.Success).value)
-            return if (copie is AppResult.Failure) copie else AppResult.Success((creation as AppResult.Success).value)
-        }
-
-        /** Lit la source puis écrit la copie (fichier seul). */
-        private suspend fun copierOctets(
-            fichiers: FileSystem,
-            uriSource: String,
-            uriCopie: String,
-        ): AppResult<Unit> =
-            when (val lecture = fichiers.readBytes(uriSource)) {
-                is AppResult.Success -> fichiers.writeBytes(uriCopie, lecture.value)
-                is AppResult.Failure -> lecture
-            }
     }
+
+    /** Nom garanti sans collision dans la cible (§ 11) — le nom brut
+     *  si l'énumération de la cible échoue (la création tranchera). */
+    private suspend fun nomDisponible(fichiers: FileSystem, nom: String, uriDossierCible: String): String =
+        when (val existants = fichiers.list(uriDossierCible)) {
+            is AppResult.Success -> NomsCopies.prochain(nom, existants.value.map { it.name })
+            is AppResult.Failure -> nom
+        }
+
+    /** Copie un dossier : création puis récursion sur les enfants triés. */
+    private suspend fun copierDossier(
+        fichiers: FileSystem,
+        uriSource: String,
+        uriDossierCible: String,
+        nomVoulu: String,
+    ): AppResult<String> {
+        val dossier = fichiers.createDirectory(uriDossierCible, nomVoulu)
+        val enfants =
+            when (val resultat = fichiers.list(uriSource)) {
+                is AppResult.Success -> resultat.value
+                is AppResult.Failure -> return resultat
+            }
+        var echec: AppResult.Failure? = (dossier as? AppResult.Failure)
+        if (echec == null) {
+            val cible = (dossier as AppResult.Success).value
+            for (enfant in enfants.sortedBy { it.name }) {
+                val copie = this(fichiers, enfant.uri, cible)
+                if (copie is AppResult.Failure) {
+                    echec = copie
+                    break
+                }
+            }
+        }
+        return echec ?: AppResult.Success((dossier as AppResult.Success).value)
+    }
+
+    /** Copie un fichier : création puis octets. */
+    private suspend fun copierFichier(
+        fichiers: FileSystem,
+        uriSource: String,
+        uriDossierCible: String,
+        nomVoulu: String,
+        nomOriginal: String,
+    ): AppResult<String> {
+        val creation = fichiers.createFile(uriDossierCible, nomVoulu, mimeFichierTexte(nomOriginal))
+        if (creation is AppResult.Failure) return creation
+        val copie = copierOctets(fichiers, uriSource, (creation as AppResult.Success).value)
+        return if (copie is AppResult.Failure) copie else AppResult.Success((creation as AppResult.Success).value)
+    }
+
+    /** Lit la source puis écrit la copie (fichier seul). */
+    private suspend fun copierOctets(fichiers: FileSystem, uriSource: String, uriCopie: String): AppResult<Unit> =
+        when (val lecture = fichiers.readBytes(uriSource)) {
+            is AppResult.Success -> fichiers.writeBytes(uriCopie, lecture.value)
+            is AppResult.Failure -> lecture
+        }
+}
 
 /**
  * Déplace un document (fichier ou dossier entier) vers un dossier
@@ -349,40 +328,40 @@ public class CopierArbreUseCase
  * est le chemin robuste multi-fournisseurs.
  */
 public class DeplacerArbreUseCase
-    @Inject
-    constructor() {
-        /**
-         * Déplace [uriSource] dans [uriDossierCible] via [fichiers] ; retourne
-         * l'URI du document à sa nouvelle place. La suppression de la source
-         * n'a lieu qu'après une copie complète réussie (jamais de perte).
-         */
-        public suspend operator fun invoke(
-            fichiers: FileSystem,
-            uriSource: String,
-            uriDossierCible: String,
-        ): AppResult<String> {
-            val copieur = CopierArbreUseCase()
-            return when (val copie = copieur(fichiers, uriSource, uriDossierCible)) {
-                is AppResult.Success -> {
-                    when (fichiers.delete(uriSource)) {
-                        is AppResult.Success -> {
-                            AppResult.Success(copie.value)
-                        }
+@Inject
+constructor() {
+    /**
+     * Déplace [uriSource] dans [uriDossierCible] via [fichiers] ; retourne
+     * l'URI du document à sa nouvelle place. La suppression de la source
+     * n'a lieu qu'après une copie complète réussie (jamais de perte).
+     */
+    public suspend operator fun invoke(
+        fichiers: FileSystem,
+        uriSource: String,
+        uriDossierCible: String,
+    ): AppResult<String> {
+        val copieur = CopierArbreUseCase()
+        return when (val copie = copieur(fichiers, uriSource, uriDossierCible)) {
+            is AppResult.Success -> {
+                when (fichiers.delete(uriSource)) {
+                    is AppResult.Success -> {
+                        AppResult.Success(copie.value)
+                    }
 
-                        is AppResult.Failure -> {
-                            AppResult.Failure(
-                                AppError.Storage(
-                                    reason = AppError.StorageReason.Io,
-                                    details = "la copie a réussi mais la source n'a pas été supprimée",
-                                ),
-                            )
-                        }
+                    is AppResult.Failure -> {
+                        AppResult.Failure(
+                            AppError.Storage(
+                                reason = AppError.StorageReason.Io,
+                                details = "la copie a réussi mais la source n'a pas été supprimée",
+                            ),
+                        )
                     }
                 }
+            }
 
-                is AppResult.Failure -> {
-                    copie
-                }
+            is AppResult.Failure -> {
+                copie
             }
         }
     }
+}

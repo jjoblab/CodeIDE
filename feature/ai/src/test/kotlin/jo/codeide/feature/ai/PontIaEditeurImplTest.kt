@@ -42,119 +42,105 @@ class PontIaEditeurImplTest {
     }
 
     @Test
-    fun `la consigne de la barre part avec envoi immédiat`() =
-        runTest {
-            pont.envoyerConsigne("Explique ce code")
-            val signal = canal.signal.value
-            assertTrue(signal is SignalIaExterne.Consigne)
-            val consigne = signal as SignalIaExterne.Consigne
-            assertEquals("Explique ce code", consigne.texte)
-            assertTrue(consigne.envoiImmediat)
-        }
+    fun `la consigne de la barre part avec envoi immédiat`() = runTest {
+        pont.envoyerConsigne("Explique ce code")
+        val signal = canal.signal.value
+        assertTrue(signal is SignalIaExterne.Consigne)
+        val consigne = signal as SignalIaExterne.Consigne
+        assertEquals("Explique ce code", consigne.texte)
+        assertTrue(consigne.envoiImmediat)
+    }
 
     @Test
-    fun `une consigne vide ne publie rien`() =
-        runTest {
-            pont.envoyerConsigne("   ")
-            assertNull(canal.signal.value)
-        }
+    fun `une consigne vide ne publie rien`() = runTest {
+        pont.envoyerConsigne("   ")
+        assertNull(canal.signal.value)
+    }
 
     @Test
-    fun `expliquer publie un pré-remplissage borné, jamais auto-envoyé`() =
-        runTest {
-            val sortie = (1..400).joinToString("\n") { "ligne $it" }
-            pont.expliquer(sortie)
-            val signal = canal.signal.value as SignalIaExterne.Consigne
-            assertTrue(!signal.envoiImmediat)
-            assertTrue(signal.texte.contains("ligne 400"))
-            assertTrue(!signal.texte.contains("ligne 150\n"))
-        }
+    fun `expliquer publie un pré-remplissage borné, jamais auto-envoyé`() = runTest {
+        val sortie = (1..400).joinToString("\n") { "ligne $it" }
+        pont.expliquer(sortie)
+        val signal = canal.signal.value as SignalIaExterne.Consigne
+        assertTrue(!signal.envoiImmediat)
+        assertTrue(signal.texte.contains("ligne 400"))
+        assertTrue(!signal.texte.contains("ligne 150\n"))
+    }
 
     @Test
-    fun `une sortie vide ne publie rien`() =
-        runTest {
-            pont.expliquer("  \n  ")
-            assertNull(canal.signal.value)
-        }
+    fun `une sortie vide ne publie rien`() = runTest {
+        pont.expliquer("  \n  ")
+        assertNull(canal.signal.value)
+    }
 
     @Test
-    fun `sans port d'éditeur, corrigerDiagnostic ne publie rien`() =
-        runTest {
-            pont.corrigerDiagnostic("src/Main.kt", "javac:12:5")
-            assertNull(canal.signal.value)
-        }
+    fun `sans port d'éditeur, corrigerDiagnostic ne publie rien`() = runTest {
+        pont.corrigerDiagnostic("src/Main.kt", "javac:12:5")
+        assertNull(canal.signal.value)
+    }
 
     @Test
-    fun `le diagnostic est retrouvé par identifiant et pré-remplit sans envoyer`() =
-        runTest {
-            registre.enregistrer(
-                object : jo.codeide.core.domain.PortEditeurActif {
-                    override val cheminRelatifFichier: String = "src/Main.kt"
+    fun `le diagnostic est retrouvé par identifiant et pré-remplit sans envoyer`() = runTest {
+        registre.enregistrer(
+            object : jo.codeide.core.domain.PortEditeurActif {
+                override val cheminRelatifFichier: String = "src/Main.kt"
 
-                    override val selection: jo.codeide.core.domain.SelectionEditeur? = null
+                override val selection: jo.codeide.core.domain.SelectionEditeur? = null
 
-                    override val diagnostics: List<DiagnosticEditeur> =
-                        listOf(
-                            DiagnosticEditeur(
-                                identifiant = "javac:12:5",
-                                gravite = GraviteDiagnostic.ERREUR,
-                                cheminRelatif = "src/Main.kt",
-                                ligne = 12,
-                                colonne = 5,
-                                message = "';' attendu",
-                            ),
-                        )
+                override val diagnostics: List<DiagnosticEditeur> =
+                    listOf(
+                        DiagnosticEditeur(
+                            identifiant = "javac:12:5",
+                            gravite = GraviteDiagnostic.ERREUR,
+                            cheminRelatif = "src/Main.kt",
+                            ligne = 12,
+                            colonne = 5,
+                            message = "';' attendu",
+                        ),
+                    )
 
-                    override fun revision(): Long = 1L
+                override fun revision(): Long = 1L
 
-                    override fun appliquerRemplacement(
-                        debut: Int,
-                        fin: Int,
-                        texte: String,
-                    ) = jo.codeide.core.model.AppResult
+                override fun appliquerRemplacement(debut: Int, fin: Int, texte: String) =
+                    jo.codeide.core.model.AppResult
                         .Success(Unit)
-                },
-            )
+            },
+        )
 
-            pont.corrigerDiagnostic("src/Main.kt", "javac:12:5")
+        pont.corrigerDiagnostic("src/Main.kt", "javac:12:5")
 
-            val signal = canal.signal.value as SignalIaExterne.Consigne
-            assertTrue(!signal.envoiImmediat)
-            assertTrue(signal.texte.contains("src/Main.kt"))
-            assertTrue(signal.texte.contains("';' attendu"))
-        }
+        val signal = canal.signal.value as SignalIaExterne.Consigne
+        assertTrue(!signal.envoiImmediat)
+        assertTrue(signal.texte.contains("src/Main.kt"))
+        assertTrue(signal.texte.contains("';' attendu"))
+    }
 
     @Test
-    fun `un diagnostic inconnu ne publie rien`() =
-        runTest {
-            registre.enregistrer(
-                object : jo.codeide.core.domain.PortEditeurActif {
-                    override val cheminRelatifFichier: String = "src/Main.kt"
+    fun `un diagnostic inconnu ne publie rien`() = runTest {
+        registre.enregistrer(
+            object : jo.codeide.core.domain.PortEditeurActif {
+                override val cheminRelatifFichier: String = "src/Main.kt"
 
-                    override val selection: jo.codeide.core.domain.SelectionEditeur? = null
+                override val selection: jo.codeide.core.domain.SelectionEditeur? = null
 
-                    override val diagnostics: List<DiagnosticEditeur> = emptyList()
+                override val diagnostics: List<DiagnosticEditeur> = emptyList()
 
-                    override fun revision(): Long = 1L
+                override fun revision(): Long = 1L
 
-                    override fun appliquerRemplacement(
-                        debut: Int,
-                        fin: Int,
-                        texte: String,
-                    ) = jo.codeide.core.model.AppResult
+                override fun appliquerRemplacement(debut: Int, fin: Int, texte: String) =
+                    jo.codeide.core.model.AppResult
                         .Success(Unit)
-                },
-            )
+            },
+        )
 
-            pont.corrigerDiagnostic("src/Main.kt", "javac:99:1")
+        pont.corrigerDiagnostic("src/Main.kt", "javac:99:1")
 
-            assertNull(canal.signal.value)
-        }
+        assertNull(canal.signal.value)
+    }
 
     @Test
-    fun `réessayer publie le signal de régénération`() =
-        runTest {
-            pont.reessayer()
-            assertTrue(canal.signal.value is SignalIaExterne.Regenerer)
-        }
+    fun `réessayer publie le signal de régénération`() = runTest {
+        pont.reessayer()
+        assertTrue(canal.signal.value is SignalIaExterne.Regenerer)
+    }
 }

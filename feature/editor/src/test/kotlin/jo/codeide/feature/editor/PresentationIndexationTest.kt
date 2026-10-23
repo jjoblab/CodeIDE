@@ -123,11 +123,11 @@ class PresentationIndexationTest {
                 avertissements = emptyList(),
                 erreurs = emptyList(),
                 listeTravail =
-                    listOf(
-                        EntreeTravailIndexation("androidx.core 1.19.0", EtatEntreeTravailIndexation.REPRIS),
-                        EntreeTravailIndexation("material 1.14.0", EtatEntreeTravailIndexation.ACTIF),
-                        EntreeTravailIndexation("okio 3.9.0", EtatEntreeTravailIndexation.EN_ATTENTE),
-                    ),
+                listOf(
+                    EntreeTravailIndexation("androidx.core 1.19.0", EtatEntreeTravailIndexation.REPRIS),
+                    EntreeTravailIndexation("material 1.14.0", EtatEntreeTravailIndexation.ACTIF),
+                    EntreeTravailIndexation("okio 3.9.0", EtatEntreeTravailIndexation.EN_ATTENTE),
+                ),
             )
         val modele = PresentationIndexation.afficher(etat)
         assertNotNull(modele.panneau.listeTravail)

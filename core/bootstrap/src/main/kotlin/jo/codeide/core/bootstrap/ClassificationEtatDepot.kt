@@ -59,50 +59,49 @@ internal object ClassificationEtatDepot {
     private const val MARQUEUR_PAS_DE_DEPOT = "not a git repository"
 
     /** Classe une exécution brute en [EtatDepot]. */
-    internal fun classer(execution: ExecutionGitBrute): EtatDepot =
-        when {
-            execution.causeLancement == CauseLancementGit.BINAIRE_ABSENT -> {
-                EtatDepot.Inaccessible(
-                    RaisonDepotInaccessible.BINAIRE_ABSENT,
-                    codeSortie = null,
-                    stderrExpurge = "",
-                )
-            }
-
-            execution.code == null -> {
-                EtatDepot.Inaccessible(
-                    RaisonDepotInaccessible.LANCEMENT_IMPOSSIBLE,
-                    codeSortie = null,
-                    stderrExpurge = execution.messageEchec ?: "",
-                )
-            }
-
-            execution.code == 0 && execution.stdout.trim() == "true" -> {
-                EtatDepot.Depot
-            }
-
-            execution.code == 0 && execution.stdout.trim() == "false" -> {
-                EtatDepot.PasUnDepot
-            }
-
-            execution.stderr.contains(MARQUEUR_PAS_DE_DEPOT, ignoreCase = true) -> {
-                EtatDepot.PasUnDepot
-            }
-
-            execution.code == 0 -> {
-                EtatDepot.Inaccessible(
-                    RaisonDepotInaccessible.STDOUT_INATTENDU,
-                    codeSortie = 0,
-                    stderrExpurge = execution.stderr,
-                )
-            }
-
-            else -> {
-                EtatDepot.Inaccessible(
-                    RaisonDepotInaccessible.REFUS_GIT,
-                    codeSortie = execution.code,
-                    stderrExpurge = execution.stderr,
-                )
-            }
+    internal fun classer(execution: ExecutionGitBrute): EtatDepot = when {
+        execution.causeLancement == CauseLancementGit.BINAIRE_ABSENT -> {
+            EtatDepot.Inaccessible(
+                RaisonDepotInaccessible.BINAIRE_ABSENT,
+                codeSortie = null,
+                stderrExpurge = "",
+            )
         }
+
+        execution.code == null -> {
+            EtatDepot.Inaccessible(
+                RaisonDepotInaccessible.LANCEMENT_IMPOSSIBLE,
+                codeSortie = null,
+                stderrExpurge = execution.messageEchec ?: "",
+            )
+        }
+
+        execution.code == 0 && execution.stdout.trim() == "true" -> {
+            EtatDepot.Depot
+        }
+
+        execution.code == 0 && execution.stdout.trim() == "false" -> {
+            EtatDepot.PasUnDepot
+        }
+
+        execution.stderr.contains(MARQUEUR_PAS_DE_DEPOT, ignoreCase = true) -> {
+            EtatDepot.PasUnDepot
+        }
+
+        execution.code == 0 -> {
+            EtatDepot.Inaccessible(
+                RaisonDepotInaccessible.STDOUT_INATTENDU,
+                codeSortie = 0,
+                stderrExpurge = execution.stderr,
+            )
+        }
+
+        else -> {
+            EtatDepot.Inaccessible(
+                RaisonDepotInaccessible.REFUS_GIT,
+                codeSortie = execution.code,
+                stderrExpurge = execution.stderr,
+            )
+        }
+    }
 }

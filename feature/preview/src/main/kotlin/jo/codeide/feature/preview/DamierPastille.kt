@@ -32,9 +32,7 @@ import androidx.core.graphics.withClip
  * Clippé au RAYON de la pastille (miroir `border-radius: 8px` de
  * `.sw2` : le damier ne sort pas des coins arrondis).
  */
-internal class DamierPastille(
-    resources: Resources,
-) : Drawable() {
+internal class DamierPastille(resources: Resources) : Drawable() {
     /** La tuile en pixels écran (`apercu_damier_pastille` — 10 dp). */
     private val cote: Int = resources.getDimensionPixelSize(R.dimen.apercu_damier_pastille)
 

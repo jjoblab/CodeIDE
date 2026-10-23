@@ -12,10 +12,7 @@ import jo.codeide.feature.newproject.databinding.ItemModeleBinding
 import java.text.Normalizer
 
 /** Modèle prêt à afficher, avec son état de sélection (étape 1). */
-data class ModeleAffiche(
-    val modele: TemplateSummaryUi,
-    val selectionne: Boolean,
-)
+data class ModeleAffiche(val modele: TemplateSummaryUi, val selectionne: Boolean)
 
 /**
  * Adaptateur de la grille de modèles (étape 1, section 12.3) : cartes
@@ -26,9 +23,8 @@ data class ModeleAffiche(
  * La recherche filtre sur le nom, la description et les tags, sans casse
  * ni accents (même normalisation NFD que l'accueil, étape 7).
  */
-class ModelesAdapter(
-    private val choix: (TemplateId) -> Unit,
-) : ListAdapter<ModeleAffiche, ModelesAdapter.Contenant>(Ecart) {
+class ModelesAdapter(private val choix: (TemplateId) -> Unit) :
+    ListAdapter<ModeleAffiche, ModelesAdapter.Contenant>(Ecart) {
     /** Requête de recherche courante (vide = tout). */
     private var requete = ""
 
@@ -36,10 +32,7 @@ class ModelesAdapter(
     private var selection: TemplateId? = null
 
     /** Soumet le catalogue et la sélection courante. */
-    fun soumettre(
-        modeles: List<TemplateSummaryUi>,
-        selection: TemplateId?,
-    ) {
+    fun soumettre(modeles: List<TemplateSummaryUi>, selection: TemplateId?) {
         this.selection = selection
         submitList(modeles.map { ModeleAffiche(it, it.id == selection) })
     }
@@ -65,58 +58,43 @@ class ModelesAdapter(
     }
 
     /** Texte de recherche d'un modèle (nom + description + tags). */
-    private fun modeleTexte(modele: TemplateSummaryUi): String =
-        sansAccents(
-            buildString {
-                append(modele.nom)
+    private fun modeleTexte(modele: TemplateSummaryUi): String = sansAccents(
+        buildString {
+            append(modele.nom)
+            append(' ')
+            append(modele.description)
+            append(' ')
+            modele.tags.forEach {
+                append(it)
                 append(' ')
-                append(modele.description)
-                append(' ')
-                modele.tags.forEach {
-                    append(it)
-                    append(' ')
-                }
-            },
-        )
+            }
+        },
+    )
 
     /** Normalise pour une recherche tolérante (casse et accents). */
-    private fun sansAccents(texte: String): String =
-        Normalizer
-            .normalize(texte, Normalizer.Form.NFD)
-            .replace(Regex("\\p{Mn}"), "")
-            .lowercase()
+    private fun sansAccents(texte: String): String = Normalizer
+        .normalize(texte, Normalizer.Form.NFD)
+        .replace(Regex("\\p{Mn}"), "")
+        .lowercase()
 
     /** Contenant d'une carte de modèle. */
-    class Contenant(
-        val liaison: ItemModeleBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    class Contenant(val liaison: ItemModeleBinding) : RecyclerView.ViewHolder(liaison.root)
 
     /** Écart structurel et visuel (la sélection compte). */
     private object Ecart : DiffUtil.ItemCallback<ModeleAffiche>() {
-        override fun areItemsTheSame(
-            ancien: ModeleAffiche,
-            nouveau: ModeleAffiche,
-        ): Boolean = ancien.modele.id == nouveau.modele.id
+        override fun areItemsTheSame(ancien: ModeleAffiche, nouveau: ModeleAffiche): Boolean =
+            ancien.modele.id == nouveau.modele.id
 
-        override fun areContentsTheSame(
-            ancien: ModeleAffiche,
-            nouveau: ModeleAffiche,
-        ): Boolean = ancien == nouveau
+        override fun areContentsTheSame(ancien: ModeleAffiche, nouveau: ModeleAffiche): Boolean = ancien == nouveau
     }
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Contenant {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Contenant {
         val liaison =
             ItemModeleBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return Contenant(liaison)
     }
 
-    override fun onBindViewHolder(
-        contenant: Contenant,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(contenant: Contenant, position: Int) {
         val affiche = getItem(position)
         val modele = affiche.modele
         val liaison = contenant.liaison

@@ -78,11 +78,7 @@ internal class ToolingService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int,
-    ): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Service foreground immédiat : Android exige startForeground
         // dans les cinq secondes qui suivent startForegroundService.
         rendreEtat(serviceGradle.etat.value)
@@ -161,28 +157,27 @@ internal class ToolingService : Service() {
      * `Rien` et le canal Taches (sélecteur sans notification propre)
      * passent toujours ; Sync et Build suivent leurs interrupteurs.
      */
-    private fun canalAutorise(decision: DecisionNotificationTooling): Boolean =
-        when (decision) {
-            DecisionNotificationTooling.Rien -> {
-                true
-            }
+    private fun canalAutorise(decision: DecisionNotificationTooling): Boolean = when (decision) {
+        DecisionNotificationTooling.Rien -> {
+            true
+        }
 
-            is DecisionNotificationTooling.EnCours -> {
-                when (decision.canal) {
-                    CanalTooling.SYNC -> reglages.notificationsSync
-                    CanalTooling.BUILD -> reglages.notificationsBuild
-                    CanalTooling.TACHES -> true
-                }
-            }
-
-            is DecisionNotificationTooling.Resultat -> {
-                when (decision.canal) {
-                    CanalTooling.SYNC -> reglages.notificationsSync
-                    CanalTooling.BUILD -> reglages.notificationsBuild
-                    CanalTooling.TACHES -> true
-                }
+        is DecisionNotificationTooling.EnCours -> {
+            when (decision.canal) {
+                CanalTooling.SYNC -> reglages.notificationsSync
+                CanalTooling.BUILD -> reglages.notificationsBuild
+                CanalTooling.TACHES -> true
             }
         }
+
+        is DecisionNotificationTooling.Resultat -> {
+            when (decision.canal) {
+                CanalTooling.SYNC -> reglages.notificationsSync
+                CanalTooling.BUILD -> reglages.notificationsBuild
+                CanalTooling.TACHES -> true
+            }
+        }
+    }
 
     /** Notification neutre : l'obligation de premier plan, sans détail. */
     private fun notificationNeutre(): Notification {
@@ -281,11 +276,7 @@ internal class ToolingService : Service() {
     }
 
     /** Notification honnête du tooling : un titre, un texte, un état. */
-    private fun notification(
-        texte: String,
-        enCours: Boolean,
-        canal: CanalTooling? = null,
-    ): Notification {
+    private fun notification(texte: String, enCours: Boolean, canal: CanalTooling? = null): Notification {
         val gestionnaire = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         gestionnaire.createNotificationChannel(
             NotificationChannel(
@@ -314,12 +305,11 @@ internal class ToolingService : Service() {
     private fun canalCourant(): String = if (reglages.sonNotifications) CANAL_SONORE else CANAL
 
     /** Importance du canal courant : sonore par défaut, basse sinon. */
-    private fun importanceDuCanal(): Int =
-        if (reglages.sonNotifications) {
-            NotificationManager.IMPORTANCE_DEFAULT
-        } else {
-            NotificationManager.IMPORTANCE_LOW
-        }
+    private fun importanceDuCanal(): Int = if (reglages.sonNotifications) {
+        NotificationManager.IMPORTANCE_DEFAULT
+    } else {
+        NotificationManager.IMPORTANCE_LOW
+    }
 
     /**
      * Ouvre l'app au toucher — le PROJET dont l'activité de [canal] est

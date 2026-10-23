@@ -15,9 +15,7 @@ import jo.codeide.core.model.AppError
  */
 public sealed interface AiEvent {
     /** Fragment de texte à afficher au fil de l'eau (concaténation = réponse). */
-    public data class TextDelta(
-        public val text: String,
-    ) : AiEvent
+    public data class TextDelta(public val text: String) : AiEvent
 
     /**
      * Le modèle commence un appel d'outil.
@@ -25,10 +23,7 @@ public sealed interface AiEvent {
      * @property toolCallId identifiant d'appel attribué par le modèle.
      * @property name nom de l'outil appelé (correspond à [ToolSpec.name]).
      */
-    public data class ToolCallStarted(
-        public val toolCallId: String,
-        public val name: String,
-    ) : AiEvent
+    public data class ToolCallStarted(public val toolCallId: String, public val name: String) : AiEvent
 
     /**
      * Fragment d'arguments JSON d'un appel d'outil en cours — les
@@ -39,10 +34,8 @@ public sealed interface AiEvent {
      * @property toolCallId identifiant d'appel concerné.
      * @property argumentsJsonFragment fragment de texte JSON à concaténer.
      */
-    public data class ToolCallArguments(
-        public val toolCallId: String,
-        public val argumentsJsonFragment: String,
-    ) : AiEvent
+    public data class ToolCallArguments(public val toolCallId: String, public val argumentsJsonFragment: String) :
+        AiEvent
 
     /**
      * Appel d'outil terminé : la concaténation des fragments est complète.
@@ -50,10 +43,7 @@ public sealed interface AiEvent {
      * @property toolCallId identifiant d'appel concerné.
      * @property argumentsJson arguments complets, objet JSON sérialisé.
      */
-    public data class ToolCallCompleted(
-        public val toolCallId: String,
-        public val argumentsJson: String,
-    ) : AiEvent
+    public data class ToolCallCompleted(public val toolCallId: String, public val argumentsJson: String) : AiEvent
 
     /**
      * Compteurs de jetons rapportés par le fournisseur, quand il les
@@ -63,21 +53,14 @@ public sealed interface AiEvent {
      * @property inputTokens jetons de la requête.
      * @property outputTokens jetons générés à l'instant du rapport.
      */
-    public data class Usage(
-        public val inputTokens: Long?,
-        public val outputTokens: Long?,
-    ) : AiEvent
+    public data class Usage(public val inputTokens: Long?, public val outputTokens: Long?) : AiEvent
 
     /** Le flux s'est terminé normalement. */
-    public data class Done(
-        public val stopReason: AiStopReason,
-    ) : AiEvent
+    public data class Done(public val stopReason: AiStopReason) : AiEvent
 
     /**
      * Le flux a échoué de manière modélisée — événement terminal, aucune
      * reprise silencieuse après un jeton reçu (ADR 0123 point 5).
      */
-    public data class Failure(
-        public val error: AppError,
-    ) : AiEvent
+    public data class Failure(public val error: AppError) : AiEvent
 }

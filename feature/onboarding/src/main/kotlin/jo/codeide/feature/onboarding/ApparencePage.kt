@@ -34,10 +34,7 @@ class ApparencePage : BaseFragment<PageApparenceBinding>() {
         attachToRoot: Boolean,
     ): PageApparenceBinding = PageApparenceBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.groupeTheme.setOnCheckedChangeListener { _, id ->
@@ -69,18 +66,16 @@ class ApparencePage : BaseFragment<PageApparenceBinding>() {
         }
     }
 
-    private fun modeDuTheme(id: Int): ThemeMode =
-        when (id) {
-            binding.radioThemeClair.id -> ThemeMode.LIGHT
-            binding.radioThemeSombre.id -> ThemeMode.DARK
-            else -> ThemeMode.SYSTEM
-        }
+    private fun modeDuTheme(id: Int): ThemeMode = when (id) {
+        binding.radioThemeClair.id -> ThemeMode.LIGHT
+        binding.radioThemeSombre.id -> ThemeMode.DARK
+        else -> ThemeMode.SYSTEM
+    }
 
     /** Tag BCP 47 du bouton coché, `""` pour suivre le système. */
-    private fun langueDeLId(id: Int): String =
-        when (id) {
-            binding.radioLangueFr.id -> "fr"
-            binding.radioLangueEn.id -> "en"
-            else -> ""
-        }
+    private fun langueDeLId(id: Int): String = when (id) {
+        binding.radioLangueFr.id -> "fr"
+        binding.radioLangueEn.id -> "en"
+        else -> ""
+    }
 }

@@ -51,9 +51,7 @@ internal class CrashReportInputs(
  *
  * @param timeProvider horloge injectée (horodatage déterministe en test).
  */
-internal class CrashReportFactory(
-    private val timeProvider: TimeProvider,
-) {
+internal class CrashReportFactory(private val timeProvider: TimeProvider) {
     /**
      * Construit le rapport d'une exception non interceptée.
      *
@@ -70,21 +68,20 @@ internal class CrashReportFactory(
         inputs: CrashReportInputs,
         processUptimeMs: Long,
         isCrashLoop: Boolean,
-    ): CrashReport =
-        CrashReport(
-            id = UUID.randomUUID().toString(),
-            type = CrashType.EXCEPTION,
-            timestampMillis = timeProvider.nowMillis(),
-            sessionId = inputs.sessionId(),
-            application = inputs.appInfo,
-            device = inputs.deviceInfo(),
-            threadName = threadName,
-            exception = aplatirEtEpurer(throwable),
-            breadcrumbs = inputs.breadcrumbs().takeLast(CrashLimits.MAX_BREADCRUMBS),
-            lastScreen = inputs.lastScreenTracker.current(),
-            processUptimeMs = processUptimeMs.coerceAtLeast(0),
-            isCrashLoop = isCrashLoop,
-        )
+    ): CrashReport = CrashReport(
+        id = UUID.randomUUID().toString(),
+        type = CrashType.EXCEPTION,
+        timestampMillis = timeProvider.nowMillis(),
+        sessionId = inputs.sessionId(),
+        application = inputs.appInfo,
+        device = inputs.deviceInfo(),
+        threadName = threadName,
+        exception = aplatirEtEpurer(throwable),
+        breadcrumbs = inputs.breadcrumbs().takeLast(CrashLimits.MAX_BREADCRUMBS),
+        lastScreen = inputs.lastScreenTracker.current(),
+        processUptimeMs = processUptimeMs.coerceAtLeast(0),
+        isCrashLoop = isCrashLoop,
+    )
 
     /**
      * Construit le rapport d'une sortie de processus détectée au démarrage
@@ -108,57 +105,51 @@ internal class CrashReportFactory(
         trace: String?,
         appInfo: CrashAppInfo,
         deviceInfo: () -> DeviceInfo,
-    ): CrashReport =
-        CrashReport(
-            id = UUID.randomUUID().toString(),
-            type = type,
-            timestampMillis = timestampMillis,
-            sessionId = "",
-            application = appInfo,
-            device = deviceInfo(),
-            threadName = "",
-            exception =
-                FlattenedException(
-                    className = type.name,
-                    message = tronquerUTF8(reason, CrashLimits.MAX_MESSAGE_BYTES),
-                    frames =
-                        trace
-                            ?.lineSequence()
-                            ?.filter { ligne -> ligne.isNotBlank() }
-                            ?.take(CrashLimits.MAX_FRAMES)
-                            ?.toList()
-                            .orEmpty(),
-                    cause = null,
-                ),
-            breadcrumbs = emptyList(),
-            lastScreen = null,
-            processUptimeMs = 0,
-            isCrashLoop = false,
-        )
+    ): CrashReport = CrashReport(
+        id = UUID.randomUUID().toString(),
+        type = type,
+        timestampMillis = timestampMillis,
+        sessionId = "",
+        application = appInfo,
+        device = deviceInfo(),
+        threadName = "",
+        exception =
+        FlattenedException(
+            className = type.name,
+            message = tronquerUTF8(reason, CrashLimits.MAX_MESSAGE_BYTES),
+            frames =
+            trace
+                ?.lineSequence()
+                ?.filter { ligne -> ligne.isNotBlank() }
+                ?.take(CrashLimits.MAX_FRAMES)
+                ?.toList()
+                .orEmpty(),
+            cause = null,
+        ),
+        breadcrumbs = emptyList(),
+        lastScreen = null,
+        processUptimeMs = 0,
+        isCrashLoop = false,
+    )
 
     /** Aplatit l'exception aux bornes des rapports, puis expurge et tronque. */
-    private fun aplatirEtEpurer(throwable: Throwable): FlattenedException =
-        FlattenedException
-            .from(
-                throwable,
-                maxFrames = CrashLimits.MAX_FRAMES,
-                maxCauses = CrashLimits.MAX_CAUSES,
-            ).transformMessages { message -> message?.let(::expurgerEtTronquer) }
+    private fun aplatirEtEpurer(throwable: Throwable): FlattenedException = FlattenedException
+        .from(
+            throwable,
+            maxFrames = CrashLimits.MAX_FRAMES,
+            maxCauses = CrashLimits.MAX_CAUSES,
+        ).transformMessages { message -> message?.let(::expurgerEtTronquer) }
 
     /** Expurge (règle 15) puis tronque sans couper un caractère multi-octets. */
-    private fun expurgerEtTronquer(message: String): String =
-        tronquerUTF8(
-            jo.codeide.core.domain.LogRedactor
-                .redact(message),
-            CrashLimits.MAX_MESSAGE_BYTES,
-        )
+    private fun expurgerEtTronquer(message: String): String = tronquerUTF8(
+        jo.codeide.core.domain.LogRedactor
+            .redact(message),
+        CrashLimits.MAX_MESSAGE_BYTES,
+    )
 }
 
 /** Tronque un texte à [limite] octets UTF-8 sans couper un caractère. */
-internal fun tronquerUTF8(
-    texte: String,
-    limite: Int,
-): String {
+internal fun tronquerUTF8(texte: String, limite: Int): String {
     val octets = texte.toByteArray(Charsets.UTF_8)
     if (octets.size <= limite) return texte
     var fin = limite
@@ -176,23 +167,22 @@ private const val OCTET_CONTINUATION = 0x80
  * production d'`app` et du module : toute défaillance retombe sur
  * [DeviceInfo.inconnu], jamais sur un échec du gestionnaire.
  */
-internal fun deviceInfoDepuisContext(context: android.content.Context): DeviceInfo =
-    try {
-        val runtime = Runtime.getRuntime()
-        DeviceInfo(
-            manufacturer = Build.MANUFACTURER,
-            model = Build.MODEL,
-            androidVersion = Build.VERSION.RELEASE ?: "inconnue",
-            apiLevel = Build.VERSION.SDK_INT,
-            abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "inconnue",
-            locale =
-                context.resources.configuration.locales[0]
-                    .toLanguageTag(),
-            maxMemoryBytes = runtime.maxMemory(),
-            freeMemoryBytes = runtime.freeMemory(),
-            storageFreeBytes =
-                StatFs(context.filesDir.absolutePath).availableBytes,
-        )
-    } catch (erreur: Exception) {
-        DeviceInfo.inconnu()
-    }
+internal fun deviceInfoDepuisContext(context: android.content.Context): DeviceInfo = try {
+    val runtime = Runtime.getRuntime()
+    DeviceInfo(
+        manufacturer = Build.MANUFACTURER,
+        model = Build.MODEL,
+        androidVersion = Build.VERSION.RELEASE ?: "inconnue",
+        apiLevel = Build.VERSION.SDK_INT,
+        abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "inconnue",
+        locale =
+        context.resources.configuration.locales[0]
+            .toLanguageTag(),
+        maxMemoryBytes = runtime.maxMemory(),
+        freeMemoryBytes = runtime.freeMemory(),
+        storageFreeBytes =
+        StatFs(context.filesDir.absolutePath).availableBytes,
+    )
+} catch (erreur: Exception) {
+    DeviceInfo.inconnu()
+}

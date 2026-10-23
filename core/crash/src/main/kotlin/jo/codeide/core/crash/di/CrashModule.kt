@@ -54,7 +54,6 @@ internal object CrashProvidesModule {
      */
     @Provides
     @Singleton
-    fun provideCrashReportFileStore(
-        @ApplicationContext context: Context,
-    ): CrashReportFileStore = CrashReportFileStore(File(context.filesDir, CrashLimits.DIRECTORY_NAME))
+    fun provideCrashReportFileStore(@ApplicationContext context: Context): CrashReportFileStore =
+        CrashReportFileStore(File(context.filesDir, CrashLimits.DIRECTORY_NAME))
 }

@@ -15,9 +15,7 @@ import jo.codeide.core.model.LogLevel
  *
  * @param minLevel seuil de ce sink.
  */
-internal class LogcatSink(
-    override val minLevel: LogLevel,
-) : LogSink {
+internal class LogcatSink(override val minLevel: LogLevel) : LogSink {
     override fun write(entry: LogEntry) {
         val texte = miseEnPage(entry)
         when (entry.level) {
@@ -29,10 +27,9 @@ internal class LogcatSink(
     }
 
     /** Compose le message et, s'il y en a une, la trace aplatie en dessous. */
-    private fun miseEnPage(entry: LogEntry): String =
-        entry.exception?.let { exception ->
-            entry.message + "\n" + exception.formatAsText()
-        } ?: entry.message
+    private fun miseEnPage(entry: LogEntry): String = entry.exception?.let { exception ->
+        entry.message + "\n" + exception.formatAsText()
+    } ?: entry.message
 }
 
 /**
@@ -45,17 +42,16 @@ internal class LogcatSink(
  * Causé par : java.io.IOException : ...
  * ```
  */
-internal fun FlattenedException.formatAsText(): String =
-    buildString {
-        append(className)
-        message?.let { append(" : ").append(it) }
-        frames.forEach { tranche ->
-            append('\n')
-            append("  at ")
-            append(tranche)
-        }
-        cause?.let {
-            append("\nCausé par : ")
-            append(it.formatAsText())
-        }
+internal fun FlattenedException.formatAsText(): String = buildString {
+    append(className)
+    message?.let { append(" : ").append(it) }
+    frames.forEach { tranche ->
+        append('\n')
+        append("  at ")
+        append(tranche)
     }
+    cause?.let {
+        append("\nCausé par : ")
+        append(it.formatAsText())
+    }
+}

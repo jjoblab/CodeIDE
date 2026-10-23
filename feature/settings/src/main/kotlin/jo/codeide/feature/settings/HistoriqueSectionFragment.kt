@@ -43,10 +43,7 @@ class HistoriqueSectionFragment : BaseFragment<FragmentSettingsHistoriqueBinding
         attachToRoot: Boolean,
     ): FragmentSettingsHistoriqueBinding = FragmentSettingsHistoriqueBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -100,13 +97,12 @@ class HistoriqueSectionFragment : BaseFragment<FragmentSettingsHistoriqueBinding
     }
 
     /** Ressource du libellé localisé d'une rétention (jours). */
-    private fun libelleRetention(retention: RetentionHistorique): Int =
-        when (retention) {
-            RetentionHistorique.JOURS_1 -> R.string.settings_historique_1_jour
-            RetentionHistorique.JOURS_5 -> R.string.settings_historique_5_jours
-            RetentionHistorique.JOURS_15 -> R.string.settings_historique_15_jours
-            RetentionHistorique.JOURS_30 -> R.string.settings_historique_30_jours
-        }
+    private fun libelleRetention(retention: RetentionHistorique): Int = when (retention) {
+        RetentionHistorique.JOURS_1 -> R.string.settings_historique_1_jour
+        RetentionHistorique.JOURS_5 -> R.string.settings_historique_5_jours
+        RetentionHistorique.JOURS_15 -> R.string.settings_historique_15_jours
+        RetentionHistorique.JOURS_30 -> R.string.settings_historique_30_jours
+    }
 
     /** « 12,3 Mo », « 456 ko » ou « … » tant que la mesure n'est pas
      *  revenue (unités SI universelles, libellé localisé autour). */

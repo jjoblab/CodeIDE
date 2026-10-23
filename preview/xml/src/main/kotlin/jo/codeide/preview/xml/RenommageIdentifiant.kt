@@ -49,10 +49,8 @@ public object RenommageIdentifiant {
      * point) ; les identifiants de PLATEFORME (`@android:id/x`) ne
      * matchent pas — leur « android: » se dresse entre « @ » et « id/ ».
      */
-    private fun occurrences(
-        texte: String,
-        nom: String,
-    ): List<MatchResult> = Regex("""@\+?id/${Regex.escape(nom)}(?![A-Za-z0-9_.])""").findAll(texte).toList()
+    private fun occurrences(texte: String, nom: String): List<MatchResult> =
+        Regex("""@\+?id/${Regex.escape(nom)}(?![A-Za-z0-9_.])""").findAll(texte).toList()
 
     /**
      * L'identifiant ACTUEL de la vue au span (le nom SANS préfixe) :
@@ -60,10 +58,7 @@ public object RenommageIdentifiant {
      * l'identifiant n'est pas renommable (plateforme `@android:id/…`, nom
      * hors aapt2 — cf. KDoc de l'objet).
      */
-    public fun identifiantActuel(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): String? {
+    public fun identifiantActuel(texte: String, span: InsertionXml.SpanParent): String? {
         val valeur = EditionAttributsXml.valeurAttribut(texte, span, ATTR_ID) ?: return null
         val nom =
             when {
@@ -81,10 +76,7 @@ public object RenommageIdentifiant {
      * [renommer] réécrit (TOUTES les occurrences textuelles) ; 0 si le
      * nom n'existe pas.
      */
-    public fun compterReferences(
-        texte: String,
-        nom: String,
-    ): Int = (occurrences(texte, nom).size - 1).coerceAtLeast(0)
+    public fun compterReferences(texte: String, nom: String): Int = (occurrences(texte, nom).size - 1).coerceAtLeast(0)
 
     /**
      * RENOMME l'identifiant de la vue au span : déclaration + références

@@ -16,9 +16,7 @@ import com.google.android.material.textview.MaterialTextView
  * plutôt que d'en hériter — leur API reste mince et rien de transitoire
  * ne fuit dans la surface publique du module.
  */
-internal class ColonneEtat(
-    context: Context,
-) : LinearLayout(context) {
+internal class ColonneEtat(context: Context) : LinearLayout(context) {
     init {
         orientation = VERTICAL
         gravity = Gravity.CENTER_HORIZONTAL
@@ -52,10 +50,7 @@ internal class ColonneEtat(
      * @param apparence style TextAppearance.CodeIDE à appliquer.
      * @return la vue texte ajoutée.
      */
-    fun ajouterTexte(
-        texte: CharSequence?,
-        apparence: Int,
-    ): MaterialTextView {
+    fun ajouterTexte(texte: CharSequence?, apparence: Int): MaterialTextView {
         val vue =
             MaterialTextView(context).apply {
                 text = texte
@@ -68,9 +63,8 @@ internal class ColonneEtat(
 }
 
 /** Crée les paramètres d'ancrage d'une colonne centrée dans un FrameLayout. */
-internal fun parametresColonneCentree(): FrameLayout.LayoutParams =
-    FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        Gravity.CENTER,
-    )
+internal fun parametresColonneCentree(): FrameLayout.LayoutParams = FrameLayout.LayoutParams(
+    FrameLayout.LayoutParams.WRAP_CONTENT,
+    FrameLayout.LayoutParams.WRAP_CONTENT,
+    Gravity.CENTER,
+)

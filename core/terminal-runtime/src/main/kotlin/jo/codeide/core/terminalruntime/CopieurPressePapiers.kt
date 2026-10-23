@@ -43,36 +43,36 @@ internal interface CopieurPressePapiers {
  */
 @Singleton
 internal class CopieurPressePapiersAndroid
-    @Inject
-    constructor(
-        // Annotation sans `private val` (leçon T1) : champ dérivé ci-dessous.
-        @ApplicationContext contexte: Context,
-    ) : CopieurPressePapiers {
-        private val contexteApplication: Context = contexte.applicationContext
+@Inject
+constructor(
+    // Annotation sans `private val` (leçon T1) : champ dérivé ci-dessous.
+    @ApplicationContext contexte: Context,
+) : CopieurPressePapiers {
+    private val contexteApplication: Context = contexte.applicationContext
 
-        private val pressePapiers: ClipboardManager =
-            contexteApplication.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    private val pressePapiers: ClipboardManager =
+        contexteApplication.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
 
-        override fun copier(texte: String?) {
-            if (texte.isNullOrEmpty()) return
-            pressePapiers.setPrimaryClip(
-                ClipData.newPlainText(
-                    contexteApplication.getString(R.string.terminal_selection_libelle),
-                    texte,
-                ),
-            )
-            if (Build.VERSION.SDK_INT < SEUIL_CONFIRMATION_SYSTEME) {
-                Toast
-                    .makeText(
-                        contexteApplication,
-                        R.string.terminal_selection_copiee,
-                        Toast.LENGTH_SHORT,
-                    ).show()
-            }
-        }
-
-        private companion object {
-            /** Android 13 (API 33) : le système confirme lui-même la copie. */
-            private const val SEUIL_CONFIRMATION_SYSTEME = 33
+    override fun copier(texte: String?) {
+        if (texte.isNullOrEmpty()) return
+        pressePapiers.setPrimaryClip(
+            ClipData.newPlainText(
+                contexteApplication.getString(R.string.terminal_selection_libelle),
+                texte,
+            ),
+        )
+        if (Build.VERSION.SDK_INT < SEUIL_CONFIRMATION_SYSTEME) {
+            Toast
+                .makeText(
+                    contexteApplication,
+                    R.string.terminal_selection_copiee,
+                    Toast.LENGTH_SHORT,
+                ).show()
         }
     }
+
+    private companion object {
+        /** Android 13 (API 33) : le système confirme lui-même la copie. */
+        private const val SEUIL_CONFIRMATION_SYSTEME = 33
+    }
+}

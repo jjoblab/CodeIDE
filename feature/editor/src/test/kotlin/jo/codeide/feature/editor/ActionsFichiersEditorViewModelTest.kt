@@ -50,213 +50,206 @@ class ActionsFichiersEditorViewModelTest : BaseEditorViewModelTest() {
     }
 
     @Test
-    fun `creer un fichier l'ouvre en onglet et actualise l'arborescence`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+    fun `creer un fichier l'ouvre en onglet et actualise l'arborescence`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionEditor.CreerFichier(URI_DOCUMENT_PROJET, "Nouveau.kt"))
-            advanceUntilIdle()
+        viewModel.onAction(ActionEditor.CreerFichier(URI_DOCUMENT_PROJET, "Nouveau.kt"))
+        advanceUntilIdle()
 
-            val onglet =
-                viewModel.etat.value.onglets
-                    .singleOrNull { it.nom == "Nouveau.kt" }
-            assertNotNull(onglet)
-            assertEquals("kotlin", onglet?.langage)
-            assertTrue(
-                "le fichier existe au stockage",
-                fichiers.exists(onglet!!.uri),
-            )
-            assertTrue(
-                "visible dans l'arborescence rafraîchie",
-                viewModel.etat.value.noeuds
-                    .any { it.nom == "Nouveau.kt" },
-            )
-        }
-
-    @Test
-    fun `creer un dossier l'affiche deploie dans l'arborescence`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-
-            viewModel.onAction(ActionEditor.CreerDossier(URI_DOCUMENT_PROJET, "sources"))
-            advanceUntilIdle()
-
-            assertTrue(
-                "le dossier existe au stockage",
-                fichiers.exists("$URI_DOCUMENT_PROJET/sources"),
-            )
-            val noeud =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "sources" }
-            assertTrue(noeud.estDossier)
-        }
+        val onglet =
+            viewModel.etat.value.onglets
+                .singleOrNull { it.nom == "Nouveau.kt" }
+        assertNotNull(onglet)
+        assertEquals("kotlin", onglet?.langage)
+        assertTrue(
+            "le fichier existe au stockage",
+            fichiers.exists(onglet!!.uri),
+        )
+        assertTrue(
+            "visible dans l'arborescence rafraîchie",
+            viewModel.etat.value.noeuds
+                .any { it.nom == "Nouveau.kt" },
+        )
+    }
 
     @Test
-    fun `renommer un fichier ouvert fait suivre l'onglet`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerDossier("src")
-            fichiers.seedDocument(
-                "$URI_DOCUMENT_PROJET/src/Main.kt",
-                FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "fun main()".toByteArray()),
-            )
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            val uriSrc =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "src" }
-                    .uri
-            viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
-            advanceUntilIdle()
-            val uriMain =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "Main.kt" }
-                    .uri
-            viewModel.onAction(ActionEditor.OuvrirFichier(uriMain))
-            advanceUntilIdle()
+    fun `creer un dossier l'affiche deploie dans l'arborescence`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionEditor.RenommerDocument(uriMain, "Principal.kt"))
-            advanceUntilIdle()
+        viewModel.onAction(ActionEditor.CreerDossier(URI_DOCUMENT_PROJET, "sources"))
+        advanceUntilIdle()
 
-            val onglet =
-                viewModel.etat.value.onglets
-                    .single()
-            assertEquals("Principal.kt", onglet.nom)
-            assertEquals("src/Principal.kt", onglet.cheminRelatif)
-            assertEquals("kotlin", onglet.langage)
-            // La session a suivi : même contenu, clé migrée.
-            assertEquals("fun main()", viewModel.sessionDe(onglet.uri)?.text)
-            assertNull("l'ancienne URI n'est plus un onglet", viewModel.sessionDe(uriMain))
-            // L'arborescence reflète le nouveau nom.
-            assertTrue(
-                viewModel.etat.value.noeuds
-                    .any { it.nom == "Principal.kt" },
-            )
-        }
+        assertTrue(
+            "le dossier existe au stockage",
+            fichiers.exists("$URI_DOCUMENT_PROJET/sources"),
+        )
+        val noeud =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "sources" }
+        assertTrue(noeud.estDossier)
+    }
 
     @Test
-    fun `supprimer un fichier ouvert ferme l'onglet et libere la session`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            val uri =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "Main.kt" }
-                    .uri
-            viewModel.onAction(ActionEditor.OuvrirFichier(uri))
-            advanceUntilIdle()
-            assertEquals(1, viewModel.etat.value.onglets.size)
+    fun `renommer un fichier ouvert fait suivre l'onglet`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerDossier("src")
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/src/Main.kt",
+            FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "fun main()".toByteArray()),
+        )
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        val uriSrc =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "src" }
+                .uri
+        viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
+        advanceUntilIdle()
+        val uriMain =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "Main.kt" }
+                .uri
+        viewModel.onAction(ActionEditor.OuvrirFichier(uriMain))
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionEditor.SupprimerDocument(uri))
-            advanceUntilIdle()
+        viewModel.onAction(ActionEditor.RenommerDocument(uriMain, "Principal.kt"))
+        advanceUntilIdle()
 
-            assertTrue(
-                "onglet fermé",
-                viewModel.etat.value.onglets
-                    .isEmpty(),
-            )
-            assertNull("session libérée", viewModel.sessionSuivieDe(uri))
-            assertTrue("fichier disparu du stockage", !fichiers.exists(uri))
-        }
-
-    @Test
-    fun `un echec d'operation emet l'effet sans crash`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            fichiers.createFailure = java.io.IOException("quota")
-            val effets = mutableListOf<EffetEditor>()
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            collecterEffets(viewModel, effets)
-
-            viewModel.onAction(ActionEditor.CreerFichier(URI_DOCUMENT_PROJET, "Impossible.kt"))
-            advanceUntilIdle()
-
-            assertTrue(effets.contains(EffetEditor.ErreurActionFichier))
-            assertTrue(
-                "aucun onglet",
-                viewModel.etat.value.onglets
-                    .isEmpty(),
-            )
-        }
+        val onglet =
+            viewModel.etat.value.onglets
+                .single()
+        assertEquals("Principal.kt", onglet.nom)
+        assertEquals("src/Principal.kt", onglet.cheminRelatif)
+        assertEquals("kotlin", onglet.langage)
+        // La session a suivi : même contenu, clé migrée.
+        assertEquals("fun main()", viewModel.sessionDe(onglet.uri)?.text)
+        assertNull("l'ancienne URI n'est plus un onglet", viewModel.sessionDe(uriMain))
+        // L'arborescence reflète le nouveau nom.
+        assertTrue(
+            viewModel.etat.value.noeuds
+                .any { it.nom == "Principal.kt" },
+        )
+    }
 
     @Test
-    fun `la reprise par projet rouvre les onglets du workspace-state`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            fichiers.seedDocument(
-                "$URI_DOCUMENT_PROJET/Main.kt",
-                FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "un".toByteArray()),
-            )
-            fichiers.seedDocument(
-                "$URI_DOCUMENT_PROJET/Autre.kt",
-                FakeFileSystem.Document(name = "Autre.kt", isDirectory = false, bytes = "deux".toByteArray()),
-            )
-            // Première session : ouvre deux onglets (l'état d'espace
-            // s'écrit sous .codeide/local/workspace-state.json).
-            val premiere =
-                viewModel(
-                    alpha,
-                    SavedStateHandle(
-                        mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
-                    ),
-                )
-            advanceUntilIdle()
-            premiere.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Main.kt"))
-            premiere.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Autre.kt"))
-            advanceUntilIdle()
+    fun `supprimer un fichier ouvert ferme l'onglet et libere la session`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        val uri =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "Main.kt" }
+                .uri
+        viewModel.onAction(ActionEditor.OuvrirFichier(uri))
+        advanceUntilIdle()
+        assertEquals(1, viewModel.etat.value.onglets.size)
 
-            // Réouverture **sans sauvetage** (nouvelle instance, process
-            // vivant) : la reprise par projet prend le relais.
-            val seconde =
-                viewModel(
-                    alpha,
-                    SavedStateHandle(
-                        mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
-                    ),
-                )
-            advanceUntilIdle()
+        viewModel.onAction(ActionEditor.SupprimerDocument(uri))
+        advanceUntilIdle()
 
-            val onglets = seconde.etat.value.onglets
-            assertEquals(listOf("Main.kt", "Autre.kt"), onglets.map { it.nom })
-            assertEquals(1, seconde.etat.value.indexOngletActif)
-            assertEquals("deux", seconde.sessionDe("$URI_DOCUMENT_PROJET/Autre.kt")?.text)
-        }
+        assertTrue(
+            "onglet fermé",
+            viewModel.etat.value.onglets
+                .isEmpty(),
+        )
+        assertNull("session libérée", viewModel.sessionSuivieDe(uri))
+        assertTrue("fichier disparu du stockage", !fichiers.exists(uri))
+    }
 
     @Test
-    fun `un workspace-state corrompu est ignore sans erreur`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            // Amorce un .codeide/local/workspace-state.json illisible.
-            fichiers.seedDocument(
-                "$URI_DOCUMENT_PROJET/.codeide",
-                FakeFileSystem.Document(name = ".codeide", isDirectory = true),
-            )
-            fichiers.seedDocument(
-                "$URI_DOCUMENT_PROJET/.codeide/local",
-                FakeFileSystem.Document(name = "local", isDirectory = true),
-            )
-            fichiers.seedDocument(
-                "$URI_DOCUMENT_PROJET/.codeide/local/workspace-state.json",
-                FakeFileSystem.Document(
-                    name = "workspace-state.json",
-                    isDirectory = false,
-                    bytes = "{{corrompu".toByteArray(),
+    fun `un echec d'operation emet l'effet sans crash`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        fichiers.createFailure = java.io.IOException("quota")
+        val effets = mutableListOf<EffetEditor>()
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        collecterEffets(viewModel, effets)
+
+        viewModel.onAction(ActionEditor.CreerFichier(URI_DOCUMENT_PROJET, "Impossible.kt"))
+        advanceUntilIdle()
+
+        assertTrue(effets.contains(EffetEditor.ErreurActionFichier))
+        assertTrue(
+            "aucun onglet",
+            viewModel.etat.value.onglets
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun `la reprise par projet rouvre les onglets du workspace-state`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/Main.kt",
+            FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "un".toByteArray()),
+        )
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/Autre.kt",
+            FakeFileSystem.Document(name = "Autre.kt", isDirectory = false, bytes = "deux".toByteArray()),
+        )
+        // Première session : ouvre deux onglets (l'état d'espace
+        // s'écrit sous .codeide/local/workspace-state.json).
+        val premiere =
+            viewModel(
+                alpha,
+                SavedStateHandle(
+                    mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
                 ),
             )
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+        advanceUntilIdle()
+        premiere.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Main.kt"))
+        premiere.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Autre.kt"))
+        advanceUntilIdle()
 
-            assertTrue(
-                "aucun onglet rouvert",
-                viewModel.etat.value.onglets
-                    .isEmpty(),
+        // Réouverture **sans sauvetage** (nouvelle instance, process
+        // vivant) : la reprise par projet prend le relais.
+        val seconde =
+            viewModel(
+                alpha,
+                SavedStateHandle(
+                    mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
+                ),
             )
-        }
+        advanceUntilIdle()
+
+        val onglets = seconde.etat.value.onglets
+        assertEquals(listOf("Main.kt", "Autre.kt"), onglets.map { it.nom })
+        assertEquals(1, seconde.etat.value.indexOngletActif)
+        assertEquals("deux", seconde.sessionDe("$URI_DOCUMENT_PROJET/Autre.kt")?.text)
+    }
+
+    @Test
+    fun `un workspace-state corrompu est ignore sans erreur`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        // Amorce un .codeide/local/workspace-state.json illisible.
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/.codeide",
+            FakeFileSystem.Document(name = ".codeide", isDirectory = true),
+        )
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/.codeide/local",
+            FakeFileSystem.Document(name = "local", isDirectory = true),
+        )
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/.codeide/local/workspace-state.json",
+            FakeFileSystem.Document(
+                name = "workspace-state.json",
+                isDirectory = false,
+                bytes = "{{corrompu".toByteArray(),
+            ),
+        )
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+
+        assertTrue(
+            "aucun onglet rouvert",
+            viewModel.etat.value.onglets
+                .isEmpty(),
+        )
+    }
 }

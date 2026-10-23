@@ -21,10 +21,7 @@ internal object CachesGradle {
      * @return la racine de la distribution **valide** (marqueur de
      * distribution complète), ou `null`.
      */
-    internal fun trouverDistribution(
-        gradleUserHome: File,
-        version: String?,
-    ): File? {
+    internal fun trouverDistribution(gradleUserHome: File, version: String?): File? {
         val dists = File(gradleUserHome, "wrapper/dists")
         if (!dists.isDirectory) return null
 

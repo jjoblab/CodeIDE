@@ -18,11 +18,7 @@ import androidx.recyclerview.widget.RecyclerView
  * listes du volet sont courtes, le cas ne survient pas en pratique.
  */
 internal class DecorationBarreCollante : RecyclerView.ItemDecoration() {
-    override fun onDrawOver(
-        canvas: Canvas,
-        parent: RecyclerView,
-        state: RecyclerView.State,
-    ) {
+    override fun onDrawOver(canvas: Canvas, parent: RecyclerView, state: RecyclerView.State) {
         super.onDrawOver(canvas, parent, state)
         var barre: View? = null
         for (indice in 0 until parent.childCount) {

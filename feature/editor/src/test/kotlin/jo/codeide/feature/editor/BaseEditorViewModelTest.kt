@@ -251,13 +251,12 @@ abstract class BaseEditorViewModelTest {
     protected val restaurerArbre = RestaurerArbreUseCase()
 
     /** Construit le ViewModel avec l'identifiant reçu par l'intention. */
-    protected fun viewModel(id: ProjectId): EditorViewModel =
-        viewModel(
-            id,
-            SavedStateHandle(
-                mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),
-            ),
-        )
+    protected fun viewModel(id: ProjectId): EditorViewModel = viewModel(
+        id,
+        SavedStateHandle(
+            mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),
+        ),
+    )
 
     /**
      * Construit le ViewModel sur un sauvetage **existant** — mort du
@@ -282,111 +281,110 @@ abstract class BaseEditorViewModelTest {
         resolveurFUSE: jo.codeide.core.domain.ResolveurCheminFuse = resoudreRepertoire,
         dispatcheurs: jo.codeide.core.domain.DispatcherProvider =
             TestDispatcherProvider(regleMain.dispatcher),
-    ): EditorViewModel =
-        EditorViewModel(
-            observerProjet = ObserveProjectUseCase(depot),
-            verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
-            fichiers = fichiers,
-            fichiersPrives = fichiersPrives,
-            journal = journalViewModel,
-            observerJournaux = ObserveLogsUseCase(depotJournaux),
-            evaluerNom = EvaluerNomFichierUseCase(),
-            enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
-            lireEtatEspace = LireEtatEspaceUseCase(fichiers),
-            reconnaitreTypeProjet = ReconnaitreTypeProjetUseCase(fichiers),
-            listerModeles = listerModeles,
-            sessionsTerminal = sessionsTerminal,
-            resolveurChemin = resolveurFUSE,
-            sourceHistorique = sourceHistoriqueTest,
-            historique = historiqueTest,
-            etiqueteurHistorique =
-                jo.codeide.core.domain
-                    .EtiqueteurHistorique(historiqueTest),
-            observerEtatOutils = observerOutils,
-            tooling = tooling,
-            synchroniserProjet =
-                jo.codeide.core.domain.SynchroniserProjetUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            preparerClasspathLsp =
-                jo.codeide.core.domain.PreparerClasspathLspUseCase(
-                    tooling,
-                    fichiers,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            // Mission « LSP Java » h2 (§16.2) : coutures LSP de l'espace.
-            sourceClasspathLsp = sourceClasspathLspTest,
-            dossierIndexLsp = dossierIndexLspTest,
-            // Lot LSP-2 (ADR 0128 §4) : dépôt dédié des réglages LSP.
-            reglagesLsp = reglagesLspTest,
-            // Lot LSP-3 (ADR 0128 §4) : registre du port des moteurs —
-            // instance réelle (Kotlin pur), le port y est publié puis retiré.
-            registrePortLsp = registrePortLspTest,
-            outilchain = outilchainTest,
-            executerTachesUseCase =
-                jo.codeide.core.domain.ExecuterTachesUseCase(
-                    tooling,
-                    journalEspace,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            executerApplication =
-                jo.codeide.core.domain.ExecuterApplicationUseCase(
-                    installateur = installateurApkTest,
-                    repartiteurs = TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            annulerBuild =
-                jo.codeide.core.domain
-                    .AnnulerBuildUseCase(tooling),
-            copierArbre = copierArbre,
-            deplacerArbre = deplacerArbre,
-            lireArbre = lireArbre,
-            restaurerArbre = restaurerArbre,
-            listerTachesProjet =
-                jo.codeide.core.domain.ListerTachesProjetUseCase(
-                    tooling,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            optionsTooling = optionsTooling,
-            optionsEditeur = optionsEditeur,
-            // v0.40.1 (prompt de suivi §2 — sync suivante immédiate) : trois
-            // cas d'usage de l'état de sync persisté. Les tests ne couvrent
-            // pas encore ce flux (sync-state.json non créé en test) —
-            // `restaurerEtatSyncSiEmpreinteIdentique()` retourne `false`
-            // (pas de state), la sync manuelle reste le chemin par défaut.
-            calculerEmpreinteGradle =
-                jo.codeide.core.domain.CalculerEmpreinteGradleUseCase(
-                    fichiers,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            lireSyncState =
-                jo.codeide.core.domain
-                    .LireSyncStateUseCase(fichiers),
-            ecrireSyncState =
-                jo.codeide.core.domain.EcrireSyncStateUseCase(
-                    fichiers,
-                    TestDispatcherProvider(regleMain.dispatcher),
-                ),
-            serviceGradle = serviceGradleTest,
-            pompeBuilds = pompeBuildsTest,
-            // Cycle de vie étape C : gestionnaire RÉEL (contrat pur,
-            // I1 testable) et portée de fermeture pilotée par le
-            // planificateur de test (avancerUntilIdle exécute les
-            // fermetures d'onCleared de façon déterministe).
-            gestionnaireSession = gestionnaireSessionTest,
-            porteeFermetureSession = porteeFermetureSessionTest,
-            orchestrateurInstallation = parcoursInstallationTest,
-            dispatcheurs = dispatcheurs,
-            // PE6-0 : registre RÉEL des sources d'aperçu (contrat pur —
-            // SessionSuivie s'y publie/libère ; le test observe via
-            // sessionSuivieDe(uri)?.sourceApercu si besoin).
-            registreSourcesApercu =
-                jo.codeide.core.domain
-                    .RegistreSourcesApercu(),
-            savedStateHandle = sauvetage,
-        )
+    ): EditorViewModel = EditorViewModel(
+        observerProjet = ObserveProjectUseCase(depot),
+        verifierAcces = VerifyProjectAccessUseCase(depot, fichiers),
+        fichiers = fichiers,
+        fichiersPrives = fichiersPrives,
+        journal = journalViewModel,
+        observerJournaux = ObserveLogsUseCase(depotJournaux),
+        evaluerNom = EvaluerNomFichierUseCase(),
+        enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
+        lireEtatEspace = LireEtatEspaceUseCase(fichiers),
+        reconnaitreTypeProjet = ReconnaitreTypeProjetUseCase(fichiers),
+        listerModeles = listerModeles,
+        sessionsTerminal = sessionsTerminal,
+        resolveurChemin = resolveurFUSE,
+        sourceHistorique = sourceHistoriqueTest,
+        historique = historiqueTest,
+        etiqueteurHistorique =
+        jo.codeide.core.domain
+            .EtiqueteurHistorique(historiqueTest),
+        observerEtatOutils = observerOutils,
+        tooling = tooling,
+        synchroniserProjet =
+        jo.codeide.core.domain.SynchroniserProjetUseCase(
+            tooling,
+            journalEspace,
+            TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        preparerClasspathLsp =
+        jo.codeide.core.domain.PreparerClasspathLspUseCase(
+            tooling,
+            fichiers,
+            journalEspace,
+            TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        // Mission « LSP Java » h2 (§16.2) : coutures LSP de l'espace.
+        sourceClasspathLsp = sourceClasspathLspTest,
+        dossierIndexLsp = dossierIndexLspTest,
+        // Lot LSP-2 (ADR 0128 §4) : dépôt dédié des réglages LSP.
+        reglagesLsp = reglagesLspTest,
+        // Lot LSP-3 (ADR 0128 §4) : registre du port des moteurs —
+        // instance réelle (Kotlin pur), le port y est publié puis retiré.
+        registrePortLsp = registrePortLspTest,
+        outilchain = outilchainTest,
+        executerTachesUseCase =
+        jo.codeide.core.domain.ExecuterTachesUseCase(
+            tooling,
+            journalEspace,
+            TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        executerApplication =
+        jo.codeide.core.domain.ExecuterApplicationUseCase(
+            installateur = installateurApkTest,
+            repartiteurs = TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        annulerBuild =
+        jo.codeide.core.domain
+            .AnnulerBuildUseCase(tooling),
+        copierArbre = copierArbre,
+        deplacerArbre = deplacerArbre,
+        lireArbre = lireArbre,
+        restaurerArbre = restaurerArbre,
+        listerTachesProjet =
+        jo.codeide.core.domain.ListerTachesProjetUseCase(
+            tooling,
+            TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        optionsTooling = optionsTooling,
+        optionsEditeur = optionsEditeur,
+        // v0.40.1 (prompt de suivi §2 — sync suivante immédiate) : trois
+        // cas d'usage de l'état de sync persisté. Les tests ne couvrent
+        // pas encore ce flux (sync-state.json non créé en test) —
+        // `restaurerEtatSyncSiEmpreinteIdentique()` retourne `false`
+        // (pas de state), la sync manuelle reste le chemin par défaut.
+        calculerEmpreinteGradle =
+        jo.codeide.core.domain.CalculerEmpreinteGradleUseCase(
+            fichiers,
+            TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        lireSyncState =
+        jo.codeide.core.domain
+            .LireSyncStateUseCase(fichiers),
+        ecrireSyncState =
+        jo.codeide.core.domain.EcrireSyncStateUseCase(
+            fichiers,
+            TestDispatcherProvider(regleMain.dispatcher),
+        ),
+        serviceGradle = serviceGradleTest,
+        pompeBuilds = pompeBuildsTest,
+        // Cycle de vie étape C : gestionnaire RÉEL (contrat pur,
+        // I1 testable) et portée de fermeture pilotée par le
+        // planificateur de test (avancerUntilIdle exécute les
+        // fermetures d'onCleared de façon déterministe).
+        gestionnaireSession = gestionnaireSessionTest,
+        porteeFermetureSession = porteeFermetureSessionTest,
+        orchestrateurInstallation = parcoursInstallationTest,
+        dispatcheurs = dispatcheurs,
+        // PE6-0 : registre RÉEL des sources d'aperçu (contrat pur —
+        // SessionSuivie s'y publie/libère ; le test observe via
+        // sessionSuivieDe(uri)?.sourceApercu si besoin).
+        registreSourcesApercu =
+        jo.codeide.core.domain
+            .RegistreSourcesApercu(),
+        savedStateHandle = sauvetage,
+    )
 
     /** Collecte les effets du ViewModel dans une liste observable. */
     protected fun kotlinx.coroutines.test.TestScope.collecterEffets(

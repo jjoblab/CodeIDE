@@ -65,40 +65,35 @@ internal object TemplateDefaultFunctions {
      * @throws TemplateRenderException si le nom est inconnu (contrôlé au
      * chargement du manifeste — resté ici comme garde finale explicite).
      */
-    fun appliquer(
-        nom: String,
-        sources: Sources,
-        ligne: Int = 0,
-    ): String =
-        when (nom) {
-            "slug" -> {
-                TemplateFilters.slug(sources.nomProjet)
-            }
-
-            "parentPackage" -> {
-                parentPackage(sources.nomPackage)
-            }
-
-            "packageFromNameAndAuthor" -> {
-                packageDepuisNomEtAuteur(sources.nomProjet, sources.auteur)
-            }
-
-            "packageFromAppName" -> {
-                packageDepuisValeur(sources.valeursParametres[PARAMETRE_APP_NAME])
-            }
-
-            "packageFromArtifactId" -> {
-                packageDepuisValeur(sources.valeursParametres[PARAMETRE_ARTIFACT_ID])
-            }
-
-            "applicationIdFromPackageName" -> {
-                applicationIdDepuisPackage(sources.valeursParametres[PARAMETRE_PACKAGE_NAME])
-            }
-
-            else -> {
-                throw TemplateRenderException(ligne, "fonction defaultFrom inconnue « $nom »")
-            }
+    fun appliquer(nom: String, sources: Sources, ligne: Int = 0): String = when (nom) {
+        "slug" -> {
+            TemplateFilters.slug(sources.nomProjet)
         }
+
+        "parentPackage" -> {
+            parentPackage(sources.nomPackage)
+        }
+
+        "packageFromNameAndAuthor" -> {
+            packageDepuisNomEtAuteur(sources.nomProjet, sources.auteur)
+        }
+
+        "packageFromAppName" -> {
+            packageDepuisValeur(sources.valeursParametres[PARAMETRE_APP_NAME])
+        }
+
+        "packageFromArtifactId" -> {
+            packageDepuisValeur(sources.valeursParametres[PARAMETRE_ARTIFACT_ID])
+        }
+
+        "applicationIdFromPackageName" -> {
+            applicationIdDepuisPackage(sources.valeursParametres[PARAMETRE_PACKAGE_NAME])
+        }
+
+        else -> {
+            throw TemplateRenderException(ligne, "fonction defaultFrom inconnue « $nom »")
+        }
+    }
 
     /**
      * Identifiant d'application Android (phase 4, ADR 0077) : **suit le nom
@@ -138,10 +133,7 @@ internal object TemplateDefaultFunctions {
      * séparateurs sont concaténés ; un segment qui commencerait par un
      * chiffre est préfixé de `p` (un segment doit commencer par une lettre).
      */
-    private fun packageDepuisNomEtAuteur(
-        nomProjet: String,
-        auteur: String,
-    ): String {
+    private fun packageDepuisNomEtAuteur(nomProjet: String, auteur: String): String {
         val segmentAuteur = segment(TemplateFilters.slug(auteur), repli = "app")
         val segmentNom = segment(TemplateFilters.slug(nomProjet), repli = "projet")
         return "$segmentAuteur.$segmentNom"

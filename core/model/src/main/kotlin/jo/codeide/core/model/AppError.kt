@@ -51,10 +51,7 @@ public sealed interface AppError {
      * @property reason raison normalisée, pilotant le message et l'action proposée.
      * @property details contexte technique pour les journaux (jamais affiché tel quel).
      */
-    public data class Storage(
-        public val reason: StorageReason,
-        public val details: String = "",
-    ) : AppError
+    public data class Storage(public val reason: StorageReason, public val details: String = "") : AppError
 
     /**
      * Entrée utilisateur invalide (nom de projet, package, semver…).
@@ -62,9 +59,7 @@ public sealed interface AppError {
      * @property details description technique du ou des champs en cause,
      * pour les journaux ; l'affichage s'appuie sur le validateur concerné.
      */
-    public data class Validation(
-        public val details: String = "",
-    ) : AppError
+    public data class Validation(public val details: String = "") : AppError
 
     /**
      * Erreur liée à un modèle de projet (manifeste illisible, expression
@@ -72,9 +67,7 @@ public sealed interface AppError {
      *
      * @property details contexte technique pour les journaux.
      */
-    public data class Template(
-        public val details: String = "",
-    ) : AppError
+    public data class Template(public val details: String = "") : AppError
 
     /**
      * Raison précise d'un échec d'installation du bootstrap natif
@@ -119,10 +112,7 @@ public sealed interface AppError {
      * @property details contexte technique pour les journaux (jamais
      * affiché tel quel).
      */
-    public data class Bootstrap(
-        public val reason: BootstrapReason,
-        public val details: String = "",
-    ) : AppError
+    public data class Bootstrap(public val reason: BootstrapReason, public val details: String = "") : AppError
 
     /**
      * Raison normalisée d'un échec du parcours d'installation de
@@ -211,10 +201,7 @@ public sealed interface AppError {
      * handshake, délai, connexion perdue…).
      * @property message message humain de l'orchestrateur, pour le journal.
      */
-    public data class Tooling(
-        public val code: ToolingReason,
-        public val message: String,
-    ) : AppError
+    public data class Tooling(public val code: ToolingReason, public val message: String) : AppError
 
     /**
      * Raisons normalisées d'un échec du tooling Gradle — miroir des
@@ -275,10 +262,7 @@ public sealed interface AppError {
      * @property details contexte technique pour les journaux (états,
      * identifiants — jamais un nom de projet ni un chemin).
      */
-    public data class Session(
-        public val reason: SessionReason,
-        public val details: String = "",
-    ) : AppError
+    public data class Session(public val reason: SessionReason, public val details: String = "") : AppError
 
     /**
      * Raison normalisée d'un échec d'une requête IA (ADR 0123 point 5) :
@@ -344,7 +328,5 @@ public sealed interface AppError {
      *
      * @property details contexte technique pour les journaux.
      */
-    public data class Unknown(
-        public val details: String = "",
-    ) : AppError
+    public data class Unknown(public val details: String = "") : AppError
 }

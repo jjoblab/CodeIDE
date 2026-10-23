@@ -59,11 +59,7 @@ internal class VoletSourceFragment : VoletFeuilleFragment() {
             if (indice >= 0) viewModel.selectionner(indice)
         }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        conteneur: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, conteneur: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentVoletSourceBinding.inflate(inflater, conteneur, false)
         liaison.listeSource.adapter = adaptateur
         liaison.listeSource.layoutManager = LinearLayoutManager(requireContext())
@@ -71,10 +67,7 @@ internal class VoletSourceFragment : VoletFeuilleFragment() {
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // PE11k : la plage INSÉRÉE (miroir `S.flash`) re-marche le volet —
         // pose et RETRAIT du surlignage « ins », au rythme du flux.
@@ -132,11 +125,11 @@ internal class VoletSourceFragment : VoletFeuilleFragment() {
                 numero = numero,
                 texte = if (contenuLigne.isEmpty()) " " else contenuLigne,
                 surlignage =
-                    when {
-                        racineSelectionnee && dansPlage -> Surlignage.RACINE
-                        !racineSelectionnee && dansPlage -> Surlignage.VUE
-                        else -> Surlignage.AUCUN
-                    },
+                when {
+                    racineSelectionnee && dansPlage -> Surlignage.RACINE
+                    !racineSelectionnee && dansPlage -> Surlignage.VUE
+                    else -> Surlignage.AUCUN
+                },
                 inseree = inseree != null && numero >= inseree.first && numero <= inseree.last,
                 portions = coloration.getOrElse(indiceLigne) { emptyList() },
             )
@@ -190,29 +183,20 @@ internal data class LigneSourceUi(
  * coloration (rôles purs → couleurs du thème), et le tap remonte au
  * propriétaire via [auLigne] (lecture FRAÎCHE de l'état du volet).
  */
-internal class AdaptateurSource(
-    private val auLigne: (Int) -> Unit,
-) : ListAdapter<LigneSourceUi, AdaptateurSource.SourceVue>(ComparateurSource) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): SourceVue =
+internal class AdaptateurSource(private val auLigne: (Int) -> Unit) :
+    ListAdapter<LigneSourceUi, AdaptateurSource.SourceVue>(ComparateurSource) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): SourceVue =
         SourceVue(ItemLigneSourceBinding.inflate(LayoutInflater.from(parent.context), parent, false), auLigne)
 
     override fun getItemCount(): Int = currentList.size
 
-    override fun onBindViewHolder(
-        holder: SourceVue,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: SourceVue, position: Int) {
         holder.poser(currentList[position])
     }
 
     /** Le conteneur d'une ligne (item_ligne_source.xml). */
-    internal class SourceVue(
-        private val liaison: ItemLigneSourceBinding,
-        auLigne: (Int) -> Unit,
-    ) : RecyclerView.ViewHolder(liaison.root) {
+    internal class SourceVue(private val liaison: ItemLigneSourceBinding, auLigne: (Int) -> Unit) :
+        RecyclerView.ViewHolder(liaison.root) {
         private var numero: Int = -1
 
         /** Les trois couleurs de coloration, résolues du THÈME au liage (jamais en dur). */
@@ -247,10 +231,7 @@ internal class AdaptateurSource(
         }
 
         /** Le texte de la ligne, ses portions colorées en spans du thème. */
-        private fun colorer(
-            texte: String,
-            portions: List<ColorationSourceXml.Portion>,
-        ): CharSequence {
+        private fun colorer(texte: String, portions: List<ColorationSourceXml.Portion>): CharSequence {
             if (portions.isEmpty()) return texte
             val spans = SpannableString(texte)
             portions.forEach { portion ->
@@ -276,14 +257,10 @@ internal class AdaptateurSource(
 
     /** Le comparateur (lignes stables par NUMÉRO — le texte seul bouge). */
     private object ComparateurSource : DiffUtil.ItemCallback<LigneSourceUi>() {
-        override fun areItemsTheSame(
-            ancienne: LigneSourceUi,
-            nouvelle: LigneSourceUi,
-        ): Boolean = ancienne.numero == nouvelle.numero
+        override fun areItemsTheSame(ancienne: LigneSourceUi, nouvelle: LigneSourceUi): Boolean =
+            ancienne.numero == nouvelle.numero
 
-        override fun areContentsTheSame(
-            ancienne: LigneSourceUi,
-            nouvelle: LigneSourceUi,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: LigneSourceUi, nouvelle: LigneSourceUi): Boolean =
+            ancienne == nouvelle
     }
 }

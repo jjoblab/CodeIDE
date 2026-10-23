@@ -34,9 +34,7 @@ import androidx.core.graphics.drawable.toDrawable
  * positionne l'une et anime l'autre.
  */
 @Suppress("LongMethod") // Exemption detekt ciblée (règle 16) : montrer() porte l'algorithme § 10.2 d'un seul tenant.
-internal class PopoverExplorateur(
-    private val conteneur: ViewGroup,
-) {
+internal class PopoverExplorateur(private val conteneur: ViewGroup) {
     /** Fenêtre courante — un seul popover à la fois (§ 10.5). */
     private var fenetre: PopupWindow? = null
 
@@ -48,12 +46,7 @@ internal class PopoverExplorateur(
      * affiche le popover ancré à ([x], [y]) — coordonnées **écran** du
      * point de contact (§ 10.2).
      */
-    fun montrer(
-        layout: Int,
-        x: Int,
-        y: Int,
-        remplir: (View) -> Unit,
-    ) {
+    fun montrer(layout: Int, x: Int, y: Int, remplir: (View) -> Unit) {
         masquer()
         val contexte = conteneur.context
         val vue = LayoutInflater.from(contexte).inflate(layout, conteneur, false)

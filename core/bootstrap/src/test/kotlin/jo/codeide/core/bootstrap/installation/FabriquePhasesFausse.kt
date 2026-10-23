@@ -7,8 +7,7 @@ import jo.codeide.core.domain.InstallPhase
  * cahier — machine d'états éprouvée contre des `PhaseInstallation` factices).
  * Partagée par les tests du package (une seule déclaration par module).
  */
-internal class FabriquePhasesFausse(
-    private val phases: Map<InstallPhase, PhaseInstallation>,
-) : FabriquePhasesInstallation {
+internal class FabriquePhasesFausse(private val phases: Map<InstallPhase, PhaseInstallation>) :
+    FabriquePhasesInstallation {
     override fun assembler(): Map<InstallPhase, PhaseInstallation> = phases
 }

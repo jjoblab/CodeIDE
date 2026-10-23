@@ -88,58 +88,57 @@ class PhaseJavaTest {
     }
 
     /** Le monde simulé : le paquet pose le JDK, les binaires répondent selon l'état du monde. */
-    private fun mondeSimule(spec: CommandSpec): CommandResult =
-        when {
-            estPolitiqueDepot(spec) -> {
-                reussite(listOf("openjdk-17:", "  Installed: (none)", "  Candidate: 17.0.20"))
-            }
+    private fun mondeSimule(spec: CommandSpec): CommandResult = when {
+        estPolitiqueDepot(spec) -> {
+            reussite(listOf("openjdk-17:", "  Installed: (none)", "  Candidate: 17.0.20"))
+        }
 
-            estInstallationJdk(spec) -> {
-                if (installationEchoue) {
-                    echec(100, "E: unable to locate package openjdk-17")
-                } else {
-                    poserJdk()
-                    reussite(listOf("Setting up openjdk-17 ..."))
-                }
-            }
-
-            estJavaVersion(spec) -> {
-                if (jdkInstalle) {
-                    CommandResult(0, emptyList(), listOf(banniereJava))
-                } else {
-                    echec(127, "sh: java: not found")
-                }
-            }
-
-            estJavacVersion(spec) -> {
-                if (jdkInstalle) {
-                    reussite(listOf("javac 17.0.20"))
-                } else {
-                    echec(127, "sh: javac: not found")
-                }
-            }
-
-            estCompilationSonde(spec) -> {
-                if (jdkInstalle) {
-                    File(DispositionsBootstrap.tmpdir(racine), "SondeTls.class").writeText("fake")
-                    reussite()
-                } else {
-                    echec(127, "sh: javac: not found")
-                }
-            }
-
-            estSondeTls(spec) -> {
-                if (tlsReussit) {
-                    reussite(listOf("TLS_OK 200"))
-                } else {
-                    echec(1, PILE_TLS)
-                }
-            }
-
-            else -> {
-                echec(127, "not found")
+        estInstallationJdk(spec) -> {
+            if (installationEchoue) {
+                echec(100, "E: unable to locate package openjdk-17")
+            } else {
+                poserJdk()
+                reussite(listOf("Setting up openjdk-17 ..."))
             }
         }
+
+        estJavaVersion(spec) -> {
+            if (jdkInstalle) {
+                CommandResult(0, emptyList(), listOf(banniereJava))
+            } else {
+                echec(127, "sh: java: not found")
+            }
+        }
+
+        estJavacVersion(spec) -> {
+            if (jdkInstalle) {
+                reussite(listOf("javac 17.0.20"))
+            } else {
+                echec(127, "sh: javac: not found")
+            }
+        }
+
+        estCompilationSonde(spec) -> {
+            if (jdkInstalle) {
+                File(DispositionsBootstrap.tmpdir(racine), "SondeTls.class").writeText("fake")
+                reussite()
+            } else {
+                echec(127, "sh: javac: not found")
+            }
+        }
+
+        estSondeTls(spec) -> {
+            if (tlsReussit) {
+                reussite(listOf("TLS_OK 200"))
+            } else {
+                echec(1, PILE_TLS)
+            }
+        }
+
+        else -> {
+            echec(127, "not found")
+        }
+    }
 
     /** Pose le JDK comme le ferait le paquet : fichiers exécutables réels (résolution JAVA_HOME sur disque). */
     private fun poserJdk() {
@@ -334,8 +333,6 @@ class PhaseJavaTest {
 
     private fun reussite(lignes: List<String> = emptyList()): CommandResult = CommandResult(0, lignes, emptyList())
 
-    private fun echec(
-        code: Int,
-        vararg lignes: String,
-    ): CommandResult = CommandResult(code, emptyList(), lignes.toList())
+    private fun echec(code: Int, vararg lignes: String): CommandResult =
+        CommandResult(code, emptyList(), lignes.toList())
 }

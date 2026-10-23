@@ -45,19 +45,12 @@ class PanneauJournalFragment : Fragment() {
     /** Mise à jour programmatique des filtres (garde anti-renvoi). */
     private var majProgrammatiqueFiltres = false
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentPanneauJournalBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         adaptateur = EntreesJournalCompactesAdapter()
         liaison.listeJournal.layoutManager = LinearLayoutManager(requireContext())
         liaison.listeJournal.adapter = adaptateur

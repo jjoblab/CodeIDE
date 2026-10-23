@@ -356,3 +356,13 @@ include(":tooling:daemon")
 // et le moteur sont consommés par feature:editor ; la dépendance LayoutLib
 // reste confinée ici.
 include(":preview:xml")
+// :preview:compose (mission « Previews », PREVIEW.md §4 — PC1/PC2, C1) :
+// moteur de preview Compose PAR INTERPRÉTEUR sur l'arbre d'appels neutre
+// du LSP Kotlin (previews(uri) v1.4.0) — le runtime Compose y est
+// EMBARQUÉ comme bibliothèque d'interprétation (ADR 0002 intact : pas
+// de Compose pour l'UI CodeIDE), le rendu vit dans le processus :preview
+// (PC4 : garde-fous + sandbox par construction — le programme interprété
+// n'exécute QUE les composables du registre), streaming bitmap vers la
+// carte « goutte d'eau » de l'éditeur. La dépendance Compose reste
+// confinée ici.
+include(":preview:compose")

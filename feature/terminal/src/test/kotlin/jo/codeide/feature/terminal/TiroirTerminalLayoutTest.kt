@@ -29,10 +29,7 @@ import jo.codeide.core.ui.R as RUi
 @Config(sdk = [26])
 class TiroirTerminalLayoutTest {
     /** Gonfle un layout sous le thème réel de l'application. */
-    private fun gonfler(
-        layout: Int,
-        parent: ViewGroup? = null,
-    ): View {
+    private fun gonfler(layout: Int, parent: ViewGroup? = null): View {
         val base = ApplicationProvider.getApplicationContext<Context>()
         val contexte = ContextThemeWrapper(base, RUi.style.Theme_CodeIDE)
         return LayoutInflater.from(contexte).inflate(layout, parent, false)

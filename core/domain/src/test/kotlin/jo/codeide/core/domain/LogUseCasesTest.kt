@@ -54,20 +54,17 @@ class LogConfigTest {
  * échec de lecture), effacement (succès et échec).
  */
 class LogUseCasesTest {
-    private fun entree(horodatage: Long) =
-        LogEntry(
-            timestampMillis = horodatage,
-            sessionId = "s",
-            level = LogLevel.INFO,
-            tag = "Test",
-            threadName = "main",
-            message = "message $horodatage",
-        )
+    private fun entree(horodatage: Long) = LogEntry(
+        timestampMillis = horodatage,
+        sessionId = "s",
+        level = LogLevel.INFO,
+        tag = "Test",
+        threadName = "main",
+        message = "message $horodatage",
+    )
 
     /** Écrivain d'export qui enregistre l'appel et rend un résultat fixé. */
-    private class FakeExportWriter(
-        private val resultat: AppResult<ExportedLogs>,
-    ) : LogExportWriter {
+    private class FakeExportWriter(private val resultat: AppResult<ExportedLogs>) : LogExportWriter {
         var recues: List<LogEntry>? = null
 
         var destinationDirecte: String? = null
@@ -78,10 +75,7 @@ class LogUseCasesTest {
             return resultat
         }
 
-        override suspend fun write(
-            entries: List<LogEntry>,
-            destinationUri: String,
-        ): AppResult<Unit> {
+        override suspend fun write(entries: List<LogEntry>, destinationUri: String): AppResult<Unit> {
             recues = entries
             destinationDirecte = destinationUri
             return if (resultat is AppResult.Success) {
@@ -93,70 +87,65 @@ class LogUseCasesTest {
     }
 
     @Test
-    fun `observer les journaux renvoie la fenêtre du dépôt`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            depot.add(entree(1), entree(2), entree(3))
-            val cas = ObserveLogsUseCase(depot)
+    fun `observer les journaux renvoie la fenêtre du dépôt`() = runTest {
+        val depot = InMemoryLogRepository()
+        depot.add(entree(1), entree(2), entree(3))
+        val cas = ObserveLogsUseCase(depot)
 
-            val fenetre = cas(limit = 2).first()
+        val fenetre = cas(limit = 2).first()
 
-            assertEquals(2, fenetre.size)
-            assertEquals("message 2", fenetre.first().message)
-        }
-
-    @Test
-    fun `exporter réussit et transmet toutes les entrées à l'écrivain`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            depot.add(entree(1), entree(2))
-            val ecrivain = FakeExportWriter(AppResult.Success(ExportedLogs("logs.zip", "/cache/exports/logs.zip")))
-            val cas = ExportLogsUseCase(depot, ecrivain)
-
-            val resultat = cas()
-
-            assertEquals(
-                AppResult.Success(ExportedLogs("logs.zip", "/cache/exports/logs.zip")),
-                resultat,
-            )
-            assertEquals(2, ecrivain.recues?.size)
-        }
+        assertEquals(2, fenetre.size)
+        assertEquals("message 2", fenetre.first().message)
+    }
 
     @Test
-    fun `exporter traduit un échec de lecture en erreur typée`() =
-        runTest {
-            val depot = InMemoryLogRepository().apply { readError = IOException("illisible") }
-            val cas = ExportLogsUseCase(depot, FakeExportWriter(AppResult.Success(ExportedLogs("x", "x"))))
+    fun `exporter réussit et transmet toutes les entrées à l'écrivain`() = runTest {
+        val depot = InMemoryLogRepository()
+        depot.add(entree(1), entree(2))
+        val ecrivain = FakeExportWriter(AppResult.Success(ExportedLogs("logs.zip", "/cache/exports/logs.zip")))
+        val cas = ExportLogsUseCase(depot, ecrivain)
 
-            val resultat = cas()
+        val resultat = cas()
 
-            assertTrue(resultat is AppResult.Failure)
-            resultat as AppResult.Failure
-            val erreur = resultat.error as jo.codeide.core.model.AppError.Storage
-            assertEquals(jo.codeide.core.model.AppError.StorageReason.Io, erreur.reason)
-        }
-
-    @Test
-    fun `effacer réussit quand le dépôt s'efface`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            depot.add(entree(1))
-            val cas = ClearLogsUseCase(depot)
-
-            assertEquals(AppResult.Success(Unit), cas())
-            assertTrue(depot.readAll().isEmpty())
-        }
+        assertEquals(
+            AppResult.Success(ExportedLogs("logs.zip", "/cache/exports/logs.zip")),
+            resultat,
+        )
+        assertEquals(2, ecrivain.recues?.size)
+    }
 
     @Test
-    fun `effacer traduit un échec d'entrée-sortie en erreur typée`() =
-        runTest {
-            val depot = InMemoryLogRepository().apply { clearError = IOException("verrou") }
-            val cas = ClearLogsUseCase(depot)
+    fun `exporter traduit un échec de lecture en erreur typée`() = runTest {
+        val depot = InMemoryLogRepository().apply { readError = IOException("illisible") }
+        val cas = ExportLogsUseCase(depot, FakeExportWriter(AppResult.Success(ExportedLogs("x", "x"))))
 
-            val resultat = cas()
+        val resultat = cas()
 
-            assertTrue(resultat is AppResult.Failure)
-        }
+        assertTrue(resultat is AppResult.Failure)
+        resultat as AppResult.Failure
+        val erreur = resultat.error as jo.codeide.core.model.AppError.Storage
+        assertEquals(jo.codeide.core.model.AppError.StorageReason.Io, erreur.reason)
+    }
+
+    @Test
+    fun `effacer réussit quand le dépôt s'efface`() = runTest {
+        val depot = InMemoryLogRepository()
+        depot.add(entree(1))
+        val cas = ClearLogsUseCase(depot)
+
+        assertEquals(AppResult.Success(Unit), cas())
+        assertTrue(depot.readAll().isEmpty())
+    }
+
+    @Test
+    fun `effacer traduit un échec d'entrée-sortie en erreur typée`() = runTest {
+        val depot = InMemoryLogRepository().apply { clearError = IOException("verrou") }
+        val cas = ClearLogsUseCase(depot)
+
+        val resultat = cas()
+
+        assertTrue(resultat is AppResult.Failure)
+    }
 }
 
 /**
@@ -166,108 +155,98 @@ class LogUseCasesTest {
  * destination SAF.
  */
 class DiagnosticLogUseCasesTest {
-    private fun entree(horodatage: Long) =
-        LogEntry(
-            timestampMillis = horodatage,
-            sessionId = "s",
-            level = LogLevel.INFO,
-            tag = "Test",
-            threadName = "main",
-            message = "message $horodatage",
+    private fun entree(horodatage: Long) = LogEntry(
+        timestampMillis = horodatage,
+        sessionId = "s",
+        level = LogLevel.INFO,
+        tag = "Test",
+        threadName = "main",
+        message = "message $horodatage",
+    )
+
+    @Test
+    fun `lire tout l historique rend les entrees dans l ordre`() = runTest {
+        val depot = InMemoryLogRepository()
+        depot.add(entree(1), entree(2), entree(3))
+
+        val lecture = ReadAllLogsUseCase(depot)()
+
+        assertTrue(lecture is AppResult.Success)
+        assertEquals(
+            listOf("message 1", "message 2", "message 3"),
+            (lecture as AppResult.Success).value.map { it.message },
         )
+    }
 
     @Test
-    fun `lire tout l historique rend les entrees dans l ordre`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            depot.add(entree(1), entree(2), entree(3))
+    fun `lire tout echoue proprement en erreur typée`() = runTest {
+        val depot = InMemoryLogRepository()
+        depot.readError = IOException("disque muet")
 
-            val lecture = ReadAllLogsUseCase(depot)()
+        val lecture = ReadAllLogsUseCase(depot)()
 
-            assertTrue(lecture is AppResult.Success)
-            assertEquals(
-                listOf("message 1", "message 2", "message 3"),
-                (lecture as AppResult.Success).value.map { it.message },
-            )
-        }
+        assertTrue(lecture is AppResult.Failure)
+    }
 
     @Test
-    fun `lire tout echoue proprement en erreur typée`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            depot.readError = IOException("disque muet")
-
-            val lecture = ReadAllLogsUseCase(depot)()
-
-            assertTrue(lecture is AppResult.Failure)
-        }
+    fun `mesurer l occupation rend le descriptif du depot`() = runTest {
+        val depot = InMemoryLogRepository()
+        val mesure = MeasureLogDiskUsageUseCase(depot)()
+        assertTrue(mesure is AppResult.Success)
+    }
 
     @Test
-    fun `mesurer l occupation rend le descriptif du depot`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            val mesure = MeasureLogDiskUsageUseCase(depot)()
-            assertTrue(mesure is AppResult.Success)
-        }
+    fun `regler la verbosite persiste puis applique dans cet ordre`() = runTest {
+        val parametres = FakeSettingsRepository()
+        val appliquees = mutableListOf<jo.codeide.core.model.LogVerbosity>()
+        val applier = LogVerbosityApplier { verbosite -> appliquees += verbosite }
+        val cas = SetLogVerbosityUseCase(parametres, applier)
+
+        val resultat = cas(jo.codeide.core.model.LogVerbosity.DETAILED)
+
+        assertTrue(resultat is AppResult.Success)
+        assertEquals(jo.codeide.core.model.LogVerbosity.DETAILED, parametres.reglages.logLevel)
+        assertEquals(listOf(jo.codeide.core.model.LogVerbosity.DETAILED), appliquees)
+    }
 
     @Test
-    fun `regler la verbosite persiste puis applique dans cet ordre`() =
-        runTest {
-            val parametres = FakeSettingsRepository()
-            val appliquees = mutableListOf<jo.codeide.core.model.LogVerbosity>()
-            val applier = LogVerbosityApplier { verbosite -> appliquees += verbosite }
-            val cas = SetLogVerbosityUseCase(parametres, applier)
+    fun `un echec de persistance laisse le moteur intact`() = runTest {
+        val parametres = FakeSettingsRepository()
+        parametres.writeError = IOException("DataStore muet")
+        val appliquees = mutableListOf<jo.codeide.core.model.LogVerbosity>()
+        val cas = SetLogVerbosityUseCase(parametres, LogVerbosityApplier { verbosite -> appliquees += verbosite })
 
-            val resultat = cas(jo.codeide.core.model.LogVerbosity.DETAILED)
+        val resultat = cas(jo.codeide.core.model.LogVerbosity.DETAILED)
 
-            assertTrue(resultat is AppResult.Success)
-            assertEquals(jo.codeide.core.model.LogVerbosity.DETAILED, parametres.reglages.logLevel)
-            assertEquals(listOf(jo.codeide.core.model.LogVerbosity.DETAILED), appliquees)
-        }
+        assertTrue(resultat is AppResult.Failure)
+        assertTrue(appliquees.isEmpty())
+    }
 
     @Test
-    fun `un echec de persistance laisse le moteur intact`() =
-        runTest {
-            val parametres = FakeSettingsRepository()
-            parametres.writeError = IOException("DataStore muet")
-            val appliquees = mutableListOf<jo.codeide.core.model.LogVerbosity>()
-            val cas = SetLogVerbosityUseCase(parametres, LogVerbosityApplier { verbosite -> appliquees += verbosite })
+    fun `exporter directement transmet les entrees et la destination`() = runTest {
+        val depot = InMemoryLogRepository()
+        depot.add(entree(1), entree(2))
+        val ecrivain =
+            object : LogExportWriter {
+                var recues: List<LogEntry>? = null
+                var destination: String? = null
 
-            val resultat = cas(jo.codeide.core.model.LogVerbosity.DETAILED)
+                override suspend fun write(entries: List<LogEntry>): AppResult<ExportedLogs> =
+                    AppResult.Success(ExportedLogs("logs.zip", "/cache/exports/logs.zip"))
 
-            assertTrue(resultat is AppResult.Failure)
-            assertTrue(appliquees.isEmpty())
-        }
-
-    @Test
-    fun `exporter directement transmet les entrees et la destination`() =
-        runTest {
-            val depot = InMemoryLogRepository()
-            depot.add(entree(1), entree(2))
-            val ecrivain =
-                object : LogExportWriter {
-                    var recues: List<LogEntry>? = null
-                    var destination: String? = null
-
-                    override suspend fun write(entries: List<LogEntry>): AppResult<ExportedLogs> =
-                        AppResult.Success(ExportedLogs("logs.zip", "/cache/exports/logs.zip"))
-
-                    override suspend fun write(
-                        entries: List<LogEntry>,
-                        destinationUri: String,
-                    ): AppResult<Unit> {
-                        recues = entries
-                        destination = destinationUri
-                        return AppResult.Success(Unit)
-                    }
+                override suspend fun write(entries: List<LogEntry>, destinationUri: String): AppResult<Unit> {
+                    recues = entries
+                    destination = destinationUri
+                    return AppResult.Success(Unit)
                 }
+            }
 
-            val resultat = ExportLogsUseCase(depot, ecrivain)("content://destination/1")
+        val resultat = ExportLogsUseCase(depot, ecrivain)("content://destination/1")
 
-            assertTrue(resultat is AppResult.Success)
-            assertEquals(2, ecrivain.recues?.size)
-            assertEquals("content://destination/1", ecrivain.destination)
-        }
+        assertTrue(resultat is AppResult.Success)
+        assertEquals(2, ecrivain.recues?.size)
+        assertEquals("content://destination/1", ecrivain.destination)
+    }
 }
 
 /**
@@ -276,25 +255,22 @@ class DiagnosticLogUseCasesTest {
  * l'écrivain — pour le cache comme pour une destination SAF directe.
  */
 class CrashReportExportUseCaseTest {
-    private fun rapport(
-        id: String,
-        horodatage: Long,
-    ): jo.codeide.core.model.CrashReport =
+    private fun rapport(id: String, horodatage: Long): jo.codeide.core.model.CrashReport =
         jo.codeide.core.model.CrashReport(
             id = id,
             type = jo.codeide.core.model.CrashType.EXCEPTION,
             timestampMillis = horodatage,
             sessionId = "s",
             application =
-                jo.codeide.core.model
-                    .CrashAppInfo("0.13.0", 1_300, "debug", "jo.codeide"),
+            jo.codeide.core.model
+                .CrashAppInfo("0.13.0", 1_300, "debug", "jo.codeide"),
             device =
-                jo.codeide.core.model.DeviceInfo
-                    .inconnu(),
+            jo.codeide.core.model.DeviceInfo
+                .inconnu(),
             threadName = "main",
             exception =
-                jo.codeide.core.model
-                    .FlattenedException("IllegalStateException", "test", emptyList(), null),
+            jo.codeide.core.model
+                .FlattenedException("IllegalStateException", "test", emptyList(), null),
             breadcrumbs = emptyList(),
             lastScreen = null,
             processUptimeMs = 0,
@@ -324,31 +300,29 @@ class CrashReportExportUseCaseTest {
     }
 
     @Test
-    fun `l export collecte les rapports complets depuis les resumes`() =
-        runTest {
-            val depot = FakeCrashReportRepository()
-            depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
-            val ecrivain = FauxEcrivain()
+    fun `l export collecte les rapports complets depuis les resumes`() = runTest {
+        val depot = FakeCrashReportRepository()
+        depot.peupler(rapport("un", 1_000L), rapport("deux", 2_000L))
+        val ecrivain = FauxEcrivain()
 
-            val resultat = ExportCrashReportsUseCase(depot, ecrivain)()
+        val resultat = ExportCrashReportsUseCase(depot, ecrivain)()
 
-            assertTrue(resultat is AppResult.Success)
-            // Du plus récent au plus ancien : l'ordre du dépôt fait foi.
-            assertEquals(listOf("deux", "un"), ecrivain.recus?.map { it.id })
-            assertEquals("crashes.zip", (resultat as AppResult.Success).value.fileName)
-        }
+        assertTrue(resultat is AppResult.Success)
+        // Du plus récent au plus ancien : l'ordre du dépôt fait foi.
+        assertEquals(listOf("deux", "un"), ecrivain.recus?.map { it.id })
+        assertEquals("crashes.zip", (resultat as AppResult.Success).value.fileName)
+    }
 
     @Test
-    fun `l export direct transmet la destination choisie`() =
-        runTest {
-            val depot = FakeCrashReportRepository()
-            depot.peupler(rapport("un", 1_000L))
-            val ecrivain = FauxEcrivain()
+    fun `l export direct transmet la destination choisie`() = runTest {
+        val depot = FakeCrashReportRepository()
+        depot.peupler(rapport("un", 1_000L))
+        val ecrivain = FauxEcrivain()
 
-            val resultat = ExportCrashReportsUseCase(depot, ecrivain)("content://destination/2")
+        val resultat = ExportCrashReportsUseCase(depot, ecrivain)("content://destination/2")
 
-            assertTrue(resultat is AppResult.Success)
-            assertEquals("content://destination/2", ecrivain.destination)
-            assertEquals(1, ecrivain.recus?.size)
-        }
+        assertTrue(resultat is AppResult.Success)
+        assertEquals("content://destination/2", ecrivain.destination)
+        assertEquals(1, ecrivain.recus?.size)
+    }
 }

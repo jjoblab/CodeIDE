@@ -26,10 +26,7 @@ import javax.inject.Inject
  * imbriquer masquerait le code de sécurité.
  */
 @Suppress("ReturnCount")
-internal fun cheminFuseDepuisIdDocument(
-    idDocument: String,
-    racinesVolume: Map<String, String>,
-): String? {
+internal fun cheminFuseDepuisIdDocument(idDocument: String, racinesVolume: Map<String, String>): String? {
     val indexSeparateur = idDocument.indexOf(':')
     if (indexSeparateur <= 0) return null
 
@@ -161,41 +158,37 @@ public fun interface ResolveurCheminFuse {
  * principal.
  */
 public class ResoudreRepertoireProjet
-    @Inject
-    constructor(
-        private val arborescences: ArborescencesSaf,
-        private val repartiteurs: DispatcherProvider,
-    ) : ResolveurCheminFuse {
-        /**
-         * Résout le chemin FUSE du dossier désigné par l'URI de **document**
-         * [documentUri] (`StorageLocation.documentUri` — le dossier du
-         * projet lui-même), s'il existe réellement sur le volume monté.
-         *
-         * Une URI d'arborescence pure (`…/tree/<id>`, sans segment
-         * `document`) est REJETÉE (`null`) : elle désigne l'arbre porteur
-         * de la permission, pas le projet.
-         */
-        override suspend fun invoke(documentUri: String): String? =
-            resoudre(documentUri) { entree -> entree.isDirectory }
+@Inject
+constructor(
+    private val arborescences: ArborescencesSaf,
+    private val repartiteurs: DispatcherProvider,
+) : ResolveurCheminFuse {
+    /**
+     * Résout le chemin FUSE du dossier désigné par l'URI de **document**
+     * [documentUri] (`StorageLocation.documentUri` — le dossier du
+     * projet lui-même), s'il existe réellement sur le volume monté.
+     *
+     * Une URI d'arborescence pure (`…/tree/<id>`, sans segment
+     * `document`) est REJETÉE (`null`) : elle désigne l'arbre porteur
+     * de la permission, pas le projet.
+     */
+    override suspend fun invoke(documentUri: String): String? = resoudre(documentUri) { entree -> entree.isDirectory }
 
-        /**
-         * Résout le chemin FUSE de l'entrée (fichier OU dossier) désignée
-         * par l'URI de **document** [documentUri] — contrat v0.100.3 du
-         * branchement LspEditor : un `.java` ouvert est un FICHIER, la
-         * garde est l'EXISTENCE, pas la nature répertoire. Même défense
-         * « volume démonté / supprimé → null » que [invoke].
-         */
-        override suspend fun resoudreEntree(documentUri: String): String? =
-            resoudre(documentUri) { entree -> entree.exists() }
+    /**
+     * Résout le chemin FUSE de l'entrée (fichier OU dossier) désignée
+     * par l'URI de **document** [documentUri] — contrat v0.100.3 du
+     * branchement LspEditor : un `.java` ouvert est un FICHIER, la
+     * garde est l'EXISTENCE, pas la nature répertoire. Même défense
+     * « volume démonté / supprimé → null » que [invoke].
+     */
+    override suspend fun resoudreEntree(documentUri: String): String? =
+        resoudre(documentUri) { entree -> entree.exists() }
 
-        /** Traduction + garde partagées des deux contrats (stat FUSE). */
-        private suspend fun resoudre(
-            documentUri: String,
-            verifie: (File) -> Boolean,
-        ): String? =
-            withContext(repartiteurs.io) {
-                arborescences
-                    .idDocumentDeUriDocument(documentUri)
-                    ?.let { id -> cheminFuseVerifie(id, RACINES_FUSE_PAR_DEFAUT, verifie) }
-            }
-    }
+    /** Traduction + garde partagées des deux contrats (stat FUSE). */
+    private suspend fun resoudre(documentUri: String, verifie: (File) -> Boolean): String? =
+        withContext(repartiteurs.io) {
+            arborescences
+                .idDocumentDeUriDocument(documentUri)
+                ?.let { id -> cheminFuseVerifie(id, RACINES_FUSE_PAR_DEFAUT, verifie) }
+        }
+}

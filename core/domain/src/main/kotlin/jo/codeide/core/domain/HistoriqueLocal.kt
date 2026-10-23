@@ -142,12 +142,12 @@ public data class PolitiqueHistorique(
  */
 @Singleton
 public class SourceProjetHistorique
-    @Inject
-    constructor() {
-        /** URI de document de la racine du projet ouvert, ou `null`. */
-        @Volatile
-        public var racineDocument: String? = null
-    }
+@Inject
+constructor() {
+    /** URI de document de la racine du projet ouvert, ou `null`. */
+    @Volatile
+    public var racineDocument: String? = null
+}
 
 /**
  * Port de l'historique local (mission H1, ADR 0104-0106) — moteur JVM
@@ -203,10 +203,7 @@ public interface HistoriqueLocal {
      * Pose une étiquette nommée (H4 — point d'extension des actions
      * risquées : « Avant compilation », « Avant bascule de branche »).
      */
-    public suspend fun etiqueter(
-        nom: String,
-        cheminRelatif: String? = null,
-    ): EntreeHistorique?
+    public suspend fun etiqueter(nom: String, cheminRelatif: String? = null): EntreeHistorique?
 
     /**
      * Purge (âge + quota + nombre d'entrées), incrémentale : les

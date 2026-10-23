@@ -147,9 +147,8 @@ public data class AppSettings(
          * @param buildDebuggable le build installé est-il déboguable ?
          * @return les paramètres par défaut correspondants.
          */
-        public fun defaults(buildDebuggable: Boolean): AppSettings =
-            AppSettings(
-                logLevel = if (buildDebuggable) LogVerbosity.DETAILED else LogVerbosity.NORMAL,
-            )
+        public fun defaults(buildDebuggable: Boolean): AppSettings = AppSettings(
+            logLevel = if (buildDebuggable) LogVerbosity.DETAILED else LogVerbosity.NORMAL,
+        )
     }
 }

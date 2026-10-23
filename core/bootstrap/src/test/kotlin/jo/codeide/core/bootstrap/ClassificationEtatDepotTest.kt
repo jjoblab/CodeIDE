@@ -62,8 +62,8 @@ class ClassificationEtatDepotTest {
                 code = 128,
                 stdout = "",
                 stderr =
-                    "fatal: not a git repository (or any parent up to mount point /storage/emulated/0) ; " +
-                        "Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).",
+                "fatal: not a git repository (or any parent up to mount point /storage/emulated/0) ; " +
+                    "Stopping at filesystem boundary (GIT_DISCOVERY_ACROSS_FILESYSTEM not set).",
             )
 
         assertTrue(etat is EtatDepot.PasUnDepot)
@@ -159,11 +159,8 @@ class ClassificationEtatDepotTest {
     }
 
     /** Classe une exécution complète (binaire présent). */
-    private fun classer(
-        code: Int,
-        stdout: String,
-        stderr: String,
-    ): EtatDepot = ExecutionGitBrute(code, stdout, stderr, causeLancement = null, messageEchec = null).versEtat()
+    private fun classer(code: Int, stdout: String, stderr: String): EtatDepot =
+        ExecutionGitBrute(code, stdout, stderr, causeLancement = null, messageEchec = null).versEtat()
 
     private fun ExecutionGitBrute.versEtat(): EtatDepot = ClassificationEtatDepot.classer(this)
 }

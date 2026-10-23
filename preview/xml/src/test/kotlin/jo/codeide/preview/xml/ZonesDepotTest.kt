@@ -29,26 +29,25 @@ public class ZonesDepotTest {
             conteneur: Boolean = false,
             orientation: Int = InfoVueRendu.ORIENTATION_SANS_OBJET,
             marges: List<Int> = listOf(0, 0, 0, 0),
-        ): InfoVueRendu =
-            InfoVueRendu(
-                gauche = gauche,
-                haut = haut,
-                droite = droite,
-                bas = bas,
-                libelle = "$classe @+id/$id",
-                debutElement = 0,
-                finElement = 1,
-                indiceParent = parent,
-                profondeur = profondeur,
-                classe = classe,
-                idRes = id,
-                margesGauche = marges[0],
-                margesHaut = marges[1],
-                margesDroite = marges[2],
-                margesBas = marges[3],
-                conteneur = conteneur,
-                orientation = orientation,
-            )
+        ): InfoVueRendu = InfoVueRendu(
+            gauche = gauche,
+            haut = haut,
+            droite = droite,
+            bas = bas,
+            libelle = "$classe @+id/$id",
+            debutElement = 0,
+            finElement = 1,
+            indiceParent = parent,
+            profondeur = profondeur,
+            classe = classe,
+            idRes = id,
+            margesGauche = marges[0],
+            margesHaut = marges[1],
+            margesDroite = marges[2],
+            margesBas = marges[3],
+            conteneur = conteneur,
+            orientation = orientation,
+        )
         return listOf(
             vue(0, 0, 400, 800, "ConstraintLayout", "root", -1, 0, conteneur = true),
             vue(24, 16, 376, 100, "TextView", "titre", 0, 1, marges = listOf(0, 8, 0, 0)),
@@ -189,20 +188,18 @@ public class ZonesDepotTest {
     // ── PE12d : plans par famille, ancre FAB, adhérence (§ 6) ───────────
 
     /** Arbre PE12d : racine CoordinatorLayout, AppBarLayout, RecyclerView, FAB existant. */
-    private fun arbreFil(): List<InfoVueRendu> =
-        listOf(
-            vue(0, 0, 360, 640, "CoordinatorLayout", "root", -1, 0, conteneur = true, famille = "COORDINATOR"),
-            vue(0, 0, 360, 104, "AppBarLayout", "appbar", 0, 1, conteneur = true, famille = "APPBAR"),
-            vue(0, 104, 360, 640, "RecyclerView", "liste", 0, 1),
-            vue(288, 568, 344, 624, "FloatingActionButton", "fab", 0, 1),
-        )
+    private fun arbreFil(): List<InfoVueRendu> = listOf(
+        vue(0, 0, 360, 640, "CoordinatorLayout", "root", -1, 0, conteneur = true, famille = "COORDINATOR"),
+        vue(0, 0, 360, 104, "AppBarLayout", "appbar", 0, 1, conteneur = true, famille = "APPBAR"),
+        vue(0, 104, 360, 640, "RecyclerView", "liste", 0, 1),
+        vue(288, 568, 344, 624, "FloatingActionButton", "fab", 0, 1),
+    )
 
     /** Arbre PE12d : racine FrameLayout (pile) avec un enfant badge. */
-    private fun arbrePile(): List<InfoVueRendu> =
-        listOf(
-            vue(0, 0, 360, 220, "FrameLayout", "root", -1, 0, conteneur = true, famille = "FRAME"),
-            vue(264, 16, 344, 40, "TextView", "badge", 0, 1),
-        )
+    private fun arbrePile(): List<InfoVueRendu> = listOf(
+        vue(0, 0, 360, 220, "FrameLayout", "root", -1, 0, conteneur = true, famille = "FRAME"),
+        vue(264, 16, 344, 40, "TextView", "badge", 0, 1),
+    )
 
     /** Le helper local `vue` du fixture existant, exposé aux arbres PE12d. */
     @Suppress("LongParameterList")
@@ -217,22 +214,21 @@ public class ZonesDepotTest {
         profondeur: Int,
         conteneur: Boolean = false,
         famille: String = "",
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = "$classe @+id/$id",
-            debutElement = 0,
-            finElement = 1,
-            indiceParent = parent,
-            profondeur = profondeur,
-            classe = classe,
-            idRes = id,
-            conteneur = conteneur,
-            famille = famille,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = "$classe @+id/$id",
+        debutElement = 0,
+        finElement = 1,
+        indiceParent = parent,
+        profondeur = profondeur,
+        classe = classe,
+        idRes = id,
+        conteneur = conteneur,
+        famille = famille,
+    )
 
     @Test
     fun `un depot dans une pile porte la cellule et s'ajoute en dernier`() {

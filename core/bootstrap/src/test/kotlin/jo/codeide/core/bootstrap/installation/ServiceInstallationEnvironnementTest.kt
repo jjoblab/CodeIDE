@@ -74,14 +74,14 @@ class ServiceInstallationEnvironnementTest {
         orchestrateur.semerEtat(
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Running(
-                                step = StepId(InstallPhase.BOOTSTRAP, "telechargement"),
-                                progress = Progress.Bytes(received = 10, total = 100),
-                                startedAtMillis = 0L,
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Running(
+                            step = StepId(InstallPhase.BOOTSTRAP, "telechargement"),
+                            progress = Progress.Bytes(received = 10, total = 100),
+                            startedAtMillis = 0L,
+                        ),
+                ),
                 running = InstallPhase.BOOTSTRAP,
                 sdkLicenseAcceptedAtMillis = null,
             ),
@@ -95,24 +95,18 @@ class ServiceInstallationEnvironnementTest {
     }
 
     /** Construit le service avec ses champs `@Inject` doublés, intent optionnel. */
-    private fun service(
-        orchestrateur: FakeEnvironmentSetupOrchestrator,
-        intention: android.content.Intent? = null,
-    ) = if (intention != null) {
-        Robolectric.buildService(ServiceInstallationEnvironnement::class.java, intention)
-    } else {
-        Robolectric.buildService(ServiceInstallationEnvironnement::class.java)
-    }.apply {
-        injecter(get(), "orchestrateur", orchestrateur)
-        injecter(get(), "journal", FakeAppLogger())
-    }
+    private fun service(orchestrateur: FakeEnvironmentSetupOrchestrator, intention: android.content.Intent? = null) =
+        if (intention != null) {
+            Robolectric.buildService(ServiceInstallationEnvironnement::class.java, intention)
+        } else {
+            Robolectric.buildService(ServiceInstallationEnvironnement::class.java)
+        }.apply {
+            injecter(get(), "orchestrateur", orchestrateur)
+            injecter(get(), "journal", FakeAppLogger())
+        }
 
     /** Injecte un champ `@Inject lateinit var` par réflexion (Hilt absent du test JVM). */
-    private fun injecter(
-        service: ServiceInstallationEnvironnement,
-        champ: String,
-        valeur: Any,
-    ) {
+    private fun injecter(service: ServiceInstallationEnvironnement, champ: String, valeur: Any) {
         val champReflechi = ServiceInstallationEnvironnement::class.java.getDeclaredField(champ)
         champReflechi.isAccessible = true
         champReflechi.set(service, valeur)

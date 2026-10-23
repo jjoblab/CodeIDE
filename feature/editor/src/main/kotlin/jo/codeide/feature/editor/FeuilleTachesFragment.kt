@@ -70,19 +70,12 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
             }
         }
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FeuilleTachesBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         adaptateur =
             AdaptateurFeuilleTaches { chemin ->
                 viewModel.onAction(ActionEditor.ExecuterTaches(listOf(chemin)))
@@ -152,10 +145,7 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
 
         const val CLE_RECENTES = "taches-recentes"
 
-        fun creer(
-            taches: List<InfoTache>,
-            recents: List<String>,
-        ): FeuilleTachesFragment =
+        fun creer(taches: List<InfoTache>, recents: List<String>): FeuilleTachesFragment =
             FeuilleTachesFragment().apply {
                 arguments =
                     Bundle().apply {
@@ -168,24 +158,19 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
     }
 
     /** Adaptateur des rangées de la feuille : en-tête de groupe / tâche. */
-    private class AdaptateurFeuilleTaches(
-        private val surExecution: (chemin: String) -> Unit,
-    ) : ListAdapter<RangeeTache, RecyclerView.ViewHolder>(DiffRangeesTache) {
+    private class AdaptateurFeuilleTaches(private val surExecution: (chemin: String) -> Unit) :
+        ListAdapter<RangeeTache, RecyclerView.ViewHolder>(DiffRangeesTache) {
         private enum class Type {
             GROUPE,
             TACHE,
         }
 
-        override fun getItemViewType(position: Int): Int =
-            when (getItem(position)) {
-                is RangeeTache.EnTete -> Type.GROUPE
-                is RangeeTache.Tache -> Type.TACHE
-            }.ordinal
+        override fun getItemViewType(position: Int): Int = when (getItem(position)) {
+            is RangeeTache.EnTete -> Type.GROUPE
+            is RangeeTache.Tache -> Type.TACHE
+        }.ordinal
 
-        override fun onCreateViewHolder(
-            parent: ViewGroup,
-            viewType: Int,
-        ): RecyclerView.ViewHolder {
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val inflateur = LayoutInflater.from(parent.context)
             return when (viewType) {
                 Type.GROUPE.ordinal -> {
@@ -198,10 +183,7 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
             }
         }
 
-        override fun onBindViewHolder(
-            holder: RecyclerView.ViewHolder,
-            position: Int,
-        ) {
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             when (val rangee = getItem(position)) {
                 is RangeeTache.EnTete -> (holder as GroupeHolder).lier(rangee)
                 is RangeeTache.Tache -> (holder as TacheHolder).lier(rangee, surExecution)
@@ -210,9 +192,8 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
 
         /** En-tête de groupe : capitulé — le groupe SANS groupe se dit
          *  « autres » (localisé au rendu). */
-        private class GroupeHolder(
-            private val liaison: LigneGroupeTachesBinding,
-        ) : RecyclerView.ViewHolder(liaison.root) {
+        private class GroupeHolder(private val liaison: LigneGroupeTachesBinding) :
+            RecyclerView.ViewHolder(liaison.root) {
             fun lier(rangee: RangeeTache.EnTete) {
                 liaison.libelleGroupeTaches.text =
                     rangee.libelle.ifEmpty {
@@ -223,13 +204,9 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
 
         /** Tâche : nom + module d'origine (racine pour les tâches non
          *  préfixées), lancement au clic. */
-        private class TacheHolder(
-            private val liaison: LigneTacheFeuilleBinding,
-        ) : RecyclerView.ViewHolder(liaison.root) {
-            fun lier(
-                rangee: RangeeTache.Tache,
-                surExecution: (String) -> Unit,
-            ) {
+        private class TacheHolder(private val liaison: LigneTacheFeuilleBinding) :
+            RecyclerView.ViewHolder(liaison.root) {
+            fun lier(rangee: RangeeTache.Tache, surExecution: (String) -> Unit) {
                 val contexte = liaison.root.context
                 liaison.nomTacheFeuille.text = rangee.tache.nomAffiche
                 liaison.moduleTacheFeuille.text = moduleDe(rangee.tache.chemin, contexte)
@@ -239,10 +216,7 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
             /** Module d'une tâche : segment avant le dernier « : » — les
              *  tâches de la racine (sans préfixe de module) se disent
              *  « racine » (comme la vue Build d'Android Studio). */
-            private fun moduleDe(
-                chemin: String,
-                contexte: android.content.Context,
-            ): String =
+            private fun moduleDe(chemin: String, contexte: android.content.Context): String =
                 if (chemin.startsWith(':') && chemin.count { it == ':' } >= 2) {
                     chemin.substringBeforeLast(':').removePrefix(":")
                 } else {
@@ -251,15 +225,11 @@ internal class FeuilleTachesFragment : BottomSheetDialogFragment() {
         }
 
         private object DiffRangeesTache : DiffUtil.ItemCallback<RangeeTache>() {
-            override fun areItemsTheSame(
-                ancienne: RangeeTache,
-                nouvelle: RangeeTache,
-            ): Boolean = ancienne.idCle == nouvelle.idCle
+            override fun areItemsTheSame(ancienne: RangeeTache, nouvelle: RangeeTache): Boolean =
+                ancienne.idCle == nouvelle.idCle
 
-            override fun areContentsTheSame(
-                ancienne: RangeeTache,
-                nouvelle: RangeeTache,
-            ): Boolean = ancienne == nouvelle
+            override fun areContentsTheSame(ancienne: RangeeTache, nouvelle: RangeeTache): Boolean =
+                ancienne == nouvelle
         }
     }
 }
@@ -274,17 +244,13 @@ internal sealed interface RangeeTache {
     val idCle: String
 
     /** En-tête de groupe (libellé localisable : le groupe ou « autres »). */
-    data class EnTete(
-        val libelle: String,
-    ) : RangeeTache {
+    data class EnTete(val libelle: String) : RangeeTache {
         override val idCle: String
             get() = "groupe-$libelle"
     }
 
     /** Tâche cliquable (lancement au clic). */
-    data class Tache(
-        val tache: InfoTache,
-    ) : RangeeTache {
+    data class Tache(val tache: InfoTache) : RangeeTache {
         override val idCle: String
             get() = "tache-${tache.chemin}"
     }
@@ -296,10 +262,7 @@ internal sealed interface RangeeTache {
  * dans l'ordre d'apparition — FONCTION PURE, testée ; le groupe SANS
  * groupe (`null`) devient une chaîne vide, le rendu le dit « autres ».
  */
-internal fun construireRangeesTaches(
-    taches: List<InfoTache>,
-    requete: String,
-): List<RangeeTache> {
+internal fun construireRangeesTaches(taches: List<InfoTache>, requete: String): List<RangeeTache> {
     val q = requete.trim().lowercase()
     val filtrees =
         taches.filter { tache ->

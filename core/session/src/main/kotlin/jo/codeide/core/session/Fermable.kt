@@ -25,9 +25,7 @@ public enum class RaisonFermeture {
  *
  * @property raison pourquoi la session se ferme.
  */
-public data class ContexteFermeture(
-    public val raison: RaisonFermeture,
-)
+public data class ContexteFermeture(public val raison: RaisonFermeture)
 
 /**
  * Contrat d'une ressource qui participe à la fermeture propre d'une

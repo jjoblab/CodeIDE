@@ -88,11 +88,7 @@ class CrashHandler internal constructor(
      * Jusqu'à l'appel, un plantage produit un rapport sans filons ni vidage
      * — dégradation acceptée, jamais un échec.
      */
-    fun brancherJournalisation(
-        sessionId: () -> String,
-        breadcrumbs: () -> List<LogEntry>,
-        flush: (Long) -> Unit,
-    ) {
+    fun brancherJournalisation(sessionId: () -> String, breadcrumbs: () -> List<LogEntry>, flush: (Long) -> Unit) {
         inputs.sessionId = sessionId
         inputs.breadcrumbs = breadcrumbs
         inputs.flush = flush
@@ -109,10 +105,7 @@ class CrashHandler internal constructor(
         inputs.lastScreenTracker.onNavigatedTo(ecran)
     }
 
-    override fun uncaughtException(
-        thread: Thread,
-        throwable: Throwable,
-    ) {
+    override fun uncaughtException(thread: Thread, throwable: Throwable) {
         if (!garde.compareAndSet(false, true)) {
             deleguer(thread, throwable)
             return
@@ -167,10 +160,7 @@ class CrashHandler internal constructor(
     /** Durée écoulée depuis l'installation (proche du démarrage). */
     private fun dureeProcessusMs(): Long = (System.nanoTime() - debutProcessusNanos) / NANOS_PAR_MILLISECONDE
 
-    private fun deleguer(
-        thread: Thread,
-        throwable: Throwable,
-    ) {
+    private fun deleguer(thread: Thread, throwable: Throwable) {
         previous?.uncaughtException(thread, throwable)
     }
 
@@ -236,21 +226,15 @@ class CrashHandler internal constructor(
  * Gestionnaire du processus `:crash` (section 5.8) : mode « sûr » — aucune
  * écriture, aucun écran, délégation immédiate au gestionnaire précédent.
  */
-private class SafeCrashHandler(
-    private val precedent: Thread.UncaughtExceptionHandler?,
-) : Thread.UncaughtExceptionHandler {
-    override fun uncaughtException(
-        thread: Thread,
-        throwable: Throwable,
-    ) {
+private class SafeCrashHandler(private val precedent: Thread.UncaughtExceptionHandler?) :
+    Thread.UncaughtExceptionHandler {
+    override fun uncaughtException(thread: Thread, throwable: Throwable) {
         precedent?.uncaughtException(thread, throwable)
     }
 }
 
 /** Lancement de production : intent explicite `NEW_TASK | CLEAR_TASK`. */
-internal class IntentActivityLauncher(
-    private val context: Context,
-) : ActivityLauncher {
+internal class IntentActivityLauncher(private val context: Context) : ActivityLauncher {
     override fun launchCrashScreen(reportId: String) {
         val intent =
             Intent(context, CrashActivity::class.java)

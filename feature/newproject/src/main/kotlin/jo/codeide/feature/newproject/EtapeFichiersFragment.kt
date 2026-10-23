@@ -29,10 +29,7 @@ class EtapeFichiersFragment : EtapeFragment<EtapeFichiersBinding>() {
         attachToRoot: Boolean,
     ): EtapeFichiersBinding = EtapeFichiersBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.interrupteurReadme.setOnCheckedChangeListener { _, inclus ->
@@ -95,14 +92,13 @@ class EtapeFichiersFragment : EtapeFragment<EtapeFichiersBinding>() {
     }
 
     /** Libellé localisé d'une licence (liste déroulante et récapitulatif). */
-    private fun libelleLicence(licence: License): String =
-        when (licence) {
-            License.NONE -> getString(R.string.wizard_licence_aucune)
-            License.MIT -> getString(R.string.wizard_licence_mit)
-            License.APACHE_2_0 -> getString(R.string.wizard_licence_apache)
-            License.GPL_3_0 -> getString(R.string.wizard_licence_gpl)
-            License.BSD_3_CLAUSE -> getString(R.string.wizard_licence_bsd)
-        }
+    private fun libelleLicence(licence: License): String = when (licence) {
+        License.NONE -> getString(R.string.wizard_licence_aucune)
+        License.MIT -> getString(R.string.wizard_licence_mit)
+        License.APACHE_2_0 -> getString(R.string.wizard_licence_apache)
+        License.GPL_3_0 -> getString(R.string.wizard_licence_gpl)
+        License.BSD_3_CLAUSE -> getString(R.string.wizard_licence_bsd)
+    }
 
     private companion object {
         /** Langues du contenu (codes du moteur, section 11). */
