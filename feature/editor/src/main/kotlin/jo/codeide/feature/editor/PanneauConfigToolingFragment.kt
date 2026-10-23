@@ -60,19 +60,12 @@ class PanneauConfigToolingFragment : Fragment() {
      *  distinguent — plus jamais de drapeau armé par le rendu). */
     private val saisieArguments = SaisieArguments()
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentConfigToolingBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         // Retour en tête (§3.3) : la flèche ramène à la console du panneau.
         liaison.toolbarConfigTooling.setNavigationOnClickListener { surFermeture?.invoke() }
 
@@ -155,11 +148,10 @@ class PanneauConfigToolingFragment : Fragment() {
     }
 
     /** Libellé localisé de l'état de connexion. */
-    private fun libelleConnexion(connexion: EtatConnexion): String =
-        when (connexion) {
-            EtatConnexion.CONNECTEE -> getString(R.string.editor_config_connexion_connecte)
-            EtatConnexion.EN_CONNEXION -> getString(R.string.editor_config_connexion_demarrage)
-            EtatConnexion.DECONNECTEE -> getString(R.string.editor_config_connexion_deconnecte)
-            EtatConnexion.ECHOUEE -> getString(R.string.editor_config_connexion_echoue)
-        }
+    private fun libelleConnexion(connexion: EtatConnexion): String = when (connexion) {
+        EtatConnexion.CONNECTEE -> getString(R.string.editor_config_connexion_connecte)
+        EtatConnexion.EN_CONNEXION -> getString(R.string.editor_config_connexion_demarrage)
+        EtatConnexion.DECONNECTEE -> getString(R.string.editor_config_connexion_deconnecte)
+        EtatConnexion.ECHOUEE -> getString(R.string.editor_config_connexion_echoue)
+    }
 }

@@ -22,10 +22,7 @@ public class ChangeSetIaCourant {
  * @property echecsConsecutifsMax nombre d'échecs/refus consécutifs avant
  * arrêt (boucle folle : l'agent tourne en rond ou est bloqué).
  */
-public data class LimitesAgentIa(
-    public val maxEtapes: Int = 25,
-    public val echecsConsecutifsMax: Int = 3,
-) {
+public data class LimitesAgentIa(public val maxEtapes: Int = 25, public val echecsConsecutifsMax: Int = 3) {
     init {
         require(maxEtapes >= 1) { "au moins une étape" }
         require(echecsConsecutifsMax >= 1) { "au moins un échec toléré" }

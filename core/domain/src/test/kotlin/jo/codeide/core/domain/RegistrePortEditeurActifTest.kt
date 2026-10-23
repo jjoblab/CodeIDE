@@ -49,20 +49,16 @@ class RegistrePortEditeurActifTest {
     }
 
     /** Port minimal de test — le contrat sera implémenté par l'éditeur (IA-5). */
-    private fun portFaux(revision: Long): PortEditeurActif =
-        object : PortEditeurActif {
-            override val cheminRelatifFichier: String? = null
+    private fun portFaux(revision: Long): PortEditeurActif = object : PortEditeurActif {
+        override val cheminRelatifFichier: String? = null
 
-            override val selection: SelectionEditeur? = null
+        override val selection: SelectionEditeur? = null
 
-            override val diagnostics: List<DiagnosticEditeur> = emptyList()
+        override val diagnostics: List<DiagnosticEditeur> = emptyList()
 
-            override fun revision(): Long = revision
+        override fun revision(): Long = revision
 
-            override fun appliquerRemplacement(
-                debut: Int,
-                fin: Int,
-                texte: String,
-            ): AppResult<Unit> = AppResult.Success(Unit)
-        }
+        override fun appliquerRemplacement(debut: Int, fin: Int, texte: String): AppResult<Unit> =
+            AppResult.Success(Unit)
+    }
 }

@@ -85,14 +85,13 @@ public data class FlattenedException(
      * message absent et doit rendre `null` pour le laisser absent.
      * @return une copie dont tous les messages sont transformés.
      */
-    public fun transformMessages(transform: (String?) -> String?): FlattenedException =
-        FlattenedException(
-            className = className,
-            message = transform(message),
-            frames = frames,
-            cause = cause?.transformMessages(transform),
-            suppressed = suppressed.map { it.transformMessages(transform) },
-        )
+    public fun transformMessages(transform: (String?) -> String?): FlattenedException = FlattenedException(
+        className = className,
+        message = transform(message),
+        frames = frames,
+        cause = cause?.transformMessages(transform),
+        suppressed = suppressed.map { it.transformMessages(transform) },
+    )
 }
 
 /**
@@ -100,27 +99,23 @@ public data class FlattenedException(
  * tant que la profondeur le permet — les exceptions supprimées de chaque
  * niveau sont aplaties de la même façon (une seule passe, bornée).
  */
-private fun aplatir(
-    throwable: Throwable,
-    maxFrames: Int,
-    causesRestantes: Int,
-): FlattenedException =
+private fun aplatir(throwable: Throwable, maxFrames: Int, causesRestantes: Int): FlattenedException =
     FlattenedException(
         className = throwable.javaClass.name,
         message = throwable.message,
         frames = throwable.stackTrace.map { it.toString() }.take(maxFrames),
         cause =
-            if (causesRestantes <= 0) {
-                null
-            } else {
-                throwable.cause?.let { aplatir(it, maxFrames, causesRestantes - 1) }
-            },
+        if (causesRestantes <= 0) {
+            null
+        } else {
+            throwable.cause?.let { aplatir(it, maxFrames, causesRestantes - 1) }
+        },
         suppressed =
-            if (causesRestantes <= 0) {
-                emptyList()
-            } else {
-                throwable.suppressed
-                    .take(FlattenedException.DEFAULT_MAX_SUPPRESSED)
-                    .map { aplatir(it, maxFrames, causesRestantes - 1) }
-            },
+        if (causesRestantes <= 0) {
+            emptyList()
+        } else {
+            throwable.suppressed
+                .take(FlattenedException.DEFAULT_MAX_SUPPRESSED)
+                .map { aplatir(it, maxFrames, causesRestantes - 1) }
+        },
     )

@@ -94,17 +94,16 @@ public object LogRedactor {
      * journal, message d'exception…).
      * @return le texte masqué, prêt à être persisté ou affiché.
      */
-    public fun redact(text: String): String =
-        text
-            .replace(regexCourriel, MASK_COURRIEL)
-            .replace(regexUriContenu) { correspondance -> epurerUriContenu(correspondance) }
-            .replace(regexUriFichier) { "file://$MASK_CHEMIN" }
-            .replace(regexCheminAbsolu, MASK_CHEMIN)
-            .replace(regexAuthorization, MASK_SECRET)
-            .replace(regexBearer, MASK_SECRET)
-            .replace(regexCleApi, MASK_SECRET)
-            .replace(regexCleSk, MASK_SECRET)
-            .replace(regexCleAiza, MASK_SECRET)
+    public fun redact(text: String): String = text
+        .replace(regexCourriel, MASK_COURRIEL)
+        .replace(regexUriContenu) { correspondance -> epurerUriContenu(correspondance) }
+        .replace(regexUriFichier) { "file://$MASK_CHEMIN" }
+        .replace(regexCheminAbsolu, MASK_CHEMIN)
+        .replace(regexAuthorization, MASK_SECRET)
+        .replace(regexBearer, MASK_SECRET)
+        .replace(regexCleApi, MASK_SECRET)
+        .replace(regexCleSk, MASK_SECRET)
+        .replace(regexCleAiza, MASK_SECRET)
 
     /**
      * Expurgation RENFORCÉE pour les messages issus du transport IA
@@ -137,10 +136,9 @@ public object LogRedactor {
      * Hache un identifiant en SHA-256 tronqué, hexadécimal — déterministe
      * (même entrée, même sortie) mais non réversible de fait.
      */
-    private fun hacher(identifiant: String): String =
-        MessageDigest
-            .getInstance("SHA-256")
-            .digest(identifiant.toByteArray(Charsets.UTF_8))
-            .take(TAILLE_HACHAGE / 2)
-            .joinToString(separator = "") { octet -> "%02x".format(octet) }
+    private fun hacher(identifiant: String): String = MessageDigest
+        .getInstance("SHA-256")
+        .digest(identifiant.toByteArray(Charsets.UTF_8))
+        .take(TAILLE_HACHAGE / 2)
+        .joinToString(separator = "") { octet -> "%02x".format(octet) }
 }

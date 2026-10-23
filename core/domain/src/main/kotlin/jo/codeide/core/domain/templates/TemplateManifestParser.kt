@@ -69,10 +69,7 @@ internal object TemplateManifestParser {
      * @throws TemplateManifestException en cas d'erreur, message explicite.
      */
     @Suppress("SwallowedException") // Illisible -> TemplateManifestException explicite (jamais avalée).
-    fun analyser(
-        octets: ByteArray,
-        idRepertoire: String,
-    ): ProjectTemplate {
+    fun analyser(octets: ByteArray, idRepertoire: String): ProjectTemplate {
         val texte = decoderUtf8Strict(octets)
         val manifeste =
             try {
@@ -262,49 +259,48 @@ internal object TemplateManifestParser {
     }
 
     /** Conversion DTO validé → modèle public. */
-    private fun convertir(manifeste: ManifesteTemplateJson): ProjectTemplate =
-        ProjectTemplate(
-            id = TemplateId(manifeste.id),
-            templateVersion = manifeste.templateVersion,
-            nameKey = manifeste.nameKey,
-            descriptionKey = manifeste.descriptionKey,
-            category = manifeste.category,
-            iconKey = manifeste.iconKey,
-            tags = manifeste.tags,
-            parameters =
-                manifeste.parameters.map { parametre ->
-                    TemplateParameter(
-                        id = parametre.id,
-                        type = TemplateParameterType.valueOf(parametre.type),
-                        labelKey = parametre.labelKey,
-                        helpKey = parametre.helpKey,
-                        choices = parametre.choices,
-                        defaultValue = parametre.default,
-                        defaultFrom = parametre.defaultFrom,
-                        validator = parametre.validator,
-                        visibleWhen = parametre.visibleWhen,
-                        section = TemplateSection.valueOf(parametre.section),
-                        persist = parametre.persist,
-                    )
-                },
-            computedVariables =
-                manifeste.computed.map { variable ->
-                    TemplateComputedVariable(
-                        name = variable.name,
-                        expression = variable.expression,
-                    )
-                },
-            fichiers =
-                manifeste.files.map { fichier ->
-                    TemplateFile(
-                        chemin = fichier.path,
-                        source = fichier.source,
-                        binary = fichier.binary,
-                        whenExpression = fichier.whenExpr,
-                        group =
-                            TemplateFileGroup.entries
-                                .first { it.name.lowercase() == fichier.group.lowercase() },
-                    )
-                },
-        )
+    private fun convertir(manifeste: ManifesteTemplateJson): ProjectTemplate = ProjectTemplate(
+        id = TemplateId(manifeste.id),
+        templateVersion = manifeste.templateVersion,
+        nameKey = manifeste.nameKey,
+        descriptionKey = manifeste.descriptionKey,
+        category = manifeste.category,
+        iconKey = manifeste.iconKey,
+        tags = manifeste.tags,
+        parameters =
+        manifeste.parameters.map { parametre ->
+            TemplateParameter(
+                id = parametre.id,
+                type = TemplateParameterType.valueOf(parametre.type),
+                labelKey = parametre.labelKey,
+                helpKey = parametre.helpKey,
+                choices = parametre.choices,
+                defaultValue = parametre.default,
+                defaultFrom = parametre.defaultFrom,
+                validator = parametre.validator,
+                visibleWhen = parametre.visibleWhen,
+                section = TemplateSection.valueOf(parametre.section),
+                persist = parametre.persist,
+            )
+        },
+        computedVariables =
+        manifeste.computed.map { variable ->
+            TemplateComputedVariable(
+                name = variable.name,
+                expression = variable.expression,
+            )
+        },
+        fichiers =
+        manifeste.files.map { fichier ->
+            TemplateFile(
+                chemin = fichier.path,
+                source = fichier.source,
+                binary = fichier.binary,
+                whenExpression = fichier.whenExpr,
+                group =
+                TemplateFileGroup.entries
+                    .first { it.name.lowercase() == fichier.group.lowercase() },
+            )
+        },
+    )
 }

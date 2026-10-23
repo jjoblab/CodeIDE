@@ -83,16 +83,10 @@ public object ValidationAttribut {
         public data object Valide : Resultat
 
         /** La valeur s'écrit QUAND MÊME, message d'avertissement affiché. */
-        public data class Avertissement(
-            val genre: GenreMessage,
-            val arguments: List<String> = emptyList(),
-        ) : Resultat
+        public data class Avertissement(val genre: GenreMessage, val arguments: List<String> = emptyList()) : Resultat
 
         /** La valeur NE S'ÉCRIT PAS, message d'erreur affiché. */
-        public data class Erreur(
-            val genre: GenreMessage,
-            val arguments: List<String> = emptyList(),
-        ) : Resultat
+        public data class Erreur(val genre: GenreMessage, val arguments: List<String> = emptyList()) : Resultat
     }
 
     /** Les positions des fragments dans `arguments` (les genres les nomment). */
@@ -135,11 +129,7 @@ public object ValidationAttribut {
      * (même rôle — la maquette partage `vCol` entre `android:background`
      * et les teintes).
      */
-    public fun couleur(
-        valeur: String?,
-        couleurs: Set<String>,
-        drawables: Set<String>,
-    ): Resultat {
+    public fun couleur(valeur: String?, couleurs: Set<String>, drawables: Set<String>): Resultat {
         if (valeur.isNullOrEmpty()) return Resultat.Valide
         return when {
             HEX.matches(valeur) -> {
@@ -182,11 +172,7 @@ public object ValidationAttribut {
      * (un type absent de l'index n'est PAS vérifiable — miroir `set`
      * nul : pas d'avertissement, le RENDU tranchera).
      */
-    public fun ressource(
-        valeur: String?,
-        types: List<String>,
-        index: Map<String, Set<String>>,
-    ): Resultat {
+    public fun ressource(valeur: String?, types: List<String>, index: Map<String, Set<String>>): Resultat {
         if (valeur.isNullOrEmpty()) return Resultat.Valide
         val correspondance = REFERENCE.find(valeur)
         val type = correspondance?.groupValues?.get(1).orEmpty()
@@ -237,11 +223,7 @@ public object ValidationAttribut {
      * bornes FORMATÉES (miroir `'Valeur entre ' + c.min + ' et ' +
      * c.max + '.'` — jamais de « 1.0 » pour 1).
      */
-    public fun curseur(
-        saisie: String,
-        min: Float,
-        max: Float,
-    ): Resultat {
+    public fun curseur(saisie: String, min: Float, max: Float): Resultat {
         val nombre = saisie.trim().toFloatOrNull()
         return if (nombre != null && nombre >= min && nombre <= max) {
             Resultat.Valide
@@ -259,10 +241,7 @@ public object ValidationAttribut {
      * qui n'écrit RIEN (miroir `!(+x > 0 && +y > 0)`). Les deux champs
      * VIDES ne passent PAS par ici : c'est le RETRAIT, réglé au liage.
      */
-    public fun ratio(
-        a: String,
-        b: String,
-    ): Resultat {
+    public fun ratio(a: String, b: String): Resultat {
         val nombreA = a.trim().toFloatOrNull()
         val nombreB = b.trim().toFloatOrNull()
         return if (positif(nombreA) && positif(nombreB)) {
@@ -289,12 +268,11 @@ public object ValidationAttribut {
      * le VIDE est une ERREUR aussi (la rangée exige un nom ET une valeur,
      * jamais d'écriture hasardeuse).
      */
-    public fun nomAttributLibre(nom: String): Resultat =
-        if (NOM_LIBRE.matches(nom.trim())) {
-            Resultat.Valide
-        } else {
-            Resultat.Erreur(GenreMessage.NOM_ATTRIBUT_LIBRE)
-        }
+    public fun nomAttributLibre(nom: String): Resultat = if (NOM_LIBRE.matches(nom.trim())) {
+        Resultat.Valide
+    } else {
+        Resultat.Erreur(GenreMessage.NOM_ATTRIBUT_LIBRE)
+    }
 
     /**
      * Un nom d'ACTIVITÉ pour `tools:context` (PE11 § 7 — miroir le
@@ -310,12 +288,11 @@ public object ValidationAttribut {
      * (miroir `showMsg(f, {err})` — le champ garde son contenu, le
      * message s'affiche dessous).
      */
-    public fun nomActivite(valeur: String): Resultat =
-        if (valeur.isBlank() || NOM_ACTIVITE.matches(valeur.trim())) {
-            Resultat.Valide
-        } else {
-            Resultat.Erreur(GenreMessage.NOM_ACTIVITE_ATTENDU)
-        }
+    public fun nomActivite(valeur: String): Resultat = if (valeur.isBlank() || NOM_ACTIVITE.matches(valeur.trim())) {
+        Resultat.Valide
+    } else {
+        Resultat.Erreur(GenreMessage.NOM_ACTIVITE_ATTENDU)
+    }
 
     /**
      * Un nom de MÉTHODE Java pour `android:onClick` (PE11 § 7 — miroir le
@@ -328,10 +305,9 @@ public object ValidationAttribut {
      * Valide une saisie de `android:onClick` : une ERREUR n'écrit RIEN
      * (miroir `showMsg(f, {err})`). Le VIDE reste VALIDE (RETRAIT).
      */
-    public fun nomMethodeJava(valeur: String): Resultat =
-        if (valeur.isBlank() || NOM_METHODE.matches(valeur.trim())) {
-            Resultat.Valide
-        } else {
-            Resultat.Erreur(GenreMessage.NOM_METHODE_ATTENDU)
-        }
+    public fun nomMethodeJava(valeur: String): Resultat = if (valeur.isBlank() || NOM_METHODE.matches(valeur.trim())) {
+        Resultat.Valide
+    } else {
+        Resultat.Erreur(GenreMessage.NOM_METHODE_ATTENDU)
+    }
 }

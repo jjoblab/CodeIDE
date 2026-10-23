@@ -38,18 +38,14 @@ class FileSinkTest {
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private fun entree(
-        niveau: LogLevel = LogLevel.INFO,
-        message: String = "une entrée",
-    ): LogEntry =
-        LogEntry(
-            timestampMillis = 0L,
-            sessionId = "s",
-            level = niveau,
-            tag = "Test",
-            threadName = "main",
-            message = message,
-        )
+    private fun entree(niveau: LogLevel = LogLevel.INFO, message: String = "une entrée"): LogEntry = LogEntry(
+        timestampMillis = 0L,
+        sessionId = "s",
+        level = niveau,
+        tag = "Test",
+        threadName = "main",
+        message = message,
+    )
 
     private fun sink(
         dossier: File,
@@ -82,41 +78,39 @@ class FileSinkTest {
     }
 
     @Test
-    fun `regroupe les écritures dans la fenêtre de 500 ms`() =
-        runTest {
-            val horloge = TimeProvider { currentTime }
-            val sink = sink(dossierTemporaire.root, horloge)
-            val store = JsonlLogStore(dossierTemporaire.root, json)
-            sink.start(backgroundScope)
+    fun `regroupe les écritures dans la fenêtre de 500 ms`() = runTest {
+        val horloge = TimeProvider { currentTime }
+        val sink = sink(dossierTemporaire.root, horloge)
+        val store = JsonlLogStore(dossierTemporaire.root, json)
+        sink.start(backgroundScope)
 
-            sink.write(entree(message = "première"))
-            advanceTimeBy(LoggingLimits.BATCH_WINDOW_MS - 1)
-            runCurrent()
-            // La fenêtre n'est pas écoulée : rien n'est encore sur disque.
-            assertEquals(0, store.readAll().size)
+        sink.write(entree(message = "première"))
+        advanceTimeBy(LoggingLimits.BATCH_WINDOW_MS - 1)
+        runCurrent()
+        // La fenêtre n'est pas écoulée : rien n'est encore sur disque.
+        assertEquals(0, store.readAll().size)
 
-            advanceTimeBy(1)
-            runCurrent()
+        advanceTimeBy(1)
+        runCurrent()
 
-            assertEquals(1, store.readAll().size)
-            assertEquals("première", store.readAll().single().message)
-        }
+        assertEquals(1, store.readAll().size)
+        assertEquals("première", store.readAll().single().message)
+    }
 
     @Test
-    fun `une entrée ERROR force l'écriture immédiate`() =
-        runTest {
-            val horloge = TimeProvider { currentTime }
-            val store = JsonlLogStore(dossierTemporaire.root, json)
-            val sink =
-                FileSink(store, json, horloge, { LogConfig() }) { }
-            sink.start(backgroundScope)
+    fun `une entrée ERROR force l'écriture immédiate`() = runTest {
+        val horloge = TimeProvider { currentTime }
+        val store = JsonlLogStore(dossierTemporaire.root, json)
+        val sink =
+            FileSink(store, json, horloge, { LogConfig() }) { }
+        sink.start(backgroundScope)
 
-            sink.write(entree(LogLevel.ERROR, "urgente"))
-            runCurrent() // sans avancer le temps virtuel
+        sink.write(entree(LogLevel.ERROR, "urgente"))
+        runCurrent() // sans avancer le temps virtuel
 
-            assertEquals(1, store.readAll().size)
-            assertEquals(LogLevel.ERROR, store.readAll().single().level)
-        }
+        assertEquals(1, store.readAll().size)
+        assertEquals(LogLevel.ERROR, store.readAll().single().level)
+    }
 
     @Test
     fun `flushBlocking écrit tout ce qui précède et rend la main`() {

@@ -12,19 +12,16 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
  * boutons, pour que chaque étape — notamment le dossier de travail et
  * son test d'écriture — soit un geste délibéré (étape 5 du plan).
  */
-class OnboardingPagerAdapter(
-    fragment: Fragment,
-) : FragmentStateAdapter(fragment) {
+class OnboardingPagerAdapter(fragment: Fragment) : FragmentStateAdapter(fragment) {
     override fun getItemCount(): Int = PageOnboarding.entries.size
 
-    override fun createFragment(position: Int): Fragment =
-        when (PageOnboarding.entries[position]) {
-            PageOnboarding.BIENVENUE -> BienvenuePage()
-            PageOnboarding.DOSSIER -> DossierPage()
-            PageOnboarding.TERMINAL -> TerminalPage()
-            PageOnboarding.NOTIFICATIONS -> NotificationsPage()
-            PageOnboarding.APPARENCE -> ApparencePage()
-            PageOnboarding.PROFIL -> ProfilPage()
-            PageOnboarding.TERMINE -> TerminePage()
-        }
+    override fun createFragment(position: Int): Fragment = when (PageOnboarding.entries[position]) {
+        PageOnboarding.BIENVENUE -> BienvenuePage()
+        PageOnboarding.DOSSIER -> DossierPage()
+        PageOnboarding.TERMINAL -> TerminalPage()
+        PageOnboarding.NOTIFICATIONS -> NotificationsPage()
+        PageOnboarding.APPARENCE -> ApparencePage()
+        PageOnboarding.PROFIL -> ProfilPage()
+        PageOnboarding.TERMINE -> TerminePage()
+    }
 }

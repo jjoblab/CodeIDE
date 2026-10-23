@@ -45,20 +45,13 @@ public class IaTiroirFragment : Fragment() {
         super.onDetach()
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val liaison = FragmentIaTiroirBinding.inflate(inflater, container, false)
         liaisonTiroir = liaison
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val liaison = liaisonTiroir ?: return
         val onglets = liaison.ongletsIa
@@ -197,10 +190,7 @@ public class IaTiroirFragment : Fragment() {
 
     /** Détache les fragments enfants autres que la destination + masque
      * la vue « bientôt » (un seul écran visible à la fois). */
-    private fun masquerAutres(
-        liaison: FragmentIaTiroirBinding,
-        tagCible: String,
-    ) {
+    private fun masquerAutres(liaison: FragmentIaTiroirBinding, tagCible: String) {
         val masquerVue = tagCible != TAG_BIENTOT
         val vue = liaisonBientot
         if (vue != null && vue.root.parent === liaison.conteneurIa) {
@@ -217,10 +207,7 @@ public class IaTiroirFragment : Fragment() {
     /** État « bientôt » générique — aucun contrôle sans effet (ADR 0059).
      * La vue est gonflée UNE fois puis masquée/affichée : elle ne se
      * cumule jamais par-dessus le chat (vue ajoutée au conteneur). */
-    private fun afficherBientot(
-        liaison: FragmentIaTiroirBinding,
-        position: Int,
-    ) {
+    private fun afficherBientot(liaison: FragmentIaTiroirBinding, position: Int) {
         masquerAutres(liaison, TAG_BIENTOT)
         val vue =
             liaisonBientot ?: VueIaBientotBinding

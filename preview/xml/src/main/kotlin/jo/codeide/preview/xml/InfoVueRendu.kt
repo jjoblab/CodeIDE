@@ -145,10 +145,7 @@ public class InfoVueRendu(
         cookie = parcel.readString() ?: "",
     )
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        drapeaux: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, drapeaux: Int) {
         parcel.writeInt(gauche)
         parcel.writeInt(haut)
         parcel.writeInt(droite)
@@ -188,10 +185,7 @@ public class InfoVueRendu(
     public val selectable: Boolean get() = debutElement >= 0 && finElement > debutElement
 
     /** La vue contient-elle le point (coordonnées bitmap) ? */
-    public fun contient(
-        x: Int,
-        y: Int,
-    ): Boolean = x >= gauche && x < droite && y >= haut && y < bas
+    public fun contient(x: Int, y: Int): Boolean = x >= gauche && x < droite && y >= haut && y < bas
 
     /** Largeur rendue (px). */
     public val largeurPx: Int get() = droite - gauche
@@ -199,25 +193,24 @@ public class InfoVueRendu(
     /** Hauteur rendue (px). */
     public val hauteurPx: Int get() = bas - haut
 
-    override fun equals(other: Any?): Boolean =
-        other is InfoVueRendu &&
-            other.gauche == gauche && other.haut == haut &&
-            other.droite == droite && other.bas == bas &&
-            other.libelle == libelle &&
-            other.debutElement == debutElement && other.finElement == finElement &&
-            other.indiceParent == indiceParent && other.profondeur == profondeur &&
-            other.classe == classe && other.idRes == idRes &&
-            other.margesGauche == margesGauche && other.margesHaut == margesHaut &&
-            other.margesDroite == margesDroite && other.margesBas == margesBas &&
-            other.paddingGauche == paddingGauche && other.paddingHaut == paddingHaut &&
-            other.paddingDroite == paddingDroite && other.paddingBas == paddingBas &&
-            other.cliquable == cliquable && other.conteneur == conteneur &&
-            other.orientation == orientation &&
-            other.texteTronque == texteTronque &&
-            other.sansContentDescription == sansContentDescription &&
-            other.texteCodeDur == texteCodeDur &&
-            other.famille == famille &&
-            other.cookie == cookie
+    override fun equals(other: Any?): Boolean = other is InfoVueRendu &&
+        other.gauche == gauche && other.haut == haut &&
+        other.droite == droite && other.bas == bas &&
+        other.libelle == libelle &&
+        other.debutElement == debutElement && other.finElement == finElement &&
+        other.indiceParent == indiceParent && other.profondeur == profondeur &&
+        other.classe == classe && other.idRes == idRes &&
+        other.margesGauche == margesGauche && other.margesHaut == margesHaut &&
+        other.margesDroite == margesDroite && other.margesBas == margesBas &&
+        other.paddingGauche == paddingGauche && other.paddingHaut == paddingHaut &&
+        other.paddingDroite == paddingDroite && other.paddingBas == paddingBas &&
+        other.cliquable == cliquable && other.conteneur == conteneur &&
+        other.orientation == orientation &&
+        other.texteTronque == texteTronque &&
+        other.sansContentDescription == sansContentDescription &&
+        other.texteCodeDur == texteCodeDur &&
+        other.famille == famille &&
+        other.cookie == cookie
 
     override fun hashCode(): Int {
         var resultat = gauche

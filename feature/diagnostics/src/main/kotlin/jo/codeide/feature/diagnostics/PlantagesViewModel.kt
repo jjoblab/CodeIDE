@@ -32,84 +32,84 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class PlantagesViewModel
-    @Inject
-    constructor(
-        observeRapports: ObserveCrashReportsUseCase,
-        private val supprimerRapport: DeleteCrashReportUseCase,
-        private val supprimerTous: DeleteAllCrashReportsUseCase,
-        private val exporterRapports: ExportCrashReportsUseCase,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatPlantages())
+@Inject
+constructor(
+    observeRapports: ObserveCrashReportsUseCase,
+    private val supprimerRapport: DeleteCrashReportUseCase,
+    private val supprimerTous: DeleteAllCrashReportsUseCase,
+    private val exporterRapports: ExportCrashReportsUseCase,
+) : ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatPlantages())
 
-        /** État observable de l'historique. */
-        val etat: StateFlow<EtatPlantages> = etatInterne.asStateFlow()
+    /** État observable de l'historique. */
+    val etat: StateFlow<EtatPlantages> = etatInterne.asStateFlow()
 
-        private val effetsInterne = Channel<EffetPlantages>(Channel.BUFFERED)
+    private val effetsInterne = Channel<EffetPlantages>(Channel.BUFFERED)
 
-        /** Effets ponctuels (consommés une fois). */
-        val effets = effetsInterne.receiveAsFlow()
+    /** Effets ponctuels (consommés une fois). */
+    val effets = effetsInterne.receiveAsFlow()
 
-        init {
-            observeRapports()
-                .onEach { rapports ->
-                    etatInterne.update {
-                        it.copy(chargement = false, rapports = rapports, erreur = null)
-                    }
-                }.launchIn(viewModelScope)
-        }
-
-        /** Traite une action intentionnelle de l'onglet. */
-        fun onAction(action: ActionPlantages) {
-            when (action) {
-                is ActionPlantages.Supprimer -> supprimer(action.id)
-                ActionPlantages.ToutSupprimer -> toutSupprimer()
-                ActionPlantages.Exporter -> exporter()
-            }
-        }
-
-        /** Supprime un rapport — la liste se re-émet via le flot du dépôt. */
-        private fun supprimer(id: String) {
-            viewModelScope.launch {
-                supprimerSilencieusement { supprimerRapport(id) }
-            }
-        }
-
-        /** Supprime tous les rapports — la liste se re-émet via le flot du dépôt. */
-        private fun toutSupprimer() {
-            viewModelScope.launch {
-                supprimerSilencieusement { supprimerTous() }
-            }
-        }
-
-        /** Produit l'archive de tous les rapports pour la feuille de partage. */
-        private fun exporter() {
-            viewModelScope.launch {
-                when (val resultat = exporterRapports()) {
-                    is AppResult.Success -> {
-                        effetsInterne.trySend(EffetPlantages.ArchivePrete(resultat.value))
-                    }
-
-                    is AppResult.Failure -> {
-                        etatInterne.update { it.copy(erreur = resultat.error) }
-                    }
-                }
-            }
-        }
-
-        /**
-         * Exécute une suppression en traduisant une éventuelle défaillance
-         * d'I/O en erreur typée — le résultat booléen/entier n'est pas un
-         * état : le flot du dépôt reste la seule vérité de la liste.
-         */
-        private suspend inline fun <T> supprimerSilencieusement(operation: () -> T) {
-            try {
-                operation()
-            } catch (annulation: CancellationException) {
-                throw annulation
-            } catch (e: IOException) {
+    init {
+        observeRapports()
+            .onEach { rapports ->
                 etatInterne.update {
-                    it.copy(erreur = AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+                    it.copy(chargement = false, rapports = rapports, erreur = null)
+                }
+            }.launchIn(viewModelScope)
+    }
+
+    /** Traite une action intentionnelle de l'onglet. */
+    fun onAction(action: ActionPlantages) {
+        when (action) {
+            is ActionPlantages.Supprimer -> supprimer(action.id)
+            ActionPlantages.ToutSupprimer -> toutSupprimer()
+            ActionPlantages.Exporter -> exporter()
+        }
+    }
+
+    /** Supprime un rapport — la liste se re-émet via le flot du dépôt. */
+    private fun supprimer(id: String) {
+        viewModelScope.launch {
+            supprimerSilencieusement { supprimerRapport(id) }
+        }
+    }
+
+    /** Supprime tous les rapports — la liste se re-émet via le flot du dépôt. */
+    private fun toutSupprimer() {
+        viewModelScope.launch {
+            supprimerSilencieusement { supprimerTous() }
+        }
+    }
+
+    /** Produit l'archive de tous les rapports pour la feuille de partage. */
+    private fun exporter() {
+        viewModelScope.launch {
+            when (val resultat = exporterRapports()) {
+                is AppResult.Success -> {
+                    effetsInterne.trySend(EffetPlantages.ArchivePrete(resultat.value))
+                }
+
+                is AppResult.Failure -> {
+                    etatInterne.update { it.copy(erreur = resultat.error) }
                 }
             }
         }
     }
+
+    /**
+     * Exécute une suppression en traduisant une éventuelle défaillance
+     * d'I/O en erreur typée — le résultat booléen/entier n'est pas un
+     * état : le flot du dépôt reste la seule vérité de la liste.
+     */
+    private suspend inline fun <T> supprimerSilencieusement(operation: () -> T) {
+        try {
+            operation()
+        } catch (annulation: CancellationException) {
+            throw annulation
+        } catch (e: IOException) {
+            etatInterne.update {
+                it.copy(erreur = AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+            }
+        }
+    }
+}

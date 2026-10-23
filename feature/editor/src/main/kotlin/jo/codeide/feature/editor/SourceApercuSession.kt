@@ -61,21 +61,14 @@ internal class SourceApercuSession(
     override var uriProjet: String? = uriProjet
 
     /** Mise à jour après déplacement/renommage du fichier (migration d'onglet). */
-    public fun migrer(
-        uri: String,
-        cheminRelatif: String,
-    ) {
+    public fun migrer(uri: String, cheminRelatif: String) {
         this.uri = uri
         this.cheminRelatif = cheminRelatif
     }
 
     override fun texte(): String = session.text
 
-    override fun remplacer(
-        debut: Int,
-        fin: Int,
-        remplacement: String,
-    ): Boolean {
+    override fun remplacer(debut: Int, fin: Int, remplacement: String): Boolean {
         val longueur = session.text.length
         // Contrat du port : `false` si la plage est HORS BORNES (jamais
         // d'exception, jamais de bornage silencieux — l'appelant décide).
@@ -95,10 +88,7 @@ internal class SourceApercuSession(
         return s.start to s.end
     }
 
-    override fun definirSelection(
-        debut: Int,
-        fin: Int,
-    ) {
+    override fun definirSelection(debut: Int, fin: Int) {
         session.setSelection(Selection.range(debut, fin))
     }
 
@@ -134,14 +124,9 @@ internal class SourceApercuSession(
      * UNE instance par [EcouteurMutation] (égalité par référence : le
      * retirer doit retomber sur le MÊME objet que l'ajout).
      */
-    private class EcouteurSession(
-        private val source: SourceApercu.EcouteurMutation,
-    ) : EditorSession.OnTextEditListener {
-        override fun onTextEdit(
-            debut: Int,
-            longueur: Int,
-            texte: String?,
-        ) {
+    private class EcouteurSession(private val source: SourceApercu.EcouteurMutation) :
+        EditorSession.OnTextEditListener {
+        override fun onTextEdit(debut: Int, longueur: Int, texte: String?) {
             source.surMutation()
         }
     }

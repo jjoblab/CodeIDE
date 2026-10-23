@@ -14,10 +14,7 @@ package jo.codeide.preview.xml
  */
 public object RessourcesProjetXml {
     /** Les NOMS d'entrées `balise` des textes de fichiers de valeurs, premier vu gagne. */
-    public fun noms(
-        textes: List<String>,
-        balise: String,
-    ): Set<String> {
+    public fun noms(textes: List<String>, balise: String): Set<String> {
         val motif = Regex("""<${Regex.escape(balise)}\s+name\s*=\s*"([^"]+)"""")
         val vus = mutableSetOf<String>()
         for (texte in textes) {

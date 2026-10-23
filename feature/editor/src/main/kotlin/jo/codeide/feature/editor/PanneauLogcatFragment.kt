@@ -99,19 +99,12 @@ class PanneauLogcatFragment : Fragment() {
     /** Format de la copie brute d'une ligne (HH:mm:ss.SSS). */
     private val formatLigneBrute = SimpleDateFormat("HH:mm:ss.SSS", Locale.ROOT)
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentPanneauLogcatBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         super.onViewCreated(vue, etat)
         brancherBarreOutils()
         brancherListe()
@@ -147,19 +140,9 @@ class PanneauLogcatFragment : Fragment() {
         // l'état du champ vit dans la vue, jamais d'écho vers le champ.
         liaison.champFiltre.addTextChangedListener(
             object : TextWatcher {
-                override fun beforeTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    nombre: Int,
-                    apres: Int,
-                ) = Unit
+                override fun beforeTextChanged(texte: CharSequence?, debut: Int, nombre: Int, apres: Int) = Unit
 
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) = Unit
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) = Unit
 
                 override fun afterTextChanged(texte: Editable?) {
                     viewModel.definirFiltreTexte(texte?.toString().orEmpty(), regexActive)
@@ -203,10 +186,7 @@ class PanneauLogcatFragment : Fragment() {
         liaison.listeLogcat.adapter = adaptateur
         liaison.listeLogcat.addOnScrollListener(
             object : RecyclerView.OnScrollListener() {
-                override fun onScrollStateChanged(
-                    liste: RecyclerView,
-                    etat: Int,
-                ) {
+                override fun onScrollStateChanged(liste: RecyclerView, etat: Int) {
                     // Un doigt touche la liste : le suivi s'arrête (honnête,
                     // spec § 4.3) — même si le doigt ne fait que suivre.
                     if (etat == RecyclerView.SCROLL_STATE_DRAGGING) {
@@ -214,11 +194,7 @@ class PanneauLogcatFragment : Fragment() {
                     }
                 }
 
-                override fun onScrolled(
-                    liste: RecyclerView,
-                    dx: Int,
-                    dy: Int,
-                ) {
+                override fun onScrolled(liste: RecyclerView, dx: Int, dy: Int) {
                     // Fond atteint (même en glissement) : le suivi reprend.
                     if (!liste.canScrollVertically(1)) {
                         suitFin = true
@@ -417,23 +393,19 @@ class PanneauLogcatFragment : Fragment() {
     }
 
     /** Libellé d'une session du menu : « nom (pid) · état ». */
-    private fun libelleSession(
-        session: SessionJournal,
-        suffixe: Int,
-    ): String =
+    private fun libelleSession(session: SessionJournal, suffixe: Int): String =
         getString(R.string.logcat_session_menu, session.identite.nomProcessus, session.identite.pid) +
             getString(suffixe)
 
     /** Libellé localisé d'un niveau du menu. */
-    private fun libelleNiveau(niveau: NiveauJournal): Int =
-        when (niveau) {
-            NiveauJournal.VERBEUX -> R.string.logcat_niveau_verbeux
-            NiveauJournal.DEBOGAGE -> R.string.logcat_niveau_debogage
-            NiveauJournal.INFO -> R.string.logcat_niveau_info
-            NiveauJournal.AVERTISSEMENT -> R.string.logcat_niveau_avertissement
-            NiveauJournal.ERREUR -> R.string.logcat_niveau_erreur
-            NiveauJournal.ASSERT -> R.string.logcat_niveau_assert
-        }
+    private fun libelleNiveau(niveau: NiveauJournal): Int = when (niveau) {
+        NiveauJournal.VERBEUX -> R.string.logcat_niveau_verbeux
+        NiveauJournal.DEBOGAGE -> R.string.logcat_niveau_debogage
+        NiveauJournal.INFO -> R.string.logcat_niveau_info
+        NiveauJournal.AVERTISSEMENT -> R.string.logcat_niveau_avertissement
+        NiveauJournal.ERREUR -> R.string.logcat_niveau_erreur
+        NiveauJournal.ASSERT -> R.string.logcat_niveau_assert
+    }
 
     private companion object {
         /** Fenêtre glissante d'une sortie à expliquer (lignes — lot IA-5). */

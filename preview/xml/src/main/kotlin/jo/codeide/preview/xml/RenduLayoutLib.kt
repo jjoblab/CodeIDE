@@ -75,20 +75,19 @@ public const val XML_MALFORME: String = "XML_MALFORME"
  * bandeau « Ligne n » (ADR 0134 D6) : la même traversée intégrale que
  * la validation, mais l'exception du parseur porte son numéro de ligne.
  */
-public fun ligneDeMalformation(texte: String): Int? =
-    try {
-        val fabrique = XmlPullParserFactory.newInstance()
-        val parseur = fabrique.newPullParser()
-        parseur.setInput(StringReader(texte))
-        while (parseur.next() != XmlPullParser.END_DOCUMENT) {
-            // La traversée complète suffit : toute malformation lève.
-        }
-        null
-    } catch (e: XmlPullParserException) {
-        e.lineNumber.takeIf { it > 0 }
-    } catch (_: IOException) {
-        null
+public fun ligneDeMalformation(texte: String): Int? = try {
+    val fabrique = XmlPullParserFactory.newInstance()
+    val parseur = fabrique.newPullParser()
+    parseur.setInput(StringReader(texte))
+    while (parseur.next() != XmlPullParser.END_DOCUMENT) {
+        // La traversée complète suffit : toute malformation lève.
     }
+    null
+} catch (e: XmlPullParserException) {
+    e.lineNumber.takeIf { it > 0 }
+} catch (_: IOException) {
+    null
+}
 
 /**
  * Validation XML complète (même stratégie que RenderService :
@@ -103,12 +102,11 @@ public fun xmlBienForme(texte: String): Boolean = ligneDeMalformation(texte) == 
  * bandeau « Ligne n ») : les erreurs SÉMANTIQUES (classe introuvable)
  * traversent l'inflater qui rapporte la ligne du tag dans son message.
  */
-internal fun ligneDeMessageRendu(message: String): Int? =
-    LIGNE_DANS_MESSAGE
-        .find(message)
-        ?.groupValues
-        ?.get(1)
-        ?.toIntOrNull()
+internal fun ligneDeMessageRendu(message: String): Int? = LIGNE_DANS_MESSAGE
+    .find(message)
+    ?.groupValues
+    ?.get(1)
+    ?.toIntOrNull()
 
 private val LIGNE_DANS_MESSAGE = Regex("line #(\\d+)")
 
@@ -127,10 +125,7 @@ internal fun directionDepuisLangue(langue: String?): Int = DirectionRendu.direct
 @Suppress("TooManyFunctions", "LargeClass") // Pipeline nommé de PE1, étendu en PE3 (profils, nuit,
 // genres, sélection) puis PE6c/PE11g (collecte enrichie, détections problèmes) : l'éclater disperserait
 // l'ordre des étapes — même exemption motivée qu'[EditionAttributsXml] (règle 16).
-public class RenduLayoutLib(
-    private val contexte: Context,
-    private val journal: AppLogger?,
-) {
+public class RenduLayoutLib(private val contexte: Context, private val journal: AppLogger?) {
     /** Inflater LayoutLib — construit une fois, réinitialisé par rendu. */
     private val inflater: BridgeInflater = BridgeInflater(contexte, ViewTagRegistry(false))
 
@@ -267,16 +262,16 @@ public class RenduLayoutLib(
             ligneDeMalformation(requete.texte)?.let { ligne ->
                 return ResultatPipeline(
                     rendu =
-                        ResultatRendu(
-                            ok = false,
-                            message = XML_MALFORME,
-                            ligne = ligne,
-                            largeur = 0,
-                            hauteur = 0,
-                            nombreVues = 0,
-                            dureeMs = 0,
-                            bitmap = null,
-                        ),
+                    ResultatRendu(
+                        ok = false,
+                        message = XML_MALFORME,
+                        ligne = ligne,
+                        largeur = 0,
+                        hauteur = 0,
+                        nombreVues = 0,
+                        dureeMs = 0,
+                        bitmap = null,
+                    ),
                     bitmap = null,
                 )
             }
@@ -290,32 +285,26 @@ public class RenduLayoutLib(
             val message = messageLisible(t)
             ResultatPipeline(
                 rendu =
-                    ResultatRendu(
-                        ok = false,
-                        message = message,
-                        ligne = ligneDeMessageRendu(message) ?: -1,
-                        largeur = 0,
-                        hauteur = 0,
-                        nombreVues = 0,
-                        dureeMs = 0,
-                        bitmap = null,
-                    ),
+                ResultatRendu(
+                    ok = false,
+                    message = message,
+                    ligne = ligneDeMessageRendu(message) ?: -1,
+                    largeur = 0,
+                    hauteur = 0,
+                    nombreVues = 0,
+                    dureeMs = 0,
+                    bitmap = null,
+                ),
                 bitmap = null,
             )
         }
     }
 
     /** Un rendu : le résultat AIDL + le bitmap (transport local seul). */
-    public class ResultatPipeline(
-        public val rendu: ResultatRendu,
-        public val bitmap: Bitmap?,
-    )
+    public class ResultatPipeline(public val rendu: ResultatRendu, public val bitmap: Bitmap?)
 
     /** LAYOUT : inflation → mesure/layout au profil → dessin + sélection P6. */
-    private fun rendreLayout(
-        requete: RequeteRendu,
-        debut: Long,
-    ): ResultatPipeline {
+    private fun rendreLayout(requete: RequeteRendu, debut: Long): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
         reconfigurerSiNecessaire(
             requete.dossierRes,
@@ -423,10 +412,7 @@ public class RenduLayoutLib(
     }
 
     /** DRAWABLE (PE3) : parsing LayoutLib → dessin à la taille intrinsèque. */
-    private fun rendreDrawable(
-        requete: RequeteRendu,
-        debut: Long,
-    ): ResultatPipeline {
+    private fun rendreDrawable(requete: RequeteRendu, debut: Long): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
         reconfigurerSiNecessaire(
             requete.dossierRes,
@@ -467,24 +453,21 @@ public class RenduLayoutLib(
     }
 
     /** VALEURS (PE3) : extraction des entrées → tableau bitmap. */
-    private fun rendreValeurs(
-        requete: RequeteRendu,
-        debut: Long,
-    ): ResultatPipeline {
+    private fun rendreValeurs(requete: RequeteRendu, debut: Long): ResultatPipeline {
         val densite = densiteProfil(requete.profil)
         val entrees =
             renduValeurs.extraire(requete.texte)
                 ?: return ResultatPipeline(
                     rendu =
-                        ResultatRendu(
-                            ok = false,
-                            message = "racine <resources> attendue pour un fichier de valeurs",
-                            largeur = 0,
-                            hauteur = 0,
-                            nombreVues = 0,
-                            dureeMs = 0,
-                            bitmap = null,
-                        ),
+                    ResultatRendu(
+                        ok = false,
+                        message = "racine <resources> attendue pour un fichier de valeurs",
+                        largeur = 0,
+                        hauteur = 0,
+                        nombreVues = 0,
+                        dureeMs = 0,
+                        bitmap = null,
+                    ),
                     bitmap = null,
                 )
         // PE6e-f : le tableau de valeurs suit l'orientation (largeur
@@ -569,11 +552,11 @@ public class RenduLayoutLib(
                 element?.fin ?: InfoVueRendu.SANS_ELEMENT,
                 attributs[indice],
                 texteCodeDur =
-                    if (element != null) {
-                        ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin)
-                    } else {
-                        false
-                    },
+                if (element != null) {
+                    ProblemesRendu.texteCodeDur(requete.texte, element.debut, element.fin)
+                } else {
+                    false
+                },
                 famille = familleDefinitive(attributs[indice], element?.nomBalise ?: ""),
                 cookie = cookie ?: "",
             )
@@ -637,10 +620,7 @@ public class RenduLayoutLib(
      * aplatie du collecteur. Un écart (impossible en synchrone, défense
      * X4) dégrade TOUT au repli — jamais de faux attribut.
      */
-    private fun collecterAttributsVues(
-        racine: View,
-        attendu: Int,
-    ): List<AttributsVue> {
+    private fun collecterAttributsVues(racine: View, attendu: Int): List<AttributsVue> {
         val resultat = mutableListOf<AttributsVue>()
 
         fun parcourir(vue: View) {
@@ -703,10 +683,7 @@ public class RenduLayoutLib(
      * l'information manque (repli défensif) — jamais pour une classe
      * réellement inconnue, qui reste [FamilleParent.AUTRE].
      */
-    private fun familleDefinitive(
-        attributs: AttributsVue,
-        balise: String,
-    ): FamilleParent =
+    private fun familleDefinitive(attributs: AttributsVue, balise: String): FamilleParent =
         if (attributs.remplacement || attributs.famille == null) {
             FamilleParent.deBalise(balise)
         } else {
@@ -717,11 +694,7 @@ public class RenduLayoutLib(
     private fun aplatir(racine: ViewInfoCollector.ViewInfo): List<ViewInfoAplatie> {
         val resultat = mutableListOf<ViewInfoAplatie>()
 
-        fun parcourir(
-            info: ViewInfoCollector.ViewInfo,
-            indiceParent: Int,
-            profondeur: Int,
-        ) {
+        fun parcourir(info: ViewInfoCollector.ViewInfo, indiceParent: Int, profondeur: Int) {
             val indice = resultat.size
             resultat.add(ViewInfoAplatie(info, indiceParent, profondeur))
             for (enfant in info.children) {
@@ -749,53 +722,49 @@ public class RenduLayoutLib(
             texteCodeDur: Boolean = false,
             famille: FamilleParent = FamilleParent.AUTRE,
             cookie: String = "",
-        ): InfoVueRendu =
-            InfoVueRendu(
-                gauche = info.left,
-                haut = info.top,
-                droite = info.right,
-                bas = info.bottom,
-                libelle = info.simpleName + (info.idName?.let { nom -> " @$nom" } ?: ""),
-                debutElement = debutElement,
-                finElement = finElement,
-                indiceParent = indiceParent,
-                profondeur = profondeur,
-                // PE6c — données enrichies (maquette) : classe (simpleName,
-                // « MockView » quand G15 a dégradé), id de ressource,
-                // marges/padding du rendu (px), cliquable/conteneur,
-                // orientation LinearLayout.
-                classe = info.simpleName,
-                idRes = info.idName ?: "",
-                margesGauche = info.marginLeft,
-                margesHaut = info.marginTop,
-                margesDroite = info.marginRight,
-                margesBas = info.marginBottom,
-                paddingGauche = info.paddingLeft,
-                paddingHaut = info.paddingTop,
-                paddingDroite = info.paddingRight,
-                paddingBas = info.paddingBottom,
-                cliquable = attributs.cliquable,
-                conteneur = info.isViewGroup,
-                orientation = attributs.orientation,
-                // PE11g — détections moteur + source (règles de ProblemesPreview).
-                texteTronque = attributs.texteTronque,
-                sansContentDescription = attributs.sansContentDescription,
-                texteCodeDur = texteCodeDur,
-                // PE12a — famille de CONTENEUR (spec § 2.2).
-                famille = famille.name,
-                // v0.173.0 — PE14 S8 : l'identité du NŒUD XML SOURCE.
-                cookie = cookie,
-            )
+        ): InfoVueRendu = InfoVueRendu(
+            gauche = info.left,
+            haut = info.top,
+            droite = info.right,
+            bas = info.bottom,
+            libelle = info.simpleName + (info.idName?.let { nom -> " @$nom" } ?: ""),
+            debutElement = debutElement,
+            finElement = finElement,
+            indiceParent = indiceParent,
+            profondeur = profondeur,
+            // PE6c — données enrichies (maquette) : classe (simpleName,
+            // « MockView » quand G15 a dégradé), id de ressource,
+            // marges/padding du rendu (px), cliquable/conteneur,
+            // orientation LinearLayout.
+            classe = info.simpleName,
+            idRes = info.idName ?: "",
+            margesGauche = info.marginLeft,
+            margesHaut = info.marginTop,
+            margesDroite = info.marginRight,
+            margesBas = info.marginBottom,
+            paddingGauche = info.paddingLeft,
+            paddingHaut = info.paddingTop,
+            paddingDroite = info.paddingRight,
+            paddingBas = info.paddingBottom,
+            cliquable = attributs.cliquable,
+            conteneur = info.isViewGroup,
+            orientation = attributs.orientation,
+            // PE11g — détections moteur + source (règles de ProblemesPreview).
+            texteTronque = attributs.texteTronque,
+            sansContentDescription = attributs.sansContentDescription,
+            texteCodeDur = texteCodeDur,
+            // PE12a — famille de CONTENEUR (spec § 2.2).
+            famille = famille.name,
+            // v0.173.0 — PE14 S8 : l'identité du NŒUD XML SOURCE.
+            cookie = cookie,
+        )
     }
 
     /** Applique le background de la racine depuis le XML brut — LayoutLib
      *  ne le pose pas toujours (AttributeApplier ne gère pas android:background
      *  sur toutes les vues). On parse le XML pour extraire android:background
      *  et le poser manuellement. */
-    private fun appliquerBackgroundRacine(
-        racine: View,
-        xml: String,
-    ) {
+    private fun appliquerBackgroundRacine(racine: View, xml: String) {
         // Si la vue a déjà un background, ne rien faire.
         if (racine.background != null) return
         // Extraire android:background="..." du premier tag (la racine).
@@ -934,10 +903,7 @@ public class RenduLayoutLib(
      *  View.draw() skip drawBackground() sur vues opaques sans AttachInfo),
      *  puis contenu (vue.draw), puis récursion sur les enfants
      *  (dispatchDraw() est partiellement no-op sans AttachInfo). */
-    private fun dessinerVue(
-        vue: View,
-        canevas: Canvas,
-    ) {
+    private fun dessinerVue(vue: View, canevas: Canvas) {
         canevas.save()
         canevas.translate(vue.left.toFloat(), vue.top.toFloat())
         // 1. Dessiner le background (s'il existe).
@@ -964,11 +930,7 @@ public class RenduLayoutLib(
     }
 
     /** Dessine un drawable (PE3) sur damier implicite — la vue UI le pose dessous. */
-    private fun dessinerDrawable(
-        drawable: Drawable,
-        largeur: Int,
-        hauteur: Int,
-    ): Bitmap {
+    private fun dessinerDrawable(drawable: Drawable, largeur: Int, hauteur: Int): Bitmap {
         val bitmap =
             Bitmap.createBitmap(largeur.coerceAtLeast(1), hauteur.coerceAtLeast(1), Bitmap.Config.ARGB_8888)
         drawable.draw(Canvas(bitmap))
@@ -1105,11 +1067,7 @@ public class RenduLayoutLib(
     }
 
     @Suppress("ReturnCount")
-    private fun envelopperChromeSiNecessaire(
-        racine: View,
-        densite: Float,
-        requete: RequeteRendu,
-    ): DecorPose {
+    private fun envelopperChromeSiNecessaire(racine: View, densite: Float, requete: RequeteRendu): DecorPose {
         // v0.133.2 — chrome activé seulement quand themeName est présent
         // (manifest résolu par ControleurPreviewXml). Les tests sans
         // themeName → pas de chrome (comportement v0.132.x).
@@ -1152,11 +1110,7 @@ public class RenduLayoutLib(
      * (décor ou contenu tel quel), les insets calculés et le mode de
      * placement — TOUT ce que la collecte duale du frère attend.
      */
-    private data class DecorPose(
-        val vue: View,
-        val insets: InsetsDecor,
-        val modePlacement: ModePlacementDecor,
-    )
+    private data class DecorPose(val vue: View, val insets: InsetsDecor, val modePlacement: ModePlacementDecor)
 
     /**
      * Le résolveur pour le chrome (PE13, ADR 0137 D2) : celui du PROJET, ou
@@ -1212,10 +1166,7 @@ public class RenduLayoutLib(
     }
 
     /** Enregistre themes.xml (jour/nuit) et styles.xml du projet, au mieux. */
-    private fun enregistrerThemes(
-        resolver: ThemeResolverImpl,
-        cheminRes: String,
-    ) {
+    private fun enregistrerThemes(resolver: ThemeResolverImpl, cheminRes: String) {
         val themesJour = File(cheminRes, "values/themes.xml")
         if (themesJour.isFile) {
             themesJour.readText().let { xml -> resolver.registerThemesFile(xml, false) }
@@ -1260,15 +1211,14 @@ public class RenduLayoutLib(
         themeName: String?,
         paysage: Boolean,
         echellePolice: Float,
-    ): Boolean =
-        dossier == dossierResConfigure &&
-            densiteProfil == densiteConfigure &&
-            nuit == nuitConfigure &&
-            langue == langueConfigure &&
-            themeName == themeNameConfigure &&
-            paysage == paysageConfigure &&
-            echellePolice == echellePoliceConfigure &&
-            ressources != null
+    ): Boolean = dossier == dossierResConfigure &&
+        densiteProfil == densiteConfigure &&
+        nuit == nuitConfigure &&
+        langue == langueConfigure &&
+        themeName == themeNameConfigure &&
+        paysage == paysageConfigure &&
+        echellePolice == echellePoliceConfigure &&
+        ressources != null
 
     /** Densité du PROFIL (dpi/DPI_PAR_UNITE) — PE3 : le rendu vit au profil, pas à la machine. */
     private fun densiteProfil(profil: ProfilPeripherique): Float = profil.densiteDpi / DPI_PAR_UNITE

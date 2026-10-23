@@ -29,50 +29,47 @@ class GradleUseCasesTest {
     private val dossier = File("/projets/mon-projet")
 
     @Test
-    fun `la synchronisation delegue au port et journalise sans chemin`() =
-        runTest {
-            tooling.prochaineSynchronisation =
-                AppResult.Success(ResultatSynchronisation(projectDir = dossier.absolutePath, reussie = true))
+    fun `la synchronisation delegue au port et journalise sans chemin`() = runTest {
+        tooling.prochaineSynchronisation =
+            AppResult.Success(ResultatSynchronisation(projectDir = dossier.absolutePath, reussie = true))
 
-            val casUsage = SynchroniserProjetUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))
-            val resultat = casUsage(dossier)
+        val casUsage = SynchroniserProjetUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))
+        val resultat = casUsage(dossier)
 
-            assertEquals(dossier, tooling.dossierSynchronise)
-            assertTrue(resultat is AppResult.Success)
-            assertTrue(
-                "la journalisation ne devait contenir aucun chemin (règle 15)",
-                journal.entries.none { it.message.contains("projets") },
+        assertEquals(dossier, tooling.dossierSynchronise)
+        assertTrue(resultat is AppResult.Success)
+        assertTrue(
+            "la journalisation ne devait contenir aucun chemin (règle 15)",
+            journal.entries.none { it.message.contains("projets") },
+        )
+    }
+
+    @Test
+    fun `la synchronisation relaye l echec typé`() = runTest {
+        tooling.prochaineSynchronisation =
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+
+        val casUsage = SynchroniserProjetUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))
+        val resultat = casUsage(dossier)
+
+        val echec = resultat as AppResult.Failure
+        assertEquals(AppError.ToolingReason.ConnectionLost, (echec.error as AppError.Tooling).code)
+    }
+
+    @Test
+    fun `l execution retourne l identifiant du build et les taches demandees`() = runTest {
+        tooling.prochainBuildId = "b-g5"
+
+        val identifiant =
+            ExecuterTachesUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))(
+                dossier,
+                listOf("saluer"),
             )
-        }
 
-    @Test
-    fun `la synchronisation relaye l echec typé`() =
-        runTest {
-            tooling.prochaineSynchronisation =
-                AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
-
-            val casUsage = SynchroniserProjetUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))
-            val resultat = casUsage(dossier)
-
-            val echec = resultat as AppResult.Failure
-            assertEquals(AppError.ToolingReason.ConnectionLost, (echec.error as AppError.Tooling).code)
-        }
-
-    @Test
-    fun `l execution retourne l identifiant du build et les taches demandees`() =
-        runTest {
-            tooling.prochainBuildId = "b-g5"
-
-            val identifiant =
-                ExecuterTachesUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))(
-                    dossier,
-                    listOf("saluer"),
-                )
-
-            assertEquals("b-g5", identifiant)
-            assertEquals(dossier, tooling.dossierConstruit)
-            assertEquals(listOf("saluer"), tooling.tachesDemandees)
-        }
+        assertEquals("b-g5", identifiant)
+        assertEquals(dossier, tooling.dossierConstruit)
+        assertEquals(listOf("saluer"), tooling.tachesDemandees)
+    }
 
     @Test
     fun `l annulation delegue au port`() {
@@ -81,19 +78,18 @@ class GradleUseCasesTest {
     }
 
     @Test
-    fun `la liste des taches alimente le selecteur`() =
-        runTest {
-            tooling.prochainesTaches =
-                AppResult.Success(listOf(InfoTache(chemin = ":saluer", nomAffiche = "saluer")))
+    fun `la liste des taches alimente le selecteur`() = runTest {
+        tooling.prochainesTaches =
+            AppResult.Success(listOf(InfoTache(chemin = ":saluer", nomAffiche = "saluer")))
 
-            val resultat =
-                ListerTachesProjetUseCase(tooling, TestDispatcherProvider(repartiteur.dispatcher))(dossier)
+        val resultat =
+            ListerTachesProjetUseCase(tooling, TestDispatcherProvider(repartiteur.dispatcher))(dossier)
 
-            val taches = (resultat as AppResult.Success).value
-            assertEquals(1, taches.size)
-            assertEquals(":saluer", taches.first().chemin)
-            assertEquals(dossier, tooling.dossierTaches)
-        }
+        val taches = (resultat as AppResult.Success).value
+        assertEquals(1, taches.size)
+        assertEquals(":saluer", taches.first().chemin)
+        assertEquals(dossier, tooling.dossierTaches)
+    }
 
     /** Faux du port tooling — enregistre les appels, répond à la carte. */
     private class FauxTooling : GradleToolingRepository {
@@ -139,20 +135,13 @@ class GradleUseCasesTest {
             return prochainesTaches
         }
 
-        override suspend fun classpath(
-            projectDir: File,
-            arguments: List<String>,
-        ): AppResult<ClasspathProjet> =
+        override suspend fun classpath(projectDir: File, arguments: List<String>): AppResult<ClasspathProjet> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
         override suspend fun scriptsBuild(projectDir: File): AppResult<List<ScriptDeBuild>> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
-        override suspend fun build(
-            projectDir: File,
-            tasks: List<String>,
-            arguments: List<String>,
-        ): String {
+        override suspend fun build(projectDir: File, tasks: List<String>, arguments: List<String>): String {
             dossierConstruit = projectDir
             tachesDemandees = tasks
             argumentsDemandes = arguments
@@ -166,10 +155,7 @@ class GradleUseCasesTest {
         // Cycle de vie étape D (v9) : hors périmètre de ces tests — no-op.
         override suspend fun fermerProjet(projectDir: File): AppResult<Unit> = AppResult.Success(Unit)
 
-        override fun envoyerEntree(
-            buildId: String,
-            texte: String,
-        ) = Unit
+        override fun envoyerEntree(buildId: String, texte: String) = Unit
 
         override fun observeHeap(): Flow<InstantaneTas> = MutableStateFlow(InstantaneTas(0, 0))
 
@@ -177,10 +163,9 @@ class GradleUseCasesTest {
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 
-        override fun observeFluxSync(): Flow<EvenementSyncFlux> =
-            MutableStateFlow(
-                EvenementSyncFlux.Etape(EtapeSyncTooling(etape = EtapeSync.DAEMON)),
-            )
+        override fun observeFluxSync(): Flow<EvenementSyncFlux> = MutableStateFlow(
+            EvenementSyncFlux.Etape(EtapeSyncTooling(etape = EtapeSync.DAEMON)),
+        )
 
         override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = MutableStateFlow(emptyList())
     }

@@ -63,10 +63,7 @@ import kotlin.math.min
  * accumulation (précédent [VoletAttributsFragment] PE12c).
  */
 @Suppress("TooManyFunctions")
-public class PopupPlacement(
-    context: Context,
-    attrs: AttributeSet? = null,
-) : FrameLayout(context, attrs) {
+public class PopupPlacement(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
     private val liaison: PopoverPlacementParentsBinding =
         PopoverPlacementParentsBinding.inflate(LayoutInflater.from(context), this, true)
 
@@ -141,10 +138,7 @@ public class PopupPlacement(
     }
 
     /** L'arbre des vues rendues (miroir `.mini` — rangées d'arbre PE6d). */
-    private fun majArbre(
-        vues: List<InfoVueRendu>,
-        indiceReference: Int,
-    ) {
+    private fun majArbre(vues: List<InfoVueRendu>, indiceReference: Int) {
         liaison.lignesArbrePlacement.removeAllViews()
         if (vues.isEmpty()) return
         val entrees = FeuilleApercu.entreesArbre(vues, problemes = emptyList(), densiteDpi = 0)
@@ -201,11 +195,7 @@ public class PopupPlacement(
      * sélection courant, l'espacement de 4 dp en marge (jamais sur le
      * premier), radios cochables (D9).
      */
-    private fun majPositions(
-        vues: List<InfoVueRendu>,
-        indiceReference: Int,
-        courante: PlacementPopup.Position,
-    ) {
+    private fun majPositions(vues: List<InfoVueRendu>, indiceReference: Int, courante: PlacementPopup.Position) {
         val conteneur = liaison.groupePosition
         conteneur.removeAllViews()
         val autorisees = PlacementPopup.positionsAutorisees(vues, indiceReference)
@@ -273,11 +263,7 @@ public class PopupPlacement(
      * le conteneur » (pile) ou « Ancrage dans le parent » (`RelativeLayout`
      * — miroir `h4.textContent`).
      */
-    private fun majGrille(
-        cellule: PlanInsertionFamille.Cellule,
-        visible: Boolean,
-        famille: FamilleParent,
-    ) {
+    private fun majGrille(cellule: PlanInsertionFamille.Cellule, visible: Boolean, famille: FamilleParent) {
         liaison.grilleGravite.isVisible = visible
         liaison.titreGrille.isVisible = visible
         if (!visible) return
@@ -318,10 +304,7 @@ public class PopupPlacement(
     }
 
     /** La RANGÉE de marges 0/8/16/24 dp (miroir `MGS` — D6 confirmée). */
-    private fun majMarges(
-        margeDp: Int,
-        visible: Boolean,
-    ) {
+    private fun majMarges(margeDp: Int, visible: Boolean) {
         liaison.titreMarge.isVisible = visible
         liaison.groupeMarge.isVisible = visible
         if (!visible) return
@@ -415,11 +398,7 @@ public class PopupPlacement(
      * [valeurs] dans le [texte] ajouté (les gabarits de la référence
      * n'intercalent jamais deux fois la même valeur).
      */
-    private fun majFort(
-        corps: SpannableStringBuilder,
-        texte: String,
-        valeurs: List<String> = emptyList(),
-    ) {
+    private fun majFort(corps: SpannableStringBuilder, texte: String, valeurs: List<String> = emptyList()) {
         val avecTexte = valeurs.isEmpty()
         if (avecTexte) {
             corps.append(texte)
@@ -459,17 +438,11 @@ public class PopupPlacement(
      * voie du rôle coché pour les niveaux 26-33 que l'aperçu couvre.
      */
     @Suppress("DEPRECATION")
-    private fun poserRadio(
-        bouton: TextView,
-        coche: Boolean,
-    ) {
+    private fun poserRadio(bouton: TextView, coche: Boolean) {
         bouton.isClickable = true
         bouton.accessibilityDelegate =
             object : View.AccessibilityDelegate() {
-                override fun onInitializeAccessibilityNodeInfo(
-                    vue: View,
-                    info: AccessibilityNodeInfo,
-                ) {
+                override fun onInitializeAccessibilityNodeInfo(vue: View, info: AccessibilityNodeInfo) {
                     super.onInitializeAccessibilityNodeInfo(vue, info)
                     info.isCheckable = true
                     info.isChecked = coche

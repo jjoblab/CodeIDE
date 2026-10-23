@@ -15,9 +15,7 @@ internal object DecisionServiceTerminal {
         data object Arreter : Action
 
         /** Au moins une session vit : notification visible (créée ou mise à jour). */
-        data class Notifier(
-            val sessionsVivantes: Int,
-        ) : Action
+        data class Notifier(val sessionsVivantes: Int) : Action
     }
 
     /**

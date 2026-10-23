@@ -10,10 +10,8 @@ import javax.inject.Inject
  * (même patron que [SendMessageUseCase]).
  */
 public class ListerModelesIaUseCase
-    @Inject
-    constructor(
-        private val provider: AiProvider,
-    ) {
-        /** Liste les modèles disponibles chez le fournisseur actif. */
-        public suspend operator fun invoke(): AppResult<List<AiModelInfo>> = provider.listModels()
-    }
+@Inject
+constructor(private val provider: AiProvider) {
+    /** Liste les modèles disponibles chez le fournisseur actif. */
+    public suspend operator fun invoke(): AppResult<List<AiModelInfo>> = provider.listModels()
+}

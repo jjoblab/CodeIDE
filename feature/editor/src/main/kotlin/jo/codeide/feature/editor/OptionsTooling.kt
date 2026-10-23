@@ -29,42 +29,39 @@ import javax.inject.Singleton
  */
 @Singleton
 class OptionsTooling
-    @Inject
-    constructor(
-        observerReglages: ObserveSettingsUseCase,
-        dispatchers: DispatcherProvider,
-    ) {
-        /**
-         * Derniers réglages connus — @Volatile + mutable sans private set :
-         * écrits par la collecte de production, lisibles à tout instant par
-         * l'exécution (arguments du prochain build) — un aperçu cohérent
-         * sans verrou.
-         */
-        @Volatile
-        internal var courants: AppSettings = AppSettings()
+@Inject
+constructor(observerReglages: ObserveSettingsUseCase, dispatchers: DispatcherProvider) {
+    /**
+     * Derniers réglages connus — @Volatile + mutable sans private set :
+     * écrits par la collecte de production, lisibles à tout instant par
+     * l'exécution (arguments du prochain build) — un aperçu cohérent
+     * sans verrou.
+     */
+    @Volatile
+    internal var courants: AppSettings = AppSettings()
 
-        /** Arguments Gradle du prochain build (mode hors ligne + libres). */
-        internal fun argumentsBuild(): List<String> {
-            val libres =
-                courants.toolingArguments
-                    .split(SEPARATEURS)
-                    .filter { it.isNotBlank() }
-            return if (courants.toolingHorsLigne) listOf(ARGUMENT_HORS_LIGNE) + libres else libres
-        }
+    /** Arguments Gradle du prochain build (mode hors ligne + libres). */
+    internal fun argumentsBuild(): List<String> {
+        val libres =
+            courants.toolingArguments
+                .split(SEPARATEURS)
+                .filter { it.isNotBlank() }
+        return if (courants.toolingHorsLigne) listOf(ARGUMENT_HORS_LIGNE) + libres else libres
+    }
 
-        private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
+    private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
 
-        init {
-            portee.launch {
-                observerReglages().collect { courants = it }
-            }
-        }
-
-        private companion object {
-            /** Séparateurs des arguments libres (espaces et tabulations). */
-            val SEPARATEURS = Regex("\\s+")
-
-            /** Argument Gradle du mode hors ligne. */
-            const val ARGUMENT_HORS_LIGNE = "--offline"
+    init {
+        portee.launch {
+            observerReglages().collect { courants = it }
         }
     }
+
+    private companion object {
+        /** Séparateurs des arguments libres (espaces et tabulations). */
+        val SEPARATEURS = Regex("\\s+")
+
+        /** Argument Gradle du mode hors ligne. */
+        const val ARGUMENT_HORS_LIGNE = "--offline"
+    }
+}

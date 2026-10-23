@@ -9,11 +9,7 @@ package jo.codeide.core.logging
  * @property versionCode code numérique strictement croissant.
  * @property buildType type de build (`debug` ou `release`).
  */
-data class BuildInfo(
-    val versionName: String,
-    val versionCode: Long,
-    val buildType: String,
-)
+data class BuildInfo(val versionName: String, val versionCode: Long, val buildType: String)
 
 /**
  * Résumé **non identifiant** de l'appareil, fourni par `app` (identique en

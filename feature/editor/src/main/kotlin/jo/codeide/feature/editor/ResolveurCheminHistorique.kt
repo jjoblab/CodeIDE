@@ -23,38 +23,38 @@ import javax.inject.Inject
  */
 @Suppress("ReturnCount") // Gardes typées : hors projet, chemin vide, segment manquant, énumération refusée.
 class ResolveurCheminHistorique
-    @Inject
-    constructor(
-        private val fichiers: FileSystem,
-        private val source: SourceProjetHistorique,
-    ) {
-        /**
-         * URI du document désigné par [cheminRelatif] (segments `/`), ou
-         * `null` : hors projet, chemin vide, segment introuvable,
-         * énumération impossible.
-         */
-        suspend fun resoudre(cheminRelatif: String): String? {
-            val racine = source.racineDocument ?: return null
-            val segments = cheminRelatif.split('/').filter { it.isNotBlank() }
-            if (segments.isEmpty()) return racine
-            // Garde de profondeur : un chemin d'entrée corrompue ne
-            // déclenche jamais une énumération sans fin (16 `list` max).
-            if (segments.size > PROFONDEUR_MAX) return null
+@Inject
+constructor(
+    private val fichiers: FileSystem,
+    private val source: SourceProjetHistorique,
+) {
+    /**
+     * URI du document désigné par [cheminRelatif] (segments `/`), ou
+     * `null` : hors projet, chemin vide, segment introuvable,
+     * énumération impossible.
+     */
+    suspend fun resoudre(cheminRelatif: String): String? {
+        val racine = source.racineDocument ?: return null
+        val segments = cheminRelatif.split('/').filter { it.isNotBlank() }
+        if (segments.isEmpty()) return racine
+        // Garde de profondeur : un chemin d'entrée corrompue ne
+        // déclenche jamais une énumération sans fin (16 `list` max).
+        if (segments.size > PROFONDEUR_MAX) return null
 
-            var uriCourante = racine
-            for (segment in segments) {
-                val enfants =
-                    when (val enumeration = fichiers.list(uriCourante)) {
-                        is AppResult.Success -> enumeration.value
-                        is AppResult.Failure -> return null
-                    }
-                uriCourante = enfants.firstOrNull { it.name == segment }?.uri ?: return null
-            }
-            return uriCourante
+        var uriCourante = racine
+        for (segment in segments) {
+            val enfants =
+                when (val enumeration = fichiers.list(uriCourante)) {
+                    is AppResult.Success -> enumeration.value
+                    is AppResult.Failure -> return null
+                }
+            uriCourante = enfants.firstOrNull { it.name == segment }?.uri ?: return null
         }
-
-        private companion object {
-            /** Profondeur maximale résolue (garde anti-énumération). */
-            const val PROFONDEUR_MAX = 16
-        }
+        return uriCourante
     }
+
+    private companion object {
+        /** Profondeur maximale résolue (garde anti-énumération). */
+        const val PROFONDEUR_MAX = 16
+    }
+}

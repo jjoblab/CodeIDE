@@ -77,12 +77,11 @@ public object ForbiddenFolders {
         segments.size >= 2 && segments.first().equals("Android", ignoreCase = true)
 
     /** Distingue `Android/data` de `Android/obb` (casse indifférente). */
-    private fun raisonDuSousArbreProtege(seconde: String): Reason? =
-        when {
-            seconde.equals("data", ignoreCase = true) -> Reason.ANDROID_DATA
-            seconde.equals("obb", ignoreCase = true) -> Reason.ANDROID_OBB
-            else -> null
-        }
+    private fun raisonDuSousArbreProtege(seconde: String): Reason? = when {
+        seconde.equals("data", ignoreCase = true) -> Reason.ANDROID_DATA
+        seconde.equals("obb", ignoreCase = true) -> Reason.ANDROID_OBB
+        else -> null
+    }
 
     /**
      * Extrait le chemin **relatif au volume** d'un identifiant de

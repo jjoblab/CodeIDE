@@ -120,11 +120,10 @@ class PlantagesIntegrationTest {
      * Titre d'un dialogue appcompat/Material — l'identifiant du titre
      * appartient à appcompat (`alertTitle`), pas au cadre Android.
      */
-    private fun titreDe(dialogue: Dialog): String? =
-        dialogue
-            .findViewById<android.widget.TextView>(androidx.appcompat.R.id.alertTitle)
-            ?.text
-            ?.toString()
+    private fun titreDe(dialogue: Dialog): String? = dialogue
+        .findViewById<android.widget.TextView>(androidx.appcompat.R.id.alertTitle)
+        ?.text
+        ?.toString()
 
     /**
      * Attend l'apparition du dialogue de rapport — la décision est asynchrone

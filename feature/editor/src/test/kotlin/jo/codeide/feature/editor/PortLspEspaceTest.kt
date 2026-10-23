@@ -145,16 +145,16 @@ class PortLspEspaceTest {
                 avertissements = List(3) { "avertissement $it" },
                 erreurs = List(25) { "erreur $it" },
                 bilanDernierPassage =
-                    BilanDernierPassageIndexation(
-                        dureeMs = 72_000,
-                        artefactsTotal = 9,
-                        artefactsRepris = 0,
-                        artefactsReconstruits = 0,
-                        fichiersParcourus = 191,
-                        fichiersReanalyses = 0,
-                        indexeurPlusCouteux = null,
-                        horodatageMs = 1_700_000_000_000,
-                    ),
+                BilanDernierPassageIndexation(
+                    dureeMs = 72_000,
+                    artefactsTotal = 9,
+                    artefactsRepris = 0,
+                    artefactsReconstruits = 0,
+                    fichiersParcourus = 191,
+                    fichiersReanalyses = 0,
+                    indexeurPlusCouteux = null,
+                    horodatageMs = 1_700_000_000_000,
+                ),
             )
 
         val projetee = etat.versEtatMoteurLsp()
@@ -214,15 +214,14 @@ class PortLspEspaceTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `sans session le port observe l'inactivité et refuse tout par l'absence`() =
-        runTest {
-            val port = portSansSession()
+    fun `sans session le port observe l'inactivité et refuse tout par l'absence`() = runTest {
+        val port = portSansSession()
 
-            assertEquals(MoteursLsp.INACTIFS, port.moteurs.first())
-            assertNull(port.tailleCacheOctets())
-            assertFalse(port.reindexer())
-            assertNull(port.viderCache())
-        }
+        assertEquals(MoteursLsp.INACTIFS, port.moteurs.first())
+        assertNull(port.tailleCacheOctets())
+        assertFalse(port.reindexer())
+        assertNull(port.viderCache())
+    }
 
     @Test
     fun `la demande de détails est un état - posée elle survit, consommée elle retombe`() {
@@ -244,42 +243,40 @@ class PortLspEspaceTest {
     }
 
     @Test
-    fun `une session vivante alimente l'état, les capacités et les actions`() =
-        runTest {
-            val racine = dossierTemporaire.newFolder("projet")
-            val stockage = dossierTemporaire.newFolder("index")
-            val session = SessionLsp(racineProjet = racine, stockageIndex = stockage)
-            val port =
-                PortLspEspace(
-                    sessionJava = MutableStateFlow(session),
-                    sessionKotlin = MutableStateFlow(null),
-                    sessionXml = MutableStateFlow(null),
-                    portee = backgroundScope,
-                )
+    fun `une session vivante alimente l'état, les capacités et les actions`() = runTest {
+        val racine = dossierTemporaire.newFolder("projet")
+        val stockage = dossierTemporaire.newFolder("index")
+        val session = SessionLsp(racineProjet = racine, stockageIndex = stockage)
+        val port =
+            PortLspEspace(
+                sessionJava = MutableStateFlow(session),
+                sessionKotlin = MutableStateFlow(null),
+                sessionXml = MutableStateFlow(null),
+                portee = backgroundScope,
+            )
 
-            // La session n'a encore RIEN indexé : phase INITIALE, cache vide.
-            val moteurs = port.moteurs.first { it.java != null }
-            assertEquals(PhaseMoteurLsp.INITIAL, moteurs.java?.phase)
-            assertFalse(moteurs.kotlin)
-            assertFalse(moteurs.xml)
-            assertEquals(10, TableCapacitesLspHote().capacitesAnnoncees(LangageLsp.JAVA).size)
-            assertEquals(0L, port.tailleCacheOctets())
+        // La session n'a encore RIEN indexé : phase INITIALE, cache vide.
+        val moteurs = port.moteurs.first { it.java != null }
+        assertEquals(PhaseMoteurLsp.INITIAL, moteurs.java?.phase)
+        assertFalse(moteurs.kotlin)
+        assertFalse(moteurs.xml)
+        assertEquals(10, TableCapacitesLspHote().capacitesAnnoncees(LangageLsp.JAVA).size)
+        assertEquals(0L, port.tailleCacheOctets())
 
-            // Les actions sont ancrées : reindexer s'exécute (no-op sans
-            // vue alignée), vider un stockage vide VIDE (données).
-            assertTrue(port.reindexer())
-            assertNotNull(port.viderCache())
+        // Les actions sont ancrées : reindexer s'exécute (no-op sans
+        // vue alignée), vider un stockage vide VIDE (données).
+        assertTrue(port.reindexer())
+        assertNotNull(port.viderCache())
 
-            session.close()
-        }
+        session.close()
+    }
 
-    private fun portSansSession(): PortLspEspace =
-        PortLspEspace(
-            sessionJava = MutableStateFlow(null),
-            sessionKotlin = MutableStateFlow(null),
-            sessionXml = MutableStateFlow(null),
-            portee = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
-        )
+    private fun portSansSession(): PortLspEspace = PortLspEspace(
+        sessionJava = MutableStateFlow(null),
+        sessionKotlin = MutableStateFlow(null),
+        sessionXml = MutableStateFlow(null),
+        portee = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+    )
 
     private fun capacites(vararg valeurs: CapaciteLsp) = valeurs.toSet()
 }

@@ -22,9 +22,8 @@ import java.io.IOException
  * La propriété `writeError` est un robinet de défaillance piloté par le
  * test (même idiom que [InMemoryLogRepository]).
  */
-public class FakeSettingsRepository(
-    initial: AppSettings = AppSettings.defaults(buildDebuggable = false),
-) : SettingsRepository {
+public class FakeSettingsRepository(initial: AppSettings = AppSettings.defaults(buildDebuggable = false)) :
+    SettingsRepository {
     private val etat = MutableStateFlow(initial)
 
     /** Quand non nulle, toute écriture échoue. */

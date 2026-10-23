@@ -49,10 +49,7 @@ public interface ConversationIaDao {
 
     /** Renomme ; renvoie le nombre de lignes (convention du dépôt). */
     @Query("UPDATE ai_conversations SET titre = :titre WHERE id = :id")
-    public suspend fun renommer(
-        id: String,
-        titre: String,
-    ): Int
+    public suspend fun renommer(id: String, titre: String): Int
 
     /** Supprime une conversation — les messages partent en CASCADE. */
     @Query("DELETE FROM ai_conversations WHERE id = :id")
@@ -73,10 +70,7 @@ public interface ConversationIaDao {
      * message orphelin ni de conversation fantôme.
      */
     @Transaction
-    public suspend fun ajouterMessage(
-        conversation: ConversationIaEntity,
-        message: MessageIaEntity,
-    ) {
+    public suspend fun ajouterMessage(conversation: ConversationIaEntity, message: MessageIaEntity) {
         val existante = parId(conversation.id)
         if (existante == null) {
             insererConversation(conversation)
@@ -90,8 +84,5 @@ public interface ConversationIaDao {
 
     /** Avance `modifie_a` (SQL direct — pas de lecture-modification-écriture). */
     @Query("UPDATE ai_conversations SET modifie_a = :modifieA WHERE id = :id")
-    public suspend fun insererOuMajDate(
-        id: String,
-        modifieA: Long,
-    )
+    public suspend fun insererOuMajDate(id: String, modifieA: Long)
 }

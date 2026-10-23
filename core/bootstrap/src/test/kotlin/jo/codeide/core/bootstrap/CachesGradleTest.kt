@@ -24,10 +24,7 @@ class CachesGradleTest {
         return racine
     }
 
-    private fun deposerFichier(
-        racine: File,
-        vararg chemin: String,
-    ): File {
+    private fun deposerFichier(racine: File, vararg chemin: String): File {
         val fichier = chemin.fold(racine) { parent, segment -> File(parent, segment) }
         fichier.parentFile!!.mkdirs()
         fichier.writeText("contenu\n")

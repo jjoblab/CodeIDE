@@ -128,26 +128,24 @@ class ResoudreRepertoireProjetTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `URI de document illisible donne null`() =
-        runTest {
-            assertNull(casUsage("content://provider.inconnu/autre/segment"))
-        }
+    fun `URI de document illisible donne null`() = runTest {
+        assertNull(casUsage("content://provider.inconnu/autre/segment"))
+    }
 
     @Test
-    fun `regression v0 43 0 - une URI d arbre sans segment document est rejetee`() =
-        runTest {
-            // LE bug : l'ancien contrat résolvait l'URI d'ARBRE de la
-            // permission — pour un projet créé dans le dossier de travail,
-            // l'arbre est le PARENT, et le terminal/build s'ouvraient dans
-            // `/storage/emulated/0/CodeIDEProjects` au lieu du projet.
-            // Désormais : null (jamais de racine d'arbre substituée).
-            assertNull(
-                casUsage(
-                    "content://com.android.externalstorage.documents/tree/" +
-                        "primary%3ACodeIDEProjects",
-                ),
-            )
-        }
+    fun `regression v0 43 0 - une URI d arbre sans segment document est rejetee`() = runTest {
+        // LE bug : l'ancien contrat résolvait l'URI d'ARBRE de la
+        // permission — pour un projet créé dans le dossier de travail,
+        // l'arbre est le PARENT, et le terminal/build s'ouvraient dans
+        // `/storage/emulated/0/CodeIDEProjects` au lieu du projet.
+        // Désormais : null (jamais de racine d'arbre substituée).
+        assertNull(
+            casUsage(
+                "content://com.android.externalstorage.documents/tree/" +
+                    "primary%3ACodeIDEProjects",
+            ),
+        )
+    }
 
     @Test
     fun `regression v0 43 0 - le faux refuse aussi l arbre pur`() {
@@ -186,28 +184,26 @@ class ResoudreRepertoireProjetTest {
     }
 
     @Test
-    fun `volume inconnu donne null meme via le cas d usage`() =
-        runTest {
-            assertNull(
-                casUsage(
-                    "content://com.android.externalstorage.documents/tree/foo%3Abar/document/foo%3Abar",
-                ),
-            )
-        }
+    fun `volume inconnu donne null meme via le cas d usage`() = runTest {
+        assertNull(
+            casUsage(
+                "content://com.android.externalstorage.documents/tree/foo%3Abar/document/foo%3Abar",
+            ),
+        )
+    }
 
     @Test
-    fun `chemin resolu mais absent du systeme de fichiers donne null`() =
-        runTest {
-            // Le garde « répertoire fantôme » : jamais de session ouverte
-            // dans un dossier qui n'existe pas (volume démonté). En JVM,
-            // /storage n'existe pas — le rejet est donc observable ici.
-            assertNull(
-                casUsage(
-                    "content://com.android.externalstorage.documents/tree/" +
-                        "primary%3ACodeIDE/document/primary%3ACodeIDE%2FDossierFantome",
-                ),
-            )
-        }
+    fun `chemin resolu mais absent du systeme de fichiers donne null`() = runTest {
+        // Le garde « répertoire fantôme » : jamais de session ouverte
+        // dans un dossier qui n'existe pas (volume démonté). En JVM,
+        // /storage n'existe pas — le rejet est donc observable ici.
+        assertNull(
+            casUsage(
+                "content://com.android.externalstorage.documents/tree/" +
+                    "primary%3ACodeIDE/document/primary%3ACodeIDE%2FDossierFantome",
+            ),
+        )
+    }
 
     // ------------------------------------------------------------------
     // V0.100.3 : contrats fichier ([ResolveurCheminFuse.resoudreEntree])

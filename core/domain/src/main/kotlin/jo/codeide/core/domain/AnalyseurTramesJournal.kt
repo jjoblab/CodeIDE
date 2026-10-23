@@ -32,15 +32,10 @@ public object AnalyseurTramesJournal {
     /** Une trame analysée : ligne, ou information de fin précédente. */
     public sealed interface TrameAnalysee {
         /** Ligne de journal. */
-        public data class Ligne(
-            val ligne: LigneJournal,
-        ) : TrameAnalysee
+        public data class Ligne(val ligne: LigneJournal) : TrameAnalysee
 
         /** Information de sortie du processus précédent (code + texte). */
-        public data class SortiePrecedente(
-            val codeRaison: Int,
-            val description: String,
-        ) : TrameAnalysee
+        public data class SortiePrecedente(val codeRaison: Int, val description: String) : TrameAnalysee
     }
 
     /**
@@ -136,10 +131,7 @@ public object AnalyseurTramesJournal {
      * Lit le champ à partir de [debut] jusqu'à la prochaine tabulation —
      * `null` si la trame s'arrête avant (champ manquant).
      */
-    private fun champ(
-        trame: String,
-        debut: Int,
-    ): String? {
+    private fun champ(trame: String, debut: Int): String? {
         if (debut >= trame.length) {
             return null
         }

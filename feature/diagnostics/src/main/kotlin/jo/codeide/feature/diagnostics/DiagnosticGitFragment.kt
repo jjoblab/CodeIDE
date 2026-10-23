@@ -33,19 +33,12 @@ class DiagnosticGitFragment : Fragment() {
     private val liaison: PageDiagnosticGitBinding
         get() = checkNotNull(liaisonAmorce) { "Binding détruit" }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaisonAmorce = PageDiagnosticGitBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         liaison.boutonRelancerDiagnosticGit.setOnClickListener { viewModel.relancer() }
         liaison.boutonCopierDiagnosticGit.setOnClickListener { copier() }

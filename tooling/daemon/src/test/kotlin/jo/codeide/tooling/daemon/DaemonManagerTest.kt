@@ -67,24 +67,23 @@ class DaemonManagerTest {
         delaiSanteMs: Long = 250L,
         deployeurAppLog: DepotAppLogDeployer? = null,
         lectureInjectionAppLog: suspend () -> Boolean = { true },
-    ): DaemonManager =
-        DaemonManager(
-            lanceur = lanceur,
-            outilchain = outils,
-            api = api,
-            hote = hote,
-            deployeur = deployeur,
-            journal = journal,
-            dispatchers = DispatchersIoDirect(),
-            fabriqueCommande = { java, jar, cheminSocket, secret ->
-                listOf(java.path, "-jar", jar.path, "--socket", cheminSocket.path, "--secret", secret)
-            },
-            intervalleSanteMs = intervalleSanteMs,
-            delaiSanteMs = delaiSanteMs,
-            delaiRelanceMs = delaiRelanceMs,
-            deployeurAppLog = deployeurAppLog,
-            lectureInjectionAppLog = lectureInjectionAppLog,
-        )
+    ): DaemonManager = DaemonManager(
+        lanceur = lanceur,
+        outilchain = outils,
+        api = api,
+        hote = hote,
+        deployeur = deployeur,
+        journal = journal,
+        dispatchers = DispatchersIoDirect(),
+        fabriqueCommande = { java, jar, cheminSocket, secret ->
+            listOf(java.path, "-jar", jar.path, "--socket", cheminSocket.path, "--secret", secret)
+        },
+        intervalleSanteMs = intervalleSanteMs,
+        delaiSanteMs = delaiSanteMs,
+        delaiRelanceMs = delaiRelanceMs,
+        deployeurAppLog = deployeurAppLog,
+        lectureInjectionAppLog = lectureInjectionAppLog,
+    )
 
     /** Démarre le daemon dans sa portée de test et l'enregistre pour le nettoyage. */
     private fun DaemonManager.demarrerEnTest() {
@@ -95,228 +94,216 @@ class DaemonManagerTest {
     }
 
     @Test
-    fun `l ecoute s ouvre AVANT le lancement et la session suit le handshake`() =
-        runBlocking {
-            val session = SessionFacticeDaemon(pongAuto = true)
-            hote.sessions.addAll(listOf(session))
-            // Process vivant : la surveillance tient jusqu'à la fin du test.
-            lanceur.fabrique = { ProcessusMaitrise() }
-            nouveauDaemon().demarrerEnTest()
+    fun `l ecoute s ouvre AVANT le lancement et la session suit le handshake`() = runBlocking {
+        val session = SessionFacticeDaemon(pongAuto = true)
+        hote.sessions.addAll(listOf(session))
+        // Process vivant : la surveillance tient jusqu'à la fin du test.
+        lanceur.fabrique = { ProcessusMaitrise() }
+        nouveauDaemon().demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
 
-            assertEquals(1, lanceur.lancements.size)
-            // §5.1 : l'écoute précède le lancement — l'hôte l'a constaté.
-            assertTrue("ouvrir() devait précéder le lancement", hote.ordreOuvertureAvantLancement)
-            // Le secret est passé au process ET capté au retour (§4.4) — le
-            // health check le prouve vivant : des pings partent DANS la
-            // session ouverte.
-            val commande = lanceur.lancements[0].command
-            val indiceSecret = commande.indexOf("--secret")
-            assertTrue("la commande devait porter le secret", indiceSecret >= 0)
-            assertEquals(commande[indiceSecret + 1], hote.secretsRecus[0])
-            assertTrue("le secret devait être non trivial", hote.secretsRecus[0].length >= 32)
-            attendreQue { session.envoyes.filterIsInstance<PingMessage>().isNotEmpty() }
-        }
-
-    @Test
-    fun `le stderr du process rejoint le journal sous le tag gradle-server`() =
-        runBlocking {
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
-            lanceur.fabrique = { ProcessusMaitrise(lignesStderr = listOf("boom orchestrateur")) }
-            nouveauDaemon().demarrerEnTest()
-
-            attendreQue { journal.entries.any { it.tag == "gradle-server" && it.message.contains("boom") } }
-        }
+        assertEquals(1, lanceur.lancements.size)
+        // §5.1 : l'écoute précède le lancement — l'hôte l'a constaté.
+        assertTrue("ouvrir() devait précéder le lancement", hote.ordreOuvertureAvantLancement)
+        // Le secret est passé au process ET capté au retour (§4.4) — le
+        // health check le prouve vivant : des pings partent DANS la
+        // session ouverte.
+        val commande = lanceur.lancements[0].command
+        val indiceSecret = commande.indexOf("--secret")
+        assertTrue("la commande devait porter le secret", indiceSecret >= 0)
+        assertEquals(commande[indiceSecret + 1], hote.secretsRecus[0])
+        assertTrue("le secret devait être non trivial", hote.secretsRecus[0].length >= 32)
+        attendreQue { session.envoyes.filterIsInstance<PingMessage>().isNotEmpty() }
+    }
 
     @Test
-    fun `le stderr est journalise pendant la fenetre de connexion meme sans session`() =
-        runBlocking {
-            // ADR 0061 : l'hôte production (accept non interruptible réveillé)
-            // lève IOException sans jamais ouvrir de session — le stderr de
-            // l'orchestrateur doit pourtant être journalisé : c'est lui qui
-            // explique l'échec (v0.35.0 : personne ne lisait le tuyau pendant
-            // la fenêtre de connexion, échec muet).
-            hote.echecConnexion =
-                java.io.IOException("orchestrateur silencieux à la connexion (délai de 30000 ms)")
-            lanceur.fabrique =
-                { ProcessusMaitrise(lignesStderr = listOf("connexion au socket impossible : cause terrain")) }
-            nouveauDaemon().demarrerEnTest()
+    fun `le stderr du process rejoint le journal sous le tag gradle-server`() = runBlocking {
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
+        lanceur.fabrique = { ProcessusMaitrise(lignesStderr = listOf("boom orchestrateur")) }
+        nouveauDaemon().demarrerEnTest()
 
-            attendreQue {
-                journal.entries.any { it.tag == "gradle-server" && it.message.contains("cause terrain") }
-            }
-            // La boucle a bien consommé la tentative et relancé.
-            attendreQue { lanceur.lancements.size >= 2 }
-        }
+        attendreQue { journal.entries.any { it.tag == "gradle-server" && it.message.contains("boom") } }
+    }
 
     @Test
-    fun `une ligne de stderr en vol pendant la fenetre survit a l annulation de la portee`() =
-        runBlocking {
-            // Régression CI (2026-10-01, runner à cœurs comptés) : un échec de
-            // connexion levé SANS la moindre suspension laissait l'annulation
-            // immédiate de la portée devancer la mise en file du collecteur
-            // sur le dispatcheur — la ligne mourait EN VOL, échec muet. Le
-            // lecteur ci-dessous ne publie sa ligne qu'après 50 ms : SANS la
-            // vidange bornée avant l'annulation, l'attendreQue échoue toujours
-            // (le délai est incontestablement plus long que la microseconde
-            // du lancement à l'échec) ; AVEC, la ligne rejoint le journal à
-            // coup sûr, la course de dispatcheur ne décide plus de rien.
-            hote.echecConnexion =
-                java.io.IOException("orchestrateur silencieux à la connexion (délai de 30000 ms)")
-            lanceur.fabrique = { ProcessusStderrDiffere(delaiMs = 50) }
-            nouveauDaemon().demarrerEnTest()
+    fun `le stderr est journalise pendant la fenetre de connexion meme sans session`() = runBlocking {
+        // ADR 0061 : l'hôte production (accept non interruptible réveillé)
+        // lève IOException sans jamais ouvrir de session — le stderr de
+        // l'orchestrateur doit pourtant être journalisé : c'est lui qui
+        // explique l'échec (v0.35.0 : personne ne lisait le tuyau pendant
+        // la fenêtre de connexion, échec muet).
+        hote.echecConnexion =
+            java.io.IOException("orchestrateur silencieux à la connexion (délai de 30000 ms)")
+        lanceur.fabrique =
+            { ProcessusMaitrise(lignesStderr = listOf("connexion au socket impossible : cause terrain")) }
+        nouveauDaemon().demarrerEnTest()
 
-            attendreQue {
-                journal.entries.any { it.tag == "gradle-server" && it.message.contains("cause terrain différé") }
-            }
-            attendreQue { lanceur.lancements.size >= 2 }
+        attendreQue {
+            journal.entries.any { it.tag == "gradle-server" && it.message.contains("cause terrain") }
         }
+        // La boucle a bien consommé la tentative et relancé.
+        attendreQue { lanceur.lancements.size >= 2 }
+    }
 
     @Test
-    fun `un echec de connexion IO de l hote est consomme puis epuise les tentatives`() =
-        runBlocking {
-            // L'hôte production traduit le délai expiré en IOException typée
-            // (ADR 0061) : le daemon la remonte TELLE QUELLE, consomme une
-            // tentative par échec et finit ECHOUEE après épuisement.
-            hote.echecConnexion =
-                java.io.IOException("orchestrateur silencieux à la connexion (délai de 30000 ms)")
-            lanceur.fabrique = { ProcessusMaitrise() }
-            nouveauDaemon().demarrerEnTest()
+    fun `une ligne de stderr en vol pendant la fenetre survit a l annulation de la portee`() = runBlocking {
+        // Régression CI (2026-10-01, runner à cœurs comptés) : un échec de
+        // connexion levé SANS la moindre suspension laissait l'annulation
+        // immédiate de la portée devancer la mise en file du collecteur
+        // sur le dispatcheur — la ligne mourait EN VOL, échec muet. Le
+        // lecteur ci-dessous ne publie sa ligne qu'après 50 ms : SANS la
+        // vidange bornée avant l'annulation, l'attendreQue échoue toujours
+        // (le délai est incontestablement plus long que la microseconde
+        // du lancement à l'échec) ; AVEC, la ligne rejoint le journal à
+        // coup sûr, la course de dispatcheur ne décide plus de rien.
+        hote.echecConnexion =
+            java.io.IOException("orchestrateur silencieux à la connexion (délai de 30000 ms)")
+        lanceur.fabrique = { ProcessusStderrDiffere(delaiMs = 50) }
+        nouveauDaemon().demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
-            assertEquals(GradleProtocol.MAX_RECONNECT_ATTEMPTS, lanceur.lancements.size)
-            assertTrue(journal.entries.any { it.message.contains("lancement impossible") })
-            assertTrue(journal.entries.any { it.message.contains("orchestrateur silencieux à la connexion") })
+        attendreQue {
+            journal.entries.any { it.tag == "gradle-server" && it.message.contains("cause terrain différé") }
         }
+        attendreQue { lanceur.lancements.size >= 2 }
+    }
 
     @Test
-    fun `la mort du process declenche une relance avec un secret neuf`() =
-        runBlocking {
-            val premiere = ProcessusMaitrise()
-            val seconde = ProcessusMaitrise()
-            val numero =
-                java.util.concurrent.atomic
-                    .AtomicInteger()
-            lanceur.fabrique = { _ ->
-                if (numero.incrementAndGet() == 1) premiere else seconde
-            }
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true), SessionFacticeDaemon(pongAuto = true)))
-            nouveauDaemon().demarrerEnTest()
+    fun `un echec de connexion IO de l hote est consomme puis epuise les tentatives`() = runBlocking {
+        // L'hôte production traduit le délai expiré en IOException typée
+        // (ADR 0061) : le daemon la remonte TELLE QUELLE, consomme une
+        // tentative par échec et finit ECHOUEE après épuisement.
+        hote.echecConnexion =
+            java.io.IOException("orchestrateur silencieux à la connexion (délai de 30000 ms)")
+        lanceur.fabrique = { ProcessusMaitrise() }
+        nouveauDaemon().demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE && lanceur.lancements.size == 1 }
-            premiere.mourir(code = 3)
+        attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
+        assertEquals(GradleProtocol.MAX_RECONNECT_ATTEMPTS, lanceur.lancements.size)
+        assertTrue(journal.entries.any { it.message.contains("lancement impossible") })
+        assertTrue(journal.entries.any { it.message.contains("orchestrateur silencieux à la connexion") })
+    }
 
-            attendreQue { lanceur.lancements.size == 2 }
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
-            assertEquals(2, hote.secretsRecus.size)
-            assertNotEquals(
-                "chaque tentative devait générer un secret neuf",
-                hote.secretsRecus[0],
-                hote.secretsRecus[1],
+    @Test
+    fun `la mort du process declenche une relance avec un secret neuf`() = runBlocking {
+        val premiere = ProcessusMaitrise()
+        val seconde = ProcessusMaitrise()
+        val numero =
+            java.util.concurrent.atomic
+                .AtomicInteger()
+        lanceur.fabrique = { _ ->
+            if (numero.incrementAndGet() == 1) premiere else seconde
+        }
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true), SessionFacticeDaemon(pongAuto = true)))
+        nouveauDaemon().demarrerEnTest()
+
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE && lanceur.lancements.size == 1 }
+        premiere.mourir(code = 3)
+
+        attendreQue { lanceur.lancements.size == 2 }
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+        assertEquals(2, hote.secretsRecus.size)
+        assertNotEquals(
+            "chaque tentative devait générer un secret neuf",
+            hote.secretsRecus[0],
+            hote.secretsRecus[1],
+        )
+    }
+
+    @Test
+    fun `cinq echecs epuisent les tentatives et laissent la connexion ECHOUEE`() = runBlocking {
+        // Chaque process meurt dès son lancement (connexion aussitôt perdue).
+        lanceur.fabrique = { ProcessusMaitrise().also { it.mourir(code = 3) } }
+        repeat(6) { hote.sessions.add(SessionFacticeDaemon(pongAuto = true)) }
+        nouveauDaemon().demarrerEnTest()
+
+        attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
+        assertEquals(GradleProtocol.MAX_RECONNECT_ATTEMPTS, lanceur.lancements.size)
+    }
+
+    @Test
+    fun `JDK absent, aucun lancement et connexion DECONNECTEE`() = runBlocking {
+        outils.jdk = null
+        nouveauDaemon().demarrerEnTest()
+
+        attendreQue { journal.entries.any { it.message.contains("JDK") } }
+        Thread.sleep(200)
+        assertEquals(0, lanceur.lancements.size)
+        assertEquals(EtatConnexion.DECONNECTEE, api.etatConnexion)
+    }
+
+    @Test
+    fun `un handshake refuse est un echec definitif sans relance`() = runBlocking {
+        hote.refus = EchecHandshakeClient("version de protocole incompatible : 99")
+        nouveauDaemon().demarrerEnTest()
+
+        attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
+        assertEquals(1, lanceur.lancements.size)
+        assertTrue(journal.entries.any { it.message.contains("handshake refusé") })
+    }
+
+    @Test
+    fun `un orchestrateur muet est tue par le health check puis relance`() = runBlocking {
+        val muet = ProcessusMaitrise()
+        val sain = ProcessusMaitrise()
+        val numero =
+            java.util.concurrent.atomic
+                .AtomicInteger()
+        lanceur.fabrique = { _ ->
+            if (numero.incrementAndGet() == 1) muet else sain
+        }
+        // Première session : AUCUN pong ; seconde : pong automatique.
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = false), SessionFacticeDaemon(pongAuto = true)))
+        nouveauDaemon().demarrerEnTest()
+
+        attendreQue { muet.tues.isNotEmpty() && lanceur.lancements.size == 2 }
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+    }
+
+    @Test
+    fun `arreter tue le process sans relance et laisse DECONNECTEE`() = runBlocking {
+        val process = ProcessusMaitrise()
+        lanceur.fabrique = { process }
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
+        val daemonTest = nouveauDaemon()
+        daemonTest.demarrerEnTest()
+
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+        daemonTest.arreter()
+
+        // L'annulation est asynchrone : le nettoyage synchrone du finally
+        // de la tentative s'exécute sur le dispatcher, on attend l'effet.
+        attendreQue { process.tues.isNotEmpty() }
+        attendreQue { api.etatConnexion == EtatConnexion.DECONNECTEE }
+        Thread.sleep(300)
+        assertEquals("aucune relance après un arrêt demandé", 1, lanceur.lancements.size)
+    }
+
+    @Test
+    fun `la commande par defaut porte java tas jar socket secret et journalisation`() = runBlocking {
+        val commande =
+            commandeParDefaut().invoke(
+                File("/outils/jdk/bin/java"),
+                File("/donnees/files/tooling/gradle-server.jar"),
+                File("/donnees/files/run/gradle.sock"),
+                "secret-de-test",
             )
-        }
-
-    @Test
-    fun `cinq echecs epuisent les tentatives et laissent la connexion ECHOUEE`() =
-        runBlocking {
-            // Chaque process meurt dès son lancement (connexion aussitôt perdue).
-            lanceur.fabrique = { ProcessusMaitrise().also { it.mourir(code = 3) } }
-            repeat(6) { hote.sessions.add(SessionFacticeDaemon(pongAuto = true)) }
-            nouveauDaemon().demarrerEnTest()
-
-            attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
-            assertEquals(GradleProtocol.MAX_RECONNECT_ATTEMPTS, lanceur.lancements.size)
-        }
-
-    @Test
-    fun `JDK absent, aucun lancement et connexion DECONNECTEE`() =
-        runBlocking {
-            outils.jdk = null
-            nouveauDaemon().demarrerEnTest()
-
-            attendreQue { journal.entries.any { it.message.contains("JDK") } }
-            Thread.sleep(200)
-            assertEquals(0, lanceur.lancements.size)
-            assertEquals(EtatConnexion.DECONNECTEE, api.etatConnexion)
-        }
-
-    @Test
-    fun `un handshake refuse est un echec definitif sans relance`() =
-        runBlocking {
-            hote.refus = EchecHandshakeClient("version de protocole incompatible : 99")
-            nouveauDaemon().demarrerEnTest()
-
-            attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
-            assertEquals(1, lanceur.lancements.size)
-            assertTrue(journal.entries.any { it.message.contains("handshake refusé") })
-        }
-
-    @Test
-    fun `un orchestrateur muet est tue par le health check puis relance`() =
-        runBlocking {
-            val muet = ProcessusMaitrise()
-            val sain = ProcessusMaitrise()
-            val numero =
-                java.util.concurrent.atomic
-                    .AtomicInteger()
-            lanceur.fabrique = { _ ->
-                if (numero.incrementAndGet() == 1) muet else sain
-            }
-            // Première session : AUCUN pong ; seconde : pong automatique.
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = false), SessionFacticeDaemon(pongAuto = true)))
-            nouveauDaemon().demarrerEnTest()
-
-            attendreQue { muet.tues.isNotEmpty() && lanceur.lancements.size == 2 }
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
-        }
-
-    @Test
-    fun `arreter tue le process sans relance et laisse DECONNECTEE`() =
-        runBlocking {
-            val process = ProcessusMaitrise()
-            lanceur.fabrique = { process }
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
-            val daemonTest = nouveauDaemon()
-            daemonTest.demarrerEnTest()
-
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
-            daemonTest.arreter()
-
-            // L'annulation est asynchrone : le nettoyage synchrone du finally
-            // de la tentative s'exécute sur le dispatcher, on attend l'effet.
-            attendreQue { process.tues.isNotEmpty() }
-            attendreQue { api.etatConnexion == EtatConnexion.DECONNECTEE }
-            Thread.sleep(300)
-            assertEquals("aucune relance après un arrêt demandé", 1, lanceur.lancements.size)
-        }
-
-    @Test
-    fun `la commande par defaut porte java tas jar socket secret et journalisation`() =
-        runBlocking {
-            val commande =
-                commandeParDefaut().invoke(
-                    File("/outils/jdk/bin/java"),
-                    File("/donnees/files/tooling/gradle-server.jar"),
-                    File("/donnees/files/run/gradle.sock"),
-                    "secret-de-test",
-                )
-            assertEquals(
-                listOf(
-                    "/outils/jdk/bin/java",
-                    "-Xmx${TAS_MO}m",
-                    "-jar",
-                    "/donnees/files/tooling/gradle-server.jar",
-                    "--socket",
-                    "/donnees/files/run/gradle.sock",
-                    "--secret",
-                    "secret-de-test",
-                    "--log-level",
-                    "INFO",
-                ),
-                commande,
-            )
-        }
+        assertEquals(
+            listOf(
+                "/outils/jdk/bin/java",
+                "-Xmx${TAS_MO}m",
+                "-jar",
+                "/donnees/files/tooling/gradle-server.jar",
+                "--socket",
+                "/donnees/files/run/gradle.sock",
+                "--secret",
+                "secret-de-test",
+                "--log-level",
+                "INFO",
+            ),
+            commande,
+        )
+    }
 
     // ------------------------------------------------------------------
     // Mission « Exécuter » R2 (ADR 0103) : l'argument --applog-repo du
@@ -327,63 +314,60 @@ class DaemonManagerTest {
     /** Source applog en mémoire (couture — même contrat que les assets). */
     private val sourceAppLogMemoire =
         object : SourceAppLog {
-            override fun flux(nom: String): java.io.InputStream =
-                java.io.ByteArrayInputStream(
-                    when (nom) {
-                        jo.codeide.tooling.protocol.ApplogCoordonnees.NOM_AAR -> ByteArray(32)
-                        jo.codeide.tooling.protocol.ApplogCoordonnees.NOM_POM -> "<pom/>".toByteArray()
-                        else -> throw java.io.FileNotFoundException(nom)
-                    },
-                )
-        }
-
-    @Test
-    fun `le depot applog deploye ajoute applog-repo a la fin de la commande`() =
-        runBlocking {
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
-            lanceur.fabrique = { ProcessusMaitrise() }
-            val cible = dossierTemporaire("applog-repo")
-            nouveauDaemon(
-                deployeurAppLog = DepotAppLogDeployer(sourceAppLogMemoire, cible),
-                lectureInjectionAppLog = { true },
-            ).demarrerEnTest()
-
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
-
-            val commande = lanceur.lancements[0].command
-            val indice = commande.indexOf("--applog-repo")
-            assertTrue("la commande devait porter --applog-repo", indice >= 0)
-            assertEquals(
-                "le chemin du dépôt suit l'argument",
-                cible.canonicalFile.absolutePath,
-                File(commande[indice + 1]).canonicalFile.absolutePath,
-            )
-            // Le dépôt est RÉELLEMENT déployé avant le lancement.
-            assertTrue(
-                cible.resolve("jo/codeide/applog-runtime/1.0.0").isDirectory,
+            override fun flux(nom: String): java.io.InputStream = java.io.ByteArrayInputStream(
+                when (nom) {
+                    jo.codeide.tooling.protocol.ApplogCoordonnees.NOM_AAR -> ByteArray(32)
+                    jo.codeide.tooling.protocol.ApplogCoordonnees.NOM_POM -> "<pom/>".toByteArray()
+                    else -> throw java.io.FileNotFoundException(nom)
+                },
             )
         }
 
     @Test
-    fun `reglage coupe ou deployeur absent la commande reste inchangée`() =
-        runBlocking {
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
-            lanceur.fabrique = { ProcessusMaitrise() }
-            val cible = dossierTemporaire("applog-repo")
-            nouveauDaemon(
-                deployeurAppLog = DepotAppLogDeployer(sourceAppLogMemoire, cible),
-                lectureInjectionAppLog = { false },
-            ).demarrerEnTest()
+    fun `le depot applog deploye ajoute applog-repo a la fin de la commande`() = runBlocking {
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
+        lanceur.fabrique = { ProcessusMaitrise() }
+        val cible = dossierTemporaire("applog-repo")
+        nouveauDaemon(
+            deployeurAppLog = DepotAppLogDeployer(sourceAppLogMemoire, cible),
+            lectureInjectionAppLog = { true },
+        ).demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
 
-            assertTrue(
-                "réglage coupé : aucun --applog-repo",
-                "--applog-repo" !in lanceur.lancements[0].command,
-            )
-            // Rien déployé non plus : l'injection coupée ne touche pas disque.
-            assertTrue(cible.resolve("jo").exists().not())
-        }
+        val commande = lanceur.lancements[0].command
+        val indice = commande.indexOf("--applog-repo")
+        assertTrue("la commande devait porter --applog-repo", indice >= 0)
+        assertEquals(
+            "le chemin du dépôt suit l'argument",
+            cible.canonicalFile.absolutePath,
+            File(commande[indice + 1]).canonicalFile.absolutePath,
+        )
+        // Le dépôt est RÉELLEMENT déployé avant le lancement.
+        assertTrue(
+            cible.resolve("jo/codeide/applog-runtime/1.0.0").isDirectory,
+        )
+    }
+
+    @Test
+    fun `reglage coupe ou deployeur absent la commande reste inchangée`() = runBlocking {
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
+        lanceur.fabrique = { ProcessusMaitrise() }
+        val cible = dossierTemporaire("applog-repo")
+        nouveauDaemon(
+            deployeurAppLog = DepotAppLogDeployer(sourceAppLogMemoire, cible),
+            lectureInjectionAppLog = { false },
+        ).demarrerEnTest()
+
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+
+        assertTrue(
+            "réglage coupé : aucun --applog-repo",
+            "--applog-repo" !in lanceur.lancements[0].command,
+        )
+        // Rien déployé non plus : l'injection coupée ne touche pas disque.
+        assertTrue(cible.resolve("jo").exists().not())
+    }
 
     @Test
     fun `argumentsAppLog produit la paire ou rien`() {
@@ -419,123 +403,116 @@ class DaemonManagerTest {
     }
 
     @Test
-    fun `un JAR indisponible est un echec definitif sans lancement`() =
-        runBlocking {
-            val deployeurCassee =
-                JarDeployer(
-                    source = SourceJarAbsent(),
-                    dossierCible = dossierTemporaire("deploy-casse"),
-                    dispatchers = DispatchersIoDirect(),
-                )
-            val daemon =
-                DaemonManager(
-                    lanceur = lanceur,
-                    outilchain = outils,
-                    api = api,
-                    hote = hote,
-                    deployeur = deployeurCassee,
-                    journal = journal,
-                    dispatchers = DispatchersIoDirect(),
-                    delaiRelanceMs = 1L,
-                )
-            daemon.demarrerEnTest()
+    fun `un JAR indisponible est un echec definitif sans lancement`() = runBlocking {
+        val deployeurCassee =
+            JarDeployer(
+                source = SourceJarAbsent(),
+                dossierCible = dossierTemporaire("deploy-casse"),
+                dispatchers = DispatchersIoDirect(),
+            )
+        val daemon =
+            DaemonManager(
+                lanceur = lanceur,
+                outilchain = outils,
+                api = api,
+                hote = hote,
+                deployeur = deployeurCassee,
+                journal = journal,
+                dispatchers = DispatchersIoDirect(),
+                delaiRelanceMs = 1L,
+            )
+        daemon.demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
-            assertEquals(0, lanceur.lancements.size)
-            assertTrue(journal.entries.any { it.message.contains("indisponible") })
-            // v0.99.1 : l'échec définitif est explicite — l'asset en cause
-            // ET la conduite à tenir (réinstallation) sont dans le journal.
-            assertTrue(journal.entries.any { it.message.contains("réinstaller") })
-        }
-
-    @Test
-    fun `un echec d ecriture du JAR consomme les tentatives puis echoue`() =
-        runBlocking {
-            // v0.99.1 (journal de terrain « <chemin>: The source file
-            // doesn't exist. ») : un échec CÔTÉ STOCKAGE (répertoire
-            // incréable) est RETENTABLE — l'ancien code le déclarait
-            // définitif du premier coup, la boucle de vie doit épuiser
-            // ses tentatives comme pour tout lancement impossible.
-            val parent = dossierTemporaire("deploy-cible-morte-parent")
-            parent.mkdirs()
-            val bloquant = File(parent, "fichier-bloquant")
-            bloquant.writeText("bloque la création du répertoire")
-            val deployeurBloque =
-                JarDeployer(
-                    source = SourceJarMemoire(CONTENU_JAR),
-                    dossierCible = File(bloquant, "tooling"),
-                    dispatchers = DispatchersIoDirect(),
-                )
-            val daemon =
-                DaemonManager(
-                    lanceur = lanceur,
-                    outilchain = outils,
-                    api = api,
-                    hote = hote,
-                    deployeur = deployeurBloque,
-                    journal = journal,
-                    dispatchers = DispatchersIoDirect(),
-                    delaiRelanceMs = 1L,
-                )
-            daemon.demarrerEnTest()
-
-            attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
-            // Aucun lancement (le déploiement échoue AVANT le process), et
-            // l'échec est journalisé comme TENTATIVE CONSOMMÉE, pas comme
-            // « indisponible » définitif.
-            assertEquals(0, lanceur.lancements.size)
-            assertTrue(journal.entries.any { it.message.contains("tentative consommée") })
-            assertTrue(journal.entries.any { it.message.contains("incréable") })
-        }
+        attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
+        assertEquals(0, lanceur.lancements.size)
+        assertTrue(journal.entries.any { it.message.contains("indisponible") })
+        // v0.99.1 : l'échec définitif est explicite — l'asset en cause
+        // ET la conduite à tenir (réinstallation) sont dans le journal.
+        assertTrue(journal.entries.any { it.message.contains("réinstaller") })
+    }
 
     @Test
-    fun `un code de sortie arguments invalides est un echec definitif`() =
-        runBlocking {
-            // Le process meurt immédiatement avec le code 2 (arguments
-            // invalides) : relancer la MÊME commande est vain.
-            lanceur.fabrique = { ProcessusMaitrise().also { it.mourir(code = 2) } }
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
-            nouveauDaemon().demarrerEnTest()
+    fun `un echec d ecriture du JAR consomme les tentatives puis echoue`() = runBlocking {
+        // v0.99.1 (journal de terrain « <chemin>: The source file
+        // doesn't exist. ») : un échec CÔTÉ STOCKAGE (répertoire
+        // incréable) est RETENTABLE — l'ancien code le déclarait
+        // définitif du premier coup, la boucle de vie doit épuiser
+        // ses tentatives comme pour tout lancement impossible.
+        val parent = dossierTemporaire("deploy-cible-morte-parent")
+        parent.mkdirs()
+        val bloquant = File(parent, "fichier-bloquant")
+        bloquant.writeText("bloque la création du répertoire")
+        val deployeurBloque =
+            JarDeployer(
+                source = SourceJarMemoire(CONTENU_JAR),
+                dossierCible = File(bloquant, "tooling"),
+                dispatchers = DispatchersIoDirect(),
+            )
+        val daemon =
+            DaemonManager(
+                lanceur = lanceur,
+                outilchain = outils,
+                api = api,
+                hote = hote,
+                deployeur = deployeurBloque,
+                journal = journal,
+                dispatchers = DispatchersIoDirect(),
+                delaiRelanceMs = 1L,
+            )
+        daemon.demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
-            assertEquals(1, lanceur.lancements.size)
-        }
+        attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
+        // Aucun lancement (le déploiement échoue AVANT le process), et
+        // l'échec est journalisé comme TENTATIVE CONSOMMÉE, pas comme
+        // « indisponible » définitif.
+        assertEquals(0, lanceur.lancements.size)
+        assertTrue(journal.entries.any { it.message.contains("tentative consommée") })
+        assertTrue(journal.entries.any { it.message.contains("incréable") })
+    }
 
     @Test
-    fun `un echec non prevu du lecteur de sorties est journalise sans tuer la session`() =
-        runBlocking {
-            // Régression ADR 0063 (journal de terrain v0.35.2) : le lecteur
-            // du stderr qui lève pendant l'arrêt forcé plantait l'app
-            // ENTIÈRE (exception non interceptée du collecteur) — le
-            // garde-fou du daemon journalise désormais l'échec et la
-            // connexion SURVIT.
-            val explosif = ProcessusExplosif()
-            lanceur.fabrique = { explosif }
-            hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
-            nouveauDaemon().demarrerEnTest()
+    fun `un code de sortie arguments invalides est un echec definitif`() = runBlocking {
+        // Le process meurt immédiatement avec le code 2 (arguments
+        // invalides) : relancer la MÊME commande est vain.
+        lanceur.fabrique = { ProcessusMaitrise().also { it.mourir(code = 2) } }
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
+        nouveauDaemon().demarrerEnTest()
 
-            attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
-            explosif.declencher()
+        attendreQue { api.etatConnexion == EtatConnexion.ECHOUEE }
+        assertEquals(1, lanceur.lancements.size)
+    }
 
-            // L'échec est JOURNALISÉ (visible dans le rapport d'erreur de
-            // l'opérateur), pas propagé au gestionnaire de plantage.
-            attendreQue {
-                journal.entries.any { it.message.contains("non prévu") }
-            }
-            // La session et le health check SURVIVENT au lecteur mort.
-            Thread.sleep(300)
-            assertEquals(EtatConnexion.CONNECTEE, api.etatConnexion)
+    @Test
+    fun `un echec non prevu du lecteur de sorties est journalise sans tuer la session`() = runBlocking {
+        // Régression ADR 0063 (journal de terrain v0.35.2) : le lecteur
+        // du stderr qui lève pendant l'arrêt forcé plantait l'app
+        // ENTIÈRE (exception non interceptée du collecteur) — le
+        // garde-fou du daemon journalise désormais l'échec et la
+        // connexion SURVIT.
+        val explosif = ProcessusExplosif()
+        lanceur.fabrique = { explosif }
+        hote.sessions.addAll(listOf(SessionFacticeDaemon(pongAuto = true)))
+        nouveauDaemon().demarrerEnTest()
+
+        attendreQue { api.etatConnexion == EtatConnexion.CONNECTEE }
+        explosif.declencher()
+
+        // L'échec est JOURNALISÉ (visible dans le rapport d'erreur de
+        // l'opérateur), pas propagé au gestionnaire de plantage.
+        attendreQue {
+            journal.entries.any { it.message.contains("non prévu") }
         }
+        // La session et le health check SURVIVENT au lecteur mort.
+        Thread.sleep(300)
+        assertEquals(EtatConnexion.CONNECTEE, api.etatConnexion)
+    }
 
     // ------------------------------------------------------------------
     // Aides.
     // ------------------------------------------------------------------
 
     /** Attend une condition par sondage borné (même patron que G3). */
-    private fun attendreQue(
-        delaiMs: Long = 5_000,
-        condition: () -> Boolean,
-    ) {
+    private fun attendreQue(delaiMs: Long = 5_000, condition: () -> Boolean) {
         val debut = System.currentTimeMillis()
         while (!condition()) {
             if (System.currentTimeMillis() - debut > delaiMs) {
@@ -583,10 +560,7 @@ private class HoteSocketFactice : HoteSocketTooling {
         ordre += "ouvrir"
     }
 
-    override suspend fun accepterUneFois(
-        secretAttendu: String,
-        delaiMs: Long,
-    ): SessionTooling {
+    override suspend fun accepterUneFois(secretAttendu: String, delaiMs: Long): SessionTooling {
         secretsRecus += secretAttendu
         echecConnexion?.let { throw it }
         refus?.let { throw it }
@@ -603,9 +577,7 @@ private class HoteSocketFactice : HoteSocketTooling {
  * Session factice locale (miroir de la SessionFactice de G3, hors module) :
  * canal illimité d'événements, envois capturés, pong automatique optionnel.
  */
-private class SessionFacticeDaemon(
-    private val pongAuto: Boolean,
-) : SessionTooling {
+private class SessionFacticeDaemon(private val pongAuto: Boolean) : SessionTooling {
     val envoyes = CopyOnWriteArrayList<ProtocolMessage>()
     private val canal = Channel<ToolingEvent>(Channel.UNLIMITED)
 
@@ -626,9 +598,7 @@ private class SessionFacticeDaemon(
  * `kill`, les sorties sont scriptées — la relance, le health check et
  * l'attente de sortie se rejouent fidèlement.
  */
-private class ProcessusMaitrise(
-    lignesStderr: List<String> = emptyList(),
-) : ManagedProcess {
+private class ProcessusMaitrise(lignesStderr: List<String> = emptyList()) : ManagedProcess {
     private val fin = CompletableDeferred<Int>()
     private val lignes = lignesStderr
 
@@ -667,9 +637,7 @@ private class ProcessusMaitrise(
  * moment où la tentative échoue ; sans vidange bornée avant
  * l'annulation, la ligne meurt en vol à tous les coups.
  */
-private class ProcessusStderrDiffere(
-    private val delaiMs: Long,
-) : ManagedProcess {
+private class ProcessusStderrDiffere(private val delaiMs: Long) : ManagedProcess {
     private val fin = CompletableDeferred<Int>()
 
     override val pid: Int = 42_426
@@ -678,11 +646,10 @@ private class ProcessusStderrDiffere(
 
     override fun stdoutLines(): Flow<String> = emptyList<String>().asFlow()
 
-    override fun stderrLines(): Flow<String> =
-        kotlinx.coroutines.flow.flow {
-            kotlinx.coroutines.delay(delaiMs)
-            emit("échec différé : cause terrain différé")
-        }
+    override fun stderrLines(): Flow<String> = kotlinx.coroutines.flow.flow {
+        kotlinx.coroutines.delay(delaiMs)
+        emit("échec différé : cause terrain différé")
+    }
 
     override suspend fun awaitExit(): Int = fin.await()
 
@@ -710,12 +677,11 @@ private class ProcessusExplosif : ManagedProcess {
 
     override fun stdoutLines(): Flow<String> = emptyList<String>().asFlow()
 
-    override fun stderrLines(): Flow<String> =
-        kotlinx.coroutines.flow.flow {
-            emit("ligne avant la fermeture")
-            declencheur.await()
-            throw java.io.InterruptedIOException("read interrupted by close() on another thread")
-        }
+    override fun stderrLines(): Flow<String> = kotlinx.coroutines.flow.flow {
+        emit("ligne avant la fermeture")
+        declencheur.await()
+        throw java.io.InterruptedIOException("read interrupted by close() on another thread")
+    }
 
     override suspend fun awaitExit(): Int = CompletableDeferred<Int>().await()
 

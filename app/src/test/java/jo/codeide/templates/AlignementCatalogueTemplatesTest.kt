@@ -24,10 +24,8 @@ class AlignementCatalogueTemplatesTest {
     private val contexte: Context = ApplicationProvider.getApplicationContext()
     private val assets = contexte.assets
 
-    private fun gabarit(
-        template: String,
-        chemin: String,
-    ): String = assets.open("templates/$template/files/$chemin").bufferedReader().readText()
+    private fun gabarit(template: String, chemin: String): String =
+        assets.open("templates/$template/files/$chemin").bufferedReader().readText()
 
     @Test
     fun `le template android-app référence la version de build-tools du catalogue`() {
@@ -85,8 +83,5 @@ class AlignementCatalogueTemplatesTest {
         }
     }
 
-    private fun extraire(
-        texte: String,
-        motif: String,
-    ): String = Regex(motif).find(texte)!!.groupValues[1]
+    private fun extraire(texte: String, motif: String): String = Regex(motif).find(texte)!!.groupValues[1]
 }

@@ -55,10 +55,7 @@ public interface ProjectDao {
      * @return nombre de lignes affectées (0 = identifiant inconnu).
      */
     @Query("UPDATE ${ProjectEntity.TABLE} SET name = :name WHERE id = :id")
-    public suspend fun rename(
-        id: String,
-        name: String,
-    ): Int
+    public suspend fun rename(id: String, name: String): Int
 
     /**
      * Épingle ou désépingle.
@@ -66,10 +63,7 @@ public interface ProjectDao {
      * @return nombre de lignes affectées (0 = identifiant inconnu).
      */
     @Query("UPDATE ${ProjectEntity.TABLE} SET is_pinned = :pinned WHERE id = :id")
-    public suspend fun setPinned(
-        id: String,
-        pinned: Boolean,
-    ): Int
+    public suspend fun setPinned(id: String, pinned: Boolean): Int
 
     /**
      * Remplace l'emplacement référencé (relocalisation, étape 7) —
@@ -88,12 +82,7 @@ public interface ProjectDao {
         WHERE id = :id
         """,
     )
-    public suspend fun updateLocation(
-        id: String,
-        grantUri: String,
-        documentUri: String,
-        displayPath: String,
-    ): Int
+    public suspend fun updateLocation(id: String, grantUri: String, documentUri: String, displayPath: String): Int
 
     /**
      * Marque le projet comme ouvert à l'instant donné.
@@ -101,10 +90,7 @@ public interface ProjectDao {
      * @return nombre de lignes affectées (0 = identifiant inconnu).
      */
     @Query("UPDATE ${ProjectEntity.TABLE} SET last_opened_at = :atMillis WHERE id = :id")
-    public suspend fun markOpened(
-        id: String,
-        atMillis: Long,
-    ): Int
+    public suspend fun markOpened(id: String, atMillis: Long): Int
 
     /**
      * Retire un projet du registre.

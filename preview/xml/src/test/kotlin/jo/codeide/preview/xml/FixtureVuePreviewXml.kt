@@ -13,10 +13,9 @@ import androidx.test.core.app.ApplicationProvider
  * (valeurs DISTINCTES ; la parité maquette ↔ ressources vit dans
  * `JetonsCalquesTest` côté feature, jamais ici).
  */
-internal fun vueDeTest(): VuePreviewXml =
-    VuePreviewXml(ApplicationProvider.getApplicationContext()).apply {
-        appliquerJetons(jetonsDeTest)
-    }
+internal fun vueDeTest(): VuePreviewXml = VuePreviewXml(ApplicationProvider.getApplicationContext()).apply {
+    appliquerJetons(jetonsDeTest)
+}
 
 /** Un jeu de jetons arbitraire mais complet (21 champs). */
 internal val jetonsDeTest =
@@ -45,9 +44,8 @@ internal val jetonsDeTest =
     )
 
 /** L'arbre de rendu de test (racine + texte + bouton — PE6a, hit-test). */
-internal fun arbreVuesDeTest(): List<InfoVueRendu> =
-    listOf(
-        InfoVueRendu(0, 0, 100, 200, "FrameLayout", 0, 40, -1, 0),
-        InfoVueRendu(10, 10, 90, 60, "TextView @+id/titre", 8, 22, 0, 1),
-        InfoVueRendu(10, 80, 90, 120, "Button @+id/envoyer", 24, 38, 0, 1),
-    )
+internal fun arbreVuesDeTest(): List<InfoVueRendu> = listOf(
+    InfoVueRendu(0, 0, 100, 200, "FrameLayout", 0, 40, -1, 0),
+    InfoVueRendu(10, 10, 90, 60, "TextView @+id/titre", 8, 22, 0, 1),
+    InfoVueRendu(10, 80, 90, 120, "Button @+id/envoyer", 24, 38, 0, 1),
+)

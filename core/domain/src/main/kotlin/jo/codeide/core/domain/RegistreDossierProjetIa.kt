@@ -20,16 +20,16 @@ import javax.inject.Singleton
  */
 @Singleton
 public class RegistreDossierProjetIa
-    @Inject
-    constructor() {
-        @Volatile
-        private var dossier: String? = null
+@Inject
+constructor() {
+    @Volatile
+    private var dossier: String? = null
 
-        /** Publie (ou efface avec `null`) le dossier réel du projet. */
-        public fun publier(dossier: String?) {
-            this.dossier = dossier
-        }
-
-        /** Le dossier réel publié, ou `null` (aucun projet résolu). */
-        public fun dossier(): String? = dossier
+    /** Publie (ou efface avec `null`) le dossier réel du projet. */
+    public fun publier(dossier: String?) {
+        this.dossier = dossier
     }
+
+    /** Le dossier réel publié, ou `null` (aucun projet résolu). */
+    public fun dossier(): String? = dossier
+}

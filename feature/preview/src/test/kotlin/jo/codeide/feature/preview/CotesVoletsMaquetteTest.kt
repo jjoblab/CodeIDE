@@ -177,29 +177,18 @@ public class CotesVoletsMaquetteTest {
                     attrs: android.util.AttributeSet,
                 ): View? = InflateurMaterial().creer(parent, nom, ctx, attrs)
 
-                override fun onCreateView(
-                    nom: String,
-                    ctx: Context,
-                    attrs: android.util.AttributeSet,
-                ): View? = onCreateView(null, nom, ctx, attrs)
+                override fun onCreateView(nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+                    onCreateView(null, nom, ctx, attrs)
             }
         return contexte
     }
 
     /** La cote attendue d'un élément mesuré (largeur = 0, hauteur = 1). */
-    private fun attendue(
-        source: JSONObject,
-        cle: String,
-        axe: Int,
-    ): Double = source.getJSONObject(cle).getJSONArray("rect").getDouble(axe)
+    private fun attendue(source: JSONObject, cle: String, axe: Int): Double =
+        source.getJSONObject(cle).getJSONArray("rect").getDouble(axe)
 
     /** La cote mesurée doit égaler celle de la maquette, à UN dp près. */
-    private fun verifierCote(
-        cle: String,
-        mesuree: Int,
-        source: JSONObject,
-        axe: Int = 1,
-    ) {
+    private fun verifierCote(cle: String, mesuree: Int, source: JSONObject, axe: Int = 1) {
         val attendue = attendue(source, cle, axe)
         assertTrue(
             "cote $cle : mesurée $mesuree dp, attendue $attendue dp (±$TOLERANCE_DP)",
@@ -220,12 +209,8 @@ public class CotesVoletsMaquetteTest {
 
     /** L'inflateur Material (surcharge courte protégée dans AppCompatViewInflater). */
     private class InflateurMaterial : MaterialComponentsViewInflater() {
-        public fun creer(
-            parent: View?,
-            nom: String,
-            ctx: Context,
-            attrs: android.util.AttributeSet,
-        ): View? = createView(parent, nom, ctx, attrs, parent != null, true, true, true)
+        public fun creer(parent: View?, nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+            createView(parent, nom, ctx, attrs, parent != null, true, true, true)
     }
 
     private companion object {

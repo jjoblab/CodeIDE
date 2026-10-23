@@ -18,9 +18,7 @@ public sealed interface ResultatFermetureElement {
      *
      * @property details message technique de la panne, pour les journaux.
      */
-    public data class Echec(
-        public val details: String,
-    ) : ResultatFermetureElement
+    public data class Echec(public val details: String) : ResultatFermetureElement
 
     /**
      * Le délai propre à l'élément a expiré : la libération a été
@@ -97,6 +95,5 @@ public data class RapportFermeture(
  *
  * @property rapport bilan partiel de la fermeture interrompue.
  */
-public class FermetureInterrompue(
-    public val rapport: RapportFermeture,
-) : CancellationException("fermeture interrompue par l'annulation de l'appelant")
+public class FermetureInterrompue(public val rapport: RapportFermeture) :
+    CancellationException("fermeture interrompue par l'annulation de l'appelant")

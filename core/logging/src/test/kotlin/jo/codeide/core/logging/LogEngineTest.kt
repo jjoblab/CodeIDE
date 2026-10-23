@@ -20,9 +20,7 @@ import java.util.concurrent.CopyOnWriteArrayList
  */
 class LogEngineTest {
     /** Sink enregistreur : capte les entrées sans Android ni disque. */
-    private class RecordingSink(
-        override val minLevel: LogLevel,
-    ) : LogSink {
+    private class RecordingSink(override val minLevel: LogLevel) : LogSink {
         val written = CopyOnWriteArrayList<LogEntry>()
 
         override fun write(entry: LogEntry) {
@@ -39,12 +37,11 @@ class LogEngineTest {
     private fun moteur(
         config: LogConfig = LogConfig(minLevel = LogLevel.INFO),
         sinks: List<LogSink> = emptyList(),
-    ): LogEngine =
-        LogEngine(
-            timeProvider = TimeProvider { HORODATAGE_FIXE },
-            configHolder = LogConfigHolder(config),
-            sinks = sinks,
-        )
+    ): LogEngine = LogEngine(
+        timeProvider = TimeProvider { HORODATAGE_FIXE },
+        configHolder = LogConfigHolder(config),
+        sinks = sinks,
+    )
 
     @Test
     fun `un message filtré n'est jamais évalué ni écrit`() {
@@ -131,19 +128,18 @@ class LogEngineTest {
     }
 
     @Test
-    fun `les entrées actives sont émises sur le flot`() =
-        runTest {
-            val moteur = moteur()
-            moteur.i("Test") { "avant abonnement" }
+    fun `les entrées actives sont émises sur le flot`() = runTest {
+        val moteur = moteur()
+        moteur.i("Test") { "avant abonnement" }
 
-            moteur.entries.test {
-                moteur.i("Test") { "première" }
-                assertEquals("première", awaitItem().message)
-                moteur.e("Test") { "deuxième" }
-                assertEquals("deuxième", awaitItem().message)
-                cancelAndIgnoreRemainingEvents()
-            }
+        moteur.entries.test {
+            moteur.i("Test") { "première" }
+            assertEquals("première", awaitItem().message)
+            moteur.e("Test") { "deuxième" }
+            assertEquals("deuxième", awaitItem().message)
+            cancelAndIgnoreRemainingEvents()
         }
+    }
 
     @Test
     fun `la configuration peut se resserrer à chaud`() {

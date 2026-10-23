@@ -40,15 +40,14 @@ class LogExportWriterImplTest {
             encodeDefaults = true
         }
 
-    private fun entree(message: String): LogEntry =
-        LogEntry(
-            timestampMillis = 0L,
-            sessionId = "session-a",
-            level = LogLevel.INFO,
-            tag = "Test",
-            threadName = "main",
-            message = message,
-        )
+    private fun entree(message: String): LogEntry = LogEntry(
+        timestampMillis = 0L,
+        sessionId = "session-a",
+        level = LogLevel.INFO,
+        tag = "Test",
+        threadName = "main",
+        message = message,
+    )
 
     private fun ecrivain(): LogExportWriterImpl {
         val contexte = ApplicationProvider.getApplicationContext<Context>()
@@ -63,81 +62,78 @@ class LogExportWriterImplTest {
     }
 
     @Test
-    fun `produit une archive valide avec journaux et infos d'appareil`() =
-        runTest(UnconfinedTestDispatcher()) {
-            val resultat = ecrivain().write(listOf(entree("première"), entree("deuxième")))
+    fun `produit une archive valide avec journaux et infos d'appareil`() = runTest(UnconfinedTestDispatcher()) {
+        val resultat = ecrivain().write(listOf(entree("première"), entree("deuxième")))
 
-            assertTrue(resultat is AppResult.Success)
-            val exporte = (resultat as AppResult.Success).value
-            assertEquals("codeide-logs-2026-01-01-000000.zip", exporte.fileName)
+        assertTrue(resultat is AppResult.Success)
+        val exporte = (resultat as AppResult.Success).value
+        assertEquals("codeide-logs-2026-01-01-000000.zip", exporte.fileName)
 
-            ZipFile(File(exporte.location)).use { archive ->
-                val noms = archive.entries().toList().map { it.name }
-                assertEquals(
-                    setOf(LoggingLimits.ZIP_ENTRY_LOGS, LoggingLimits.ZIP_ENTRY_DEVICE_INFO),
-                    noms.toSet(),
-                )
+        ZipFile(File(exporte.location)).use { archive ->
+            val noms = archive.entries().toList().map { it.name }
+            assertEquals(
+                setOf(LoggingLimits.ZIP_ENTRY_LOGS, LoggingLimits.ZIP_ENTRY_DEVICE_INFO),
+                noms.toSet(),
+            )
 
-                val lignes =
-                    archive
-                        .getInputStream(archive.getEntry(LoggingLimits.ZIP_ENTRY_LOGS))
-                        .bufferedReader()
-                        .readLines()
-                        .filter { it.isNotBlank() }
-                assertEquals(2, lignes.size)
-                assertEquals(
-                    listOf("première", "deuxième"),
-                    lignes.map { json.decodeFromString(LogEntry.serializer(), it).message },
-                )
+            val lignes =
+                archive
+                    .getInputStream(archive.getEntry(LoggingLimits.ZIP_ENTRY_LOGS))
+                    .bufferedReader()
+                    .readLines()
+                    .filter { it.isNotBlank() }
+            assertEquals(2, lignes.size)
+            assertEquals(
+                listOf("première", "deuxième"),
+                lignes.map { json.decodeFromString(LogEntry.serializer(), it).message },
+            )
 
-                val infos =
-                    archive
-                        .getInputStream(archive.getEntry(LoggingLimits.ZIP_ENTRY_DEVICE_INFO))
-                        .bufferedReader()
-                        .readText()
-                assertTrue(infos.contains("0.3.0"))
-                assertTrue(infos.contains("debug"))
-                assertTrue(infos.contains("Fabricant Modèle"))
-            }
+            val infos =
+                archive
+                    .getInputStream(archive.getEntry(LoggingLimits.ZIP_ENTRY_DEVICE_INFO))
+                    .bufferedReader()
+                    .readText()
+            assertTrue(infos.contains("0.3.0"))
+            assertTrue(infos.contains("debug"))
+            assertTrue(infos.contains("Fabricant Modèle"))
         }
+    }
 
     @Test
-    fun `échoue proprement quand le répertoire d'export est inutilisable`() =
-        runTest(UnconfinedTestDispatcher()) {
-            val contexte = ApplicationProvider.getApplicationContext<Context>()
-            // Un fichier porte le nom du répertoire attendu : l'ouverture du
-            // zip lève une IOException — traduite en erreur typée.
-            File(contexte.cacheDir, LoggingLimits.EXPORTS_DIR_NAME).apply {
-                parentFile?.mkdirs()
-                writeText("je ne suis pas un répertoire")
-            }
-
-            val resultat = ecrivain().write(listOf(entree("x")))
-
-            assertTrue(resultat is AppResult.Failure)
-            val erreur = (resultat as AppResult.Failure).error as AppError.Storage
-            assertEquals(AppError.StorageReason.Io, erreur.reason)
+    fun `échoue proprement quand le répertoire d'export est inutilisable`() = runTest(UnconfinedTestDispatcher()) {
+        val contexte = ApplicationProvider.getApplicationContext<Context>()
+        // Un fichier porte le nom du répertoire attendu : l'ouverture du
+        // zip lève une IOException — traduite en erreur typée.
+        File(contexte.cacheDir, LoggingLimits.EXPORTS_DIR_NAME).apply {
+            parentFile?.mkdirs()
+            writeText("je ne suis pas un répertoire")
         }
+
+        val resultat = ecrivain().write(listOf(entree("x")))
+
+        assertTrue(resultat is AppResult.Failure)
+        val erreur = (resultat as AppResult.Failure).error as AppError.Storage
+        assertEquals(AppError.StorageReason.Io, erreur.reason)
+    }
 
     @Test
-    fun `ne conserve que les cinq exports les plus récents`() =
-        runTest(UnconfinedTestDispatcher()) {
-            val contexte = ApplicationProvider.getApplicationContext<Context>()
-            val dossier = File(contexte.cacheDir, LoggingLimits.EXPORTS_DIR_NAME).apply { mkdirs() }
-            repeat(6) { index ->
-                File(dossier, "${LoggingLimits.EXPORT_FILE_PREFIX}ancien-$index.zip").apply {
-                    writeText("ancien $index")
-                    setLastModified(1_000_000L + index)
-                }
+    fun `ne conserve que les cinq exports les plus récents`() = runTest(UnconfinedTestDispatcher()) {
+        val contexte = ApplicationProvider.getApplicationContext<Context>()
+        val dossier = File(contexte.cacheDir, LoggingLimits.EXPORTS_DIR_NAME).apply { mkdirs() }
+        repeat(6) { index ->
+            File(dossier, "${LoggingLimits.EXPORT_FILE_PREFIX}ancien-$index.zip").apply {
+                writeText("ancien $index")
+                setLastModified(1_000_000L + index)
             }
-
-            val resultat = ecrivain().write(listOf(entree("export frais")))
-
-            assertTrue(resultat is AppResult.Success)
-            val restants = dossier.listFiles().orEmpty().map { it.name }
-            assertEquals(LoggingLimits.MAX_EXPORTS_KEPT, restants.size)
-            assertTrue(restants.contains("codeide-logs-2026-01-01-000000.zip"))
-            // L'ancien export le plus frais survit, les autres ont été supprimés.
-            assertTrue(restants.contains("${LoggingLimits.EXPORT_FILE_PREFIX}ancien-5.zip"))
         }
+
+        val resultat = ecrivain().write(listOf(entree("export frais")))
+
+        assertTrue(resultat is AppResult.Success)
+        val restants = dossier.listFiles().orEmpty().map { it.name }
+        assertEquals(LoggingLimits.MAX_EXPORTS_KEPT, restants.size)
+        assertTrue(restants.contains("codeide-logs-2026-01-01-000000.zip"))
+        // L'ancien export le plus frais survit, les autres ont été supprimés.
+        assertTrue(restants.contains("${LoggingLimits.EXPORT_FILE_PREFIX}ancien-5.zip"))
+    }
 }

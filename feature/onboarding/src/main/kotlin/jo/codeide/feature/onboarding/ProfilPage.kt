@@ -32,10 +32,7 @@ class ProfilPage : BaseFragment<PageProfilBinding>() {
         attachToRoot: Boolean,
     ): PageProfilBinding = PageProfilBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.champNom.doOnTextChanged { texte, _, _, _ ->
@@ -68,14 +65,13 @@ class ProfilPage : BaseFragment<PageProfilBinding>() {
     private fun libelleDe(licence: License): String = getString(libelleLicence(licence))
 
     /** Licences proposées, dans l'ordre du wizard (étape 9). */
-    private fun licences(): List<Pair<License, Int>> =
-        listOf(
-            License.NONE to R.string.licence_none,
-            License.MIT to R.string.licence_mit,
-            License.APACHE_2_0 to R.string.licence_apache,
-            License.GPL_3_0 to R.string.licence_gpl,
-            License.BSD_3_CLAUSE to R.string.licence_bsd,
-        )
+    private fun licences(): List<Pair<License, Int>> = listOf(
+        License.NONE to R.string.licence_none,
+        License.MIT to R.string.licence_mit,
+        License.APACHE_2_0 to R.string.licence_apache,
+        License.GPL_3_0 to R.string.licence_gpl,
+        License.BSD_3_CLAUSE to R.string.licence_bsd,
+    )
 
     private fun libelleLicence(licence: License): Int =
         licences().firstOrNull { it.first == licence }?.second ?: R.string.licence_mit

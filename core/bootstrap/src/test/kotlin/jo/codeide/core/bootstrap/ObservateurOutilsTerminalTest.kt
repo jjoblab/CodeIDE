@@ -58,114 +58,110 @@ class ObservateurOutilsTerminalTest {
         fichier.writeText("contenu\n")
     }
 
-    private fun observateur(repartiteur: DispatcherProvider) =
-        ObservateurOutilsTerminal(
-            contexte,
-            parcours,
-            repartiteur,
+    private fun observateur(repartiteur: DispatcherProvider) = ObservateurOutilsTerminal(
+        contexte,
+        parcours,
+        repartiteur,
+    )
+
+    @Test
+    fun `premiere emission - disque vide, tout absent, une seule emission`() = runTest {
+        val etats = mutableListOf<EtatOutilsTerminal>()
+        val collecte =
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                observateur(TestDispatcherProvider(StandardTestDispatcher(testScheduler)))().toList(etats)
+            }
+
+        runCurrent()
+        // v0.39.1 : la première émission porte `initialise = true` —
+        // le disque a été lu au moins une fois. Le reste reste `false`
+        // (aucun outil détecté sur disque vide).
+        assertEquals(listOf(EtatOutilsTerminal(initialise = true)), etats)
+
+        // Un ballotage SANS changement de disque ne réémet rien.
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(listOf(EtatOutilsTerminal(initialise = true)), etats)
+        collecte.cancel()
+    }
+
+    @Test
+    fun `transition du parcours - rescan immediate sans attendre le ballotage`() = runTest {
+        val etats = mutableListOf<EtatOutilsTerminal>()
+        val collecte =
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                observateur(TestDispatcherProvider(StandardTestDispatcher(testScheduler)))().toList(etats)
+            }
+
+        runCurrent()
+        assertEquals(EtatOutilsTerminal(initialise = true), etats.single())
+
+        // Le disque porte désormais le bootstrap (posé « pendant » que
+        // personne ne collectait le ballotage) : la transition du
+        // parcours (phase BOOTSTRAP vérifiée) déclenche le re-scan
+        // qui le voit — SANS avancer de 2 s.
+        deposerBinaire("usr", "bin", "sh")
+        deposerFichier("usr", ".codeide-installation-terminee")
+        parcours.semerEtat(
+            EnvironmentSetupState(
+                phases =
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(verifiedAtMillis = 1_000L, versions = emptyMap()),
+                ),
+                running = null,
+                sdkLicenseAcceptedAtMillis = null,
+            ),
         )
+        runCurrent()
+
+        assertEquals(
+            "la fin d'installation est visible immédiatement",
+            listOf(
+                EtatOutilsTerminal(initialise = true),
+                EtatOutilsTerminal(bootstrapInstalle = true, initialise = true),
+            ),
+            etats,
+        )
+        collecte.cancel()
+    }
 
     @Test
-    fun `premiere emission - disque vide, tout absent, une seule emission`() =
-        runTest {
-            val etats = mutableListOf<EtatOutilsTerminal>()
-            val collecte =
-                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                    observateur(TestDispatcherProvider(StandardTestDispatcher(testScheduler)))().toList(etats)
-                }
+    fun `ballotage - un outil pose hors parcours devient visible au tic suivant`() = runTest {
+        // La distribution Gradle arrive par l'orchestrateur du tooling :
+        // RIEN ne passe par le parcours — seule la ré-interrogation
+        // périodique du disque la voit (v0.37.3).
+        val etats = mutableListOf<EtatOutilsTerminal>()
+        val collecte =
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                observateur(TestDispatcherProvider(StandardTestDispatcher(testScheduler)))().toList(etats)
+            }
 
-            runCurrent()
-            // v0.39.1 : la première émission porte `initialise = true` —
-            // le disque a été lu au moins une fois. Le reste reste `false`
-            // (aucun outil détecté sur disque vide).
-            assertEquals(listOf(EtatOutilsTerminal(initialise = true)), etats)
+        runCurrent()
+        assertEquals(EtatOutilsTerminal(initialise = true), etats.single())
 
-            // Un ballotage SANS changement de disque ne réémet rien.
-            advanceTimeBy(2_000)
-            runCurrent()
-            assertEquals(listOf(EtatOutilsTerminal(initialise = true)), etats)
-            collecte.cancel()
-        }
+        // Le tooling télécharge SA distribution dans le HOME du shell.
+        deposerFichier(
+            "home",
+            ".gradle",
+            "wrapper",
+            "dists",
+            "gradle-9.7.1",
+            "abc123",
+            "gradle-9.7.1",
+            "lib",
+            "gradle-launcher-9.7.1.jar",
+        )
+        advanceTimeBy(2_000)
+        runCurrent()
 
-    @Test
-    fun `transition du parcours - rescan immediate sans attendre le ballotage`() =
-        runTest {
-            val etats = mutableListOf<EtatOutilsTerminal>()
-            val collecte =
-                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                    observateur(TestDispatcherProvider(StandardTestDispatcher(testScheduler)))().toList(etats)
-                }
-
-            runCurrent()
-            assertEquals(EtatOutilsTerminal(initialise = true), etats.single())
-
-            // Le disque porte désormais le bootstrap (posé « pendant » que
-            // personne ne collectait le ballotage) : la transition du
-            // parcours (phase BOOTSTRAP vérifiée) déclenche le re-scan
-            // qui le voit — SANS avancer de 2 s.
-            deposerBinaire("usr", "bin", "sh")
-            deposerFichier("usr", ".codeide-installation-terminee")
-            parcours.semerEtat(
-                EnvironmentSetupState(
-                    phases =
-                        mapOf(
-                            InstallPhase.BOOTSTRAP to
-                                PhaseState.Succeeded(verifiedAtMillis = 1_000L, versions = emptyMap()),
-                        ),
-                    running = null,
-                    sdkLicenseAcceptedAtMillis = null,
-                ),
-            )
-            runCurrent()
-
-            assertEquals(
-                "la fin d'installation est visible immédiatement",
-                listOf(
-                    EtatOutilsTerminal(initialise = true),
-                    EtatOutilsTerminal(bootstrapInstalle = true, initialise = true),
-                ),
-                etats,
-            )
-            collecte.cancel()
-        }
-
-    @Test
-    fun `ballotage - un outil pose hors parcours devient visible au tic suivant`() =
-        runTest {
-            // La distribution Gradle arrive par l'orchestrateur du tooling :
-            // RIEN ne passe par le parcours — seule la ré-interrogation
-            // périodique du disque la voit (v0.37.3).
-            val etats = mutableListOf<EtatOutilsTerminal>()
-            val collecte =
-                backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                    observateur(TestDispatcherProvider(StandardTestDispatcher(testScheduler)))().toList(etats)
-                }
-
-            runCurrent()
-            assertEquals(EtatOutilsTerminal(initialise = true), etats.single())
-
-            // Le tooling télécharge SA distribution dans le HOME du shell.
-            deposerFichier(
-                "home",
-                ".gradle",
-                "wrapper",
-                "dists",
-                "gradle-9.7.1",
-                "abc123",
-                "gradle-9.7.1",
-                "lib",
-                "gradle-launcher-9.7.1.jar",
-            )
-            advanceTimeBy(2_000)
-            runCurrent()
-
-            assertEquals(
-                listOf(
-                    EtatOutilsTerminal(initialise = true),
-                    EtatOutilsTerminal(gradleInstalle = true, initialise = true),
-                ),
-                etats,
-            )
-            collecte.cancel()
-        }
+        assertEquals(
+            listOf(
+                EtatOutilsTerminal(initialise = true),
+                EtatOutilsTerminal(gradleInstalle = true, initialise = true),
+            ),
+            etats,
+        )
+        collecte.cancel()
+    }
 }

@@ -92,10 +92,10 @@ class ServicePreviewTest {
                 dureeMs = 67L,
                 bitmap = Bitmap.createBitmap(12, 34, Bitmap.Config.ARGB_8888),
                 vues =
-                    arrayOf(
-                        InfoVueRendu(0, 0, 10, 10, "TextView @+id/titre", 3, 40, -1, 0),
-                        InfoVueRendu(1, 1, 5, 5, "Button", -1, -1, 0, 1),
-                    ),
+                arrayOf(
+                    InfoVueRendu(0, 0, 10, 10, "TextView @+id/titre", 3, 40, -1, 0),
+                    InfoVueRendu(1, 1, 5, 5, "Button", -1, -1, 0, 1),
+                ),
             )
         val parcel = android.os.Parcel.obtain()
         try {

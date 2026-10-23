@@ -38,11 +38,7 @@ public interface SourceApercu {
      * indisponible — JAMAIS d'exception. La sélection suit l'édition
      * (l'éditeur garde son historique : un seul geste d'annulation).
      */
-    public fun remplacer(
-        debut: Int,
-        fin: Int,
-        remplacement: String,
-    ): Boolean
+    public fun remplacer(debut: Int, fin: Int, remplacement: String): Boolean
 
     /** Sélection courante (debut, fin) — bornes inclusives/exclusives de la bibliothèque d'édition. */
     public fun selection(): Pair<Int, Int>
@@ -52,10 +48,7 @@ public interface SourceApercu {
      * rendu sélectionne le SPAN source) — l'éditeur la retrouve quand
      * l'utilisateur revient dans l'onglet.
      */
-    public fun definirSelection(
-        debut: Int,
-        fin: Int,
-    )
+    public fun definirSelection(debut: Int, fin: Int)
 
     /** Annule la dernière édition (`false` = historique épuisé ou indisponible). */
     public fun annuler(): Boolean

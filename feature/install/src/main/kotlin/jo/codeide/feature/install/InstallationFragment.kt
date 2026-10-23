@@ -54,19 +54,12 @@ class InstallationFragment : Fragment() {
         SuiveurJournal((TOLERANCE_BAS_DP * resources.displayMetrics.density).toInt())
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaisonPrivee = FragmentInstallationBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         liaison.boutonDemarrer.setOnClickListener { viewModel.demarrer() }
         liaison.boutonAnnuler.setOnClickListener { viewModel.annuler() }
@@ -158,10 +151,7 @@ class InstallationFragment : Fragment() {
     }
 
     /** En-tête : compteur « étape N sur 4 », barre, quatre cartes, sous-étape. */
-    private fun projeterEnTete(
-        etat: EnvironmentSetupState,
-        terminees: Int,
-    ) {
+    private fun projeterEnTete(etat: EnvironmentSetupState, terminees: Int) {
         liaison.compteurPhases.text =
             getString(R.string.installation_progression, terminees, InstallPhase.entries.size)
         liaison.progressionGlobale.max = InstallPhase.entries.size
@@ -201,10 +191,7 @@ class InstallationFragment : Fragment() {
      * Avant, le bouton était masqué dès que `terminees > 0`, bloquant
      * l'utilisateur à la réouverture après une fermeture mid-install.
      */
-    private fun projeterLicence(
-        etat: EnvironmentSetupState,
-        terminees: Int,
-    ) {
+    private fun projeterLicence(etat: EnvironmentSetupState, terminees: Int) {
         val avantAndroid =
             etat.phase(InstallPhase.ANDROID_SDK) is PhaseState.NotStarted &&
                 etat.sdkLicenseAcceptedAtMillis == null &&
@@ -274,11 +261,7 @@ class InstallationFragment : Fragment() {
     }
 
     /** État d'une carte : titre, libellé d'état, détail, versions une fois terminée. */
-    private fun afficherCarte(
-        carte: CartePhaseInstallationBinding,
-        titre: Int,
-        etat: PhaseState,
-    ) {
+    private fun afficherCarte(carte: CartePhaseInstallationBinding, titre: Int, etat: PhaseState) {
         carte.titrePhase.setText(titre)
         val (libelleEtat, attributCouleur) =
             when (etat) {

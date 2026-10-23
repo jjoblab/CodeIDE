@@ -44,10 +44,7 @@ public class FournisseurIaFragment : BaseFragment<FragmentFournisseurIaBinding>(
         attachToRoot: Boolean,
     ): FragmentFournisseurIaBinding = FragmentFournisseurIaBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.toolbarFournisseurIa.setNavigationOnClickListener { navigator.goBack() }
@@ -163,9 +160,8 @@ public class FournisseurIaFragment : BaseFragment<FragmentFournisseurIaBinding>(
 
     private fun titreFournisseur(): String = nomFournisseur(viewModel.etat.value.identifiant)
 
-    private fun nomFournisseur(identifiant: String): String =
-        when (identifiant) {
-            FournisseursIa.OPENAI_COMPATIBLE -> getString(R.string.ia_fournisseur_openai)
-            else -> getString(R.string.ia_fournisseur_anthropic)
-        }
+    private fun nomFournisseur(identifiant: String): String = when (identifiant) {
+        FournisseursIa.OPENAI_COMPATIBLE -> getString(R.string.ia_fournisseur_openai)
+        else -> getString(R.string.ia_fournisseur_anthropic)
+    }
 }

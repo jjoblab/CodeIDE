@@ -75,17 +75,12 @@ public class ContraintesXmlTest {
     }
 
     /** L'application de l'édition (le contrat : le résultat est le nouveau texte). */
-    private fun appliquer(
-        texte: String,
-        edition: EditionAttributsXml.EditionAttributsXmlResultat,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: EditionAttributsXml.EditionAttributsXmlResultat): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     /** La RÉGION de l'élément i (les assertions d'absence sont LOCALES —
      * un frère peut porter le même attribut). */
-    private fun regionDe(
-        texte: String,
-        indice: Int,
-    ): String {
+    private fun regionDe(texte: String, indice: Int): String {
         val element = AligneurElementsXml.aligner(texte, null).getOrNull(indice)!!
         return texte.substring(element.debut, element.fin)
     }

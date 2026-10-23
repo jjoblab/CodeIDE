@@ -11,18 +11,13 @@ import jo.codeide.core.model.getOrNull
  */
 internal sealed interface EmplacementSaf {
     /** Le dossier vit dans l'arbre du dossier de travail : permission héritée. */
-    data class Herite(
-        val grantUri: String,
-        val uriDocument: String,
-    ) : EmplacementSaf
+    data class Herite(val grantUri: String, val uriDocument: String) : EmplacementSaf
 
     /** Le dossier vit hors du dossier de travail : permission propre à prendre. */
     data object Propre : EmplacementSaf
 
     /** L'URI n'a pas pu être réadressée dans l'arbre du dossier de travail. */
-    data class Illisible(
-        val erreur: AppError,
-    ) : EmplacementSaf
+    data class Illisible(val erreur: AppError) : EmplacementSaf
 }
 
 /**

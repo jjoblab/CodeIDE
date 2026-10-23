@@ -47,12 +47,7 @@ object MenuDebug {
      * @param fichiers port d'accès aux documents (inutilisé ici).
      * @param uri arborescence choisie (inutilisée ici).
      */
-    fun dossierChoisi(
-        fragment: Fragment,
-        logger: AppLogger,
-        fichiers: FileSystem,
-        uri: Uri?,
-    ) {
+    fun dossierChoisi(fragment: Fragment, logger: AppLogger, fichiers: FileSystem, uri: Uri?) {
         // Volontairement vide en release — la variante debug porte
         // l'implémentation réelle, de même signature.
     }

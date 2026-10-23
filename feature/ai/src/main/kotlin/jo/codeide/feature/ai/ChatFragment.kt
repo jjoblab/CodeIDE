@@ -62,20 +62,13 @@ public class ChatFragment : Fragment() {
      * suspension de l'envoi (l'état vide réarme la garde). */
     private var dialogueSecretAffiche = false
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val liaisonLocale = FragmentIaChatBinding.inflate(inflater, container, false)
         liaison = liaisonLocale
         return liaisonLocale.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val liaisonLocale = liaison ?: return
         val adaptateurLocal =
@@ -134,11 +127,7 @@ public class ChatFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun rendre(
-        etat: EtatChatIa,
-        liaisonLocale: FragmentIaChatBinding,
-        adaptateurLocal: AdapterMessages,
-    ) {
+    private fun rendre(etat: EtatChatIa, liaisonLocale: FragmentIaChatBinding, adaptateurLocal: AdapterMessages) {
         adaptateurLocal.submitList(etat.messages)
         // Le brouillon vit dans le ViewModel : effacement après envoi et
         // restauration post-rotation passent ICI (drapeau anti-écho — la
@@ -192,10 +181,7 @@ public class ChatFragment : Fragment() {
      * pièce assemblée + puce budget + puce « @ Fichier ». La puce
      * affichée EST ce qui part — le retrait repart vers le ViewModel.
      */
-    private fun rendrePuces(
-        etat: EtatChatIa,
-        liaisonLocale: FragmentIaChatBinding,
-    ) {
+    private fun rendrePuces(etat: EtatChatIa, liaisonLocale: FragmentIaChatBinding) {
         val conteneur = liaisonLocale.conteneurPuces
         conteneur.removeAllViews()
         for (piece in etat.pieces) {
@@ -277,19 +263,9 @@ public class ChatFragment : Fragment() {
         liste.adapter = adaptateur
         recherche.addTextChangedListener(
             object : android.text.TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
                 override fun afterTextChanged(s: android.text.Editable?) {
                     val filtre = s?.toString().orEmpty().trim()
@@ -368,34 +344,30 @@ public class ChatFragment : Fragment() {
 }
 
 /** Libellé localisé d'une puce — la clé brute vient du domaine. */
-private fun libellePuce(
-    contexte: Context,
-    piece: PieceContexte,
-): String =
-    when (piece.type) {
-        TypePieceContexte.FichierActif -> {
-            contexte.getString(
-                R.string.ia_puce_fichier_actif,
-                piece.cheminRelatif.orEmpty(),
-            )
-        }
-
-        TypePieceContexte.Selection -> {
-            contexte.getString(R.string.ia_puce_selection)
-        }
-
-        TypePieceContexte.Diagnostics -> {
-            contexte.getString(R.string.ia_puce_diagnostics)
-        }
-
-        TypePieceContexte.FichierMentionne -> {
-            piece.cheminRelatif.orEmpty()
-        }
-
-        TypePieceContexte.ListeChemins -> {
-            contexte.getString(R.string.ia_puce_chemins)
-        }
+private fun libellePuce(contexte: Context, piece: PieceContexte): String = when (piece.type) {
+    TypePieceContexte.FichierActif -> {
+        contexte.getString(
+            R.string.ia_puce_fichier_actif,
+            piece.cheminRelatif.orEmpty(),
+        )
     }
+
+    TypePieceContexte.Selection -> {
+        contexte.getString(R.string.ia_puce_selection)
+    }
+
+    TypePieceContexte.Diagnostics -> {
+        contexte.getString(R.string.ia_puce_diagnostics)
+    }
+
+    TypePieceContexte.FichierMentionne -> {
+        piece.cheminRelatif.orEmpty()
+    }
+
+    TypePieceContexte.ListeChemins -> {
+        contexte.getString(R.string.ia_puce_chemins)
+    }
+}
 
 /** Gonfle une puce ; [auClic] reçoit le libellé — la croix seule est
  * masquée quand la puce n'est pas retirable (budget, « @ Fichier »). */

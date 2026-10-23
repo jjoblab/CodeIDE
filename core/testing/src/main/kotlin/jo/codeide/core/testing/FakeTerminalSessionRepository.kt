@@ -44,10 +44,7 @@ public class FakeTerminalSessionRepository : TerminalSessionRepository {
     /** Compteur des sessions synthétiques retournées par [createSession]. */
     private var compteur = 0
 
-    override suspend fun createSession(
-        workingDirectory: File,
-        label: String?,
-    ): String {
+    override suspend fun createSession(workingDirectory: File, label: String?): String {
         creations += workingDirectory to label
         compteur++
         return "session-fausse-$compteur"
@@ -58,10 +55,7 @@ public class FakeTerminalSessionRepository : TerminalSessionRepository {
         sessionActivePubliee.value = sessionId
     }
 
-    override suspend fun renameSession(
-        sessionId: String,
-        label: String,
-    ) {
+    override suspend fun renameSession(sessionId: String, label: String) {
         renommages += sessionId to label
     }
 
@@ -69,10 +63,7 @@ public class FakeTerminalSessionRepository : TerminalSessionRepository {
         fermetures += sessionId
     }
 
-    override fun envoyerTexte(
-        sessionId: String,
-        texte: String,
-    ) {
+    override fun envoyerTexte(sessionId: String, texte: String) {
         textesEnvoyes += sessionId to texte
     }
 

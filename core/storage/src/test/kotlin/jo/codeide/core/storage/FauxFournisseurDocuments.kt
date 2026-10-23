@@ -97,22 +97,14 @@ class FauxFournisseurDocuments : ContentProvider() {
     fun uriDocument(id: String): Uri = DocumentsContract.buildDocumentUriUsingTree(uriArbre(), id)
 
     /** Amorce un dossier (arbre initial du test). */
-    fun semerDossier(
-        parent: String,
-        nom: String,
-    ): String {
+    fun semerDossier(parent: String, nom: String): String {
         val id = "$parent/$nom"
         noeuds[id] = Noeud(parent, nom, true, DocumentsContract.Document.MIME_TYPE_DIR, null)
         return id
     }
 
     /** Amorce un fichier avec son contenu (arbre initial du test). */
-    fun semerFichier(
-        parent: String,
-        nom: String,
-        mime: String,
-        octets: ByteArray,
-    ): String {
+    fun semerFichier(parent: String, nom: String, mime: String, octets: ByteArray): String {
         val id = "$parent/$nom"
         val fichier = File(dossierTravail(), "semis-${noeuds.size}-$nom")
         fichier.writeBytes(octets)
@@ -167,14 +159,10 @@ class FauxFournisseurDocuments : ContentProvider() {
     /** Nature d'une requête entrante : description unitaire ou enfants. */
     private sealed interface Requete {
         /** Décrit le document [id]. */
-        data class Description(
-            val id: String,
-        ) : Requete
+        data class Description(val id: String) : Requete
 
         /** Liste les enfants du dossier [idParent]. */
-        data class Enfants(
-            val idParent: String,
-        ) : Requete
+        data class Enfants(val idParent: String) : Requete
     }
 
     @Suppress("ReturnCount") // Double de test : clauses de garde d'analyse d'URI.
@@ -193,23 +181,12 @@ class FauxFournisseurDocuments : ContentProvider() {
 
     override fun getType(uri: Uri): String? = null
 
-    override fun insert(
-        uri: Uri,
-        values: ContentValues?,
-    ): Uri? = null
+    override fun insert(uri: Uri, values: ContentValues?): Uri? = null
 
-    override fun delete(
-        uri: Uri,
-        selection: String?,
-        selectionArgs: Array<out String>?,
-    ): Int = 0
+    override fun delete(uri: Uri, selection: String?, selectionArgs: Array<out String>?): Int = 0
 
-    override fun update(
-        uri: Uri,
-        values: ContentValues?,
-        selection: String?,
-        selectionArgs: Array<out String>?,
-    ): Int = 0
+    override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<out String>?): Int =
+        0
 
     @Suppress("ReturnCount") // Double de test : le protocole d'appel se lit en clauses de garde.
     override fun call(
@@ -299,10 +276,7 @@ class FauxFournisseurDocuments : ContentProvider() {
         return null
     }
 
-    override fun openFile(
-        uri: Uri,
-        mode: String,
-    ): ParcelFileDescriptor? {
+    override fun openFile(uri: Uri, mode: String): ParcelFileDescriptor? {
         val description =
             decrireRequete(uri) as? Requete.Description
                 ?: throw java.io.FileNotFoundException(uri.toString())
@@ -314,28 +288,21 @@ class FauxFournisseurDocuments : ContentProvider() {
         return ParcelFileDescriptor.open(fichier, ParcelFileDescriptor.parseMode(mode))
     }
 
-    override fun openAssetFile(
-        uri: Uri,
-        mode: String,
-    ): AssetFileDescriptor? =
-        openFile(uri, mode)?.let {
-            AssetFileDescriptor(it, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
-        }
+    override fun openAssetFile(uri: Uri, mode: String): AssetFileDescriptor? = openFile(uri, mode)?.let {
+        AssetFileDescriptor(it, 0, AssetFileDescriptor.UNKNOWN_LENGTH)
+    }
 
-    private fun existeEnfant(
-        parent: String,
-        nom: String,
-    ): Boolean = noeuds.values.any { it.parent == parent && it.nom.equals(nom, ignoreCase = true) }
+    private fun existeEnfant(parent: String, nom: String): Boolean =
+        noeuds.values.any { it.parent == parent && it.nom.equals(nom, ignoreCase = true) }
 
     /** Extension canonique d'un type MIME connu du fournisseur de test. */
-    private fun extensionCanonique(mime: String): String =
-        when (mime) {
-            "text/plain" -> "txt"
-            "image/png" -> "png"
-            "image/jpeg" -> "jpg"
-            "application/json" -> "json"
-            else -> ""
-        }
+    private fun extensionCanonique(mime: String): String = when (mime) {
+        "text/plain" -> "txt"
+        "image/png" -> "png"
+        "image/jpeg" -> "jpg"
+        "application/json" -> "json"
+        else -> ""
+    }
 
     /**
      * L'extension du nom (segment après le dernier point, s'il y en a un)
@@ -359,10 +326,7 @@ class FauxFournisseurDocuments : ContentProvider() {
         }
     }
 
-    private fun MatrixCursor.ajouterLigne(
-        noeud: Noeud,
-        uri: String,
-    ) {
+    private fun MatrixCursor.ajouterLigne(noeud: Noeud, uri: String) {
         addRow(
             arrayOf(
                 DocumentsContract.getDocumentId(Uri.parse(uri)),

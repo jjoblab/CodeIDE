@@ -159,11 +159,7 @@ public class CotesPopupsParentsTest {
      * coque (l'écart de bordure reste sous la tolérance), LARGEUR corrigée
      * de l'écart de coque (2 dp) et HAUTEUR COMPOSÉE (§ 12.1).
      */
-    private fun verifierGroupes(
-        corps: ViewGroup,
-        attendus: JSONObject,
-        nom: String,
-    ) {
+    private fun verifierGroupes(corps: ViewGroup, attendus: JSONObject, nom: String) {
         val groupes = attendus.getJSONArray("groupes")
         val titres = attendus.getJSONArray("titres")
         var indiceGroupe = 0
@@ -287,16 +283,10 @@ public class CotesPopupsParentsTest {
     }
 
     /** Le rect d'une vue par son identifiant, RELATIF au corps du pop. */
-    private fun rect(
-        corps: ViewGroup,
-        id: Int,
-    ): RectF = rectRelatif(corps, corps.findViewById<View>(id))
+    private fun rect(corps: ViewGroup, id: Int): RectF = rectRelatif(corps, corps.findViewById<View>(id))
 
     /** Le rect d'une vue DÉJÀ TROUVÉE, relatif au corps du pop. */
-    private fun rect(
-        corps: ViewGroup,
-        vue: View,
-    ): RectF = rectRelatif(corps, vue)
+    private fun rect(corps: ViewGroup, vue: View): RectF = rectRelatif(corps, vue)
 
     /**
      * Le rect d'une vue RELATIF au corps du pop : les `View.left/top` sont
@@ -304,10 +294,7 @@ public class CotesPopupsParentsTest {
      * corps (les paddings intermédiaires sont déjà portés par les offsets
      * des enfants).
      */
-    private fun rectRelatif(
-        corps: ViewGroup,
-        vue: View,
-    ): RectF {
+    private fun rectRelatif(corps: ViewGroup, vue: View): RectF {
         var gauche = vue.left.toFloat()
         var haut = vue.top.toFloat()
         var parent = vue.parent as? View
@@ -320,11 +307,7 @@ public class CotesPopupsParentsTest {
     }
 
     /** Une valeur mesurée doit égaler celle de la maquette, à UN dp près. */
-    private fun verifierCote(
-        nom: String,
-        mesuree: Float,
-        attendue: Double,
-    ) {
+    private fun verifierCote(nom: String, mesuree: Float, attendue: Double) {
         assertTrue(
             "$nom : mesurée $mesuree dp, attendue $attendue dp (±$TOLERANCE_DP)",
             abs(mesuree - attendue) <= TOLERANCE_DP,
@@ -334,37 +317,34 @@ public class CotesPopupsParentsTest {
     // ── Les arbres de rendu des contextes (4+ rangées : le mini-arbre déborde sa borne de 100 dp) ──
 
     /** Racine `RelativeLayout` : 4 enfants (5 rangées au mini-arbre). */
-    private fun arbreRelative(): List<InfoVueRendu> =
-        arbre("RelativeLayout", "RELATIVE") { indice ->
-            listOf(
-                vue(16, 16, 96, 96, "ImageView", "avatar", indice),
-                vue(112, 16, 250, 40, "TextView", "nom", indice),
-                vue(112, 44, 240, 64, "TextView", "role", indice),
-                vue(244, 16, 344, 56, "Button", "btn_suivre", indice),
-            )
-        }
+    private fun arbreRelative(): List<InfoVueRendu> = arbre("RelativeLayout", "RELATIVE") { indice ->
+        listOf(
+            vue(16, 16, 96, 96, "ImageView", "avatar", indice),
+            vue(112, 16, 250, 40, "TextView", "nom", indice),
+            vue(112, 44, 240, 64, "TextView", "role", indice),
+            vue(244, 16, 344, 56, "Button", "btn_suivre", indice),
+        )
+    }
 
     /** Racine `FrameLayout` : 4 enfants. */
-    private fun arbreFrame(): List<InfoVueRendu> =
-        arbre("FrameLayout", "FRAME") { indice ->
-            listOf(
-                vue(0, 0, 360, 220, "ImageView", "fond", indice),
-                vue(264, 16, 344, 40, "TextView", "badge", indice),
-                vue(148, 78, 212, 142, "ImageButton", "btn_lecture", indice),
-                vue(0, 158, 360, 220, "LinearLayout", "legende", indice),
-            )
-        }
+    private fun arbreFrame(): List<InfoVueRendu> = arbre("FrameLayout", "FRAME") { indice ->
+        listOf(
+            vue(0, 0, 360, 220, "ImageView", "fond", indice),
+            vue(264, 16, 344, 40, "TextView", "badge", indice),
+            vue(148, 78, 212, 142, "ImageButton", "btn_lecture", indice),
+            vue(0, 158, 360, 220, "LinearLayout", "legende", indice),
+        )
+    }
 
     /** Racine `CoordinatorLayout` : 4 enfants. */
-    private fun arbreCoordinator(): List<InfoVueRendu> =
-        arbre("CoordinatorLayout", "COORDINATOR") { indice ->
-            listOf(
-                vue(0, 0, 360, 104, "AppBarLayout", "appbar", indice),
-                vue(0, 104, 360, 640, "RecyclerView", "liste", indice),
-                vue(288, 568, 344, 624, "FloatingActionButton", "fab", indice),
-                vue(0, 104, 180, 304, "TextView", "vide", indice),
-            )
-        }
+    private fun arbreCoordinator(): List<InfoVueRendu> = arbre("CoordinatorLayout", "COORDINATOR") { indice ->
+        listOf(
+            vue(0, 0, 360, 104, "AppBarLayout", "appbar", indice),
+            vue(0, 104, 360, 640, "RecyclerView", "liste", indice),
+            vue(288, 568, 344, 624, "FloatingActionButton", "fab", indice),
+            vue(0, 104, 180, 304, "TextView", "vide", indice),
+        )
+    }
 
     /** Une racine + ses enfants (indices parents calculés en pré-ordre). */
     private fun arbre(
@@ -386,22 +366,21 @@ public class CotesPopupsParentsTest {
         parent: Int,
         conteneur: Boolean = false,
         famille: String = "",
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = classe,
-            debutElement = 0,
-            finElement = 1,
-            indiceParent = parent,
-            profondeur = if (parent < 0) 0 else 1,
-            classe = classe,
-            idRes = id,
-            conteneur = conteneur,
-            famille = famille,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = classe,
+        debutElement = 0,
+        finElement = 1,
+        indiceParent = parent,
+        profondeur = if (parent < 0) 0 else 1,
+        classe = classe,
+        idRes = id,
+        conteneur = conteneur,
+        famille = famille,
+    )
 
     // ── Machine de dépôt (patron CotesPlacementMenusMaquetteTest) ──────
 
@@ -437,23 +416,16 @@ public class CotesPopupsParentsTest {
                     attrs: android.util.AttributeSet,
                 ): View? = InflateurMaterial().creer(parent, nom, ctx, attrs)
 
-                override fun onCreateView(
-                    nom: String,
-                    ctx: Context,
-                    attrs: android.util.AttributeSet,
-                ): View? = onCreateView(null, nom, ctx, attrs)
+                override fun onCreateView(nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+                    onCreateView(null, nom, ctx, attrs)
             }
         return contexte
     }
 
     /** L'inflateur Material (surcharge courte protégée dans AppCompatViewInflater). */
     private class InflateurMaterial : MaterialComponentsViewInflater() {
-        public fun creer(
-            parent: View?,
-            nom: String,
-            ctx: Context,
-            attrs: android.util.AttributeSet,
-        ): View? = createView(parent, nom, ctx, attrs, parent != null, true, true, true)
+        public fun creer(parent: View?, nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+            createView(parent, nom, ctx, attrs, parent != null, true, true, true)
     }
 
     private companion object {

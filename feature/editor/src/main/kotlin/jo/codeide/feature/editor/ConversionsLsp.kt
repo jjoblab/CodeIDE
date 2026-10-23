@@ -14,8 +14,7 @@ import jo.codeide.lsp.host.ConfigurationLsp
  * deux modèles (mêmes contrats — `null` = Auto, `0` = surveillance
  * coupée, défauts = comportement historique de l'hôte v1.0.x–v1.2.0).
  */
-internal fun LspSettings.versConfigurationHote(): ConfigurationLsp =
-    ConfigurationLsp(
-        budgetCacheOctets = budgetCacheOctets,
-        surveillanceFichiersMs = surveillanceFichiersMs,
-    )
+internal fun LspSettings.versConfigurationHote(): ConfigurationLsp = ConfigurationLsp(
+    budgetCacheOctets = budgetCacheOctets,
+    surveillanceFichiersMs = surveillanceFichiersMs,
+)

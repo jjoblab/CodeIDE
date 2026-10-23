@@ -101,10 +101,7 @@ internal class GestionnaireFeuilleApercu(
         comportement.halfExpandedRatio = GeometrieFeuilleApercu.RATIO_DEMI_EXPANSION
         comportement.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
-                override fun onStateChanged(
-                    vue: View,
-                    etat: Int,
-                ) {
+                override fun onStateChanged(vue: View, etat: Int) {
                     if (etat != BottomSheetBehavior.STATE_DRAGGING &&
                         etat != BottomSheetBehavior.STATE_SETTLING
                     ) {
@@ -112,10 +109,7 @@ internal class GestionnaireFeuilleApercu(
                     }
                 }
 
-                override fun onSlide(
-                    vue: View,
-                    decalage: Float,
-                ) = Unit
+                override fun onSlide(vue: View, decalage: Float) = Unit
             },
         )
         liaison.racinePreview.post { majRetrait() }
@@ -133,10 +127,7 @@ internal class GestionnaireFeuilleApercu(
      * connaît pas) ; l'IME qui se FERME rend la MOITIÉ si c'est bien lui
      * qui avait monté la feuille ([moitieAvantClavier]).
      */
-    internal fun poserInsets(
-        bas: Int,
-        clavier: Int,
-    ) {
+    internal fun poserInsets(bas: Int, clavier: Int) {
         insetBas = bas
         val clavierSOuvre = clavier > 0 && insetClavier == 0
         val clavierSeFerme = clavier == 0 && insetClavier > 0
@@ -210,11 +201,7 @@ internal class GestionnaireFeuilleApercu(
      * l'en-tête et le chrome de la feuille ne se mesurent qu'après le
      * premier layout.)
      */
-    private fun mesuresPretes(
-        volets: View?,
-        entetePx: Int,
-        chromeFeuillePx: Int,
-    ): Boolean {
+    private fun mesuresPretes(volets: View?, entetePx: Int, chromeFeuillePx: Int): Boolean {
         val ecranMesure = liaison.racinePreview.height > 0 && entetePx > 0
         return volets != null && chromeFeuillePx > 0 && ecranMesure
     }
@@ -241,9 +228,9 @@ internal class GestionnaireFeuilleApercu(
                 margeHudPx = liaison.root.resources.getDimensionPixelSize(R.dimen.apercu_hud_marge),
                 hauteurConteneurPx = liaison.conteneurRendu.height,
                 bandeCanvasMinPx =
-                    GeometrieFeuilleApercu.bandeCanvasMinPx(
-                        densite = liaison.root.resources.displayMetrics.density,
-                    ),
+                GeometrieFeuilleApercu.bandeCanvasMinPx(
+                    densite = liaison.root.resources.displayMetrics.density,
+                ),
             )
         if (liaison.conteneurRendu.paddingBottom == cible) {
             liaison.bullePalette.reserveBas = cible

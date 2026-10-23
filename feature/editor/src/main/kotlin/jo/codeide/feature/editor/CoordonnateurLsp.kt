@@ -43,9 +43,7 @@ import jo.codeide.lsp.host.SessionLspXml
  * @param journal journal applicatif (règle 11 — rien de personnel dans
  *   les messages : chemins et noms de fichiers seulement).
  */
-internal class CoordonnateurLsp(
-    private val journal: AppLogger,
-) {
+internal class CoordonnateurLsp(private val journal: AppLogger) {
     /** Le LspProject cel-lsp de l'espace (UN par session LSP). */
     private var projetLsp: LspProject? = null
 

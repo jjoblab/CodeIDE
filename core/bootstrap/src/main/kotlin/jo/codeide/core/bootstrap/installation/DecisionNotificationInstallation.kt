@@ -26,11 +26,7 @@ internal object DecisionNotificationInstallation {
          * @property etape nom court de la sous-étape courante.
          * @property progression progression de la sous-étape.
          */
-        data class Notifier(
-            val phase: InstallPhase,
-            val etape: String,
-            val progression: Progress,
-        ) : Action
+        data class Notifier(val phase: InstallPhase, val etape: String, val progression: Progress) : Action
     }
 
     /**

@@ -54,40 +54,38 @@ public class ServicePreview : Service() {
         // [rendu]) — onCreate ne fait RIEN qui puisse mourir.
     }
 
-    override fun onBind(intention: Intent): IBinder =
-        object : IRenduApercu.Stub() {
-            /**
-             * Correctif PE11k : la doc de contrat promet « l'échec de rendu
-             * voyage en DONNÉE » — le filet [RenduLayoutLib.rendre] couvre
-             * le pipeline, mais TOUTE exception résiduelle (parcel hostile,
-             * erreur avant le pipeline) tuait le PROCESSUS `:preview` sur
-             * le fil du binder : le propriétaire voyait le bandeau « a
-             * cessé de répondre » revenir à chaque « Réessayer ». Le filet
-             * du stub renvoie l'erreur en DONNÉE (règle 6) — le processus
-             * survit, l'app affiche le message honnête.
-             */
-            override fun rendre(requete: RequeteRendu): ResultatRendu =
-                synchronized(verrou) {
-                    try {
-                        // v0.166.4 — le bitmap voyage en PARCELABLE (ashmem)
-                        // : plus de compression PNG à cette frontière (retour
-                        // propriétaire : le PNG coûtait 1 à 2 s par rendu,
-                        // ressenti comme un gel avant chaque mise à jour).
-                        rendu.rendre(requete).rendu
-                    } catch (t: Throwable) {
-                        ResultatRendu(
-                            ok = false,
-                            message = t.message?.trim()?.ifEmpty { null } ?: t.javaClass.simpleName,
-                            ligne = -1,
-                            largeur = 0,
-                            hauteur = 0,
-                            nombreVues = 0,
-                            dureeMs = 0,
-                            bitmap = null,
-                        )
-                    }
-                }
+    override fun onBind(intention: Intent): IBinder = object : IRenduApercu.Stub() {
+        /**
+         * Correctif PE11k : la doc de contrat promet « l'échec de rendu
+         * voyage en DONNÉE » — le filet [RenduLayoutLib.rendre] couvre
+         * le pipeline, mais TOUTE exception résiduelle (parcel hostile,
+         * erreur avant le pipeline) tuait le PROCESSUS `:preview` sur
+         * le fil du binder : le propriétaire voyait le bandeau « a
+         * cessé de répondre » revenir à chaque « Réessayer ». Le filet
+         * du stub renvoie l'erreur en DONNÉE (règle 6) — le processus
+         * survit, l'app affiche le message honnête.
+         */
+        override fun rendre(requete: RequeteRendu): ResultatRendu = synchronized(verrou) {
+            try {
+                // v0.166.4 — le bitmap voyage en PARCELABLE (ashmem)
+                // : plus de compression PNG à cette frontière (retour
+                // propriétaire : le PNG coûtait 1 à 2 s par rendu,
+                // ressenti comme un gel avant chaque mise à jour).
+                rendu.rendre(requete).rendu
+            } catch (t: Throwable) {
+                ResultatRendu(
+                    ok = false,
+                    message = t.message?.trim()?.ifEmpty { null } ?: t.javaClass.simpleName,
+                    ligne = -1,
+                    largeur = 0,
+                    hauteur = 0,
+                    nombreVues = 0,
+                    dureeMs = 0,
+                    bitmap = null,
+                )
+            }
         }
+    }
 
     override fun onDestroy() {
         // Rien à disposer (bitmaps au GC d'ART, pas de fil possédé).

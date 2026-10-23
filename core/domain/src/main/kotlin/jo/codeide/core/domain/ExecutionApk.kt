@@ -85,9 +85,7 @@ public sealed interface ResultatInstallationApk {
      *           passée par l'utilisateur (première installation) — l'UI
      *           peut le dire.
      */
-    public data class Succes(
-        public val confirmationUtilisateur: Boolean,
-    ) : ResultatInstallationApk
+    public data class Succes(public val confirmationUtilisateur: Boolean) : ResultatInstallationApk
 
     /** Échec typé (voir chaque issue). */
     public sealed interface Echec : ResultatInstallationApk
@@ -109,28 +107,20 @@ public sealed interface ResultatInstallationApk {
     public data object EspaceInsuffisant : Echec
 
     /** Installation annulée (refus de la confirmation système, abandon). */
-    public data class Annule(
-        public val messageSysteme: String? = null,
-    ) : Echec
+    public data class Annule(public val messageSysteme: String? = null) : Echec
 
     /** Autre échec du système : message brut, affiché tel quel. */
-    public data class Autre(
-        public val messageSysteme: String? = null,
-    ) : Echec
+    public data class Autre(public val messageSysteme: String? = null) : Echec
 }
 
 /** Résultat d'un lancement d'application installée. */
 public sealed interface ResultatLancementApk {
     /** Application lancée. */
-    public data class Succes(
-        public val nomPaquet: String,
-    ) : ResultatLancementApk
+    public data class Succes(public val nomPaquet: String) : ResultatLancementApk
 
     /**
      * Introuvable après toutes les relances (l'activité de démarrage
      * est peut-être absente, ou le paquet n'est pas encore visible).
      */
-    public data class Introuvable(
-        public val nomPaquet: String,
-    ) : ResultatLancementApk
+    public data class Introuvable(public val nomPaquet: String) : ResultatLancementApk
 }

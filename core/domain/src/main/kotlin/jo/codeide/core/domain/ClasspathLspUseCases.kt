@@ -56,105 +56,101 @@ public data class EtatClasspathLsp(
  */
 @Suppress("ReturnCount")
 public class PreparerClasspathLspUseCase
-    @Inject
-    constructor(
-        private val tooling: GradleToolingRepository,
-        private val fichiers: FileSystem,
-        private val journal: AppLogger,
-        private val dispatchers: DispatcherProvider,
-    ) {
-        /**
-         * Prépare (résout + persiste) le classpath LSP du projet.
-         *
-         * @param dossier répertoire racine du projet (FUSE, celui de la sync).
-         * @param uriRacine URI de document SAF du dossier racine du projet.
-         * @param arguments arguments Gradle de la résolution (v4 : `--offline`
-         *        et arguments réglés s'appliquent AUSSI au classpath).
-         * @return le classpath résolu, ou l'échec typé (journalisé par
-         *   l'appelant, jamais bloquant pour l'édition).
-         */
-        public suspend operator fun invoke(
-            dossier: File,
-            uriRacine: String,
-            arguments: List<String> = emptyList(),
-        ): AppResult<ClasspathProjet> =
-            withContext(dispatchers.io) {
-                journal.i(TAG) { "préparation du classpath LSP demandée" }
-                when (val resolu = tooling.classpath(dossier, arguments)) {
+@Inject
+constructor(
+    private val tooling: GradleToolingRepository,
+    private val fichiers: FileSystem,
+    private val journal: AppLogger,
+    private val dispatchers: DispatcherProvider,
+) {
+    /**
+     * Prépare (résout + persiste) le classpath LSP du projet.
+     *
+     * @param dossier répertoire racine du projet (FUSE, celui de la sync).
+     * @param uriRacine URI de document SAF du dossier racine du projet.
+     * @param arguments arguments Gradle de la résolution (v4 : `--offline`
+     *        et arguments réglés s'appliquent AUSSI au classpath).
+     * @return le classpath résolu, ou l'échec typé (journalisé par
+     *   l'appelant, jamais bloquant pour l'édition).
+     */
+    public suspend operator fun invoke(
+        dossier: File,
+        uriRacine: String,
+        arguments: List<String> = emptyList(),
+    ): AppResult<ClasspathProjet> = withContext(dispatchers.io) {
+        journal.i(TAG) { "préparation du classpath LSP demandée" }
+        when (val resolu = tooling.classpath(dossier, arguments)) {
+            is AppResult.Failure -> {
+                resolu
+            }
+
+            is AppResult.Success -> {
+                when (ecrireEtat(uriRacine, resolu.value)) {
                     is AppResult.Failure -> {
-                        resolu
+                        AppResult.Failure(
+                            AppError.Storage(AppError.StorageReason.Io, "lsp-classpath.json incréable"),
+                        )
                     }
 
                     is AppResult.Success -> {
-                        when (ecrireEtat(uriRacine, resolu.value)) {
-                            is AppResult.Failure -> {
-                                AppResult.Failure(
-                                    AppError.Storage(AppError.StorageReason.Io, "lsp-classpath.json incréable"),
-                                )
-                            }
-
-                            is AppResult.Success -> {
-                                resolu
-                            }
-                        }
+                        resolu
                     }
                 }
             }
-
-        /** Écrit l'état sous `.codeide/local/`, dossier créé au besoin. */
-        private suspend fun ecrireEtat(
-            uriRacine: String,
-            classpath: ClasspathProjet,
-        ): AppResult<Unit> {
-            val dossier =
-                resoudreDossierLocal(uriRacine)
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.Io, "dossier .codeide/local injoignable"),
-                    )
-            val cible =
-                (fichiers.list(dossier) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { !it.isDirectory && it.name == CheminsClasspathLsp.NOM_FICHIER }
-                    ?.uri
-                    ?: (
-                        fichiers.createFile(
-                            dossier,
-                            CheminsClasspathLsp.NOM_FICHIER,
-                            CheminsClasspathLsp.MIME_JSON,
-                        ) as? AppResult.Success
-                    )?.value
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.Io, "lsp-classpath.json incréable"),
-                    )
-            val etat =
-                EtatClasspathLsp(
-                    projectDir = classpath.projectDir,
-                    modules = classpath.modules,
-                )
-            return fichiers.writeText(cible, CODEC.encodeToString(EtatClasspathLsp.serializer(), etat))
-        }
-
-        /** Résout (crée au besoin) `.codeide/local` sous la racine. */
-        private suspend fun resoudreDossierLocal(uriRacine: String): String? {
-            val codeide =
-                (fichiers.list(uriRacine) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { it.isDirectory && it.name == CheminsClasspathLsp.DOSSIER_CODEIDE }
-                    ?.uri
-                    ?: (
-                        fichiers.createDirectory(
-                            uriRacine,
-                            CheminsClasspathLsp.DOSSIER_CODEIDE,
-                        ) as? AppResult.Success
-                    )?.value
-                    ?: return null
-            return (fichiers.list(codeide) as? AppResult.Success)
-                ?.value
-                ?.firstOrNull { it.isDirectory && it.name == CheminsClasspathLsp.DOSSIER_LOCAL }
-                ?.uri
-                ?: (fichiers.createDirectory(codeide, CheminsClasspathLsp.DOSSIER_LOCAL) as? AppResult.Success)?.value
         }
     }
+
+    /** Écrit l'état sous `.codeide/local/`, dossier créé au besoin. */
+    private suspend fun ecrireEtat(uriRacine: String, classpath: ClasspathProjet): AppResult<Unit> {
+        val dossier =
+            resoudreDossierLocal(uriRacine)
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.Io, "dossier .codeide/local injoignable"),
+                )
+        val cible =
+            (fichiers.list(dossier) as? AppResult.Success)
+                ?.value
+                ?.firstOrNull { !it.isDirectory && it.name == CheminsClasspathLsp.NOM_FICHIER }
+                ?.uri
+                ?: (
+                    fichiers.createFile(
+                        dossier,
+                        CheminsClasspathLsp.NOM_FICHIER,
+                        CheminsClasspathLsp.MIME_JSON,
+                    ) as? AppResult.Success
+                    )?.value
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.Io, "lsp-classpath.json incréable"),
+                )
+        val etat =
+            EtatClasspathLsp(
+                projectDir = classpath.projectDir,
+                modules = classpath.modules,
+            )
+        return fichiers.writeText(cible, CODEC.encodeToString(EtatClasspathLsp.serializer(), etat))
+    }
+
+    /** Résout (crée au besoin) `.codeide/local` sous la racine. */
+    private suspend fun resoudreDossierLocal(uriRacine: String): String? {
+        val codeide =
+            (fichiers.list(uriRacine) as? AppResult.Success)
+                ?.value
+                ?.firstOrNull { it.isDirectory && it.name == CheminsClasspathLsp.DOSSIER_CODEIDE }
+                ?.uri
+                ?: (
+                    fichiers.createDirectory(
+                        uriRacine,
+                        CheminsClasspathLsp.DOSSIER_CODEIDE,
+                    ) as? AppResult.Success
+                    )?.value
+                ?: return null
+        return (fichiers.list(codeide) as? AppResult.Success)
+            ?.value
+            ?.firstOrNull { it.isDirectory && it.name == CheminsClasspathLsp.DOSSIER_LOCAL }
+            ?.uri
+            ?: (fichiers.createDirectory(codeide, CheminsClasspathLsp.DOSSIER_LOCAL) as? AppResult.Success)?.value
+    }
+}
 
 /**
  * Cas d'usage « lire le classpath LSP » (ADR 0058) : lit
@@ -174,38 +170,33 @@ public class PreparerClasspathLspUseCase
  */
 @Suppress("ReturnCount")
 public class LireClasspathLspUseCase
-    @Inject
-    constructor(
-        private val fichiers: FileSystem,
-    ) {
-        /**
-         * Lit le classpath LSP persisté du projet.
-         *
-         * @param uriRacine URI de document du dossier racine du projet.
-         * @return l'état persisté, ou `null` si absent/illisible/corrompu.
-         */
-        public suspend operator fun invoke(uriRacine: String): EtatClasspathLsp? {
-            val dossierCodeide = dossierEnfant(uriRacine, CheminsClasspathLsp.DOSSIER_CODEIDE) ?: return null
-            val dossierLocal = dossierEnfant(dossierCodeide, CheminsClasspathLsp.DOSSIER_LOCAL) ?: return null
-            val fichier =
-                (fichiers.list(dossierLocal) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { !it.isDirectory && it.name == CheminsClasspathLsp.NOM_FICHIER }
-                    ?: return null
-            val contenu = (fichiers.readText(fichier.uri) as? AppResult.Success)?.value ?: return null
-            return runCatching { CODEC.decodeFromString(EtatClasspathLsp.serializer(), contenu) }.getOrNull()
-        }
-
-        /** Premier sous-dossier direct de [uriParent] portant ce nom. */
-        private suspend fun dossierEnfant(
-            uriParent: String,
-            nom: String,
-        ): String? =
-            (fichiers.list(uriParent) as? AppResult.Success)
+@Inject
+constructor(private val fichiers: FileSystem) {
+    /**
+     * Lit le classpath LSP persisté du projet.
+     *
+     * @param uriRacine URI de document du dossier racine du projet.
+     * @return l'état persisté, ou `null` si absent/illisible/corrompu.
+     */
+    public suspend operator fun invoke(uriRacine: String): EtatClasspathLsp? {
+        val dossierCodeide = dossierEnfant(uriRacine, CheminsClasspathLsp.DOSSIER_CODEIDE) ?: return null
+        val dossierLocal = dossierEnfant(dossierCodeide, CheminsClasspathLsp.DOSSIER_LOCAL) ?: return null
+        val fichier =
+            (fichiers.list(dossierLocal) as? AppResult.Success)
                 ?.value
-                ?.firstOrNull { it.isDirectory && it.name == nom }
-                ?.uri
+                ?.firstOrNull { !it.isDirectory && it.name == CheminsClasspathLsp.NOM_FICHIER }
+                ?: return null
+        val contenu = (fichiers.readText(fichier.uri) as? AppResult.Success)?.value ?: return null
+        return runCatching { CODEC.decodeFromString(EtatClasspathLsp.serializer(), contenu) }.getOrNull()
     }
+
+    /** Premier sous-dossier direct de [uriParent] portant ce nom. */
+    private suspend fun dossierEnfant(uriParent: String, nom: String): String? =
+        (fichiers.list(uriParent) as? AppResult.Success)
+            ?.value
+            ?.firstOrNull { it.isDirectory && it.name == nom }
+            ?.uri
+}
 
 /** Emplacements internes du classpath LSP (partagés lecture/écriture). */
 private object CheminsClasspathLsp {

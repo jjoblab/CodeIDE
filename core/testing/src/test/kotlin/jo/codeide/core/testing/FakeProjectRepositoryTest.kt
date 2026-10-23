@@ -18,19 +18,18 @@ private fun raisonStockage(echec: AppResult.Failure): AppError.StorageReason? =
  */
 class FakeProjectRepositoryTest {
     @Test
-    fun `le fake des projets tient l'unicité de dossier du registre`() =
-        runTest {
-            val depot = FakeProjectRepository()
-            val emplacement =
-                StorageLocation(
-                    grantUri = "content://a/tree/t",
-                    documentUri = "content://a/tree/t/doc/projet",
-                    displayPath = "Projet",
-                )
+    fun `le fake des projets tient l'unicité de dossier du registre`() = runTest {
+        val depot = FakeProjectRepository()
+        val emplacement =
+            StorageLocation(
+                grantUri = "content://a/tree/t",
+                documentUri = "content://a/tree/t/doc/projet",
+                displayPath = "Projet",
+            )
 
-            depot.addProject("Premier", "", emplacement, TemplateId("kotlin-jvm"))
-            val second = depot.addProject("Second", "", emplacement, TemplateId("java"))
+        depot.addProject("Premier", "", emplacement, TemplateId("kotlin-jvm"))
+        val second = depot.addProject("Second", "", emplacement, TemplateId("java"))
 
-            assertEquals(AppError.StorageReason.AlreadyExists, raisonStockage(second as AppResult.Failure))
-        }
+        assertEquals(AppError.StorageReason.AlreadyExists, raisonStockage(second as AppResult.Failure))
+    }
 }

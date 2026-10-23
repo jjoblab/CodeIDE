@@ -36,25 +36,25 @@ class FormateurDiagnosticGitTest {
             pointDeMontage = "/storage/emulated/0",
             typeSystemeFichiers = "fuse",
             revParse =
-                ResultatCommandeGit(
-                    code = 128,
-                    sortieStandard = "",
-                    // Message canonique de git 2.35.2+ (dubious ownership).
-                    sortieErreur =
-                        "fatal: detected dubious ownership in repository at " +
-                            "/storage/emulated/0/Documents/MonProjet",
-                ),
+            ResultatCommandeGit(
+                code = 128,
+                sortieStandard = "",
+                // Message canonique de git 2.35.2+ (dubious ownership).
+                sortieErreur =
+                "fatal: detected dubious ownership in repository at " +
+                    "/storage/emulated/0/Documents/MonProjet",
+            ),
             configList =
-                ResultatCommandeGit(
-                    code = 0,
-                    sortieStandard = configListeReelle,
-                    sortieErreur = "",
-                ),
+            ResultatCommandeGit(
+                code = 0,
+                sortieStandard = configListeReelle,
+                sortieErreur = "",
+            ),
             environnement =
-                mapOf(
-                    "HOME" to "/data/user/0/jo.codeide/files/home",
-                    "PATH" to "/data/user/0/jo.codeide/files/usr/bin",
-                ),
+            mapOf(
+                "HOME" to "/data/user/0/jo.codeide/files/home",
+                "PATH" to "/data/user/0/jo.codeide/files/usr/bin",
+            ),
         )
 
     @Test

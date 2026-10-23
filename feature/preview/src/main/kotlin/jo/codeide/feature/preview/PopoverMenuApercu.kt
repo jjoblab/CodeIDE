@@ -34,9 +34,7 @@ import kotlin.math.min
  * retournement), le fractionner en cacherait la géométrie.
  */
 @Suppress("LongMethod")
-internal class PopoverMenuApercu(
-    private val conteneur: ViewGroup,
-) {
+internal class PopoverMenuApercu(private val conteneur: ViewGroup) {
     /** Fenêtre courante — un seul menu à la fois. */
     private var fenetre: PopupWindow? = null
 
@@ -64,12 +62,7 @@ internal class PopoverMenuApercu(
      * (`null` = pleine largeur moins 10 dp de chaque bord — miroir
      * `.pop`), la hauteur est bornée à `apercu_menu_hauteur_max`.
      */
-    public fun montrer(
-        layout: Int,
-        ancre: View,
-        largeurDp: Int? = null,
-        remplir: (View) -> Unit,
-    ) {
+    public fun montrer(layout: Int, ancre: View, largeurDp: Int? = null, remplir: (View) -> Unit) {
         masquer()
         val contexte = conteneur.context
         val vue = LayoutInflater.from(contexte).inflate(layout, conteneur, false)
@@ -109,7 +102,7 @@ internal class PopoverMenuApercu(
                 } else {
                     sous
                 }
-            ).coerceAtLeast(marge)
+                ).coerceAtLeast(marge)
 
         // Fenêtre : focusable pour Échap/retour, clic extérieur = fermeture.
         val popup =

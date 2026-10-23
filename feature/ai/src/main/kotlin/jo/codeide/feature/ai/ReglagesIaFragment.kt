@@ -43,10 +43,7 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         attachToRoot: Boolean,
     ): FragmentReglagesIaBinding = FragmentReglagesIaBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.toolbarReglagesIa.setNavigationOnClickListener { navigator.goBack() }
@@ -147,10 +144,7 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         }
     }
 
-    private fun brancherInterrupteur(
-        interrupteur: MaterialSwitch,
-        aspect: AspectConfidentialite,
-    ) {
+    private fun brancherInterrupteur(interrupteur: MaterialSwitch, aspect: AspectConfidentialite) {
         interrupteur.setOnCheckedChangeListener { _, valeur ->
             if (!renduEnCours) viewModel.onAction(ActionReglagesIa.ChangerConfidentialite(aspect, valeur))
         }

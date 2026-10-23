@@ -49,134 +49,130 @@ class ClasspathLspUseCasesTest {
         ClasspathProjet(
             projectDir = dossier.absolutePath,
             modules =
-                listOf(
-                    ModuleClasspath(
-                        nom = ":app",
-                        dossiersSources = listOf("/projets/mon-projet/app/src/main/java"),
-                        entrees =
-                            listOf(
-                                EntreeClasspath(chemin = ":lib", type = TypeEntreeClasspath.MODULE, portee = "compile"),
-                                EntreeClasspath(
-                                    chemin = "/cache/kotlin-stdlib.jar",
-                                    type = TypeEntreeClasspath.JAR,
-                                    portee = "compile",
-                                    sources = "/cache/kotlin-stdlib-sources.jar",
-                                ),
-                                EntreeClasspath(chemin = "/cache/core.aar", type = TypeEntreeClasspath.AAR),
-                            ),
+            listOf(
+                ModuleClasspath(
+                    nom = ":app",
+                    dossiersSources = listOf("/projets/mon-projet/app/src/main/java"),
+                    entrees =
+                    listOf(
+                        EntreeClasspath(chemin = ":lib", type = TypeEntreeClasspath.MODULE, portee = "compile"),
+                        EntreeClasspath(
+                            chemin = "/cache/kotlin-stdlib.jar",
+                            type = TypeEntreeClasspath.JAR,
+                            portee = "compile",
+                            sources = "/cache/kotlin-stdlib-sources.jar",
+                        ),
+                        EntreeClasspath(chemin = "/cache/core.aar", type = TypeEntreeClasspath.AAR),
                     ),
                 ),
+            ),
         )
 
     @Test
-    fun `la preparation resout puis persiste sous codeide local`() =
-        runTest {
-            tooling.prochainClasspath = AppResult.Success(classpathRetour)
-            val racine = "content://autorite/tree/Alpha/doc"
-            fichiers.seedDocument(
-                racine,
-                FakeFileSystem.Document(name = "Alpha", isDirectory = true),
-            )
+    fun `la preparation resout puis persiste sous codeide local`() = runTest {
+        tooling.prochainClasspath = AppResult.Success(classpathRetour)
+        val racine = "content://autorite/tree/Alpha/doc"
+        fichiers.seedDocument(
+            racine,
+            FakeFileSystem.Document(name = "Alpha", isDirectory = true),
+        )
 
-            val resultat = preparer(dossier, racine)
-            assertTrue(resultat is AppResult.Success)
-            assertEquals(dossier, tooling.dossierClasspath)
+        val resultat = preparer(dossier, racine)
+        assertTrue(resultat is AppResult.Success)
+        assertEquals(dossier, tooling.dossierClasspath)
 
-            // Round-trip : ce qui est persisté EST ce qui a été résolu —
-            // les LSP relisent exactement la même chose, sans perte.
-            val relu = lire(racine)
-            assertNotNull(relu)
-            assertEquals(EtatClasspathLsp.SCHEMA_COURANT, relu?.schema)
-            assertEquals(dossier.absolutePath, relu?.projectDir)
-            assertEquals(1, relu?.modules?.size)
-            val module = relu?.modules?.first()
-            assertEquals(":app", module?.nom)
-            assertEquals(listOf("/projets/mon-projet/app/src/main/java"), module?.dossiersSources)
-            assertEquals(3, module?.entrees?.size)
-            assertEquals(TypeEntreeClasspath.MODULE, module?.entrees?.get(0)?.type)
-            assertEquals(":lib", module?.entrees?.get(0)?.chemin)
-            assertEquals("/cache/kotlin-stdlib-sources.jar", module?.entrees?.get(1)?.sources)
-            assertEquals(TypeEntreeClasspath.AAR, module?.entrees?.get(2)?.type)
-        }
-
-    @Test
-    fun `re-preparer met a jour le classpath sans doublon`() =
-        runTest {
-            tooling.prochainClasspath = AppResult.Success(classpathRetour)
-            val racine = "content://autorite/tree/Alpha/doc"
-            fichiers.seedDocument(
-                racine,
-                FakeFileSystem.Document(name = "Alpha", isDirectory = true),
-            )
-            preparer(dossier, racine)
-
-            tooling.prochainClasspath =
-                AppResult.Success(ClasspathProjet(projectDir = dossier.absolutePath))
-            preparer(dossier, racine)
-
-            val relu = lire(racine)
-            assertNotNull(relu)
-            assertEquals(0, relu?.modules?.size)
-            val local =
-                fichiers.arborescence.value.entries
-                    .first { it.key.endsWith("/local") }
-            val enfants = fichiers.list(local.key).getOrNull().orEmpty()
-            assertEquals(
-                "un seul lsp-classpath.json, jamais de copie (1)",
-                1,
-                enfants.count { it.name == "lsp-classpath.json" },
-            )
-        }
+        // Round-trip : ce qui est persisté EST ce qui a été résolu —
+        // les LSP relisent exactement la même chose, sans perte.
+        val relu = lire(racine)
+        assertNotNull(relu)
+        assertEquals(EtatClasspathLsp.SCHEMA_COURANT, relu?.schema)
+        assertEquals(dossier.absolutePath, relu?.projectDir)
+        assertEquals(1, relu?.modules?.size)
+        val module = relu?.modules?.first()
+        assertEquals(":app", module?.nom)
+        assertEquals(listOf("/projets/mon-projet/app/src/main/java"), module?.dossiersSources)
+        assertEquals(3, module?.entrees?.size)
+        assertEquals(TypeEntreeClasspath.MODULE, module?.entrees?.get(0)?.type)
+        assertEquals(":lib", module?.entrees?.get(0)?.chemin)
+        assertEquals("/cache/kotlin-stdlib-sources.jar", module?.entrees?.get(1)?.sources)
+        assertEquals(TypeEntreeClasspath.AAR, module?.entrees?.get(2)?.type)
+    }
 
     @Test
-    fun `la preparation relaye l echec type de la resolution sans ecrire`() =
-        runTest {
-            tooling.prochainClasspath =
-                AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
-            val racine = "content://autorite/tree/Beta/doc"
-            fichiers.seedDocument(
-                racine,
-                FakeFileSystem.Document(name = "Beta", isDirectory = true),
-            )
+    fun `re-preparer met a jour le classpath sans doublon`() = runTest {
+        tooling.prochainClasspath = AppResult.Success(classpathRetour)
+        val racine = "content://autorite/tree/Alpha/doc"
+        fichiers.seedDocument(
+            racine,
+            FakeFileSystem.Document(name = "Alpha", isDirectory = true),
+        )
+        preparer(dossier, racine)
 
-            val resultat = preparer(dossier, racine)
-            val echec = resultat as AppResult.Failure
-            assertEquals(AppError.ToolingReason.ConnectionLost, (echec.error as AppError.Tooling).code)
-            assertNull("rien n'est persisté quand la résolution échoue", lire(racine))
-        }
+        tooling.prochainClasspath =
+            AppResult.Success(ClasspathProjet(projectDir = dossier.absolutePath))
+        preparer(dossier, racine)
+
+        val relu = lire(racine)
+        assertNotNull(relu)
+        assertEquals(0, relu?.modules?.size)
+        val local =
+            fichiers.arborescence.value.entries
+                .first { it.key.endsWith("/local") }
+        val enfants = fichiers.list(local.key).getOrNull().orEmpty()
+        assertEquals(
+            "un seul lsp-classpath.json, jamais de copie (1)",
+            1,
+            enfants.count { it.name == "lsp-classpath.json" },
+        )
+    }
 
     @Test
-    fun `lire retourne null a l absence comme a la corruption`() =
-        runTest {
-            val racine = "content://autorite/tree/Gamma/doc"
-            fichiers.seedDocument(
-                racine,
-                FakeFileSystem.Document(name = "Gamma", isDirectory = true),
-            )
-            assertNull("pas de .codeide : null", lire(racine))
+    fun `la preparation relaye l echec type de la resolution sans ecrire`() = runTest {
+        tooling.prochainClasspath =
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+        val racine = "content://autorite/tree/Beta/doc"
+        fichiers.seedDocument(
+            racine,
+            FakeFileSystem.Document(name = "Beta", isDirectory = true),
+        )
 
-            fichiers.seedDocument(
-                "$racine/.codeide",
-                FakeFileSystem.Document(name = ".codeide", isDirectory = true),
-            )
-            assertNull("pas de local : null", lire(racine))
+        val resultat = preparer(dossier, racine)
+        val echec = resultat as AppResult.Failure
+        assertEquals(AppError.ToolingReason.ConnectionLost, (echec.error as AppError.Tooling).code)
+        assertNull("rien n'est persisté quand la résolution échoue", lire(racine))
+    }
 
-            fichiers.seedDocument(
-                "$racine/.codeide/local",
-                FakeFileSystem.Document(name = "local", isDirectory = true),
-            )
-            assertNull("pas de fichier : null", lire(racine))
+    @Test
+    fun `lire retourne null a l absence comme a la corruption`() = runTest {
+        val racine = "content://autorite/tree/Gamma/doc"
+        fichiers.seedDocument(
+            racine,
+            FakeFileSystem.Document(name = "Gamma", isDirectory = true),
+        )
+        assertNull("pas de .codeide : null", lire(racine))
 
-            fichiers.seedDocument(
-                "$racine/.codeide/local/lsp-classpath.json",
-                FakeFileSystem.Document(
-                    name = "lsp-classpath.json",
-                    isDirectory = false,
-                    bytes = "{{pas du json".toByteArray(),
-                ),
-            )
-            assertNull("corrompu : null, jamais d'erreur", lire(racine))
-        }
+        fichiers.seedDocument(
+            "$racine/.codeide",
+            FakeFileSystem.Document(name = ".codeide", isDirectory = true),
+        )
+        assertNull("pas de local : null", lire(racine))
+
+        fichiers.seedDocument(
+            "$racine/.codeide/local",
+            FakeFileSystem.Document(name = "local", isDirectory = true),
+        )
+        assertNull("pas de fichier : null", lire(racine))
+
+        fichiers.seedDocument(
+            "$racine/.codeide/local/lsp-classpath.json",
+            FakeFileSystem.Document(
+                name = "lsp-classpath.json",
+                isDirectory = false,
+                bytes = "{{pas du json".toByteArray(),
+            ),
+        )
+        assertNull("corrompu : null, jamais d'erreur", lire(racine))
+    }
 
     /** Faux du port tooling, classpath pilotable (les autres opérations muettes). */
     private class FauxToolingClasspath : GradleToolingRepository {
@@ -206,18 +202,14 @@ class ClasspathLspUseCasesTest {
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 
-        override fun observeFluxSync(): Flow<EvenementSyncFlux> =
-            MutableStateFlow(
-                EvenementSyncFlux.Etape(EtapeSyncTooling(etape = EtapeSync.DAEMON)),
-            )
+        override fun observeFluxSync(): Flow<EvenementSyncFlux> = MutableStateFlow(
+            EvenementSyncFlux.Etape(EtapeSyncTooling(etape = EtapeSync.DAEMON)),
+        )
 
         override suspend fun taches(projectDir: File): AppResult<List<InfoTache>> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
-        override suspend fun classpath(
-            projectDir: File,
-            arguments: List<String>,
-        ): AppResult<ClasspathProjet> {
+        override suspend fun classpath(projectDir: File, arguments: List<String>): AppResult<ClasspathProjet> {
             dossierClasspath = projectDir
             argumentsClasspath = arguments
             return prochainClasspath
@@ -226,21 +218,14 @@ class ClasspathLspUseCasesTest {
         override suspend fun scriptsBuild(projectDir: File): AppResult<List<ScriptDeBuild>> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
-        override suspend fun build(
-            projectDir: File,
-            tasks: List<String>,
-            arguments: List<String>,
-        ): String = "b-faux"
+        override suspend fun build(projectDir: File, tasks: List<String>, arguments: List<String>): String = "b-faux"
 
         override fun cancel(buildId: String) = Unit
 
         // Cycle de vie étape D (v9) : hors périmètre de ces tests — no-op.
         override suspend fun fermerProjet(projectDir: File): AppResult<Unit> = AppResult.Success(Unit)
 
-        override fun envoyerEntree(
-            buildId: String,
-            texte: String,
-        ) = Unit
+        override fun envoyerEntree(buildId: String, texte: String) = Unit
 
         override fun observeHeap(): Flow<InstantaneTas> = MutableStateFlow(InstantaneTas(0, 0))
 

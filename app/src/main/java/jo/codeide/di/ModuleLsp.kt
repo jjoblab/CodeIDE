@@ -37,10 +37,7 @@ internal object ModuleLsp {
     /** Résolution du classpath brut (protocole v8) pour la session LSP. */
     @Provides
     @Singleton
-    internal fun sourceClasspathLsp(
-        api: GradleApiImpl,
-        journal: AppLogger,
-    ): SourceClasspathLsp =
+    internal fun sourceClasspathLsp(api: GradleApiImpl, journal: AppLogger): SourceClasspathLsp =
         SourceClasspathLsp { dossier, arguments ->
             when (val resultat = api.classpathBrut(dossier, arguments)) {
                 is AppResult.Success -> {
@@ -59,9 +56,8 @@ internal object ModuleLsp {
     /** Stockage d'index partagé : répertoire privé de l'app. */
     @Provides
     @Singleton
-    internal fun dossierIndexLsp(
-        @ApplicationContext context: Context,
-    ): DossierIndexLsp = DossierIndexLsp { File(context.filesDir, "codeide/lsp/index") }
+    internal fun dossierIndexLsp(@ApplicationContext context: Context): DossierIndexLsp =
+        DossierIndexLsp { File(context.filesDir, "codeide/lsp/index") }
 
     private const val TAG = "ModuleLsp"
 }

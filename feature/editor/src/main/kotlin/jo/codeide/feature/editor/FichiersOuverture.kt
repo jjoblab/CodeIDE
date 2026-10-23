@@ -49,16 +49,15 @@ internal object FichiersOuverture {
      * Langage de coloration cel déduit de l'extension, ou `null` pour le
      * repli neutre (`setLanguage` tolère tout nom, seul un nom connu colore).
      */
-    fun langage(nom: String): String? =
-        when (nom.substringAfterLast('.', "").lowercase()) {
-            "kt", "kts" -> "kotlin"
-            "java" -> "java"
-            "xml", "html", "htm" -> "xml"
-            "json" -> "json"
-            "md", "markdown" -> "markdown"
-            "yml", "yaml" -> "yaml"
-            "toml" -> "toml"
-            "properties" -> "properties"
-            else -> null
-        }
+    fun langage(nom: String): String? = when (nom.substringAfterLast('.', "").lowercase()) {
+        "kt", "kts" -> "kotlin"
+        "java" -> "java"
+        "xml", "html", "htm" -> "xml"
+        "json" -> "json"
+        "md", "markdown" -> "markdown"
+        "yml", "yaml" -> "yaml"
+        "toml" -> "toml"
+        "properties" -> "properties"
+        else -> null
+    }
 }

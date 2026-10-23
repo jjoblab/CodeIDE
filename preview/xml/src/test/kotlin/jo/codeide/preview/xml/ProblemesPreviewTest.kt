@@ -23,23 +23,22 @@ class ProblemesPreviewTest {
         texteTronque: Boolean = false,
         sansContentDescription: Boolean = false,
         texteCodeDur: Boolean = false,
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = 0,
-            haut = 0,
-            droite = largeurPx,
-            bas = hauteurPx,
-            libelle = classe,
-            debutElement = 0,
-            finElement = 10,
-            indiceParent = -1,
-            profondeur = 0,
-            classe = classe,
-            cliquable = cliquable,
-            texteTronque = texteTronque,
-            sansContentDescription = sansContentDescription,
-            texteCodeDur = texteCodeDur,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = 0,
+        haut = 0,
+        droite = largeurPx,
+        bas = hauteurPx,
+        libelle = classe,
+        debutElement = 0,
+        finElement = 10,
+        indiceParent = -1,
+        profondeur = 0,
+        classe = classe,
+        cliquable = cliquable,
+        texteTronque = texteTronque,
+        sansContentDescription = sansContentDescription,
+        texteCodeDur = texteCodeDur,
+    )
 
     // ── Règle « classe absente » (cadre de remplacement G15) ──
 
@@ -173,17 +172,17 @@ class ProblemesPreviewTest {
         val problemes =
             ProblemesPreview.evaluer(
                 vues =
-                    listOf(
-                        vue(
-                            largeurPx = 88,
-                            hauteurPx = 88,
-                            cliquable = true,
-                            classe = InfoVueRendu.CLASSE_REMPLACEMENT,
-                            texteTronque = true,
-                            sansContentDescription = true,
-                            texteCodeDur = true,
-                        ),
+                listOf(
+                    vue(
+                        largeurPx = 88,
+                        hauteurPx = 88,
+                        cliquable = true,
+                        classe = InfoVueRendu.CLASSE_REMPLACEMENT,
+                        texteTronque = true,
+                        sansContentDescription = true,
+                        texteCodeDur = true,
                     ),
+                ),
                 densiteDpi = 320,
             )
         assertEquals(

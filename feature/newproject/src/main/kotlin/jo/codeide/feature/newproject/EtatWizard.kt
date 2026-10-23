@@ -46,10 +46,7 @@ enum class EtapeId {
  * @property id identifiant stable de l'étape.
  * @property titreRes titre localisé (« Modèle », « Configuration »…).
  */
-data class WizardStep(
-    val id: EtapeId,
-    @field:StringRes val titreRes: Int,
-)
+data class WizardStep(val id: EtapeId, @field:StringRes val titreRes: Int)
 
 /**
  * Étapes actives du wizard (section 12.2 : cinq étapes numérotées, puis
@@ -178,11 +175,10 @@ data class EtatWizard(
             }
 
     /** Les paramètres visibles d'une section sont-ils tous valides ? */
-    private fun parametresValides(section: TemplateSection): Boolean =
-        evaluation
-            ?.parameters
-            ?.filter { it.visible && it.section == section }
-            ?.all { it.error == null } == true
+    private fun parametresValides(section: TemplateSection): Boolean = evaluation
+        ?.parameters
+        ?.filter { it.visible && it.section == section }
+        ?.all { it.error == null } == true
 
     /**
      * Des données ont-elles été saisies ? Conditionne le dialogue de
@@ -220,9 +216,7 @@ sealed interface ActionWizard {
     data object ReessayerCatalogue : ActionWizard
 
     /** Sélectionne un modèle (étape 1). */
-    data class ChoisirModele(
-        val id: TemplateId,
-    ) : ActionWizard
+    data class ChoisirModele(val id: TemplateId) : ActionWizard
 
     /** Passe à l'étape suivante (garde : étape courante valide). */
     data object Suivant : ActionWizard
@@ -234,57 +228,34 @@ sealed interface ActionWizard {
      * Revient à une étape précise depuis le récapitulatif (bouton
      * « Modifier » d'une section, section 12.3) — vers l'arrière uniquement.
      */
-    data class AllerEtape(
-        val id: EtapeId,
-    ) : ActionWizard
+    data class AllerEtape(val id: EtapeId) : ActionWizard
 
     /** Saisit le nom du projet (champ commun). */
-    data class SaisirNom(
-        val valeur: String,
-    ) : ActionWizard
+    data class SaisirNom(val valeur: String) : ActionWizard
 
     /** Saisit la description (champ commun). */
-    data class SaisirDescription(
-        val valeur: String,
-    ) : ActionWizard
+    data class SaisirDescription(val valeur: String) : ActionWizard
 
     /** Saisit un paramètre texte — la modification fige la dérivation. */
-    data class SaisirTexte(
-        val parametreId: String,
-        val valeur: String,
-    ) : ActionWizard
+    data class SaisirTexte(val parametreId: String, val valeur: String) : ActionWizard
 
     /** Choisit une valeur de paramètre (choix ou interrupteur). */
-    data class ChoisirValeur(
-        val parametreId: String,
-        val valeur: String,
-    ) : ActionWizard
+    data class ChoisirValeur(val parametreId: String, val valeur: String) : ActionWizard
 
     /** Resynchronise un champ dérivé : il resuit ses sources. */
-    data class Resynchroniser(
-        val parametreId: String,
-    ) : ActionWizard
+    data class Resynchroniser(val parametreId: String) : ActionWizard
 
     /** Change de dossier « pour cette création uniquement » (sélecteur SAF). */
-    data class ChangerEmplacement(
-        val grantUri: String,
-    ) : ActionWizard
+    data class ChangerEmplacement(val grantUri: String) : ActionWizard
 
     /** Inclut ou exclut un fichier optionnel (étape 4, section 12.3). */
-    data class BasculerFichier(
-        val fichier: FichierOptionnel,
-        val inclus: Boolean,
-    ) : ActionWizard
+    data class BasculerFichier(val fichier: FichierOptionnel, val inclus: Boolean) : ActionWizard
 
     /** Choisit la licence à générer (étape 4). */
-    data class ChoisirLicence(
-        val licence: License,
-    ) : ActionWizard
+    data class ChoisirLicence(val licence: License) : ActionWizard
 
     /** Choisit la langue du contenu généré (étape 4 : `fr` ou `en`). */
-    data class ChoisirLangueContenu(
-        val langue: String,
-    ) : ActionWizard
+    data class ChoisirLangueContenu(val langue: String) : ActionWizard
 
     /** Lance la création depuis le récapitulatif (garde : état valide). */
     data object Creer : ActionWizard
@@ -297,10 +268,7 @@ sealed interface ActionWizard {
      * original du nœud (identité stable), [nouveauNom] un simple segment
      * déjà validé par le dialogue — le domaine revalide tout.
      */
-    data class RenommerChemin(
-        val ancien: String,
-        val nouveauNom: String,
-    ) : ActionWizard
+    data class RenommerChemin(val ancien: String, val nouveauNom: String) : ActionWizard
 
     /** Annule la création en cours (rollback puis retour au récapitulatif). */
     data object AnnulerCreation : ActionWizard
@@ -322,9 +290,7 @@ sealed interface ActionWizard {
     data object RetourAccueil : ActionWizard
 
     /** « Créer un autre projet » : remise à zéro du wizard. */
-    data class Recommencer(
-        val garderModele: Boolean,
-    ) : ActionWizard
+    data class Recommencer(val garderModele: Boolean) : ActionWizard
 
     /** Abandon confirmé : referme le wizard (après nettoyage). */
     data object Fermer : ActionWizard
@@ -346,17 +312,13 @@ sealed interface EffetWizard {
      * Création réussie : referme le wizard en signalant le projet à
      * l'accueil pour mise en évidence (étape 11, section 12.3).
      */
-    data class ProjetCree(
-        val id: ProjectId,
-    ) : EffetWizard
+    data class ProjetCree(val id: ProjectId) : EffetWizard
 
     /**
      * « Ouvrir le projet » depuis l'écran de succès (étape 13) : ouvre
      * l'espace de travail par-dessus — le wizard se referme à son retour.
      */
-    data class OuvrirProjetEditeur(
-        val id: ProjectId,
-    ) : EffetWizard
+    data class OuvrirProjetEditeur(val id: ProjectId) : EffetWizard
 }
 
 /**
@@ -374,18 +336,14 @@ sealed interface EtatCreation {
      * @property evenements événements déjà émis (préparation, dossier,
      * fichiers, enregistrement) dans l'ordre.
      */
-    data class EnCours(
-        val evenements: List<CreationProgress>,
-    ) : EtatCreation
+    data class EnCours(val evenements: List<CreationProgress>) : EtatCreation
 
     /**
      * Création réussie (section 12.3 : animation sobre, boutons).
      *
      * @property projet projet enregistré (registre + disque).
      */
-    data class Succes(
-        val projet: Project,
-    ) : EtatCreation
+    data class Succes(val projet: Project) : EtatCreation
 
     /**
      * Création échouée : message compréhensible, nettoyage signalé,
@@ -395,8 +353,5 @@ sealed interface EtatCreation {
      * @property residues chemins relatifs impossibles à supprimer lors du
      * rollback — vide si le nettoyage a été complet.
      */
-    data class Echec(
-        val erreur: AppError,
-        val residues: List<String>,
-    ) : EtatCreation
+    data class Echec(val erreur: AppError, val residues: List<String>) : EtatCreation
 }

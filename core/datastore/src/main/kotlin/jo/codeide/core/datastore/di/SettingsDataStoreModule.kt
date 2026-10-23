@@ -34,9 +34,7 @@ internal object SettingsDataStoreModule {
 
     @Provides
     @Singleton
-    internal fun provideSettingsDataStore(
-        @ApplicationContext context: Context,
-    ): SettingsDataStore {
+    internal fun provideSettingsDataStore(@ApplicationContext context: Context): SettingsDataStore {
         val debuggable =
             context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         return SettingsDataStore(
@@ -46,12 +44,11 @@ internal object SettingsDataStoreModule {
     }
 
     /** Stockage single-tenant, scoped au fichier dédié du module. */
-    private fun creerDataStore(context: Context): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            corruptionHandler =
-                androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
-                    emptyPreferences()
-                },
-            produceFile = { context.preferencesDataStoreFile(NOM_FICHIER) },
-        )
+    private fun creerDataStore(context: Context): DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        corruptionHandler =
+        androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
+            emptyPreferences()
+        },
+        produceFile = { context.preferencesDataStoreFile(NOM_FICHIER) },
+    )
 }

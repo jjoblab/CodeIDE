@@ -20,19 +20,13 @@ internal object JsonIa {
      * Lit un objet imbriqué : `objet(json, "message", "usage")` descend
      * le chemin et renvoie l'objet terminal, ou `null`.
      */
-    internal fun objet(
-        source: JsonObject,
-        vararg chemin: String,
-    ): JsonObject? = descendre(source, chemin.toList())
+    internal fun objet(source: JsonObject, vararg chemin: String): JsonObject? = descendre(source, chemin.toList())
 
     /**
      * Lit une chaîne imbriquée : `chaine(json, "delta", "text")` renvoie
      * le texte terminal, ou `null` (absent, null, type inattendu).
      */
-    internal fun chaine(
-        source: JsonObject,
-        vararg chemin: String,
-    ): String? {
+    internal fun chaine(source: JsonObject, vararg chemin: String): String? {
         if (chemin.isEmpty()) return null
         val parent = descendre(source, chemin.dropLast(1))
         val primitive =
@@ -45,19 +39,13 @@ internal object JsonIa {
      * Lit un entier long imbriqué (`input_tokens`, `output_tokens`…),
      * ou `null`.
      */
-    internal fun entier(
-        source: JsonObject,
-        vararg chemin: String,
-    ): Long? = chaine(source, *chemin)?.toLongOrNull()
+    internal fun entier(source: JsonObject, vararg chemin: String): Long? = chaine(source, *chemin)?.toLongOrNull()
 
     /**
      * Descend le chemin d'objets intermédiaires (`null` dès qu'un maillon
      * manque ou n'est pas un objet).
      */
-    private fun descendre(
-        source: JsonObject,
-        chemin: List<String>,
-    ): JsonObject? =
+    private fun descendre(source: JsonObject, chemin: List<String>): JsonObject? =
         chemin.fold(source as JsonObject?) { courant, etape ->
             courant?.get(etape) as? JsonObject
         }
@@ -72,10 +60,7 @@ internal object JsonIa {
  * serveurs compatibles OpenAI qui ne le répètent pas).
  * @property name nom de l'outil.
  */
-internal class AppelOutilEnCours(
-    var toolCallId: String,
-    var name: String,
-) {
+internal class AppelOutilEnCours(var toolCallId: String, var name: String) {
     /** Fragments d'arguments déjà reçus, dans l'ordre. */
     val arguments = StringBuilder()
 

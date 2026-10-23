@@ -115,11 +115,7 @@ public class RenduNuitTest {
     }
 
     /** Le pixel CENTRAL du rendu du document (0 si le rendu échoue). */
-    private fun rendrePixelCentral(
-        pipeline: RenduLayoutLib,
-        xml: String,
-        nuit: Boolean,
-    ): Int {
+    private fun rendrePixelCentral(pipeline: RenduLayoutLib, xml: String, nuit: Boolean): Int {
         val requete =
             RequeteRendu(
                 texte = xml,

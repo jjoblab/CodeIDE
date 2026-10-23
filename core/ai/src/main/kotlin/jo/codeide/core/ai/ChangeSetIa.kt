@@ -5,9 +5,7 @@ package jo.codeide.core.ai
  * proposées s'accumulent ICI — AUCUN disque touché tant que
  * l'utilisateur n'a pas examiné puis appliqué.
  */
-public data class ChangeSetIa(
-    public val changements: List<ChangementIa> = emptyList(),
-) {
+public data class ChangeSetIa(public val changements: List<ChangementIa> = emptyList()) {
     /** Vide = rien à examiner ni appliquer. */
     public val vide: Boolean get() = changements.isEmpty()
 
@@ -72,9 +70,5 @@ public fun interface PorteApprobationIa {
      * @return `true` = autorisé CETTE fois ; `false` = refusé (résultat
      * « refusé » renvoyé au modèle, l'exécution continue).
      */
-    public suspend fun approuver(
-        outil: String,
-        arguments: Map<String, String>,
-        raison: String,
-    ): Boolean
+    public suspend fun approuver(outil: String, arguments: Map<String, String>, raison: String): Boolean
 }

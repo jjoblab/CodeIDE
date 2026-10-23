@@ -26,54 +26,36 @@ public interface MoteurGit {
      * Journal des commits (log) à partir de HEAD, limité à [limite]
      * entrées. Format `--porcelain` (stable, parsable).
      */
-    public suspend fun journal(
-        cheminFuse: String,
-        limite: Int = 50,
-    ): ResultatGit<List<CommitGit>>
+    public suspend fun journal(cheminFuse: String, limite: Int = 50): ResultatGit<List<CommitGit>>
 
     /**
      * Indexe les chemins donnés (`git add`). Chemins relatifs à la
      * racine du dépôt. Liste vide = `git add -A` (tout).
      */
-    public suspend fun indexer(
-        cheminFuse: String,
-        chemins: List<String> = emptyList(),
-    ): ResultatGit<Unit>
+    public suspend fun indexer(cheminFuse: String, chemins: List<String> = emptyList()): ResultatGit<Unit>
 
     /**
      * Désindexe les chemins donnés (`git reset HEAD --`).
      */
-    public suspend fun desindexer(
-        cheminFuse: String,
-        chemins: List<String> = emptyList(),
-    ): ResultatGit<Unit>
+    public suspend fun desindexer(cheminFuse: String, chemins: List<String> = emptyList()): ResultatGit<Unit>
 
     /**
      * Crée un commit avec [message]. L'identité (nom, email) vient des
      * paramètres utilisateur — jamais codée en dur.
      */
-    public suspend fun committer(
-        cheminFuse: String,
-        message: String,
-    ): ResultatGit<String>
+    public suspend fun committer(cheminFuse: String, message: String): ResultatGit<String>
 
     /**
      * Tire les changements du remote (`git pull`). [rebase] = true →
      * `--rebase` au lieu de `--no-rebase` (fusion).
      */
-    public suspend fun tirer(
-        cheminFuse: String,
-        rebase: Boolean = false,
-    ): ResultatGit<Unit>
+    public suspend fun tirer(cheminFuse: String, rebase: Boolean = false): ResultatGit<Unit>
 
     /**
      * Pousse les commits vers le remote (`git push`). [forceWithLease]
      * = true → `--force-with-lease` (confirmation exigée par l'UI).
      */
-    public suspend fun pousser(
-        cheminFuse: String,
-        forceWithLease: Boolean = false,
-    ): ResultatGit<Unit>
+    public suspend fun pousser(cheminFuse: String, forceWithLease: Boolean = false): ResultatGit<Unit>
 
     /**
      * Branche courante (`git branch --show-current`).
@@ -88,10 +70,7 @@ public interface MoteurGit {
     /**
      * Bascule sur la branche [nom] (`git checkout`).
      */
-    public suspend fun basculerBranche(
-        cheminFuse: String,
-        nom: String,
-    ): ResultatGit<Unit>
+    public suspend fun basculerBranche(cheminFuse: String, nom: String): ResultatGit<Unit>
 
     /**
      * Clone un dépôt distant vers [cible] (chemin FUSE). Progression
@@ -144,20 +123,14 @@ public interface MoteurGit {
      * @param nomProjet nom du projet diagnostiqué (`null` si aucun).
      * @param cheminFuse chemin FUSE du projet (`null` si irrésolvable).
      */
-    public suspend fun diagnostiquer(
-        nomProjet: String?,
-        cheminFuse: String?,
-    ): RapportDiagnosticGit
+    public suspend fun diagnostiquer(nomProjet: String?, cheminFuse: String?): RapportDiagnosticGit
 
     /**
      * G3 : charge le diff d'un fichier (`git diff -- chemin`). Retourne
      * le texte du diff (format unified). `chemin` est relatif à la racine
      * du dépôt.
      */
-    public suspend fun diff(
-        cheminFuse: String,
-        chemin: String,
-    ): ResultatGit<String>
+    public suspend fun diff(cheminFuse: String, chemin: String): ResultatGit<String>
 
     /**
      * G7 : met de côté les modifications (`git stash`). Retourne le hash
@@ -181,22 +154,15 @@ public interface MoteurGit {
  * message (sortie stderr de git, traduite en français par l'UI).
  */
 public sealed interface ResultatGit<out T> {
-    public data class Succes<T>(
-        public val valeur: T,
-    ) : ResultatGit<T>
+    public data class Succes<T>(public val valeur: T) : ResultatGit<T>
 
-    public data class Echec(
-        public val message: String,
-        public val sortieErreur: String,
-    ) : ResultatGit<Nothing>
+    public data class Echec(public val message: String, public val sortieErreur: String) : ResultatGit<Nothing>
 }
 
 /**
  * Statut d'un fichier dans le dépôt (format `git status --porcelain`).
  */
-public data class StatutGit(
-    public val modifications: List<ModificationFichier>,
-) {
+public data class StatutGit(public val modifications: List<ModificationFichier>) {
     public val nbModifications: Int get() = modifications.size
 }
 

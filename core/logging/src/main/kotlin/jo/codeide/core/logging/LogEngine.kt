@@ -58,12 +58,7 @@ internal class LogEngine(
     /**
      * Traite une entrée selon le pipeline décrit en KDoc de classe.
      */
-    override fun log(
-        level: LogLevel,
-        tag: String,
-        throwable: Throwable?,
-        message: () -> String,
-    ) {
+    override fun log(level: LogLevel, tag: String, throwable: Throwable?, message: () -> String) {
         val config = configHolder.read()
         if (!level.isAtLeast(config.minLevel)) return
 
@@ -106,13 +101,12 @@ internal class LogEngine(
     fun flushBlocking(timeoutMs: Long): Boolean = sinks.filterIsInstance<FileSink>().all { it.flushBlocking(timeoutMs) }
 
     /** Aplatit l'exception, expurge puis tronque chaque message de la chaîne. */
-    private fun aplanirEtEpurer(throwable: Throwable): FlattenedException =
-        FlattenedException
-            .from(
-                throwable,
-                maxFrames = LoggingLimits.EXCEPTION_MAX_FRAMES,
-                maxCauses = LoggingLimits.EXCEPTION_MAX_CAUSES,
-            ).transformMessages { message -> message?.let { tronquer(LogRedactor.redact(it)) } }
+    private fun aplanirEtEpurer(throwable: Throwable): FlattenedException = FlattenedException
+        .from(
+            throwable,
+            maxFrames = LoggingLimits.EXCEPTION_MAX_FRAMES,
+            maxCauses = LoggingLimits.EXCEPTION_MAX_CAUSES,
+        ).transformMessages { message -> message?.let { tronquer(LogRedactor.redact(it)) } }
 
     /**
      * Tronque un texte à [LoggingLimits.MESSAGE_MAX_BYTES] octets UTF-8 sans

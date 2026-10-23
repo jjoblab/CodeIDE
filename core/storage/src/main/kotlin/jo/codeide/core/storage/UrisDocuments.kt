@@ -44,10 +44,8 @@ internal object UrisDocuments {
      * @param idDocument identifiant du document visé.
      * @return l'URI de document complète.
      */
-    fun uriDocument(
-        arbreOuDocument: Uri,
-        idDocument: String,
-    ): Uri = DocumentsContract.buildDocumentUriUsingTree(arbreOuDocument, idDocument)
+    fun uriDocument(arbreOuDocument: Uri, idDocument: String): Uri =
+        DocumentsContract.buildDocumentUriUsingTree(arbreOuDocument, idDocument)
 
     /**
      * URI de requête des **enfants directs** d'un dossier.
@@ -61,9 +59,8 @@ internal object UrisDocuments {
      * @param dossierParent URI du dossier à lister.
      * @return l'URI de requête des enfants.
      */
-    fun uriEnfants(dossierParent: Uri): Uri =
-        DocumentsContract.buildChildDocumentsUriUsingTree(
-            dossierParent,
-            DocumentsContract.getDocumentId(dossierParent),
-        )
+    fun uriEnfants(dossierParent: Uri): Uri = DocumentsContract.buildChildDocumentsUriUsingTree(
+        dossierParent,
+        DocumentsContract.getDocumentId(dossierParent),
+    )
 }

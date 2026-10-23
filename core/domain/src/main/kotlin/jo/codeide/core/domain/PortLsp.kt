@@ -146,15 +146,10 @@ public enum class RaisonRefusVidageLsp {
  */
 public sealed interface ResultatVidageCacheLsp {
     /** Cache vidé : segments supprimés, octets libérés du disque. */
-    public data class Videe(
-        public val segmentsSupprimes: Int,
-        public val octetsLiberes: Long,
-    ) : ResultatVidageCacheLsp
+    public data class Videe(public val segmentsSupprimes: Int, public val octetsLiberes: Long) : ResultatVidageCacheLsp
 
     /** Refusé : la raison voyage en donnée (jamais d'exception). */
-    public data class Refusee(
-        public val raison: RaisonRefusVidageLsp,
-    ) : ResultatVidageCacheLsp
+    public data class Refusee(public val raison: RaisonRefusVidageLsp) : ResultatVidageCacheLsp
 }
 
 /**

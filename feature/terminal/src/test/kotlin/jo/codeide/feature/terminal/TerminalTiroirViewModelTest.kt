@@ -36,25 +36,20 @@ class TerminalTiroirViewModelTest {
     private val observerOutils = FakeObserveToolchainState()
     private val depotReglages = FakeSettingsRepository()
 
-    private fun resume(
-        id: String,
-        libelle: String = id,
-    ): TerminalSessionSummary =
-        TerminalSessionSummary(
-            id = id,
-            label = libelle,
-            workingDirectoryPath = "/home",
-            isAlive = true,
-            lastOutputPreview = "$ ",
-            createdAt = Instant.EPOCH,
-        )
+    private fun resume(id: String, libelle: String = id): TerminalSessionSummary = TerminalSessionSummary(
+        id = id,
+        label = libelle,
+        workingDirectoryPath = "/home",
+        isAlive = true,
+        lastOutputPreview = "$ ",
+        createdAt = Instant.EPOCH,
+    )
 
-    private fun TestScope.modele(): TerminalTiroirViewModel =
-        TerminalTiroirViewModel(
-            registre = registre,
-            observerOutils = observerOutils,
-            observeReglages = ObserveSettingsUseCase(depotReglages),
-        )
+    private fun TestScope.modele(): TerminalTiroirViewModel = TerminalTiroirViewModel(
+        registre = registre,
+        observerOutils = observerOutils,
+        observeReglages = ObserveSettingsUseCase(depotReglages),
+    )
 
     private fun TestScope.dernierEtat(modele: TerminalTiroirViewModel): EtatTerminalTiroir {
         val etats = mutableListOf<EtatTerminalTiroir>()
@@ -66,98 +61,92 @@ class TerminalTiroirViewModelTest {
     }
 
     @Test
-    fun `etat initial - liste, aucune session, bootstrap inconnu`() =
-        runTest {
-            observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = false)
-            val etat = dernierEtat(modele())
+    fun `etat initial - liste, aucune session, bootstrap inconnu`() = runTest {
+        observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = false)
+        val etat = dernierEtat(modele())
 
-            assertEquals(ModeTerminalTiroir.Liste, etat.mode)
-            assertTrue(etat.sessions.isEmpty())
-            assertEquals(false, etat.bootstrapInstalle)
-        }
-
-    @Test
-    fun `choisir split vertical puis colonnes puis retour liste`() =
-        runTest {
-            observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
-            registre.simulerSessions(listOf(resume("s1"), resume("s2")))
-            val modele = modele()
-            dernierEtat(modele)
-
-            modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.SplitVertical))
-            assertEquals(ModeTerminalTiroir.SplitVertical, dernierEtat(modele).mode)
-
-            modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.SplitColonnes))
-            assertEquals(ModeTerminalTiroir.SplitColonnes, dernierEtat(modele).mode)
-
-            modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.Liste))
-            assertEquals(ModeTerminalTiroir.Liste, dernierEtat(modele).mode)
-        }
+        assertEquals(ModeTerminalTiroir.Liste, etat.mode)
+        assertTrue(etat.sessions.isEmpty())
+        assertEquals(false, etat.bootstrapInstalle)
+    }
 
     @Test
-    fun `plein ecran dans le tiroir vise la session demandee`() =
-        runTest {
-            observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
-            registre.simulerSessions(listOf(resume("s1"), resume("s2")))
-            val modele = modele()
-            dernierEtat(modele)
+    fun `choisir split vertical puis colonnes puis retour liste`() = runTest {
+        observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
+        registre.simulerSessions(listOf(resume("s1"), resume("s2")))
+        val modele = modele()
+        dernierEtat(modele)
 
-            modele.onAction(
-                ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.PleinEcranDansTiroir("s2")),
-            )
-            assertEquals(ModeTerminalTiroir.PleinEcranDansTiroir("s2"), dernierEtat(modele).mode)
-        }
+        modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.SplitVertical))
+        assertEquals(ModeTerminalTiroir.SplitVertical, dernierEtat(modele).mode)
 
-    @Test
-    fun `plein ecran d une session fermee retombe sur la liste`() =
-        runTest {
-            observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
-            registre.simulerSessions(listOf(resume("s1"), resume("s2")))
-            val modele = modele()
-            dernierEtat(modele)
+        modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.SplitColonnes))
+        assertEquals(ModeTerminalTiroir.SplitColonnes, dernierEtat(modele).mode)
 
-            modele.onAction(
-                ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.PleinEcranDansTiroir("s2")),
-            )
-            // La session est fermée depuis l'écran plein écran : jamais de
-            // panneau orphelin — retour à la liste.
-            registre.simulerSessions(listOf(resume("s1")))
-            assertEquals(ModeTerminalTiroir.Liste, dernierEtat(modele).mode)
-        }
+        modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.Liste))
+        assertEquals(ModeTerminalTiroir.Liste, dernierEtat(modele).mode)
+    }
 
     @Test
-    fun `le split suit la liste - fermeture et renommage visibles`() =
-        runTest {
-            observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
-            registre.simulerSessions(listOf(resume("s1", "main"), resume("s2", "build")))
-            val modele = modele()
-            dernierEtat(modele)
+    fun `plein ecran dans le tiroir vise la session demandee`() = runTest {
+        observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
+        registre.simulerSessions(listOf(resume("s1"), resume("s2")))
+        val modele = modele()
+        dernierEtat(modele)
 
-            modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.SplitVertical))
-            val etat = dernierEtat(modele)
-            assertEquals(listOf("main", "build"), etat.sessions.map { it.label })
-
-            registre.simulerSessions(listOf(resume("s1", "main"), resume("s3", "daemon")))
-            val apres = dernierEtat(modele)
-            assertEquals(ModeTerminalTiroir.SplitVertical, apres.mode)
-            assertEquals(listOf("main", "daemon"), apres.sessions.map { it.label })
-        }
+        modele.onAction(
+            ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.PleinEcranDansTiroir("s2")),
+        )
+        assertEquals(ModeTerminalTiroir.PleinEcranDansTiroir("s2"), dernierEtat(modele).mode)
+    }
 
     @Test
-    fun `bootstrap installe pendant que le tiroir est ouvert - l etat suit`() =
-        runTest {
-            // v0.37.3 (retour d'appareil réel) : les points d'UI du tooling
-            // restaient figés sur leur instantané de construction — une
-            // installation terminée pendant que l'écran restait ouvert
-            // n'y apparaissait jamais. Le tiroir suit désormais le flot
-            // POUSSÉ : la transition est visible SANS recréer le ViewModel.
-            observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = false)
-            registre.simulerSessions(listOf(resume("s1")))
-            val modele = modele()
-            assertEquals(false, dernierEtat(modele).bootstrapInstalle)
+    fun `plein ecran d une session fermee retombe sur la liste`() = runTest {
+        observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
+        registre.simulerSessions(listOf(resume("s1"), resume("s2")))
+        val modele = modele()
+        dernierEtat(modele)
 
-            observerOutils.toutInstaller()
+        modele.onAction(
+            ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.PleinEcranDansTiroir("s2")),
+        )
+        // La session est fermée depuis l'écran plein écran : jamais de
+        // panneau orphelin — retour à la liste.
+        registre.simulerSessions(listOf(resume("s1")))
+        assertEquals(ModeTerminalTiroir.Liste, dernierEtat(modele).mode)
+    }
 
-            assertEquals(true, dernierEtat(modele).bootstrapInstalle)
-        }
+    @Test
+    fun `le split suit la liste - fermeture et renommage visibles`() = runTest {
+        observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = true)
+        registre.simulerSessions(listOf(resume("s1", "main"), resume("s2", "build")))
+        val modele = modele()
+        dernierEtat(modele)
+
+        modele.onAction(ActionTerminalTiroir.ChoisirMode(ModeTerminalTiroir.SplitVertical))
+        val etat = dernierEtat(modele)
+        assertEquals(listOf("main", "build"), etat.sessions.map { it.label })
+
+        registre.simulerSessions(listOf(resume("s1", "main"), resume("s3", "daemon")))
+        val apres = dernierEtat(modele)
+        assertEquals(ModeTerminalTiroir.SplitVertical, apres.mode)
+        assertEquals(listOf("main", "daemon"), apres.sessions.map { it.label })
+    }
+
+    @Test
+    fun `bootstrap installe pendant que le tiroir est ouvert - l etat suit`() = runTest {
+        // v0.37.3 (retour d'appareil réel) : les points d'UI du tooling
+        // restaient figés sur leur instantané de construction — une
+        // installation terminée pendant que l'écran restait ouvert
+        // n'y apparaissait jamais. Le tiroir suit désormais le flot
+        // POUSSÉ : la transition est visible SANS recréer le ViewModel.
+        observerOutils.etat.value = EtatOutilsTerminal(bootstrapInstalle = false)
+        registre.simulerSessions(listOf(resume("s1")))
+        val modele = modele()
+        assertEquals(false, dernierEtat(modele).bootstrapInstalle)
+
+        observerOutils.toutInstaller()
+
+        assertEquals(true, dernierEtat(modele).bootstrapInstalle)
+    }
 }

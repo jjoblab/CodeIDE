@@ -26,10 +26,8 @@ internal object DecisionFormater {
      * langage courant, pas la session). Sans onglet ou sans formateur :
      * rien ne se lance, l'action n'est pas proposée.
      */
-    internal fun visible(
-        ongletOuvert: Boolean,
-        formateurDisponible: Boolean,
-    ): Boolean = ongletOuvert && formateurDisponible
+    internal fun visible(ongletOuvert: Boolean, formateurDisponible: Boolean): Boolean =
+        ongletOuvert && formateurDisponible
 
     /**
      * Le message à montrer après un `formatDocument` ou un
@@ -44,10 +42,9 @@ internal object DecisionFormater {
      * - `true` (texte modifié) : AUCUN message — l'utilisateur VOIT le
      *   texte changer.
      */
-    internal fun messagePour(resultat: Boolean?): Int? =
-        when (resultat) {
-            null -> R.string.editor_formater_indisponible
-            false -> R.string.editor_formater_deja
-            true -> null
-        }
+    internal fun messagePour(resultat: Boolean?): Int? = when (resultat) {
+        null -> R.string.editor_formater_indisponible
+        false -> R.string.editor_formater_deja
+        true -> null
+    }
 }

@@ -28,10 +28,7 @@ class EtapeModeleFragment : EtapeFragment<EtapeModeleBinding>() {
         attachToRoot: Boolean,
     ): EtapeModeleBinding = EtapeModeleBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: android.os.Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: android.os.Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         adapteur =
@@ -45,12 +42,7 @@ class EtapeModeleFragment : EtapeFragment<EtapeModeleBinding>() {
         // Phase 1 (2 modèles), prête sans modification pour la suite.
         binding.saisieRecherche.addTextChangedListener(
             object : SimpleTextWatcher() {
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) {
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) {
                     adapteur?.filtrer(texte?.toString().orEmpty())
                     mettreAJourEtatVide()
                 }

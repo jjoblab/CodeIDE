@@ -133,10 +133,8 @@ public object ProblemesFamilles {
      * bouton « Ligne N » du bandeau) : l'aligneur qui calcule les numéros
      * de ligne est INTERNE au module, le bandeau passe par ce passeur.
      */
-    public fun ligneDeLaBoucle(
-        texte: String,
-        probleme: Probleme,
-    ): Int = AligneurElementsXml.numeroLigne(texte, probleme.debut)
+    public fun ligneDeLaBoucle(texte: String, probleme: Probleme): Int =
+        AligneurElementsXml.numeroLigne(texte, probleme.debut)
 
     /**
      * L'ATTRIBUT_ORPHELIN d'un nœud (spec § 9 — miroir `FAM_ATTRS`) : UN
@@ -270,12 +268,11 @@ public object ProblemesFamilles {
      * les règles de CETTE vue qui visent le SECOND maillon (miroir
      * `REL_REFS.forEach(r => … cy.via)`).
      */
-    private fun boucleDuDocument(noeuds: List<ArbreAttributsXml.Noeud>): Probleme? =
-        noeuds
-            .asSequence()
-            .filter { FamilleParent.deBalise(it.balise) == FamilleParent.RELATIVE }
-            .mapNotNull(::boucleDuParent)
-            .firstOrNull()
+    private fun boucleDuDocument(noeuds: List<ArbreAttributsXml.Noeud>): Probleme? = noeuds
+        .asSequence()
+        .filter { FamilleParent.deBalise(it.balise) == FamilleParent.RELATIVE }
+        .mapNotNull(::boucleDuParent)
+        .firstOrNull()
 
     /** La boucle d'UN parent `RelativeLayout` (null : saine ou sans règle à casser).
      *
@@ -312,28 +309,24 @@ public object ProblemesFamilles {
     }
 
     /** Le libellé du parent du message orphelin (nom de classe — miroir `FAM_LABEL`, jamais traduit). */
-    private fun libelleDuParent(
-        famille: FamilleParent,
-        balise: String,
-    ): String =
-        when (famille) {
-            FamilleParent.CONSTRAINT -> "ConstraintLayout"
+    private fun libelleDuParent(famille: FamilleParent, balise: String): String = when (famille) {
+        FamilleParent.CONSTRAINT -> "ConstraintLayout"
 
-            FamilleParent.LINEAR -> "LinearLayout"
+        FamilleParent.LINEAR -> "LinearLayout"
 
-            FamilleParent.FRAME -> "FrameLayout"
+        FamilleParent.FRAME -> "FrameLayout"
 
-            FamilleParent.RELATIVE -> "RelativeLayout"
+        FamilleParent.RELATIVE -> "RelativeLayout"
 
-            FamilleParent.COORDINATOR -> "CoordinatorLayout"
+        FamilleParent.COORDINATOR -> "CoordinatorLayout"
 
-            FamilleParent.APPBAR -> "AppBarLayout"
+        FamilleParent.APPBAR -> "AppBarLayout"
 
-            // AUCUN ne peut être un parent lu ; AUTRE ne nomme aucune
-            // classe de la table — la BALISE du parent est le libellé
-            // honnête (GridLayout, TableLayout…).
-            FamilleParent.AUCUN, FamilleParent.AUTRE -> balise.substringAfterLast('.')
-        }
+        // AUCUN ne peut être un parent lu ; AUTRE ne nomme aucune
+        // classe de la table — la BALISE du parent est le libellé
+        // honnête (GridLayout, TableLayout…).
+        FamilleParent.AUCUN, FamilleParent.AUTRE -> balise.substringAfterLast('.')
+    }
 
     /** La signature de l'exception de boucle dans un message de rendu LayoutLib. */
     private const val SIGNATURE_BOUCLE: String = "Circular dependencies"

@@ -20,9 +20,7 @@ import java.io.File
  * toutes les couches : le script est lancé par `bash` explicite,
  * éprouvé par l'ancien pipeline.
  */
-internal class EtapeSecondStage(
-    private val racine: File,
-) : InstallStep {
+internal class EtapeSecondStage(private val racine: File) : InstallStep {
     override val id: StepId = StepId(InstallPhase.BOOTSTRAP, "second-stage")
 
     override suspend fun execute(context: StepContext) {
@@ -109,9 +107,7 @@ internal class EtapeConfigurationApt(
  * préfixe n'est pas garanti, l'exécution via `sh` explicite est
  * éprouvée).
  */
-internal class EtapeVerificationBootstrap(
-    private val racine: File,
-) : InstallStep {
+internal class EtapeVerificationBootstrap(private val racine: File) : InstallStep {
     override val id: StepId = StepId(InstallPhase.BOOTSTRAP, "verification")
 
     override suspend fun execute(context: StepContext) {
@@ -183,9 +179,7 @@ internal class EtapeVerificationBootstrap(
  * réussies (un échec antérieur ne doit jamais passer pour « installé »,
  * double garde héritée de l'ancien pipeline, ADR 0087 § 7).
  */
-internal class EtapeMarqueurInstallation(
-    private val racine: File,
-) : InstallStep {
+internal class EtapeMarqueurInstallation(private val racine: File) : InstallStep {
     override val id: StepId = StepId(InstallPhase.BOOTSTRAP, "marqueur")
 
     override suspend fun execute(context: StepContext) {

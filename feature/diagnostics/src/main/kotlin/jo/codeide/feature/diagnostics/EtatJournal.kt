@@ -42,14 +42,10 @@ data class EtatJournal(
 /** Actions intentionnelles de l'onglet Journaux. */
 sealed interface ActionJournal {
     /** Change le texte recherché (fusionné par un délai côté ViewModel). */
-    data class Rechercher(
-        val texte: String,
-    ) : ActionJournal
+    data class Rechercher(val texte: String) : ActionJournal
 
     /** Bascule un niveau de filtre (vide = tous les niveaux affichés). */
-    data class BasculerNiveau(
-        val niveau: LogLevel,
-    ) : ActionJournal
+    data class BasculerNiveau(val niveau: LogLevel) : ActionJournal
 
     /** Bascule le suivi en direct des nouvelles entrées. */
     data object BasculerSuiviDirect : ActionJournal
@@ -64,22 +60,16 @@ sealed interface ActionJournal {
     data object Partager : ActionJournal
 
     /** Écrit l'archive à la destination choisie par le sélecteur SAF. */
-    data class Enregistrer(
-        val destinationUri: String,
-    ) : ActionJournal
+    data class Enregistrer(val destinationUri: String) : ActionJournal
 
     /** Change la verbosité de journalisation (Normal / Détaillé). */
-    data class ChoisirVerbosite(
-        val verbosite: LogVerbosity,
-    ) : ActionJournal
+    data class ChoisirVerbosite(val verbosite: LogVerbosity) : ActionJournal
 }
 
 /** Effets ponctuels de l'onglet Journaux. */
 sealed interface EffetJournal {
     /** L'archive de partage est prête — la feuille de partage doit s'ouvrir. */
-    data class ArchivePrete(
-        val archive: ExportedLogs,
-    ) : EffetJournal
+    data class ArchivePrete(val archive: ExportedLogs) : EffetJournal
 
     /** Le suivi direct vient d'être activé — défiler vers l'entrée la plus récente. */
     data object DefilerVersBas : EffetJournal

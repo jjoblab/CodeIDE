@@ -120,10 +120,7 @@ public class CapturesRecetteParentsTest {
     // ── La machine de capture ─────────────────────────────────────────
 
     /** Rend la fixture et retourne le résultat du pipeline (bitmap + vues). */
-    private fun rendre(
-        fichier: String,
-        theme: String,
-    ): RenduLayoutLib.ResultatPipeline {
+    private fun rendre(fichier: String, theme: String): RenduLayoutLib.ResultatPipeline {
         val texte = lireFixture(fichier)
         val requete =
             RequeteRendu(
@@ -188,11 +185,7 @@ public class CapturesRecetteParentsTest {
      * `RelativeLayout` (lues sur le TEXTE — elles restent justes) et
      * ancres `CoordinatorLayout`, dessinées par le vrai [VuePreviewXml].
      */
-    private fun capturerCalque(
-        nomFichier: String,
-        fixture: String,
-        theme: String,
-    ) {
+    private fun capturerCalque(nomFichier: String, fixture: String, theme: String) {
         val texte = lireFixture(fixture)
         val rendu = rendre(fixture, theme)
         assertTrue("rendu de $fixture a échoué : ${rendu.rendu.message}", rendu.rendu.ok)
@@ -210,11 +203,7 @@ public class CapturesRecetteParentsTest {
     }
 
     /** Capture du rendu BRUT (la paire des planches maquette profil/fil/carte). */
-    private fun capturerRendu(
-        nomFichier: String,
-        fixture: String,
-        theme: String,
-    ) {
+    private fun capturerRendu(nomFichier: String, fixture: String, theme: String) {
         val rendu = rendre(fixture, theme)
         assertTrue("rendu de $fixture a échoué : ${rendu.rendu.message}", rendu.rendu.ok)
         val bitmap = rendu.bitmap
@@ -228,12 +217,7 @@ public class CapturesRecetteParentsTest {
     }
 
     /** Mesure, dispose et dessine une vue en PNG (les dp sont convertis par la densité du contexte). */
-    private fun capturerVue(
-        vue: View,
-        nomFichier: String,
-        largeurDp: Int,
-        hauteurDp: Int,
-    ) {
+    private fun capturerVue(vue: View, nomFichier: String, largeurDp: Int, hauteurDp: Int) {
         val densite = contexte.resources.displayMetrics.density
         val largeurPx = (largeurDp * densite).toInt().coerceAtLeast(1)
         val hauteurPx = (hauteurDp * densite).toInt().coerceAtLeast(1)

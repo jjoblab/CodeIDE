@@ -148,13 +148,12 @@ class PhaseAndroidSdkTest {
     // ------------------------------------------------------------------
 
     /** L'extraction `tar` factice écrit les VRAIS fichiers attendus (bascule et contrôles réels). */
-    private fun mondeSimule(spec: CommandSpec): CommandResult =
-        when {
-            spec.program.endsWith("bin/tar") -> extraireSimulee(spec)
-            spec.program.endsWith("bin/sdkmanager") -> repondreSdkmanager(spec)
-            estCommandeSousSdk(spec) -> repondreVerificationComposant(spec)
-            else -> echec(127, "not found: ${spec.program}")
-        }
+    private fun mondeSimule(spec: CommandSpec): CommandResult = when {
+        spec.program.endsWith("bin/tar") -> extraireSimulee(spec)
+        spec.program.endsWith("bin/sdkmanager") -> repondreSdkmanager(spec)
+        estCommandeSousSdk(spec) -> repondreVerificationComposant(spec)
+        else -> echec(127, "not found: ${spec.program}")
+    }
 
     /** Extraction simulée : l'archive porte l'id du composant, le staging reçoit l'installPath et ses fichiers. */
     private fun extraireSimulee(spec: CommandSpec): CommandResult {
@@ -239,10 +238,7 @@ class PhaseAndroidSdkTest {
      * disposition d'installPath est celle de l'ancien flux (même racine
      * `home/android-sdk`), AUCUN quadruplet n'est persisté.
      */
-    private fun semerComposantAncien(
-        id: String,
-        casse: Boolean = false,
-    ) {
+    private fun semerComposantAncien(id: String, casse: Boolean = false) {
         val composant = composantsDuPlan.getValue(id)
         val dossier = File(racineSdk(racine), composant.installPath)
         dossier.mkdirs()
@@ -269,10 +265,9 @@ class PhaseAndroidSdkTest {
     }
 
     /** Identifiants des composants téléchargés, dans l'ordre des demandes. */
-    private fun idsTelecharges(): List<String> =
-        telechargements.demandes
-            .map { it.sha256 }
-            .map { sha -> composantsDuPlan.values.first { it.sha256 == sha }.id }
+    private fun idsTelecharges(): List<String> = telechargements.demandes
+        .map { it.sha256 }
+        .map { sha -> composantsDuPlan.values.first { it.sha256 == sha }.id }
 
     private fun estCommandeSousSdk(spec: CommandSpec): Boolean =
         spec.program.startsWith(racineSdk(racine).absolutePath + File.separator)
@@ -410,9 +405,9 @@ class PhaseAndroidSdkTest {
             magasin.save(
                 etat.copy(
                     installedComponents =
-                        etat.installedComponents.map {
-                            if (it.id == "build-tools") it.copy(revision = "r9") else it
-                        },
+                    etat.installedComponents.map {
+                        if (it.id == "build-tools") it.copy(revision = "r9") else it
+                    },
                 ),
             )
         }
@@ -542,69 +537,67 @@ class PhaseAndroidSdkTest {
         critical: Boolean,
         verify: String,
         arch: String = "aarch64",
-    ): ManifestComponent =
-        ManifestComponent(
-            id = id,
-            version = version,
-            revision = "r1",
-            arch = arch,
-            sources = listOf("https://exemple.test/$id-$version.tar.xz"),
-            sha256 = SHA_PAR_ID.getValue(id),
-            sizeBytes = 1024L,
-            installPath = installPath,
-            critical = critical,
-            verify = VerifySpec(cmd = verify, expect = ".+"),
-        )
+    ): ManifestComponent = ManifestComponent(
+        id = id,
+        version = version,
+        revision = "r1",
+        arch = arch,
+        sources = listOf("https://exemple.test/$id-$version.tar.xz"),
+        sha256 = SHA_PAR_ID.getValue(id),
+        sizeBytes = 1024L,
+        installPath = installPath,
+        critical = critical,
+        verify = VerifySpec(cmd = verify, expect = ".+"),
+    )
 
-    private fun manifeste(versionBuildTools: String = "35.0.2"): ToolManifest =
-        ToolManifest(
-            schemaVersion = ToolManifest.SCHEMA_VERSION,
-            generatedAtMillis = 1_000L,
-            components =
+    private fun manifeste(versionBuildTools: String = "35.0.2"): ToolManifest = ToolManifest(
+        schemaVersion = ToolManifest.SCHEMA_VERSION,
+        generatedAtMillis = 1_000L,
+        components =
+        listOf(
+            composant(
+                "build-tools",
+                versionBuildTools,
+                "build-tools/$versionBuildTools",
+                critical = true,
+                verify = "build-tools/$versionBuildTools/aapt2 version",
+            ),
+            composant(
+                "platform-tools",
+                "37.0.1",
+                "platform-tools",
+                critical = true,
+                verify = "platform-tools/adb --version",
+                arch = "any",
+            ),
+            composant(
+                "platform",
+                "android-36",
+                "platforms/android-36",
+                critical = true,
+                verify = "platforms/android-36/props -v",
+                arch = "any",
+            ),
+            composant(
+                "cmdline-tools",
+                "12.0",
+                "cmdline-tools/latest",
+                critical = false,
+                verify = "cmdline-tools/latest/bin/sdkmanager --version",
+            ),
+        ),
+        profiles =
+        mapOf(
+            "default" to
                 listOf(
-                    composant(
-                        "build-tools",
-                        versionBuildTools,
-                        "build-tools/$versionBuildTools",
-                        critical = true,
-                        verify = "build-tools/$versionBuildTools/aapt2 version",
-                    ),
-                    composant(
-                        "platform-tools",
-                        "37.0.1",
-                        "platform-tools",
-                        critical = true,
-                        verify = "platform-tools/adb --version",
-                        arch = "any",
-                    ),
-                    composant(
-                        "platform",
-                        "android-36",
-                        "platforms/android-36",
-                        critical = true,
-                        verify = "platforms/android-36/props -v",
-                        arch = "any",
-                    ),
-                    composant(
-                        "cmdline-tools",
-                        "12.0",
-                        "cmdline-tools/latest",
-                        critical = false,
-                        verify = "cmdline-tools/latest/bin/sdkmanager --version",
-                    ),
+                    "build-tools@$versionBuildTools",
+                    "platform-tools@37.0.1",
+                    "platform@android-36",
+                    "cmdline-tools@12.0",
                 ),
-            profiles =
-                mapOf(
-                    "default" to
-                        listOf(
-                            "build-tools@$versionBuildTools",
-                            "platform-tools@37.0.1",
-                            "platform@android-36",
-                            "cmdline-tools@12.0",
-                        ),
-                ),
-            compat = emptyList(),
-        )
+        ),
+        compat = emptyList(),
+    )
 
     private companion object {
         private val SHA_PAR_ID: Map<String, String> =
@@ -631,8 +624,6 @@ class PhaseAndroidSdkTest {
 
     private fun reussite(lignes: List<String> = emptyList()): CommandResult = CommandResult(0, lignes, emptyList())
 
-    private fun echec(
-        code: Int,
-        vararg lignes: String,
-    ): CommandResult = CommandResult(code, emptyList(), lignes.toList())
+    private fun echec(code: Int, vararg lignes: String): CommandResult =
+        CommandResult(code, emptyList(), lignes.toList())
 }

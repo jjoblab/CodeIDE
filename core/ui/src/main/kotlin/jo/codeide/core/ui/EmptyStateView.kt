@@ -25,44 +25,44 @@ import com.google.android.material.textview.MaterialTextView
  * et `stateMessage` sont lus depuis le XML.
  */
 public class EmptyStateView
-    @JvmOverloads
-    constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0,
-    ) : FrameLayout(context, attrs, defStyleAttr) {
-        private val colonne: ColonneEtat = ColonneEtat(context)
-        private val vueTitre: MaterialTextView
-        private val vueMessage: MaterialTextView
+@JvmOverloads
+constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0,
+) : FrameLayout(context, attrs, defStyleAttr) {
+    private val colonne: ColonneEtat = ColonneEtat(context)
+    private val vueTitre: MaterialTextView
+    private val vueMessage: MaterialTextView
 
-        init {
-            val lecteur = context.obtainStyledAttributes(attrs, R.styleable.EmptyStateView, defStyleAttr, 0)
-            val icone = lecteur.getResourceId(R.styleable.EmptyStateView_stateIcon, 0)
-            val titre = lecteur.getText(R.styleable.EmptyStateView_stateTitle)
-            val message = lecteur.getText(R.styleable.EmptyStateView_stateMessage)
-            lecteur.recycle()
+    init {
+        val lecteur = context.obtainStyledAttributes(attrs, R.styleable.EmptyStateView, defStyleAttr, 0)
+        val icone = lecteur.getResourceId(R.styleable.EmptyStateView_stateIcon, 0)
+        val titre = lecteur.getText(R.styleable.EmptyStateView_stateTitle)
+        val message = lecteur.getText(R.styleable.EmptyStateView_stateMessage)
+        lecteur.recycle()
 
-            colonne.ajouterIcone(icone)
+        colonne.ajouterIcone(icone)
 
-            val espace = resources.getDimensionPixelSize(R.dimen.state_spacing)
-            vueTitre = colonne.ajouterTexte(titre, R.style.TextAppearance_CodeIDE_TitleLarge)
-            vueMessage = colonne.ajouterTexte(message, R.style.TextAppearance_CodeIDE_BodyMedium)
-            (vueTitre.layoutParams as LinearLayout.LayoutParams).bottomMargin = espace
+        val espace = resources.getDimensionPixelSize(R.dimen.state_spacing)
+        vueTitre = colonne.ajouterTexte(titre, R.style.TextAppearance_CodeIDE_TitleLarge)
+        vueMessage = colonne.ajouterTexte(message, R.style.TextAppearance_CodeIDE_BodyMedium)
+        (vueTitre.layoutParams as LinearLayout.LayoutParams).bottomMargin = espace
 
-            addView(colonne, parametresColonneCentree())
+        addView(colonne, parametresColonneCentree())
+    }
+
+    /** Titre de l'état, ajustable après inflation. */
+    public var title: CharSequence
+        get() = vueTitre.text
+        set(valeur) {
+            vueTitre.text = valeur
         }
 
-        /** Titre de l'état, ajustable après inflation. */
-        public var title: CharSequence
-            get() = vueTitre.text
-            set(valeur) {
-                vueTitre.text = valeur
-            }
-
-        /** Message d'aide de l'état, ajustable après inflation. */
-        public var message: CharSequence
-            get() = vueMessage.text
-            set(valeur) {
-                vueMessage.text = valeur
-            }
-    }
+    /** Message d'aide de l'état, ajustable après inflation. */
+    public var message: CharSequence
+        get() = vueMessage.text
+        set(valeur) {
+            vueMessage.text = valeur
+        }
+}

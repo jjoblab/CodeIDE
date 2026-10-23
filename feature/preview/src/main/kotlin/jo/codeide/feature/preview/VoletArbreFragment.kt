@@ -46,11 +46,7 @@ internal class VoletArbreFragment : VoletFeuilleFragment() {
     /** La liste (rangées recyclées), le tap sélectionne. */
     private val adaptateur = AdaptateurArbre { indice -> viewModel.selectionner(indice) }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        conteneur: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, conteneur: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentVoletArbreBinding.inflate(inflater, conteneur, false)
         liaison.listeArbre.adapter = adaptateur
         liaison.listeArbre.layoutManager = LinearLayoutManager(requireContext())
@@ -92,29 +88,28 @@ internal class VoletArbreFragment : VoletFeuilleFragment() {
      * la barre à trois glyphes par sa CLASSE (`NavigationHandle`) — repli
      * défensif sur le nom de classe pour tout marquage à venir.
      */
-    private fun libelleSysteme(vue: InfoVueSysteme): String =
-        when {
-            vue.type == InfoVueSysteme.TYPE_STATUS_BAR -> {
-                getString(R.string.preview_arbre_systeme_status_bar)
-            }
-
-            vue.type == InfoVueSysteme.TYPE_NAVIGATION_BAR &&
-                vue.classe == InfoVueSysteme.CLASSE_PILOULE -> {
-                getString(R.string.preview_arbre_systeme_pilule)
-            }
-
-            vue.type == InfoVueSysteme.TYPE_NAVIGATION_BAR -> {
-                getString(R.string.preview_arbre_systeme_navigation_bar)
-            }
-
-            vue.type == InfoVueSysteme.TYPE_ACTION_BAR -> {
-                getString(R.string.preview_arbre_systeme_action_bar)
-            }
-
-            else -> {
-                vue.classe
-            }
+    private fun libelleSysteme(vue: InfoVueSysteme): String = when {
+        vue.type == InfoVueSysteme.TYPE_STATUS_BAR -> {
+            getString(R.string.preview_arbre_systeme_status_bar)
         }
+
+        vue.type == InfoVueSysteme.TYPE_NAVIGATION_BAR &&
+            vue.classe == InfoVueSysteme.CLASSE_PILOULE -> {
+            getString(R.string.preview_arbre_systeme_pilule)
+        }
+
+        vue.type == InfoVueSysteme.TYPE_NAVIGATION_BAR -> {
+            getString(R.string.preview_arbre_systeme_navigation_bar)
+        }
+
+        vue.type == InfoVueSysteme.TYPE_ACTION_BAR -> {
+            getString(R.string.preview_arbre_systeme_action_bar)
+        }
+
+        else -> {
+            vue.classe
+        }
+    }
 }
 
 /** UNE entrée de l'onglet Arbre : la rangée du pré-ordre et son état de sélection. */
@@ -134,31 +129,22 @@ internal data class EntreeArbreUi(
  * rangées SYSTÈME ne posent AUCUN écouteur (aucune balise à sélectionner),
  * l'ENTÊTE masque monogramme et badge.
  */
-internal class AdaptateurArbre(
-    private val auLigne: (Int) -> Unit,
-) : ListAdapter<EntreeArbreUi, AdaptateurArbre.LigneArbreVue>(ComparateurArbre) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): LigneArbreVue {
+internal class AdaptateurArbre(private val auLigne: (Int) -> Unit) :
+    ListAdapter<EntreeArbreUi, AdaptateurArbre.LigneArbreVue>(ComparateurArbre) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LigneArbreVue {
         val gonfleur = LayoutInflater.from(parent.context)
         return LigneArbreVue(ItemArbreBinding.inflate(gonfleur, parent, false), auLigne)
     }
 
     override fun getItemCount(): Int = currentList.size
 
-    override fun onBindViewHolder(
-        holder: LigneArbreVue,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: LigneArbreVue, position: Int) {
         holder.poser(currentList[position])
     }
 
     /** Le conteneur d'une rangée (item_arbre.xml — tout le reste est en layout). */
-    internal class LigneArbreVue(
-        private val liaison: ItemArbreBinding,
-        auLigne: (Int) -> Unit,
-    ) : RecyclerView.ViewHolder(liaison.root) {
+    internal class LigneArbreVue(private val liaison: ItemArbreBinding, auLigne: (Int) -> Unit) :
+        RecyclerView.ViewHolder(liaison.root) {
         private var indice: Int = -1
 
         init {
@@ -214,14 +200,10 @@ internal class AdaptateurArbre(
 
     /** Le comparateur (rangées stables par INDICE dans l'arbre). */
     private object ComparateurArbre : DiffUtil.ItemCallback<EntreeArbreUi>() {
-        override fun areItemsTheSame(
-            ancienne: EntreeArbreUi,
-            nouvelle: EntreeArbreUi,
-        ): Boolean = ancienne.entree.indice == nouvelle.entree.indice
+        override fun areItemsTheSame(ancienne: EntreeArbreUi, nouvelle: EntreeArbreUi): Boolean =
+            ancienne.entree.indice == nouvelle.entree.indice
 
-        override fun areContentsTheSame(
-            ancienne: EntreeArbreUi,
-            nouvelle: EntreeArbreUi,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: EntreeArbreUi, nouvelle: EntreeArbreUi): Boolean =
+            ancienne == nouvelle
     }
 }

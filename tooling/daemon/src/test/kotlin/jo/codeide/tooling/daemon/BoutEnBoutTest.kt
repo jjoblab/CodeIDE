@@ -78,48 +78,47 @@ class BoutEnBoutTest {
     }
 
     @Test
-    fun `le daemon lance l orchestrateur reel jusqu a un build reel reussi`() =
-        runBlocking {
-            val fixture = copierFixture("minimal-java")
-            val hote = HoteSocketJvm(dossierTemporaire("e2e-socket"))
-            val daemonReel = monterDaemon(hote)
-            daemon = daemonReel
-            val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-            portee = scope
-            daemonReel.demarrer(scope)
+    fun `le daemon lance l orchestrateur reel jusqu a un build reel reussi`() = runBlocking {
+        val fixture = copierFixture("minimal-java")
+        val hote = HoteSocketJvm(dossierTemporaire("e2e-socket"))
+        val daemonReel = monterDaemon(hote)
+        daemon = daemonReel
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        portee = scope
+        daemonReel.demarrer(scope)
 
-            // 1. Connexion réelle : le process s'est connecté ET le
-            //    handshake au secret a été validé par l'hôte.
-            attendreQue(DELAI_CONNEXION) { api.etatConnexion == EtatConnexion.CONNECTEE }
-            assertEquals(GradleProtocol.PROTOCOL_VERSION, hote.dernierHelloRecu?.protocolVersion)
-            assertTrue("le secret devait correspondre entre process et hôte", hote.secretValide)
+        // 1. Connexion réelle : le process s'est connecté ET le
+        //    handshake au secret a été validé par l'hôte.
+        attendreQue(DELAI_CONNEXION) { api.etatConnexion == EtatConnexion.CONNECTEE }
+        assertEquals(GradleProtocol.PROTOCOL_VERSION, hote.dernierHelloRecu?.protocolVersion)
+        assertTrue("le secret devait correspondre entre process et hôte", hote.secretValide)
 
-            // 2. Health check réel : le daemon ping, le VRAI orchestrateur
-            //    répond pong — le repère bouge.
-            val pongInitial = api.dernierPongMs.value
-            attendreQue(DELAI_SANTE) { api.dernierPongMs.value > pongInitial }
+        // 2. Health check réel : le daemon ping, le VRAI orchestrateur
+        //    répond pong — le repère bouge.
+        val pongInitial = api.dernierPongMs.value
+        attendreQue(DELAI_SANTE) { api.dernierPongMs.value > pongInitial }
 
-            // 3. Build réel sur la fixture : sortie diffusée ligne à ligne,
-            //    état final REUSSI.
-            val buildId = api.build(fixture, listOf("saluer"))
-            val lignes =
-                withTimeout(DELAI_BUILD) {
-                    api.observeBuildOutput(buildId).toList()
-                }
-            val etatFinal =
-                withTimeout(DELAI_BUILD) {
-                    api.observeBuildState(buildId).first { it.statut != StatutBuild.EN_COURS }
-                }
-            assertEquals(StatutBuild.REUSSI, etatFinal.statut)
-            assertTrue(
-                "la sortie du build réel devait contenir le salut : ${lignes.map { it.ligne }}",
-                lignes.any { it.ligne.contains("Bonjour depuis minimal-java") },
-            )
+        // 3. Build réel sur la fixture : sortie diffusée ligne à ligne,
+        //    état final REUSSI.
+        val buildId = api.build(fixture, listOf("saluer"))
+        val lignes =
+            withTimeout(DELAI_BUILD) {
+                api.observeBuildOutput(buildId).toList()
+            }
+        val etatFinal =
+            withTimeout(DELAI_BUILD) {
+                api.observeBuildState(buildId).first { it.statut != StatutBuild.EN_COURS }
+            }
+        assertEquals(StatutBuild.REUSSI, etatFinal.statut)
+        assertTrue(
+            "la sortie du build réel devait contenir le salut : ${lignes.map { it.ligne }}",
+            lignes.any { it.ligne.contains("Bonjour depuis minimal-java") },
+        )
 
-            // 4. Arrêt propre : le process est tué, la connexion retombe.
-            daemonReel.arreter()
-            attendreQue(DELAI_ARRET) { api.etatConnexion == EtatConnexion.DECONNECTEE }
-        }
+        // 4. Arrêt propre : le process est tué, la connexion retombe.
+        daemonReel.arreter()
+        attendreQue(DELAI_ARRET) { api.etatConnexion == EtatConnexion.DECONNECTEE }
+    }
 
     /**
      * Monte le daemon sur l'hôte JDK avec le VRAI lancement de process
@@ -178,10 +177,7 @@ class BoutEnBoutTest {
     }
 
     /** Attend une condition par sondage borné. */
-    private fun attendreQue(
-        delaiMs: Long,
-        condition: () -> Boolean,
-    ) {
+    private fun attendreQue(delaiMs: Long, condition: () -> Boolean) {
         val debut = System.currentTimeMillis()
         while (!condition()) {
             if (System.currentTimeMillis() - debut > delaiMs) {
@@ -226,9 +222,7 @@ class BoutEnBoutTest {
  * côté « app » (crash de l'app, mise à mort).
  */
 @Suppress("SwallowedException")
-internal class HoteSocketJvm(
-    dossier: File,
-) : HoteSocketTooling {
+internal class HoteSocketJvm(dossier: File) : HoteSocketTooling {
     private lateinit var canalServeur: ServerSocketChannel
     private val verrou = Mutex()
 
@@ -258,10 +252,7 @@ internal class HoteSocketJvm(
         canalServeur.bind(UnixDomainSocketAddress.of(cheminSocket.toPath()))
     }
 
-    override suspend fun accepterUneFois(
-        secretAttendu: String,
-        delaiMs: Long,
-    ): SessionTooling {
+    override suspend fun accepterUneFois(secretAttendu: String, delaiMs: Long): SessionTooling {
         val canal =
             withTimeout(delaiMs) {
                 runInterruptible(Dispatchers.IO) { canalServeur.accept() }
@@ -312,10 +303,7 @@ internal class HoteSocketJvm(
         return methode.invoke(null, StandardProtocolFamily.UNIX) as ServerSocketChannel
     }
 
-    private suspend fun envoyerFrame(
-        canal: SocketChannel,
-        message: ProtocolMessage,
-    ) {
+    private suspend fun envoyerFrame(canal: SocketChannel, message: ProtocolMessage) {
         withContext(Dispatchers.IO) {
             verrou.withLock {
                 FrameCodec.writeFrame(
@@ -337,10 +325,7 @@ internal class HoteSocketJvm(
         return charge.array()
     }
 
-    private fun lireEntierement(
-        canal: SocketChannel,
-        tampon: ByteBuffer,
-    ) {
+    private fun lireEntierement(canal: SocketChannel, tampon: ByteBuffer) {
         while (tampon.hasRemaining()) {
             if (canal.read(tampon) < 0) throw EOFException("fin de flux en pleine frame")
         }
@@ -353,9 +338,7 @@ internal class HoteSocketJvm(
  * dispatcheurs v0.50.0 — le test bout-en-bout couvre le fil réel).
  */
 @Suppress("SwallowedException")
-internal class SessionSocketJvm(
-    private val canal: SocketChannel,
-) : SessionTooling {
+internal class SessionSocketJvm(private val canal: SocketChannel) : SessionTooling {
     private val verrou = Mutex()
 
     /** Chemin rapide installé par [acheminerVia] — appelé par le fil. */
@@ -423,10 +406,7 @@ internal class SessionSocketJvm(
         return charge.array()
     }
 
-    private fun lireEntierement(
-        canal: SocketChannel,
-        tampon: ByteBuffer,
-    ) {
+    private fun lireEntierement(canal: SocketChannel, tampon: ByteBuffer) {
         while (tampon.hasRemaining()) {
             if (canal.read(tampon) < 0) throw EOFException("fin de flux en pleine frame")
         }
@@ -463,11 +443,7 @@ internal class LanceurProcessusReel : NativeProcessLauncher {
         const val PERIODE_SONDE_MS = 100L
     }
 
-    override fun launch(
-        command: List<String>,
-        extraEnv: Map<String, String>,
-        workingDir: File?,
-    ): ManagedProcess {
+    override fun launch(command: List<String>, extraEnv: Map<String, String>, workingDir: File?): ManagedProcess {
         val constructeur = ProcessBuilder(command)
         workingDir?.let { constructeur.directory(it) }
         val process = constructeur.start()
@@ -504,12 +480,11 @@ internal class LanceurProcessusReel : NativeProcessLauncher {
     }
 
     /** Flux froid des lignes d'un flux du process (miroir du port). */
-    private fun lignes(flux: java.io.InputStream): Flow<String> =
-        flow {
-            val lecteur = java.io.BufferedReader(java.io.InputStreamReader(flux, Charsets.UTF_8))
-            while (true) {
-                val ligne = lecteur.readLine() ?: break
-                emit(ligne)
-            }
+    private fun lignes(flux: java.io.InputStream): Flow<String> = flow {
+        val lecteur = java.io.BufferedReader(java.io.InputStreamReader(flux, Charsets.UTF_8))
+        while (true) {
+            val ligne = lecteur.readLine() ?: break
+            emit(ligne)
         }
+    }
 }

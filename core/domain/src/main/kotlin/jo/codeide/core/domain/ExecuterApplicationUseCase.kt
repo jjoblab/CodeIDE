@@ -33,115 +33,112 @@ import javax.inject.Inject
  * Android 10+).
  */
 public class ExecuterApplicationUseCase
-    @Inject
-    constructor(
-        private val installateur: ApkInstaller,
-        private val repartiteurs: DispatcherProvider,
-    ) {
-        /**
-         * Localise, installe et lance l'application du projet [dossierProjet].
-         *
-         * @param dossierProjet dossier FUSE réel du projet (racine).
-         * @param progression récepteur optionnel des étapes franchies —
-         *        intentions typées pour la console et les snackbars.
-         * @return le résultat typé, jamais d'exception vers l'appelant.
-         */
-        @Suppress("ReturnCount") // Gardes typées : APK absent, métadonnées illisibles — une issue par étape.
-        public suspend operator fun invoke(
-            dossierProjet: File,
-            progression: ((EtapeExecutionApplication) -> Unit)? = null,
-        ): ResultatExecutionApplication {
-            val apk =
-                withContext(repartiteurs.io) { localiserApkDebug(dossierProjet) }
-                    ?: return ResultatExecutionApplication.ApkAbsent
-            val nomPaquet =
-                withContext(repartiteurs.io) { lireNomPaquet(dossierProjet) }
-                    ?: return ResultatExecutionApplication.MetadonneesIllisibles
+@Inject
+constructor(
+    private val installateur: ApkInstaller,
+    private val repartiteurs: DispatcherProvider,
+) {
+    /**
+     * Localise, installe et lance l'application du projet [dossierProjet].
+     *
+     * @param dossierProjet dossier FUSE réel du projet (racine).
+     * @param progression récepteur optionnel des étapes franchies —
+     *        intentions typées pour la console et les snackbars.
+     * @return le résultat typé, jamais d'exception vers l'appelant.
+     */
+    @Suppress("ReturnCount") // Gardes typées : APK absent, métadonnées illisibles — une issue par étape.
+    public suspend operator fun invoke(
+        dossierProjet: File,
+        progression: ((EtapeExecutionApplication) -> Unit)? = null,
+    ): ResultatExecutionApplication {
+        val apk =
+            withContext(repartiteurs.io) { localiserApkDebug(dossierProjet) }
+                ?: return ResultatExecutionApplication.ApkAbsent
+        val nomPaquet =
+            withContext(repartiteurs.io) { lireNomPaquet(dossierProjet) }
+                ?: return ResultatExecutionApplication.MetadonneesIllisibles
 
-            return when (
-                val installation =
-                    installateur.installer(apk) { etape ->
-                        progression?.invoke(projectionEtape(etape))
+        return when (
+            val installation =
+                installateur.installer(apk) { etape ->
+                    progression?.invoke(projectionEtape(etape))
+                }
+        ) {
+            is ResultatInstallationApk.Succes -> {
+                when (installateur.lancer(nomPaquet)) {
+                    is ResultatLancementApk.Succes -> {
+                        progression?.invoke(EtapeExecutionApplication.ApplicationLancee(nomPaquet))
+                        ResultatExecutionApplication.Succes(nomPaquet)
                     }
-            ) {
-                is ResultatInstallationApk.Succes -> {
-                    when (installateur.lancer(nomPaquet)) {
-                        is ResultatLancementApk.Succes -> {
-                            progression?.invoke(EtapeExecutionApplication.ApplicationLancee(nomPaquet))
-                            ResultatExecutionApplication.Succes(nomPaquet)
-                        }
 
-                        is ResultatLancementApk.Introuvable -> {
-                            ResultatExecutionApplication.LancementIntrouvable(nomPaquet)
-                        }
+                    is ResultatLancementApk.Introuvable -> {
+                        ResultatExecutionApplication.LancementIntrouvable(nomPaquet)
                     }
                 }
-
-                is ResultatInstallationApk.Echec -> {
-                    ResultatExecutionApplication.Installation(installation, nomPaquet)
-                }
-            }
-        }
-
-        /**
-         * Projette une étape du port d'installation vers l'étape du cycle
-         * complet — l'interface ne connaît que le vocabulaire du runner.
-         */
-        private fun projectionEtape(etape: EtapeInstallationApk): EtapeExecutionApplication =
-            when (etape) {
-                EtapeInstallationApk.AutorisationSourcesInconnuesRequise -> {
-                    EtapeExecutionApplication.AutorisationSourcesInconnuesRequise
-                }
-
-                EtapeInstallationApk.CopieApk -> {
-                    EtapeExecutionApplication.CopieApk
-                }
-
-                EtapeInstallationApk.ConfirmationSysteme -> {
-                    EtapeExecutionApplication.ConfirmationSysteme
-                }
             }
 
-        /**
-         * APK debug du projet, ou `null` (le build n'en a produit aucun —
-         * chemin déterministe, contrat `verify-templates.sh`).
-         */
-        private fun localiserApkDebug(dossierProjet: File): File? =
-            File(dossierProjet, CHEMIN_APK_DEBUG).takeIf { it.isFile }
-
-        /**
-         * Le projet possède-t-il un module application Android
-         * (`app/build.gradle` ou `app/build.gradle.kts`) ? Décide du
-         * comportement du bouton Exécuter : « Run » d'Android Studio
-         * (compile → installe → lance) contre `gradle run` (JVM).
-         * Lecture disque sur le dispatcheur E/S.
-         */
-        public suspend fun estModuleApplication(dossierProjet: File): Boolean =
-            withContext(repartiteurs.io) {
-                File(dossierProjet, SCRIPT_BUILD_GRADLE).isFile ||
-                    File(dossierProjet, SCRIPT_BUILD_GRADLE_KTS).isFile
+            is ResultatInstallationApk.Echec -> {
+                ResultatExecutionApplication.Installation(installation, nomPaquet)
             }
-
-        /** Nom de paquet depuis `output-metadata.json`, ou `null`. */
-        private fun lireNomPaquet(dossierProjet: File): String? =
-            File(dossierProjet, CHEMIN_METADONNEES)
-                .takeIf { it.isFile }
-                ?.let { fichier -> lireApplicationId(fichier.readText()) }
-
-        private companion object {
-            /** APK debug : chemin relatif à la racine du projet. */
-            const val CHEMIN_APK_DEBUG = "app/build/outputs/apk/debug/app-debug.apk"
-
-            /** Métadonnées AGP (applicationId, variante) du même dossier. */
-            const val CHEMIN_METADONNEES = "app/build/outputs/apk/debug/output-metadata.json"
-
-            /** Script de build Groovy du module application. */
-            const val SCRIPT_BUILD_GRADLE = "app/build.gradle"
-
-            /** Script de build Kotlin DSL du module application. */
-            const val SCRIPT_BUILD_GRADLE_KTS = "app/build.gradle.kts"
         }
     }
+
+    /**
+     * Projette une étape du port d'installation vers l'étape du cycle
+     * complet — l'interface ne connaît que le vocabulaire du runner.
+     */
+    private fun projectionEtape(etape: EtapeInstallationApk): EtapeExecutionApplication = when (etape) {
+        EtapeInstallationApk.AutorisationSourcesInconnuesRequise -> {
+            EtapeExecutionApplication.AutorisationSourcesInconnuesRequise
+        }
+
+        EtapeInstallationApk.CopieApk -> {
+            EtapeExecutionApplication.CopieApk
+        }
+
+        EtapeInstallationApk.ConfirmationSysteme -> {
+            EtapeExecutionApplication.ConfirmationSysteme
+        }
+    }
+
+    /**
+     * APK debug du projet, ou `null` (le build n'en a produit aucun —
+     * chemin déterministe, contrat `verify-templates.sh`).
+     */
+    private fun localiserApkDebug(dossierProjet: File): File? =
+        File(dossierProjet, CHEMIN_APK_DEBUG).takeIf { it.isFile }
+
+    /**
+     * Le projet possède-t-il un module application Android
+     * (`app/build.gradle` ou `app/build.gradle.kts`) ? Décide du
+     * comportement du bouton Exécuter : « Run » d'Android Studio
+     * (compile → installe → lance) contre `gradle run` (JVM).
+     * Lecture disque sur le dispatcheur E/S.
+     */
+    public suspend fun estModuleApplication(dossierProjet: File): Boolean = withContext(repartiteurs.io) {
+        File(dossierProjet, SCRIPT_BUILD_GRADLE).isFile ||
+            File(dossierProjet, SCRIPT_BUILD_GRADLE_KTS).isFile
+    }
+
+    /** Nom de paquet depuis `output-metadata.json`, ou `null`. */
+    private fun lireNomPaquet(dossierProjet: File): String? = File(dossierProjet, CHEMIN_METADONNEES)
+        .takeIf { it.isFile }
+        ?.let { fichier -> lireApplicationId(fichier.readText()) }
+
+    private companion object {
+        /** APK debug : chemin relatif à la racine du projet. */
+        const val CHEMIN_APK_DEBUG = "app/build/outputs/apk/debug/app-debug.apk"
+
+        /** Métadonnées AGP (applicationId, variante) du même dossier. */
+        const val CHEMIN_METADONNEES = "app/build/outputs/apk/debug/output-metadata.json"
+
+        /** Script de build Groovy du module application. */
+        const val SCRIPT_BUILD_GRADLE = "app/build.gradle"
+
+        /** Script de build Kotlin DSL du module application. */
+        const val SCRIPT_BUILD_GRADLE_KTS = "app/build.gradle.kts"
+    }
+}
 
 /**
  * Étape du cycle « exécuter l'application » (progression typée).
@@ -164,9 +161,7 @@ public sealed interface EtapeExecutionApplication {
     public data object ConfirmationSysteme : EtapeExecutionApplication
 
     /** L'application vient d'être lancée ([nomPaquet]). */
-    public data class ApplicationLancee(
-        public val nomPaquet: String,
-    ) : EtapeExecutionApplication
+    public data class ApplicationLancee(public val nomPaquet: String) : EtapeExecutionApplication
 }
 
 /**
@@ -175,9 +170,7 @@ public sealed interface EtapeExecutionApplication {
  */
 public sealed interface ResultatExecutionApplication {
     /** Application installée ET lancée. */
-    public data class Succes(
-        public val nomPaquet: String,
-    ) : ResultatExecutionApplication
+    public data class Succes(public val nomPaquet: String) : ResultatExecutionApplication
 
     /** Échec typé (voir chaque issue). */
     public sealed interface Echec : ResultatExecutionApplication
@@ -189,15 +182,11 @@ public sealed interface ResultatExecutionApplication {
     public data object MetadonneesIllisibles : Echec
 
     /** L'installation a échoué — issue d'origine typée + paquet visé. */
-    public data class Installation(
-        public val cause: ResultatInstallationApk.Echec,
-        public val nomPaquet: String,
-    ) : Echec
+    public data class Installation(public val cause: ResultatInstallationApk.Echec, public val nomPaquet: String) :
+        Echec
 
     /** Installée mais introuvable au lancement (après les relances). */
-    public data class LancementIntrouvable(
-        public val nomPaquet: String,
-    ) : Echec
+    public data class LancementIntrouvable(public val nomPaquet: String) : Echec
 }
 
 /**
@@ -208,9 +197,8 @@ public sealed interface ResultatExecutionApplication {
  * textuelle ⇒ `null` — l'appelant refuse honnêtement au lieu d'inventer
  * un identifiant.
  */
-internal fun lireApplicationId(texte: String): String? =
-    runCatching {
-        (Json.parseToJsonElement(texte).jsonObject["applicationId"] as? JsonPrimitive)
-            ?.takeIf { it.isString }
-            ?.content
-    }.getOrNull()
+internal fun lireApplicationId(texte: String): String? = runCatching {
+    (Json.parseToJsonElement(texte).jsonObject["applicationId"] as? JsonPrimitive)
+        ?.takeIf { it.isString }
+        ?.content
+}.getOrNull()

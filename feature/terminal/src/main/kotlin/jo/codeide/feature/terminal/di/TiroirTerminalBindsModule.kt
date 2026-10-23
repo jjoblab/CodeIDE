@@ -34,7 +34,7 @@ internal abstract class TiroirTerminalBindsModule {
  */
 @Singleton
 internal class FabriqueFragmentTerminalTiroirImpl
-    @Inject
-    constructor() : FabriqueFragmentTerminalTiroir {
-        override fun creer(): Fragment = TerminalTiroirFragment()
-    }
+@Inject
+constructor() : FabriqueFragmentTerminalTiroir {
+    override fun creer(): Fragment = TerminalTiroirFragment()
+}

@@ -34,15 +34,12 @@ internal object DatabaseModule {
 
     @Provides
     @Singleton
-    internal fun provideDatabase(
-        @ApplicationContext context: Context,
-    ): CodeIdeDatabase =
-        Room
-            .databaseBuilder(context, CodeIdeDatabase::class.java, NOM_BASE)
-            // Pas de fallback destructif : les migrations sont écrites et
-            // testées à partir des schémas exportés (section 6, lot IA-6).
-            .addMigrations(Migration1a2)
-            .build()
+    internal fun provideDatabase(@ApplicationContext context: Context): CodeIdeDatabase = Room
+        .databaseBuilder(context, CodeIdeDatabase::class.java, NOM_BASE)
+        // Pas de fallback destructif : les migrations sont écrites et
+        // testées à partir des schémas exportés (section 6, lot IA-6).
+        .addMigrations(Migration1a2)
+        .build()
 
     @Provides
     @Singleton

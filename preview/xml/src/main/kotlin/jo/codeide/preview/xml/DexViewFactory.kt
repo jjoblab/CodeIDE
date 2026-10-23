@@ -82,18 +82,11 @@ class DexViewFactory : LayoutInflater.Factory2 {
     @Volatile
     public var loader: ClassLoader? = null
 
-    override fun onCreateView(
-        parent: View?,
-        name: String,
-        context: Context,
-        attrs: AttributeSet,
-    ): View? = essayerCreation(name, context, attrs)
+    override fun onCreateView(parent: View?, name: String, context: Context, attrs: AttributeSet): View? =
+        essayerCreation(name, context, attrs)
 
-    override fun onCreateView(
-        name: String,
-        context: Context,
-        attrs: AttributeSet,
-    ): View? = essayerCreation(name, context, attrs)
+    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? =
+        essayerCreation(name, context, attrs)
 
     /**
      * Tente de créer la vue `name` via le classloader projet.
@@ -146,18 +139,14 @@ class DexViewFactory : LayoutInflater.Factory2 {
      * qui embarque la preview) ? Probe SANS initialisation (aucun effet
      * de bord de static initializer), résultat mis en cache par ART.
      */
-    private fun chargableParLhote(
-        context: Context,
-        className: String,
-    ): Boolean =
-        try {
-            Class.forName(className, false, context.classLoader)
-            true
-        } catch (_: ClassNotFoundException) {
-            false
-        } catch (_: NoClassDefFoundError) {
-            false
-        }
+    private fun chargableParLhote(context: Context, className: String): Boolean = try {
+        Class.forName(className, false, context.classLoader)
+        true
+    } catch (_: ClassNotFoundException) {
+        false
+    } catch (_: NoClassDefFoundError) {
+        false
+    }
 
     /**
      * Charge la classe `className` via `classLoader` et instancie la vue
@@ -214,10 +203,7 @@ class DexViewFactory : LayoutInflater.Factory2 {
     /**
      * Instancie la vue via le constructeur résolu.
      */
-    private fun instancier(
-        constructeur: Constructor<*>,
-        context: Context,
-    ): View? {
+    private fun instancier(constructeur: Constructor<*>, context: Context): View? {
         val nbParams = constructeur.parameterTypes.size
         val instance =
             when (nbParams) {

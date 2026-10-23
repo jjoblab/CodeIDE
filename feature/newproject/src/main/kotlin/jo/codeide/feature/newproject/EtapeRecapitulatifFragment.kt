@@ -39,10 +39,7 @@ class EtapeRecapitulatifFragment : EtapeFragment<EtapeRecapitulatifBinding>() {
         attachToRoot: Boolean,
     ): EtapeRecapitulatifBinding = EtapeRecapitulatifBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         val arbre = ArborescenceAdapter { noeud -> ouvrirDialogueRenommage(noeud) }
@@ -140,11 +137,10 @@ class EtapeRecapitulatifFragment : EtapeFragment<EtapeRecapitulatifBinding>() {
     }
 
     /** Résumé Configuration : « Application · Gradle · JDK 21 · Wrapper ». */
-    private fun resumeConfiguration(etat: EtatWizard): String =
-        etat
-            .parametresSection(TemplateSection.CONFIGURATION)
-            .joinToString(" · ") { parametre -> parametre.label }
-            .ifBlank { getString(R.string.wizard_recap_valeur_absente) }
+    private fun resumeConfiguration(etat: EtatWizard): String = etat
+        .parametresSection(TemplateSection.CONFIGURATION)
+        .joinToString(" · ") { parametre -> parametre.label }
+        .ifBlank { getString(R.string.wizard_recap_valeur_absente) }
 
     /** Résumé Informations : nom, paramètres visibles et emplacement. */
     private fun resumeInformations(etat: EtatWizard): String {
@@ -180,14 +176,13 @@ class EtapeRecapitulatifFragment : EtapeFragment<EtapeRecapitulatifBinding>() {
     }
 
     /** Code court d'une licence (résumé compact). */
-    private fun licenceCourte(licence: License): String =
-        when (licence) {
-            License.NONE -> getString(R.string.wizard_licence_aucune)
-            License.MIT -> "MIT"
-            License.APACHE_2_0 -> "Apache-2.0"
-            License.GPL_3_0 -> "GPL-3.0"
-            License.BSD_3_CLAUSE -> "BSD-3-Clause"
-        }
+    private fun licenceCourte(licence: License): String = when (licence) {
+        License.NONE -> getString(R.string.wizard_licence_aucune)
+        License.MIT -> "MIT"
+        License.APACHE_2_0 -> "Apache-2.0"
+        License.GPL_3_0 -> "GPL-3.0"
+        License.BSD_3_CLAUSE -> "BSD-3-Clause"
+    }
 
     override fun onDestroyView() {
         dernierArbre = null
@@ -201,9 +196,8 @@ class EtapeRecapitulatifFragment : EtapeFragment<EtapeRecapitulatifBinding>() {
  * plan, dossiers repliables par un toucher (contenu décrit pour TalkBack),
  * crayon de renommage par ligne (ADR 0077).
  */
-private class ArborescenceAdapter(
-    private val onRenommer: (Noeud) -> Unit,
-) : ListAdapter<ArborescenceAdapter.LigneArbre, ArborescenceAdapter.Support>(ComparaisonLignes()) {
+private class ArborescenceAdapter(private val onRenommer: (Noeud) -> Unit) :
+    ListAdapter<ArborescenceAdapter.LigneArbre, ArborescenceAdapter.Support>(ComparaisonLignes()) {
     /** Dossiers repliés (chemin final affiché). */
     private val replies = mutableSetOf<String>()
 
@@ -211,12 +205,7 @@ private class ArborescenceAdapter(
     private var dernierArbre: Arborescence? = null
 
     /** Une ligne affichable : profondeur, nœud, chemin final, identité originale. */
-    data class LigneArbre(
-        val profondeur: Int,
-        val noeud: Noeud,
-        val chemin: String,
-        val cheminOriginal: String,
-    )
+    data class LigneArbre(val profondeur: Int, val noeud: Noeud, val chemin: String, val cheminOriginal: String)
 
     /** Soumet un arbre : aplatit selon l'état replié courant. */
     fun soumettre(arbre: Arborescence) {
@@ -248,19 +237,13 @@ private class ArborescenceAdapter(
         }
     }
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Support {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Support {
         val liaison =
             VueLigneArborescenceBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return Support(liaison)
     }
 
-    override fun onBindViewHolder(
-        support: Support,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(support: Support, position: Int) {
         val ligne = getItem(position)
         val densite = support.liaison.root.resources.displayMetrics.density
         support.liaison.espaceIndentation.layoutParams.width =
@@ -303,21 +286,14 @@ private class ArborescenceAdapter(
     private fun String.estProtege(): Boolean = this == DOSSIER_METADATA || startsWith("$DOSSIER_METADATA/")
 
     /** Support de vue d'une ligne. */
-    class Support(
-        val liaison: VueLigneArborescenceBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    class Support(val liaison: VueLigneArborescenceBinding) : RecyclerView.ViewHolder(liaison.root)
 
     /** Diff par identité (chemin original) puis par contenu (nœud et chemin). */
     private class ComparaisonLignes : DiffUtil.ItemCallback<LigneArbre>() {
-        override fun areItemsTheSame(
-            ancienne: LigneArbre,
-            nouvelle: LigneArbre,
-        ): Boolean = ancienne.cheminOriginal == nouvelle.cheminOriginal
+        override fun areItemsTheSame(ancienne: LigneArbre, nouvelle: LigneArbre): Boolean =
+            ancienne.cheminOriginal == nouvelle.cheminOriginal
 
-        override fun areContentsTheSame(
-            ancienne: LigneArbre,
-            nouvelle: LigneArbre,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: LigneArbre, nouvelle: LigneArbre): Boolean = ancienne == nouvelle
     }
 
     private companion object {

@@ -137,12 +137,11 @@ internal object LocalisationOutils {
     }
 
     /** Le `android.jar` de la plateforme la plus récente d'un SDK donné. */
-    internal fun trouverAndroidJar(sdk: File): File? =
-        MarqueursOutils
-            .listerRepertoires(File(sdk, "platforms"))
-            .filter { plateforme -> File(plateforme, "android.jar").isFile }
-            .maxWithOrNull(compareBy { extraireNumeroPlateforme(it.name) })
-            ?.let { File(it, "android.jar") }
+    internal fun trouverAndroidJar(sdk: File): File? = MarqueursOutils
+        .listerRepertoires(File(sdk, "platforms"))
+        .filter { plateforme -> File(plateforme, "android.jar").isFile }
+        .maxWithOrNull(compareBy { extraireNumeroPlateforme(it.name) })
+        ?.let { File(it, "android.jar") }
 
     /**
      * Binaire `aapt2` — résolu **depuis le plan** (§ 12.4) puis par replis
@@ -195,27 +194,20 @@ internal object LocalisationOutils {
  */
 internal object Aapt2Installe {
     /** Chaîne de résolution : plan persisté → scan du SDK → binaire hérité. */
-    internal fun trouver(
-        racine: File,
-        sdkDe: (File) -> File?,
-    ): File? = depuisEtat(racine, sdkDe) ?: parScan(racine, sdkDe) ?: heritage(racine)
+    internal fun trouver(racine: File, sdkDe: (File) -> File?): File? =
+        depuisEtat(racine, sdkDe) ?: parScan(racine, sdkDe) ?: heritage(racine)
 
     /** Plan matérialisé : `installPath` du porteur (`aapt2` sinon `build-tools`) sous la racine du SDK. */
-    private fun depuisEtat(
-        racine: File,
-        sdkDe: (File) -> File?,
-    ): File? =
-        sdkDe(racine)?.let { sdk ->
-            porteurPersiste(racine)
-                ?.let { porteur -> File(File(sdk, porteur), "aapt2") }
-                ?.takeIf { it.isFile && it.canExecute() }
-        }
+    private fun depuisEtat(racine: File, sdkDe: (File) -> File?): File? = sdkDe(racine)?.let { sdk ->
+        porteurPersiste(racine)
+            ?.let { porteur -> File(File(sdk, porteur), "aapt2") }
+            ?.takeIf { it.isFile && it.canExecute() }
+    }
 
     /** `installPath` du composant porteur dans `install-state.json`, ou `null` (fichier absent ou illisible). */
-    private fun porteurPersiste(racine: File): String? =
-        runCatching { File(racine, "install-state.json").readText() }
-            .getOrNull()
-            ?.let(::installPathDuPorteur)
+    private fun porteurPersiste(racine: File): String? = runCatching { File(racine, "install-state.json").readText() }
+        .getOrNull()
+        ?.let(::installPathDuPorteur)
 
     /** Premier `installPath` connu parmi `aapt2` puis `build-tools` (§ 12.4). */
     private fun installPathDuPorteur(texte: String): String? =
@@ -226,10 +218,7 @@ internal object Aapt2Installe {
      * du texte JSON — `null` si absent (paires `"id"`/`"installPath"` des
      * objets du tableau, indépendant de l'ordre des champs).
      */
-    private fun installPathPersiste(
-        texte: String,
-        id: String,
-    ): String? {
+    private fun installPathPersiste(texte: String, id: String): String? {
         val tableau = texte.substringAfter("\"installedComponents\"", "").substringAfter('[', "")
         val entrees = Regex("""[{][^{}]*[}]""").findAll(tableau).map { it.value }
         return entrees
@@ -243,10 +232,7 @@ internal object Aapt2Installe {
     }
 
     /** Scan de la racine du SDK : `build-tools/<plus récente>/aapt2` (installations sans état persisté). */
-    private fun parScan(
-        racine: File,
-        sdkDe: (File) -> File?,
-    ): File? {
+    private fun parScan(racine: File, sdkDe: (File) -> File?): File? {
         val sdk = sdkDe(racine) ?: return null
         return MarqueursOutils
             .listerRepertoires(File(sdk, "build-tools"))

@@ -114,10 +114,7 @@ private val RACINES_DRAWABLE =
  */
 public object ClassificateurPreview {
     /** Classifie par chemin relatif au projet et texte du document ; null = pas previewable. */
-    public fun genreDe(
-        cheminRelatif: String,
-        texte: String,
-    ): GenrePreview? {
+    public fun genreDe(cheminRelatif: String, texte: String): GenrePreview? {
         val chemin = cheminRelatif.replace('\\', '/')
         return when {
             chemin.contains("res/layout") -> GenrePreview.LAYOUT

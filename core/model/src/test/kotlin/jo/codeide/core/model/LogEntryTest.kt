@@ -18,16 +18,15 @@ class LogEntryTest {
             ignoreUnknownKeys = true
         }
 
-    private fun entree(exception: FlattenedException? = null) =
-        LogEntry(
-            timestampMillis = 1_700_000_000_000L,
-            sessionId = "0b6a218e-9b2f-4b1d-8b1f-77a1bd4e13a5",
-            level = LogLevel.WARN,
-            tag = "Storage",
-            threadName = "main",
-            message = "Permission perdue sur le dossier de travail",
-            exception = exception,
-        )
+    private fun entree(exception: FlattenedException? = null) = LogEntry(
+        timestampMillis = 1_700_000_000_000L,
+        sessionId = "0b6a218e-9b2f-4b1d-8b1f-77a1bd4e13a5",
+        level = LogLevel.WARN,
+        tag = "Storage",
+        threadName = "main",
+        message = "Permission perdue sur le dossier de travail",
+        exception = exception,
+    )
 
     @Test
     fun `l'aller-retour JSON est exact`() {

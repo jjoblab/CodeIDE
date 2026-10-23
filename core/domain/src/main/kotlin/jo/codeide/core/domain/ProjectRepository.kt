@@ -92,10 +92,7 @@ public interface ProjectRepository {
      * @return le succès, `Validation` si le nom est refusé, `NotFound` si
      * le projet est inconnu.
      */
-    public suspend fun renameProject(
-        id: ProjectId,
-        newName: String,
-    ): AppResult<Unit>
+    public suspend fun renameProject(id: ProjectId, newName: String): AppResult<Unit>
 
     /**
      * Épingle ou désépingle un projet (affichage en tête de l'accueil).
@@ -104,10 +101,7 @@ public interface ProjectRepository {
      * @param pinned nouvel état de l'épingle.
      * @return le succès, ou `NotFound` si le projet est inconnu.
      */
-    public suspend fun setPinned(
-        id: ProjectId,
-        pinned: Boolean,
-    ): AppResult<Unit>
+    public suspend fun setPinned(id: ProjectId, pinned: Boolean): AppResult<Unit>
 
     /**
      * Remplace l'emplacement référencé par un projet — relocalisation
@@ -124,10 +118,7 @@ public interface ProjectRepository {
      * @param location nouvel emplacement SAF validé au préalable.
      * @return le succès, ou `NotFound` si le projet est inconnu.
      */
-    public suspend fun updateLocation(
-        id: ProjectId,
-        location: StorageLocation,
-    ): AppResult<Unit>
+    public suspend fun updateLocation(id: ProjectId, location: StorageLocation): AppResult<Unit>
 
     /**
      * Marque un projet comme ouvert à l'instant donné.
@@ -137,8 +128,5 @@ public interface ProjectRepository {
      * par l'appelant pour rester testable (horloge injectée).
      * @return le succès, ou `NotFound` si le projet est inconnu.
      */
-    public suspend fun markOpened(
-        id: ProjectId,
-        atMillis: Long,
-    ): AppResult<Unit>
+    public suspend fun markOpened(id: ProjectId, atMillis: Long): AppResult<Unit>
 }

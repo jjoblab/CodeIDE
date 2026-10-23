@@ -123,14 +123,13 @@ public object ExtractionRessource {
      * entités XML, apostrophe/guillemet Android (`\'`, `\"`), retour
      * saisi → `\n` littéral.
      */
-    private fun echapperValeur(valeur: String): String =
-        valeur
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;")
-            .replace("'", "\\'")
-            .replace("\"", "\\\"")
-            .replace("\n", "\\n")
+    private fun echapperValeur(valeur: String): String = valeur
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("'", "\\'")
+        .replace("\"", "\\\"")
+        .replace("\n", "\\n")
 
     /** L'indentation de repli (aucune entrée existante à imiter). */
     private const val PAS_INDENTATION: String = "    "

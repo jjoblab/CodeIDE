@@ -52,11 +52,10 @@ public data class TemplateOptions(
  *
  * @return le code de la licence, sans extension.
  */
-public fun License.codeTemplate(): String =
-    when (this) {
-        License.NONE -> "none"
-        License.MIT -> "mit"
-        License.APACHE_2_0 -> "apache-2.0"
-        License.GPL_3_0 -> "gpl-3.0"
-        License.BSD_3_CLAUSE -> "bsd-3-clause"
-    }
+public fun License.codeTemplate(): String = when (this) {
+    License.NONE -> "none"
+    License.MIT -> "mit"
+    License.APACHE_2_0 -> "apache-2.0"
+    License.GPL_3_0 -> "gpl-3.0"
+    License.BSD_3_CLAUSE -> "bsd-3-clause"
+}

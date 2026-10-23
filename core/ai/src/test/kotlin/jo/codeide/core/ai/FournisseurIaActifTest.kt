@@ -23,9 +23,7 @@ import org.junit.Test
  */
 class FournisseurIaActifTest {
     /** Réglages factices : état mutable contrôlé par les tests. */
-    private class FauxReglages(
-        var valeur: AiSettings,
-    ) : ReglagesIaRepository {
+    private class FauxReglages(var valeur: AiSettings) : ReglagesIaRepository {
         val flux = MutableStateFlow(valeur)
 
         override fun observeAiSettings(): Flow<AiSettings> = flux
@@ -76,129 +74,121 @@ class FournisseurIaActifTest {
     }
 
     /** Réglages « tout prêt » : actif, consenti, URL et modèle remplis. */
-    private fun reglagesPrets(): AiSettings =
-        AiSettings(
-            assistantActive = true,
-            consentementDonne = true,
-            fournisseurActif = FournisseursIa.ANTHROPIC,
-            urlBaseAnthropic = "https://fournisseur-test.example",
-            modeleAnthropic = "modele-actif",
+    private fun reglagesPrets(): AiSettings = AiSettings(
+        assistantActive = true,
+        consentementDonne = true,
+        fournisseurActif = FournisseursIa.ANTHROPIC,
+        urlBaseAnthropic = "https://fournisseur-test.example",
+        modeleAnthropic = "modele-actif",
+    )
+
+    @Test
+    fun `sans consentement aucune requête ne part et l'accès est refusé`() = runTest {
+        val reglages = FauxReglages(reglagesPrets().copy(consentementDonne = false))
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
+
+        val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
+        val ping = routeur.ping()
+        val modeles = routeur.listModels()
+
+        assertEquals(0, fabrique.constructions)
+        assertEquals(0, fabrique.fournisseur.appelsStream)
+        assertEquals(0, fabrique.fournisseur.appelsPing)
+        assertEquals(0, fabrique.fournisseur.appelsListModels)
+        assertEquals(1, evenements.size)
+        val echec = evenements.single() as AiEvent.Failure
+        assertEquals(AppError.AiReason.ConsentRequired, (echec.error as AppError.Ai).reason)
+        assertEquals(
+            AppError.AiReason.ConsentRequired,
+            (ping as AppResult.Failure).error.let { (it as AppError.Ai).reason },
         )
+        assertEquals(
+            AppError.AiReason.ConsentRequired,
+            (modeles as AppResult.Failure).error.let { (it as AppError.Ai).reason },
+        )
+    }
 
     @Test
-    fun `sans consentement aucune requête ne part et l'accès est refusé`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets().copy(consentementDonne = false))
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
+    fun `sans interrupteur d'activation l'accès est refusé`() = runTest {
+        val reglages = FauxReglages(reglagesPrets().copy(assistantActive = false))
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
 
-            val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
-            val ping = routeur.ping()
-            val modeles = routeur.listModels()
+        val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
 
-            assertEquals(0, fabrique.constructions)
-            assertEquals(0, fabrique.fournisseur.appelsStream)
-            assertEquals(0, fabrique.fournisseur.appelsPing)
-            assertEquals(0, fabrique.fournisseur.appelsListModels)
-            assertEquals(1, evenements.size)
-            val echec = evenements.single() as AiEvent.Failure
-            assertEquals(AppError.AiReason.ConsentRequired, (echec.error as AppError.Ai).reason)
-            assertEquals(
-                AppError.AiReason.ConsentRequired,
-                (ping as AppResult.Failure).error.let { (it as AppError.Ai).reason },
-            )
-            assertEquals(
-                AppError.AiReason.ConsentRequired,
-                (modeles as AppResult.Failure).error.let { (it as AppError.Ai).reason },
-            )
-        }
+        assertEquals(0, fabrique.constructions)
+        assertTrue(evenements.single() is AiEvent.Failure)
+    }
 
     @Test
-    fun `sans interrupteur d'activation l'accès est refusé`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets().copy(assistantActive = false))
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
+    fun `avec consentement le flux est délégué et le modèle des réglages fait autorité`() = runTest {
+        val reglages = FauxReglages(reglagesPrets())
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
 
-            val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
+        val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "autre")).toList()
 
-            assertEquals(0, fabrique.constructions)
-            assertTrue(evenements.single() is AiEvent.Failure)
-        }
-
-    @Test
-    fun `avec consentement le flux est délégué et le modèle des réglages fait autorité`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets())
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
-
-            val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "autre")).toList()
-
-            assertEquals(1, fabrique.constructions)
-            assertEquals(1, fabrique.fournisseur.appelsStream)
-            assertEquals("modele-actif", fabrique.fournisseur.derniereRequete?.model)
-            assertEquals(2, evenements.size)
-        }
+        assertEquals(1, fabrique.constructions)
+        assertEquals(1, fabrique.fournisseur.appelsStream)
+        assertEquals("modele-actif", fabrique.fournisseur.derniereRequete?.model)
+        assertEquals(2, evenements.size)
+    }
 
     @Test
-    fun `un modèle vide est refusé comme erreur de configuration`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets().copy(modeleAnthropic = ""))
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
+    fun `un modèle vide est refusé comme erreur de configuration`() = runTest {
+        val reglages = FauxReglages(reglagesPrets().copy(modeleAnthropic = ""))
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
 
-            val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
+        val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
 
-            // La garde de configuration (modèle vide) précède la fabrique :
-            assertEquals(0, fabrique.constructions)
-            val echec = evenements.single() as AiEvent.Failure
-            assertEquals(AppError.AiReason.Configuration, (echec.error as AppError.Ai).reason)
-            assertEquals(0, fabrique.fournisseur.appelsStream)
-        }
-
-    @Test
-    fun `une URL de base invalide est refusée avant la fabrique`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets().copy(urlBaseAnthropic = "http://serveur.example"))
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
-
-            val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
-
-            assertEquals(0, fabrique.constructions)
-            val echec = evenements.single() as AiEvent.Failure
-            assertEquals(AppError.AiReason.Configuration, (echec.error as AppError.Ai).reason)
-        }
+        // La garde de configuration (modèle vide) précède la fabrique :
+        assertEquals(0, fabrique.constructions)
+        val echec = evenements.single() as AiEvent.Failure
+        assertEquals(AppError.AiReason.Configuration, (echec.error as AppError.Ai).reason)
+        assertEquals(0, fabrique.fournisseur.appelsStream)
+    }
 
     @Test
-    fun `un fournisseur inconnu est refusé comme erreur de configuration`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets().copy(fournisseurActif = "inconnu"))
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
+    fun `une URL de base invalide est refusée avant la fabrique`() = runTest {
+        val reglages = FauxReglages(reglagesPrets().copy(urlBaseAnthropic = "http://serveur.example"))
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
 
-            val modeles = routeur.listModels()
+        val evenements = routeur.stream(AiRequest(listOf(AiMessage.user("salut")), model = "m")).toList()
 
-            assertEquals(1, fabrique.constructions)
-            assertEquals(AppError.AiReason.Configuration, ((modeles as AppResult.Failure).error as AppError.Ai).reason)
-        }
+        assertEquals(0, fabrique.constructions)
+        val echec = evenements.single() as AiEvent.Failure
+        assertEquals(AppError.AiReason.Configuration, (echec.error as AppError.Ai).reason)
+    }
 
     @Test
-    fun `ping et listModels délègent au fournisseur construit`() =
-        runTest {
-            val reglages = FauxReglages(reglagesPrets())
-            val fabrique = FauxFabrique()
-            val routeur = FournisseurIaActif(reglages, fabrique)
+    fun `un fournisseur inconnu est refusé comme erreur de configuration`() = runTest {
+        val reglages = FauxReglages(reglagesPrets().copy(fournisseurActif = "inconnu"))
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
 
-            val ping = routeur.ping()
-            val modeles = routeur.listModels()
+        val modeles = routeur.listModels()
 
-            assertEquals(1, fabrique.fournisseur.appelsPing)
-            assertEquals(1, fabrique.fournisseur.appelsListModels)
-            assertTrue(ping is AppResult.Success)
-            assertEquals("modele-a", (modeles as AppResult.Success).value.single().id)
-        }
+        assertEquals(1, fabrique.constructions)
+        assertEquals(AppError.AiReason.Configuration, ((modeles as AppResult.Failure).error as AppError.Ai).reason)
+    }
+
+    @Test
+    fun `ping et listModels délègent au fournisseur construit`() = runTest {
+        val reglages = FauxReglages(reglagesPrets())
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
+
+        val ping = routeur.ping()
+        val modeles = routeur.listModels()
+
+        assertEquals(1, fabrique.fournisseur.appelsPing)
+        assertEquals(1, fabrique.fournisseur.appelsListModels)
+        assertTrue(ping is AppResult.Success)
+        assertEquals("modele-a", (modeles as AppResult.Success).value.single().id)
+    }
 
     @Test
     fun `la validation URL accepte HTTPS et la boucle locale seulement`() {

@@ -61,10 +61,8 @@ public class EditionRedimensionXmlTest {
     private fun spanBouton(): InsertionXml.SpanParent = spanDe(formate, 2)!!
 
     /** Applique l'édition (miroir du port : remplacement de plage). */
-    private fun appliquer(
-        texte: String,
-        edition: EditionAttributsXml.EditionAttributsXmlResultat,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: EditionAttributsXml.EditionAttributsXmlResultat): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     // ── Éclatement des raccourcis (côtés) ────────────────────────────────
 
@@ -251,9 +249,9 @@ public class EditionRedimensionXmlTest {
                 largeurDp = 120,
                 hauteurDp = 48,
                 ajustements =
-                    EditionAttributsXml.AjustementsRedimension(
-                        marges = listOf(EditionAttributsXml.Cote.DEBUT to 40),
-                    ),
+                EditionAttributsXml.AjustementsRedimension(
+                    marges = listOf(EditionAttributsXml.Cote.DEBUT to 40),
+                ),
             )!!
         val resultat = appliquer(texte, edition)
         assertTrue("""android:layout_width="120dp"""" in resultat)
@@ -288,10 +286,10 @@ public class EditionRedimensionXmlTest {
                 largeurDp = 120,
                 hauteurDp = 48,
                 ajustements =
-                    EditionAttributsXml.AjustementsRedimension(
-                        positionOutilsX = 16,
-                        positionOutilsY = 24,
-                    ),
+                EditionAttributsXml.AjustementsRedimension(
+                    positionOutilsX = 16,
+                    positionOutilsY = 24,
+                ),
             )!!
         val resultat = appliquer(texte, edition)
         assertTrue("""tools:layout_editor_absoluteX="16dp"""" in resultat)

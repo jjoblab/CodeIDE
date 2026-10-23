@@ -109,12 +109,12 @@ class CrashReportFileStoreTest {
                     filons = enormesFilons,
                 ).copy(
                     exception =
-                        FlattenedException(
-                            className = "java.lang.RuntimeException",
-                            message = "x".repeat(50_000),
-                            frames = tranches,
-                            cause = null,
-                        ),
+                    FlattenedException(
+                        className = "java.lang.RuntimeException",
+                        message = "x".repeat(50_000),
+                        frames = tranches,
+                        cause = null,
+                    ),
                 )
 
         store.save(rapport)

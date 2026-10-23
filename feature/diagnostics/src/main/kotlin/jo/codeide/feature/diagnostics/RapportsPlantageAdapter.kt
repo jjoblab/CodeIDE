@@ -21,22 +21,15 @@ internal class RapportsPlantageAdapter(
     private val surOuverture: (String) -> Unit,
     private val surSuppression: (String) -> Unit,
 ) : ListAdapter<CrashReportSummary, RapportsPlantageAdapter.Vue>(
-        object : DiffUtil.ItemCallback<CrashReportSummary>() {
-            override fun areItemsTheSame(
-                ancienne: CrashReportSummary,
-                nouvelle: CrashReportSummary,
-            ): Boolean = ancienne.id == nouvelle.id
+    object : DiffUtil.ItemCallback<CrashReportSummary>() {
+        override fun areItemsTheSame(ancienne: CrashReportSummary, nouvelle: CrashReportSummary): Boolean =
+            ancienne.id == nouvelle.id
 
-            override fun areContentsTheSame(
-                ancienne: CrashReportSummary,
-                nouvelle: CrashReportSummary,
-            ): Boolean = ancienne == nouvelle
-        },
-    ) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Vue {
+        override fun areContentsTheSame(ancienne: CrashReportSummary, nouvelle: CrashReportSummary): Boolean =
+            ancienne == nouvelle
+    },
+) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Vue {
         val liaison =
             ItemRapportPlantageBinding.inflate(
                 LayoutInflater.from(parent.context),
@@ -46,10 +39,7 @@ internal class RapportsPlantageAdapter(
         return Vue(liaison, surOuverture, surSuppression)
     }
 
-    override fun onBindViewHolder(
-        holder: Vue,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: Vue, position: Int) {
         holder.lier(getItem(position))
     }
 

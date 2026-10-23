@@ -27,23 +27,23 @@ import javax.inject.Singleton
  */
 @Singleton
 public class RegistreSourcesApercu
-    @Inject
-    constructor() {
-        private val sources = ConcurrentHashMap<String, SourceApercu>()
+@Inject
+constructor() {
+    private val sources = ConcurrentHashMap<String, SourceApercu>()
 
-        /** Enregistre (ou remplace) la source d'un document ouvert. */
-        public fun enregistrer(source: SourceApercu) {
-            sources[source.uri] = source
-        }
-
-        /** Libère la source d'un document fermé (onglet fermé, session disposée). */
-        public fun liberer(uri: String) {
-            sources.remove(uri)
-        }
-
-        /** La source d'un document ouvert, ou `null` (jamais ouvert ou processus mort). */
-        public fun sourceDe(uri: String): SourceApercu? = sources[uri]
-
-        /** Les sources enregistrées, TRIÉES par chemin relatif (sélecteur de fichier déterministe). */
-        public fun sources(): List<SourceApercu> = sources.values.sortedBy { it.cheminRelatif }
+    /** Enregistre (ou remplace) la source d'un document ouvert. */
+    public fun enregistrer(source: SourceApercu) {
+        sources[source.uri] = source
     }
+
+    /** Libère la source d'un document fermé (onglet fermé, session disposée). */
+    public fun liberer(uri: String) {
+        sources.remove(uri)
+    }
+
+    /** La source d'un document ouvert, ou `null` (jamais ouvert ou processus mort). */
+    public fun sourceDe(uri: String): SourceApercu? = sources[uri]
+
+    /** Les sources enregistrées, TRIÉES par chemin relatif (sélecteur de fichier déterministe). */
+    public fun sources(): List<SourceApercu> = sources.values.sortedBy { it.cheminRelatif }
+}

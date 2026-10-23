@@ -26,10 +26,7 @@ public object DiffUnifie {
      *        suivante).
      * @return les lignes du diff unifié, dans l'ordre.
      */
-    public fun calculer(
-        ancien: List<String>,
-        nouveau: List<String>,
-    ): List<LigneDiff> {
+    public fun calculer(ancien: List<String>, nouveau: List<String>): List<LigneDiff> {
         // 1-2. Rognage du préfixe et du suffixe communs (borne le cœur).
         val bornes = rognerCommuns(ancien, nouveau)
         val coeurAncien = ancien.subList(bornes.debut, bornes.finAncien)
@@ -50,18 +47,11 @@ public object DiffUnifie {
     }
 
     /** Bornes du cœur après rognage des extrémités communes. */
-    private data class Bornes(
-        val debut: Int,
-        val finAncien: Int,
-        val finNouveau: Int,
-    )
+    private data class Bornes(val debut: Int, val finAncien: Int, val finNouveau: Int)
 
     /** Rognage du préfixe puis du suffixe communs (le cas courant :
      *  petite édition au milieu d'un fichier — le cœur devient minuscule). */
-    private fun rognerCommuns(
-        ancien: List<String>,
-        nouveau: List<String>,
-    ): Bornes {
+    private fun rognerCommuns(ancien: List<String>, nouveau: List<String>): Bornes {
         var debut = 0
         while (debut < ancien.size && debut < nouveau.size && ancien[debut] == nouveau[debut]) {
             debut++
@@ -80,11 +70,7 @@ public object DiffUnifie {
      * cœur vide d'un côté → pur ajout/retrait ; cœur trop grand pour
      * Myers borné → repli honnête (tout remplacé) ; sinon Myers exact.
      */
-    private fun ajouterCoeur(
-        coeurAncien: List<String>,
-        coeurNouveau: List<String>,
-        lignes: MutableList<LigneDiff>,
-    ) {
+    private fun ajouterCoeur(coeurAncien: List<String>, coeurNouveau: List<String>, lignes: MutableList<LigneDiff>) {
         when {
             coeurAncien.isEmpty() -> {
                 coeurNouveau.forEach { lignes.add(LigneDiff(TypeLigneDiff.AJOUT, it)) }
@@ -147,10 +133,7 @@ public object DiffUnifie {
      * DIAGONALE/DESCENDRE/AVANCER. Le cœur est borné par l'appelant ;
      * la trace est reconstruite en remontant les V (pas de récursion).
      */
-    private fun myers(
-        ancien: List<String>,
-        nouveau: List<String>,
-    ): List<EtapeMyers> {
+    private fun myers(ancien: List<String>, nouveau: List<String>): List<EtapeMyers> {
         val avancee = myersAvancer(ancien, nouveau)
         if (avancee.dFinal < 0) {
             // Inatteignable par construction (D = N+M suffit toujours) —
@@ -164,21 +147,14 @@ public object DiffUnifie {
     }
 
     /** État du parcours avant remontée : traces de V et profondeur finale. */
-    private class AvanceeMyers(
-        val traces: List<IntArray>,
-        val dFinal: Int,
-        val offset: Int,
-    )
+    private class AvanceeMyers(val traces: List<IntArray>, val dFinal: Int, val offset: Int)
 
     /**
      * Phase ALLER de Myers : profondeur croissante, V[k] = x le plus
      * avancé sur la diagonale k. traces[d] = V APRÈS la profondeur d —
      * la remontée relit V(d-1) = traces[d-1].
      */
-    private fun myersAvancer(
-        ancien: List<String>,
-        nouveau: List<String>,
-    ): AvanceeMyers {
+    private fun myersAvancer(ancien: List<String>, nouveau: List<String>): AvanceeMyers {
         val n = ancien.size
         val m = nouveau.size
         val maxD = n + m
@@ -219,11 +195,7 @@ public object DiffUnifie {
      * rend d'abord son SERPENT (diagonales), puis son MOUVEMENT —
      * l'inversion finale retrouve l'ordre chronologique.
      */
-    private fun myersRemonter(
-        avancee: AvanceeMyers,
-        n: Int,
-        m: Int,
-    ): List<EtapeMyers> {
+    private fun myersRemonter(avancee: AvanceeMyers, n: Int, m: Int): List<EtapeMyers> {
         val traces = avancee.traces
         val offset = avancee.offset
         val etapes = ArrayList<EtapeMyers>(n + m)
@@ -280,7 +252,4 @@ public enum class TypeLigneDiff {
 }
 
 /** Une ligne du diff unifié : son type et son texte (sans marqueur). */
-public data class LigneDiff(
-    public val type: TypeLigneDiff,
-    public val texte: String,
-)
+public data class LigneDiff(public val type: TypeLigneDiff, public val texte: String)

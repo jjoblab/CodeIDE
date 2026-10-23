@@ -28,32 +28,31 @@ import javax.inject.Inject
  * (règle 5 : I/O hors du thread principal).
  */
 public class DiagnostiquerGitProjetUseCase
-    @Inject
-    constructor(
-        private val depotProjets: ProjectRepository,
-        private val resoudreChemin: ResolveurCheminFuse,
-        private val moteurGit: MoteurGit,
-        private val repartiteurs: DispatcherProvider,
-    ) {
-        /**
-         * Exécute le diagnostic Git pour le projet le plus récemment ouvert.
-         *
-         * @return le rapport brut — toujours présent, même sans projet
-         * (les sondes globales restent exécutées).
-         */
-        public suspend operator fun invoke(): RapportDiagnosticGit =
-            withContext(repartiteurs.io) {
-                val projets = depotProjets.observeProjects().first()
-                val projet = projets.maxByOrNull { it.lastOpenedAtMillis ?: ABSENT }
-                val cheminFuse = projet?.let { resoudreChemin(it.location.documentUri) }
-                moteurGit.diagnostiquer(
-                    nomProjet = projet?.name,
-                    cheminFuse = cheminFuse,
-                )
-            }
-
-        private companion object {
-            /** Horodatage conventionnel d'un projet jamais ouvert (jamais confondu avec un vrai, toujours positif). */
-            private const val ABSENT = -1L
-        }
+@Inject
+constructor(
+    private val depotProjets: ProjectRepository,
+    private val resoudreChemin: ResolveurCheminFuse,
+    private val moteurGit: MoteurGit,
+    private val repartiteurs: DispatcherProvider,
+) {
+    /**
+     * Exécute le diagnostic Git pour le projet le plus récemment ouvert.
+     *
+     * @return le rapport brut — toujours présent, même sans projet
+     * (les sondes globales restent exécutées).
+     */
+    public suspend operator fun invoke(): RapportDiagnosticGit = withContext(repartiteurs.io) {
+        val projets = depotProjets.observeProjects().first()
+        val projet = projets.maxByOrNull { it.lastOpenedAtMillis ?: ABSENT }
+        val cheminFuse = projet?.let { resoudreChemin(it.location.documentUri) }
+        moteurGit.diagnostiquer(
+            nomProjet = projet?.name,
+            cheminFuse = cheminFuse,
+        )
     }
+
+    private companion object {
+        /** Horodatage conventionnel d'un projet jamais ouvert (jamais confondu avec un vrai, toujours positif). */
+        private const val ABSENT = -1L
+    }
+}

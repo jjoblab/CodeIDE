@@ -41,23 +41,23 @@ public fun interface LogVerbosityApplier {
  * instantanée et non bloquante.
  */
 public class SetLogVerbosityUseCase
-    @Inject
-    constructor(
-        private val settings: SettingsRepository,
-        private val applier: LogVerbosityApplier,
-    ) {
-        /**
-         * Persiste puis applique la verbosité demandée.
-         *
-         * @param verbosity `NORMAL` ou `DETAILED`.
-         * @return le succès, ou l'échec d'écriture typé (dans ce cas le moteur
-         * garde son niveau courant).
-         */
-        public suspend operator fun invoke(verbosity: LogVerbosity): AppResult<Unit> {
-            val resultat = settings.updateSettings { it.copy(logLevel = verbosity) }
-            if (resultat is AppResult.Success) {
-                applier.apply(verbosity)
-            }
-            return resultat
+@Inject
+constructor(
+    private val settings: SettingsRepository,
+    private val applier: LogVerbosityApplier,
+) {
+    /**
+     * Persiste puis applique la verbosité demandée.
+     *
+     * @param verbosity `NORMAL` ou `DETAILED`.
+     * @return le succès, ou l'échec d'écriture typé (dans ce cas le moteur
+     * garde son niveau courant).
+     */
+    public suspend operator fun invoke(verbosity: LogVerbosity): AppResult<Unit> {
+        val resultat = settings.updateSettings { it.copy(logLevel = verbosity) }
+        if (resultat is AppResult.Success) {
+            applier.apply(verbosity)
         }
+        return resultat
     }
+}

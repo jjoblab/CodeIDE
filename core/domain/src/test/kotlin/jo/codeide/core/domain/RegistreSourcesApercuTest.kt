@@ -19,18 +19,11 @@ class RegistreSourcesApercuTest {
     ) : SourceApercu {
         override fun texte(): String = ""
 
-        override fun remplacer(
-            debut: Int,
-            fin: Int,
-            remplacement: String,
-        ): Boolean = false
+        override fun remplacer(debut: Int, fin: Int, remplacement: String): Boolean = false
 
         override fun selection(): Pair<Int, Int> = 0 to 0
 
-        override fun definirSelection(
-            debut: Int,
-            fin: Int,
-        ) = Unit
+        override fun definirSelection(debut: Int, fin: Int) = Unit
 
         override fun annuler(): Boolean = false
 

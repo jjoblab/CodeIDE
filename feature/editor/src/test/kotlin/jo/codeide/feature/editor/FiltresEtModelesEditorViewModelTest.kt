@@ -18,80 +18,77 @@ class FiltresEtModelesEditorViewModelTest : BaseEditorViewModelTest() {
     // --- C2e : filtres ---
 
     @Test
-    fun `les dossiers build et gradle sont visibles par defaut`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerDossier("src")
-            semerDossier("build")
-            semerDossier(".gradle")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            runCurrent()
-            viewModel.onAction(ActionEditor.BasculerNoeud(URI_DOCUMENT_PROJET))
-            runCurrent()
+    fun `les dossiers build et gradle sont visibles par defaut`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerDossier("src")
+        semerDossier("build")
+        semerDossier(".gradle")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        runCurrent()
+        viewModel.onAction(ActionEditor.BasculerNoeud(URI_DOCUMENT_PROJET))
+        runCurrent()
 
-            val noms =
-                viewModel.etat.value.noeuds
-                    .map { it.nom }
-            // v0.80.1 : retour utilisateur — .gradle/ et app/build sont
-            // VISIBLES par défaut (l'utilisateur de l'IDE se sert de ces
-            // dossiers pour suivre une sync Gradle) ; la bascule du
-            // popover « Légende » les masque.
-            assertTrue("build visible par défaut (v0.80.1)", noms.contains("build"))
-            assertTrue(".gradle visible par défaut (v0.80.1)", noms.contains(".gradle"))
-            assertTrue("src visible", noms.contains("src"))
-        }
-
-    @Test
-    fun `basculer dossiers build masque build et gradle`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerDossier("src")
-            semerDossier("build")
-            semerDossier(".gradle")
-            val viewModel = viewModel(alpha)
-            runCurrent()
-            viewModel.onAction(ActionEditor.BasculerNoeud(URI_DOCUMENT_PROJET))
-            runCurrent()
-            viewModel.onAction(ActionEditor.BasculerDossiersBuild)
-            runCurrent()
-
-            val noms =
-                viewModel.etat.value.noeuds
-                    .map { it.nom }
-            assertFalse("build masqué après bascule", noms.contains("build"))
-            assertFalse(".gradle masqué après bascule", noms.contains(".gradle"))
-        }
+        val noms =
+            viewModel.etat.value.noeuds
+                .map { it.nom }
+        // v0.80.1 : retour utilisateur — .gradle/ et app/build sont
+        // VISIBLES par défaut (l'utilisateur de l'IDE se sert de ces
+        // dossiers pour suivre une sync Gradle) ; la bascule du
+        // popover « Légende » les masque.
+        assertTrue("build visible par défaut (v0.80.1)", noms.contains("build"))
+        assertTrue(".gradle visible par défaut (v0.80.1)", noms.contains(".gradle"))
+        assertTrue("src visible", noms.contains("src"))
+    }
 
     @Test
-    fun `les fichiers caches sont masques quand l option est activee`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerFichier(".gitignore")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            runCurrent()
-            viewModel.onAction(ActionEditor.BasculerNoeud(URI_DOCUMENT_PROJET))
-            runCurrent()
-            assertTrue(
-                ".gitignore visible par défaut",
-                viewModel.etat.value.noeuds
-                    .any { it.nom == ".gitignore" },
-            )
+    fun `basculer dossiers build masque build et gradle`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerDossier("src")
+        semerDossier("build")
+        semerDossier(".gradle")
+        val viewModel = viewModel(alpha)
+        runCurrent()
+        viewModel.onAction(ActionEditor.BasculerNoeud(URI_DOCUMENT_PROJET))
+        runCurrent()
+        viewModel.onAction(ActionEditor.BasculerDossiersBuild)
+        runCurrent()
 
-            viewModel.onAction(ActionEditor.BasculerFichiersCaches)
-            runCurrent()
-            assertFalse(
-                ".gitignore masqué après bascule",
-                viewModel.etat.value.noeuds
-                    .any { it.nom == ".gitignore" },
-            )
-            assertTrue(
-                "Main.kt reste visible",
-                viewModel.etat.value.noeuds
-                    .any { it.nom == "Main.kt" },
-            )
-        }
+        val noms =
+            viewModel.etat.value.noeuds
+                .map { it.nom }
+        assertFalse("build masqué après bascule", noms.contains("build"))
+        assertFalse(".gradle masqué après bascule", noms.contains(".gradle"))
+    }
+
+    @Test
+    fun `les fichiers caches sont masques quand l option est activee`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerFichier(".gitignore")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        runCurrent()
+        viewModel.onAction(ActionEditor.BasculerNoeud(URI_DOCUMENT_PROJET))
+        runCurrent()
+        assertTrue(
+            ".gitignore visible par défaut",
+            viewModel.etat.value.noeuds
+                .any { it.nom == ".gitignore" },
+        )
+
+        viewModel.onAction(ActionEditor.BasculerFichiersCaches)
+        runCurrent()
+        assertFalse(
+            ".gitignore masqué après bascule",
+            viewModel.etat.value.noeuds
+                .any { it.nom == ".gitignore" },
+        )
+        assertTrue(
+            "Main.kt reste visible",
+            viewModel.etat.value.noeuds
+                .any { it.nom == "Main.kt" },
+        )
+    }
 
     // --- C2f : déduction de package et génération de contenu (fonctions pures du companion) ---
 

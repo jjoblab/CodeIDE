@@ -113,11 +113,10 @@ class AppliquerApparenceTest {
     }
 
     /** Couleur effective d'une ressource du module, résolue par le contexte de test. */
-    private fun couleurAttendue(idCouleur: Int): Int =
-        ContextCompat.getColor(
-            ApplicationProvider.getApplicationContext<Context>(),
-            idCouleur,
-        )
+    private fun couleurAttendue(idCouleur: Int): Int = ContextCompat.getColor(
+        ApplicationProvider.getApplicationContext<Context>(),
+        idCouleur,
+    )
 
     /** Remet l'état du singleton sur les valeurs de production. */
     private fun reinitialiserEtat() {

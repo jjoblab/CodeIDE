@@ -12,10 +12,7 @@ import java.nio.charset.StandardCharsets
  * @property data données (`data:` du flux) — plusieurs lignes `data:`
  * d'un même événement sont jointes par `\n` (spécification SSE).
  */
-public class SseEvent(
-    public val event: String?,
-    public val data: String,
-) {
+public class SseEvent(public val event: String?, public val data: String) {
     override fun toString(): String = "SseEvent(event=${event ?: "message"}, data=${data.length} car.)"
 }
 
@@ -102,12 +99,11 @@ public class SseParser {
      * @param input flux d'octets du corps de réponse.
      * @return séquence d'événements, dans l'ordre d'arrivée.
      */
-    public fun parseBytes(input: InputStream): Sequence<SseEvent> =
-        parseLines(
-            input
-                .bufferedReader(StandardCharsets.UTF_8)
-                .lineSequence(),
-        )
+    public fun parseBytes(input: InputStream): Sequence<SseEvent> = parseLines(
+        input
+            .bufferedReader(StandardCharsets.UTF_8)
+            .lineSequence(),
+    )
 
     private companion object {
         /** Préfixe d'un commentaire SSE. */

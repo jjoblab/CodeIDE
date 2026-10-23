@@ -60,21 +60,14 @@ public class FeuilleApercuFragment : Fragment() {
     /** La sélection partagée (indice dans l'arbre, -1 aucune). */
     private var selectionCourante: Int = -1
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        conteneur: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, conteneur: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentFeuilleApercuBinding.inflate(inflater, conteneur, false)
         construireOnglets()
         liaison.grabFeuille.setOnClickListener { basculerFeuille() }
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Le comportement vit sur le CONTENEUR de l'activité (FrameLayout
         // `conteneur_feuille`, enfant direct du CoordinatorLayout, posé

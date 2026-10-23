@@ -94,19 +94,12 @@ class TerminalTiroirFragment : Fragment() {
         controleur = contexte as? ControleurTerminalTiroir
     }
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentTerminalTiroirBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         brancherEntete()
         brancherEtatsVides()
         liaison.clavierEtenduTiroir.ecouteur =
@@ -241,10 +234,7 @@ class TerminalTiroirFragment : Fragment() {
     }
 
     /** Remplit une carte de session (libellé, détail, badge, actions). */
-    private fun remplirCarte(
-        carte: VueCarteSessionTerminalBinding,
-        session: TerminalSessionSummary,
-    ) {
+    private fun remplirCarte(carte: VueCarteSessionTerminalBinding, session: TerminalSessionSummary) {
         carte.libelleSessionCarte.text = session.label
         carte.detailSessionCarte.text =
             getString(
@@ -349,10 +339,7 @@ class TerminalTiroirFragment : Fragment() {
     }
 
     /** Crée un panneau interactif branché sur sa session. */
-    private fun creerPanneau(
-        session: TerminalSessionSummary,
-        pleinEcranDansTiroir: Boolean,
-    ): PanneTerminal {
+    private fun creerPanneau(session: TerminalSessionSummary, pleinEcranDansTiroir: Boolean): PanneTerminal {
         val liaisonPanne =
             VuePanneauTerminalBinding.inflate(layoutInflater, liaison.conteneurSplit, false)
         liaisonPanne.libellePanneau.text = session.label
@@ -428,10 +415,7 @@ class TerminalTiroirFragment : Fragment() {
     }
 
     /** Zoom pincé d'un panneau (contrat Termux : le client applique). */
-    private fun zoomerPanneau(
-        panne: PanneTerminal,
-        facteur: Float,
-    ): Boolean {
+    private fun zoomerPanneau(panne: PanneTerminal, facteur: Float): Boolean {
         if (facteur in SEUIL_ZOOM_NEGIGEABLE..SEUIL_ZOOM_NOTABLE) return false
         val courante = panne.tailleRenduePx
         val cible = (courante * facteur).toInt().coerceIn(zoomMinPx, zoomMaxPx)
@@ -465,11 +449,10 @@ class TerminalTiroirFragment : Fragment() {
     private fun couleur(ressource: Int): Int = ContextCompat.getColor(requireContext(), ressource)
 
     /** Heure de création d'une session (HH:mm, fuseau de l'appareil). */
-    private fun heure(instant: Instant): String =
-        DateTimeFormatter
-            .ofPattern(FORMAT_HEURE)
-            .withZone(ZoneId.systemDefault())
-            .format(instant)
+    private fun heure(instant: Instant): String = DateTimeFormatter
+        .ofPattern(FORMAT_HEURE)
+        .withZone(ZoneId.systemDefault())
+        .format(instant)
 
     /** Taille initiale des panneaux (réglage « moyenne », 15 dp). */
     private fun policeInitialePx(): Int = (POLICE_INITIALE_DP * resources.displayMetrics.density).toInt()

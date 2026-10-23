@@ -38,70 +38,63 @@ class LogRepositoryImplTest {
     }
 
     /** Écrit une entrée directement dans le stockage (controle du disque). */
-    private fun ecrireSurDisque(
-        store: JsonlLogStore,
-        message: String,
-    ) {
+    private fun ecrireSurDisque(store: JsonlLogStore, message: String) {
         store.appendLines(
             lines =
-                listOf(
-                    """{"timestampMillis":1,"sessionId":"a","level":"INFO","tag":"T",""" +
-                        """"threadName":"main","message":"$message"}""",
-                ),
+            listOf(
+                """{"timestampMillis":1,"sessionId":"a","level":"INFO","tag":"T",""" +
+                    """"threadName":"main","message":"$message"}""",
+            ),
             maxFileSizeBytes = 1_048_576L,
             maxArchiveFiles = 5,
         )
     }
 
     @Test
-    fun `observeRecent sème avec l'instantané puis suit les nouvelles entrées`() =
-        runTest {
-            val (moteur, _, depot) = assembler(testScheduler)
-            moteur.i("Test") { "première" }
-            moteur.i("Test") { "deuxième" }
+    fun `observeRecent sème avec l'instantané puis suit les nouvelles entrées`() = runTest {
+        val (moteur, _, depot) = assembler(testScheduler)
+        moteur.i("Test") { "première" }
+        moteur.i("Test") { "deuxième" }
 
-            depot.observeRecent(limit = 2).test {
-                assertEquals(listOf("première", "deuxième"), awaitItem().map { it.message })
-                moteur.i("Test") { "troisième" }
-                assertEquals(listOf("deuxième", "troisième"), awaitItem().map { it.message })
-                cancelAndIgnoreRemainingEvents()
-            }
+        depot.observeRecent(limit = 2).test {
+            assertEquals(listOf("première", "deuxième"), awaitItem().map { it.message })
+            moteur.i("Test") { "troisième" }
+            assertEquals(listOf("deuxième", "troisième"), awaitItem().map { it.message })
+            cancelAndIgnoreRemainingEvents()
         }
+    }
 
     @Test
-    fun `readAll lit l'historique persisté`() =
-        runTest {
-            val (_, store, depot) = assembler(testScheduler)
-            ecrireSurDisque(store, "une")
-            ecrireSurDisque(store, "deux")
+    fun `readAll lit l'historique persisté`() = runTest {
+        val (_, store, depot) = assembler(testScheduler)
+        ecrireSurDisque(store, "une")
+        ecrireSurDisque(store, "deux")
 
-            val lues = depot.readAll()
+        val lues = depot.readAll()
 
-            assertEquals(listOf("une", "deux"), lues.map { it.message })
-        }
-
-    @Test
-    fun `diskUsage reflète le stockage`() =
-        runTest {
-            val (_, store, depot) = assembler(testScheduler)
-            ecrireSurDisque(store, "une")
-
-            val occupation = depot.diskUsage()
-
-            assertTrue(occupation.bytes > 0)
-            assertEquals(1, occupation.fileCount)
-        }
+        assertEquals(listOf("une", "deux"), lues.map { it.message })
+    }
 
     @Test
-    fun `clear efface les fichiers et le tampon des entrées récentes`() =
-        runTest {
-            val (moteur, store, depot) = assembler(testScheduler)
-            moteur.i("Test") { "au tampon" }
-            ecrireSurDisque(store, "sur disque")
+    fun `diskUsage reflète le stockage`() = runTest {
+        val (_, store, depot) = assembler(testScheduler)
+        ecrireSurDisque(store, "une")
 
-            depot.clear()
+        val occupation = depot.diskUsage()
 
-            assertTrue(depot.readAll().isEmpty())
-            assertTrue(moteur.snapshot(LoggingLimits.BREADCRUMB_CAPACITY).isEmpty())
-        }
+        assertTrue(occupation.bytes > 0)
+        assertEquals(1, occupation.fileCount)
+    }
+
+    @Test
+    fun `clear efface les fichiers et le tampon des entrées récentes`() = runTest {
+        val (moteur, store, depot) = assembler(testScheduler)
+        moteur.i("Test") { "au tampon" }
+        ecrireSurDisque(store, "sur disque")
+
+        depot.clear()
+
+        assertTrue(depot.readAll().isEmpty())
+        assertTrue(moteur.snapshot(LoggingLimits.BREADCRUMB_CAPACITY).isEmpty())
+    }
 }

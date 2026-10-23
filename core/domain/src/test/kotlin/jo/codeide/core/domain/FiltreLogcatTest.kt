@@ -16,15 +16,14 @@ class FiltreLogcatTest {
         niveau: NiveauJournal = NiveauJournal.INFO,
         etiquette: String = "MainActivity",
         message: String = "onCreate terminé",
-    ): LigneJournal =
-        LigneJournal(
-            horodatageMs = 1_000L,
-            pid = 4321,
-            tid = 4321,
-            niveau = niveau,
-            etiquette = etiquette,
-            message = message,
-        )
+    ): LigneJournal = LigneJournal(
+        horodatageMs = 1_000L,
+        pid = 4321,
+        tid = 4321,
+        niveau = niveau,
+        etiquette = etiquette,
+        message = message,
+    )
 
     @Test
     fun `le filtre par defaut accepte tout`() {

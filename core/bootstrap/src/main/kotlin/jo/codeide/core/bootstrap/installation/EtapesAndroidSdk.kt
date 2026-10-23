@@ -120,22 +120,16 @@ internal class EtapeComposants(
     }
 
     /** Tous les composants du plan doivent vérifier — les non critiques dégradés sont tolérés. */
-    override suspend fun verify(context: StepContext): Boolean =
-        plan().components.all { prevu ->
-            when (controleComposant(context, racine, prevu.component, execution, magasin)) {
-                VerdictComposant.Verifie -> true
-                VerdictComposant.Absent -> false
-                is VerdictComposant.Degrade -> true // non critique tenté et en échec isolé : toléré (Degraded)
-            }
+    override suspend fun verify(context: StepContext): Boolean = plan().components.all { prevu ->
+        when (controleComposant(context, racine, prevu.component, execution, magasin)) {
+            VerdictComposant.Verifie -> true
+            VerdictComposant.Absent -> false
+            is VerdictComposant.Degrade -> true // non critique tenté et en échec isolé : toléré (Degraded)
         }
+    }
 
     /** Installe UN composant : téléchargement (cache), extraction, bascule atomique, re-contrôle. */
-    private suspend fun installer(
-        context: StepContext,
-        composant: ManifestComponent,
-        index: Int,
-        total: Int,
-    ) {
+    private suspend fun installer(context: StepContext, composant: ManifestComponent, index: Int, total: Int) {
         try {
             context.journal(
                 "composant ${composant.id} ($index/$total) : " +
@@ -161,7 +155,7 @@ internal class EtapeComposants(
                         AppError.EnvironmentSetup(
                             reason = EnvironmentSetupReason.Commande,
                             details =
-                                "le contrôle après installation ne retrouve pas le composant ${composant.id}",
+                            "le contrôle après installation ne retrouve pas le composant ${composant.id}",
                         ),
                     )
                 }
@@ -174,10 +168,7 @@ internal class EtapeComposants(
     }
 
     /** Télécharge l'archive (cache SHA-256 : présent + somme correcte = zéro requête réseau). */
-    private suspend fun telecharger(
-        context: StepContext,
-        composant: ManifestComponent,
-    ): File {
+    private suspend fun telecharger(context: StepContext, composant: ManifestComponent): File {
         val resultat =
             context.downloads.download(
                 DownloadRequest(
@@ -206,11 +197,7 @@ internal class EtapeComposants(
      * source — les miroirs sont supposés servir le même format (contrat
      * du manifeste).
      */
-    private suspend fun extraire(
-        context: StepContext,
-        composant: ManifestComponent,
-        archive: File,
-    ) {
+    private suspend fun extraire(context: StepContext, composant: ManifestComponent, archive: File) {
         val staging = staging(composant)
         staging.deleteRecursively()
         staging.mkdirs()
@@ -242,11 +229,11 @@ internal class EtapeComposants(
                 ErreursInstallation.commande(
                     description = "extraction de l'archive de ${composant.id} impossible",
                     commande =
-                        if (estZip) {
-                            "unzip -q <archive-${composant.id}> -d <staging>"
-                        } else {
-                            "tar -xJf <archive-${composant.id}> -C <staging>"
-                        },
+                    if (estZip) {
+                        "unzip -q <archive-${composant.id}> -d <staging>"
+                    } else {
+                        "tar -xJf <archive-${composant.id}> -C <staging>"
+                    },
                     resultat = resultat,
                 ),
             )
@@ -258,18 +245,17 @@ internal class EtapeComposants(
                 AppError.EnvironmentSetup(
                     reason = EnvironmentSetupReason.ManifesteInvalide,
                     details =
-                        "l'archive de ${composant.id} contient un chemin hostile : " +
-                            "$hostile (contrat § 12.3 rompu)",
+                    "l'archive de ${composant.id} contient un chemin hostile : " +
+                        "$hostile (contrat § 12.3 rompu)",
                 ),
             )
         }
     }
 
     /** Détecte le format `.zip` par l'extension de l'URL de la première source. */
-    private fun estArchiveZip(composant: ManifestComponent): Boolean =
-        composant.sources.firstOrNull()?.let { url ->
-            url.endsWith(".zip", ignoreCase = true)
-        } ?: false
+    private fun estArchiveZip(composant: ManifestComponent): Boolean = composant.sources.firstOrNull()?.let { url ->
+        url.endsWith(".zip", ignoreCase = true)
+    } ?: false
 
     /**
      * Déplace l'`installPath` extrait vers la racine du SDK — atomique
@@ -286,10 +272,7 @@ internal class EtapeComposants(
      * du staging. Si `installPath` est introuvable ET qu'un seul dossier
      * existe au premier niveau du staging, on l'utilise comme source.
      */
-    private suspend fun basculer(
-        context: StepContext,
-        composant: ManifestComponent,
-    ) {
+    private suspend fun basculer(context: StepContext, composant: ManifestComponent) {
         val stagingDir = staging(composant)
         val racineExtraite = composant.archiveRoot ?: composant.installPath
         var source = File(stagingDir, racineExtraite)
@@ -316,13 +299,13 @@ internal class EtapeComposants(
                 AppError.EnvironmentSetup(
                     reason = EnvironmentSetupReason.ManifesteInvalide,
                     details =
-                        "l'archive de ${composant.id} ne contient pas la racine " +
-                            "« $racineExtraite » " +
-                            if (composant.archiveRoot != null) {
-                                "(archiveRoot, contrat § 12.3 + additif archiveRoot)"
-                            } else {
-                                "(installPath, contrat § 12.3)"
-                            },
+                    "l'archive de ${composant.id} ne contient pas la racine " +
+                        "« $racineExtraite » " +
+                        if (composant.archiveRoot != null) {
+                            "(archiveRoot, contrat § 12.3 + additif archiveRoot)"
+                        } else {
+                            "(installPath, contrat § 12.3)"
+                        },
                 ),
             )
         }
@@ -339,7 +322,7 @@ internal class EtapeComposants(
                 AppError.EnvironmentSetup(
                     reason = EnvironmentSetupReason.Permissions,
                     details =
-                        "bascule de l'installPath « ${composant.installPath} » impossible : ${e.message}",
+                    "bascule de l'installPath « ${composant.installPath} » impossible : ${e.message}",
                 ),
             )
         }
@@ -368,10 +351,7 @@ internal class EtapeComposants(
      * les fichiers réguliers dont la première ligne commence par
      * `#!/usr/bin/env `. Préserve le reste du fichier.
      */
-    private fun reparerShebangs(
-        context: StepContext,
-        composant: ManifestComponent,
-    ) {
+    private fun reparerShebangs(context: StepContext, composant: ManifestComponent) {
         val prefixe = DispositionsBootstrap.prefix(racine)
         val cible = File(racineSdk(racine), composant.installPath)
         if (!cible.isDirectory) return
@@ -389,10 +369,7 @@ internal class EtapeComposants(
 
     /** Réécrit `#!/usr/bin/env <interp>` → `#!<prefix>/bin/<interp>` si applicable. */
     @Suppress("ReturnCount")
-    private fun reparerShebang(
-        fichier: File,
-        prefixe: File,
-    ): Boolean {
+    private fun reparerShebang(fichier: File, prefixe: File): Boolean {
         val lignes = runCatching { fichier.readLines() }.getOrNull() ?: return false
         if (lignes.isEmpty()) return false
         val premiere = lignes[0]
@@ -417,10 +394,7 @@ internal class EtapeComposants(
     private fun staging(composant: ManifestComponent): File = File(File(racine, "sdk-staging"), composant.id)
 
     /** Arbitrage d'un échec : critique → exception typée ; non critique → dégradation, l'étape continue (§ 5.4). */
-    private fun arbitrer(
-        composant: ManifestComponent,
-        erreur: AppError.EnvironmentSetup,
-    ): Nothing =
+    private fun arbitrer(composant: ManifestComponent, erreur: AppError.EnvironmentSetup): Nothing =
         if (composant.critical) {
             throw EchecEtapeInstallation(erreur)
         } else {
@@ -429,10 +403,7 @@ internal class EtapeComposants(
         }
 
     /** Variante contextualisée (extraction, bascule, re-contrôle) du même arbitrage. */
-    private fun echouer(
-        composant: ManifestComponent,
-        erreur: AppError.EnvironmentSetup,
-    ): Nothing =
+    private fun echouer(composant: ManifestComponent, erreur: AppError.EnvironmentSetup): Nothing =
         if (composant.critical) {
             throw EchecEtapeInstallation(erreur)
         } else {
@@ -447,14 +418,13 @@ internal class EtapeComposants(
     private fun diagnosticDe(composant: ManifestComponent): String =
         execution.problemes().lastOrNull { it.componentId == composant.id }?.diagnostic ?: "échec non critique"
 
-    private fun plan(): InstallPlan =
-        execution.planResolu
-            ?: throw EchecEtapeInstallation(
-                AppError.EnvironmentSetup(
-                    reason = EnvironmentSetupReason.ManifesteInvalide,
-                    details = "plan non résolu — l'étape resolution-plan doit précéder",
-                ),
-            )
+    private fun plan(): InstallPlan = execution.planResolu
+        ?: throw EchecEtapeInstallation(
+            AppError.EnvironmentSetup(
+                reason = EnvironmentSetupReason.ManifesteInvalide,
+                details = "plan non résolu — l'étape resolution-plan doit précéder",
+            ),
+        )
 
     internal companion object {
         /** Extraction d'archives de plusieurs centaines de Mio : 10 minutes. */
@@ -474,10 +444,7 @@ internal class RepriseApresDegradation : Exception("composant non critique en é
  * racine du SDK (§ 12.5) — l'acceptation explicite de l'utilisateur est
  * garantie par l'orchestrateur (la phase refuse de démarrer sans elle).
  */
-internal class EtapeLicences(
-    private val racine: File,
-    private val dispatchers: DispatcherProvider,
-) : InstallStep {
+internal class EtapeLicences(private val racine: File, private val dispatchers: DispatcherProvider) : InstallStep {
     override val id: StepId = StepId(InstallPhase.ANDROID_SDK, "licences")
 
     override suspend fun execute(context: StepContext) {
@@ -561,10 +528,7 @@ internal class EtapeCablage(
  * `sdkmanager` sont journalisés et sautés — jamais silencieux.
  */
 @Suppress("TooManyFunctions")
-internal class EtapeVerificationSdk(
-    private val racine: File,
-    private val execution: ExecutionPhaseSdk,
-) : InstallStep {
+internal class EtapeVerificationSdk(private val racine: File, private val execution: ExecutionPhaseSdk) : InstallStep {
     override val id: StepId = StepId(InstallPhase.ANDROID_SDK, "verification-sdk")
 
     override suspend fun execute(context: StepContext) {
@@ -589,11 +553,7 @@ internal class EtapeVerificationSdk(
     }
 
     /** Chaque `android.jar` du plan est présent et ouvrable (archive zip valide — contrôle JVM local). */
-    private fun controlerAndroidJars(
-        context: StepContext,
-        plan: InstallPlan,
-        racineSdk: File,
-    ) {
+    private fun controlerAndroidJars(context: StepContext, plan: InstallPlan, racineSdk: File) {
         plan.components
             .filter { it.component.id == "platform" }
             .forEach { prevu ->
@@ -612,11 +572,7 @@ internal class EtapeVerificationSdk(
     }
 
     /** `sdkmanager --version` puis cohérence de `--list_installed` — toléré absent si non critique. */
-    private suspend fun controlerParSdkmanager(
-        context: StepContext,
-        plan: InstallPlan,
-        racineSdk: File,
-    ) {
+    private suspend fun controlerParSdkmanager(context: StepContext, plan: InstallPlan, racineSdk: File) {
         val sdkmanager = preparerSdkmanager(context, plan, racineSdk) ?: return
         if (!controlerVersionSdkmanager(context, sdkmanager)) return
         controlerCoherenceListe(context, plan, sdkmanager)
@@ -629,11 +585,7 @@ internal class EtapeVerificationSdk(
      * jamais silencieux (absent du plan, binaire absent : non critique) ;
      * l'absence de JDK, elle, échoue franc (§ 5.4.5 : `sdkmanager` l'exige).
      */
-    private fun preparerSdkmanager(
-        context: StepContext,
-        plan: InstallPlan,
-        racineSdk: File,
-    ): Sdkmanager? =
+    private fun preparerSdkmanager(context: StepContext, plan: InstallPlan, racineSdk: File): Sdkmanager? =
         cmdlineDesControles(context, plan)?.let { cmdline ->
             binaireDesControles(context, cmdline, racineSdk)?.let { binaire ->
                 Sdkmanager(
@@ -646,10 +598,7 @@ internal class EtapeVerificationSdk(
         }
 
     /** `cmdline-tools` du plan, ou `null` après journal du saut (jamais silencieux). */
-    private fun cmdlineDesControles(
-        context: StepContext,
-        plan: InstallPlan,
-    ): ManifestComponent? =
+    private fun cmdlineDesControles(context: StepContext, plan: InstallPlan): ManifestComponent? =
         plan.find("cmdline-tools").also { absent ->
             if (absent == null) {
                 context.journal("aucun cmdline-tools dans le plan — contrôles sdkmanager sautés")
@@ -657,11 +606,7 @@ internal class EtapeVerificationSdk(
         }
 
     /** Binaire `sdkmanager` du composant, ou `null` après journal du saut (§ 5.4 : non critique). */
-    private fun binaireDesControles(
-        context: StepContext,
-        cmdline: ManifestComponent,
-        racineSdk: File,
-    ): File? {
+    private fun binaireDesControles(context: StepContext, cmdline: ManifestComponent, racineSdk: File): File? {
         val binaire = File(File(racineSdk, cmdline.installPath), "bin/sdkmanager")
         if (!binaire.isFile) {
             context.journal(
@@ -674,16 +619,15 @@ internal class EtapeVerificationSdk(
     }
 
     /** Le JDK vérifié — échec franc : `sdkmanager` l'exige (§ 5.4.5, phase JAVA préalable). */
-    private fun javaHomeExige(): File =
-        LocalisationOutils.trouverJavaHome(racine)
-            ?: throw EchecEtapeInstallation(
-                AppError.EnvironmentSetup(
-                    reason = EnvironmentSetupReason.Jvm,
-                    details =
-                        "sdkmanager exige un JDK — la phase JAVA doit être vérifiée " +
-                            "avant la phase ANDROID_SDK",
-                ),
-            )
+    private fun javaHomeExige(): File = LocalisationOutils.trouverJavaHome(racine)
+        ?: throw EchecEtapeInstallation(
+            AppError.EnvironmentSetup(
+                reason = EnvironmentSetupReason.Jvm,
+                details =
+                "sdkmanager exige un JDK — la phase JAVA doit être vérifiée " +
+                    "avant la phase ANDROID_SDK",
+            ),
+        )
 
     /** Éléments d'exécution des contrôles `sdkmanager` (regroupés — règle 8). */
     private data class Sdkmanager(
@@ -699,10 +643,7 @@ internal class EtapeVerificationSdk(
      * @return `false` quand l'échec — non critique — a été enregistré
      * (dégradation) et les contrôles suivants doivent être sautés.
      */
-    private suspend fun controlerVersionSdkmanager(
-        context: StepContext,
-        sdkmanager: Sdkmanager,
-    ): Boolean {
+    private suspend fun controlerVersionSdkmanager(context: StepContext, sdkmanager: Sdkmanager): Boolean {
         val version =
             context.commands.run(
                 CommandSpec(
@@ -733,11 +674,7 @@ internal class EtapeVerificationSdk(
      * un échec franc (sortie à l'appui), un échec d'appel dégrade
      * (cmdline-tools non critique).
      */
-    private suspend fun controlerCoherenceListe(
-        context: StepContext,
-        plan: InstallPlan,
-        sdkmanager: Sdkmanager,
-    ) {
+    private suspend fun controlerCoherenceListe(context: StepContext, plan: InstallPlan, sdkmanager: Sdkmanager) {
         val installes =
             context.commands.run(
                 CommandSpec(
@@ -764,14 +701,14 @@ internal class EtapeVerificationSdk(
                         AppError.EnvironmentSetup(
                             reason = EnvironmentSetupReason.Commande,
                             details =
-                                "sdkmanager --list_installed ne liste pas « ${prevu.component.installPath} » " +
-                                    "(${prevu.component.id}@${prevu.component.version}) — plan et SDK incohérents",
+                            "sdkmanager --list_installed ne liste pas « ${prevu.component.installPath} » " +
+                                "(${prevu.component.id}@${prevu.component.version}) — plan et SDK incohérents",
                             sortie =
-                                AppError.CommandOutput(
-                                    commande = "sdkmanager --list_installed",
-                                    exitCode = installes.exitCode,
-                                    lastLines = installes.tail(BORNE_SORTIE_DIAGNOSTIC),
-                                ),
+                            AppError.CommandOutput(
+                                commande = "sdkmanager --list_installed",
+                                exitCode = installes.exitCode,
+                                lastLines = installes.tail(BORNE_SORTIE_DIAGNOSTIC),
+                            ),
                         ),
                     )
                 }

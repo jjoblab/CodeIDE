@@ -19,10 +19,7 @@ public class FakeArchiveExtractor : ArchiveExtractor {
     /** Quand non `null`, l'extraction échoue par cette erreur typée. */
     public var echec: AppError? = null
 
-    override suspend fun extract(
-        archive: File,
-        targetDir: File,
-    ): AppResult<Unit> {
+    override suspend fun extract(archive: File, targetDir: File): AppResult<Unit> {
         extractions += archive to targetDir
         echec?.let { return AppResult.Failure(it) }
         return AppResult.Success(Unit)

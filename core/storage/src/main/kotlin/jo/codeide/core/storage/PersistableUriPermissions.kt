@@ -51,9 +51,8 @@ internal interface PersistableUriPermissions {
  * de travail doit être créable, renommable et effaçable par CodeIDE ; une
  * permission en lecture seule n'a aucun usage ici.
  */
-internal class ContentResolverPersistableUriPermissions(
-    private val resolver: ContentResolver,
-) : PersistableUriPermissions {
+internal class ContentResolverPersistableUriPermissions(private val resolver: ContentResolver) :
+    PersistableUriPermissions {
     override fun prendre(grantUri: Uri) {
         resolver.takePersistableUriPermission(
             grantUri,
@@ -68,8 +67,7 @@ internal class ContentResolverPersistableUriPermissions(
         )
     }
 
-    override fun detient(grantUri: Uri): Boolean =
-        resolver.persistedUriPermissions.any { permission ->
-            permission.uri == grantUri && permission.isWritePermission
-        }
+    override fun detient(grantUri: Uri): Boolean = resolver.persistedUriPermissions.any { permission ->
+        permission.uri == grantUri && permission.isWritePermission
+    }
 }

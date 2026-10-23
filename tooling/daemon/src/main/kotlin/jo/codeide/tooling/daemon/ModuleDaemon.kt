@@ -46,31 +46,24 @@ internal object ModuleDaemon {
      */
     @Provides
     @Singleton
-    internal fun hoteSocket(
-        @ApplicationContext context: Context,
-    ): HoteSocketTooling = HoteSocketAndroid(GradleSocketServer(dossierSocket(context), versionApp(context)))
+    internal fun hoteSocket(@ApplicationContext context: Context): HoteSocketTooling =
+        HoteSocketAndroid(GradleSocketServer(dossierSocket(context), versionApp(context)))
 
     /** Source du JAR orchestrateur : les assets de l'app (ADR 0040). */
     @Provides
     @Singleton
-    internal fun sourceJar(
-        @ApplicationContext context: Context,
-    ): SourceJarTooling = SourceJarAssets(context)
+    internal fun sourceJar(@ApplicationContext context: Context): SourceJarTooling = SourceJarAssets(context)
 
     /** Déployeur : JAR et marqueur sous `filesDir/tooling`. */
     @Provides
     @Singleton
-    internal fun deployeur(
-        @ApplicationContext context: Context,
-        dispatchers: DispatcherProvider,
-    ): JarDeployer = JarDeployer(sourceJar(context), dossierJar(context), dispatchers)
+    internal fun deployeur(@ApplicationContext context: Context, dispatchers: DispatcherProvider): JarDeployer =
+        JarDeployer(sourceJar(context), dossierJar(context), dispatchers)
 
     /** Source du dépôt applog : les assets de l'app (ADR 0103). */
     @Provides
     @Singleton
-    internal fun sourceAppLog(
-        @ApplicationContext context: Context,
-    ): SourceAppLog = SourceAppLogAssets(context)
+    internal fun sourceAppLog(@ApplicationContext context: Context): SourceAppLog = SourceAppLogAssets(context)
 
     /**
      * Déployeur du dépôt maven applog (mission « Exécuter » R2,
@@ -80,10 +73,8 @@ internal object ModuleDaemon {
      */
     @Provides
     @Singleton
-    internal fun deployeurAppLog(
-        source: SourceAppLog,
-        @ApplicationContext context: Context,
-    ): DepotAppLogDeployer = DepotAppLogDeployer(source, File(context.filesDir, DOSSIER_APPLOG))
+    internal fun deployeurAppLog(source: SourceAppLog, @ApplicationContext context: Context): DepotAppLogDeployer =
+        DepotAppLogDeployer(source, File(context.filesDir, DOSSIER_APPLOG))
 
     /**
      * Le daemon lui-même — les coutures de test (fabrique de commande,
@@ -107,22 +98,21 @@ internal object ModuleDaemon {
         parametres: SettingsRepository,
         journal: AppLogger,
         dispatchers: DispatcherProvider,
-    ): DaemonManager =
-        DaemonManager(
-            lanceur = lanceur,
-            outilchain = outilchain,
-            api = api,
-            hote = hote,
-            deployeur = deployeur,
-            journal = journal,
-            dispatchers = dispatchers,
-            deployeurAppLog = deployeurAppLog,
-            // Réglage utilisateur lu à CHAQUE lancement du process : un
-            // changement s'applique à la prochaine vie de l'orchestrateur
-            // (redémarrage de l'app ou de la chaîne d'outils) — dit tel
-            // quel dans l'écran des réglages.
-            lectureInjectionAppLog = { parametres.observeSettings().first().injectionAppLog },
-        )
+    ): DaemonManager = DaemonManager(
+        lanceur = lanceur,
+        outilchain = outilchain,
+        api = api,
+        hote = hote,
+        deployeur = deployeur,
+        journal = journal,
+        dispatchers = dispatchers,
+        deployeurAppLog = deployeurAppLog,
+        // Réglage utilisateur lu à CHAQUE lancement du process : un
+        // changement s'applique à la prochaine vie de l'orchestrateur
+        // (redémarrage de l'app ou de la chaîne d'outils) — dit tel
+        // quel dans l'écran des réglages.
+        lectureInjectionAppLog = { parametres.observeSettings().first().injectionAppLog },
+    )
 
     /** Répertoire privé `filesDir/run` (socket, supprimé du cache). */
     private fun dossierSocket(context: Context): File = File(context.filesDir, DOSSIER_SOCKET)
@@ -131,8 +121,7 @@ internal object ModuleDaemon {
     private fun dossierJar(context: Context): File = File(context.filesDir, DOSSIER_JAR)
 
     /** Version affichable du paquet installé (repli « inconnue »). */
-    private fun versionApp(context: Context): String =
-        runCatching {
-            context.packageManager.getPackageInfo(context.packageName, 0).versionName
-        }.getOrNull() ?: "inconnue"
+    private fun versionApp(context: Context): String = runCatching {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName
+    }.getOrNull() ?: "inconnue"
 }

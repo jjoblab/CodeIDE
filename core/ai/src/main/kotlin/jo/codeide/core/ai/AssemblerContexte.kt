@@ -28,10 +28,7 @@ public data class DonneesContexte(
 )
 
 /** Un fichier `@mentionné` et son contenu (null = lecture impossible). */
-public data class MentionFichier(
-    public val cheminRelatif: String,
-    public val contenu: String?,
-)
+public data class MentionFichier(public val cheminRelatif: String, public val contenu: String?)
 
 /**
  * Assembleur de contexte (mission IA, lot IA-4, ADR 0124 §4 et §4
@@ -48,18 +45,13 @@ public data class MentionFichier(
  *   n'accepte QUE du relatif — un absolu est refusé) ;
  * - les puces reflètent EXACTEMENT les pièces encadrées.
  */
-public class AssemblerContexte(
-    private val budget: TokenBudget = TokenBudget(),
-) {
+public class AssemblerContexte(private val budget: TokenBudget = TokenBudget()) {
     /**
      * Assemble le contexte à partir des données déjà lues et des
      * exclusions effectives (défaut + `.codeide/ia-ignore`) — un
      * pas par type de pièce, dans l'ordre des puces.
      */
-    public fun assembler(
-        donnees: DonneesContexte,
-        exclusions: ExclusionsIa,
-    ): ContexteIa {
+    public fun assembler(donnees: DonneesContexte, exclusions: ExclusionsIa): ContexteIa {
         val brouillon = BrouillonContexte(budget)
         fichierActif(donnees, exclusions, brouillon)
         selection(donnees, brouillon)
@@ -82,11 +74,7 @@ public class AssemblerContexte(
     }
 
     /** Fichier actif (interrupteur) — un exclu ne part pas, même actif. */
-    private fun fichierActif(
-        donnees: DonneesContexte,
-        exclusions: ExclusionsIa,
-        brouillon: BrouillonContexte,
-    ) {
+    private fun fichierActif(donnees: DonneesContexte, exclusions: ExclusionsIa, brouillon: BrouillonContexte) {
         val chemin = donnees.cheminFichierActif
         if (!donnees.envoyerFichierActif || chemin == null) {
             return
@@ -111,10 +99,7 @@ public class AssemblerContexte(
     }
 
     /** Sélection — contenu explicite de l'utilisateur, sans interrupteur. */
-    private fun selection(
-        donnees: DonneesContexte,
-        brouillon: BrouillonContexte,
-    ) {
+    private fun selection(donnees: DonneesContexte, brouillon: BrouillonContexte) {
         val courante = donnees.selection?.takeIf { it.texte.isNotBlank() } ?: return
         val partie =
             "<selection chemin=\"${courante.debut}-${courante.fin}\">\n" +
@@ -125,10 +110,7 @@ public class AssemblerContexte(
     }
 
     /** Diagnostics (interrupteur) — lignes compactées, pas de contenu. */
-    private fun diagnostics(
-        donnees: DonneesContexte,
-        brouillon: BrouillonContexte,
-    ) {
+    private fun diagnostics(donnees: DonneesContexte, brouillon: BrouillonContexte) {
         if (!donnees.envoyerDiagnostics || donnees.diagnostics.isEmpty()) {
             return
         }
@@ -139,11 +121,7 @@ public class AssemblerContexte(
     }
 
     /** Mentions `@` — hors projet, exclus et illisibles sont REFUSÉS. */
-    private fun mentions(
-        donnees: DonneesContexte,
-        exclusions: ExclusionsIa,
-        brouillon: BrouillonContexte,
-    ) {
+    private fun mentions(donnees: DonneesContexte, exclusions: ExclusionsIa, brouillon: BrouillonContexte) {
         for (mention in donnees.mentions) {
             when {
                 !estRelatifSur(mention.cheminRelatif) -> {
@@ -166,11 +144,7 @@ public class AssemblerContexte(
     }
 
     /** Liste des chemins (interrupteur) — noms seuls, exclusions appliquées. */
-    private fun listeChemins(
-        donnees: DonneesContexte,
-        exclusions: ExclusionsIa,
-        brouillon: BrouillonContexte,
-    ) {
+    private fun listeChemins(donnees: DonneesContexte, exclusions: ExclusionsIa, brouillon: BrouillonContexte) {
         if (!donnees.envoyerListeChemins || donnees.listeChemins.isEmpty()) {
             return
         }
@@ -205,11 +179,10 @@ public class AssemblerContexte(
          * ne part). Un absolu, une évasion `..` ou un chemin vide est
          * refusé avec raison `hors-projet`.
          */
-        public fun estRelatifSur(chemin: String): Boolean =
-            chemin.isNotBlank() &&
-                !chemin.startsWith("/") &&
-                !chemin.contains("\\") &&
-                !chemin.contains("..")
+        public fun estRelatifSur(chemin: String): Boolean = chemin.isNotBlank() &&
+            !chemin.startsWith("/") &&
+            !chemin.contains("\\") &&
+            !chemin.contains("..")
 
         /** Encadrement neutre (ADR 0124 §4 bis) : la donnée n'est jamais une consigne. */
         public const val ENCADRE_OUVERTURE: String =
@@ -226,9 +199,7 @@ public class AssemblerContexte(
  * fil des pièces ; [piece] est le SEUL endroit qui estime les jetons
  * (la puce reflète le contenu EFFECTIVEMENT encadré).
  */
-private class BrouillonContexte(
-    private val budget: TokenBudget,
-) {
+private class BrouillonContexte(private val budget: TokenBudget) {
     val pieces = mutableListOf<PieceContexte>()
 
     val parties = mutableListOf<String>()
@@ -238,40 +209,25 @@ private class BrouillonContexte(
     val refuses = mutableListOf<CheminRefuse>()
 
     /** Encadre un fichier, l'ajoute aux pièces et le balaye. */
-    fun fichier(
-        type: TypePieceContexte,
-        cheminRelatif: String,
-        contenu: String,
-    ) {
+    fun fichier(type: TypePieceContexte, cheminRelatif: String, contenu: String) {
         val partie = "<fichier chemin=\"$cheminRelatif\">\n$contenu\n</fichier>"
         piece(type, AssemblerContexte.CLE_FICHIER, cheminRelatif, partie)
         alerte(contenu, cheminRelatif)
     }
 
     /** Ajoute une pièce générique (une partie encadrée = une puce). */
-    fun piece(
-        type: TypePieceContexte,
-        cle: String,
-        cheminRelatif: String?,
-        partie: String,
-    ) {
+    fun piece(type: TypePieceContexte, cle: String, cheminRelatif: String?, partie: String) {
         pieces.add(PieceContexte(type, cheminRelatif, cle, budget.estimateTokens(partie)))
         parties.add(partie)
     }
 
     /** Balaye un contenu : alerte à l'ÉTIQUETTE du motif, jamais la valeur. */
-    fun alerte(
-        texte: String,
-        cheminRelatif: String?,
-    ) {
+    fun alerte(texte: String, cheminRelatif: String?) {
         alertes.addAll(DetecteurSecrets.balayer(texte, cheminRelatif))
     }
 
     /** Un refus rendu à l'UI — jamais avalé (ADR 0124 §4). */
-    fun refuse(
-        chemin: String,
-        raison: String,
-    ) {
+    fun refuse(chemin: String, raison: String) {
         refuses.add(CheminRefuse(chemin, raison))
     }
 }

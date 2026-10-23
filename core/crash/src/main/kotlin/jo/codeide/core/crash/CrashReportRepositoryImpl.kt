@@ -25,56 +25,56 @@ import javax.inject.Singleton
  */
 @Singleton
 class CrashReportRepositoryImpl
-    @Inject
-    internal constructor(
-        @ApplicationContext context: Context,
-        private val dispatchers: DispatcherProvider,
-    ) : CrashReportRepository {
-        private val store = CrashReportFileStore(File(context.filesDir, CrashLimits.DIRECTORY_NAME))
+@Inject
+internal constructor(
+    @ApplicationContext context: Context,
+    private val dispatchers: DispatcherProvider,
+) : CrashReportRepository {
+    private val store = CrashReportFileStore(File(context.filesDir, CrashLimits.DIRECTORY_NAME))
 
-        /**
-         * Signal de rafraîchissement : un rejeu initial (valeur au démarrage)
-         * et un par mutation — chaque collecteur repart de l'état courant.
-         */
-        private val rafraichissements =
-            MutableSharedFlow<Unit>(
-                replay = 1,
-                extraBufferCapacity = 1,
-                onBufferOverflow = BufferOverflow.DROP_OLDEST,
-            )
+    /**
+     * Signal de rafraîchissement : un rejeu initial (valeur au démarrage)
+     * et un par mutation — chaque collecteur repart de l'état courant.
+     */
+    private val rafraichissements =
+        MutableSharedFlow<Unit>(
+            replay = 1,
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        )
 
-        init {
-            rafraichissements.tryEmit(Unit)
-        }
-
-        override fun observeSummaries(): Flow<List<CrashReportSummary>> =
-            rafraichissements.map { avecIo { store.listSummaries() } }
-
-        override suspend fun get(id: String): CrashReport? = avecIo { store.get(id) }
-
-        override suspend fun markReviewed(id: String): Boolean {
-            val pose = avecIo { store.markReviewed(id) }
-            if (pose) rafraichir()
-            return pose
-        }
-
-        override suspend fun delete(id: String): Boolean {
-            val supprime = avecIo { store.delete(id) }
-            if (supprime) rafraichir()
-            return supprime
-        }
-
-        override suspend fun deleteAll(): Int {
-            val nombre = avecIo { store.deleteAll() }
-            if (nombre > 0) rafraichir()
-            return nombre
-        }
-
-        override suspend fun hasUnreviewed(): Boolean = avecIo { store.hasUnreviewed() }
-
-        private fun rafraichir() {
-            rafraichissements.tryEmit(Unit)
-        }
-
-        private suspend fun <T> avecIo(bloc: () -> T): T = withContext(dispatchers.io) { bloc() }
+    init {
+        rafraichissements.tryEmit(Unit)
     }
+
+    override fun observeSummaries(): Flow<List<CrashReportSummary>> =
+        rafraichissements.map { avecIo { store.listSummaries() } }
+
+    override suspend fun get(id: String): CrashReport? = avecIo { store.get(id) }
+
+    override suspend fun markReviewed(id: String): Boolean {
+        val pose = avecIo { store.markReviewed(id) }
+        if (pose) rafraichir()
+        return pose
+    }
+
+    override suspend fun delete(id: String): Boolean {
+        val supprime = avecIo { store.delete(id) }
+        if (supprime) rafraichir()
+        return supprime
+    }
+
+    override suspend fun deleteAll(): Int {
+        val nombre = avecIo { store.deleteAll() }
+        if (nombre > 0) rafraichir()
+        return nombre
+    }
+
+    override suspend fun hasUnreviewed(): Boolean = avecIo { store.hasUnreviewed() }
+
+    private fun rafraichir() {
+        rafraichissements.tryEmit(Unit)
+    }
+
+    private suspend fun <T> avecIo(bloc: () -> T): T = withContext(dispatchers.io) { bloc() }
+}

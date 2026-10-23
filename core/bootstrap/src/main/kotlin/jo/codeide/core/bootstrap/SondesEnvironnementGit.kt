@@ -63,41 +63,37 @@ internal interface SondesEnvironnementGit {
 @Suppress("SwallowedException")
 @Singleton
 internal class SondesEnvironnementLinux
-    @Inject
-    constructor(
-        private val environnement: ProcessEnvironmentProvider,
-    ) : SondesEnvironnementGit {
-        override fun uidEffectif(): Long? =
-            try {
-                android.os.Process
-                    .myUid()
-                    .toLong()
-            } catch (e: RuntimeException) {
-                // myUid est une lecture triviale, la garde reste par
-                // prudence : une sonde ne peut pas faire échouer le diagnostic.
-                null
-            }
-
-        override fun uidProprietaire(chemin: String): Long? =
-            try {
-                Os.stat(chemin).st_uid.toLong()
-            } catch (e: ErrnoException) {
-                null
-            } catch (e: RuntimeException) {
-                null
-            }
-
-        override fun contenuMonts(): String? =
-            try {
-                File(CHEMIN_MONTS).readText()
-            } catch (e: IOException) {
-                null
-            }
-
-        override fun environnement(): Map<String, String> = environnement.baseEnvironment()
-
-        private companion object {
-            /** Table des montages du processus (vue des FUSE de stockage). */
-            private const val CHEMIN_MONTS = "/proc/self/mounts"
-        }
+@Inject
+constructor(private val environnement: ProcessEnvironmentProvider) :
+    SondesEnvironnementGit {
+    override fun uidEffectif(): Long? = try {
+        android.os.Process
+            .myUid()
+            .toLong()
+    } catch (e: RuntimeException) {
+        // myUid est une lecture triviale, la garde reste par
+        // prudence : une sonde ne peut pas faire échouer le diagnostic.
+        null
     }
+
+    override fun uidProprietaire(chemin: String): Long? = try {
+        Os.stat(chemin).st_uid.toLong()
+    } catch (e: ErrnoException) {
+        null
+    } catch (e: RuntimeException) {
+        null
+    }
+
+    override fun contenuMonts(): String? = try {
+        File(CHEMIN_MONTS).readText()
+    } catch (e: IOException) {
+        null
+    }
+
+    override fun environnement(): Map<String, String> = environnement.baseEnvironment()
+
+    private companion object {
+        /** Table des montages du processus (vue des FUSE de stockage). */
+        private const val CHEMIN_MONTS = "/proc/self/mounts"
+    }
+}

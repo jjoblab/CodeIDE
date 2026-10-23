@@ -69,8 +69,7 @@ class LecteurScriptsDeBuildTest {
         assertTrue(scripts.isEmpty())
     }
 
-    private fun dossierTemp(): File =
-        createTempDirectory("lecteur-scripts-test").toFile().apply {
-            deleteOnExit()
-        }
+    private fun dossierTemp(): File = createTempDirectory("lecteur-scripts-test").toFile().apply {
+        deleteOnExit()
+    }
 }

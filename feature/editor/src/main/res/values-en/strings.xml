@@ -691,4 +691,7 @@
     <string name="ia_corriger_ia_cd">Fix with AI</string>
     <string name="ia_expliquer_ia_cd">Explain with AI</string>
 
+    <string name="apercu_compose_recherche">Finding @Preview functions…</string>
+    <string name="apercu_compose_aucune">No @Preview to display</string>
+
 </resources>

@@ -50,19 +50,12 @@ class PanneauProblemesFragment : Fragment() {
         controleur = hote
     }
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentPanneauProblemesBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         adaptateur =
             ProblemesAdapter(
                 surSaut = { fichier, ligne ->

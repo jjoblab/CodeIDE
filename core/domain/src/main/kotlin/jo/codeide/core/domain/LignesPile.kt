@@ -62,10 +62,7 @@ public object LignesPile {
      *  garde par rejet (ligne absente, ligne non positive), la forme
      *  plate reste la plus lisible pour un analyseur défensif. */
     @Suppress("ReturnCount")
-    private fun ajouterSiValide(
-        accords: Matcher,
-        emplacements: MutableList<EmplacementPile>,
-    ) {
+    private fun ajouterSiValide(accords: Matcher, emplacements: MutableList<EmplacementPile>) {
         val ligne = accords.group("ligne")?.toIntOrNull() ?: return
         if (ligne <= 0) return
         emplacements.add(

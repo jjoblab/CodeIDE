@@ -35,10 +35,7 @@ public class ProfilPeripherique(
         densiteDpi = parcel.readInt(),
     )
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        drapeaux: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, drapeaux: Int) {
         parcel.writeString(nom)
         parcel.writeInt(largeurDp)
         parcel.writeInt(hauteurDp)
@@ -48,29 +45,27 @@ public class ProfilPeripherique(
     override fun describeContents(): Int = 0
 
     /** Traduction vers le profil LayoutLib (taille × densité du rendu). */
-    internal fun versDeviceProfile(): DeviceProfile =
-        DeviceProfile(
-            // name =
-            nom,
-            // widthDp =
-            largeurDp,
-            // heightDp =
-            hauteurDp,
-            // densityDpi =
-            densiteDpi,
-            // landscape =
-            false,
-        )
+    internal fun versDeviceProfile(): DeviceProfile = DeviceProfile(
+        // name =
+        nom,
+        // widthDp =
+        largeurDp,
+        // heightDp =
+        hauteurDp,
+        // densityDpi =
+        densiteDpi,
+        // landscape =
+        false,
+    )
 
     /** Description courte affichable (ex. « Pixel 4 · 393×851dp · 440dpi »). */
     public fun description(): String = "$nom · $largeurDp×${hauteurDp}dp · ${densiteDpi}dpi"
 
-    override fun equals(other: Any?): Boolean =
-        other is ProfilPeripherique &&
-            other.nom == nom &&
-            other.largeurDp == largeurDp &&
-            other.hauteurDp == hauteurDp &&
-            other.densiteDpi == densiteDpi
+    override fun equals(other: Any?): Boolean = other is ProfilPeripherique &&
+        other.nom == nom &&
+        other.largeurDp == largeurDp &&
+        other.hauteurDp == hauteurDp &&
+        other.densiteDpi == densiteDpi
 
     override fun hashCode(): Int = 31 * (31 * (31 * nom.hashCode() + largeurDp) + hauteurDp) + densiteDpi
 

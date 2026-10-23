@@ -170,10 +170,7 @@ internal object TemplateValidators {
      * ressources localisées) et **message français** pour les journaux et le
      * bloc « copier les détails ».
      */
-    internal data class EchecValidation(
-        val raison: RaisonValidation,
-        val message: String,
-    )
+    internal data class EchecValidation(val raison: RaisonValidation, val message: String)
 
     /**
      * Évalue [valeur] avec le validateur [nom] (déjà vérifié par [nomConnu]).
@@ -181,45 +178,41 @@ internal object TemplateValidators {
      * @return `null` si la valeur est valide, sinon l'échec structuré
      * (raison typée + message français).
      */
-    fun evaluer(
-        nom: String,
-        valeur: String,
-    ): EchecValidation? =
-        when {
-            nom == "project-name" -> {
-                validerNomProjet(valeur)
-            }
-
-            // Règles du nom de fichier/dossier de l'explorateur (étape 17) :
-            // les mêmes que le nom de projet (section 12.3 — transportables
-            // vers Windows), le nom de fichier est un simple segment.
-            nom == "file-name" -> {
-                validerNomProjet(valeur)
-            }
-
-            nom == "package-name" -> {
-                validerNomPackage(valeur)
-            }
-
-            nom == "identifier" -> {
-                validerIdentifiant(valeur)
-            }
-
-            nom == "semver" -> {
-                validerSemver(valeur)
-            }
-
-            nom.startsWith(PREFIXE_REGEX) -> {
-                validerRegex(valeur, nom)
-            }
-
-            else -> {
-                EchecValidation(
-                    RaisonValidation.ValeurInterdite(nom),
-                    "validateur inconnu « $nom »",
-                )
-            }
+    fun evaluer(nom: String, valeur: String): EchecValidation? = when {
+        nom == "project-name" -> {
+            validerNomProjet(valeur)
         }
+
+        // Règles du nom de fichier/dossier de l'explorateur (étape 17) :
+        // les mêmes que le nom de projet (section 12.3 — transportables
+        // vers Windows), le nom de fichier est un simple segment.
+        nom == "file-name" -> {
+            validerNomProjet(valeur)
+        }
+
+        nom == "package-name" -> {
+            validerNomPackage(valeur)
+        }
+
+        nom == "identifier" -> {
+            validerIdentifiant(valeur)
+        }
+
+        nom == "semver" -> {
+            validerSemver(valeur)
+        }
+
+        nom.startsWith(PREFIXE_REGEX) -> {
+            validerRegex(valeur, nom)
+        }
+
+        else -> {
+            EchecValidation(
+                RaisonValidation.ValeurInterdite(nom),
+                "validateur inconnu « $nom »",
+            )
+        }
+    }
 
     /**
      * Valide [valeur] avec le validateur [nom] (forme historique, journaux).
@@ -227,10 +220,7 @@ internal object TemplateValidators {
      * @return `null` si la valeur est valide, sinon le message d'erreur
      * français (jamais vide).
      */
-    fun valider(
-        nom: String,
-        valeur: String,
-    ): String? = evaluer(nom, valeur)?.message
+    fun valider(nom: String, valeur: String): String? = evaluer(nom, valeur)?.message
 
     /** Règles du nom de projet (section 12.3, transportables vers Windows). */
     @Suppress("ReturnCount") // Une clause par règle du nom (section 12.3, règle 16).

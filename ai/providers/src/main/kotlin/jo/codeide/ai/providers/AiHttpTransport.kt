@@ -80,9 +80,7 @@ public class AiHttpResponse(
  *
  * @param dispatchers source des dispatchers (injection obligatoire).
  */
-public class AiHttpTransport(
-    private val dispatchers: DispatcherProvider,
-) {
+public class AiHttpTransport(private val dispatchers: DispatcherProvider) {
     /**
      * Ouvre la connexion et renvoie la réponse dès les en-têtes lus — le
      * corps reste à lire (streaming).
@@ -117,7 +115,7 @@ public class AiHttpTransport(
                             .create(spec.url)
                             .toURL()
                             .openConnection() as HttpURLConnection
-                    ).apply {
+                        ).apply {
                         requestMethod = spec.method
                         connectTimeout = spec.connectTimeoutMs
                         readTimeout = spec.readTimeoutMs
@@ -176,19 +174,18 @@ public class AiHttpTransport(
      * @return l'erreur de validation à émettre, ou `null` si l'URL passe.
      */
 
-    private fun verifierUrlClair(spec: AiHttpRequestSpec): AppError? =
-        runCatching {
-            val uri = java.net.URI.create(spec.url)
-            when {
-                // HTTPS : passe.
-                uri.scheme != SCHEMA_CLAIR -> null
+    private fun verifierUrlClair(spec: AiHttpRequestSpec): AppError? = runCatching {
+        val uri = java.net.URI.create(spec.url)
+        when {
+            // HTTPS : passe.
+            uri.scheme != SCHEMA_CLAIR -> null
 
-                // HTTP : toléré uniquement vers la boucle locale.
-                HOTES_BOU_CLE_LOCALE.contains(uri.host?.lowercase() ?: "") -> null
+            // HTTP : toléré uniquement vers la boucle locale.
+            HOTES_BOU_CLE_LOCALE.contains(uri.host?.lowercase() ?: "") -> null
 
-                else -> AppError.Validation("HTTP en clair refusé hors boucle locale (ADR 0121)")
-            }
-        }.getOrElse { AppError.Ai(AppError.AiReason.MalformedResponse, "URL illisible") }
+            else -> AppError.Validation("HTTP en clair refusé hors boucle locale (ADR 0121)")
+        }
+    }.getOrElse { AppError.Ai(AppError.AiReason.MalformedResponse, "URL illisible") }
 
     private fun extractHeaders(connexion: HttpURLConnection): Map<String, String> {
         val enTetes = mutableMapOf<String, String>()

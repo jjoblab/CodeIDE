@@ -84,40 +84,39 @@ class PhaseOutilsPaquetsTest {
     }
 
     /** Le monde simulé : chaque commande reçoit la réponse de l'état courant du préfixe. */
-    private fun mondeSimule(spec: CommandSpec): CommandResult =
-        when {
-            estMiseAJour(spec) -> {
-                if (pkgUpdateEchoue) {
-                    echec(100, "E: impossible de joindre le dépôt")
-                } else {
-                    reussite(listOf("Hit:1 http://exemple stable InRelease"))
-                }
-            }
-
-            spec.arguments.any { it.contains("install -y") } -> {
-                val paquet = spec.arguments.last().substringAfterLast("install -y ")
-                if (paquet == paquetImpossible) {
-                    echec(100, "E: unable to locate package $paquet")
-                } else {
-                    // Le paquet installe son binaire (xz-utils → xz, les autres sont homonymes).
-                    outilsPresents += BINAIRES_PAR_PAQUET.getOrDefault(paquet, paquet)
-                    reussite(listOf("Setting up $paquet ..."))
-                }
-            }
-
-            spec.program.endsWith("dpkg") -> {
-                if ("ca-certificates" in outilsPresents) {
-                    reussite(listOf("ii  ca-certificates  20240203  all"))
-                } else {
-                    echec(1, "dpkg-query: no packages found matching ca-certificates")
-                }
-            }
-
-            else -> {
-                val outil = spec.program.substringAfterLast('/')
-                if (outil in outilsPresents) reussite(listOf("$outil 1.0")) else echec(127, "not found")
+    private fun mondeSimule(spec: CommandSpec): CommandResult = when {
+        estMiseAJour(spec) -> {
+            if (pkgUpdateEchoue) {
+                echec(100, "E: impossible de joindre le dépôt")
+            } else {
+                reussite(listOf("Hit:1 http://exemple stable InRelease"))
             }
         }
+
+        spec.arguments.any { it.contains("install -y") } -> {
+            val paquet = spec.arguments.last().substringAfterLast("install -y ")
+            if (paquet == paquetImpossible) {
+                echec(100, "E: unable to locate package $paquet")
+            } else {
+                // Le paquet installe son binaire (xz-utils → xz, les autres sont homonymes).
+                outilsPresents += BINAIRES_PAR_PAQUET.getOrDefault(paquet, paquet)
+                reussite(listOf("Setting up $paquet ..."))
+            }
+        }
+
+        spec.program.endsWith("dpkg") -> {
+            if ("ca-certificates" in outilsPresents) {
+                reussite(listOf("ii  ca-certificates  20240203  all"))
+            } else {
+                echec(1, "dpkg-query: no packages found matching ca-certificates")
+            }
+        }
+
+        else -> {
+            val outil = spec.program.substringAfterLast('/')
+            if (outil in outilsPresents) reussite(listOf("$outil 1.0")) else echec(127, "not found")
+        }
+    }
 
     @Test
     fun `pkg update réussi du premier coup n essaie jamais apt`() {
@@ -218,8 +217,6 @@ class PhaseOutilsPaquetsTest {
 
     private fun reussite(lignes: List<String> = emptyList()): CommandResult = CommandResult(0, lignes, emptyList())
 
-    private fun echec(
-        code: Int,
-        vararg lignes: String,
-    ): CommandResult = CommandResult(code, emptyList(), lignes.toList())
+    private fun echec(code: Int, vararg lignes: String): CommandResult =
+        CommandResult(code, emptyList(), lignes.toList())
 }

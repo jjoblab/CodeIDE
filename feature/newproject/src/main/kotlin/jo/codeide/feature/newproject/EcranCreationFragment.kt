@@ -39,10 +39,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
         attachToRoot: Boolean,
     ): EcranCreationBinding = EcranCreationBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         adapteurEvenements = EvenementsAdapter()
@@ -69,10 +66,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
     }
 
     /** Rendu des trois états possibles de l'écran de création. */
-    private fun rendre(
-        etat: EtatCreation,
-        nomProjet: String,
-    ) {
+    private fun rendre(etat: EtatCreation, nomProjet: String) {
         binding.conteneurProgression.isVisible = etat is EtatCreation.EnCours
         binding.conteneurSucces.isVisible = etat is EtatCreation.Succes
         binding.conteneurEchec.isVisible = etat is EtatCreation.Echec
@@ -114,77 +108,75 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
     }
 
     /** Message compréhensible d'une erreur typée (section 12.3). */
-    private fun messageErreur(erreur: AppError): String =
-        when (erreur) {
-            is AppError.Storage -> {
-                when (erreur.reason) {
-                    AppError.StorageReason.AlreadyExists -> getString(R.string.wizard_echec_collision)
-                    AppError.StorageReason.NotFound -> getString(R.string.wizard_echec_introuvable)
-                    else -> getString(R.string.wizard_echec_ecriture)
-                }
-            }
-
-            is AppError.Validation -> {
-                getString(R.string.wizard_echec_validation)
-            }
-
-            is AppError.Template -> {
-                getString(R.string.wizard_echec_modele)
-            }
-
-            is AppError.Bootstrap -> {
-                // Hors périmètre de la création de projet : les outils du
-                // terminal ne participent pas à la génération des fichiers.
-                getString(R.string.wizard_echec_inattendu)
-            }
-
-            is AppError.EnvironmentSetup -> {
-                // Hors périmètre de la création de projet : le parcours
-                // d'installation de l'environnement (refonte E1) ne
-                // participe pas à la génération des fichiers.
-                getString(R.string.wizard_echec_inattendu)
-            }
-
-            is AppError.Tooling -> {
-                // Hors périmètre de la création de projet : le tooling
-                // Gradle ne participe pas à la génération des fichiers.
-                getString(R.string.wizard_echec_inattendu)
-            }
-
-            is AppError.Session -> {
-                // Cycle de vie, étape B (v0.103.0) : refus coopératif du
-                // contrat de session — hors périmètre du wizard, qui
-                // n'ouvre aucune session (l'ouverture vivra dans
-                // l'éditeur, étape C).
-                getString(R.string.wizard_echec_inattendu)
-            }
-
-            is AppError.Ai -> {
-                // Mission IA (v0.136.0, ADR 0123) : hors périmètre du
-                // wizard — le transport IA n'est pas sollicité à la
-                // création de projet ; repli générique si un jour une
-                // erreur IA traverse cet écran.
-                getString(R.string.wizard_echec_inattendu)
-            }
-
-            is AppError.Unknown -> {
-                getString(R.string.wizard_echec_inattendu)
+    private fun messageErreur(erreur: AppError): String = when (erreur) {
+        is AppError.Storage -> {
+            when (erreur.reason) {
+                AppError.StorageReason.AlreadyExists -> getString(R.string.wizard_echec_collision)
+                AppError.StorageReason.NotFound -> getString(R.string.wizard_echec_introuvable)
+                else -> getString(R.string.wizard_echec_ecriture)
             }
         }
+
+        is AppError.Validation -> {
+            getString(R.string.wizard_echec_validation)
+        }
+
+        is AppError.Template -> {
+            getString(R.string.wizard_echec_modele)
+        }
+
+        is AppError.Bootstrap -> {
+            // Hors périmètre de la création de projet : les outils du
+            // terminal ne participent pas à la génération des fichiers.
+            getString(R.string.wizard_echec_inattendu)
+        }
+
+        is AppError.EnvironmentSetup -> {
+            // Hors périmètre de la création de projet : le parcours
+            // d'installation de l'environnement (refonte E1) ne
+            // participe pas à la génération des fichiers.
+            getString(R.string.wizard_echec_inattendu)
+        }
+
+        is AppError.Tooling -> {
+            // Hors périmètre de la création de projet : le tooling
+            // Gradle ne participe pas à la génération des fichiers.
+            getString(R.string.wizard_echec_inattendu)
+        }
+
+        is AppError.Session -> {
+            // Cycle de vie, étape B (v0.103.0) : refus coopératif du
+            // contrat de session — hors périmètre du wizard, qui
+            // n'ouvre aucune session (l'ouverture vivra dans
+            // l'éditeur, étape C).
+            getString(R.string.wizard_echec_inattendu)
+        }
+
+        is AppError.Ai -> {
+            // Mission IA (v0.136.0, ADR 0123) : hors périmètre du
+            // wizard — le transport IA n'est pas sollicité à la
+            // création de projet ; repli générique si un jour une
+            // erreur IA traverse cet écran.
+            getString(R.string.wizard_echec_inattendu)
+        }
+
+        is AppError.Unknown -> {
+            getString(R.string.wizard_echec_inattendu)
+        }
+    }
 
     /** Détails techniques portés par l'erreur typée (v0.31.5). */
-    private fun detailsTechniques(erreur: AppError): String =
-        when (erreur) {
-            is AppError.Storage -> erreur.details
-            is AppError.Validation -> erreur.details
-            is AppError.Template -> erreur.details
-            is AppError.Bootstrap -> erreur.details
-            is AppError.EnvironmentSetup -> erreur.details
-            is AppError.Tooling -> erreur.message
-            is AppError.Session -> erreur.details
-            is AppError.Ai -> erreur.details
-            is AppError.Unknown -> erreur.details
-        }
+    private fun detailsTechniques(erreur: AppError): String = when (erreur) {
+        is AppError.Storage -> erreur.details
+        is AppError.Validation -> erreur.details
+        is AppError.Template -> erreur.details
+        is AppError.Bootstrap -> erreur.details
+        is AppError.EnvironmentSetup -> erreur.details
+        is AppError.Tooling -> erreur.message
+        is AppError.Session -> erreur.details
+        is AppError.Ai -> erreur.details
+        is AppError.Unknown -> erreur.details
+    }
 
     /** Copie les détails expurgés (erreurs typées — identifiants seulement)
      * — retour Snackbar thématisé (ADR 0127 §3). */
@@ -224,19 +216,13 @@ private class EvenementsAdapter :
         submitList(evenements)
     }
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Support {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Support {
         val liaison =
             VueLigneEvenementBinding.inflate(LayoutInflater.from(parent.context), parent, false)
         return Support(liaison)
     }
 
-    override fun onBindViewHolder(
-        support: Support,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(support: Support, position: Int) {
         val evenement = getItem(position)
         support.liaison.texteEvenement.text = libelle(support, evenement)
         support.liaison.iconeEtat.alpha =
@@ -244,43 +230,37 @@ private class EvenementsAdapter :
     }
 
     /** Libellé localisé d'un événement de progression. */
-    private fun libelle(
-        support: Support,
-        evenement: CreationProgress,
-    ): String =
-        with(support.liaison.root.context) {
-            when (evenement) {
-                CreationProgress.Preparation -> {
-                    getString(R.string.wizard_creation_preparation)
-                }
+    private fun libelle(support: Support, evenement: CreationProgress): String = with(support.liaison.root.context) {
+        when (evenement) {
+            CreationProgress.Preparation -> {
+                getString(R.string.wizard_creation_preparation)
+            }
 
-                is CreationProgress.CreationDossierRacine -> {
-                    getString(R.string.wizard_creation_dossier, evenement.nomProjet)
-                }
+            is CreationProgress.CreationDossierRacine -> {
+                getString(R.string.wizard_creation_dossier, evenement.nomProjet)
+            }
 
-                is CreationProgress.GenerationFichier -> {
-                    getString(
-                        R.string.wizard_creation_fichier,
-                        evenement.index,
-                        evenement.total,
-                        evenement.cheminRelatif,
-                    )
-                }
+            is CreationProgress.GenerationFichier -> {
+                getString(
+                    R.string.wizard_creation_fichier,
+                    evenement.index,
+                    evenement.total,
+                    evenement.cheminRelatif,
+                )
+            }
 
-                CreationProgress.Enregistrement -> {
-                    getString(R.string.wizard_creation_enregistrement)
-                }
+            CreationProgress.Enregistrement -> {
+                getString(R.string.wizard_creation_enregistrement)
+            }
 
-                is CreationProgress.Termine -> {
-                    getString(R.string.wizard_creation_termine)
-                }
+            is CreationProgress.Termine -> {
+                getString(R.string.wizard_creation_termine)
             }
         }
+    }
 
     /** Support de vue d'une ligne. */
-    class Support(
-        val liaison: VueLigneEvenementBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    class Support(val liaison: VueLigneEvenementBinding) : RecyclerView.ViewHolder(liaison.root)
 
     /**
      * Diff par classe+position (les événements ne se répètent qu'à l'identique).
@@ -293,15 +273,11 @@ private class EvenementsAdapter :
      */
     @Suppress("DiffUtilEquals")
     private class ComparaisonEvenements : DiffUtil.ItemCallback<CreationProgress>() {
-        override fun areItemsTheSame(
-            ancienne: CreationProgress,
-            nouvelle: CreationProgress,
-        ): Boolean = ancienne == nouvelle
+        override fun areItemsTheSame(ancienne: CreationProgress, nouvelle: CreationProgress): Boolean =
+            ancienne == nouvelle
 
-        override fun areContentsTheSame(
-            ancienne: CreationProgress,
-            nouvelle: CreationProgress,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: CreationProgress, nouvelle: CreationProgress): Boolean =
+            ancienne == nouvelle
     }
 
     private companion object {

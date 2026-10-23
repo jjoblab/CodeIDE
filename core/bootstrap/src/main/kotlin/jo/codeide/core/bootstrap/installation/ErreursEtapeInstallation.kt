@@ -19,9 +19,7 @@ import java.io.IOException
  * [CancellationException][java.util.concurrent.CancellationException] ne
  * transite jamais ici : l'annulation suit la voie coroutine standard.
  */
-internal class EchecEtapeInstallation(
-    val erreur: AppError.EnvironmentSetup,
-) : Exception(erreur.details)
+internal class EchecEtapeInstallation(val erreur: AppError.EnvironmentSetup) : Exception(erreur.details)
 
 /**
  * Construction des erreurs typées du parcours et traduction des
@@ -33,25 +31,21 @@ internal object ErreursInstallation {
     private const val BORNE_SORTIE: Int = 200
 
     /** Commande échouée : code non nul ou délai dépassé — sortie À L'APPUI. */
-    fun commande(
-        description: String,
-        commande: String,
-        resultat: CommandResult,
-    ): AppError.EnvironmentSetup =
+    fun commande(description: String, commande: String, resultat: CommandResult): AppError.EnvironmentSetup =
         AppError.EnvironmentSetup(
             reason = EnvironmentSetupReason.Commande,
             details =
-                if (resultat.timedOut) {
-                    "$description : délai maximal dépassé (processus détruit)"
-                } else {
-                    "$description : code de retour ${resultat.exitCode}"
-                },
+            if (resultat.timedOut) {
+                "$description : délai maximal dépassé (processus détruit)"
+            } else {
+                "$description : code de retour ${resultat.exitCode}"
+            },
             sortie =
-                CommandOutput(
-                    commande = commande,
-                    exitCode = resultat.exitCode,
-                    lastLines = resultat.tail(BORNE_SORTIE),
-                ),
+            CommandOutput(
+                commande = commande,
+                exitCode = resultat.exitCode,
+                lastLines = resultat.tail(BORNE_SORTIE),
+            ),
         )
 
     /** Refus du système au lancement d'une commande (W^X, ADR 0045). */
@@ -63,14 +57,10 @@ internal object ErreursInstallation {
         AppError.EnvironmentSetup(reason = correspondance.getValue(echec.raison), details = echec.details)
 
     /** Traduit un [IOException] de lancement (W^X, ADR 0045) en refus typé. */
-    fun traduireLancement(
-        commande: String,
-        e: IOException,
-    ): AppError.EnvironmentSetup =
-        AppError.EnvironmentSetup(
-            reason = EnvironmentSetupReason.Permissions,
-            details = "lancement impossible de « $commande » : ${e.message}",
-        )
+    fun traduireLancement(commande: String, e: IOException): AppError.EnvironmentSetup = AppError.EnvironmentSetup(
+        reason = EnvironmentSetupReason.Permissions,
+        details = "lancement impossible de « $commande » : ${e.message}",
+    )
 
     /** Correspondance `BootstrapReason` → `EnvironmentSetupReason` (ADR 0087 § 7). */
     private val correspondance: Map<BootstrapReason, EnvironmentSetupReason> =

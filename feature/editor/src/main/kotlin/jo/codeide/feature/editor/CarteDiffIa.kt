@@ -31,92 +31,82 @@ import jo.codeide.feature.editor.databinding.VueCarteDiffIaBinding
  * trois rappels et fournit la garde de révision au clic (pas au rendu).
  */
 class CarteDiffIa
-    @JvmOverloads
-    constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-    ) : MaterialCardView(context, attrs) {
-        private lateinit var binding: VueCarteDiffIaBinding
-        private val adaptateur = AdaptateurLignesDiff()
+@JvmOverloads
+constructor(context: Context, attrs: AttributeSet? = null) :
+    MaterialCardView(context, attrs) {
+    private lateinit var binding: VueCarteDiffIaBinding
+    private val adaptateur = AdaptateurLignesDiff()
 
-        /** Proposition affichée (`null` = carte fermée). */
-        var proposition: PropositionDiffIa? = null
-            private set
+    /** Proposition affichée (`null` = carte fermée). */
+    var proposition: PropositionDiffIa? = null
+        private set
 
-        var surAccepter: ((PropositionDiffIa) -> Unit)? = null
-        var surRejeter: (() -> Unit)? = null
-        var surRessayer: (() -> Unit)? = null
+    var surAccepter: ((PropositionDiffIa) -> Unit)? = null
+    var surRejeter: (() -> Unit)? = null
+    var surRessayer: (() -> Unit)? = null
 
-        override fun onFinishInflate() {
-            super.onFinishInflate()
-            binding = VueCarteDiffIaBinding.bind(this)
-            binding.listeDiff.layoutManager = LinearLayoutManager(context)
-            binding.listeDiff.adapter = adaptateur
-            binding.boutonAccepterDiff.setOnClickListener {
-                proposition?.let { proposition -> surAccepter?.invoke(proposition) }
-            }
-            binding.boutonRejeterDiff.setOnClickListener {
-                surRejeter?.invoke()
-            }
-            binding.boutonRessayerDiff.setOnClickListener {
-                surRessayer?.invoke()
-            }
+    override fun onFinishInflate() {
+        super.onFinishInflate()
+        binding = VueCarteDiffIaBinding.bind(this)
+        binding.listeDiff.layoutManager = LinearLayoutManager(context)
+        binding.listeDiff.adapter = adaptateur
+        binding.boutonAccepterDiff.setOnClickListener {
+            proposition?.let { proposition -> surAccepter?.invoke(proposition) }
         }
-
-        /**
-         * Affiche la proposition : diff unifié entre le texte actuel de la
-         * plage et le texte proposé, compteur « +n −m », hauteur plafonnée
-         * à `ia_carte_diff_hauteur_max` (spec E3 — défile au-delà).
-         */
-        fun maj(nouvelle: PropositionDiffIa) {
-            proposition = nouvelle
-            val lignes = DiffUnifie.calculer(nouvelle.texteActuel.lines(), nouvelle.textePropose.lines())
-            adaptateur.submitList(lignes)
-            val ajouts = lignes.count { it.type == TypeLigneDiff.AJOUT }
-            val retraits = lignes.count { it.type == TypeLigneDiff.RETRAIT }
-            binding.compteurDiff.text =
-                context.getString(R.string.ia_carte_compteur, ajouts, retraits)
-            isVisible = true
-            plafonnerHauteur()
+        binding.boutonRejeterDiff.setOnClickListener {
+            surRejeter?.invoke()
         }
-
-        /** Ferme la carte (Rejeter, application réussie, ou consigne relancée). */
-        fun masquer() {
-            proposition = null
-            isVisible = false
-        }
-
-        /** Plafond de hauteur (spec E3) : appliqué après mise en page. */
-        private fun plafonnerHauteur() {
-            post {
-                val plafond = resources.getDimensionPixelSize(jo.codeide.core.ui.R.dimen.ia_carte_diff_hauteur_max)
-                if (height > plafond) {
-                    layoutParams = layoutParams.apply { height = plafond }
-                }
-            }
+        binding.boutonRessayerDiff.setOnClickListener {
+            surRessayer?.invoke()
         }
     }
 
+    /**
+     * Affiche la proposition : diff unifié entre le texte actuel de la
+     * plage et le texte proposé, compteur « +n −m », hauteur plafonnée
+     * à `ia_carte_diff_hauteur_max` (spec E3 — défile au-delà).
+     */
+    fun maj(nouvelle: PropositionDiffIa) {
+        proposition = nouvelle
+        val lignes = DiffUnifie.calculer(nouvelle.texteActuel.lines(), nouvelle.textePropose.lines())
+        adaptateur.submitList(lignes)
+        val ajouts = lignes.count { it.type == TypeLigneDiff.AJOUT }
+        val retraits = lignes.count { it.type == TypeLigneDiff.RETRAIT }
+        binding.compteurDiff.text =
+            context.getString(R.string.ia_carte_compteur, ajouts, retraits)
+        isVisible = true
+        plafonnerHauteur()
+    }
+
+    /** Ferme la carte (Rejeter, application réussie, ou consigne relancée). */
+    fun masquer() {
+        proposition = null
+        isVisible = false
+    }
+
+    /** Plafond de hauteur (spec E3) : appliqué après mise en page. */
+    private fun plafonnerHauteur() {
+        post {
+            val plafond = resources.getDimensionPixelSize(jo.codeide.core.ui.R.dimen.ia_carte_diff_hauteur_max)
+            if (height > plafond) {
+                layoutParams = layoutParams.apply { height = plafond }
+            }
+        }
+    }
+}
+
 /** Rangées du diff (réutilise `ligne_diff.xml` — même rendu que l'historique). */
 private class AdaptateurLignesDiff : ListAdapter<LigneDiff, TitulaireLigneDiff>(ComparateurLignes) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): TitulaireLigneDiff =
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TitulaireLigneDiff =
         TitulaireLigneDiff(LigneDiffBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-    override fun onBindViewHolder(
-        titulaire: TitulaireLigneDiff,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(titulaire: TitulaireLigneDiff, position: Int) {
         titulaire.lier(getItem(position))
     }
 }
 
 /** Titulaire d'une ligne de diff (préfixe + fonds de l'historique). */
-private class TitulaireLigneDiff(
-    private val liaison: LigneDiffBinding,
-) : RecyclerView.ViewHolder(liaison.root) {
+private class TitulaireLigneDiff(private val liaison: LigneDiffBinding) : RecyclerView.ViewHolder(liaison.root) {
     fun lier(ligne: LigneDiff) {
         val contexte = liaison.root.context
         when (ligne.type) {
@@ -146,13 +136,7 @@ private class TitulaireLigneDiff(
 
 /** DiffUtil sur l'égalité des lignes (rendu stable pendant la revue). */
 private object ComparateurLignes : DiffUtil.ItemCallback<LigneDiff>() {
-    override fun areItemsTheSame(
-        ancienne: LigneDiff,
-        nouvelle: LigneDiff,
-    ): Boolean = ancienne == nouvelle
+    override fun areItemsTheSame(ancienne: LigneDiff, nouvelle: LigneDiff): Boolean = ancienne == nouvelle
 
-    override fun areContentsTheSame(
-        ancienne: LigneDiff,
-        nouvelle: LigneDiff,
-    ): Boolean = ancienne == nouvelle
+    override fun areContentsTheSame(ancienne: LigneDiff, nouvelle: LigneDiff): Boolean = ancienne == nouvelle
 }

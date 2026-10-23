@@ -29,9 +29,7 @@ internal sealed interface ActionCorrectif {
      * rendu — le problème survit à un rendu en erreur (boucle § 12) et
      * son correctif doit corriger le TEXTE, pas un span périmé.
      */
-    data class CorrigerFamille(
-        val probleme: ProblemesFamilles.Probleme,
-    ) : ActionCorrectif
+    data class CorrigerFamille(val probleme: ProblemesFamilles.Probleme) : ActionCorrectif
 }
 
 /**
@@ -44,9 +42,7 @@ internal sealed interface ActionCorrectif {
  */
 internal sealed interface ItemAttributs {
     /** Item 0 — le titre « MODIFIER · CLASSE » (entete_editeur). */
-    data class Titre(
-        val texte: String,
-    ) : ItemAttributs
+    data class Titre(val texte: String) : ItemAttributs
 
     /** Item 1 — la barre d'outils épinglée (barre_outils_attributs). */
     data object BarreOutils : ItemAttributs
@@ -85,20 +81,13 @@ internal sealed interface ItemAttributs {
     data object Separateur : ItemAttributs
 
     /** Un bloc LECTURE SEULE pleine largeur (span périmé : explication). */
-    data class LectureSeule(
-        val texte: String,
-    ) : ItemAttributs
+    data class LectureSeule(val texte: String) : ItemAttributs
 
     /** Le titre d'un groupe de lecture seule (item_attribut_groupe). */
-    data class TitreGroupe(
-        val titre: String,
-    ) : ItemAttributs
+    data class TitreGroupe(val titre: String) : ItemAttributs
 
     /** Une ligne clé/valeur de lecture seule (item_attribut). */
-    data class Attribut(
-        val cle: String,
-        val valeur: String,
-    ) : ItemAttributs
+    data class Attribut(val cle: String, val valeur: String) : ItemAttributs
 
     /** Le volet vide (aucune vue sélectionnée). */
     data object Vide : ItemAttributs
@@ -108,18 +97,14 @@ internal sealed interface ItemAttributs {
      * liage — miroir le `<p class="empty">` de la maquette : « Aucun
      * attribut ne correspond à « … ». », PE11f).
      */
-    data class Message(
-        val texte: String,
-    ) : ItemAttributs
+    data class Message(val texte: String) : ItemAttributs
 
     /**
      * Le bouton large « Afficher les N autres attributs de X »
      * (bouton_autres_attributs — miroir `.linkbtn.wide`, visible en
      * mode Courants quand des attributs sont masqués, PE11f).
      */
-    data class BoutonAutres(
-        val texte: String,
-    ) : ItemAttributs
+    data class BoutonAutres(val texte: String) : ItemAttributs
 
     /**
      * La SUGGESTION « Ajouter android:xxx comme attribut libre »
@@ -128,7 +113,5 @@ internal sealed interface ItemAttributs {
      * propose). Le tap passe en mode Tous, ouvre la section Autres
      * attributs et préremplit le champ de nom — SANS édition.
      */
-    data class SuggestionLibre(
-        val nom: String,
-    ) : ItemAttributs
+    data class SuggestionLibre(val nom: String) : ItemAttributs
 }

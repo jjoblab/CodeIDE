@@ -20,15 +20,11 @@ class CalculsDatesHistoriqueTest {
     private val zone: ZoneId = ZoneOffset.UTC
 
     /** Fabrique un horodatage UTC à la date/heure données. */
-    private fun instant(
-        date: LocalDate,
-        heure: LocalTime,
-    ): Long =
-        LocalDateTime
-            .of(date, heure)
-            .atZone(zone)
-            .toInstant()
-            .toEpochMilli()
+    private fun instant(date: LocalDate, heure: LocalTime): Long = LocalDateTime
+        .of(date, heure)
+        .atZone(zone)
+        .toInstant()
+        .toEpochMilli()
 
     @Test
     fun `moins d une heure donne il y a n minutes`() {

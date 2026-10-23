@@ -109,11 +109,7 @@ public data class ManifestComponent(
  * @property expect expression régulière attendue dans la sortie.
  * @property exitCode code de retour attendu (0 par défaut).
  */
-public data class VerifySpec(
-    public val cmd: String,
-    public val expect: String,
-    public val exitCode: Int = 0,
-)
+public data class VerifySpec(public val cmd: String, public val expect: String, public val exitCode: Int = 0)
 
 /**
  * Ligne de la matrice de compatibilité du manifeste (§ 12.2).
@@ -144,10 +140,7 @@ public data class CompatLine(
  * @property id identifiant du composant exigé.
  * @property version version amont exigée.
  */
-public data class ComponentRequirement(
-    public val id: String,
-    public val version: String,
-) {
+public data class ComponentRequirement(public val id: String, public val version: String) {
     override fun toString(): String = "$id@$version"
 
     public companion object {
@@ -163,10 +156,7 @@ public data class ComponentRequirement(
             return construireSiValide(partes[0].trim(), partes[1].trim())
         }
 
-        private fun construireSiValide(
-            id: String,
-            version: String,
-        ): ComponentRequirement? =
+        private fun construireSiValide(id: String, version: String): ComponentRequirement? =
             if (estSegmentValide(id) && estSegmentValide(version)) {
                 ComponentRequirement(id, version)
             } else {
@@ -210,10 +200,7 @@ public data class InstallPlan(
     public fun find(id: String): ManifestComponent? = components.firstOrNull { it.component.id == id }?.component
 
     /** Le plan contient-il le composant [id] à la version [version] ? */
-    public fun contains(
-        id: String,
-        version: String,
-    ): Boolean = find(id)?.version == version
+    public fun contains(id: String, version: String): Boolean = find(id)?.version == version
 
     /**
      * Chemin du binaire `aapt2` résolu par le plan (§ 12.4) : composant
@@ -257,11 +244,7 @@ public object InstallPlanResolver {
      * @return le plan en `Success` ; `EnvironmentSetup(ManifesteInvalide)`
      * en `Failure` — détails en français pour les journaux.
      */
-    public fun resolve(
-        catalog: ToolchainCatalog,
-        manifest: ToolManifest,
-        arch: String,
-    ): AppResult<InstallPlan> {
+    public fun resolve(catalog: ToolchainCatalog, manifest: ToolManifest, arch: String): AppResult<InstallPlan> {
         val retenus = resoudreComposantsDuProfil(catalog, manifest, arch)
         if (retenus is AppResult.Failure) return retenus
         return construirePlan(catalog, arch, (retenus as AppResult.Success).value)
@@ -283,22 +266,18 @@ public object InstallPlanResolver {
     }
 
     /** Contrôle la version de schéma puis lit le profil du catalogue. */
-    private fun validerProfil(
-        catalog: ToolchainCatalog,
-        manifest: ToolManifest,
-    ): AppResult<List<String>> =
-        when {
-            manifest.schemaVersion != ToolManifest.SCHEMA_VERSION -> {
-                incompatible(
-                    "version de schéma ${manifest.schemaVersion}, ${ToolManifest.SCHEMA_VERSION} attendue",
-                )
-            }
-
-            else -> {
-                manifest.profiles[catalog.sdkProfile]?.let { AppResult.Success(it) }
-                    ?: incompatible("profil « ${catalog.sdkProfile} » absent du manifeste")
-            }
+    private fun validerProfil(catalog: ToolchainCatalog, manifest: ToolManifest): AppResult<List<String>> = when {
+        manifest.schemaVersion != ToolManifest.SCHEMA_VERSION -> {
+            incompatible(
+                "version de schéma ${manifest.schemaVersion}, ${ToolManifest.SCHEMA_VERSION} attendue",
+            )
         }
+
+        else -> {
+            manifest.profiles[catalog.sdkProfile]?.let { AppResult.Success(it) }
+                ?: incompatible("profil « ${catalog.sdkProfile} » absent du manifeste")
+        }
+    }
 
     /** Retient chaque référence du profil dans l'ordre, ou premier refus. */
     private fun retenirComposants(
@@ -358,10 +337,9 @@ public object InstallPlanResolver {
         manifest: ToolManifest,
         exigence: ComponentRequirement,
         arch: String,
-    ): ManifestComponent? =
-        manifest.components
-            .filter { estCandidat(it, exigence, arch) }
-            .maxWithOrNull(compareBy { numeroRevision(it.revision) })
+    ): ManifestComponent? = manifest.components
+        .filter { estCandidat(it, exigence, arch) }
+        .maxWithOrNull(compareBy { numeroRevision(it.revision) })
 
     /**
      * Contrôle les exigences du catalogue (version exacte, § 12.2 règle 3)
@@ -381,9 +359,9 @@ public object InstallPlanResolver {
                 profile = catalog.sdkProfile,
                 arch = arch,
                 components =
-                    references.mapNotNull { reference ->
-                        ComponentRequirement.parse(reference)?.let { composants[it.id] }
-                    },
+                references.mapNotNull { reference ->
+                    ComponentRequirement.parse(reference)?.let { composants[it.id] }
+                },
             ),
         )
     }
@@ -392,18 +370,17 @@ public object InstallPlanResolver {
     private fun exigenceInsatisfaite(
         catalog: ToolchainCatalog,
         retenus: Map<String, PlannedComponent>,
-    ): AppResult.Failure? =
-        catalog.requiredComponents.firstNotNullOfOrNull { exigence ->
-            val publiee = retenus[exigence.id]?.component?.version
-            if (publiee == exigence.version) {
-                null
-            } else {
-                incompatible(
-                    "exigence « $exigence » non satisfaite" +
-                        (publiee?.let { " — le manifeste publie « ${exigence.id}@$it »" } ?: ""),
-                )
-            }
+    ): AppResult.Failure? = catalog.requiredComponents.firstNotNullOfOrNull { exigence ->
+        val publiee = retenus[exigence.id]?.component?.version
+        if (publiee == exigence.version) {
+            null
+        } else {
+            incompatible(
+                "exigence « $exigence » non satisfaite" +
+                    (publiee?.let { " — le manifeste publie « ${exigence.id}@$it »" } ?: ""),
+            )
         }
+    }
 
     /** Premier `installPath` partagé entre deux composants du plan, ou `null`. */
     private fun collisionInstallPath(retenus: Map<String, PlannedComponent>): AppResult.Failure? {
@@ -419,39 +396,29 @@ public object InstallPlanResolver {
     }
 
     /** Numéro d'une révision « rN » (croissant) ; toute autre forme vaut -1. */
-    private fun numeroRevision(revision: String): Int =
-        Regex("^r([0-9]+)$")
-            .find(revision)
-            ?.groupValues
-            ?.get(1)
-            ?.toIntOrNull() ?: -1
+    private fun numeroRevision(revision: String): Int = Regex("^r([0-9]+)$")
+        .find(revision)
+        ?.groupValues
+        ?.get(1)
+        ?.toIntOrNull() ?: -1
 }
 
 /** Un composant correspond à l'exigence ET s'exécute sur l'architecture. */
-private fun estCandidat(
-    composant: ManifestComponent,
-    exigence: ComponentRequirement,
-    arch: String,
-): Boolean = correspondExigence(composant, exigence) && estExecutableSur(composant, arch)
+private fun estCandidat(composant: ManifestComponent, exigence: ComponentRequirement, arch: String): Boolean =
+    correspondExigence(composant, exigence) && estExecutableSur(composant, arch)
 
 /** Même identifiant et même version exacte que l'exigence (§ 12.2, règle 3). */
-private fun correspondExigence(
-    composant: ManifestComponent,
-    exigence: ComponentRequirement,
-): Boolean = composant.id == exigence.id && composant.version == exigence.version
+private fun correspondExigence(composant: ManifestComponent, exigence: ComponentRequirement): Boolean =
+    composant.id == exigence.id && composant.version == exigence.version
 
 /** Architecture de l'appareil ou `any`, canal stable (`preview` ignoré). */
-private fun estExecutableSur(
-    composant: ManifestComponent,
-    arch: String,
-): Boolean =
+private fun estExecutableSur(composant: ManifestComponent, arch: String): Boolean =
     (composant.arch == arch || composant.arch == ManifestComponent.ARCH_ANY) &&
         composant.channel != ManifestComponent.CHANNEL_PREVIEW
 
-private fun incompatible(details: String): AppResult.Failure =
-    AppResult.Failure(
-        AppError.EnvironmentSetup(
-            reason = AppError.EnvironmentSetupReason.ManifesteInvalide,
-            details = "manifeste incompatible : $details",
-        ),
-    )
+private fun incompatible(details: String): AppResult.Failure = AppResult.Failure(
+    AppError.EnvironmentSetup(
+        reason = AppError.EnvironmentSetupReason.ManifesteInvalide,
+        details = "manifeste incompatible : $details",
+    ),
+)

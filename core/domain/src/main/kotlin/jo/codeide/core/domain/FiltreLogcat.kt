@@ -52,27 +52,26 @@ public data class FiltreLogcat(
     /**
      * Une ligne passe-t-elle le filtre ? Pur : même liste, même verdict.
      */
-    public fun accepte(ligne: LigneJournal): Boolean =
-        when {
-            ligne.niveau.ordinal < niveauMinimal.ordinal -> {
-                false
-            }
-
-            texte.isEmpty() -> {
-                true
-            }
-
-            // Motif invalide : AUCUNE ligne ne correspond (l'erreur est
-            // signalée par [erreurMotif], pas par un crash).
-            regex -> {
-                motif?.matcher(ligne.message)?.find() == true
-            }
-
-            else -> {
-                ligne.message.lowercase().contains(recherche) ||
-                    ligne.etiquette.lowercase().contains(recherche)
-            }
+    public fun accepte(ligne: LigneJournal): Boolean = when {
+        ligne.niveau.ordinal < niveauMinimal.ordinal -> {
+            false
         }
+
+        texte.isEmpty() -> {
+            true
+        }
+
+        // Motif invalide : AUCUNE ligne ne correspond (l'erreur est
+        // signalée par [erreurMotif], pas par un crash).
+        regex -> {
+            motif?.matcher(ligne.message)?.find() == true
+        }
+
+        else -> {
+            ligne.message.lowercase().contains(recherche) ||
+                ligne.etiquette.lowercase().contains(recherche)
+        }
+    }
 
     /** Filtre une liste entière — l'entrée n'est jamais copiée en amont. */
     public fun filtrer(lignes: List<LigneJournal>): List<LigneJournal> = lignes.filter(::accepte)

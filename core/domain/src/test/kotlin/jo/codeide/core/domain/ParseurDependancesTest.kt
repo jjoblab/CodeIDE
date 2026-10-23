@@ -17,12 +17,12 @@ class ParseurDependancesTest {
                 ScriptDeBuild(
                     cheminRelatif = "build.gradle.kts",
                     contenu =
-                        """
+                    """
                         plugins { kotlin("jvm") }
                         dependencies {
                             implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.10")
                         }
-                        """.trimIndent(),
+                    """.trimIndent(),
                     tailleOctets = 100,
                 ),
             )
@@ -44,13 +44,13 @@ class ParseurDependancesTest {
                 ScriptDeBuild(
                     cheminRelatif = "app/build.gradle.kts",
                     contenu =
-                        """
+                    """
                         dependencies {
                             implementation("androidx.core:core-ktx:1.13.1")
                             api("com.squareup.retrofit2:retrofit:2.11.0")
                             testImplementation("junit:junit:4.13.2")
                         }
-                        """.trimIndent(),
+                    """.trimIndent(),
                     tailleOctets = 200,
                 ),
             )
@@ -72,11 +72,11 @@ class ParseurDependancesTest {
                 ScriptDeBuild(
                     cheminRelatif = "build.gradle.kts",
                     contenu =
-                        """
+                    """
                         dependencies {
                             implementation(project(":core:domain"))
                         }
-                        """.trimIndent(),
+                    """.trimIndent(),
                     tailleOctets = 80,
                 ),
             )
@@ -95,7 +95,7 @@ class ParseurDependancesTest {
                 ScriptDeBuild(
                     cheminRelatif = "build.gradle.kts",
                     contenu =
-                        """
+                    """
                         plugins {
                             kotlin("jvm")
                         }
@@ -103,7 +103,7 @@ class ParseurDependancesTest {
                         repositories {
                             mavenCentral()
                         }
-                        """.trimIndent(),
+                    """.trimIndent(),
                     tailleOctets = 150,
                 ),
             )

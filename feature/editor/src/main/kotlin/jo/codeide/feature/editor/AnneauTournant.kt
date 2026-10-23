@@ -42,46 +42,43 @@ import androidx.core.view.isVisible
  *   de canal harmonisée).
  */
 class AnneauTournant
-    @JvmOverloads
-    constructor(
-        context: Context,
-        attrs: AttributeSet? = null,
-        defStyleAttr: Int = 0,
-    ) : View(context, attrs, defStyleAttr) {
-        init {
-            // Drawable vectoriel de l'anneau — 16 dp, trait 2 dp.
-            setBackgroundResource(R.drawable.anneau_etape_en_cours)
-            isClickable = false
-            isFocusable = false
-            importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
-        }
+@JvmOverloads
+constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) :
+    View(context, attrs, defStyleAttr) {
+    init {
+        // Drawable vectoriel de l'anneau — 16 dp, trait 2 dp.
+        setBackgroundResource(R.drawable.anneau_etape_en_cours)
+        isClickable = false
+        isFocusable = false
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
 
-        override fun onAttachedToWindow() {
-            super.onAttachedToWindow()
-            if (isVisible) AnneauTournantState.attacher(this)
-        }
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (isVisible) AnneauTournantState.attacher(this)
+    }
 
-        override fun onDetachedFromWindow() {
-            AnneauTournantState.detacher(this)
-            super.onDetachedFromWindow()
-        }
+    override fun onDetachedFromWindow() {
+        AnneauTournantState.detacher(this)
+        super.onDetachedFromWindow()
+    }
 
-        override fun setVisibility(visibility: Int) {
-            super.setVisibility(visibility)
-            // Bascule visible/gone propage au singleton — un seul
-            // animateur tourne pour toutes les vues visibles. On vérifie
-            // `isAttachedToWindow` : si la vue n'est pas encore attachée
-            // (ex. en Robolectric sans `WindowManager`), l'attache au
-            // singleton se fera à `onAttachedToWindow`.
-            if (isAttachedToWindow) {
-                if (visibility == VISIBLE) {
-                    AnneauTournantState.attacher(this)
-                } else {
-                    AnneauTournantState.detacher(this)
-                }
+    override fun setVisibility(visibility: Int) {
+        super.setVisibility(visibility)
+        // Bascule visible/gone propage au singleton — un seul
+        // animateur tourne pour toutes les vues visibles. On vérifie
+        // `isAttachedToWindow` : si la vue n'est pas encore attachée
+        // (ex. en Robolectric sans `WindowManager`), l'attache au
+        // singleton se fera à `onAttachedToWindow`.
+        if (isAttachedToWindow) {
+            if (visibility == VISIBLE) {
+                AnneauTournantState.attacher(this)
+            } else {
+                AnneauTournantState.detacher(this)
             }
         }
     }
+}
 
 /**
  * État global de l'anneau tournant : UN `ObjectAnimator` partagé entre

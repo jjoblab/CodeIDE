@@ -21,9 +21,7 @@ import kotlin.math.ceil
  * la valeur par défaut (4,0) est un ordre de grandeur documenté, pas une
  * promesse de précision.
  */
-public class TokenBudget(
-    private val charactersPerToken: Double = 4.0,
-) {
+public class TokenBudget(private val charactersPerToken: Double = 4.0) {
     init {
         require(charactersPerToken > 0.0) { "le rapport caractères/jeton doit être strictement positif" }
     }
@@ -77,10 +75,8 @@ public class TokenBudget(
      * modèle) — strictement positif.
      * @return `true` si l'estimation tient dans le plafond.
      */
-    public fun isWithinBudget(
-        messages: List<AiMessage>,
-        maxTokens: Long,
-    ): Boolean = estimateMessages(messages) <= maxTokens
+    public fun isWithinBudget(messages: List<AiMessage>, maxTokens: Long): Boolean =
+        estimateMessages(messages) <= maxTokens
 
     private companion object {
         /** Forfait d'enveloppe par message, en caractères. */

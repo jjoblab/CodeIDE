@@ -63,83 +63,75 @@ public class AnthropicProvider(
 ) : AiProvider {
     private val executeur = SseStreamExecutor(transport, dispatchers, backoff, logger)
 
-    override fun stream(request: AiRequest): Flow<AiEvent> =
-        flow {
-            val cle = apiKeySource.obtain()
-            if (cle.isNullOrBlank()) {
-                emit(AiEvent.Failure(AppError.Ai(AppError.AiReason.Authentication, "clé absente")))
-                return@flow
-            }
-            emitAll(executeur.stream(construireSpec(request, cle)) { AnthropicEventMapper() })
+    override fun stream(request: AiRequest): Flow<AiEvent> = flow {
+        val cle = apiKeySource.obtain()
+        if (cle.isNullOrBlank()) {
+            emit(AiEvent.Failure(AppError.Ai(AppError.AiReason.Authentication, "clé absente")))
+            return@flow
         }
+        emitAll(executeur.stream(construireSpec(request, cle)) { AnthropicEventMapper() })
+    }
 
-    override suspend fun listModels(): AppResult<List<AiModelInfo>> =
-        withContext(dispatchers.io) {
-            val cle = apiKeySource.obtain()
-            if (cle.isNullOrBlank()) {
-                return@withContext AppResult.Failure(
-                    AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
-                )
-            }
-            lireListeModeles(
-                transport,
-                AiHttpRequestSpec(
-                    url = "$baseUrl/v1/models",
-                    method = "GET",
-                    headers = enTetes(cle),
-                ),
-            ) { id, affiche -> AiModelInfo(id = id, displayName = affiche) }
-        }
-
-    override suspend fun ping(): AppResult<Unit> =
-        withContext(dispatchers.io) {
-            val cle = apiKeySource.obtain()
-            if (cle.isNullOrBlank()) {
-                return@withContext AppResult.Failure(
-                    AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
-                )
-            }
-            executerPing(
-                transport,
-                AiHttpRequestSpec(
-                    url = "$baseUrl/v1/models?limit=1",
-                    method = "GET",
-                    headers = enTetes(cle),
-                    readTimeoutMs = DUREE_PING_MS,
-                ),
+    override suspend fun listModels(): AppResult<List<AiModelInfo>> = withContext(dispatchers.io) {
+        val cle = apiKeySource.obtain()
+        if (cle.isNullOrBlank()) {
+            return@withContext AppResult.Failure(
+                AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
             )
         }
+        lireListeModeles(
+            transport,
+            AiHttpRequestSpec(
+                url = "$baseUrl/v1/models",
+                method = "GET",
+                headers = enTetes(cle),
+            ),
+        ) { id, affiche -> AiModelInfo(id = id, displayName = affiche) }
+    }
+
+    override suspend fun ping(): AppResult<Unit> = withContext(dispatchers.io) {
+        val cle = apiKeySource.obtain()
+        if (cle.isNullOrBlank()) {
+            return@withContext AppResult.Failure(
+                AppError.Ai(AppError.AiReason.Authentication, "clé absente"),
+            )
+        }
+        executerPing(
+            transport,
+            AiHttpRequestSpec(
+                url = "$baseUrl/v1/models?limit=1",
+                method = "GET",
+                headers = enTetes(cle),
+                readTimeoutMs = DUREE_PING_MS,
+            ),
+        )
+    }
 
     /**
      * En-têtes communs des requêtes Anthropic — **jamais journalisés**
      * (ADR 0124).
      */
-    private fun enTetes(cle: String): Map<String, String> =
-        mapOf(
-            "x-api-key" to cle,
-            "anthropic-version" to VERSION_ANTHROPIC,
-            "accept" to TYPE_JSON,
-        )
+    private fun enTetes(cle: String): Map<String, String> = mapOf(
+        "x-api-key" to cle,
+        "anthropic-version" to VERSION_ANTHROPIC,
+        "accept" to TYPE_JSON,
+    )
 
     /**
      * Construit la spécification HTTP du flux Messages (en-têtes
      * d'authentification inclus — jamais journalisés).
      */
-    private fun construireSpec(
-        request: AiRequest,
-        cle: String,
-    ): AiHttpRequestSpec =
-        AiHttpRequestSpec(
-            url = "$baseUrl/v1/messages",
-            headers =
-                mapOf(
-                    "x-api-key" to cle,
-                    "anthropic-version" to VERSION_ANTHROPIC,
-                    "content-type" to TYPE_JSON,
-                    "accept" to TYPE_SSE,
-                ),
-            body = construireCorpsAnthropic(request).toString(),
-        )
+    private fun construireSpec(request: AiRequest, cle: String): AiHttpRequestSpec = AiHttpRequestSpec(
+        url = "$baseUrl/v1/messages",
+        headers =
+        mapOf(
+            "x-api-key" to cle,
+            "anthropic-version" to VERSION_ANTHROPIC,
+            "content-type" to TYPE_JSON,
+            "accept" to TYPE_SSE,
+        ),
+        body = construireCorpsAnthropic(request).toString(),
+    )
 
     private companion object {
         /** Délai de lecture réduit pour le test de connexion. */
@@ -216,46 +208,45 @@ internal fun construireCorpsAnthropic(request: AiRequest): JsonObject {
 }
 
 /** Traduit les blocs d'un message vers le tableau `content` Anthropic. */
-private fun construireBlocsAnthropic(message: jo.codeide.core.ai.AiMessage): JsonArray =
-    buildJsonArray {
-        for (bloc in message.blocks) {
-            when (bloc) {
-                is AiContentBlock.Text -> {
-                    add(
-                        buildJsonObject {
-                            put("type", "text")
-                            put("text", bloc.text)
-                        },
-                    )
-                }
+private fun construireBlocsAnthropic(message: jo.codeide.core.ai.AiMessage): JsonArray = buildJsonArray {
+    for (bloc in message.blocks) {
+        when (bloc) {
+            is AiContentBlock.Text -> {
+                add(
+                    buildJsonObject {
+                        put("type", "text")
+                        put("text", bloc.text)
+                    },
+                )
+            }
 
-                is AiContentBlock.ToolUse -> {
-                    add(
-                        buildJsonObject {
-                            put("type", "tool_use")
-                            put("id", bloc.toolCallId)
-                            put("name", bloc.name)
-                            put(
-                                "input",
-                                JsonIa.parseur
-                                    .parseToJsonElement(bloc.argumentsJson.ifBlank { "{}" }),
-                            )
-                        },
-                    )
-                }
+            is AiContentBlock.ToolUse -> {
+                add(
+                    buildJsonObject {
+                        put("type", "tool_use")
+                        put("id", bloc.toolCallId)
+                        put("name", bloc.name)
+                        put(
+                            "input",
+                            JsonIa.parseur
+                                .parseToJsonElement(bloc.argumentsJson.ifBlank { "{}" }),
+                        )
+                    },
+                )
+            }
 
-                is AiContentBlock.ToolResult -> {
-                    add(
-                        buildJsonObject {
-                            put("type", "tool_result")
-                            put("tool_use_id", bloc.toolCallId)
-                            put("content", bloc.content)
-                        },
-                    )
-                }
+            is AiContentBlock.ToolResult -> {
+                add(
+                    buildJsonObject {
+                        put("type", "tool_result")
+                        put("tool_use_id", bloc.toolCallId)
+                        put("content", bloc.content)
+                    },
+                )
             }
         }
     }
+}
 
 /**
  * Traducteur des événements SSE Anthropic → [AiEvent] (une instance par
@@ -267,10 +258,7 @@ internal class AnthropicEventMapper : SseEventMapper {
     private var raisonFin: AiStopReason? = null
     private var messageStopVu = false
 
-    override suspend fun onEvent(
-        event: SseEvent,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    override suspend fun onEvent(event: SseEvent, emit: suspend (AiEvent) -> Unit) {
         // `ping` et tout événement inconnu sont ignorés (plan IA-1).
         when (event.event) {
             "message_start", "content_block_start", "content_block_delta",
@@ -293,10 +281,7 @@ internal class AnthropicEventMapper : SseEventMapper {
     }
 
     /** Parse les données de l'événement ; émet `MalformedResponse` sinon. */
-    private suspend fun evenementEnJson(
-        event: SseEvent,
-        emit: suspend (AiEvent) -> Unit,
-    ): JsonObject? =
+    private suspend fun evenementEnJson(event: SseEvent, emit: suspend (AiEvent) -> Unit): JsonObject? =
         runCatching { JsonIa.parseur.parseToJsonElement(event.data).jsonObject }
             .getOrNull()
             ?: run {
@@ -304,18 +289,12 @@ internal class AnthropicEventMapper : SseEventMapper {
                 null
             }
 
-    private suspend fun traiterDemarrage(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterDemarrage(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val entree = JsonIa.entier(json, "message", "usage", "input_tokens")
         if (entree != null) emit(AiEvent.Usage(entree, null))
     }
 
-    private suspend fun traiterDemarrageBloc(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterDemarrageBloc(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val index = JsonIa.entier(json, "index")?.toInt() ?: return
         if (JsonIa.chaine(json, "content_block", "type") != "tool_use") return
         val id = JsonIa.chaine(json, "content_block", "id") ?: ""
@@ -324,10 +303,7 @@ internal class AnthropicEventMapper : SseEventMapper {
         emit(AiEvent.ToolCallStarted(id, nom))
     }
 
-    private suspend fun traiterDeltaBloc(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterDeltaBloc(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val index = JsonIa.entier(json, "index")?.toInt() ?: return
         when (JsonIa.chaine(json, "delta", "type")) {
             "text_delta" -> {
@@ -341,11 +317,7 @@ internal class AnthropicEventMapper : SseEventMapper {
         }
     }
 
-    private suspend fun traiterFragmentArguments(
-        index: Int,
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterFragmentArguments(index: Int, json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val fragment = JsonIa.chaine(json, "delta", "partial_json")
         val appel = appelsEnCours[index]
         if (fragment.isNullOrEmpty()) return
@@ -357,10 +329,7 @@ internal class AnthropicEventMapper : SseEventMapper {
         emit(AiEvent.ToolCallArguments(appel.toolCallId, fragment))
     }
 
-    private suspend fun traiterFinBloc(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterFinBloc(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val index = JsonIa.entier(json, "index")?.toInt() ?: return
         val appel = appelsEnCours.remove(index)
         if (appel != null) {
@@ -368,10 +337,7 @@ internal class AnthropicEventMapper : SseEventMapper {
         }
     }
 
-    private suspend fun traiterDeltaMessage(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterDeltaMessage(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         JsonIa
             .chaine(json, "delta", "stop_reason")
             ?.let { raisonFin = AiStopReason.fromRaw(it) }
@@ -379,10 +345,7 @@ internal class AnthropicEventMapper : SseEventMapper {
         if (sortie != null) emit(AiEvent.Usage(null, sortie))
     }
 
-    private suspend fun traiterErreur(
-        json: JsonObject,
-        emit: suspend (AiEvent) -> Unit,
-    ) {
+    private suspend fun traiterErreur(json: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val type = JsonIa.chaine(json, "error", "type") ?: "erreur_inconnue"
         if (type == "overloaded_error") {
             emit(AiEvent.Failure(AppError.Ai(AppError.AiReason.ServiceUnavailable, type)))

@@ -84,8 +84,8 @@ class PhaseBootstrapTest {
         telechargements =
             GestionnaireTelechargement(
                 contexte =
-                    androidx.test.core.app.ApplicationProvider
-                        .getApplicationContext(),
+                androidx.test.core.app.ApplicationProvider
+                    .getApplicationContext(),
                 dispatchers = dispatcheursReels,
                 journal = FakeAppLogger(),
             )
@@ -98,18 +98,17 @@ class PhaseBootstrapTest {
         racine.deleteRecursively()
     }
 
-    private fun phase(): PhaseBootstrap =
-        PhaseBootstrap(
-            racine = racine,
-            configuration = ConfigurationBootstrap(urlArchive = adresseArchive, empreinteAttendue = empreinteArchive),
-            catalogue = ToolchainCatalog(),
-            sonde = sondeFactice(),
-            architecture = architectureFactice(),
-            telechargements = telechargements,
-            extraction = extraction,
-            lanceur = lanceur,
-            dispatchers = dispatcheursReels,
-        )
+    private fun phase(): PhaseBootstrap = PhaseBootstrap(
+        racine = racine,
+        configuration = ConfigurationBootstrap(urlArchive = adresseArchive, empreinteAttendue = empreinteArchive),
+        catalogue = ToolchainCatalog(),
+        sonde = sondeFactice(),
+        architecture = architectureFactice(),
+        telechargements = telechargements,
+        extraction = extraction,
+        lanceur = lanceur,
+        dispatchers = dispatcheursReels,
+    )
 
     @Test
     fun `la phase complète s exécute depuis un appareil neuf et se vérifie`() {
@@ -285,15 +284,13 @@ class PhaseBootstrapTest {
         }
     }
 
-    private fun sondeFactice(): EspaceDisqueSonde =
-        object : EspaceDisqueSonde {
-            override fun octetsLibres(racine: File): Long = sondeLibres
-        }
+    private fun sondeFactice(): EspaceDisqueSonde = object : EspaceDisqueSonde {
+        override fun octetsLibres(racine: File): Long = sondeLibres
+    }
 
-    private fun architectureFactice(): CapaciteArchitecture =
-        object : CapaciteArchitecture {
-            override fun supporteAarch64(): Boolean = architectureSupportee
-        }
+    private fun architectureFactice(): CapaciteArchitecture = object : CapaciteArchitecture {
+        override fun supporteAarch64(): Boolean = architectureSupportee
+    }
 
     private fun empreinte(octets: ByteArray): String =
         MessageDigest.getInstance("SHA-256").digest(octets).joinToString("") {
@@ -305,25 +302,24 @@ class PhaseBootstrapTest {
      * machine d'états et le contexte sont ceux du cadre (Kover couvre
      * la phase au travers du vrai orchestrateur).
      */
-    private fun orchestrateur(phase: PhaseBootstrap): OrchestrateurInstallation =
-        OrchestrateurInstallation(
-            dispatchers = dispatcheursReels,
-            commandes = CommandRunnerProcessus(lanceur),
-            telechargements = telechargements,
-            extraction = extraction,
-            magasin =
-                jo.codeide.core.testing
-                    .FakeInstallStateStore(),
-            clientManifeste =
-                jo.codeide.core.testing
-                    .FakeToolManifestClient(),
-            horloge = horlogeFausse,
-            journalFichier = FakeAppLogger(),
-            demarreurService = demarreurFaux,
-            verificationApprofondie = verificationApprofondieFausse,
-            desinstalleur = desinstalleurFaux,
-            fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.BOOTSTRAP to phase)),
-        )
+    private fun orchestrateur(phase: PhaseBootstrap): OrchestrateurInstallation = OrchestrateurInstallation(
+        dispatchers = dispatcheursReels,
+        commandes = CommandRunnerProcessus(lanceur),
+        telechargements = telechargements,
+        extraction = extraction,
+        magasin =
+        jo.codeide.core.testing
+            .FakeInstallStateStore(),
+        clientManifeste =
+        jo.codeide.core.testing
+            .FakeToolManifestClient(),
+        horloge = horlogeFausse,
+        journalFichier = FakeAppLogger(),
+        demarreurService = demarreurFaux,
+        verificationApprofondie = verificationApprofondieFausse,
+        desinstalleur = desinstalleurFaux,
+        fabriquePhases = FabriquePhasesFausse(mapOf(InstallPhase.BOOTSTRAP to phase)),
+    )
 
     private val demarreurFaux =
         object : DemarreurServiceInstallation {

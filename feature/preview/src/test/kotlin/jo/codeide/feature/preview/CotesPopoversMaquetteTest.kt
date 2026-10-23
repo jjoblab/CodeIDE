@@ -193,11 +193,8 @@ public class CotesPopoversMaquetteTest {
                     attrs: android.util.AttributeSet,
                 ): View? = InflateurMaterial().creer(parent, nom, ctx, attrs)
 
-                override fun onCreateView(
-                    nom: String,
-                    ctx: Context,
-                    attrs: android.util.AttributeSet,
-                ): View? = onCreateView(null, nom, ctx, attrs)
+                override fun onCreateView(nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+                    onCreateView(null, nom, ctx, attrs)
             }
         return contexte
     }
@@ -214,23 +211,15 @@ public class CotesPopoversMaquetteTest {
     }
 
     /** Gonfle un ITEM hors hiérarchie (liage + mesure par le test). */
-    private fun gonflerSimple(
-        contexte: Context,
-        layout: Int,
-    ): LinearLayout = LayoutInflater.from(contexte).inflate(layout, null) as LinearLayout
+    private fun gonflerSimple(contexte: Context, layout: Int): LinearLayout =
+        LayoutInflater.from(contexte).inflate(layout, null) as LinearLayout
 
     /** La cote attendue d'un élément mesuré (largeur = 0, hauteur = 1). */
-    private fun attendue(
-        source: JSONObject,
-        cle: String,
-        axe: Int,
-    ): Double = source.getJSONObject(cle).getJSONArray("rect").getDouble(axe)
+    private fun attendue(source: JSONObject, cle: String, axe: Int): Double =
+        source.getJSONObject(cle).getJSONArray("rect").getDouble(axe)
 
     /** La cote mesurée doit égaler celle de la maquette (palette), à UN dp près. */
-    private fun verifierCote(
-        cle: String,
-        mesuree: Int,
-    ) {
+    private fun verifierCote(cle: String, mesuree: Int) {
         val attendue = attendue(mesuresPalette, cle, axe = 1)
         assertTrue(
             "cote $cle : mesurée $mesuree dp, attendue $attendue dp (±$TOLERANCE_DP)",
@@ -239,13 +228,7 @@ public class CotesPopoversMaquetteTest {
     }
 
     /** La cote mesurée doit égaler celle de la maquette (source explicite), à UN dp près. */
-    private fun verifierCote(
-        libelle: String,
-        source: JSONObject,
-        mesuree: Int,
-        cle: String,
-        axe: Int,
-    ) {
+    private fun verifierCote(libelle: String, source: JSONObject, mesuree: Int, cle: String, axe: Int) {
         val attendue = attendue(source, cle, axe)
         assertTrue(
             "cote $libelle : mesurée $mesuree dp, attendue $attendue dp (±$TOLERANCE_DP)",
@@ -266,12 +249,8 @@ public class CotesPopoversMaquetteTest {
 
     /** L'inflateur Material (surcharge courte protégée dans AppCompatViewInflater). */
     private class InflateurMaterial : MaterialComponentsViewInflater() {
-        public fun creer(
-            parent: View?,
-            nom: String,
-            ctx: Context,
-            attrs: android.util.AttributeSet,
-        ): View? = createView(parent, nom, ctx, attrs, parent != null, true, true, true)
+        public fun creer(parent: View?, nom: String, ctx: Context, attrs: android.util.AttributeSet): View? =
+            createView(parent, nom, ctx, attrs, parent != null, true, true, true)
     }
 
     private companion object {

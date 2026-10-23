@@ -65,12 +65,7 @@ public object RedimensionApercu {
      * vue en dérive la compensation de préhension
      * (`decalage = coinSaisi − pointDeContact`).
      */
-    public fun poigneeSous(
-        vue: InfoVueRendu,
-        xContenu: Int,
-        yContenu: Int,
-        rayonPx: Float,
-    ): PoigneeSaisie? {
+    public fun poigneeSous(vue: InfoVueRendu, xContenu: Int, yContenu: Int, rayonPx: Float): PoigneeSaisie? {
         val coins =
             listOf(
                 // (coin, ancre opposée) : haut-gauche → bas-droite, etc.
@@ -92,12 +87,8 @@ public object RedimensionApercu {
      * PE11l — la vue convertit ses 18 dp écran par
      * [VuePreviewXml.tailleEcran]).
      */
-    public fun ancrePoigneeSous(
-        vue: InfoVueRendu,
-        xContenu: Int,
-        yContenu: Int,
-        rayonPx: Float,
-    ): Pair<Int, Int>? = poigneeSous(vue, xContenu, yContenu, rayonPx)?.ancre
+    public fun ancrePoigneeSous(vue: InfoVueRendu, xContenu: Int, yContenu: Int, rayonPx: Float): Pair<Int, Int>? =
+        poigneeSous(vue, xContenu, yContenu, rayonPx)?.ancre
 
     /** Une saisie de poignée : le coin SAISI et le coin ANCRE (px contenu). */
     public data class PoigneeSaisie(
@@ -136,12 +127,8 @@ public object RedimensionApercu {
      * d'état stocke le point COURANT COMPENSÉ, la dérive se mesure sur
      * la même trajectoire (le décalage est CONSTANT sur tout le geste).
      */
-    public fun decalagePrehension(
-        coinX: Int,
-        coinY: Int,
-        pointX: Int,
-        pointY: Int,
-    ): Pair<Int, Int> = (coinX - pointX) to (coinY - pointY)
+    public fun decalagePrehension(coinX: Int, coinY: Int, pointX: Int, pointY: Int): Pair<Int, Int> =
+        (coinX - pointX) to (coinY - pointY)
 
     /**
      * Les dimensions CIBLES (dp, plancher 8) du coin ancre au point
@@ -150,13 +137,7 @@ public object RedimensionApercu {
      * densité du profil est inconnue (0 — repli px : le geste ne
      * produit RIEN plutôt qu'une écriture fausse).
      */
-    public fun dimensions(
-        ancreX: Int,
-        ancreY: Int,
-        pointX: Int,
-        pointY: Int,
-        densiteDpi: Int,
-    ): Pair<Int, Int>? {
+    public fun dimensions(ancreX: Int, ancreY: Int, pointX: Int, pointY: Int, densiteDpi: Int): Pair<Int, Int>? {
         if (densiteDpi <= 0) return null
         val largeurDp =
             CalquesApercu
@@ -174,12 +155,7 @@ public object RedimensionApercu {
      * point courant COMPENSÉ (C1), ordonné (la drag peut croiser
      * l'ancre — la cible reste un rectangle propre).
      */
-    public fun rectangle(
-        ancreX: Int,
-        ancreY: Int,
-        pointX: Int,
-        pointY: Int,
-    ): Pair<Pair<Int, Int>, Pair<Int, Int>> =
+    public fun rectangle(ancreX: Int, ancreY: Int, pointX: Int, pointY: Int): Pair<Pair<Int, Int>, Pair<Int, Int>> =
         (min(ancreX, pointX) to min(ancreY, pointY)) to
             (max(ancreX, pointX) to max(ancreY, pointY))
 
@@ -188,13 +164,7 @@ public object RedimensionApercu {
      * dérive est un simple contact sur la poignée : RIEN ne s'écrit
      * (miroir le tap sans dérive du canvas — pas de mutation fantôme).
      */
-    public fun aDerive(
-        departX: Int,
-        departY: Int,
-        pointX: Int,
-        pointY: Int,
-        seuilPx: Float,
-    ): Boolean {
+    public fun aDerive(departX: Int, departY: Int, pointX: Int, pointY: Int, seuilPx: Float): Boolean {
         val dx = pointX - departX
         val dy = pointY - departY
         return dx * dx + dy * dy > seuilPx * seuilPx

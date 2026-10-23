@@ -32,129 +32,125 @@ class ExecuterApplicationEditorViewModelTest : BaseEditorViewModelTest() {
     val dossierTemp = TemporaryFolder()
 
     @Test
-    fun `le run d un projet android compile attend le build puis installe et lance`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
-            val id = ajouterProjet("Alpha")
-            val dossier = semerProjetAndroid()
-            val effets = mutableListOf<EffetEditor>()
-            val viewModel =
-                viewModel(
-                    id,
-                    SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-                    ResolveurCheminFuse { dossier.absolutePath },
-                )
-            collecterEffets(viewModel, effets)
-            avancer()
-
-            viewModel.onAction(ActionEditor.ExecuterApplication)
-            avancer()
-
-            // 1. le build demandé est celui du « Run » d'Android Studio.
-            assertEquals(listOf(":app:assembleDebug"), tooling.tachesDemandees)
-            assertEquals(StatutBuild.EN_COURS, viewModel.etatGradle.value.statutBuild)
-
-            // 2. le runner attend le verdict AVANT d'installer.
-            assertTrue("rien n'est installé avant la fin du build", installateurApkTest.apksInstalles.isEmpty())
-
-            // 3. verdict : build réussi → installation + lancement.
-            tooling.terminerBuild(tooling.prochainBuildId, StatutBuild.REUSSI)
-            avancer()
-
-            assertEquals(
-                "l'APK déterministe est installé",
-                File(dossier, "app/build/outputs/apk/debug/app-debug.apk").canonicalPath,
-                installateurApkTest.apksInstalles.single().canonicalPath,
+    fun `le run d un projet android compile attend le build puis installe et lance`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        val id = ajouterProjet("Alpha")
+        val dossier = semerProjetAndroid()
+        val effets = mutableListOf<EffetEditor>()
+        val viewModel =
+            viewModel(
+                id,
+                SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+                ResolveurCheminFuse { dossier.absolutePath },
             )
-            assertEquals(listOf("com.exemple.monapp"), installateurApkTest.paquetsLances)
+        collecterEffets(viewModel, effets)
+        avancer()
 
-            // 4. la console est pré-basculée sur le canal BUILD.
-            assertEquals(OngletPanneau.CONSOLE, viewModel.etat.value.ongletPanneau)
-            assertEquals(FiltreCanalConsole.BUILD, viewModel.etat.value.filtreConsole)
+        viewModel.onAction(ActionEditor.ExecuterApplication)
+        avancer()
 
-            // 5. la notification de lancement est typée et localisée.
-            val notifiees = effets.filterIsInstance<EffetEditor.NotifierExecution>()
-            assertTrue(
-                "snackbar « application lancée » émis",
-                notifiees.any {
-                    it.message == R.string.editor_execution_lancee &&
-                        it.arguments == listOf("com.exemple.monapp")
-                },
-            )
-        }
+        // 1. le build demandé est celui du « Run » d'Android Studio.
+        assertEquals(listOf(":app:assembleDebug"), tooling.tachesDemandees)
+        assertEquals(StatutBuild.EN_COURS, viewModel.etatGradle.value.statutBuild)
+
+        // 2. le runner attend le verdict AVANT d'installer.
+        assertTrue("rien n'est installé avant la fin du build", installateurApkTest.apksInstalles.isEmpty())
+
+        // 3. verdict : build réussi → installation + lancement.
+        tooling.terminerBuild(tooling.prochainBuildId, StatutBuild.REUSSI)
+        avancer()
+
+        assertEquals(
+            "l'APK déterministe est installé",
+            File(dossier, "app/build/outputs/apk/debug/app-debug.apk").canonicalPath,
+            installateurApkTest.apksInstalles.single().canonicalPath,
+        )
+        assertEquals(listOf("com.exemple.monapp"), installateurApkTest.paquetsLances)
+
+        // 4. la console est pré-basculée sur le canal BUILD.
+        assertEquals(OngletPanneau.CONSOLE, viewModel.etat.value.ongletPanneau)
+        assertEquals(FiltreCanalConsole.BUILD, viewModel.etat.value.filtreConsole)
+
+        // 5. la notification de lancement est typée et localisée.
+        val notifiees = effets.filterIsInstance<EffetEditor.NotifierExecution>()
+        assertTrue(
+            "snackbar « application lancée » émis",
+            notifiees.any {
+                it.message == R.string.editor_execution_lancee &&
+                    it.arguments == listOf("com.exemple.monapp")
+            },
+        )
+    }
 
     @Test
-    fun `le run pose l etiquette systeme avant compilation`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
-            val id = ajouterProjet("Alpha")
-            val dossier = semerProjetAndroid()
-            val viewModel =
-                viewModel(
-                    id,
-                    SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-                    ResolveurCheminFuse { dossier.absolutePath },
-                )
-            avancer()
-
-            viewModel.onAction(ActionEditor.ExecuterApplication)
-            avancer()
-
-            // Mission H4 (ADR 0106 § d) : le Run est une action RISQUÉE —
-            // le filet d'historique marque l'état d'avant compilation,
-            // silencieusement (jamais bloquant, jamais visible).
-            assertEquals(
-                listOf(EtiqueteurHistorique.ETIQUETTE_AVANT_COMPILATION to null),
-                historiqueTest.etiquettes,
+    fun `le run pose l etiquette systeme avant compilation`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        val id = ajouterProjet("Alpha")
+        val dossier = semerProjetAndroid()
+        val viewModel =
+            viewModel(
+                id,
+                SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+                ResolveurCheminFuse { dossier.absolutePath },
             )
-        }
+        avancer()
+
+        viewModel.onAction(ActionEditor.ExecuterApplication)
+        avancer()
+
+        // Mission H4 (ADR 0106 § d) : le Run est une action RISQUÉE —
+        // le filet d'historique marque l'état d'avant compilation,
+        // silencieusement (jamais bloquant, jamais visible).
+        assertEquals(
+            listOf(EtiqueteurHistorique.ETIQUETTE_AVANT_COMPILATION to null),
+            historiqueTest.etiquettes,
+        )
+    }
 
     @Test
-    fun `un build echoue - le runner ne tente aucune installation`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
-            val id = ajouterProjet("Alpha")
-            val dossier = semerProjetAndroid()
-            val viewModel =
-                viewModel(
-                    id,
-                    SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-                    ResolveurCheminFuse { dossier.absolutePath },
-                )
-            avancer()
-
-            viewModel.onAction(ActionEditor.ExecuterApplication)
-            avancer()
-
-            tooling.terminerBuild(tooling.prochainBuildId, StatutBuild.ECHOUE, messageEchec = "compilation")
-            avancer()
-
-            assertTrue(
-                "la console rapporte déjà l'échec — le runner s'arrête là",
-                installateurApkTest.apksInstalles.isEmpty(),
+    fun `un build echoue - le runner ne tente aucune installation`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        val id = ajouterProjet("Alpha")
+        val dossier = semerProjetAndroid()
+        val viewModel =
+            viewModel(
+                id,
+                SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+                ResolveurCheminFuse { dossier.absolutePath },
             )
-            assertEquals(StatutBuild.ECHOUE, viewModel.etatGradle.value.statutBuild)
-        }
+        avancer()
+
+        viewModel.onAction(ActionEditor.ExecuterApplication)
+        avancer()
+
+        tooling.terminerBuild(tooling.prochainBuildId, StatutBuild.ECHOUE, messageEchec = "compilation")
+        avancer()
+
+        assertTrue(
+            "la console rapporte déjà l'échec — le runner s'arrête là",
+            installateurApkTest.apksInstalles.isEmpty(),
+        )
+        assertEquals(StatutBuild.ECHOUE, viewModel.etatGradle.value.statutBuild)
+    }
 
     @Test
-    fun `la detection du module android rend le run visible`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
-            val id = ajouterProjet("Alpha")
-            val dossier = semerProjetAndroid()
-            val viewModel =
-                viewModel(
-                    id,
-                    SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-                    ResolveurCheminFuse { dossier.absolutePath },
-                )
-            avancer()
-
-            assertTrue(
-                "le bouton Run devient le « Run » d'Android Studio",
-                viewModel.etat.value.projetApplicationAndroid,
+    fun `la detection du module android rend le run visible`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        val id = ajouterProjet("Alpha")
+        val dossier = semerProjetAndroid()
+        val viewModel =
+            viewModel(
+                id,
+                SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+                ResolveurCheminFuse { dossier.absolutePath },
             )
-        }
+        avancer()
+
+        assertTrue(
+            "le bouton Run devient le « Run » d'Android Studio",
+            viewModel.etat.value.projetApplicationAndroid,
+        )
+    }
 
     /** Dossier projet RÉEL : module application, APK et métadonnées AGP. */
     private fun semerProjetAndroid(): File {

@@ -54,11 +54,7 @@ internal class ServiceInstallationEnvironnement : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int,
-    ): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             ACTION_ANNULER -> {
                 journal.i(TAG) { "annulation demandée depuis la notification" }
@@ -185,34 +181,32 @@ internal class ServiceInstallationEnvironnement : Service() {
     }
 
     /** Ressource du libellé d'une phase (fr/en — jamais une chaîne en dur). */
-    private fun ressourcePhase(phase: InstallPhase): Int =
-        when (phase) {
-            InstallPhase.BOOTSTRAP -> R.string.installation_service_phase_bootstrap
-            InstallPhase.PACKAGE_TOOLS -> R.string.installation_service_phase_outils
-            InstallPhase.JAVA -> R.string.installation_service_phase_java
-            InstallPhase.ANDROID_SDK -> R.string.installation_service_phase_sdk
-        }
+    private fun ressourcePhase(phase: InstallPhase): Int = when (phase) {
+        InstallPhase.BOOTSTRAP -> R.string.installation_service_phase_bootstrap
+        InstallPhase.PACKAGE_TOOLS -> R.string.installation_service_phase_outils
+        InstallPhase.JAVA -> R.string.installation_service_phase_java
+        InstallPhase.ANDROID_SDK -> R.string.installation_service_phase_sdk
+    }
 
     /** Traduit la progression du domaine en triplet `setProgress` (avancement, total, indéterminée). */
-    private fun progression(progression: Progress): Triple<Int, Int, Boolean> =
-        when (progression) {
-            Progress.Indeterminate -> {
+    private fun progression(progression: Progress): Triple<Int, Int, Boolean> = when (progression) {
+        Progress.Indeterminate -> {
+            Triple(0, 0, true)
+        }
+
+        is Progress.Bytes -> {
+            val total = progression.total
+            if (total != null && total > 0) {
+                Triple((progression.received * PROGRESSION_MAX / total).toInt(), PROGRESSION_MAX, false)
+            } else {
                 Triple(0, 0, true)
             }
-
-            is Progress.Bytes -> {
-                val total = progression.total
-                if (total != null && total > 0) {
-                    Triple((progression.received * PROGRESSION_MAX / total).toInt(), PROGRESSION_MAX, false)
-                } else {
-                    Triple(0, 0, true)
-                }
-            }
-
-            is Progress.Items -> {
-                Triple(progression.done * PROGRESSION_MAX / progression.total, progression.total, false)
-            }
         }
+
+        is Progress.Items -> {
+            Triple(progression.done * PROGRESSION_MAX / progression.total, progression.total, false)
+        }
+    }
 
     internal companion object {
         private const val TAG = "install"

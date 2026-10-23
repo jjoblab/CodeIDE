@@ -29,12 +29,11 @@ internal fun etatNotifications(contexte: Context): Boolean {
 }
 
 /** État réel de l'accès au stockage partagé (voir KDoc du fichier). */
-internal fun etatStockagePartage(contexte: Context): Boolean =
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        Environment.isExternalStorageManager()
-    } else {
-        ContextCompat.checkSelfPermission(
-            contexte,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-    }
+internal fun etatStockagePartage(contexte: Context): Boolean = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+    Environment.isExternalStorageManager()
+} else {
+    ContextCompat.checkSelfPermission(
+        contexte,
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+}

@@ -41,10 +41,7 @@ class LangagesFragment : BaseFragment<FragmentLspApercuBinding>() {
         attachToRoot: Boolean,
     ): FragmentLspApercuBinding = FragmentLspApercuBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -70,11 +67,7 @@ class LangagesFragment : BaseFragment<FragmentLspApercuBinding>() {
     }
 
     /** Sous-titre composé (morceaux joints par « · ») + pastille + rôle complet. */
-    private fun rendreLigneMoteur(
-        rangee: RangeeParametre,
-        nom: String,
-        ligne: LigneMoteur,
-    ) {
+    private fun rendreLigneMoteur(rangee: RangeeParametre, nom: String, ligne: LigneMoteur) {
         rangee.sousTitre = ligne.sousTitres.joinToString(SEPARATEUR) { resoudreTexteLsp(it) }
         val libelle = getString(ligne.etat.libelle)
         rangee.indicateur = ligne.etat.versNiveau()

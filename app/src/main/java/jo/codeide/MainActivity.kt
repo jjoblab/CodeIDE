@@ -217,10 +217,10 @@ class MainActivity : AppCompatActivity() {
                     controleur,
                     destination = R.id.installation,
                     actions =
-                        mapOf(
-                            R.id.home to R.id.action_home_to_installation,
-                            R.id.onboarding to R.id.action_onboarding_to_installation,
-                        ),
+                    mapOf(
+                        R.id.home to R.id.action_home_to_installation,
+                        R.id.onboarding to R.id.action_onboarding_to_installation,
+                    ),
                 )
             }
 
@@ -275,11 +275,7 @@ class MainActivity : AppCompatActivity() {
      * Navigation routée : action dédiée depuis l'origine indiquée,
      * destination directe ailleurs, rien si déjà en place.
      */
-    private fun ouvrirEcranRoutage(
-        controleur: NavController,
-        destination: Int,
-        actions: Map<Int, Int>,
-    ) {
+    private fun ouvrirEcranRoutage(controleur: NavController, destination: Int, actions: Map<Int, Int>) {
         val origine = controleur.currentDestination?.id
         when (origine) {
             destination -> Unit
@@ -332,20 +328,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Mode de nuit appcompat d'un thème applicatif. */
-    private fun modeNuit(mode: ThemeMode): Int =
-        when (mode) {
-            ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-            ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
-            ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-        }
+    private fun modeNuit(mode: ThemeMode): Int = when (mode) {
+        ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+        ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
+        ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+    }
 
     /** Locales demandées : vide = suivre le système (ADR 0013). */
-    private fun localesDemandees(tag: String): LocaleListCompat =
-        if (tag.isBlank()) {
-            LocaleListCompat.getEmptyLocaleList()
-        } else {
-            LocaleListCompat.forLanguageTags(tag)
-        }
+    private fun localesDemandees(tag: String): LocaleListCompat = if (tag.isBlank()) {
+        LocaleListCompat.getEmptyLocaleList()
+    } else {
+        LocaleListCompat.forLanguageTags(tag)
+    }
 
     /**
      * Routage du premier lancement (étape 5) : l'assistant remplace

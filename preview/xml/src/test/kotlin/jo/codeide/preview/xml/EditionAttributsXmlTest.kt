@@ -62,10 +62,8 @@ public class EditionAttributsXmlTest {
     private fun spanBouton(): InsertionXml.SpanParent = spanDe(formate, 2)!!
 
     /** Applique l'édition (miroir du port : remplacement de plage). */
-    private fun appliquer(
-        texte: String,
-        edition: EditionAttributsXml.EditionAttributsXmlResultat,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: EditionAttributsXml.EditionAttributsXmlResultat): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     // ── Remplacement et idempotence ──────────────────────────────────────
 

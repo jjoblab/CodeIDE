@@ -32,9 +32,8 @@ import jo.codeide.preview.xml.EditionAttributsXml
  * la mécanique d'édition (ViewModel, ports, [CatalogueAttributs]) est
  * conservée telle quelle.
  */
-internal class AdaptateurAttributs(
-    private val evenements: Evenements,
-) : ListAdapter<ItemAttributs, AdaptateurAttributs.Detenteur>(DiffItems) {
+internal class AdaptateurAttributs(private val evenements: Evenements) :
+    ListAdapter<ItemAttributs, AdaptateurAttributs.Detenteur>(DiffItems) {
     /** Le contrat volet ↔ adaptateur : le corps des cartes et la BARRE restent au volet. */
     internal interface Evenements {
         /** Gonfle les contrôles (FILTRÉS par la recherche, PE11f) d'une section OUVERTE. */
@@ -49,16 +48,10 @@ internal class AdaptateurAttributs(
         fun lierBarre(barre: BarreOutilsAttributsBinding)
 
         /** L'état ouvert/fermé d'une section (mémorisé par titre). */
-        fun sectionOuverte(
-            section: CatalogueAttributs.SectionAttributs,
-            position: Int,
-        ): Boolean
+        fun sectionOuverte(section: CatalogueAttributs.SectionAttributs, position: Int): Boolean
 
         /** Un tap sur l'en-tête : MÉMORISE le nouvel état (par titre). */
-        fun basculerSection(
-            section: CatalogueAttributs.SectionAttributs,
-            ouverte: Boolean,
-        )
+        fun basculerSection(section: CatalogueAttributs.SectionAttributs, ouverte: Boolean)
 
         /** Le tap sur « Afficher les N autres attributs » passe en mode TOUS. */
         fun auBoutonAutres()
@@ -81,26 +74,22 @@ internal class AdaptateurAttributs(
 
     override fun getItemCount(): Int = super.getItemCount()
 
-    override fun getItemViewType(position: Int): Int =
-        when (val item = getItem(position)) {
-            is ItemAttributs.Titre -> VUE_TITRE
-            ItemAttributs.BarreOutils -> VUE_BARRE
-            is ItemAttributs.Correctif -> VUE_CORRECTIF
-            is ItemAttributs.Carte -> VUE_CARTE
-            ItemAttributs.Separateur -> VUE_SEPARATEUR
-            is ItemAttributs.LectureSeule -> VUE_LECTURE_SEULE
-            is ItemAttributs.TitreGroupe -> VUE_TITRE_GROUPE
-            is ItemAttributs.Attribut -> VUE_ATTRIBUT
-            is ItemAttributs.Message -> VUE_VIDE
-            is ItemAttributs.BoutonAutres -> VUE_BOUTON_AUTRES
-            is ItemAttributs.SuggestionLibre -> VUE_SUGGESTION_LIBRE
-            ItemAttributs.Vide -> VUE_VIDE
-        }
+    override fun getItemViewType(position: Int): Int = when (val item = getItem(position)) {
+        is ItemAttributs.Titre -> VUE_TITRE
+        ItemAttributs.BarreOutils -> VUE_BARRE
+        is ItemAttributs.Correctif -> VUE_CORRECTIF
+        is ItemAttributs.Carte -> VUE_CARTE
+        ItemAttributs.Separateur -> VUE_SEPARATEUR
+        is ItemAttributs.LectureSeule -> VUE_LECTURE_SEULE
+        is ItemAttributs.TitreGroupe -> VUE_TITRE_GROUPE
+        is ItemAttributs.Attribut -> VUE_ATTRIBUT
+        is ItemAttributs.Message -> VUE_VIDE
+        is ItemAttributs.BoutonAutres -> VUE_BOUTON_AUTRES
+        is ItemAttributs.SuggestionLibre -> VUE_SUGGESTION_LIBRE
+        ItemAttributs.Vide -> VUE_VIDE
+    }
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Detenteur {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Detenteur {
         val gonfleur = LayoutInflater.from(parent.context)
         val vue =
             when (viewType) {
@@ -119,10 +108,7 @@ internal class AdaptateurAttributs(
         return Detenteur(vue)
     }
 
-    override fun onBindViewHolder(
-        detenteur: Detenteur,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(detenteur: Detenteur, position: Int) {
         when (val item = getItem(position)) {
             is ItemAttributs.Titre -> {
                 EnteteEditeurBinding.bind(detenteur.itemView).titreEditeur.text = item.texte
@@ -193,10 +179,7 @@ internal class AdaptateurAttributs(
      * n'est gonflé qu'à l'ouverture — un tap bascule l'état, le corps est
      * détruit à la fermeture, et seul l'item change (pas la liste).
      */
-    private fun lierCarte(
-        detenteur: Detenteur,
-        item: ItemAttributs.Carte,
-    ) {
+    private fun lierCarte(detenteur: Detenteur, item: ItemAttributs.Carte) {
         val carte = CarteSectionBinding.bind(detenteur.itemView)
         val ressources = detenteur.itemView.resources
         carte.titreSection.text = item.titre
@@ -218,20 +201,14 @@ internal class AdaptateurAttributs(
     }
 
     /** Le corps d'une carte : DÉTRUIT à la fermeture, gonflé à l'ouverture. */
-    private fun lierCorps(
-        carte: CarteSectionBinding,
-        item: ItemAttributs.Carte,
-        ouverte: Boolean,
-    ) {
+    private fun lierCorps(carte: CarteSectionBinding, item: ItemAttributs.Carte, ouverte: Boolean) {
         carte.corpsSection.removeAllViews()
         carte.corpsSection.isVisible = ouverte
         if (ouverte) evenements.lierCorpsCarte(carte, item.section, item.controles, item.attrs)
     }
 
     /** Le détenteur générique (le liage re-bind par le type de vue). */
-    internal class Detenteur(
-        vue: View,
-    ) : RecyclerView.ViewHolder(vue)
+    internal class Detenteur(vue: View) : RecyclerView.ViewHolder(vue)
 
     /**
      * Le diff des items (ADR 0132 § 4) : les items sont des data class
@@ -239,24 +216,17 @@ internal class AdaptateurAttributs(
      * même » par le TITRE de sa section (miroir l'état par titre).
      */
     private object DiffItems : DiffUtil.ItemCallback<ItemAttributs>() {
-        override fun areItemsTheSame(
-            ancien: ItemAttributs,
-            nouveau: ItemAttributs,
-        ): Boolean =
-            when {
-                ancien is ItemAttributs.Carte && nouveau is ItemAttributs.Carte -> {
-                    ancien.section.titre == nouveau.section.titre
-                }
-
-                else -> {
-                    ancien == nouveau
-                }
+        override fun areItemsTheSame(ancien: ItemAttributs, nouveau: ItemAttributs): Boolean = when {
+            ancien is ItemAttributs.Carte && nouveau is ItemAttributs.Carte -> {
+                ancien.section.titre == nouveau.section.titre
             }
 
-        override fun areContentsTheSame(
-            ancien: ItemAttributs,
-            nouveau: ItemAttributs,
-        ): Boolean = ancien == nouveau
+            else -> {
+                ancien == nouveau
+            }
+        }
+
+        override fun areContentsTheSame(ancien: ItemAttributs, nouveau: ItemAttributs): Boolean = ancien == nouveau
     }
 
     internal companion object {

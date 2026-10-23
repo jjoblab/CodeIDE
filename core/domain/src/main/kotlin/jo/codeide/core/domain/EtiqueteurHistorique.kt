@@ -21,36 +21,31 @@ import javax.inject.Singleton
  */
 @Singleton
 public class EtiqueteurHistorique
-    @Inject
-    constructor(
-        private val historique: HistoriqueLocal,
-    ) {
-        /**
-         * Pose une étiquette UTILISATEUR — [nom] nettoyé (trim, vide
-         * refusé) sur le [cheminRelatif] donné (`null` : tout le
-         * projet).
-         *
-         * @return l'entrée créée, ou `null` (nom vide / hors projet).
-         */
-        public suspend fun etiqueter(
-            nom: String,
-            cheminRelatif: String? = null,
-        ): EntreeHistorique? {
-            val nomPropre = nom.trim()
-            if (nomPropre.isEmpty()) return null
-            return historique.etiqueter(nomPropre, cheminRelatif)
-        }
-
-        /**
-         * Pose une étiquette SYSTÈME « Avant compilation » au niveau du
-         * PROJET (mission « Exécuter » : le Run compile, installe et
-         * lance — le filet marque l'état d'avant, l'utilisateur peut
-         * revenir en arrière d'un coup d'œil).
-         */
-        public suspend fun avantCompilation(): EntreeHistorique? = historique.etiqueter(ETIQUETTE_AVANT_COMPILATION)
-
-        public companion object {
-            /** Libellé de l'étiquette système « Avant compilation » (DONNÉE). */
-            public const val ETIQUETTE_AVANT_COMPILATION: String = "Avant compilation"
-        }
+@Inject
+constructor(private val historique: HistoriqueLocal) {
+    /**
+     * Pose une étiquette UTILISATEUR — [nom] nettoyé (trim, vide
+     * refusé) sur le [cheminRelatif] donné (`null` : tout le
+     * projet).
+     *
+     * @return l'entrée créée, ou `null` (nom vide / hors projet).
+     */
+    public suspend fun etiqueter(nom: String, cheminRelatif: String? = null): EntreeHistorique? {
+        val nomPropre = nom.trim()
+        if (nomPropre.isEmpty()) return null
+        return historique.etiqueter(nomPropre, cheminRelatif)
     }
+
+    /**
+     * Pose une étiquette SYSTÈME « Avant compilation » au niveau du
+     * PROJET (mission « Exécuter » : le Run compile, installe et
+     * lance — le filet marque l'état d'avant, l'utilisateur peut
+     * revenir en arrière d'un coup d'œil).
+     */
+    public suspend fun avantCompilation(): EntreeHistorique? = historique.etiqueter(ETIQUETTE_AVANT_COMPILATION)
+
+    public companion object {
+        /** Libellé de l'étiquette système « Avant compilation » (DONNÉE). */
+        public const val ETIQUETTE_AVANT_COMPILATION: String = "Avant compilation"
+    }
+}

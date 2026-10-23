@@ -16,9 +16,7 @@ package jo.codeide.core.model
  * @property fichiers fichiers planifiés, dans l'ordre d'écriture (ordre du
  * manifeste, puis `LICENSE`, puis `.codeide/project.json`).
  */
-public data class TemplatePlan(
-    public val fichiers: List<PlannedFile>,
-)
+public data class TemplatePlan(public val fichiers: List<PlannedFile>)
 
 /**
  * Fichier planifié, prêt à écrire (chemin final + contenu rendu).
@@ -49,14 +47,10 @@ public data class PlannedFile(
  */
 public sealed interface PlannedContent {
     /** Contenu texte rendu (UTF-8, fins de ligne normalisées). */
-    public data class Texte(
-        public val texte: String,
-    ) : PlannedContent
+    public data class Texte(public val texte: String) : PlannedContent
 
     /** Contenu binaire copié tel quel. */
-    public class Binaire(
-        public val octets: ByteArray,
-    ) : PlannedContent {
+    public class Binaire(public val octets: ByteArray) : PlannedContent {
         /** Représentation pour les assertions de test (jamais le contenu). */
         public override fun toString(): String = "Binaire(${octets.size} octets)"
 

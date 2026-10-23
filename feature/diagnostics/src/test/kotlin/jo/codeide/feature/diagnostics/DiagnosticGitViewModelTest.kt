@@ -41,55 +41,52 @@ class DiagnosticGitViewModelTest {
     }
 
     @Test
-    fun `le diagnostic se lance a l ouverture de l onglet`() =
-        runTest {
-            val viewModel = construire()
+    fun `le diagnostic se lance a l ouverture de l onglet`() = runTest {
+        val viewModel = construire()
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            val etat = viewModel.etat.value
-            assertFalse(etat.chargement)
-            assertNotNull(etat.texteAffiche)
-            assertNotNull(etat.texteCopie)
-        }
-
-    @Test
-    fun `relancer reexecute le diagnostic`() =
-        runTest {
-            val viewModel = construire()
-            advanceUntilIdle()
-            val premierCompte = moteurGit.operations.count { it.startsWith("diagnostiquer:") }
-
-            viewModel.relancer()
-            advanceUntilIdle()
-            val secondCompte = moteurGit.operations.count { it.startsWith("diagnostiquer:") }
-
-            assertEquals(premierCompte + 1, secondCompte)
-        }
+        val etat = viewModel.etat.value
+        assertFalse(etat.chargement)
+        assertNotNull(etat.texteAffiche)
+        assertNotNull(etat.texteCopie)
+    }
 
     @Test
-    fun `la copie est differente de l affichage — expurgee`() =
-        runTest {
-            moteurGit.rapportDiagnostic =
-                RapportDiagnosticGit(
-                    nomProjet = "MonProjet",
-                    cheminFuse = "/storage/emulated/0/Documents/MonProjet",
-                    cheminBinaire = "/prefix/bin/git",
-                    versionGit = "git version 2.47.3",
-                    uidEffectif = 10_123L,
-                    uidProprietaireDossier = 10_247L,
-                    pointDeMontage = "/storage/emulated/0",
-                    typeSystemeFichiers = "fuse",
-                    revParse = null,
-                    configList = null,
-                    environnement = emptyMap(),
-                )
-            val viewModel = construire()
+    fun `relancer reexecute le diagnostic`() = runTest {
+        val viewModel = construire()
+        advanceUntilIdle()
+        val premierCompte = moteurGit.operations.count { it.startsWith("diagnostiquer:") }
 
-            advanceUntilIdle()
+        viewModel.relancer()
+        advanceUntilIdle()
+        val secondCompte = moteurGit.operations.count { it.startsWith("diagnostiquer:") }
 
-            val etat = viewModel.etat.value
-            assertTrue(etat.texteAffiche?.contains("MonProjet") == true)
-            assertNull(etat.texteCopie?.let { it.takeIf { c -> c.contains("MonProjet") } })
-        }
+        assertEquals(premierCompte + 1, secondCompte)
+    }
+
+    @Test
+    fun `la copie est differente de l affichage — expurgee`() = runTest {
+        moteurGit.rapportDiagnostic =
+            RapportDiagnosticGit(
+                nomProjet = "MonProjet",
+                cheminFuse = "/storage/emulated/0/Documents/MonProjet",
+                cheminBinaire = "/prefix/bin/git",
+                versionGit = "git version 2.47.3",
+                uidEffectif = 10_123L,
+                uidProprietaireDossier = 10_247L,
+                pointDeMontage = "/storage/emulated/0",
+                typeSystemeFichiers = "fuse",
+                revParse = null,
+                configList = null,
+                environnement = emptyMap(),
+            )
+        val viewModel = construire()
+
+        advanceUntilIdle()
+
+        val etat = viewModel.etat.value
+        assertTrue(etat.texteAffiche?.contains("MonProjet") == true)
+        assertNull(etat.texteCopie?.let { it.takeIf { c -> c.contains("MonProjet") } })
+    }
 }

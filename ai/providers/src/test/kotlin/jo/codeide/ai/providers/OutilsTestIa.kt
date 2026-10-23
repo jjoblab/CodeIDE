@@ -17,11 +17,7 @@ internal val sourceCleFactice = ApiKeySource { CLE_FACTICE }
 internal val sourceCleAbsente = ApiKeySource { null }
 
 /** Entrée de journal enregistrée. */
-internal data class EntreeJournal(
-    val level: LogLevel,
-    val tag: String,
-    val message: String,
-)
+internal data class EntreeJournal(val level: LogLevel, val tag: String, val message: String)
 
 /**
  * [AppLogger] enregistreur : conserve toutes les entrées pour vérifier
@@ -33,12 +29,7 @@ internal class JournalEnregistreur : AppLogger {
 
     override val sessionId: String = "session-test-ia"
 
-    override fun log(
-        level: LogLevel,
-        tag: String,
-        throwable: Throwable?,
-        message: () -> String,
-    ) {
+    override fun log(level: LogLevel, tag: String, throwable: Throwable?, message: () -> String) {
         entrees.add(EntreeJournal(level, tag, message()))
     }
 
@@ -57,9 +48,8 @@ internal class DispatchersReels : DispatcherProvider {
 }
 
 /** Lit une ressource de test (`flux/…`) en UTF-8. */
-internal fun ressource(nom: String): String =
-    FauxServeurIa::class.java
-        .classLoader
-        .getResourceAsStream("flux/$nom")!!
-        .readBytes()
-        .decodeToString()
+internal fun ressource(nom: String): String = FauxServeurIa::class.java
+    .classLoader
+    .getResourceAsStream("flux/$nom")!!
+    .readBytes()
+    .decodeToString()

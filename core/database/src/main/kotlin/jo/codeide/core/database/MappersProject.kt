@@ -16,22 +16,21 @@ import jo.codeide.core.model.TemplateId
  */
 
 /** Reconstruit le [Project] du domaine depuis sa ligne en base. */
-public fun ProjectEntity.toModel(): Project =
-    Project(
-        id = ProjectId(id),
-        name = name,
-        description = description,
-        location =
-            StorageLocation(
-                grantUri = grantUri,
-                documentUri = documentUri,
-                displayPath = displayPath,
-            ),
-        templateId = TemplateId(templateId),
-        createdAtMillis = createdAt,
-        lastOpenedAtMillis = lastOpenedAt,
-        isPinned = isPinned,
-    )
+public fun ProjectEntity.toModel(): Project = Project(
+    id = ProjectId(id),
+    name = name,
+    description = description,
+    location =
+    StorageLocation(
+        grantUri = grantUri,
+        documentUri = documentUri,
+        displayPath = displayPath,
+    ),
+    templateId = TemplateId(templateId),
+    createdAtMillis = createdAt,
+    lastOpenedAtMillis = lastOpenedAt,
+    isPinned = isPinned,
+)
 
 /**
  * Projette un [Project] du domaine vers sa ligne en base.
@@ -40,16 +39,15 @@ public fun ProjectEntity.toModel(): Project =
  * nom validé par le wizard) : toute incohérence lève ici, avant
  * l'insertion — la base ne voit jamais de ligne invalide.
  */
-public fun Project.toEntity(): ProjectEntity =
-    ProjectEntity(
-        id = id.value,
-        name = name,
-        description = description,
-        grantUri = location.grantUri,
-        documentUri = location.documentUri,
-        displayPath = location.displayPath,
-        templateId = templateId.value,
-        createdAt = createdAtMillis,
-        lastOpenedAt = lastOpenedAtMillis,
-        isPinned = isPinned,
-    )
+public fun Project.toEntity(): ProjectEntity = ProjectEntity(
+    id = id.value,
+    name = name,
+    description = description,
+    grantUri = location.grantUri,
+    documentUri = location.documentUri,
+    displayPath = location.displayPath,
+    templateId = templateId.value,
+    createdAt = createdAtMillis,
+    lastOpenedAt = lastOpenedAtMillis,
+    isPinned = isPinned,
+)

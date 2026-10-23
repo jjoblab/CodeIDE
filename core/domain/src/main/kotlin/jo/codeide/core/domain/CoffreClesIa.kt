@@ -27,10 +27,7 @@ public interface CoffreClesIa {
      * toute clé existante). Le tableau est **effacé** après usage quand
      * c'est possible ; l'appelant ne le réutilise pas.
      */
-    public suspend fun enregistrer(
-        identifiant: String,
-        cle: CharArray,
-    ): AppResult<Unit>
+    public suspend fun enregistrer(identifiant: String, cle: CharArray): AppResult<Unit>
 
     /**
      * Déchiffre et renvoie la clé du fournisseur [identifiant] — l'appelant

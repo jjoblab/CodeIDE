@@ -35,46 +35,45 @@ class LifecycleFlowsTest {
     }
 
     @Test
-    fun `la collecte est active entre STARTED et STOPPED uniquement`() =
-        runTest {
-            val dispatcher: TestDispatcher = StandardTestDispatcher(testScheduler)
-            Dispatchers.setMain(dispatcher)
-            try {
-                val proprietaire = ProprietaireCycle()
-                val flux = MutableStateFlow(0)
-                val recues = mutableListOf<Int>()
+    fun `la collecte est active entre STARTED et STOPPED uniquement`() = runTest {
+        val dispatcher: TestDispatcher = StandardTestDispatcher(testScheduler)
+        Dispatchers.setMain(dispatcher)
+        try {
+            val proprietaire = ProprietaireCycle()
+            val flux = MutableStateFlow(0)
+            val recues = mutableListOf<Int>()
 
-                flux.collectWithLifecycle(proprietaire) { recues.add(it) }
+            flux.collectWithLifecycle(proprietaire) { recues.add(it) }
 
-                // Aucune collecte tant que le propriétaire n'est pas démarré.
-                advanceUntilIdle()
-                assertEquals(emptyList<Int>(), recues)
+            // Aucune collecte tant que le propriétaire n'est pas démarré.
+            advanceUntilIdle()
+            assertEquals(emptyList<Int>(), recues)
 
-                // Démarrage : la valeur courante est émise.
-                proprietaire.amener(Lifecycle.State.STARTED)
-                advanceUntilIdle()
-                assertEquals(listOf(0), recues)
+            // Démarrage : la valeur courante est émise.
+            proprietaire.amener(Lifecycle.State.STARTED)
+            advanceUntilIdle()
+            assertEquals(listOf(0), recues)
 
-                // Nouvelle valeur émise pendant que la collecte est active.
-                flux.value = 1
-                advanceUntilIdle()
-                assertEquals(listOf(0, 1), recues)
+            // Nouvelle valeur émise pendant que la collecte est active.
+            flux.value = 1
+            advanceUntilIdle()
+            assertEquals(listOf(0, 1), recues)
 
-                // Descente sous STARTED : la collecte s'arrête.
-                proprietaire.amener(Lifecycle.State.CREATED)
-                advanceUntilIdle()
-                flux.value = 2
-                advanceUntilIdle()
-                assertEquals(listOf(0, 1), recues)
+            // Descente sous STARTED : la collecte s'arrête.
+            proprietaire.amener(Lifecycle.State.CREATED)
+            advanceUntilIdle()
+            flux.value = 2
+            advanceUntilIdle()
+            assertEquals(listOf(0, 1), recues)
 
-                // Retour au démarrage : la collecte repart avec la dernière valeur.
-                proprietaire.amener(Lifecycle.State.STARTED)
-                advanceUntilIdle()
-                assertEquals(listOf(0, 1, 2), recues)
+            // Retour au démarrage : la collecte repart avec la dernière valeur.
+            proprietaire.amener(Lifecycle.State.STARTED)
+            advanceUntilIdle()
+            assertEquals(listOf(0, 1, 2), recues)
 
-                proprietaire.amener(Lifecycle.State.DESTROYED)
-            } finally {
-                Dispatchers.resetMain()
-            }
+            proprietaire.amener(Lifecycle.State.DESTROYED)
+        } finally {
+            Dispatchers.resetMain()
         }
+    }
 }

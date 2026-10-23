@@ -68,7 +68,4 @@ public data class IdentiteSessionJournal(
  * Raison de fin d'une session de journaux — affichée telle quelle dans
  * le bandeau (« Le processus s'est arrêté : … »).
  */
-public data class FinSessionJournal(
-    public val raison: String,
-    public val horodatageMs: Long,
-)
+public data class FinSessionJournal(public val raison: String, public val horodatageMs: Long)

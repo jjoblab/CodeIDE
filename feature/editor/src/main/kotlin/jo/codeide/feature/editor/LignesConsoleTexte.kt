@@ -30,18 +30,17 @@ internal object LignesConsoleTexte {
      * console de sync d'Android Studio : les lignes s'accumulent, elles ne
      * se réécrivent pas).
      */
-    fun etapeSyncDemarree(etape: EtapeSync): EvenementConsoleTexte.Ligne =
-        EvenementConsoleTexte.Ligne(
-            canal = CanalTooling.SYNC,
-            libelle =
-                TexteTooling.Compose(
-                    listOf(
-                        libelleEtape(etape),
-                        TexteTooling.Ressource(R.string.editor_console_etape_suffixe_demarree),
-                    ),
-                ),
-            style = StyleLigne.ETAPE,
-        )
+    fun etapeSyncDemarree(etape: EtapeSync): EvenementConsoleTexte.Ligne = EvenementConsoleTexte.Ligne(
+        canal = CanalTooling.SYNC,
+        libelle =
+        TexteTooling.Compose(
+            listOf(
+                libelleEtape(etape),
+                TexteTooling.Ressource(R.string.editor_console_etape_suffixe_demarree),
+            ),
+        ),
+        style = StyleLigne.ETAPE,
+    )
 
     /**
      * Ligne de FIN d'une étape de sync : « Libellé ✓ 34,1s » — plus le
@@ -87,17 +86,14 @@ internal object LignesConsoleTexte {
      * détail d'octets EN VOL vit dans l'en-tête du panneau, la console est
      * l'HISTORIQUE.
      */
-    fun telechargementBuild(
-        element: String,
-        octetsCumules: Long,
-    ): EvenementConsoleTexte.Ligne =
+    fun telechargementBuild(element: String, octetsCumules: Long): EvenementConsoleTexte.Ligne =
         EvenementConsoleTexte.Ligne(
             canal = CanalTooling.BUILD,
             libelle =
-                TexteTooling.Ressource(
-                    id = R.string.editor_console_telecharge,
-                    args = listOf(element, OctetsLisibles.formater(octetsCumules)),
-                ),
+            TexteTooling.Ressource(
+                id = R.string.editor_console_telecharge,
+                args = listOf(element, OctetsLisibles.formater(octetsCumules)),
+            ),
             style = StyleLigne.TELECHARGEMENT,
         )
 
@@ -109,10 +105,7 @@ internal object LignesConsoleTexte {
      * APRÈS le résultat (préparation LSP) — une ligne émise au résultat
      * ne pourrait lire que des stats PÉRIMÉES.
      */
-    fun conclusionSync(
-        aJour: Boolean,
-        dureeMs: Long?,
-    ): List<EvenementConsoleTexte.Ligne> {
+    fun conclusionSync(aJour: Boolean, dureeMs: Long?): List<EvenementConsoleTexte.Ligne> {
         val duree = dureeMs?.let(DureesLisibles::formater)
         val conclusion =
             when {
@@ -158,23 +151,20 @@ internal object LignesConsoleTexte {
      * mesurée (échec de résolution) ; un échec LOCAL (garde JDK, dossier,
      * transport) n'en a pas.
      */
-    fun conclusionSyncEchouee(
-        dureeMs: Long?,
-        message: String?,
-    ): List<EvenementConsoleTexte.Ligne> {
+    fun conclusionSyncEchouee(dureeMs: Long?, message: String?): List<EvenementConsoleTexte.Ligne> {
         val lignes =
             mutableListOf(
                 EvenementConsoleTexte.Ligne(
                     canal = CanalTooling.SYNC,
                     libelle =
-                        if (dureeMs != null) {
-                            TexteTooling.Ressource(
-                                R.string.editor_console_synthese_sync_echouee_duree,
-                                listOf(DureesLisibles.formater(dureeMs)),
-                            )
-                        } else {
-                            TexteTooling.Ressource(R.string.editor_console_synthese_sync_echouee)
-                        },
+                    if (dureeMs != null) {
+                        TexteTooling.Ressource(
+                            R.string.editor_console_synthese_sync_echouee_duree,
+                            listOf(DureesLisibles.formater(dureeMs)),
+                        )
+                    } else {
+                        TexteTooling.Ressource(R.string.editor_console_synthese_sync_echouee)
+                    },
                     style = StyleLigne.SYNTHESE,
                 ),
             )
@@ -197,12 +187,11 @@ internal object LignesConsoleTexte {
      * tasks: … », rapport d'échec) : aucune ligne dupliquée, parité
      * Android Studio.
      */
-    fun buildAnnule(): EvenementConsoleTexte.Ligne =
-        EvenementConsoleTexte.Ligne(
-            canal = CanalTooling.BUILD,
-            libelle = TexteTooling.Ressource(R.string.editor_console_synthese_annule),
-            style = StyleLigne.SYNTHESE,
-        )
+    fun buildAnnule(): EvenementConsoleTexte.Ligne = EvenementConsoleTexte.Ligne(
+        canal = CanalTooling.BUILD,
+        libelle = TexteTooling.Ressource(R.string.editor_console_synthese_annule),
+        style = StyleLigne.SYNTHESE,
+    )
 
     /**
      * Le statut de build nécessite-t-il une ligne de conclusion propre ?
@@ -251,12 +240,11 @@ internal enum class StyleLigne {
  */
 internal object DureesLisibles {
     /** Formate [dureeMs] : « 4,2s » au-delà de la seconde, « 350ms » en dessous. */
-    fun formater(dureeMs: Long): String =
-        if (dureeMs >= SEUIL_SECONDE_MS) {
-            String.format(Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
-        } else {
-            String.format(Locale.ROOT, "%dms", dureeMs)
-        }
+    fun formater(dureeMs: Long): String = if (dureeMs >= SEUIL_SECONDE_MS) {
+        String.format(Locale.ROOT, "%.1fs", dureeMs / SECONDE_MS)
+    } else {
+        String.format(Locale.ROOT, "%dms", dureeMs)
+    }
 
     /** Une durée vaut-elle l'affichage (les tâches éclair restent nues,
      *  comme la vue Build d'Android Studio) ? */
@@ -274,20 +262,19 @@ internal object DureesLisibles {
  */
 internal object OctetsLisibles {
     /** Formate [octets] : Mo au-dessus du méga, Ko au-dessus du kilo. */
-    fun formater(octets: Long): String =
-        when {
-            octets >= OCTETS_PAR_MO -> {
-                String.format(Locale.ROOT, "%.1f Mo", octets / OCTETS_PAR_MO.toDouble())
-            }
-
-            octets >= OCTETS_PAR_KO -> {
-                String.format(Locale.ROOT, "%d Ko", octets / OCTETS_PAR_KO)
-            }
-
-            else -> {
-                String.format(Locale.ROOT, "%d o", octets)
-            }
+    fun formater(octets: Long): String = when {
+        octets >= OCTETS_PAR_MO -> {
+            String.format(Locale.ROOT, "%.1f Mo", octets / OCTETS_PAR_MO.toDouble())
         }
+
+        octets >= OCTETS_PAR_KO -> {
+            String.format(Locale.ROOT, "%d Ko", octets / OCTETS_PAR_KO)
+        }
+
+        else -> {
+            String.format(Locale.ROOT, "%d o", octets)
+        }
+    }
 
     private const val OCTETS_PAR_KO = 1_024L
 
@@ -301,14 +288,13 @@ internal object OctetsLisibles {
  * reste nécessaire à l'EN-TÊTE du panneau (compteur « étape n/N », détail
  * et progression déterminée de l'étape courante).
  */
-internal fun EtapeSyncTooling.versEtatAffiche(): EtapeSyncAffichee =
-    EtapeSyncAffichee(
-        etape = etape,
-        terminee = terminee,
-        dureeMs = dureeMs,
-        octetsRecus = octetsRecus,
-        octetsTotal = octetsTotal,
-        element = element,
-        compteur = compteur,
-        total = total,
-    )
+internal fun EtapeSyncTooling.versEtatAffiche(): EtapeSyncAffichee = EtapeSyncAffichee(
+    etape = etape,
+    terminee = terminee,
+    dureeMs = dureeMs,
+    octetsRecus = octetsRecus,
+    octetsTotal = octetsTotal,
+    element = element,
+    compteur = compteur,
+    total = total,
+)

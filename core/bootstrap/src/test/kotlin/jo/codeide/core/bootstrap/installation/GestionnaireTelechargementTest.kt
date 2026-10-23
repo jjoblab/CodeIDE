@@ -81,10 +81,7 @@ class GestionnaireTelechargementTest {
     }
 
     /** Sert le corps, en respectant `Range` (206) ou en repartant de zéro (200). */
-    private fun servir(
-        echange: HttpExchange,
-        codeStatut: Int,
-    ) {
+    private fun servir(echange: HttpExchange, codeStatut: Int) {
         if (codeStatut != 200) {
             echange.sendResponseHeaders(codeStatut, -1)
             echange.close()

@@ -23,37 +23,34 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class LogRepositoryImpl
-    @Inject
-    constructor(
-        private val engine: LogEngine,
-        private val store: JsonlLogStore,
-        private val dispatchers: DispatcherProvider,
-    ) : LogRepository {
-        override fun observeRecent(limit: Int): Flow<List<LogEntry>> =
-            flow {
-                var fenetre = engine.snapshot(limit)
-                emit(fenetre)
-                engine.entries.collect { entree ->
-                    fenetre = (fenetre + entree).takeLast(limit)
-                    emit(fenetre)
-                }
-            }
-
-        override suspend fun readAll(): List<LogEntry> =
-            withContext(dispatchers.io) {
-                store.readAll()
-            }
-
-        override suspend fun diskUsage(): LogDiskUsage =
-            withContext(dispatchers.io) {
-                val stats = store.diskStats()
-                LogDiskUsage(bytes = stats.bytes, fileCount = stats.fileCount)
-            }
-
-        override suspend fun clear() {
-            withContext(dispatchers.io) {
-                store.clear()
-            }
-            engine.resetBuffer()
+@Inject
+constructor(
+    private val engine: LogEngine,
+    private val store: JsonlLogStore,
+    private val dispatchers: DispatcherProvider,
+) : LogRepository {
+    override fun observeRecent(limit: Int): Flow<List<LogEntry>> = flow {
+        var fenetre = engine.snapshot(limit)
+        emit(fenetre)
+        engine.entries.collect { entree ->
+            fenetre = (fenetre + entree).takeLast(limit)
+            emit(fenetre)
         }
     }
+
+    override suspend fun readAll(): List<LogEntry> = withContext(dispatchers.io) {
+        store.readAll()
+    }
+
+    override suspend fun diskUsage(): LogDiskUsage = withContext(dispatchers.io) {
+        val stats = store.diskStats()
+        LogDiskUsage(bytes = stats.bytes, fileCount = stats.fileCount)
+    }
+
+    override suspend fun clear() {
+        withContext(dispatchers.io) {
+            store.clear()
+        }
+        engine.resetBuffer()
+    }
+}

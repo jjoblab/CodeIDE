@@ -130,10 +130,7 @@ class OnboardingIntegrationTest {
      * est relancé à chaque tentative, la première émission des paramètres
      * décide du routage.
      */
-    private fun attendreDestination(
-        scenario: ActivityScenario<MainActivity>,
-        attendue: Int,
-    ) {
+    private fun attendreDestination(scenario: ActivityScenario<MainActivity>, attendue: Int) {
         repeat(TENTATIVES) {
             shadowOf(Looper.getMainLooper()).idle()
             if (destinationCourante(scenario) == attendue) return

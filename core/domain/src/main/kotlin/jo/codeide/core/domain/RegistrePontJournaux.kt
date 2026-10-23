@@ -57,10 +57,7 @@ public interface PontJournauxApplications {
      * la souscription du flux [lignes], dont l'enregistrement et la
      * lecture d'un instantané ne sont pas atomiques).
      */
-    public fun lignesDepuis(
-        idSession: String,
-        position: Int,
-    ): LotJournal
+    public fun lignesDepuis(idSession: String, position: Int): LotJournal
 
     /**
      * Instantané des lignes tamponnées de la session (borné) — remplissage
@@ -82,10 +79,7 @@ public interface PontJournauxApplications {
  * @property apres nombre de lignes reçues par la session après ce lot.
  * @property lignes les lignes du lot, dans l'ordre d'arrivée.
  */
-public data class LotJournal(
-    public val apres: Int,
-    public val lignes: List<LigneJournal>,
-)
+public data class LotJournal(public val apres: Int, public val lignes: List<LigneJournal>)
 
 /**
  * Une session de journaux d'une application exécutée.
@@ -153,37 +147,31 @@ public class RegistrePontJournaux : PontJournauxApplications {
         this.capacite = capacite
     }
 
-    override fun lignes(idSession: String): Flow<LotJournal> =
-        synchronized(verrou) {
-            fluxDe(idSession).asSharedFlow()
-        }
+    override fun lignes(idSession: String): Flow<LotJournal> = synchronized(verrou) {
+        fluxDe(idSession).asSharedFlow()
+    }
 
-    override fun instantane(idSession: String): List<LigneJournal> =
-        synchronized(verrou) {
-            tampons[idSession]?.toList() ?: emptyList()
-        }
+    override fun instantane(idSession: String): List<LigneJournal> = synchronized(verrou) {
+        tampons[idSession]?.toList() ?: emptyList()
+    }
 
-    override fun lignesDepuis(
-        idSession: String,
-        position: Int,
-    ): LotJournal =
-        synchronized(verrou) {
-            val tampon = tampons[idSession] ?: return LotJournal(0, emptyList())
-            val apres = etatSessions.value.firstOrNull { it.id == idSession }?.nombreLignes ?: tampon.size
-            // Première ligne du tampon = numéro (apres - taille + 1) :
-            // le delta commence au premier numéro utile — position+1 ou
-            // le début du tampon si la position demandée est trop vieille
-            // (les lignes plus anciennes sont parties avec la borne).
-            val debut = apres - tampon.size + 1
-            val depuis = maxOf(position + 1, debut)
-            if (depuis > apres) {
-                return LotJournal(apres, emptyList())
-            }
-            LotJournal(
-                apres = apres,
-                lignes = tampon.subList(depuis - debut, tampon.size).toList(),
-            )
+    override fun lignesDepuis(idSession: String, position: Int): LotJournal = synchronized(verrou) {
+        val tampon = tampons[idSession] ?: return LotJournal(0, emptyList())
+        val apres = etatSessions.value.firstOrNull { it.id == idSession }?.nombreLignes ?: tampon.size
+        // Première ligne du tampon = numéro (apres - taille + 1) :
+        // le delta commence au premier numéro utile — position+1 ou
+        // le début du tampon si la position demandée est trop vieille
+        // (les lignes plus anciennes sont parties avec la borne).
+        val debut = apres - tampon.size + 1
+        val depuis = maxOf(position + 1, debut)
+        if (depuis > apres) {
+            return LotJournal(apres, emptyList())
         }
+        LotJournal(
+            apres = apres,
+            lignes = tampon.subList(depuis - debut, tampon.size).toList(),
+        )
+    }
 
     // ------------------------------------------------------------------
     // API du transport (appelée par le service Binder du module app).
@@ -225,10 +213,7 @@ public class RegistrePontJournaux : PontJournauxApplications {
      * Termine la session [idSession] avec une [raison] lisible — appelée
      * sur `deconnecter` ou `linkToDeath` du binder de contrôle.
      */
-    public fun terminerSession(
-        idSession: String,
-        raison: String,
-    ) {
+    public fun terminerSession(idSession: String, raison: String) {
         synchronized(verrou) {
             majSession(idSession) { session ->
                 session.copy(
@@ -248,11 +233,7 @@ public class RegistrePontJournaux : PontJournauxApplications {
      *
      * @return le nombre de lignes valides produites
      */
-    public fun ajouterTrames(
-        idSession: String,
-        trames: List<String>,
-        lignesPerduesAnnoncees: Long,
-    ): Int {
+    public fun ajouterTrames(idSession: String, trames: List<String>, lignesPerduesAnnoncees: Long): Int {
         val lignes = ArrayList<LigneJournal>(trames.size)
         var sortiePrecedente: String? = null
         for (trame in trames) {
@@ -324,20 +305,16 @@ public class RegistrePontJournaux : PontJournauxApplications {
     private fun idSession(identite: IdentiteSessionJournal): String = "${identite.paquet}/${identite.pid}"
 
     /** Flux (créé au besoin) de la session — buffer large, pertes comptées. */
-    private fun fluxDe(id: String): MutableSharedFlow<LotJournal> =
-        flux.getOrPut(id) {
-            MutableSharedFlow(
-                replay = 0,
-                extraBufferCapacity = CAPACITE_LOTS,
-                onBufferOverflow = BufferOverflow.SUSPEND,
-            )
-        }
+    private fun fluxDe(id: String): MutableSharedFlow<LotJournal> = flux.getOrPut(id) {
+        MutableSharedFlow(
+            replay = 0,
+            extraBufferCapacity = CAPACITE_LOTS,
+            onBufferOverflow = BufferOverflow.SUSPEND,
+        )
+    }
 
     /** Réécrit l'état d'une session (verrou tenu par l'appelant). */
-    private inline fun majSession(
-        idSession: String,
-        transformation: (SessionJournal) -> SessionJournal,
-    ) {
+    private inline fun majSession(idSession: String, transformation: (SessionJournal) -> SessionJournal) {
         val courantes = etatSessions.value
         val sessions =
             courantes.map { session ->

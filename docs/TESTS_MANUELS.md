@@ -1395,3 +1395,40 @@ plus des tuiles mortes et le rendu adopte ENFIN les styles par défaut du thème
 9. **Compose C0 — APK** : l'APK démo passe de ~7,6 Mo à ~16,4 Mo avec
    le runtime Compose embarqué (miroir PC1 — le coût mémoire/taille à
    rapporter au propriétaire pour C1).
+
+## Preview Compose dans la carte « goutte d'eau » (mission « Previews » C1 → v0.174.0, ADR 0140)
+
+Écran : éditeur, un fichier Kotlin du projet contenant au moins deux fonctions
+`@Preview @Composable` (des compositions simples suffisent : `Column` de
+`Text`/`Button`, quelques arguments littéraux), session LSP Kotlin démarrée
+(patienter l'indexation). Le fil conducteur : l'œil de gouttière du Kotlin
+ouvre la carte, la carte ne se vide jamais, et le rendu suit les frappes.
+
+1. **L'œil n'apparaît QUE sur le Kotlin** — ouvrir un layout XML : AUCUN œil
+   de gouttière (l'aperçu XML reste l'écran dédié) ; ouvrir le fichier
+   `.kt` : l'œil apparaît en gouttière.
+2. **Ouverture et onglets** — taper l'œil : la carte s'ouvre ancrée à la
+   ligne du caret ; les ONGLETS en haut-droite portent les noms des
+   `@Preview` du document (ordre du document, noms longs ellipsés) ;
+   le BADGE en pied d'écran lit « fichier · @Preview nom » ; basculer les
+   onglets : l'écran du mini-téléphone change de rendu à chaque frame.
+3. **Live-edit par diff d'identité** — avec la carte ouverte, modifier le
+   TEXTE d'un `Text` de la preview affichée : après le court debounce
+   (~400 ms), le rendu SE MET À JOUR sans que la carte ne bouge ni ne se
+   vide ; un changement sans effet sémantique (espace, commentaire) ne
+   re-rend RIEN (digeste inchangé) — le dernier rendu reste.
+4. **Erreurs typées isolées** — remplacer un composable du registre par un
+   appel INCONNU (ex. `Carte Personnalisee()`) : le rendu revient avec une
+   PASTILLE d'erreur à l'endroit du nœud fautif (« hors registre ») et LE
+   RESTE de la composition se rend ; corriger : la pastille disparaît au
+   rendu suivant.
+5. **Jamais de carte vide** — pendant une frappe INCOMPLÈTE (accolade
+   ouverte, annotation en cours) : la carte garde le DERNIER rendu valide
+   (pas de flash, pas de vide) ; sur un fichier Kotlin SANS `@Preview` :
+   le message honnête « Aucune @Preview à afficher » remplit l'écran.
+6. **Mort du processus : une reprise, puis l'état honnête** — avec la carte
+   ouverte, tuer le processus `:preview` depuis les réglages développeur
+   (ou attendre son recyclage) : la carte tente UNE reprise au geste
+   suivant (ré-ouvrir la carte) ; si le processus ne revient pas, le
+   message d'indisponibilité remplace honnêtement le rendu — l'ÉDITEUR, lui,
+   n'a JAMAIS bougé ni gelé (c'est tout l'objet de PC4).

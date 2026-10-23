@@ -40,40 +40,26 @@ internal data class ProjetAffiche(
  * La date d'ouverture est **relative** (« il y a 3 h », calcul système
  * localisé) : jamais ouverts retombent sur la date de création.
  */
-internal class ProjetsAccueilAdapter(
-    private val ecouteur: EcouteurProjets,
-) : ListAdapter<ProjetAffiche, ProjetsAccueilAdapter.VueProjet>(EcartProjet) {
+internal class ProjetsAccueilAdapter(private val ecouteur: EcouteurProjets) :
+    ListAdapter<ProjetAffiche, ProjetsAccueilAdapter.VueProjet>(EcartProjet) {
     /** Projet mis en évidence (création réussie, étape 11) : contour marqué. */
     internal var projetEnEvidence: ProjectId? = null
 
     /** Interaction de l'utilisateur avec une ligne de projet. */
     internal interface EcouteurProjets {
         /** Toucher la carte : ouvrir le projet, ou ses actions si l'accès est rompu. */
-        fun surClicProjet(
-            projet: Project,
-            acces: ProjectAccessState?,
-        )
+        fun surClicProjet(projet: Project, acces: ProjectAccessState?)
 
         /** Toucher le bouton d'actions (menu contextuel de la ligne). */
-        fun surMenuProjet(
-            projet: Project,
-            acces: ProjectAccessState?,
-        )
+        fun surMenuProjet(projet: Project, acces: ProjectAccessState?)
     }
 
-    internal class VueProjet(
-        val liaison: ItemProjetBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    internal class VueProjet(val liaison: ItemProjetBinding) : RecyclerView.ViewHolder(liaison.root)
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): VueProjet = VueProjet(ItemProjetBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VueProjet =
+        VueProjet(ItemProjetBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-    override fun onBindViewHolder(
-        holder: VueProjet,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: VueProjet, position: Int) {
         val (projet, acces, session) = getItem(position)
         val liaison = holder.liaison
 
@@ -148,10 +134,7 @@ internal class ProjetsAccueilAdapter(
     }
 
     /** Date relative du dernier usage : dernier ouvert, sinon création. */
-    private fun dateRelative(
-        liaison: ItemProjetBinding,
-        projet: Project,
-    ): CharSequence =
+    private fun dateRelative(liaison: ItemProjetBinding, projet: Project): CharSequence =
         DateUtils.getRelativeTimeSpanString(
             liaison.root.context,
             projet.lastOpenedAtMillis ?: projet.createdAtMillis,
@@ -164,20 +147,13 @@ internal class ProjetsAccueilAdapter(
      * sentinelle [TemplateId.IMPORTED] — porte le dossier générique,
      * sans qu'aucun `when` ne referme la liste des modèles futurs.
      */
-    private fun iconeDe(
-        @Suppress("UNUSED_PARAMETER") templateId: TemplateId,
-    ): Int = R.drawable.ic_dossier_code
+    private fun iconeDe(@Suppress("UNUSED_PARAMETER") templateId: TemplateId): Int = R.drawable.ic_dossier_code
 }
 
 /** Écart entre deux lignes : même projet si même identifiant. */
 private object EcartProjet : DiffUtil.ItemCallback<ProjetAffiche>() {
-    override fun areItemsTheSame(
-        ancien: ProjetAffiche,
-        nouveau: ProjetAffiche,
-    ): Boolean = ancien.projet.id == nouveau.projet.id
+    override fun areItemsTheSame(ancien: ProjetAffiche, nouveau: ProjetAffiche): Boolean =
+        ancien.projet.id == nouveau.projet.id
 
-    override fun areContentsTheSame(
-        ancien: ProjetAffiche,
-        nouveau: ProjetAffiche,
-    ): Boolean = ancien == nouveau
+    override fun areContentsTheSame(ancien: ProjetAffiche, nouveau: ProjetAffiche): Boolean = ancien == nouveau
 }

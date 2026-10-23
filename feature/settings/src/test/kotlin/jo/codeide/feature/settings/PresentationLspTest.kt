@@ -39,10 +39,10 @@ class PresentationLspTest {
             PresentationLsp.apercu(
                 MoteursLsp(
                     java =
-                        EtatMoteurLsp(
-                            phase = PhaseMoteurLsp.CONSTRUCTION,
-                            avancementPourCent = 62,
-                        ),
+                    EtatMoteurLsp(
+                        phase = PhaseMoteurLsp.CONSTRUCTION,
+                        avancementPourCent = 62,
+                    ),
                 ),
             )
 
@@ -62,12 +62,12 @@ class PresentationLspTest {
             PresentationLsp.apercu(
                 MoteursLsp(
                     java =
-                        EtatMoteurLsp(
-                            phase = PhaseMoteurLsp.PRET,
-                            fichiersIndexes = 191,
-                            avertissements = 3,
-                            horodatageDernierPassageMs = 1_700_000_000_000,
-                        ),
+                    EtatMoteurLsp(
+                        phase = PhaseMoteurLsp.PRET,
+                        fichiersIndexes = 191,
+                        avertissements = 3,
+                        horodatageDernierPassageMs = 1_700_000_000_000,
+                    ),
                 ),
             )
         assertEquals(
@@ -244,11 +244,11 @@ class PresentationLspTest {
             PresentationLsp.index(
                 MoteursLsp(
                     java =
-                        EtatMoteurLsp(
-                            phase = PhaseMoteurLsp.PRET,
-                            avertissements = 3,
-                            dureeDernierPassageMs = 72_000,
-                        ),
+                    EtatMoteurLsp(
+                        phase = PhaseMoteurLsp.PRET,
+                        avertissements = 3,
+                        dureeDernierPassageMs = 72_000,
+                    ),
                 ),
                 tailleCacheOctets = 184 * 1024 * 1024L,
                 reglages = LspSettings.parDefaut(),
@@ -359,11 +359,11 @@ class PresentationLspTest {
             PresentationLsp.etat(
                 MoteursLsp(
                     java =
-                        EtatMoteurLsp(
-                            phase = PhaseMoteurLsp.PARTIEL,
-                            messagesErreur = List(25) { "erreur $it" },
-                            horodatageDernierPassageMs = 1_700_000_000_000,
-                        ),
+                    EtatMoteurLsp(
+                        phase = PhaseMoteurLsp.PARTIEL,
+                        messagesErreur = List(25) { "erreur $it" },
+                        horodatageDernierPassageMs = 1_700_000_000_000,
+                    ),
                 ),
             )
 

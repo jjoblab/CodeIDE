@@ -55,31 +55,29 @@ class RegistrePortLspTest {
     }
 
     @Test
-    fun `l'observation suit l'apparition puis la disparition`() =
-        runTest {
-            val registre = RegistrePortLsp()
-            val port = portFaux()
+    fun `l'observation suit l'apparition puis la disparition`() = runTest {
+        val registre = RegistrePortLsp()
+        val port = portFaux()
 
-            registre.enregistrer(port)
-            assertEquals(port, registre.port.first { it != null })
+        registre.enregistrer(port)
+        assertEquals(port, registre.port.first { it != null })
 
-            registre.enregistrer(null)
-            assertNull(registre.port.first { it == null })
-        }
+        registre.enregistrer(null)
+        assertNull(registre.port.first { it == null })
+    }
 
     /** Port factice — le registre ne touche QUE l'identité, jamais le port. */
-    private fun portFaux(): PortLsp =
-        object : PortLsp {
-            override val moteurs: StateFlow<MoteursLsp> = MutableStateFlow(MoteursLsp.INACTIFS)
+    private fun portFaux(): PortLsp = object : PortLsp {
+        override val moteurs: StateFlow<MoteursLsp> = MutableStateFlow(MoteursLsp.INACTIFS)
 
-            override val demandeDetailsIndexation: StateFlow<Boolean> = MutableStateFlow(false)
+        override val demandeDetailsIndexation: StateFlow<Boolean> = MutableStateFlow(false)
 
-            override fun demanderDetailsIndexation() = Unit
+        override fun demanderDetailsIndexation() = Unit
 
-            override fun tailleCacheOctets(): Long? = null
+        override fun tailleCacheOctets(): Long? = null
 
-            override fun reindexer(): Boolean = false
+        override fun reindexer(): Boolean = false
 
-            override fun viderCache(): ResultatVidageCacheLsp? = null
-        }
+        override fun viderCache(): ResultatVidageCacheLsp? = null
+    }
 }

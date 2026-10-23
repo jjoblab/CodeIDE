@@ -59,10 +59,7 @@ class CalculsArbreExplorateurTest {
      * Reproduction de la formule de l'adapter (B2) :
      * `maxOf(0, (INDENTATION * profondeur - DECALAGE_LIGNE).toInt())`.
      */
-    private fun assertEqualsInset(
-        profondeur: Int,
-        attenduDp: Int,
-    ) {
+    private fun assertEqualsInset(profondeur: Int, attenduDp: Int) {
         val indentation = INDENTATION
         val decalageLigne = DECALAGE_LIGNE
         val calcule = maxOf(0, (indentation * profondeur - decalageLigne).toInt())
@@ -76,11 +73,8 @@ class CalculsArbreExplorateurTest {
      * Reproduction de la décision de l'adapter (B1) :
      * `estDossier && deplie && nbEnfants > 0`.
      */
-    private fun decideTraitRaccordement(
-        estDossier: Boolean,
-        deplie: Boolean,
-        nbEnfants: Int,
-    ): Boolean = estDossier && deplie && nbEnfants > 0
+    private fun decideTraitRaccordement(estDossier: Boolean, deplie: Boolean, nbEnfants: Int): Boolean =
+        estDossier && deplie && nbEnfants > 0
 
     private companion object {
         /** Indentation par niveau (22 dp, § 6.2 — miroir de ExplorateurAdapter). */

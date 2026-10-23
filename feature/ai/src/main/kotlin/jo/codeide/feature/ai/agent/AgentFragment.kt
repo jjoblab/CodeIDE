@@ -30,19 +30,12 @@ public class AgentFragment : Fragment() {
     private var liaison: FragmentIaAgentBinding? = null
     private var synchronisationObjectif = false
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentIaAgentBinding.inflate(inflater, container, false)
         return liaison!!.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val liaison = liaison ?: return
         val etapes = AdapterEtapesAgent()
@@ -92,11 +85,7 @@ public class AgentFragment : Fragment() {
         super.onDestroyView()
     }
 
-    private fun rendre(
-        etat: EtatAgentIa,
-        liaison: FragmentIaAgentBinding,
-        etapes: AdapterEtapesAgent,
-    ) {
+    private fun rendre(etat: EtatAgentIa, liaison: FragmentIaAgentBinding, etapes: AdapterEtapesAgent) {
         if (liaison.champObjectif.text?.toString() != etat.objectif) {
             synchronisationObjectif = true
             liaison.champObjectif.setText(etat.objectif)

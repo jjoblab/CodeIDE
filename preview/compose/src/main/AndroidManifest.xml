@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+
+        <!--
+          Service de rendu Compose dans le PROCESSUS DÉDIÉ « :preview »
+          (PREVIEW.md §4 PC4, C1) — le MÊME processus que ServicePreview
+          (une seule machinerie, deux dialectes) : le runtime Compose
+          vivant (composition, recomposer) ne tourne JAMAIS dans le
+          processus de l'IDE — un composable bugué ou bloqué tue le
+          processus :preview (DeathRecipient côté app : reprise unique
+          puis état typé INDISPONIBLE — AUCUN repli local en Compose,
+          composer du code utilisateur dans l'IDE est ce que PC4
+          interdit), jamais l'éditeur.
+
+          Bound-only (aucun startService) : le processus meurt de LUI-MÊME
+          quand l'app se délie (idle-shutdown côté app + fermeture de
+          l'espace — registre I7 par l'annulation du scope de session).
+        -->
+        <service
+            android:name=".ServicePreviewCompose"
+            android:process=":preview"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

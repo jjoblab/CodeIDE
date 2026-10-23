@@ -113,10 +113,7 @@ public interface GradleToolingRepository {
      * @param arguments arguments Gradle de la résolution (v4 : `--offline`
      *        et arguments réglés s'appliquent AUSSI au classpath).
      */
-    public suspend fun classpath(
-        projectDir: File,
-        arguments: List<String> = emptyList(),
-    ): AppResult<ClasspathProjet>
+    public suspend fun classpath(projectDir: File, arguments: List<String> = emptyList()): AppResult<ClasspathProjet>
 
     /**
      * Scripts de build du projet (P1, ADR 0095) : lit les
@@ -169,11 +166,7 @@ public interface GradleToolingRepository {
      * @return l'identifiant du build lancé (pour [observeBuildOutput],
      * [observeBuildState], [observeTachesBuild] et [cancel]).
      */
-    public suspend fun build(
-        projectDir: File,
-        tasks: List<String>,
-        arguments: List<String> = emptyList(),
-    ): String
+    public suspend fun build(projectDir: File, tasks: List<String>, arguments: List<String> = emptyList()): String
 
     /** Annule le build [buildId] (sans effet s'il est déjà terminé). */
     public fun cancel(buildId: String)
@@ -184,10 +177,7 @@ public interface GradleToolingRepository {
      * de l'utilisateur depuis la console de l'app. Sans effet si le build
      * est déjà terminé.
      */
-    public fun envoyerEntree(
-        buildId: String,
-        texte: String,
-    )
+    public fun envoyerEntree(buildId: String, texte: String)
 
     /**
      * Ferme le projet [projectDir] côté orchestrateur (mission « Cycle de
@@ -322,10 +312,7 @@ public data class ResultatSynchronisation(
  * @property enCours `true` entre l'événement de départ et le résultat.
  * @property projectDir dossier annoncé par l'orchestrateur.
  */
-public data class EtatSyncTooling(
-    public val enCours: Boolean = false,
-    public val projectDir: String? = null,
-)
+public data class EtatSyncTooling(public val enCours: Boolean = false, public val projectDir: String? = null)
 
 /**
  * Une ligne de sortie (stdout/stderr) de la SYNCHRONISATION (v0.48.0,
@@ -361,24 +348,16 @@ public data class LigneSortieSync(
  */
 public sealed interface EvenementSyncFlux {
     /** La synchronisation a commencé — annoncé PAR le serveur. */
-    public data class Debut(
-        public val projectDir: String?,
-    ) : EvenementSyncFlux
+    public data class Debut(public val projectDir: String?) : EvenementSyncFlux
 
     /** Une ligne de sortie stdout/stderr de la sync, au fil de l'eau. */
-    public data class Ligne(
-        public val sortie: LigneSortieSync,
-    ) : EvenementSyncFlux
+    public data class Ligne(public val sortie: LigneSortieSync) : EvenementSyncFlux
 
     /** Une étape annoncée (départ ou fin avec sa durée). */
-    public data class Etape(
-        public val etape: EtapeSyncTooling,
-    ) : EvenementSyncFlux
+    public data class Etape(public val etape: EtapeSyncTooling) : EvenementSyncFlux
 
     /** Le résultat terminal — toujours le DERNIER événement d'une sync. */
-    public data class Terminal(
-        public val resultat: AppResult<ResultatSynchronisation>,
-    ) : EvenementSyncFlux
+    public data class Terminal(public val resultat: AppResult<ResultatSynchronisation>) : EvenementSyncFlux
 }
 
 /**
@@ -644,10 +623,7 @@ public data class DiagnosticBuild(
  * @property moUtilises mémoire utilisée, en mégaoctets.
  * @property moMax mémoire maximum, en mégaoctets.
  */
-public data class InstantaneTas(
-    public val moUtilises: Long,
-    public val moMax: Long,
-)
+public data class InstantaneTas(public val moUtilises: Long, public val moMax: Long)
 
 /** État de la liaison entre l'app et l'orchestrateur. */
 public enum class EtatConnexion {

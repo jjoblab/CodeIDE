@@ -42,10 +42,7 @@ class CrashActivityTest {
     }
 
     /** Lance l'écran pour un rapport, dans le mode demandé. */
-    private fun lancer(
-        idRapport: String,
-        mode: String,
-    ): CrashActivity {
+    private fun lancer(idRapport: String, mode: String): CrashActivity {
         val intention =
             Intent(contexte, CrashActivity::class.java)
                 .putExtra(CrashActivity.EXTRA_REPORT_ID, idRapport)

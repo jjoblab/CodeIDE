@@ -17,16 +17,12 @@ import org.junit.Test
  */
 class ArborescenceTest {
     /** Un fichier planifié de texte (groupe sans importance ici). */
-    private fun fichier(
-        chemin: String,
-        cheminOriginal: String? = null,
-    ): PlannedFile =
-        PlannedFile(
-            chemin = chemin,
-            group = TemplateFileGroup.CORE,
-            contenu = PlannedContent.Texte(""),
-            cheminOriginal = cheminOriginal,
-        )
+    private fun fichier(chemin: String, cheminOriginal: String? = null): PlannedFile = PlannedFile(
+        chemin = chemin,
+        group = TemplateFileGroup.CORE,
+        contenu = PlannedContent.Texte(""),
+        cheminOriginal = cheminOriginal,
+    )
 
     @Test
     fun `les dossiers précèdent les fichiers et le tri est lexicographique`() {

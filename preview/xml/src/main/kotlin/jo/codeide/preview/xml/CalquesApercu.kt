@@ -26,34 +26,23 @@ public object CalquesApercu {
      * du profil, pas de l'appareil hôte) ; repli « px » si la densité
      * n'est pas connue (0).
      */
-    public fun dimensions(
-        largeurPx: Int,
-        hauteurPx: Int,
-        densiteDpi: Int,
-    ): String =
-        if (densiteDpi > 0) {
-            val largeurDp = pxVersDp(largeurPx, densiteDpi)
-            val hauteurDp = pxVersDp(hauteurPx, densiteDpi)
-            "$largeurDp×${hauteurDp}dp"
-        } else {
-            "$largeurPx×${hauteurPx}px"
-        }
+    public fun dimensions(largeurPx: Int, hauteurPx: Int, densiteDpi: Int): String = if (densiteDpi > 0) {
+        val largeurDp = pxVersDp(largeurPx, densiteDpi)
+        val hauteurDp = pxVersDp(hauteurPx, densiteDpi)
+        "$largeurDp×${hauteurDp}dp"
+    } else {
+        "$largeurPx×${hauteurPx}px"
+    }
 
     /** Conversion px → dp (arrondie — un label n'est pas un convertisseur de layout). */
-    public fun pxVersDp(
-        px: Int,
-        densiteDpi: Int,
-    ): Int = Math.round(px * DENSITE_REFERENCE.toFloat() / densiteDpi)
+    public fun pxVersDp(px: Int, densiteDpi: Int): Int = Math.round(px * DENSITE_REFERENCE.toFloat() / densiteDpi)
 
     /**
      * Étiquette complète de la sélection : nom (libellé existant) puis
      * dimensions — « TextView @+id/titre · 120×48dp » ; sans dimensions
      * (vue dégénérée), le nom seul.
      */
-    public fun libelleSelection(
-        nom: String,
-        dimensions: String?,
-    ): String =
+    public fun libelleSelection(nom: String, dimensions: String?): String =
         if (dimensions.isNullOrBlank() || nom.isBlank()) {
             nom
         } else {
@@ -65,10 +54,7 @@ public object CalquesApercu {
      * exclue) — le calque « frères en filigrane ». La racine (-1)
      * compte : les autres racines du tableau en sont les frères.
      */
-    public fun indicesFreres(
-        vues: List<InfoVueRendu>,
-        indiceSelection: Int,
-    ): List<Int> {
+    public fun indicesFreres(vues: List<InfoVueRendu>, indiceSelection: Int): List<Int> {
         if (indiceSelection !in vues.indices) return emptyList()
         val parent = vues[indiceSelection].indiceParent
         return vues.indices.filter { indice -> indice != indiceSelection && vues[indice].indiceParent == parent }
@@ -78,10 +64,7 @@ public object CalquesApercu {
      * L'indice du PARENT de la vue sélectionnée (calque « parent en
      * pointillés ») ; -1 si la sélection est racine ou hors bornes.
      */
-    public fun indiceParent(
-        vues: List<InfoVueRendu>,
-        indiceSelection: Int,
-    ): Int =
+    public fun indiceParent(vues: List<InfoVueRendu>, indiceSelection: Int): Int =
         if (indiceSelection in vues.indices) {
             vues[indiceSelection].indiceParent
         } else {
@@ -152,10 +135,7 @@ public object CalquesApercu {
      * les gardes (non-conteneur, famille, texte absent) sont des issues DISTINCTES.
      */
     @Suppress("LoopWithTooManyJumpStatements")
-    public fun lignesRelations(
-        vues: List<InfoVueRendu>,
-        arbre: List<ArbreAttributsXml.Noeud>,
-    ): List<LigneRelation> {
+    public fun lignesRelations(vues: List<InfoVueRendu>, arbre: List<ArbreAttributsXml.Noeud>): List<LigneRelation> {
         val lignes = mutableListOf<LigneRelation>()
         for (parent in vues) {
             if (!parent.conteneur) continue
@@ -179,10 +159,7 @@ public object CalquesApercu {
      * rencontrée avant la vue courante (les sous-arbres des frères ont
      * un autre parent — la propriété pré-ordre garantit l'ordre).
      */
-    public fun lignesContraintes(
-        vues: List<InfoVueRendu>,
-        densiteDpi: Int,
-    ): List<LigneContrainte> {
+    public fun lignesContraintes(vues: List<InfoVueRendu>, densiteDpi: Int): List<LigneContrainte> {
         val racine = vues.firstOrNull { it.indiceParent == -1 }
         // Densité inconnue : la conversion dp est impossible — rien.
         if (racine == null || densiteDpi <= 0) return emptyList()
@@ -293,10 +270,7 @@ public object CalquesApercu {
     }
 
     /** La vue PARENT d'une vue (par indice de parenté du rendu). */
-    private fun vueParente(
-        vues: List<InfoVueRendu>,
-        indiceVue: Int,
-    ): InfoVueRendu = vues[vues[indiceVue].indiceParent]
+    private fun vueParente(vues: List<InfoVueRendu>, indiceVue: Int): InfoVueRendu = vues[vues[indiceVue].indiceParent]
 
     /** Les lignes d'une règle VERS UN FRÈRE (miroir `REL_REFS.forEach` de `drawRelations`). */
     private fun lignesVersFrere(
@@ -478,12 +452,7 @@ public object CalquesApercu {
     }
 
     /** Une ligne depuis quatre points (px bitmap). */
-    private fun ligne(
-        vue: Int,
-        points: List<Int>,
-        pointillee: Boolean,
-        etiquette: String?,
-    ): LigneRelation =
+    private fun ligne(vue: Int, points: List<Int>, pointillee: Boolean, etiquette: String?): LigneRelation =
         LigneRelation(
             x1 = points[0],
             y1 = points[1],
@@ -495,10 +464,8 @@ public object CalquesApercu {
         )
 
     /** Le nœud de l'arbre de texte correspondant à une VUE (pont par identifiant). */
-    private fun noeudDe(
-        arbre: List<ArbreAttributsXml.Noeud>,
-        vue: InfoVueRendu,
-    ): ArbreAttributsXml.Noeud? = arbre.firstOrNull { it.id != null && it.id == vue.idRes }
+    private fun noeudDe(arbre: List<ArbreAttributsXml.Noeud>, vue: InfoVueRendu): ArbreAttributsXml.Noeud? =
+        arbre.firstOrNull { it.id != null && it.id == vue.idRes }
 
     /** La moitié d'une somme (centres et milieux des segments). */
     private const val DEUX_I: Int = 2

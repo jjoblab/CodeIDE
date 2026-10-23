@@ -34,11 +34,7 @@ public object ColorationSourceXml {
     }
 
     /** UNE plage colorée : [debut, fin[ DANS SA LIGNE, avec son rôle. */
-    public data class Portion(
-        public val debut: Int,
-        public val fin: Int,
-        public val role: Role,
-    )
+    public data class Portion(public val debut: Int, public val fin: Int, public val role: Role)
 
     /**
      * Colore le document entier, PORTIONS PAR LIGNE : la coloration est
@@ -134,11 +130,7 @@ public object ColorationSourceXml {
      * flot continu (même patron que le pipeline [RenduLayoutLib.rendre]).
      */
     @Suppress("CyclomaticComplexMethod")
-    private fun colorerBalise(
-        texte: String,
-        debutBalise: Int,
-        portions: MutableList<Portion>,
-    ): Int {
+    private fun colorerBalise(texte: String, debutBalise: Int, portions: MutableList<Portion>): Int {
         var index = debutBalise
         var role = Role.BALISE
         var debutPortion = debutBalise
@@ -210,34 +202,20 @@ public object ColorationSourceXml {
     }
 
     /** Reste-t-il une run NON VIDE à émettre pour une balise jamais fermée ? */
-    private fun runTronquee(
-        texte: String,
-        fermee: Boolean,
-        debutPortion: Int,
-    ): Boolean {
+    private fun runTronquee(texte: String, fermee: Boolean, debutPortion: Int): Boolean {
         if (fermee || debutPortion < 0 || texte.length <= debutPortion) return false
         return !portionVide(texte, debutPortion, texte.length)
     }
 
     /** Émet la run d'ATTRIBUT en cours si elle porte du contenu (rôle lu — jamais les autres). */
-    private fun emettreAttribut(
-        texte: String,
-        portions: MutableList<Portion>,
-        debut: Int,
-        fin: Int,
-        role: Role,
-    ) {
+    private fun emettreAttribut(texte: String, portions: MutableList<Portion>, debut: Int, fin: Int, role: Role) {
         if (role == Role.ATTRIBUT && !portionVide(texte, debut, fin)) {
             portions.add(Portion(debut, fin, Role.ATTRIBUT))
         }
     }
 
     /** Émet la VALEUR du guillemet ouvrant au fermant ; renvoie l'offset APRÈS la fermeture. */
-    private fun ouvrirValeur(
-        texte: String,
-        guillemet: Int,
-        portions: MutableList<Portion>,
-    ): Int {
+    private fun ouvrirValeur(texte: String, guillemet: Int, portions: MutableList<Portion>): Int {
         val fermeture = texte.indexOf('"', guillemet + 1).let { if (it < 0) texte.length else it }
         if (fermeture > guillemet + 1) {
             portions.add(Portion(guillemet + 1, fermeture, Role.VALEUR))
@@ -266,20 +244,13 @@ public object ColorationSourceXml {
     }
 
     /** La fin d'un commentaire « --> » (frappe en cours : fin du document). */
-    private fun finDeCommentaire(
-        texte: String,
-        debut: Int,
-    ): Int {
+    private fun finDeCommentaire(texte: String, debut: Int): Int {
         val fermeture = texte.indexOf(FERMET_COMMENTAIRE, debut + OUVERT_COMMENTAIRE.length)
         return if (fermeture < 0) texte.length else fermeture + FERMET_COMMENTAIRE.length
     }
 
     /** La run [debut, fin[ ne porte-t-elle QUE des blancs (rien à colorer) ? */
-    private fun portionVide(
-        texte: String,
-        debut: Int,
-        fin: Int,
-    ): Boolean = texte.substring(debut, fin).isBlank()
+    private fun portionVide(texte: String, debut: Int, fin: Int): Boolean = texte.substring(debut, fin).isBlank()
 
     /** L'ouverture d'un commentaire XML. */
     private const val OUVERT_COMMENTAIRE: String = "<!--"

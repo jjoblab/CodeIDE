@@ -52,10 +52,8 @@ public class InsertionXmlTest {
     }
 
     /** Applique l'édition (miroir du port : remplacement de plage). */
-    private fun appliquer(
-        texte: String,
-        edition: InsertionXml.EditionXml,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: InsertionXml.EditionXml): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     @Test
     fun `insertion en fin de conteneur — append avant la fermante, indentation des enfants`() {

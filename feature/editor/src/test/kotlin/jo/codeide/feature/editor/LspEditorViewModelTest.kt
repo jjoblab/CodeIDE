@@ -43,226 +43,216 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
     }
 
     @Test
-    fun `la session LSP s ouvre quand le projet et sa racine FUSE sont connus`() =
-        runTest {
-            val id = ajouterProjet("ProjetLsp")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/ProjetLsp" })
-            avancer()
+    fun `la session LSP s ouvre quand le projet et sa racine FUSE sont connus`() = runTest {
+        val id = ajouterProjet("ProjetLsp")
+        val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/ProjetLsp" })
+        avancer()
 
-            val session = viewModel.sessionLsp.value
-            assertNotNull("la session devait s'ouvrir (racine résoluble)", session)
-            assertEquals(File("/fuse/projets/ProjetLsp"), session?.racine)
-            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP ouverte") })
-        }
-
-    @Test
-    fun `la session LSP XML s ouvre aux cotes des sessions Java et Kotlin`() =
-        runTest {
-            val id = ajouterProjet("ProjetXml")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/ProjetXml" })
-            avancer()
-
-            val sessionXml = viewModel.sessionLspXml.value
-            assertNotNull("la session XML devait s'ouvrir (racine résoluble)", sessionXml)
-            assertEquals(File("/fuse/projets/ProjetXml"), sessionXml?.racine)
-            // Les TROIS moteurs vivent ensemble (même verrou d'ouverture,
-            // XE1 : Java + Kotlin + XML).
-            assertNotNull(viewModel.sessionLsp.value)
-            assertNotNull(viewModel.sessionLspKotlin.value)
-            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP XML ouverte") })
-        }
+        val session = viewModel.sessionLsp.value
+        assertNotNull("la session devait s'ouvrir (racine résoluble)", session)
+        assertEquals(File("/fuse/projets/ProjetLsp"), session?.racine)
+        assertTrue(journalViewModel.entries.any { it.message.contains("session LSP ouverte") })
+    }
 
     @Test
-    fun `le deplacement du projet referme la session LSP XML et ouvre la nouvelle`() =
-        runTest {
-            val id = ajouterProjet("DeplaceXml")
-            val viewModel =
-                viewModel(
-                    id,
-                    ResolveurCheminFuse { uri ->
-                        if (uri.contains("DeplaceXml2")) "/fuse/b/DeplaceXml" else "/fuse/a/DeplaceXml"
-                    },
-                )
-            avancer()
+    fun `la session LSP XML s ouvre aux cotes des sessions Java et Kotlin`() = runTest {
+        val id = ajouterProjet("ProjetXml")
+        val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/ProjetXml" })
+        avancer()
 
-            val ancienne = viewModel.sessionLspXml.value
-            assertNotNull(ancienne)
+        val sessionXml = viewModel.sessionLspXml.value
+        assertNotNull("la session XML devait s'ouvrir (racine résoluble)", sessionXml)
+        assertEquals(File("/fuse/projets/ProjetXml"), sessionXml?.racine)
+        // Les TROIS moteurs vivent ensemble (même verrou d'ouverture,
+        // XE1 : Java + Kotlin + XML).
+        assertNotNull(viewModel.sessionLsp.value)
+        assertNotNull(viewModel.sessionLspKotlin.value)
+        assertTrue(journalViewModel.entries.any { it.message.contains("session LSP XML ouverte") })
+    }
 
-            // Le projet est RELOCALISÉ : l'ancienne session XML doit
-            // mourir avec les autres, la nouvelle s'ouvrir sur la
-            // NOUVELLE racine.
-            depot.updateLocation(
+    @Test
+    fun `le deplacement du projet referme la session LSP XML et ouvre la nouvelle`() = runTest {
+        val id = ajouterProjet("DeplaceXml")
+        val viewModel =
+            viewModel(
                 id,
-                StorageLocation(
-                    grantUri = "content://autorite/tree/DeplaceXml2",
-                    documentUri = "content://autorite/tree/DeplaceXml2/doc",
-                    displayPath = "Projets/DeplaceXml2",
-                ),
+                ResolveurCheminFuse { uri ->
+                    if (uri.contains("DeplaceXml2")) "/fuse/b/DeplaceXml" else "/fuse/a/DeplaceXml"
+                },
             )
-            avancer()
+        avancer()
 
-            val nouvelle = viewModel.sessionLspXml.value
-            assertNotNull("la nouvelle session XML devait s'ouvrir", nouvelle)
-            assertTrue("l'ancienne session XML devait être refermée", ancienne !== nouvelle)
-            assertEquals(File("/fuse/b/DeplaceXml"), nouvelle?.racine)
-            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP XML refermée") })
-        }
+        val ancienne = viewModel.sessionLspXml.value
+        assertNotNull(ancienne)
+
+        // Le projet est RELOCALISÉ : l'ancienne session XML doit
+        // mourir avec les autres, la nouvelle s'ouvrir sur la
+        // NOUVELLE racine.
+        depot.updateLocation(
+            id,
+            StorageLocation(
+                grantUri = "content://autorite/tree/DeplaceXml2",
+                documentUri = "content://autorite/tree/DeplaceXml2/doc",
+                displayPath = "Projets/DeplaceXml2",
+            ),
+        )
+        avancer()
+
+        val nouvelle = viewModel.sessionLspXml.value
+        assertNotNull("la nouvelle session XML devait s'ouvrir", nouvelle)
+        assertTrue("l'ancienne session XML devait être refermée", ancienne !== nouvelle)
+        assertEquals(File("/fuse/b/DeplaceXml"), nouvelle?.racine)
+        assertTrue(journalViewModel.entries.any { it.message.contains("session LSP XML refermée") })
+    }
 
     @Test
-    fun `la racine FUSE irre solvable laisse la session absente sans bloquer l edition`() =
-        runTest {
-            // Résolveur de la base : ne résout RIEN en JVM (limite T6) —
-            // même cas qu'un volume inconnu en production.
-            val id = ajouterProjet("ProjetMuet")
-            val viewModel = viewModel(id)
-            avancer()
+    fun `la racine FUSE irre solvable laisse la session absente sans bloquer l edition`() = runTest {
+        // Résolveur de la base : ne résout RIEN en JVM (limite T6) —
+        // même cas qu'un volume inconnu en production.
+        val id = ajouterProjet("ProjetMuet")
+        val viewModel = viewModel(id)
+        avancer()
 
-            assertNull("aucune session sans racine", viewModel.sessionLsp.value)
-            assertTrue(journalViewModel.entries.any { it.message.contains("racine FUSE introuvable") })
-        }
+        assertNull("aucune session sans racine", viewModel.sessionLsp.value)
+        assertTrue(journalViewModel.entries.any { it.message.contains("racine FUSE introuvable") })
+    }
 
     @Test
-    fun `la sync utile nourrit la session avec le classpath brut`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
-            tooling.prochaineSynchronisation =
-                AppResult.Success(
-                    ResultatSynchronisation(
-                        projectDir = "/fuse/projets/Nourri",
-                        reussie = true,
-                        dureeMs = 1_200,
-                    ),
-                )
-            resultatClasspathBrut =
-                ClasspathResult(
-                    id = "test",
-                    protocolVersion = 8,
+    fun `la sync utile nourrit la session avec le classpath brut`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        tooling.prochaineSynchronisation =
+            AppResult.Success(
+                ResultatSynchronisation(
                     projectDir = "/fuse/projets/Nourri",
-                    modules = emptyList(),
-                )
-            val id = ajouterProjet("Nourri")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Nourri" })
-            avancer()
-
-            val session = viewModel.sessionLsp.value
-            assertNotNull(session)
-            assertNotNull(
-                "le modèle devait être publié dans la session (classpath appliqué)",
-                session?.modele?.value,
-            )
-            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP nourrie") })
-        }
-
-    @Test
-    fun `une source muette laisse la session vivante et non nourrie`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
-            tooling.prochaineSynchronisation =
-                AppResult.Success(
-                    ResultatSynchronisation(
-                        projectDir = "/fuse/projets/Muet",
-                        reussie = true,
-                        dureeMs = 1_200,
-                    ),
-                )
-            // resultatClasspathBrut reste NULL : la source ne résout pas.
-            val id = ajouterProjet("Muet")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Muet" })
-            avancer()
-
-            val session = viewModel.sessionLsp.value
-            assertNotNull("la session reste VIVANTE", session)
-            assertNull("aucun modèle sans classpath", session?.modele?.value)
-            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP non nourrie") })
-        }
-
-    @Test
-    fun `le deplacement du projet referme l ancienne session et ouvre la nouvelle`() =
-        runTest {
-            val id = ajouterProjet("Deplace")
-            val viewModel =
-                viewModel(
-                    id,
-                    ResolveurCheminFuse { uri ->
-                        if (uri.contains("Deplace2")) "/fuse/b/Deplace" else "/fuse/a/Deplace"
-                    },
-                )
-            avancer()
-
-            val ancienne = viewModel.sessionLsp.value
-            assertNotNull(ancienne)
-
-            // Le projet est RELOCALISÉ : l'observer ré-émet, suivre() voit
-            // un documentUri différent — l'ancienne session doit mourir,
-            // la nouvelle s'ouvrir sur la NOUVELLE racine.
-            depot.updateLocation(
-                id,
-                StorageLocation(
-                    grantUri = "content://autorite/tree/Deplace2",
-                    documentUri = "content://autorite/tree/Deplace2/doc",
-                    displayPath = "Projets/Deplace2",
+                    reussie = true,
+                    dureeMs = 1_200,
                 ),
             )
-            avancer()
-
-            val nouvelle = viewModel.sessionLsp.value
-            assertNotNull("la nouvelle session devait s'ouvrir", nouvelle)
-            assertTrue("l'ancienne session devait être refermée", ancienne !== nouvelle)
-            assertEquals(File("/fuse/b/Deplace"), nouvelle?.racine)
-            assertTrue(journalViewModel.entries.any { it.message.contains("session LSP refermée") })
-        }
-
-    @Test
-    fun `reindexer sans session journalise et ne plante pas`() =
-        runTest {
-            val id = ajouterProjet("SansSession")
-            val viewModel = viewModel(id)
-            avancer()
-
-            viewModel.onAction(ActionEditor.Reindexer)
-
-            assertNull(viewModel.sessionLsp.value)
-            assertTrue(journalViewModel.entries.any { it.message.contains("sans session LSP") })
-        }
-
-    @Test
-    fun `reindexer avec session passe par reindexer de l hote`() =
-        runTest {
-            val id = ajouterProjet("Reindex")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/reindex" })
-            avancer()
-            assertNotNull(viewModel.sessionLsp.value)
-
-            viewModel.onAction(ActionEditor.Reindexer)
-
-            assertTrue(journalViewModel.entries.any { it.message.contains("réindexation LSP demandée") })
-        }
-
-    @Test
-    fun `cheminFuseDe resout un FICHIER par le contrat d entree - regression v0 100 2`() =
-        runTest {
-            // Le pont de production sépare ses contrats : l'opérateur
-            // (« répertoire », garde isDirectory) REJETTE un fichier,
-            // le contrat d'entrée (garde exists) le résout. Le faux
-            // ci-dessous mime EXACTEMENT cette séparation — si
-            // cheminFuseDe repasse par l'opérateur, ce test échoue :
-            // c'est la régression du retour d'appareil v0.100.2
-            // (branchement muet, jamais « LSP Java connecté »).
-            val id = ajouterProjet("Chemins")
-            val resolveurFichiers =
-                object : ResolveurCheminFuse {
-                    override suspend fun invoke(documentUri: String): String? = null
-
-                    override suspend fun resoudreEntree(documentUri: String): String? = "/fuse/fichiers/$documentUri"
-                }
-            val viewModel = viewModel(id, resolveurFichiers)
-            avancer()
-
-            assertEquals(
-                "/fuse/fichiers/content://x/y",
-                viewModel.cheminFuseDe("content://x/y"),
+        resultatClasspathBrut =
+            ClasspathResult(
+                id = "test",
+                protocolVersion = 8,
+                projectDir = "/fuse/projets/Nourri",
+                modules = emptyList(),
             )
-        }
+        val id = ajouterProjet("Nourri")
+        val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Nourri" })
+        avancer()
+
+        val session = viewModel.sessionLsp.value
+        assertNotNull(session)
+        assertNotNull(
+            "le modèle devait être publié dans la session (classpath appliqué)",
+            session?.modele?.value,
+        )
+        assertTrue(journalViewModel.entries.any { it.message.contains("session LSP nourrie") })
+    }
+
+    @Test
+    fun `une source muette laisse la session vivante et non nourrie`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(jdkInstalle = true))
+        tooling.prochaineSynchronisation =
+            AppResult.Success(
+                ResultatSynchronisation(
+                    projectDir = "/fuse/projets/Muet",
+                    reussie = true,
+                    dureeMs = 1_200,
+                ),
+            )
+        // resultatClasspathBrut reste NULL : la source ne résout pas.
+        val id = ajouterProjet("Muet")
+        val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Muet" })
+        avancer()
+
+        val session = viewModel.sessionLsp.value
+        assertNotNull("la session reste VIVANTE", session)
+        assertNull("aucun modèle sans classpath", session?.modele?.value)
+        assertTrue(journalViewModel.entries.any { it.message.contains("session LSP non nourrie") })
+    }
+
+    @Test
+    fun `le deplacement du projet referme l ancienne session et ouvre la nouvelle`() = runTest {
+        val id = ajouterProjet("Deplace")
+        val viewModel =
+            viewModel(
+                id,
+                ResolveurCheminFuse { uri ->
+                    if (uri.contains("Deplace2")) "/fuse/b/Deplace" else "/fuse/a/Deplace"
+                },
+            )
+        avancer()
+
+        val ancienne = viewModel.sessionLsp.value
+        assertNotNull(ancienne)
+
+        // Le projet est RELOCALISÉ : l'observer ré-émet, suivre() voit
+        // un documentUri différent — l'ancienne session doit mourir,
+        // la nouvelle s'ouvrir sur la NOUVELLE racine.
+        depot.updateLocation(
+            id,
+            StorageLocation(
+                grantUri = "content://autorite/tree/Deplace2",
+                documentUri = "content://autorite/tree/Deplace2/doc",
+                displayPath = "Projets/Deplace2",
+            ),
+        )
+        avancer()
+
+        val nouvelle = viewModel.sessionLsp.value
+        assertNotNull("la nouvelle session devait s'ouvrir", nouvelle)
+        assertTrue("l'ancienne session devait être refermée", ancienne !== nouvelle)
+        assertEquals(File("/fuse/b/Deplace"), nouvelle?.racine)
+        assertTrue(journalViewModel.entries.any { it.message.contains("session LSP refermée") })
+    }
+
+    @Test
+    fun `reindexer sans session journalise et ne plante pas`() = runTest {
+        val id = ajouterProjet("SansSession")
+        val viewModel = viewModel(id)
+        avancer()
+
+        viewModel.onAction(ActionEditor.Reindexer)
+
+        assertNull(viewModel.sessionLsp.value)
+        assertTrue(journalViewModel.entries.any { it.message.contains("sans session LSP") })
+    }
+
+    @Test
+    fun `reindexer avec session passe par reindexer de l hote`() = runTest {
+        val id = ajouterProjet("Reindex")
+        val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/reindex" })
+        avancer()
+        assertNotNull(viewModel.sessionLsp.value)
+
+        viewModel.onAction(ActionEditor.Reindexer)
+
+        assertTrue(journalViewModel.entries.any { it.message.contains("réindexation LSP demandée") })
+    }
+
+    @Test
+    fun `cheminFuseDe resout un FICHIER par le contrat d entree - regression v0 100 2`() = runTest {
+        // Le pont de production sépare ses contrats : l'opérateur
+        // (« répertoire », garde isDirectory) REJETTE un fichier,
+        // le contrat d'entrée (garde exists) le résout. Le faux
+        // ci-dessous mime EXACTEMENT cette séparation — si
+        // cheminFuseDe repasse par l'opérateur, ce test échoue :
+        // c'est la régression du retour d'appareil v0.100.2
+        // (branchement muet, jamais « LSP Java connecté »).
+        val id = ajouterProjet("Chemins")
+        val resolveurFichiers =
+            object : ResolveurCheminFuse {
+                override suspend fun invoke(documentUri: String): String? = null
+
+                override suspend fun resoudreEntree(documentUri: String): String? = "/fuse/fichiers/$documentUri"
+            }
+        val viewModel = viewModel(id, resolveurFichiers)
+        avancer()
+
+        assertEquals(
+            "/fuse/fichiers/content://x/y",
+            viewModel.cheminFuseDe("content://x/y"),
+        )
+    }
 
     // ------------------------------------------------------------------
     // v0.134.13 — KP5 (audit Kotlin §6.3-1, §8.7) : voie de repli quand
@@ -275,100 +265,92 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
     // ------------------------------------------------------------------
 
     @Test
-    fun `KP5 session Kotlin nourrie du brut sans session Java`() =
-        runTest {
-            val id = ajouterProjet("ProjetSeul")
-            // Résolveur muet : AUCUNE session ne s'ouvre (l'état
-            // « Java absente » du repli) — la session Kotlin du repli
-            // est fournie par le test, comme le ferait la fenêtre de
-            // découplage.
-            val viewModel = viewModel(id, ResolveurCheminFuse { null })
-            avancer()
-            assertNull(viewModel.sessionLsp.value)
-            val racine = Files.createTempDirectory("codeide-kotlin-seul").toFile()
-            val brut =
-                ClasspathResult(
-                    id = "kp5",
-                    protocolVersion = 8,
-                    projectDir = racine.absolutePath,
-                    modules = emptyList(),
-                )
-            jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
-                viewModel.nourrirKotlinProjetSeul(sessionKotlin, brut)
-                assertTrue(
-                    "le journal doit porter le contrat minimum de l'audit (régime projet seul)",
-                    journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
-                )
-            }
-        }
-
-    @Test
-    fun `KP5 silence quand aucune session Kotlin`() =
-        runTest {
-            val id = ajouterProjet("KotlinAbsent")
-            val viewModel = viewModel(id, ResolveurCheminFuse { null })
-            avancer()
-            val brut =
-                ClasspathResult(
-                    id = "kp5",
-                    protocolVersion = 8,
-                    projectDir = "/fuse/projets/KotlinAbsent",
-                    modules = emptyList(),
-                )
-            viewModel.nourrirKotlinProjetSeul(null, brut)
-            assertFalse(
-                "aucun journal de nourrissage sans session Kotlin",
+    fun `KP5 session Kotlin nourrie du brut sans session Java`() = runTest {
+        val id = ajouterProjet("ProjetSeul")
+        // Résolveur muet : AUCUNE session ne s'ouvre (l'état
+        // « Java absente » du repli) — la session Kotlin du repli
+        // est fournie par le test, comme le ferait la fenêtre de
+        // découplage.
+        val viewModel = viewModel(id, ResolveurCheminFuse { null })
+        avancer()
+        assertNull(viewModel.sessionLsp.value)
+        val racine = Files.createTempDirectory("codeide-kotlin-seul").toFile()
+        val brut =
+            ClasspathResult(
+                id = "kp5",
+                protocolVersion = 8,
+                projectDir = racine.absolutePath,
+                modules = emptyList(),
+            )
+        jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
+            viewModel.nourrirKotlinProjetSeul(sessionKotlin, brut)
+            assertTrue(
+                "le journal doit porter le contrat minimum de l'audit (régime projet seul)",
                 journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
             )
         }
+    }
 
     @Test
-    fun `KP5 session Kotlin nourrie du modele persiste sans session Java`() =
-        runTest {
-            val id = ajouterProjet("ProjetSeulCache")
-            val viewModel = viewModel(id, ResolveurCheminFuse { null })
-            avancer()
-            val racine = Files.createTempDirectory("codeide-kotlin-seul-cache").toFile()
-            persisterModeleSous(racine)
-            jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
-                viewModel.nourrirKotlinProjetSeulDepuisModelePersiste(sessionKotlin, racine)
-                assertTrue(
-                    "le repli réouverture doit journaliser le régime projet seul",
-                    journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
-                )
-                assertTrue(
-                    "le journal doit dire QUELLE source a nourri (modèle persisté)",
-                    journalViewModel.entries.any { it.message.contains("modèle persisté") },
-                )
-            }
-        }
+    fun `KP5 silence quand aucune session Kotlin`() = runTest {
+        val id = ajouterProjet("KotlinAbsent")
+        val viewModel = viewModel(id, ResolveurCheminFuse { null })
+        avancer()
+        val brut =
+            ClasspathResult(
+                id = "kp5",
+                protocolVersion = 8,
+                projectDir = "/fuse/projets/KotlinAbsent",
+                modules = emptyList(),
+            )
+        viewModel.nourrirKotlinProjetSeul(null, brut)
+        assertFalse(
+            "aucun journal de nourrissage sans session Kotlin",
+            journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+        )
+    }
 
     @Test
-    fun `KP5 silence sans modele persiste sous la racine`() =
-        runTest {
-            val id = ajouterProjet("ProjetSeulVide")
-            val viewModel = viewModel(id, ResolveurCheminFuse { null })
-            avancer()
-            val racine = Files.createTempDirectory("codeide-kotlin-seul-vide").toFile()
-            jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
-                viewModel.nourrirKotlinProjetSeulDepuisModelePersiste(sessionKotlin, racine)
-                assertFalse(
-                    "aucun nourrissage annoncé sans modèle persisté",
-                    journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
-                )
-            }
+    fun `KP5 session Kotlin nourrie du modele persiste sans session Java`() = runTest {
+        val id = ajouterProjet("ProjetSeulCache")
+        val viewModel = viewModel(id, ResolveurCheminFuse { null })
+        avancer()
+        val racine = Files.createTempDirectory("codeide-kotlin-seul-cache").toFile()
+        persisterModeleSous(racine)
+        jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
+            viewModel.nourrirKotlinProjetSeulDepuisModelePersiste(sessionKotlin, racine)
+            assertTrue(
+                "le repli réouverture doit journaliser le régime projet seul",
+                journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+            )
+            assertTrue(
+                "le journal doit dire QUELLE source a nourri (modèle persisté)",
+                journalViewModel.entries.any { it.message.contains("modèle persisté") },
+            )
         }
+    }
+
+    @Test
+    fun `KP5 silence sans modele persiste sous la racine`() = runTest {
+        val id = ajouterProjet("ProjetSeulVide")
+        val viewModel = viewModel(id, ResolveurCheminFuse { null })
+        avancer()
+        val racine = Files.createTempDirectory("codeide-kotlin-seul-vide").toFile()
+        jo.codeide.lsp.host.SessionLspKotlin(racineProjet = racine).use { sessionKotlin ->
+            viewModel.nourrirKotlinProjetSeulDepuisModelePersiste(sessionKotlin, racine)
+            assertFalse(
+                "aucun nourrissage annoncé sans modèle persisté",
+                journalViewModel.entries.any { it.message.contains("Kotlin en régime projet seul") },
+            )
+        }
+    }
 
     /** Construit le ViewModel sur un résolveur FUSE résolvant (h2). */
-    private fun viewModel(
-        id: ProjectId,
-        resolveurFUSE: ResolveurCheminFuse,
-    ): EditorViewModel =
-        viewModel(
-            id,
-            SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-            resolveurFUSE,
-        )
+    private fun viewModel(id: ProjectId, resolveurFUSE: ResolveurCheminFuse): EditorViewModel = viewModel(
+        id,
+        SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
+        resolveurFUSE,
+    )
 
     // ------------------------------------------------------------------
     // v0.102.0 — lot h4, les deux écarts réels (§16.5).
@@ -387,9 +369,7 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
      * thread principal » (un `withContext` mal branché finirait aussi,
      * sur le thread du planificateur de test).
      */
-    private class DispatcheursAnr(
-        threads: MutableSet<String>,
-    ) : jo.codeide.core.domain.DispatcherProvider {
+    private class DispatcheursAnr(threads: MutableSet<String>) : jo.codeide.core.domain.DispatcherProvider {
         private val executeur =
             java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
                 Thread(runnable, "io-anr").apply { isDaemon = true }
@@ -410,10 +390,7 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
 
         override val io: kotlinx.coroutines.CoroutineDispatcher =
             object : kotlinx.coroutines.CoroutineDispatcher() {
-                override fun dispatch(
-                    context: kotlin.coroutines.CoroutineContext,
-                    block: Runnable,
-                ) {
+                override fun dispatch(context: kotlin.coroutines.CoroutineContext, block: Runnable) {
                     if (arrete) return
                     executeur.execute {
                         if (arrete) return@execute
@@ -446,12 +423,11 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
     }
 
     @Test
-    fun `le nourrissage de classpath s execute hors du thread principal`() =
-        runTest {
-            // Corps long par construction (scénario complet + attente
-            // bornée du thread dédié) — extraction ciblée ci-dessous.
-            horsDuThreadPrincipal()
-        }
+    fun `le nourrissage de classpath s execute hors du thread principal`() = runTest {
+        // Corps long par construction (scénario complet + attente
+        // bornée du thread dédié) — extraction ciblée ci-dessous.
+        horsDuThreadPrincipal()
+    }
 
     /** Scénario de l'ANR e7dd5a7 : le nourrissage finit HORS du principal. */
     @Suppress("LongMethod")
@@ -498,7 +474,7 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
             (
                 session?.modele?.value == null ||
                     journalViewModel.entries.none { it.message.contains("session LSP nourrie") }
-            )
+                )
         ) {
             Thread.sleep(25)
             avancer()
@@ -522,96 +498,93 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
     }
 
     @Test
-    fun `l ouverture branche le android jar de la toolchain au moteur par defaut`() =
-        runTest {
-            // Écart 1 : le SDK installé par le bootstrap est sur disque
-            // AVANT toute sync — la plateforme rejoint le moteur par défaut
-            // dès l'ouverture (FakeToolchainLocator.androidJar).
-            val plateforme =
-                Files
-                    .createTempDirectory("codeide-sdk")
-                    .resolve("android.jar")
-                    .toFile()
-            plateforme.writeBytes(byteArrayOf(0x50, 0x4b, 1, 2))
-            outilchainTest.androidJar = plateforme
-            val id = ajouterProjet("Plateforme")
-            val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Plateforme" })
-            avancer()
+    fun `l ouverture branche le android jar de la toolchain au moteur par defaut`() = runTest {
+        // Écart 1 : le SDK installé par le bootstrap est sur disque
+        // AVANT toute sync — la plateforme rejoint le moteur par défaut
+        // dès l'ouverture (FakeToolchainLocator.androidJar).
+        val plateforme =
+            Files
+                .createTempDirectory("codeide-sdk")
+                .resolve("android.jar")
+                .toFile()
+        plateforme.writeBytes(byteArrayOf(0x50, 0x4b, 1, 2))
+        outilchainTest.androidJar = plateforme
+        val id = ajouterProjet("Plateforme")
+        val viewModel = viewModel(id, ResolveurCheminFuse { "/fuse/projets/Plateforme" })
+        avancer()
 
-            val session = viewModel.sessionLsp.value
-            assertNotNull("la session devait s'ouvrir", session)
-            val environnement = (session!!.serveur() as JavaLanguageServer).environment()
-            assertTrue(
-                "la plateforme de la toolchain devait rejoindre le moteur par défaut",
-                environnement.classpathEntries().any { it.name == "android.jar" },
-            )
-        }
-
-    @Test
-    fun `la reouverture avec empreinte identique nourrit la session depuis le cache`() =
-        runTest {
-            // Écart 2 : la sync passée a PERSISTÉ le modèle (session 1) ;
-            // la réouverture (session 2, empreinte Gradle inchangée) s'en
-            // nourrit AVANT la revalidation silencieuse — sans Gradle.
-            val racine = Files.createTempDirectory("codeide-projet-cache").toFile()
-            persisterModeleSous(racine)
-            assertTrue(
-                "le modèle devait être persisté sous la racine",
-                File(racine, ".codeide/local/lsp-modele.json").isFile,
-            )
-
-            val uriRacine = "content://autorite/tree/Cache/doc"
-            semerArborescenceSync(uriRacine)
-            semerEtatSync(uriRacine, empreinteGradleCourante(uriRacine))
-
-            val id = ajouterProjet("Cache")
-            val viewModel = viewModel(id, ResolveurCheminFuse { racine.absolutePath })
-            avancer()
-
-            assertTrue(
-                "la session devait être nourrie depuis le cache",
-                journalViewModel.entries.any { it.message.contains("session LSP nourrie depuis le cache") },
-            )
-            assertNotNull(
-                "le modèle devait être relu depuis le disque",
-                viewModel.sessionLsp.value
-                    ?.modele
-                    ?.value,
-            )
-        }
+        val session = viewModel.sessionLsp.value
+        assertNotNull("la session devait s'ouvrir", session)
+        val environnement = (session!!.serveur() as JavaLanguageServer).environment()
+        assertTrue(
+            "la plateforme de la toolchain devait rejoindre le moteur par défaut",
+            environnement.classpathEntries().any { it.name == "android.jar" },
+        )
+    }
 
     @Test
-    fun `empreinte differente - pas de nourrissage depuis le cache perime`() =
-        runTest {
-            // L'empreinte Gradle est la CLÉ de cache : des fichiers Gradle
-            // changés depuis la dernière sync ⇒ le modèle persisté n'est
-            // plus garanti — sync complète, JAMAIS de cache trompeur.
-            val racine = Files.createTempDirectory("codeide-projet-perime").toFile()
-            persisterModeleSous(racine)
+    fun `la reouverture avec empreinte identique nourrit la session depuis le cache`() = runTest {
+        // Écart 2 : la sync passée a PERSISTÉ le modèle (session 1) ;
+        // la réouverture (session 2, empreinte Gradle inchangée) s'en
+        // nourrit AVANT la revalidation silencieuse — sans Gradle.
+        val racine = Files.createTempDirectory("codeide-projet-cache").toFile()
+        persisterModeleSous(racine)
+        assertTrue(
+            "le modèle devait être persisté sous la racine",
+            File(racine, ".codeide/local/lsp-modele.json").isFile,
+        )
 
-            val uriRacine = "content://autorite/tree/Perime/doc"
-            semerArborescenceSync(uriRacine)
-            semerEtatSync(uriRacine, "0".repeat(64))
+        val uriRacine = "content://autorite/tree/Cache/doc"
+        semerArborescenceSync(uriRacine)
+        semerEtatSync(uriRacine, empreinteGradleCourante(uriRacine))
 
-            val id = ajouterProjet("Perime")
-            val viewModel = viewModel(id, ResolveurCheminFuse { racine.absolutePath })
-            avancer()
+        val id = ajouterProjet("Cache")
+        val viewModel = viewModel(id, ResolveurCheminFuse { racine.absolutePath })
+        avancer()
 
-            assertTrue(
-                "l'empreinte différente devait forcer la sync manuelle",
-                journalViewModel.entries.any { it.message.contains("empreinte différente") },
-            )
-            assertFalse(
-                "aucun nourrissage depuis un cache périmé",
-                journalViewModel.entries.any { it.message.contains("session LSP nourrie depuis le cache") },
-            )
-            assertNull(
-                "le modèle périmé ne devait PAS être appliqué",
-                viewModel.sessionLsp.value
-                    ?.modele
-                    ?.value,
-            )
-        }
+        assertTrue(
+            "la session devait être nourrie depuis le cache",
+            journalViewModel.entries.any { it.message.contains("session LSP nourrie depuis le cache") },
+        )
+        assertNotNull(
+            "le modèle devait être relu depuis le disque",
+            viewModel.sessionLsp.value
+                ?.modele
+                ?.value,
+        )
+    }
+
+    @Test
+    fun `empreinte differente - pas de nourrissage depuis le cache perime`() = runTest {
+        // L'empreinte Gradle est la CLÉ de cache : des fichiers Gradle
+        // changés depuis la dernière sync ⇒ le modèle persisté n'est
+        // plus garanti — sync complète, JAMAIS de cache trompeur.
+        val racine = Files.createTempDirectory("codeide-projet-perime").toFile()
+        persisterModeleSous(racine)
+
+        val uriRacine = "content://autorite/tree/Perime/doc"
+        semerArborescenceSync(uriRacine)
+        semerEtatSync(uriRacine, "0".repeat(64))
+
+        val id = ajouterProjet("Perime")
+        val viewModel = viewModel(id, ResolveurCheminFuse { racine.absolutePath })
+        avancer()
+
+        assertTrue(
+            "l'empreinte différente devait forcer la sync manuelle",
+            journalViewModel.entries.any { it.message.contains("empreinte différente") },
+        )
+        assertFalse(
+            "aucun nourrissage depuis un cache périmé",
+            journalViewModel.entries.any { it.message.contains("session LSP nourrie depuis le cache") },
+        )
+        assertNull(
+            "le modèle périmé ne devait PAS être appliqué",
+            viewModel.sessionLsp.value
+                ?.modele
+                ?.value,
+        )
+    }
 
     /**
      * Persiste un modèle `:app` sous la racine (lot h4 écart 2) — joue
@@ -629,13 +602,13 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
                     protocolVersion = 8,
                     projectDir = racine.absolutePath,
                     modules =
-                        listOf(
-                            ClasspathModule(
-                                name = ":app",
-                                sourceDirs = listOf(racine.absolutePath),
-                                entries = emptyList(),
-                            ),
+                    listOf(
+                        ClasspathModule(
+                            name = ":app",
+                            sourceDirs = listOf(racine.absolutePath),
+                            entries = emptyList(),
                         ),
+                    ),
                 ),
             )
         }
@@ -673,10 +646,7 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
      * Sème `.codeide/local/sync-state.json` (l'état que la réouverture
      * restitue quand l'empreinte correspond, v0.40.1).
      */
-    private fun semerEtatSync(
-        uriRacine: String,
-        empreinte: String,
-    ) {
+    private fun semerEtatSync(uriRacine: String, empreinte: String) {
         val json =
             """{"schema":1,"empreinte":"$empreinte","taches":[],"dureeMs":0,"instantMs":0}"""
         fichiers.seedDocument(
@@ -690,9 +660,8 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
     }
 
     /** Empreinte Gradle courante du faux SAF (build.gradle semé). */
-    private suspend fun empreinteGradleCourante(uriRacine: String): String =
-        CalculerEmpreinteGradleUseCase(
-            fichiers,
-            TestDispatcherProvider(regleMain.dispatcher),
-        )(uriRacine)
+    private suspend fun empreinteGradleCourante(uriRacine: String): String = CalculerEmpreinteGradleUseCase(
+        fichiers,
+        TestDispatcherProvider(regleMain.dispatcher),
+    )(uriRacine)
 }

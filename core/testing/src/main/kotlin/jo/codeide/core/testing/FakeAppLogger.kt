@@ -38,12 +38,7 @@ public class FakeAppLogger : AppLogger {
     public val entries: List<RecordedEntry>
         get() = enregistrees.toList()
 
-    public override fun log(
-        level: LogLevel,
-        tag: String,
-        throwable: Throwable?,
-        message: () -> String,
-    ) {
+    public override fun log(level: LogLevel, tag: String, throwable: Throwable?, message: () -> String) {
         enregistrees += RecordedEntry(level, tag, message(), throwable)
     }
 

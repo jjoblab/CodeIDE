@@ -23,9 +23,7 @@ import kotlinx.coroutines.flow.flowOf
 // secret réel (valeurs factices évidentes, règle 10 du plan).
 
 /** Réglages IA en mémoire : état mutable contrôlé par les tests. */
-internal class FakeReglagesIa(
-    valeur: AiSettings = AiSettings(),
-) : ReglagesIaRepository {
+internal class FakeReglagesIa(valeur: AiSettings = AiSettings()) : ReglagesIaRepository {
     val flux = MutableStateFlow(valeur)
     var ecritures = 0
 
@@ -48,10 +46,7 @@ internal class FakeCoffre : CoffreClesIa {
     var maitrePerdue = false
     var dernieresClesEnregistrees = mutableListOf<CharArray>()
 
-    override suspend fun enregistrer(
-        identifiant: String,
-        cle: CharArray,
-    ): AppResult<Unit> {
+    override suspend fun enregistrer(identifiant: String, cle: CharArray): AppResult<Unit> {
         dernieresClesEnregistrees.add(cle.copyOf())
         cles[identifiant] = cle.concatToString()
         apercus[identifiant] =
@@ -60,12 +55,11 @@ internal class FakeCoffre : CoffreClesIa {
         return AppResult.Success(Unit)
     }
 
-    override suspend fun lire(identifiant: String): AppResult<CharArray> =
-        when {
-            !cles.containsKey(identifiant) -> AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound))
-            maitrePerdue -> AppResult.Failure(AppError.Storage(AppError.StorageReason.KeyUnavailable, "test"))
-            else -> AppResult.Success(cles.getValue(identifiant).toCharArray())
-        }
+    override suspend fun lire(identifiant: String): AppResult<CharArray> = when {
+        !cles.containsKey(identifiant) -> AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound))
+        maitrePerdue -> AppResult.Failure(AppError.Storage(AppError.StorageReason.KeyUnavailable, "test"))
+        else -> AppResult.Success(cles.getValue(identifiant).toCharArray())
+    }
 
     override suspend fun supprimer(identifiant: String): AppResult<Unit> {
         cles.remove(identifiant)
@@ -157,14 +151,13 @@ internal class FauxConversationStore : ConversationStore {
     var purges = 0
     var retentionDerniere: RetentionIa? = null
 
-    override fun conversations(recherche: String): Flow<List<ConversationIa>> =
-        kotlinx.coroutines.flow.flow {
-            val liste =
-                conversations.values
-                    .filter { recherche.isBlank() || it.titre.contains(recherche, ignoreCase = true) }
-                    .sortedByDescending { it.modifieA }
-            emit(liste)
-        }
+    override fun conversations(recherche: String): Flow<List<ConversationIa>> = kotlinx.coroutines.flow.flow {
+        val liste =
+            conversations.values
+                .filter { recherche.isBlank() || it.titre.contains(recherche, ignoreCase = true) }
+                .sortedByDescending { it.modifieA }
+        emit(liste)
+    }
 
     override suspend fun messages(conversationId: String): List<MessageConversationIa> =
         messagesParConversation[conversationId].orEmpty()
@@ -172,11 +165,7 @@ internal class FauxConversationStore : ConversationStore {
     override suspend fun nombreMessages(conversationId: String): Int =
         messagesParConversation[conversationId].orEmpty().size
 
-    override suspend fun ajouterMessage(
-        conversationId: String,
-        modele: String,
-        message: MessageConversationIa,
-    ) {
+    override suspend fun ajouterMessage(conversationId: String, modele: String, message: MessageConversationIa) {
         if (conversationId !in conversations) {
             conversations[conversationId] =
                 ConversationIa(
@@ -193,10 +182,7 @@ internal class FauxConversationStore : ConversationStore {
             conversations.getValue(conversationId).copy(modifieA = message.creeA)
     }
 
-    override suspend fun renommer(
-        conversationId: String,
-        titre: String,
-    ): Int {
+    override suspend fun renommer(conversationId: String, titre: String): Int {
         val existante = conversations[conversationId] ?: return 0
         conversations[conversationId] = existante.copy(titre = titre)
         return 1

@@ -73,12 +73,12 @@ class OnboardingViewModelTest {
         orchestrateurInstallation.semerEtat(
             jo.codeide.core.domain.EnvironmentSetupState(
                 phases =
-                    jo.codeide.core.domain.InstallPhase.entries.associateWith {
-                        jo.codeide.core.domain.PhaseState.Succeeded(
-                            verifiedAtMillis = 0L,
-                            versions = emptyMap(),
-                        )
-                    },
+                jo.codeide.core.domain.InstallPhase.entries.associateWith {
+                    jo.codeide.core.domain.PhaseState.Succeeded(
+                        verifiedAtMillis = 0L,
+                        versions = emptyMap(),
+                    )
+                },
                 running = null,
                 sdkLicenseAcceptedAtMillis = null,
             ),
@@ -110,36 +110,34 @@ class OnboardingViewModelTest {
         )
 
     @Test
-    fun `l'etat s'amorce depuis les parametres existants`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            depot.updateSettings { it.copy(themeMode = ThemeMode.DARK, authorName = "Grace") }
+    fun `l'etat s'amorce depuis les parametres existants`() = runTest(regleMain.dispatcher.scheduler) {
+        depot.updateSettings { it.copy(themeMode = ThemeMode.DARK, authorName = "Grace") }
 
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            assertEquals(ThemeMode.DARK, viewModel.etat.value.modeTheme)
-            assertEquals("Grace", viewModel.etat.value.nomAuteur)
-            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
-        }
+        assertEquals(ThemeMode.DARK, viewModel.etat.value.modeTheme)
+        assertEquals("Grace", viewModel.etat.value.nomAuteur)
+        assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+    }
 
     @Test
-    fun `la navigation avance et recule dans les bornes`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `la navigation avance et recule dans les bornes`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            // Bienvenue -> Dossier -> Terminal -> Notifications -> Apparence -> Profil -> Termine.
-            viewModel.onAction(ActionOnboarding.Commencer)
-            assertEquals(PageOnboarding.DOSSIER, viewModel.etat.value.page)
-            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
-            assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
+        // Bienvenue -> Dossier -> Terminal -> Notifications -> Apparence -> Profil -> Termine.
+        viewModel.onAction(ActionOnboarding.Commencer)
+        assertEquals(PageOnboarding.DOSSIER, viewModel.etat.value.page)
+        repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+        assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
 
-            // Bornes : ni au-delà de la fin, ni avant la bienvenue.
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
-            repeat(PageOnboarding.entries.size) { viewModel.onAction(ActionOnboarding.PagePrecedente) }
-            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
-        }
+        // Bornes : ni au-delà de la fin, ni avant la bienvenue.
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
+        repeat(PageOnboarding.entries.size) { viewModel.onAction(ActionOnboarding.PagePrecedente) }
+        assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+    }
 
     @Test
     fun `un dossier refuse par Android n'entraine ni permission ni persistance`() =
@@ -160,29 +158,28 @@ class OnboardingViewModelTest {
         }
 
     @Test
-    fun `un dossier valide passe le test d'ecriture et se persiste`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val grantUri = semerDossierValide()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `un dossier valide passe le test d'ecriture et se persiste`() = runTest(regleMain.dispatcher.scheduler) {
+        val grantUri = semerDossierValide()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionOnboarding.DossierChoisi(grantUri))
-            advanceUntilIdle()
+        viewModel.onAction(ActionOnboarding.DossierChoisi(grantUri))
+        advanceUntilIdle()
 
-            val dossier = viewModel.etat.value.dossier
-            assertTrue("le dossier doit être configuré", dossier is EtatDossier.Configure)
-            val configure = dossier as EtatDossier.Configure
-            assertEquals("CodeIDE", configure.dossier.displayPath)
-            assertEquals(grantUri, configure.dossier.grantUri)
+        val dossier = viewModel.etat.value.dossier
+        assertTrue("le dossier doit être configuré", dossier is EtatDossier.Configure)
+        val configure = dossier as EtatDossier.Configure
+        assertEquals("CodeIDE", configure.dossier.displayPath)
+        assertEquals(grantUri, configure.dossier.grantUri)
 
-            // Permission prise, dossier persisté, témoin nettoyé.
-            assertTrue(fichiers.hasPersistablePermission(grantUri))
-            assertEquals(configure.dossier, depot.reglages.workspace)
-            assertFalse(
-                "le témoin doit être supprimé",
-                fichiers.arborescence.value.containsKey("$URI_DOCUMENT_DOSSIER/codeide-temoin-1000.txt"),
-            )
-        }
+        // Permission prise, dossier persisté, témoin nettoyé.
+        assertTrue(fichiers.hasPersistablePermission(grantUri))
+        assertEquals(configure.dossier, depot.reglages.workspace)
+        assertFalse(
+            "le témoin doit être supprimé",
+            fichiers.arborescence.value.containsKey("$URI_DOCUMENT_DOSSIER/codeide-temoin-1000.txt"),
+        )
+    }
 
     @Test
     fun `un echec du test d'ecriture relache la permission et garde le dossier non configure`() =
@@ -206,115 +203,110 @@ class OnboardingViewModelTest {
         }
 
     @Test
-    fun `les choix d'apparence se persistent immediatement`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `les choix d'apparence se persistent immediatement`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionOnboarding.ChangerTheme(ThemeMode.DARK))
-            viewModel.onAction(ActionOnboarding.ChangerCouleursDynamiques(false))
-            viewModel.onAction(ActionOnboarding.ChangerLangue("en"))
-            advanceUntilIdle()
+        viewModel.onAction(ActionOnboarding.ChangerTheme(ThemeMode.DARK))
+        viewModel.onAction(ActionOnboarding.ChangerCouleursDynamiques(false))
+        viewModel.onAction(ActionOnboarding.ChangerLangue("en"))
+        advanceUntilIdle()
 
-            assertEquals(ThemeMode.DARK, depot.reglages.themeMode)
-            assertFalse(depot.reglages.useDynamicColor)
-            assertEquals("en", depot.reglages.languageTag)
-        }
-
-    @Test
-    fun `terminer marque l'installation et emet le retour a l'accueil`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val effetsRecus = mutableListOf<EffetOnboarding>()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                viewModel.effets.toList(effetsRecus)
-            }
-
-            viewModel.onAction(ActionOnboarding.SaisirNomAuteur("Ada"))
-            viewModel.onAction(ActionOnboarding.ChangerLicence(License.APACHE_2_0))
-            repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
-            viewModel.onAction(ActionOnboarding.Terminer)
-            advanceUntilIdle()
-
-            assertTrue(depot.reglages.isSetupCompleted)
-            assertEquals("Ada", depot.reglages.authorName)
-            assertEquals(License.APACHE_2_0, depot.reglages.defaultLicense)
-            assertEquals(listOf(EffetOnboarding.RetourAccueil), effetsRecus)
-        }
+        assertEquals(ThemeMode.DARK, depot.reglages.themeMode)
+        assertFalse(depot.reglages.useDynamicColor)
+        assertEquals("en", depot.reglages.languageTag)
+    }
 
     @Test
-    fun `la page suivante sur la page finale finalise l installation`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            // Régression du bug constaté sur appareil réel : le bouton unique
-            // de l'hôte s'appelle « Terminer » sur la dernière page mais
-            // émettait PageSuivante — borné, il ne faisait RIEN et
-            // isSetupCompleted restait faux (assistant en boucle).
-            val effetsRecus = mutableListOf<EffetOnboarding>()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                viewModel.effets.toList(effetsRecus)
-            }
-
-            viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
-            assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
-            assertFalse(depot.reglages.isSetupCompleted)
-
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            advanceUntilIdle()
-
-            assertTrue(depot.reglages.isSetupCompleted)
-            assertEquals(listOf(EffetOnboarding.RetourAccueil), effetsRecus)
+    fun `terminer marque l'installation et emet le retour a l'accueil`() = runTest(regleMain.dispatcher.scheduler) {
+        val effetsRecus = mutableListOf<EffetOnboarding>()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+            viewModel.effets.toList(effetsRecus)
         }
+
+        viewModel.onAction(ActionOnboarding.SaisirNomAuteur("Ada"))
+        viewModel.onAction(ActionOnboarding.ChangerLicence(License.APACHE_2_0))
+        repeat(4) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+        viewModel.onAction(ActionOnboarding.Terminer)
+        advanceUntilIdle()
+
+        assertTrue(depot.reglages.isSetupCompleted)
+        assertEquals("Ada", depot.reglages.authorName)
+        assertEquals(License.APACHE_2_0, depot.reglages.defaultLicense)
+        assertEquals(listOf(EffetOnboarding.RetourAccueil), effetsRecus)
+    }
 
     @Test
-    fun `un echec de finalisation est signale puis retentable`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
-
-            // L'écriture des paramètres échoue : plus jamais un silence,
-            // la page Terminé signale l'échec et le drapeau reste faux.
-            depot.writeError = IOException("stockage saturé simulé")
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            advanceUntilIdle()
-
-            assertFalse(depot.reglages.isSetupCompleted)
-            assertTrue("l'échec doit être visible à l'écran", viewModel.etat.value.erreurFinalisation)
-            assertFalse(viewModel.etat.value.finalisation)
-
-            // Le stockage revient : réessayer mène à bien l'installation.
-            depot.writeError = null
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            advanceUntilIdle()
-
-            assertTrue(depot.reglages.isSetupCompleted)
-            assertFalse(viewModel.etat.value.erreurFinalisation)
+    fun `la page suivante sur la page finale finalise l installation`() = runTest(regleMain.dispatcher.scheduler) {
+        // Régression du bug constaté sur appareil réel : le bouton unique
+        // de l'hôte s'appelle « Terminer » sur la dernière page mais
+        // émettait PageSuivante — borné, il ne faisait RIEN et
+        // isSetupCompleted restait faux (assistant en boucle).
+        val effetsRecus = mutableListOf<EffetOnboarding>()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+            viewModel.effets.toList(effetsRecus)
         }
+
+        viewModel.onAction(ActionOnboarding.Commencer)
+        repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+        assertEquals(PageOnboarding.TERMINE, viewModel.etat.value.page)
+        assertFalse(depot.reglages.isSetupCompleted)
+
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        advanceUntilIdle()
+
+        assertTrue(depot.reglages.isSetupCompleted)
+        assertEquals(listOf(EffetOnboarding.RetourAccueil), effetsRecus)
+    }
 
     @Test
-    fun `la finalisation arme sa garde anti double appui`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            viewModel.onAction(ActionOnboarding.Commencer)
-            repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+    fun `un echec de finalisation est signale puis retentable`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        viewModel.onAction(ActionOnboarding.Commencer)
+        repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
 
-            // La garde s'arme immédiatement, avant même l'exécution de
-            // l'écriture : un deuxième appui pendant le vol est ignoré.
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            assertTrue(viewModel.etat.value.finalisation)
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            viewModel.onAction(ActionOnboarding.Terminer)
+        // L'écriture des paramètres échoue : plus jamais un silence,
+        // la page Terminé signale l'échec et le drapeau reste faux.
+        depot.writeError = IOException("stockage saturé simulé")
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        advanceUntilIdle()
 
-            advanceUntilIdle()
+        assertFalse(depot.reglages.isSetupCompleted)
+        assertTrue("l'échec doit être visible à l'écran", viewModel.etat.value.erreurFinalisation)
+        assertFalse(viewModel.etat.value.finalisation)
 
-            assertTrue(depot.reglages.isSetupCompleted)
-        }
+        // Le stockage revient : réessayer mène à bien l'installation.
+        depot.writeError = null
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        advanceUntilIdle()
+
+        assertTrue(depot.reglages.isSetupCompleted)
+        assertFalse(viewModel.etat.value.erreurFinalisation)
+    }
+
+    @Test
+    fun `la finalisation arme sa garde anti double appui`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        viewModel.onAction(ActionOnboarding.Commencer)
+        repeat(5) { viewModel.onAction(ActionOnboarding.PageSuivante) }
+
+        // La garde s'arme immédiatement, avant même l'exécution de
+        // l'écriture : un deuxième appui pendant le vol est ignoré.
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        assertTrue(viewModel.etat.value.finalisation)
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        viewModel.onAction(ActionOnboarding.Terminer)
+
+        advanceUntilIdle()
+
+        assertTrue(depot.reglages.isSetupCompleted)
+    }
 
     @Test
     fun `apres une mort de processus le sauvetage gagne sur les parametres`() =
@@ -352,110 +344,103 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun `l etape Terminal s insere entre le dossier et les notifications`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `l etape Terminal s insere entre le dossier et les notifications`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionOnboarding.Commencer)
-            viewModel.onAction(ActionOnboarding.PageSuivante)
+        viewModel.onAction(ActionOnboarding.Commencer)
+        viewModel.onAction(ActionOnboarding.PageSuivante)
 
-            assertEquals(PageOnboarding.TERMINAL, viewModel.etat.value.page)
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
-        }
-
-    @Test
-    fun `l etape Notifications s insere entre le terminal et l apparence`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            // v0.31.2 (ADR 0046) : la page notifications suit le terminal
-            // (le service foreground explique POURQUOI notifier) et
-            // précède l'apparence.
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-
-            repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
-
-            assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
-            viewModel.onAction(ActionOnboarding.PageSuivante)
-            assertEquals(PageOnboarding.APPARENCE, viewModel.etat.value.page)
-        }
+        assertEquals(PageOnboarding.TERMINAL, viewModel.etat.value.page)
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
+    }
 
     @Test
-    fun `Plus tard passe l etape Terminal sans bloquer`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            viewModel.onAction(ActionOnboarding.Commencer)
-            viewModel.onAction(ActionOnboarding.PageSuivante)
+    fun `l etape Notifications s insere entre le terminal et l apparence`() = runTest(regleMain.dispatcher.scheduler) {
+        // v0.31.2 (ADR 0046) : la page notifications suit le terminal
+        // (le service foreground explique POURQUOI notifier) et
+        // précède l'apparence.
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionOnboarding.PasserTerminal)
+        repeat(3) { viewModel.onAction(ActionOnboarding.PageSuivante) }
 
-            assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
-        }
-
-    @Test
-    fun `DemanderNotifications emet la requete systeme d autorisation`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val effetsRecus = mutableListOf<EffetOnboarding>()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                viewModel.effets.toList(effetsRecus)
-            }
-
-            viewModel.onAction(ActionOnboarding.DemanderNotifications)
-
-            assertEquals(listOf(EffetOnboarding.OuvrirAutorisationNotifications), effetsRecus)
-            // La demande n'avance pas la page : l'utilisateur reste libre
-            // de refuser puis de continuer.
-            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
-        }
+        assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
+        viewModel.onAction(ActionOnboarding.PageSuivante)
+        assertEquals(PageOnboarding.APPARENCE, viewModel.etat.value.page)
+    }
 
     @Test
-    fun `DemanderReglagesNotifications emet l ouverture des reglages`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val effetsRecus = mutableListOf<EffetOnboarding>()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                viewModel.effets.toList(effetsRecus)
-            }
+    fun `Plus tard passe l etape Terminal sans bloquer`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        viewModel.onAction(ActionOnboarding.Commencer)
+        viewModel.onAction(ActionOnboarding.PageSuivante)
 
-            viewModel.onAction(ActionOnboarding.DemanderReglagesNotifications)
+        viewModel.onAction(ActionOnboarding.PasserTerminal)
 
-            assertEquals(listOf(EffetOnboarding.OuvrirReglagesNotifications), effetsRecus)
-        }
+        assertEquals(PageOnboarding.NOTIFICATIONS, viewModel.etat.value.page)
+    }
 
     @Test
-    fun `ConsignerNotifications reflete l etat reel des notifications`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            assertFalse(viewModel.etat.value.notificationsActivees)
-
-            viewModel.onAction(ActionOnboarding.ConsignerNotifications(activees = true))
-
-            assertTrue(viewModel.etat.value.notificationsActivees)
+    fun `DemanderNotifications emet la requete systeme d autorisation`() = runTest(regleMain.dispatcher.scheduler) {
+        val effetsRecus = mutableListOf<EffetOnboarding>()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+            viewModel.effets.toList(effetsRecus)
         }
+
+        viewModel.onAction(ActionOnboarding.DemanderNotifications)
+
+        assertEquals(listOf(EffetOnboarding.OuvrirAutorisationNotifications), effetsRecus)
+        // La demande n'avance pas la page : l'utilisateur reste libre
+        // de refuser puis de continuer.
+        assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+    }
 
     @Test
-    fun `DemanderStockage emet la requete systeme d acces au stockage`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val effetsRecus = mutableListOf<EffetOnboarding>()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                viewModel.effets.toList(effetsRecus)
-            }
-
-            viewModel.onAction(ActionOnboarding.DemanderStockage)
-
-            assertEquals(listOf(EffetOnboarding.OuvrirAutorisationStockage), effetsRecus)
-            // OPT-IN : la demande n'avance pas la page, refuser puis
-            // continuer reste le chemin normal (v0.31.3, ADR 0047).
-            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+    fun `DemanderReglagesNotifications emet l ouverture des reglages`() = runTest(regleMain.dispatcher.scheduler) {
+        val effetsRecus = mutableListOf<EffetOnboarding>()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+            viewModel.effets.toList(effetsRecus)
         }
+
+        viewModel.onAction(ActionOnboarding.DemanderReglagesNotifications)
+
+        assertEquals(listOf(EffetOnboarding.OuvrirReglagesNotifications), effetsRecus)
+    }
+
+    @Test
+    fun `ConsignerNotifications reflete l etat reel des notifications`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        assertFalse(viewModel.etat.value.notificationsActivees)
+
+        viewModel.onAction(ActionOnboarding.ConsignerNotifications(activees = true))
+
+        assertTrue(viewModel.etat.value.notificationsActivees)
+    }
+
+    @Test
+    fun `DemanderStockage emet la requete systeme d acces au stockage`() = runTest(regleMain.dispatcher.scheduler) {
+        val effetsRecus = mutableListOf<EffetOnboarding>()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+            viewModel.effets.toList(effetsRecus)
+        }
+
+        viewModel.onAction(ActionOnboarding.DemanderStockage)
+
+        assertEquals(listOf(EffetOnboarding.OuvrirAutorisationStockage), effetsRecus)
+        // OPT-IN : la demande n'avance pas la page, refuser puis
+        // continuer reste le chemin normal (v0.31.3, ADR 0047).
+        assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+    }
 
     @Test
     fun `DemanderReglagesStockage emet l ouverture des reglages de stockage`() =
@@ -473,47 +458,44 @@ class OnboardingViewModelTest {
         }
 
     @Test
-    fun `ConsignerStockage reflete l etat reel de l acces partage`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            assertFalse(viewModel.etat.value.stockagePartageActif)
+    fun `ConsignerStockage reflete l etat reel de l acces partage`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        assertFalse(viewModel.etat.value.stockagePartageActif)
 
-            viewModel.onAction(ActionOnboarding.ConsignerStockage(actif = true))
+        viewModel.onAction(ActionOnboarding.ConsignerStockage(actif = true))
 
-            assertTrue(viewModel.etat.value.stockagePartageActif)
-        }
-
-    @Test
-    fun `InstallerTerminal emet l ouverture de l ecran d installation`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val effetsRecus = mutableListOf<EffetOnboarding>()
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                viewModel.effets.toList(effetsRecus)
-            }
-
-            viewModel.onAction(ActionOnboarding.InstallerTerminal)
-
-            assertEquals(listOf(EffetOnboarding.OuvrirInstallation), effetsRecus)
-            // L'ouverture n'avance pas la page : le parcours reste à la
-            // même étape au retour de l'écran d'installation.
-            assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
-        }
+        assertTrue(viewModel.etat.value.stockagePartageActif)
+    }
 
     @Test
-    fun `VerifierTerminal reflete la presence des outils`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-            assertFalse(viewModel.etat.value.terminalInstalle)
-
-            localisateurOutils.bootstrapInstalle = true
-            viewModel.onAction(ActionOnboarding.VerifierTerminal)
-
-            assertTrue(viewModel.etat.value.terminalInstalle)
+    fun `InstallerTerminal emet l ouverture de l ecran d installation`() = runTest(regleMain.dispatcher.scheduler) {
+        val effetsRecus = mutableListOf<EffetOnboarding>()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+            viewModel.effets.toList(effetsRecus)
         }
+
+        viewModel.onAction(ActionOnboarding.InstallerTerminal)
+
+        assertEquals(listOf(EffetOnboarding.OuvrirInstallation), effetsRecus)
+        // L'ouverture n'avance pas la page : le parcours reste à la
+        // même étape au retour de l'écran d'installation.
+        assertEquals(PageOnboarding.BIENVENUE, viewModel.etat.value.page)
+    }
+
+    @Test
+    fun `VerifierTerminal reflete la presence des outils`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+        assertFalse(viewModel.etat.value.terminalInstalle)
+
+        localisateurOutils.bootstrapInstalle = true
+        viewModel.onAction(ActionOnboarding.VerifierTerminal)
+
+        assertTrue(viewModel.etat.value.terminalInstalle)
+    }
 
     @Test
     fun `bootstrap pose pendant que l assistant est ouvert - la page se decoche d elle meme`() =

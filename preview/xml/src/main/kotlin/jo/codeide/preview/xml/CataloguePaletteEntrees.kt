@@ -31,11 +31,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "TextView",
             categorie = "Texte",
             extraitXml =
-                "<TextView\n" +
-                    "    android:id=\"@+id/textView\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:text=\"TextView\" />",
+            "<TextView\n" +
+                "    android:id=\"@+id/textView\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:text=\"TextView\" />",
         ),
         EntreePalette(
             id = "et",
@@ -43,12 +43,12 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "EditText",
             categorie = "Texte",
             extraitXml =
-                "<EditText\n" +
-                    "    android:id=\"@+id/editText\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:hint=\"Nom\"\n" +
-                    "    android:inputType=\"text\" />",
+            "<EditText\n" +
+                "    android:id=\"@+id/editText\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:hint=\"Nom\"\n" +
+                "    android:inputType=\"text\" />",
         ),
         EntreePalette(
             id = "til",
@@ -57,17 +57,17 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Texte",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.textfield.TextInputLayout\n" +
-                    "    android:id=\"@+id/textInputLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:hint=\"Libellé\">\n" +
-                    "\n" +
-                    "    <com.google.android.material.textfield.TextInputEditText\n" +
-                    "        android:layout_width=\"match_parent\"\n" +
-                    "        android:layout_height=\"wrap_content\" />\n" +
-                    "\n" +
-                    "</com.google.android.material.textfield.TextInputLayout>",
+            "<com.google.android.material.textfield.TextInputLayout\n" +
+                "    android:id=\"@+id/textInputLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:hint=\"Libellé\">\n" +
+                "\n" +
+                "    <com.google.android.material.textfield.TextInputEditText\n" +
+                "        android:layout_width=\"match_parent\"\n" +
+                "        android:layout_height=\"wrap_content\" />\n" +
+                "\n" +
+                "</com.google.android.material.textfield.TextInputLayout>",
         ),
         EntreePalette(
             id = "btn",
@@ -75,11 +75,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "Button",
             categorie = "Boutons",
             extraitXml =
-                "<Button\n" +
-                    "    android:id=\"@+id/button\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"Button\" />",
+            "<Button\n" +
+                "    android:id=\"@+id/button\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"Button\" />",
         ),
         EntreePalette(
             id = "ib",
@@ -87,11 +87,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "ImageButton",
             categorie = "Boutons",
             extraitXml =
-                "<ImageButton\n" +
-                    "    android:id=\"@+id/imageButton\"\n" +
-                    "    android:layout_width=\"48dp\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:contentDescription=\"\" />",
+            "<ImageButton\n" +
+                "    android:id=\"@+id/imageButton\"\n" +
+                "    android:layout_width=\"48dp\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:contentDescription=\"\" />",
         ),
         EntreePalette(
             id = "cb",
@@ -99,11 +99,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "CheckBox",
             categorie = "Boutons",
             extraitXml =
-                "<CheckBox\n" +
-                    "    android:id=\"@+id/checkBox\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"CheckBox\" />",
+            "<CheckBox\n" +
+                "    android:id=\"@+id/checkBox\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"CheckBox\" />",
         ),
         EntreePalette(
             id = "sw",
@@ -111,11 +111,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "Switch",
             categorie = "Boutons",
             extraitXml =
-                "<Switch\n" +
-                    "    android:id=\"@+id/switch1\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"Switch\" />",
+            "<Switch\n" +
+                "    android:id=\"@+id/switch1\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"Switch\" />",
         ),
         EntreePalette(
             id = "llv",
@@ -123,12 +123,12 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "LinearLayout",
             categorie = "Conteneurs",
             extraitXml =
-                "<LinearLayout\n" +
-                    "    android:id=\"@+id/linearLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\"\n" +
-                    "    android:orientation=\"vertical\" />",
+            "<LinearLayout\n" +
+                "    android:id=\"@+id/linearLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\"\n" +
+                "    android:orientation=\"vertical\" />",
         ),
         EntreePalette(
             id = "llh",
@@ -136,12 +136,12 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "LinearLayout",
             categorie = "Conteneurs",
             extraitXml =
-                "<LinearLayout\n" +
-                    "    android:id=\"@+id/linearLayout2\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\"\n" +
-                    "    android:orientation=\"horizontal\" />",
+            "<LinearLayout\n" +
+                "    android:id=\"@+id/linearLayout2\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\"\n" +
+                "    android:orientation=\"horizontal\" />",
         ),
         EntreePalette(
             id = "card",
@@ -150,11 +150,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.card.MaterialCardView\n" +
-                    "    android:id=\"@+id/materialCardView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:padding=\"16dp\" />",
+            "<com.google.android.material.card.MaterialCardView\n" +
+                "    android:id=\"@+id/materialCardView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:padding=\"16dp\" />",
         ),
         // PE12h — les six entrées de la vague « familles de parents »
         // (spec § 11, miroir `WIDGETS` : fl, rl, cl, abl, tb, fab —
@@ -166,11 +166,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "FrameLayout",
             categorie = "Conteneurs",
             extraitXml =
-                "<FrameLayout\n" +
-                    "    android:id=\"@+id/frameLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<FrameLayout\n" +
+                "    android:id=\"@+id/frameLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "rl",
@@ -178,11 +178,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "RelativeLayout",
             categorie = "Conteneurs",
             extraitXml =
-                "<RelativeLayout\n" +
-                    "    android:id=\"@+id/relativeLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<RelativeLayout\n" +
+                "    android:id=\"@+id/relativeLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "cl",
@@ -191,10 +191,10 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<androidx.coordinatorlayout.widget.CoordinatorLayout\n" +
-                    "    android:id=\"@+id/coordinatorLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<androidx.coordinatorlayout.widget.CoordinatorLayout\n" +
+                "    android:id=\"@+id/coordinatorLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "abl",
@@ -203,11 +203,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.appbar.AppBarLayout\n" +
-                    "    android:id=\"@+id/appBarLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"56dp\" />",
+            "<com.google.android.material.appbar.AppBarLayout\n" +
+                "    android:id=\"@+id/appBarLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"56dp\" />",
         ),
         EntreePalette(
             id = "tb",
@@ -216,11 +216,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Autres",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.appbar.MaterialToolbar\n" +
-                    "    android:id=\"@+id/materialToolbar\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"56dp\"\n" +
-                    "    app:title=\"Titre\" />",
+            "<com.google.android.material.appbar.MaterialToolbar\n" +
+                "    android:id=\"@+id/materialToolbar\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"56dp\"\n" +
+                "    app:title=\"Titre\" />",
         ),
         EntreePalette(
             id = "fab",
@@ -229,12 +229,12 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Boutons",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.floatingactionbutton.FloatingActionButton\n" +
-                    "    android:id=\"@+id/floatingActionButton\"\n" +
-                    "    android:layout_width=\"56dp\"\n" +
-                    "    android:layout_height=\"56dp\"\n" +
-                    "    app:srcCompat=\"@drawable/ic_search\"\n" +
-                    "    android:contentDescription=\"Action\" />",
+            "<com.google.android.material.floatingactionbutton.FloatingActionButton\n" +
+                "    android:id=\"@+id/floatingActionButton\"\n" +
+                "    android:layout_width=\"56dp\"\n" +
+                "    android:layout_height=\"56dp\"\n" +
+                "    app:srcCompat=\"@drawable/ic_search\"\n" +
+                "    android:contentDescription=\"Action\" />",
         ),
         EntreePalette(
             id = "iv",
@@ -242,11 +242,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "ImageView",
             categorie = "Médias",
             extraitXml =
-                "<ImageView\n" +
-                    "    android:id=\"@+id/imageView\"\n" +
-                    "    android:layout_width=\"96dp\"\n" +
-                    "    android:layout_height=\"96dp\"\n" +
-                    "    android:contentDescription=\"\" />",
+            "<ImageView\n" +
+                "    android:id=\"@+id/imageView\"\n" +
+                "    android:layout_width=\"96dp\"\n" +
+                "    android:layout_height=\"96dp\"\n" +
+                "    android:contentDescription=\"\" />",
         ),
         EntreePalette(
             id = "rv",
@@ -255,10 +255,10 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             categorie = "Listes",
             dependanceRequise = DEPENDANCE_RECYCLERVIEW,
             extraitXml =
-                "<androidx.recyclerview.widget.RecyclerView\n" +
-                    "    android:id=\"@+id/recyclerView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<androidx.recyclerview.widget.RecyclerView\n" +
+                "    android:id=\"@+id/recyclerView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "pb",
@@ -266,11 +266,11 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "ProgressBar",
             categorie = "Autres",
             extraitXml =
-                "<ProgressBar\n" +
-                    "    android:id=\"@+id/progressBar\"\n" +
-                    "    style=\"?android:attr/progressBarStyleHorizontal\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\" />",
+            "<ProgressBar\n" +
+                "    android:id=\"@+id/progressBar\"\n" +
+                "    style=\"?android:attr/progressBarStyleHorizontal\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\" />",
         ),
         EntreePalette(
             id = "sk",
@@ -278,10 +278,10 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "SeekBar",
             categorie = "Autres",
             extraitXml =
-                "<SeekBar\n" +
-                    "    android:id=\"@+id/seekBar\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\" />",
+            "<SeekBar\n" +
+                "    android:id=\"@+id/seekBar\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\" />",
         ),
         EntreePalette(
             id = "dv",
@@ -289,10 +289,10 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "View",
             categorie = "Autres",
             extraitXml =
-                "<View\n" +
-                    "    android:id=\"@+id/separateur\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"1dp\" />",
+            "<View\n" +
+                "    android:id=\"@+id/separateur\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"1dp\" />",
         ),
         EntreePalette(
             id = "sp",
@@ -300,10 +300,10 @@ internal val ENTREES_MAQUETTE: List<CataloguePalette.EntreePalette> =
             classe = "Space",
             categorie = "Autres",
             extraitXml =
-                "<Space\n" +
-                    "    android:id=\"@+id/space\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"16dp\" />",
+            "<Space\n" +
+                "    android:id=\"@+id/space\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"16dp\" />",
         ),
     )
 
@@ -330,11 +330,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "AutoCompleteTextView",
             categorie = "Texte",
             extraitXml =
-                "<AutoCompleteTextView\n" +
-                    "    android:id=\"@+id/autoCompleteTextView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:hint=\"Recherche\" />",
+            "<AutoCompleteTextView\n" +
+                "    android:id=\"@+id/autoCompleteTextView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:hint=\"Recherche\" />",
         ),
         // Boutons — RadioButton, ToggleButton, MaterialButton, Chip.
         EntreePalette(
@@ -343,11 +343,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "RadioButton",
             categorie = "Boutons",
             extraitXml =
-                "<RadioButton\n" +
-                    "    android:id=\"@+id/radioButton\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"RadioButton\" />",
+            "<RadioButton\n" +
+                "    android:id=\"@+id/radioButton\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"RadioButton\" />",
         ),
         EntreePalette(
             id = "tg",
@@ -355,10 +355,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "ToggleButton",
             categorie = "Boutons",
             extraitXml =
-                "<ToggleButton\n" +
-                    "    android:id=\"@+id/toggleButton\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\" />",
+            "<ToggleButton\n" +
+                "    android:id=\"@+id/toggleButton\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\" />",
         ),
         EntreePalette(
             id = "mb",
@@ -367,11 +367,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             categorie = "Boutons",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.button.MaterialButton\n" +
-                    "    android:id=\"@+id/materialButton\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"MaterialButton\" />",
+            "<com.google.android.material.button.MaterialButton\n" +
+                "    android:id=\"@+id/materialButton\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"MaterialButton\" />",
         ),
         EntreePalette(
             id = "chip",
@@ -380,11 +380,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             categorie = "Boutons",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.chip.Chip\n" +
-                    "    android:id=\"@+id/chip\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:text=\"Chip\" />",
+            "<com.google.android.material.chip.Chip\n" +
+                "    android:id=\"@+id/chip\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:text=\"Chip\" />",
         ),
         // Conteneurs — ScrollView, HorizontalScrollView, NestedScrollView,
         // ConstraintLayout, GridLayout, TabLayout, ViewPager2.
@@ -394,11 +394,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "ScrollView",
             categorie = "Conteneurs",
             extraitXml =
-                "<ScrollView\n" +
-                    "    android:id=\"@+id/scrollView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<ScrollView\n" +
+                "    android:id=\"@+id/scrollView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "hsv",
@@ -406,11 +406,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "HorizontalScrollView",
             categorie = "Conteneurs",
             extraitXml =
-                "<HorizontalScrollView\n" +
-                    "    android:id=\"@+id/horizontalScrollView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<HorizontalScrollView\n" +
+                "    android:id=\"@+id/horizontalScrollView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "nsv",
@@ -420,11 +420,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             // androidx.core est transitive de TOUT projet AndroidX ou
             // Material : aucune coordonnée à signaler sur la tuile.
             extraitXml =
-                "<androidx.core.widget.NestedScrollView\n" +
-                    "    android:id=\"@+id/nestedScrollView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<androidx.core.widget.NestedScrollView\n" +
+                "    android:id=\"@+id/nestedScrollView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "ctl",
@@ -433,11 +433,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_CONSTRAINTLAYOUT,
             extraitXml =
-                "<androidx.constraintlayout.widget.ConstraintLayout\n" +
-                    "    android:id=\"@+id/constraintLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<androidx.constraintlayout.widget.ConstraintLayout\n" +
+                "    android:id=\"@+id/constraintLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "gl",
@@ -445,12 +445,12 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "GridLayout",
             categorie = "Conteneurs",
             extraitXml =
-                "<GridLayout\n" +
-                    "    android:id=\"@+id/gridLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\"\n" +
-                    "    android:columnCount=\"2\" />",
+            "<GridLayout\n" +
+                "    android:id=\"@+id/gridLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\"\n" +
+                "    android:columnCount=\"2\" />",
         ),
         EntreePalette(
             id = "tl",
@@ -459,10 +459,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.tabs.TabLayout\n" +
-                    "    android:id=\"@+id/tabLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\" />",
+            "<com.google.android.material.tabs.TabLayout\n" +
+                "    android:id=\"@+id/tabLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\" />",
         ),
         EntreePalette(
             id = "vp",
@@ -471,10 +471,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_VIEWPAGER2,
             extraitXml =
-                "<androidx.viewpager2.widget.ViewPager2\n" +
-                    "    android:id=\"@+id/viewPager2\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<androidx.viewpager2.widget.ViewPager2\n" +
+                "    android:id=\"@+id/viewPager2\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         // Médias — VideoView.
         EntreePalette(
@@ -483,10 +483,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "VideoView",
             categorie = "Médias",
             extraitXml =
-                "<VideoView\n" +
-                    "    android:id=\"@+id/videoView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<VideoView\n" +
+                "    android:id=\"@+id/videoView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         // Listes — Spinner, ListView, GridView.
         EntreePalette(
@@ -495,10 +495,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "Spinner",
             categorie = "Listes",
             extraitXml =
-                "<Spinner\n" +
-                    "    android:id=\"@+id/spinner\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\" />",
+            "<Spinner\n" +
+                "    android:id=\"@+id/spinner\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\" />",
         ),
         EntreePalette(
             id = "lv",
@@ -506,10 +506,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "ListView",
             categorie = "Listes",
             extraitXml =
-                "<ListView\n" +
-                    "    android:id=\"@+id/listView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<ListView\n" +
+                "    android:id=\"@+id/listView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "gv",
@@ -517,11 +517,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "GridView",
             categorie = "Listes",
             extraitXml =
-                "<GridView\n" +
-                    "    android:id=\"@+id/gridView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\"\n" +
-                    "    android:numColumns=\"auto_fit\" />",
+            "<GridView\n" +
+                "    android:id=\"@+id/gridView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\"\n" +
+                "    android:numColumns=\"auto_fit\" />",
         ),
         // Autres — WebView, RatingBar, SearchView.
         EntreePalette(
@@ -530,10 +530,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "WebView",
             categorie = "Autres",
             extraitXml =
-                "<WebView\n" +
-                    "    android:id=\"@+id/webView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<WebView\n" +
+                "    android:id=\"@+id/webView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "rat",
@@ -541,11 +541,11 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "RatingBar",
             categorie = "Autres",
             extraitXml =
-                "<RatingBar\n" +
-                    "    android:id=\"@+id/ratingBar\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:numStars=\"5\" />",
+            "<RatingBar\n" +
+                "    android:id=\"@+id/ratingBar\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:numStars=\"5\" />",
         ),
         EntreePalette(
             id = "srch",
@@ -553,10 +553,10 @@ internal val ENTREES_EXTENSION_V0166: List<CataloguePalette.EntreePalette> =
             classe = "SearchView",
             categorie = "Autres",
             extraitXml =
-                "<SearchView\n" +
-                    "    android:id=\"@+id/searchView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\" />",
+            "<SearchView\n" +
+                "    android:id=\"@+id/searchView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\" />",
         ),
     )
 
@@ -586,11 +586,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "MultiAutoCompleteTextView",
             categorie = "Texte",
             extraitXml =
-                "<MultiAutoCompleteTextView\n" +
-                    "    android:id=\"@+id/multiAutoCompleteTextView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:hint=\"Destinataires\" />",
+            "<MultiAutoCompleteTextView\n" +
+                "    android:id=\"@+id/multiAutoCompleteTextView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:hint=\"Destinataires\" />",
         ),
         EntreePalette(
             id = "ctv",
@@ -598,11 +598,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "CheckedTextView",
             categorie = "Texte",
             extraitXml =
-                "<CheckedTextView\n" +
-                    "    android:id=\"@+id/checkedTextView\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"CheckedTextView\" />",
+            "<CheckedTextView\n" +
+                "    android:id=\"@+id/checkedTextView\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"CheckedTextView\" />",
         ),
         EntreePalette(
             id = "tiet",
@@ -611,11 +611,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Texte",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.textfield.TextInputEditText\n" +
-                    "    android:id=\"@+id/textInputEditText\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:hint=\"Valeur\" />",
+            "<com.google.android.material.textfield.TextInputEditText\n" +
+                "    android:id=\"@+id/textInputEditText\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:hint=\"Valeur\" />",
         ),
         // Boutons — RadioGroup, MaterialSwitch, MaterialButtonToggleGroup,
         // ChipGroup.
@@ -625,11 +625,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "RadioGroup",
             categorie = "Boutons",
             extraitXml =
-                "<RadioGroup\n" +
-                    "    android:id=\"@+id/radioGroup\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:orientation=\"vertical\" />",
+            "<RadioGroup\n" +
+                "    android:id=\"@+id/radioGroup\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:orientation=\"vertical\" />",
         ),
         EntreePalette(
             id = "msw",
@@ -638,11 +638,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Boutons",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.materialswitch.MaterialSwitch\n" +
-                    "    android:id=\"@+id/materialSwitch\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:text=\"MaterialSwitch\" />",
+            "<com.google.android.material.materialswitch.MaterialSwitch\n" +
+                "    android:id=\"@+id/materialSwitch\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:text=\"MaterialSwitch\" />",
         ),
         EntreePalette(
             id = "mbtg",
@@ -651,11 +651,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Boutons",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.button.MaterialButtonToggleGroup\n" +
-                    "    android:id=\"@+id/materialButtonToggleGroup\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    app:singleSelection=\"true\" />",
+            "<com.google.android.material.button.MaterialButtonToggleGroup\n" +
+                "    android:id=\"@+id/materialButtonToggleGroup\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    app:singleSelection=\"true\" />",
         ),
         EntreePalette(
             id = "cg",
@@ -664,10 +664,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Boutons",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.chip.ChipGroup\n" +
-                    "    android:id=\"@+id/chipGroup\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\" />",
+            "<com.google.android.material.chip.ChipGroup\n" +
+                "    android:id=\"@+id/chipGroup\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\" />",
         ),
         // Conteneurs — TableLayout, TableRow, DrawerLayout,
         // SwipeRefreshLayout, CollapsingToolbarLayout, BottomAppBar,
@@ -678,12 +678,12 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "TableLayout",
             categorie = "Conteneurs",
             extraitXml =
-                "<TableLayout\n" +
-                    "    android:id=\"@+id/tableLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\"\n" +
-                    "    android:stretchColumns=\"1\" />",
+            "<TableLayout\n" +
+                "    android:id=\"@+id/tableLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\"\n" +
+                "    android:stretchColumns=\"1\" />",
         ),
         EntreePalette(
             id = "tr",
@@ -691,11 +691,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "TableRow",
             categorie = "Conteneurs",
             extraitXml =
-                "<TableRow\n" +
-                    "    android:id=\"@+id/tableRow\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"48dp\" />",
+            "<TableRow\n" +
+                "    android:id=\"@+id/tableRow\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"48dp\" />",
         ),
         EntreePalette(
             id = "dl",
@@ -704,10 +704,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_DRAWERLAYOUT,
             extraitXml =
-                "<androidx.drawerlayout.widget.DrawerLayout\n" +
-                    "    android:id=\"@+id/drawerLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<androidx.drawerlayout.widget.DrawerLayout\n" +
+                "    android:id=\"@+id/drawerLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "srl",
@@ -716,10 +716,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_SWIPEREFRESH,
             extraitXml =
-                "<androidx.swiperefreshlayout.widget.SwipeRefreshLayout\n" +
-                    "    android:id=\"@+id/swipeRefreshLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<androidx.swiperefreshlayout.widget.SwipeRefreshLayout\n" +
+                "    android:id=\"@+id/swipeRefreshLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "cctl",
@@ -728,11 +728,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.appbar.CollapsingToolbarLayout\n" +
-                    "    android:id=\"@+id/collapsingToolbarLayout\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:minHeight=\"96dp\" />",
+            "<com.google.android.material.appbar.CollapsingToolbarLayout\n" +
+                "    android:id=\"@+id/collapsingToolbarLayout\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:minHeight=\"96dp\" />",
         ),
         EntreePalette(
             id = "bab",
@@ -741,10 +741,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Autres",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.bottomappbar.BottomAppBar\n" +
-                    "    android:id=\"@+id/bottomAppBar\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"56dp\" />",
+            "<com.google.android.material.bottomappbar.BottomAppBar\n" +
+                "    android:id=\"@+id/bottomAppBar\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"56dp\" />",
         ),
         EntreePalette(
             id = "nv",
@@ -753,10 +753,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Conteneurs",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.navigation.NavigationView\n" +
-                    "    android:id=\"@+id/navigationView\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"match_parent\" />",
+            "<com.google.android.material.navigation.NavigationView\n" +
+                "    android:id=\"@+id/navigationView\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"match_parent\" />",
         ),
         EntreePalette(
             id = "bnv",
@@ -765,10 +765,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Autres",
             dependanceRequise = DEPENDANCE_MATERIAL,
             extraitXml =
-                "<com.google.android.material.bottomnavigation.BottomNavigationView\n" +
-                    "    android:id=\"@+id/bottomNavigationView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"56dp\" />",
+            "<com.google.android.material.bottomnavigation.BottomNavigationView\n" +
+                "    android:id=\"@+id/bottomNavigationView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"56dp\" />",
         ),
         EntreePalette(
             id = "flp",
@@ -776,10 +776,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "ViewFlipper",
             categorie = "Conteneurs",
             extraitXml =
-                "<ViewFlipper\n" +
-                    "    android:id=\"@+id/viewFlipper\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<ViewFlipper\n" +
+                "    android:id=\"@+id/viewFlipper\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         // Médias — TextureView.
         EntreePalette(
@@ -788,10 +788,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "TextureView",
             categorie = "Médias",
             extraitXml =
-                "<TextureView\n" +
-                    "    android:id=\"@+id/textureView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<TextureView\n" +
+                "    android:id=\"@+id/textureView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         // Listes — ExpandableListView.
         EntreePalette(
@@ -800,10 +800,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "ExpandableListView",
             categorie = "Listes",
             extraitXml =
-                "<ExpandableListView\n" +
-                    "    android:id=\"@+id/expandableListView\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<ExpandableListView\n" +
+                "    android:id=\"@+id/expandableListView\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         // Autres — Toolbar, Chronometer, TextClock, NumberPicker, Guideline.
         EntreePalette(
@@ -813,11 +813,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Autres",
             dependanceRequise = DEPENDANCE_APPCOMPAT,
             extraitXml =
-                "<androidx.appcompat.widget.Toolbar\n" +
-                    "    android:id=\"@+id/toolbar\"\n" +
-                    "    android:layout_width=\"match_parent\"\n" +
-                    "    android:layout_height=\"56dp\"\n" +
-                    "    app:title=\"Titre\" />",
+            "<androidx.appcompat.widget.Toolbar\n" +
+                "    android:id=\"@+id/toolbar\"\n" +
+                "    android:layout_width=\"match_parent\"\n" +
+                "    android:layout_height=\"56dp\"\n" +
+                "    app:title=\"Titre\" />",
         ),
         EntreePalette(
             id = "chr",
@@ -825,10 +825,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "Chronometer",
             categorie = "Autres",
             extraitXml =
-                "<Chronometer\n" +
-                    "    android:id=\"@+id/chronometer\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\" />",
+            "<Chronometer\n" +
+                "    android:id=\"@+id/chronometer\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\" />",
         ),
         EntreePalette(
             id = "tclk",
@@ -836,11 +836,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "TextClock",
             categorie = "Autres",
             extraitXml =
-                "<TextClock\n" +
-                    "    android:id=\"@+id/textClock\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"48dp\"\n" +
-                    "    android:format12Hour=\"hh:mm\" />",
+            "<TextClock\n" +
+                "    android:id=\"@+id/textClock\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"48dp\"\n" +
+                "    android:format12Hour=\"hh:mm\" />",
         ),
         EntreePalette(
             id = "npk",
@@ -848,10 +848,10 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             classe = "NumberPicker",
             categorie = "Autres",
             extraitXml =
-                "<NumberPicker\n" +
-                    "    android:id=\"@+id/numberPicker\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"160dp\" />",
+            "<NumberPicker\n" +
+                "    android:id=\"@+id/numberPicker\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"160dp\" />",
         ),
         EntreePalette(
             id = "gui",
@@ -860,11 +860,11 @@ internal val ENTREES_EXTENSION_V0170: List<CataloguePalette.EntreePalette> =
             categorie = "Autres",
             dependanceRequise = DEPENDANCE_CONSTRAINTLAYOUT,
             extraitXml =
-                "<androidx.constraintlayout.widget.Guideline\n" +
-                    "    android:id=\"@+id/guideline\"\n" +
-                    "    android:layout_width=\"wrap_content\"\n" +
-                    "    android:layout_height=\"wrap_content\"\n" +
-                    "    android:orientation=\"vertical\"\n" +
-                    "    app:layout_constraintGuide_begin=\"16dp\" />",
+            "<androidx.constraintlayout.widget.Guideline\n" +
+                "    android:id=\"@+id/guideline\"\n" +
+                "    android:layout_width=\"wrap_content\"\n" +
+                "    android:layout_height=\"wrap_content\"\n" +
+                "    android:orientation=\"vertical\"\n" +
+                "    app:layout_constraintGuide_begin=\"16dp\" />",
         ),
     )

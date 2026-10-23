@@ -54,228 +54,226 @@ import javax.inject.Inject
 // dispatchers) — les regrouper nuirait au câblage Hilt standard.
 @Suppress("LongParameterList")
 class LangagesViewModel
-    @Inject
-    constructor(
-        private val reglagesLsp: LspSettingsStore,
-        registrePortLsp: RegistrePortLsp,
-        private val tableCapacites: TableCapacitesLsp,
-        observateurSession: ObservateurSessionProjet,
-        private val outilchain: ToolchainLocator,
-        private val etatInstallation: InstallStateStore,
-        private val dispatcheurs: DispatcherProvider,
-    ) : ViewModel() {
-        private val registre = registrePortLsp
-        private val session = observateurSession
+@Inject
+constructor(
+    private val reglagesLsp: LspSettingsStore,
+    registrePortLsp: RegistrePortLsp,
+    private val tableCapacites: TableCapacitesLsp,
+    observateurSession: ObservateurSessionProjet,
+    private val outilchain: ToolchainLocator,
+    private val etatInstallation: InstallStateStore,
+    private val dispatcheurs: DispatcherProvider,
+) : ViewModel() {
+    private val registre = registrePortLsp
+    private val session = observateurSession
 
-        /** Effets uniques (retours d'actions — consommés par l'écran visible). */
-        private val effetsInternes = Channel<EffetEcransLsp>(Channel.UNLIMITED)
+    /** Effets uniques (retours d'actions — consommés par l'écran visible). */
+    private val effetsInternes = Channel<EffetEcransLsp>(Channel.UNLIMITED)
 
-        /** Reçu des effets par l'écran visible (patron EffetParametres). */
-        val effets: kotlinx.coroutines.flow.Flow<EffetEcransLsp> = effetsInternes.receiveAsFlow()
+    /** Reçu des effets par l'écran visible (patron EffetParametres). */
+    val effets: kotlinx.coroutines.flow.Flow<EffetEcransLsp> = effetsInternes.receiveAsFlow()
 
-        /**
-         * Sonde LECTURE SEULE de l'environnement (L4) : versions installées
-         * (JDK de l'installateur — phases vérifiées, même extraction que
-         * l'écran Environnement), plateforme android.jar, mode du moteur —
-         * jamais une saisie de chemin (règle 11). Tolérante : sonde en
-         * échec → `null` (l'écran reste honnête : valeurs absentes).
-         */
-        private val sondeEnvironnement: StateFlow<ModeleEnvironnement?> =
-            flow {
-                val versionJdk =
-                    withContext(dispatcheurs.io) {
-                        runCatching { versionJdkInstallee() }.getOrNull()
-                    }
-                val androidJar =
-                    withContext(dispatcheurs.io) {
-                        runCatching { outilchain.androidJar() }.getOrNull()
-                    }
-                emit(
-                    PresentationLsp.environnement(
-                        versionJdk = versionJdk,
-                        niveauApiPlateforme = androidJar?.let(::niveauApiDe),
-                        androidJarPresent = androidJar != null,
-                    ),
-                )
-            }.stateIn(viewModelScope, SharingStarted.Lazily, null)
-
-        /** État observable des cinq écrans. */
-        val etat: StateFlow<EtatEcransLsp> =
-            combine(
-                registre.port.flatMapLatest { port ->
-                    port?.moteurs ?: flowOf(MoteursLsp.INACTIFS)
-                },
-                session.etatSession,
-                reglagesLsp.observe(),
-                sondeEnvironnement,
-            ) { moteurs, etatSession, reglages, environnement ->
-                EtatEcransLsp(
-                    moteurs = moteurs,
-                    projetOuvert = etatSession != EtatSessionProjetVue.Aucune,
-                    reglages = reglages,
-                    environnement = environnement,
-                )
-            }.stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(ARRET),
-                EtatEcransLsp(),
+    /**
+     * Sonde LECTURE SEULE de l'environnement (L4) : versions installées
+     * (JDK de l'installateur — phases vérifiées, même extraction que
+     * l'écran Environnement), plateforme android.jar, mode du moteur —
+     * jamais une saisie de chemin (règle 11). Tolérante : sonde en
+     * échec → `null` (l'écran reste honnête : valeurs absentes).
+     */
+    private val sondeEnvironnement: StateFlow<ModeleEnvironnement?> =
+        flow {
+            val versionJdk =
+                withContext(dispatcheurs.io) {
+                    runCatching { versionJdkInstallee() }.getOrNull()
+                }
+            val androidJar =
+                withContext(dispatcheurs.io) {
+                    runCatching { outilchain.androidJar() }.getOrNull()
+                }
+            emit(
+                PresentationLsp.environnement(
+                    versionJdk = versionJdk,
+                    niveauApiPlateforme = androidJar?.let(::niveauApiDe),
+                    androidJarPresent = androidJar != null,
+                ),
             )
+        }.stateIn(viewModelScope, SharingStarted.Lazily, null)
 
-        /**
-         * Capacités ANNONCÉES d'un langage (table du frère via le port
-         * STATIQUE) — l'écran L2 en dérive ses rangées en ordre fixe.
-         */
-        fun capacitesAnnoncees(langage: LangageLsp): Set<CapaciteLsp> = tableCapacites.capacitesAnnoncees(langage)
+    /** État observable des cinq écrans. */
+    val etat: StateFlow<EtatEcransLsp> =
+        combine(
+            registre.port.flatMapLatest { port ->
+                port?.moteurs ?: flowOf(MoteursLsp.INACTIFS)
+            },
+            session.etatSession,
+            reglagesLsp.observe(),
+            sondeEnvironnement,
+        ) { moteurs, etatSession, reglages, environnement ->
+            EtatEcransLsp(
+                moteurs = moteurs,
+                projetOuvert = etatSession != EtatSessionProjetVue.Aucune,
+                reglages = reglages,
+                environnement = environnement,
+            )
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(ARRET),
+            EtatEcransLsp(),
+        )
 
-        /** Taille du cache d'index SUR DISQUE à l'instant du geste (L3/L5). */
-        fun tailleCacheOctets(): Long? = registre.port.value?.tailleCacheOctets()
+    /**
+     * Capacités ANNONCÉES d'un langage (table du frère via le port
+     * STATIQUE) — l'écran L2 en dérive ses rangées en ordre fixe.
+     */
+    fun capacitesAnnoncees(langage: LangageLsp): Set<CapaciteLsp> = tableCapacites.capacitesAnnoncees(langage)
 
-        /** Actions consommées une fois, effets émis vers l'écran visible. */
-        fun onAction(action: ActionReglagesLsp) {
-            when (action) {
-                is ActionReglagesLsp.ChangerBudget -> {
-                    viewModelScope.launch {
-                        reglagesLsp.remplacer(
-                            reglagesLspCourants().copy(budgetCacheOctets = action.octets),
-                        )
-                    }
+    /** Taille du cache d'index SUR DISQUE à l'instant du geste (L3/L5). */
+    fun tailleCacheOctets(): Long? = registre.port.value?.tailleCacheOctets()
+
+    /** Actions consommées une fois, effets émis vers l'écran visible. */
+    fun onAction(action: ActionReglagesLsp) {
+        when (action) {
+            is ActionReglagesLsp.ChangerBudget -> {
+                viewModelScope.launch {
+                    reglagesLsp.remplacer(
+                        reglagesLspCourants().copy(budgetCacheOctets = action.octets),
+                    )
                 }
+            }
 
-                is ActionReglagesLsp.BasculerSurveillance -> {
-                    val courant = reglagesLspCourants()
-                    val millisecondes =
-                        if (action.active) {
-                            courant.surveillanceFichiersMs.takeIf { it > 0 } ?: dernierePeriodeMs
-                        } else {
-                            SURVEILLANCE_COUPEE_MS
+            is ActionReglagesLsp.BasculerSurveillance -> {
+                val courant = reglagesLspCourants()
+                val millisecondes =
+                    if (action.active) {
+                        courant.surveillanceFichiersMs.takeIf { it > 0 } ?: dernierePeriodeMs
+                    } else {
+                        SURVEILLANCE_COUPEE_MS
+                    }
+                viewModelScope.launch {
+                    reglagesLsp.remplacer(courant.copy(surveillanceFichiersMs = millisecondes))
+                }
+            }
+
+            is ActionReglagesLsp.ChangerFrequence -> {
+                if (action.millisecondes > 0) {
+                    // Reprise future : la DERNIÈRE période choisie,
+                    // jamais un retour silencieux au défaut.
+                    dernierePeriodeMs = action.millisecondes
+                }
+                viewModelScope.launch {
+                    reglagesLsp.remplacer(
+                        reglagesLspCourants().copy(surveillanceFichiersMs = action.millisecondes),
+                    )
+                }
+            }
+
+            ActionReglagesLsp.Reindexer -> {
+                if (registre.port.value?.reindexer() != true) {
+                    effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
+                }
+            }
+
+            ActionReglagesLsp.ViderCache -> {
+                viewModelScope.launch(dispatcheurs.io) {
+                    when (val resultat = registre.port.value?.viderCache()) {
+                        null -> {
+                            effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
                         }
-                    viewModelScope.launch {
-                        reglagesLsp.remplacer(courant.copy(surveillanceFichiersMs = millisecondes))
-                    }
-                }
 
-                is ActionReglagesLsp.ChangerFrequence -> {
-                    if (action.millisecondes > 0) {
-                        // Reprise future : la DERNIÈRE période choisie,
-                        // jamais un retour silencieux au défaut.
-                        dernierePeriodeMs = action.millisecondes
-                    }
-                    viewModelScope.launch {
-                        reglagesLsp.remplacer(
-                            reglagesLspCourants().copy(surveillanceFichiersMs = action.millisecondes),
-                        )
-                    }
-                }
+                        is ResultatVidageCacheLsp.Videe -> {
+                            effetsInternes.trySend(EffetEcransLsp.CacheVide(resultat.octetsLiberes))
+                        }
 
-                ActionReglagesLsp.Reindexer -> {
-                    if (registre.port.value?.reindexer() != true) {
-                        effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
-                    }
-                }
-
-                ActionReglagesLsp.ViderCache -> {
-                    viewModelScope.launch(dispatcheurs.io) {
-                        when (val resultat = registre.port.value?.viderCache()) {
-                            null -> {
-                                effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
-                            }
-
-                            is ResultatVidageCacheLsp.Videe -> {
-                                effetsInternes.trySend(EffetEcransLsp.CacheVide(resultat.octetsLiberes))
-                            }
-
-                            is ResultatVidageCacheLsp.Refusee -> {
-                                effetsInternes.trySend(EffetEcransLsp.VidageRefuse)
-                            }
+                        is ResultatVidageCacheLsp.Refusee -> {
+                            effetsInternes.trySend(EffetEcransLsp.VidageRefuse)
                         }
                     }
                 }
-
-                ActionReglagesLsp.OuvrirDetailsIndexation -> {
-                    ouvrirDetailsIndexation()
-                }
-            }
-        }
-
-        /**
-         * Corps du diagnostic LSP copiable (L5) : résumé par moteur + erreurs
-         * ré-expurgées au DERNIER moment (LogRedactor — modèle « Copier le
-         * diagnostic » de l'Environnement, jamais de chemin en clair) ; le
-         * titre localisé est posé par l'écran.
-         */
-        suspend fun diagnostic(): String =
-            withContext(dispatcheurs.io) {
-                val moteurs = etat.value.moteurs
-                buildString {
-                    appendLine("Java : ${moteurs.java?.let { it.phase.name } ?: "INACTIF"}")
-                    appendLine("Kotlin : ${if (moteurs.kotlin) "actif" else "inactif"}")
-                    appendLine("XML : ${if (moteurs.xml) "actif" else "inactif"}")
-                    moteurs.java
-                        ?.messagesErreur
-                        .orEmpty()
-                        .take(ERREURS_DIAGNOSTIC)
-                        .forEach { erreur -> appendLine(LogRedactor.redact(erreur)) }
-                }
             }
 
-        /** Dernier réglage CONNU (sans I/S suspendante — défauts avant émission). */
-        private fun reglagesLspCourants(): LspSettings = etat.value.reglages
-
-        /**
-         * Lot LSP-4 (ADR 0117) : pose la demande du panneau « Détails de
-         * l'indexation » sur le PORT des moteurs — l'identifiant est lu
-         * AVANT (une session peut fermer entre les deux — la demande
-         * mourrait avec le port, l'effet ne naviguerait vers rien) ; sans
-         * port OU sans session, l'écran reste honnête (AucunMoteur).
-         */
-        private fun ouvrirDetailsIndexation() {
-            val identifiant =
-                session.etatSession.value.projet
-                    ?.value
-            val port = registre.port.value
-            if (identifiant == null || port == null) {
-                effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
-            } else {
-                port.demanderDetailsIndexation()
-                effetsInternes.trySend(EffetEcransLsp.DetailsIndexationDemandes(identifiant))
+            ActionReglagesLsp.OuvrirDetailsIndexation -> {
+                ouvrirDetailsIndexation()
             }
-        }
-
-        /** Dernière période NON NULLE choisie (reprise après une coupure). */
-        private var dernierePeriodeMs: Long = LspSettings.SURVEILLANCE_PAR_DEFAUT_MS
-
-        /**
-         * Version du JDK installé : mêmes phases VÉRIFIÉES que l'écran
-         * Environnement (E5) — jamais déduite d'un chemin.
-         */
-        private suspend fun versionJdkInstallee(): String? {
-            val persiste = etatInstallation.load() ?: return null
-            return persiste.phases.values
-                .filterIsInstance<PhaseState.Succeeded>()
-                .flatMap { it.versions.entries }
-                .associate { it.key to it.value }[CLE_JDK]
-        }
-
-        private companion object {
-            /** Clé de version du JDK dans l'état d'installation (E5). */
-            const val CLE_JDK = "jdk"
-
-            /** Surveillance coupée : période 0 (miroir de l'hôte v1.2.0). */
-            const val SURVEILLANCE_COUPEE_MS = 0L
-
-            /** Erreurs transportées dans le diagnostic copiable (spec L5). */
-            const val ERREURS_DIAGNOSTIC = 20
-
-            /** Arrêt de l'abonnement : l'écran revient, l'état repart du flux. */
-            const val ARRET = 5_000L
         }
     }
 
+    /**
+     * Corps du diagnostic LSP copiable (L5) : résumé par moteur + erreurs
+     * ré-expurgées au DERNIER moment (LogRedactor — modèle « Copier le
+     * diagnostic » de l'Environnement, jamais de chemin en clair) ; le
+     * titre localisé est posé par l'écran.
+     */
+    suspend fun diagnostic(): String = withContext(dispatcheurs.io) {
+        val moteurs = etat.value.moteurs
+        buildString {
+            appendLine("Java : ${moteurs.java?.let { it.phase.name } ?: "INACTIF"}")
+            appendLine("Kotlin : ${if (moteurs.kotlin) "actif" else "inactif"}")
+            appendLine("XML : ${if (moteurs.xml) "actif" else "inactif"}")
+            moteurs.java
+                ?.messagesErreur
+                .orEmpty()
+                .take(ERREURS_DIAGNOSTIC)
+                .forEach { erreur -> appendLine(LogRedactor.redact(erreur)) }
+        }
+    }
+
+    /** Dernier réglage CONNU (sans I/S suspendante — défauts avant émission). */
+    private fun reglagesLspCourants(): LspSettings = etat.value.reglages
+
+    /**
+     * Lot LSP-4 (ADR 0117) : pose la demande du panneau « Détails de
+     * l'indexation » sur le PORT des moteurs — l'identifiant est lu
+     * AVANT (une session peut fermer entre les deux — la demande
+     * mourrait avec le port, l'effet ne naviguerait vers rien) ; sans
+     * port OU sans session, l'écran reste honnête (AucunMoteur).
+     */
+    private fun ouvrirDetailsIndexation() {
+        val identifiant =
+            session.etatSession.value.projet
+                ?.value
+        val port = registre.port.value
+        if (identifiant == null || port == null) {
+            effetsInternes.trySend(EffetEcransLsp.AucunMoteur)
+        } else {
+            port.demanderDetailsIndexation()
+            effetsInternes.trySend(EffetEcransLsp.DetailsIndexationDemandes(identifiant))
+        }
+    }
+
+    /** Dernière période NON NULLE choisie (reprise après une coupure). */
+    private var dernierePeriodeMs: Long = LspSettings.SURVEILLANCE_PAR_DEFAUT_MS
+
+    /**
+     * Version du JDK installé : mêmes phases VÉRIFIÉES que l'écran
+     * Environnement (E5) — jamais déduite d'un chemin.
+     */
+    private suspend fun versionJdkInstallee(): String? {
+        val persiste = etatInstallation.load() ?: return null
+        return persiste.phases.values
+            .filterIsInstance<PhaseState.Succeeded>()
+            .flatMap { it.versions.entries }
+            .associate { it.key to it.value }[CLE_JDK]
+    }
+
+    private companion object {
+        /** Clé de version du JDK dans l'état d'installation (E5). */
+        const val CLE_JDK = "jdk"
+
+        /** Surveillance coupée : période 0 (miroir de l'hôte v1.2.0). */
+        const val SURVEILLANCE_COUPEE_MS = 0L
+
+        /** Erreurs transportées dans le diagnostic copiable (spec L5). */
+        const val ERREURS_DIAGNOSTIC = 20
+
+        /** Arrêt de l'abonnement : l'écran revient, l'état repart du flux. */
+        const val ARRET = 5_000L
+    }
+}
+
 /** Niveau d'API du dossier parent d'un android.jar (`platforms/android-34`). */
-private fun niveauApiDe(androidJar: File): Int? =
-    androidJar.parentFile
-        ?.name
-        ?.removePrefix(PREFIXE_PLATEFORME)
-        ?.toIntOrNull()
+private fun niveauApiDe(androidJar: File): Int? = androidJar.parentFile
+    ?.name
+    ?.removePrefix(PREFIXE_PLATEFORME)
+    ?.toIntOrNull()
 
 private const val PREFIXE_PLATEFORME = "android-"

@@ -61,10 +61,7 @@ class DiagnosticFragment : BaseFragment<FragmentDiagnosticBinding>() {
         attachToRoot: Boolean,
     ): FragmentDiagnosticBinding = FragmentDiagnosticBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Contenu edge-to-edge : la toolbar passe sous la barre d'état, les
@@ -117,17 +114,14 @@ class DiagnosticFragment : BaseFragment<FragmentDiagnosticBinding>() {
     }
 
     /** Trois pages : Journaux, Plantages et Git (v0.90.1). */
-    private class PagesDiagnosticAdapter(
-        hote: Fragment,
-    ) : FragmentStateAdapter(hote) {
+    private class PagesDiagnosticAdapter(hote: Fragment) : FragmentStateAdapter(hote) {
         override fun getItemCount(): Int = NOMBRE_ONGLETS
 
-        override fun createFragment(position: Int): Fragment =
-            when (position) {
-                POSITION_JOURNAUX -> JournalFragment()
-                POSITION_PLANTAGES -> PlantagesFragment()
-                else -> DiagnosticGitFragment()
-            }
+        override fun createFragment(position: Int): Fragment = when (position) {
+            POSITION_JOURNAUX -> JournalFragment()
+            POSITION_PLANTAGES -> PlantagesFragment()
+            else -> DiagnosticGitFragment()
+        }
     }
 
     private companion object {

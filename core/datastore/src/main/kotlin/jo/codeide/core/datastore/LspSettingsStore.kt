@@ -36,9 +36,7 @@ import java.io.IOException
  *
  * @param dataStore stockage sous-jacent (fichier dédié `lsp_settings`).
  */
-public class LspSettingsStore(
-    private val dataStore: DataStore<Preferences>,
-) {
+public class LspSettingsStore(private val dataStore: DataStore<Preferences>) {
     /** Clé du plafond de budget (absente = Auto). */
     private val cleBudget = longPreferencesKey("lsp_budget_cache_octets")
 
@@ -49,23 +47,21 @@ public class LspSettingsStore(
      * Observe les réglages LSP — les défauts tant que rien n'est écrit ;
      * le flot ne s'interrompt jamais sur une erreur de lecture.
      */
-    public fun observe(): Flow<LspSettings> =
-        dataStore.data
-            .catch { erreur ->
-                if (erreur is IOException) emit(emptyPreferences()) else throw erreur
-            }.map { preferences -> preferences.toLspSettings() }
+    public fun observe(): Flow<LspSettings> = dataStore.data
+        .catch { erreur ->
+            if (erreur is IOException) emit(emptyPreferences()) else throw erreur
+        }.map { preferences -> preferences.toLspSettings() }
 
     /**
      * Lit les réglages de manière ponctuelle.
      *
      * @return les réglages courants, ou l'échec de lecture typé.
      */
-    public suspend fun courant(): AppResult<LspSettings> =
-        try {
-            AppResult.Success(dataStore.data.first().toLspSettings())
-        } catch (erreur: IOException) {
-            AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
-        }
+    public suspend fun courant(): AppResult<LspSettings> = try {
+        AppResult.Success(dataStore.data.first().toLspSettings())
+    } catch (erreur: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
+    }
 
     /**
      * Remplace les réglages (aller-retour lire-transformer-réécrire
@@ -73,21 +69,20 @@ public class LspSettingsStore(
      *
      * @return le succès unitaire, ou l'échec d'écriture typé.
      */
-    public suspend fun remplacer(reglages: LspSettings): AppResult<Unit> =
-        try {
-            dataStore.edit { preferences ->
-                val budget = reglages.budgetCacheOctets
-                if (budget == null) {
-                    preferences.remove(cleBudget)
-                } else {
-                    preferences[cleBudget] = budget
-                }
-                preferences[cleSurveillance] = reglages.surveillanceFichiersMs
+    public suspend fun remplacer(reglages: LspSettings): AppResult<Unit> = try {
+        dataStore.edit { preferences ->
+            val budget = reglages.budgetCacheOctets
+            if (budget == null) {
+                preferences.remove(cleBudget)
+            } else {
+                preferences[cleBudget] = budget
             }
-            AppResult.Success(Unit)
-        } catch (erreur: IOException) {
-            AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
+            preferences[cleSurveillance] = reglages.surveillanceFichiersMs
         }
+        AppResult.Success(Unit)
+    } catch (erreur: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, erreur.message ?: ""))
+    }
 
     /** Projection tolérante : chaque champ illisible retombe sur son défaut. */
     private fun Preferences.toLspSettings(): LspSettings {

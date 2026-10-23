@@ -50,16 +50,10 @@ public class HistoriqueFileSystem(
     override suspend fun list(directoryUri: String): AppResult<List<jo.codeide.core.domain.FileStat>> =
         delegue.list(directoryUri)
 
-    override suspend fun createDirectory(
-        parentDirectoryUri: String,
-        name: String,
-    ): AppResult<String> = delegue.createDirectory(parentDirectoryUri, name)
+    override suspend fun createDirectory(parentDirectoryUri: String, name: String): AppResult<String> =
+        delegue.createDirectory(parentDirectoryUri, name)
 
-    override suspend fun createFile(
-        parentDirectoryUri: String,
-        name: String,
-        mimeType: String,
-    ): AppResult<String> {
+    override suspend fun createFile(parentDirectoryUri: String, name: String, mimeType: String): AppResult<String> {
         val resultat = delegue.createFile(parentDirectoryUri, name, mimeType)
         val uriCreee = resultat.getOrNull()
         if (uriCreee != null) {
@@ -71,10 +65,7 @@ public class HistoriqueFileSystem(
         return resultat
     }
 
-    override suspend fun writeText(
-        documentUri: String,
-        text: String,
-    ): AppResult<Unit> {
+    override suspend fun writeText(documentUri: String, text: String): AppResult<Unit> {
         val chemin = cheminRelatifSiCapture(documentUri)
         val avant = chemin?.let { lireContenuAvant(documentUri) }
         val resultat = delegue.writeText(documentUri, text)
@@ -90,10 +81,7 @@ public class HistoriqueFileSystem(
         return resultat
     }
 
-    override suspend fun writeBytes(
-        documentUri: String,
-        bytes: ByteArray,
-    ): AppResult<Unit> {
+    override suspend fun writeBytes(documentUri: String, bytes: ByteArray): AppResult<Unit> {
         val chemin = cheminRelatifSiCapture(documentUri)
         val resultat = delegue.writeBytes(documentUri, bytes)
         if (resultat is AppResult.Success && chemin != null) {
@@ -111,10 +99,7 @@ public class HistoriqueFileSystem(
 
     override suspend fun readBytes(documentUri: String): AppResult<ByteArray> = delegue.readBytes(documentUri)
 
-    override suspend fun rename(
-        documentUri: String,
-        nouveauNom: String,
-    ): AppResult<String> {
+    override suspend fun rename(documentUri: String, nouveauNom: String): AppResult<String> {
         val ancienNom =
             cheminRelatifSiCapture(documentUri)
                 ?.let { delegue.stat(documentUri).getOrNull()?.name }
@@ -182,10 +167,9 @@ public class HistoriqueFileSystem(
     }
 
     /** Contenu précédent du document (lecture AVANT l'écriture). */
-    private suspend fun lireContenuAvant(documentUri: String): String? =
-        if (delegue.exists(documentUri)) {
-            delegue.readText(documentUri).getOrNull()
-        } else {
-            null
-        }
+    private suspend fun lireContenuAvant(documentUri: String): String? = if (delegue.exists(documentUri)) {
+        delegue.readText(documentUri).getOrNull()
+    } else {
+        null
+    }
 }

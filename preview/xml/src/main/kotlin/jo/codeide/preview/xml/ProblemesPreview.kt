@@ -160,10 +160,7 @@ public object ProblemesPreview {
      * ou négative : la conversion est impossible, la règle SE TAIT
      * (jamais de faux positif).
      */
-    public fun cibleTactile(
-        vue: InfoVueRendu,
-        densiteDpi: Int,
-    ): Boolean {
+    public fun cibleTactile(vue: InfoVueRendu, densiteDpi: Int): Boolean {
         // Non cliquable, ou conversion impossible (densité inconnue) :
         // la règle SE TAIT — jamais de faux positif.
         val evaluable = vue.cliquable && densiteDpi > 0
@@ -177,10 +174,7 @@ public object ProblemesPreview {
      * ordre de parcours = ordre des vues (pré-ordre), une vue peut
      * porter PLUSIEURS problèmes (la pastille de l'UI compte).
      */
-    public fun evaluer(
-        vues: List<InfoVueRendu>,
-        densiteDpi: Int,
-    ): List<ProblemeApercu> {
+    public fun evaluer(vues: List<InfoVueRendu>, densiteDpi: Int): List<ProblemeApercu> {
         if (vues.isEmpty()) return emptyList()
         val problemes = mutableListOf<ProblemeApercu>()
         for (indice in vues.indices) {

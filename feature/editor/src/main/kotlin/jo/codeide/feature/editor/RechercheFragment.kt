@@ -25,20 +25,13 @@ class RechercheFragment : Fragment() {
     private val liaison: FragmentRechercheBinding
         get() = checkNotNull(liaisonAmorce) { "Binding détruit" }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaisonAmorce = FragmentRechercheBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
     @Suppress("LongMethod")
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         liaison.boutonEffacer.setOnClickListener { viewModel.effacer() }
         liaison.basculeCasse.setOnClickListener { viewModel.basculerCasse() }
@@ -51,19 +44,9 @@ class RechercheFragment : Fragment() {
         }
         liaison.champRemplacement.addTextChangedListener(
             object : android.text.TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
                 override fun afterTextChanged(s: android.text.Editable?) {
                     viewModel.texteRemplacement(s?.toString() ?: "")
@@ -82,19 +65,9 @@ class RechercheFragment : Fragment() {
         }
         liaison.champRecherche.addTextChangedListener(
             object : android.text.TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
                 override fun afterTextChanged(s: android.text.Editable?) {
                     viewModel.requete(s?.toString() ?: "")

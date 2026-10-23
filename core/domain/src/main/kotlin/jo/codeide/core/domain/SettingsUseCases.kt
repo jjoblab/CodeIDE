@@ -16,13 +16,11 @@ import javax.inject.Inject
  * les consommateurs hors UI (journalisation).
  */
 public class ObserveSettingsUseCase
-    @Inject
-    constructor(
-        private val repository: SettingsRepository,
-    ) {
-        /** @return le flot des paramètres applicatifs courants. */
-        public operator fun invoke(): Flow<AppSettings> = repository.observeSettings()
-    }
+@Inject
+constructor(private val repository: SettingsRepository) {
+    /** @return le flot des paramètres applicatifs courants. */
+    public operator fun invoke(): Flow<AppSettings> = repository.observeSettings()
+}
 
 /**
  * Cas d'usage « mettre à jour les paramètres » (étape 4).
@@ -35,17 +33,15 @@ public class ObserveSettingsUseCase
  * la transformation elle-même doit être pure et rapide.
  */
 public class UpdateSettingsUseCase
-    @Inject
-    constructor(
-        private val repository: SettingsRepository,
-    ) {
-        /**
-         * @param update transformation atomique de l'état complet.
-         * @return le succès, ou l'échec d'écriture typé.
-         */
-        public suspend operator fun invoke(update: (AppSettings) -> AppSettings): AppResult<Unit> =
-            repository.updateSettings(update)
-    }
+@Inject
+constructor(private val repository: SettingsRepository) {
+    /**
+     * @param update transformation atomique de l'état complet.
+     * @return le succès, ou l'échec d'écriture typé.
+     */
+    public suspend operator fun invoke(update: (AppSettings) -> AppSettings): AppResult<Unit> =
+        repository.updateSettings(update)
+}
 
 /**
  * Cas d'usage « définir le dossier de travail » (étape 4).
@@ -58,15 +54,12 @@ public class UpdateSettingsUseCase
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
 public class SetWorkspaceUseCase
-    @Inject
-    constructor(
-        private val repository: SettingsRepository,
-    ) {
-        /**
-         * @param location emplacement validé, ou `null` pour effacer le
-         * réglage.
-         * @return le succès, ou l'échec d'écriture typé.
-         */
-        public suspend operator fun invoke(location: StorageLocation?): AppResult<Unit> =
-            repository.setWorkspace(location)
-    }
+@Inject
+constructor(private val repository: SettingsRepository) {
+    /**
+     * @param location emplacement validé, ou `null` pour effacer le
+     * réglage.
+     * @return le succès, ou l'échec d'écriture typé.
+     */
+    public suspend operator fun invoke(location: StorageLocation?): AppResult<Unit> = repository.setWorkspace(location)
+}

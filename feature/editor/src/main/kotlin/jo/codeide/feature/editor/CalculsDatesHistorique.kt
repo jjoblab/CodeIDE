@@ -27,11 +27,7 @@ object CalculsDatesHistorique {
      * - la veille calendaire → [MomentHistorique.Hier] (heure pré-formatée) ;
      * - plus ancien → [MomentHistorique.Ancien] (date laissée à l'appelant).
      */
-    fun moment(
-        horodatageMs: Long,
-        maintenantMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
-    ): MomentHistorique {
+    fun moment(horodatageMs: Long, maintenantMs: Long, zone: ZoneId = ZoneId.systemDefault()): MomentHistorique {
         val minutes = (maintenantMs - horodatageMs) / MILLIS_PAR_MINUTE
         // Le JOUR CALENDAIRE prime sur la durée : « hier 23:30 » à
         // 23 h d'écart, pas « il y a 23 h » (maquette § 5).
@@ -48,11 +44,7 @@ object CalculsDatesHistorique {
      * Période de regroupement (en-têtes de la liste, maquette) : le jour
      * calendaire d'aujourd'hui, celui d'hier, sinon « plus ancien ».
      */
-    fun periode(
-        horodatageMs: Long,
-        maintenantMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
-    ): PeriodeHistorique {
+    fun periode(horodatageMs: Long, maintenantMs: Long, zone: ZoneId = ZoneId.systemDefault()): PeriodeHistorique {
         val ecart = jour(maintenantMs, zone) - jour(horodatageMs, zone)
         return when {
             ecart <= 0L -> PeriodeHistorique.AUJOURDHUI
@@ -62,22 +54,16 @@ object CalculsDatesHistorique {
     }
 
     /** Heure « HH:mm » d'un horodatage (invariable). */
-    fun heure(
-        horodatageMs: Long,
-        zone: ZoneId = ZoneId.systemDefault(),
-    ): String = HEURE.format(dateTime(horodatageMs, zone))
+    fun heure(horodatageMs: Long, zone: ZoneId = ZoneId.systemDefault()): String =
+        HEURE.format(dateTime(horodatageMs, zone))
 
     /** Jour calendaire en jours écoulés depuis l'époque (comparaison) —
      *  via LocalDateTime (API 26) : LocalDate.ofInstant exigerait l'API 34. */
-    private fun jour(
-        horodatageMs: Long,
-        zone: ZoneId,
-    ): Long = LocalDateTime.ofInstant(Instant.ofEpochMilli(horodatageMs), zone).toLocalDate().toEpochDay()
+    private fun jour(horodatageMs: Long, zone: ZoneId): Long =
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(horodatageMs), zone).toLocalDate().toEpochDay()
 
-    private fun dateTime(
-        horodatageMs: Long,
-        zone: ZoneId,
-    ): LocalDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(horodatageMs), zone)
+    private fun dateTime(horodatageMs: Long, zone: ZoneId): LocalDateTime =
+        LocalDateTime.ofInstant(Instant.ofEpochMilli(horodatageMs), zone)
 
     /** Millisecondes dans une minute. */
     private const val MILLIS_PAR_MINUTE = 60_000L
@@ -98,20 +84,13 @@ enum class UniteMoment {
 /** Moment d'affichage d'une révision, décidé par [CalculsDatesHistorique]. */
 sealed interface MomentHistorique {
     /** « il y a N min » / « il y a N h ». */
-    data class IlYA(
-        val nombre: Long,
-        val unite: UniteMoment,
-    ) : MomentHistorique
+    data class IlYA(val nombre: Long, val unite: UniteMoment) : MomentHistorique
 
     /** « hier 14:02 » (l'heure est pré-formatée). */
-    data class Hier(
-        val heureMinute: String,
-    ) : MomentHistorique
+    data class Hier(val heureMinute: String) : MomentHistorique
 
     /** Plus ancien : l'horodatage brut, formaté par l'appelant (locale). */
-    data class Ancien(
-        val horodatageMs: Long,
-    ) : MomentHistorique
+    data class Ancien(val horodatageMs: Long) : MomentHistorique
 }
 
 /** En-tête de regroupement de la liste des révisions. */

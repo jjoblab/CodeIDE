@@ -20,13 +20,11 @@ import javax.inject.Inject
  * collecte se fait depuis le cycle de vie de l'UI (`repeatOnLifecycle`).
  */
 public class ObserveProjectsUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-    ) {
-        /** @return le flot des projets enregistrés, ordonnés pour l'accueil. */
-        public operator fun invoke(): Flow<List<Project>> = repository.observeProjects()
-    }
+@Inject
+constructor(private val repository: ProjectRepository) {
+    /** @return le flot des projets enregistrés, ordonnés pour l'accueil. */
+    public operator fun invoke(): Flow<List<Project>> = repository.observeProjects()
+}
 
 /**
  * Cas d'usage « ajouter un projet au registre » (section 12.4 : appelé
@@ -40,25 +38,23 @@ public class ObserveProjectsUseCase
  * commitée en base.
  */
 public class AddProjectUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-    ) {
-        /**
-         * @param name libellé validé (section 12.3).
-         * @param description description libre, éventuellement vide.
-         * @param location emplacement SAF du dossier créé sur disque.
-         * @param templateId modèle générateur.
-         * @return le projet enregistré, ou l'échec typé (`AlreadyExists`
-         * si le dossier est déjà référencé).
-         */
-        public suspend operator fun invoke(
-            name: String,
-            description: String,
-            location: StorageLocation,
-            templateId: TemplateId,
-        ): AppResult<Project> = repository.addProject(name, description, location, templateId)
-    }
+@Inject
+constructor(private val repository: ProjectRepository) {
+    /**
+     * @param name libellé validé (section 12.3).
+     * @param description description libre, éventuellement vide.
+     * @param location emplacement SAF du dossier créé sur disque.
+     * @param templateId modèle générateur.
+     * @return le projet enregistré, ou l'échec typé (`AlreadyExists`
+     * si le dossier est déjà référencé).
+     */
+    public suspend operator fun invoke(
+        name: String,
+        description: String,
+        location: StorageLocation,
+        templateId: TemplateId,
+    ): AppResult<Project> = repository.addProject(name, description, location, templateId)
+}
 
 /**
  * Cas d'usage « retirer un projet du registre » (étape 4, enrichi à
@@ -78,36 +74,36 @@ public class AddProjectUseCase
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
 public class RemoveProjectUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-        private val parametres: SettingsRepository,
-        private val fichiers: FileSystem,
-    ) {
-        /**
-         * @param id identifiant du projet à retirer.
-         * @return le succès (idempotent : retirer un projet absent réussit),
-         * ou l'échec de stockage typé.
-         */
-        public suspend operator fun invoke(id: ProjectId): AppResult<Unit> {
-            val projet =
-                repository.getProject(id).getOrNull()
-                    // Idempotent par contrat : un projet absent n'a plus de
-                    // permission à libérer, le retrait réussit.
-                    ?: return AppResult.Success(Unit)
+@Inject
+constructor(
+    private val repository: ProjectRepository,
+    private val parametres: SettingsRepository,
+    private val fichiers: FileSystem,
+) {
+    /**
+     * @param id identifiant du projet à retirer.
+     * @return le succès (idempotent : retirer un projet absent réussit),
+     * ou l'échec de stockage typé.
+     */
+    public suspend operator fun invoke(id: ProjectId): AppResult<Unit> {
+        val projet =
+            repository.getProject(id).getOrNull()
+                // Idempotent par contrat : un projet absent n'a plus de
+                // permission à libérer, le retrait réussit.
+                ?: return AppResult.Success(Unit)
 
-            return when (val retrait = repository.removeProject(id)) {
-                is AppResult.Failure -> {
-                    retrait
-                }
+        return when (val retrait = repository.removeProject(id)) {
+            is AppResult.Failure -> {
+                retrait
+            }
 
-                is AppResult.Success -> {
-                    libererPermissionSiInutilisee(repository, parametres, fichiers, projet.location.grantUri)
-                    retrait
-                }
+            is AppResult.Success -> {
+                libererPermissionSiInutilisee(repository, parametres, fichiers, projet.location.grantUri)
+                retrait
             }
         }
     }
+}
 
 /**
  * Cas d'usage « épingler / désépingler un projet » (étape 4).
@@ -115,20 +111,16 @@ public class RemoveProjectUseCase
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
 public class SetProjectPinnedUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-    ) {
-        /**
-         * @param id identifiant du projet.
-         * @param pinned `true` pour épingler en tête d'accueil.
-         * @return le succès, ou `NotFound`.
-         */
-        public suspend operator fun invoke(
-            id: ProjectId,
-            pinned: Boolean,
-        ): AppResult<Unit> = repository.setPinned(id, pinned)
-    }
+@Inject
+constructor(private val repository: ProjectRepository) {
+    /**
+     * @param id identifiant du projet.
+     * @param pinned `true` pour épingler en tête d'accueil.
+     * @return le succès, ou `NotFound`.
+     */
+    public suspend operator fun invoke(id: ProjectId, pinned: Boolean): AppResult<Unit> =
+        repository.setPinned(id, pinned)
+}
 
 /**
  * Cas d'usage « renommer un projet » (étape 4) — libellé en base
@@ -137,20 +129,16 @@ public class SetProjectPinnedUseCase
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
 public class RenameProjectUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-    ) {
-        /**
-         * @param id identifiant du projet.
-         * @param newName nouveau libellé (trimé par le dépôt).
-         * @return le succès, ou `Validation` / `NotFound`.
-         */
-        public suspend operator fun invoke(
-            id: ProjectId,
-            newName: String,
-        ): AppResult<Unit> = repository.renameProject(id, newName)
-    }
+@Inject
+constructor(private val repository: ProjectRepository) {
+    /**
+     * @param id identifiant du projet.
+     * @param newName nouveau libellé (trimé par le dépôt).
+     * @return le succès, ou `Validation` / `NotFound`.
+     */
+    public suspend operator fun invoke(id: ProjectId, newName: String): AppResult<Unit> =
+        repository.renameProject(id, newName)
+}
 
 /**
  * Cas d'usage « marquer un projet comme ouvert » (étape 4).
@@ -160,17 +148,13 @@ public class RenameProjectUseCase
  * d'ouverture de dossier.
  */
 public class MarkProjectOpenedUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-    ) {
-        /**
-         * @param id identifiant du projet.
-         * @param atMillis horodatage de l'ouverture (epoch millis).
-         * @return le succès, ou `NotFound`.
-         */
-        public suspend operator fun invoke(
-            id: ProjectId,
-            atMillis: Long,
-        ): AppResult<Unit> = repository.markOpened(id, atMillis)
-    }
+@Inject
+constructor(private val repository: ProjectRepository) {
+    /**
+     * @param id identifiant du projet.
+     * @param atMillis horodatage de l'ouverture (epoch millis).
+     * @return le succès, ou `NotFound`.
+     */
+    public suspend operator fun invoke(id: ProjectId, atMillis: Long): AppResult<Unit> =
+        repository.markOpened(id, atMillis)
+}

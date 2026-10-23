@@ -36,53 +36,52 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class SettingsRepositoryImpl
-    @Inject
-    constructor(
-        private val source: SettingsDataStore,
-        private val logger: AppLogger,
-        @param:ApplicationContext private val contexte: Context,
-    ) : SettingsRepository {
-        override fun observeSettings(): Flow<AppSettings> =
+@Inject
+constructor(
+    private val source: SettingsDataStore,
+    private val logger: AppLogger,
+    @param:ApplicationContext private val contexte: Context,
+) : SettingsRepository {
+    override fun observeSettings(): Flow<AppSettings> = source
+        .observe()
+        .onEach { reglages ->
+            // Convergence du miroir à chaque émission (idempotent,
+            // coût mémoire négligeable) — couvre la montée de
+            // version depuis v0.33.x et tout écriture DataStore
+            // extérieure au dépôt.
+            MiroirApparence.ecrire(contexte, reglages)
+        }
+
+    override suspend fun getSettings(): AppResult<AppSettings> = source.current()
+
+    override suspend fun updateSettings(update: (AppSettings) -> AppSettings): AppResult<Unit> {
+        val resultat = source.update(update)
+        if (resultat is AppResult.Success) {
+            // Miroir à jour immédiatement après la persistance — le
+            // prochain démarrage de processus (principal ou :crash)
+            // lira la valeur fraîche, sans coroutine au démarrage.
             source
-                .observe()
-                .onEach { reglages ->
-                    // Convergence du miroir à chaque émission (idempotent,
-                    // coût mémoire négligeable) — couvre la montée de
-                    // version depuis v0.33.x et tout écriture DataStore
-                    // extérieure au dépôt.
-                    MiroirApparence.ecrire(contexte, reglages)
-                }
-
-        override suspend fun getSettings(): AppResult<AppSettings> = source.current()
-
-        override suspend fun updateSettings(update: (AppSettings) -> AppSettings): AppResult<Unit> {
-            val resultat = source.update(update)
-            if (resultat is AppResult.Success) {
-                // Miroir à jour immédiatement après la persistance — le
-                // prochain démarrage de processus (principal ou :crash)
-                // lira la valeur fraîche, sans coroutine au démarrage.
-                source
-                    .current()
-                    .onSuccess { reglages -> MiroirApparence.ecrire(contexte, reglages) }
-                logger.d(TAG) { "Paramètres mis à jour." }
-            } else {
-                logger.w(TAG, null) { "Échec de mise à jour des paramètres." }
-            }
-            return resultat
+                .current()
+                .onSuccess { reglages -> MiroirApparence.ecrire(contexte, reglages) }
+            logger.d(TAG) { "Paramètres mis à jour." }
+        } else {
+            logger.w(TAG, null) { "Échec de mise à jour des paramètres." }
         }
-
-        override suspend fun setWorkspace(location: StorageLocation?): AppResult<Unit> {
-            val resultat = source.setWorkspace(location)
-            if (resultat is AppResult.Success) {
-                // Aucun libellé ni URI dans le journal (règle 15) : défini ou effacé.
-                logger.d(TAG) {
-                    if (location == null) "Dossier de travail effacé." else "Dossier de travail défini."
-                }
-            }
-            return resultat
-        }
-
-        private companion object {
-            private const val TAG = "Settings"
-        }
+        return resultat
     }
+
+    override suspend fun setWorkspace(location: StorageLocation?): AppResult<Unit> {
+        val resultat = source.setWorkspace(location)
+        if (resultat is AppResult.Success) {
+            // Aucun libellé ni URI dans le journal (règle 15) : défini ou effacé.
+            logger.d(TAG) {
+                if (location == null) "Dossier de travail effacé." else "Dossier de travail défini."
+            }
+        }
+        return resultat
+    }
+
+    private companion object {
+        private const val TAG = "Settings"
+    }
+}

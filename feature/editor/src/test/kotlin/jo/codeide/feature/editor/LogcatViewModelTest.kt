@@ -53,300 +53,288 @@ class LogcatViewModelTest {
         message: String,
         niveau: NiveauJournal = NiveauJournal.INFO,
         etiquette: String = "MainActivity",
-    ): LigneJournal =
-        LigneJournal(
-            horodatageMs = 1_000L,
-            pid = 4321,
-            tid = 4321,
-            niveau = niveau,
-            etiquette = etiquette,
-            message = message,
+    ): LigneJournal = LigneJournal(
+        horodatageMs = 1_000L,
+        pid = 4321,
+        tid = 4321,
+        niveau = niveau,
+        etiquette = etiquette,
+        message = message,
+    )
+
+    @Test
+    fun `une session vivante est autoselectionnee et ses lignes s affichent`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+
+        assertEquals("com.exemple.app/4321", viewModel.etat.value.idSelection)
+        assertTrue(
+            viewModel.etat.value.lignes
+                .isEmpty(),
         )
 
-    @Test
-    fun `une session vivante est autoselectionnee et ses lignes s affichent`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
+        pont.pousser("com.exemple.app", 4321, listOf(ligne("onCreate"), ligne("onStart")))
+        avancer()
 
-            assertEquals("com.exemple.app/4321", viewModel.etat.value.idSelection)
-            assertTrue(
-                viewModel.etat.value.lignes
-                    .isEmpty(),
-            )
-
-            pont.pousser("com.exemple.app", 4321, listOf(ligne("onCreate"), ligne("onStart")))
-            avancer()
-
-            assertEquals(
-                listOf("onCreate", "onStart"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
-            // Numéros strictement croissants (identité DiffUtil).
-            assertTrue(
-                viewModel.etat.value.lignes
-                    .zipWithNext()
-                    .all { (a, b) -> a.numero < b.numero },
-            )
-            assertEquals(
-                2,
-                viewModel.etat.value.sessions[0]
-                    .nombreLignes,
-            )
-        }
+        assertEquals(
+            listOf("onCreate", "onStart"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+        // Numéros strictement croissants (identité DiffUtil).
+        assertTrue(
+            viewModel.etat.value.lignes
+                .zipWithNext()
+                .all { (a, b) -> a.numero < b.numero },
+        )
+        assertEquals(
+            2,
+            viewModel.etat.value.sessions[0]
+                .nombreLignes,
+        )
+    }
 
     @Test
-    fun `le choix de l utilisateur prime sur l autoselection`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-            pont.terminer("com.exemple.app", 4321, "le processus s'est arrêté")
-            avancer()
+    fun `le choix de l utilisateur prime sur l autoselection`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+        pont.terminer("com.exemple.app", 4321, "le processus s'est arrêté")
+        avancer()
 
-            // L'utilisateur consulte la session TERMINÉE du registre.
-            viewModel.selectionnerSession("com.exemple.app/4321")
-            assertEquals("com.exemple.app/4321", viewModel.etat.value.idSelection)
+        // L'utilisateur consulte la session TERMINÉE du registre.
+        viewModel.selectionnerSession("com.exemple.app/4321")
+        assertEquals("com.exemple.app/4321", viewModel.etat.value.idSelection)
 
-            // Une vivante NOUVELLE naît : le choix de l'utilisateur reste.
-            pont.ouvrir("com.exemple.app", 5000)
-            pont.pousser("com.exemple.app", 5000, listOf(ligne("autre processus")))
-            avancer()
+        // Une vivante NOUVELLE naît : le choix de l'utilisateur reste.
+        pont.ouvrir("com.exemple.app", 5000)
+        pont.pousser("com.exemple.app", 5000, listOf(ligne("autre processus")))
+        avancer()
 
-            assertEquals("com.exemple.app/4321", viewModel.etat.value.idSelection)
-        }
+        assertEquals("com.exemple.app/4321", viewModel.etat.value.idSelection)
+    }
 
     @Test
-    fun `une vivante nouvellement nee deloge une archive consultee`() =
-        runTest {
-            archive.semer(
-                SessionJournalArchivee(
-                    session = pont.sessionArchivee("com.exemple.app", 1000, "fin veille"),
-                    derniereLigne = ligne("dernière avant veille"),
+    fun `une vivante nouvellement nee deloge une archive consultee`() = runTest {
+        archive.semer(
+            SessionJournalArchivee(
+                session = pont.sessionArchivee("com.exemple.app", 1000, "fin veille"),
+                derniereLigne = ligne("dernière avant veille"),
+            ),
+        )
+        val viewModel = viewModel()
+        avancer()
+
+        // Au démarrage sans session vivante : la plus récente archive
+        // s'affiche (jamais du vide muet).
+        assertNotNull(viewModel.etat.value.sessionArchivee)
+        assertEquals(
+            listOf("dernière avant veille"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+
+        // L'app est relancée : la vivante NOUVELLE prend la main.
+        pont.ouvrir("com.exemple.app", 1000)
+        pont.pousser("com.exemple.app", 1000, listOf(ligne("retour")))
+        avancer()
+
+        assertEquals("com.exemple.app/1000", viewModel.etat.value.idSelection)
+        assertEquals(null, viewModel.etat.value.sessionArchivee)
+    }
+
+    @Test
+    fun `la pause fige l affichage et la reprise rattrape`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+        pont.pousser("com.exemple.app", 4321, listOf(ligne("avant pause")))
+        avancer()
+
+        viewModel.basculerPause()
+        assertTrue(viewModel.etat.value.enPause)
+        pont.pousser("com.exemple.app", 4321, listOf(ligne("pendant pause 1"), ligne("pendant pause 2")))
+        avancer()
+
+        // Figer : la collecte continue (registre) mais le tampon
+        // d'affichage n'a PAS bougé.
+        assertEquals(
+            listOf("avant pause"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+
+        viewModel.basculerPause()
+        avancer()
+        assertFalse(viewModel.etat.value.enPause)
+        // Reprise : RATTRAPAGE — les lignes de la pause apparaissent.
+        assertEquals(
+            listOf("avant pause", "pendant pause 1", "pendant pause 2"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+    }
+
+    @Test
+    fun `effacer vide l affichage mais les nouvelles lignes reviennent`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+        pont.pousser("com.exemple.app", 4321, listOf(ligne("ancienne")))
+        avancer()
+
+        viewModel.effacer()
+        assertTrue(
+            viewModel.etat.value.lignes
+                .isEmpty(),
+        )
+        // Les sessions gardées ne sont PAS touchées.
+        assertEquals(
+            1,
+            viewModel.etat.value.sessions[0]
+                .nombreLignes,
+        )
+
+        pont.pousser("com.exemple.app", 4321, listOf(ligne("nouvelle")))
+        avancer()
+        assertEquals(
+            listOf("nouvelle"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+    }
+
+    @Test
+    fun `le filtre texte s applique sans toucher le tampon`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+        pont.pousser(
+            "com.exemple.app",
+            4321,
+            listOf(ligne("rotation demandée"), ligne("mesure reprise"), ligne("rotation finie")),
+        )
+        avancer()
+
+        viewModel.definirFiltreTexte("rotation", regex = false)
+        avancer()
+
+        assertEquals(
+            listOf("rotation demandée", "rotation finie"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+
+        // Retirer le filtre rend TOUT le tampon (rien n'est jeté).
+        viewModel.definirFiltreTexte("", regex = false)
+        assertEquals(3, viewModel.etat.value.lignes.size)
+    }
+
+    @Test
+    fun `le filtre de niveau masque les niveaux inferieurs`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+        pont.pousser(
+            "com.exemple.app",
+            4321,
+            listOf(
+                ligne("bruit", niveau = NiveauJournal.DEBOGAGE),
+                ligne("alerte", niveau = NiveauJournal.AVERTISSEMENT),
+            ),
+        )
+        avancer()
+
+        viewModel.definirNiveauMinimal(NiveauJournal.AVERTISSEMENT)
+        assertEquals(
+            listOf("alerte"),
+            viewModel.etat.value.lignes
+                .map { it.ligne.message },
+        )
+    }
+
+    @Test
+    fun `un motif regex invalide est signale en etat`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.definirFiltreTexte("*debut", regex = true)
+
+        assertTrue(viewModel.etat.value.erreurMotif)
+    }
+
+    @Test
+    fun `une session terminee est archivee une seule fois avec sa derniere ligne`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+        pont.pousser("com.exemple.app", 4321, listOf(ligne("première"), ligne("dernière")))
+        avancer()
+
+        pont.terminer("com.exemple.app", 4321, "le processus s'est arrêté")
+        avancer()
+        // Ré-émissions de l'état des sessions : UNE archive, pas deux.
+        pont.reemettre()
+        avancer()
+
+        assertEquals(1, archive.archivees.size)
+        assertEquals("dernière", archive.archivees[0].derniereLigne?.message)
+        assertEquals(
+            "le processus s'est arrêté",
+            viewModel.etat.value.fin
+                ?.raison,
+        )
+        assertTrue(viewModel.etat.value.lignesPerdues >= 0L)
+        // Le bandeau de fin est porté par l'état (l'afficheur le rend).
+        assertNotNull(viewModel.etat.value.fin)
+    }
+
+    @Test
+    fun `un plantage du pont parait dans l etat une seule fois par session`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
+
+        pont.pousser(
+            "com.exemple.app",
+            4321,
+            listOf(
+                ligne("avant"),
+                ligne(
+                    "Exception non interceptée dans le fil « main »",
+                    niveau = NiveauJournal.ERREUR,
+                    etiquette = "Plantage",
                 ),
-            )
-            val viewModel = viewModel()
-            avancer()
+            ),
+        )
+        avancer()
 
-            // Au démarrage sans session vivante : la plus récente archive
-            // s'affiche (jamais du vide muet).
-            assertNotNull(viewModel.etat.value.sessionArchivee)
-            assertEquals(
-                listOf("dernière avant veille"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
+        val plantage = viewModel.etat.value.plantage
+        assertNotNull("le plantage est signalé dans l'état (R4)", plantage)
+        assertEquals("com.exemple.app/4321", plantage?.idSession)
 
-            // L'app est relancée : la vivante NOUVELLE prend la main.
-            pont.ouvrir("com.exemple.app", 1000)
-            pont.pousser("com.exemple.app", 1000, listOf(ligne("retour")))
-            avancer()
-
-            assertEquals("com.exemple.app/1000", viewModel.etat.value.idSelection)
-            assertEquals(null, viewModel.etat.value.sessionArchivee)
-        }
+        // Ré-émissions de sessions SANS nouveau plantage : inchangé
+        // (le snackbar de l'activité s'appuie sur l'identifiant).
+        pont.reemettre()
+        avancer()
+        assertEquals(
+            "com.exemple.app/4321",
+            viewModel.etat.value.plantage
+                ?.idSession,
+        )
+    }
 
     @Test
-    fun `la pause fige l affichage et la reprise rattrape`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-            pont.pousser("com.exemple.app", 4321, listOf(ligne("avant pause")))
-            avancer()
+    fun `les pertes annoncees paraissent dans l etat`() = runTest {
+        pont.ouvrir("com.exemple.app", 4321)
+        val viewModel = viewModel()
+        avancer()
 
-            viewModel.basculerPause()
-            assertTrue(viewModel.etat.value.enPause)
-            pont.pousser("com.exemple.app", 4321, listOf(ligne("pendant pause 1"), ligne("pendant pause 2")))
-            avancer()
+        pont.pertes("com.exemple.app", 4321, 214L)
+        avancer()
 
-            // Figer : la collecte continue (registre) mais le tampon
-            // d'affichage n'a PAS bougé.
-            assertEquals(
-                listOf("avant pause"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
-
-            viewModel.basculerPause()
-            avancer()
-            assertFalse(viewModel.etat.value.enPause)
-            // Reprise : RATTRAPAGE — les lignes de la pause apparaissent.
-            assertEquals(
-                listOf("avant pause", "pendant pause 1", "pendant pause 2"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
-        }
-
-    @Test
-    fun `effacer vide l affichage mais les nouvelles lignes reviennent`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-            pont.pousser("com.exemple.app", 4321, listOf(ligne("ancienne")))
-            avancer()
-
-            viewModel.effacer()
-            assertTrue(
-                viewModel.etat.value.lignes
-                    .isEmpty(),
-            )
-            // Les sessions gardées ne sont PAS touchées.
-            assertEquals(
-                1,
-                viewModel.etat.value.sessions[0]
-                    .nombreLignes,
-            )
-
-            pont.pousser("com.exemple.app", 4321, listOf(ligne("nouvelle")))
-            avancer()
-            assertEquals(
-                listOf("nouvelle"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
-        }
-
-    @Test
-    fun `le filtre texte s applique sans toucher le tampon`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-            pont.pousser(
-                "com.exemple.app",
-                4321,
-                listOf(ligne("rotation demandée"), ligne("mesure reprise"), ligne("rotation finie")),
-            )
-            avancer()
-
-            viewModel.definirFiltreTexte("rotation", regex = false)
-            avancer()
-
-            assertEquals(
-                listOf("rotation demandée", "rotation finie"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
-
-            // Retirer le filtre rend TOUT le tampon (rien n'est jeté).
-            viewModel.definirFiltreTexte("", regex = false)
-            assertEquals(3, viewModel.etat.value.lignes.size)
-        }
-
-    @Test
-    fun `le filtre de niveau masque les niveaux inferieurs`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-            pont.pousser(
-                "com.exemple.app",
-                4321,
-                listOf(
-                    ligne("bruit", niveau = NiveauJournal.DEBOGAGE),
-                    ligne("alerte", niveau = NiveauJournal.AVERTISSEMENT),
-                ),
-            )
-            avancer()
-
-            viewModel.definirNiveauMinimal(NiveauJournal.AVERTISSEMENT)
-            assertEquals(
-                listOf("alerte"),
-                viewModel.etat.value.lignes
-                    .map { it.ligne.message },
-            )
-        }
-
-    @Test
-    fun `un motif regex invalide est signale en etat`() =
-        runTest {
-            val viewModel = viewModel()
-
-            viewModel.definirFiltreTexte("*debut", regex = true)
-
-            assertTrue(viewModel.etat.value.erreurMotif)
-        }
-
-    @Test
-    fun `une session terminee est archivee une seule fois avec sa derniere ligne`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-            pont.pousser("com.exemple.app", 4321, listOf(ligne("première"), ligne("dernière")))
-            avancer()
-
-            pont.terminer("com.exemple.app", 4321, "le processus s'est arrêté")
-            avancer()
-            // Ré-émissions de l'état des sessions : UNE archive, pas deux.
-            pont.reemettre()
-            avancer()
-
-            assertEquals(1, archive.archivees.size)
-            assertEquals("dernière", archive.archivees[0].derniereLigne?.message)
-            assertEquals(
-                "le processus s'est arrêté",
-                viewModel.etat.value.fin
-                    ?.raison,
-            )
-            assertTrue(viewModel.etat.value.lignesPerdues >= 0L)
-            // Le bandeau de fin est porté par l'état (l'afficheur le rend).
-            assertNotNull(viewModel.etat.value.fin)
-        }
-
-    @Test
-    fun `un plantage du pont parait dans l etat une seule fois par session`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-
-            pont.pousser(
-                "com.exemple.app",
-                4321,
-                listOf(
-                    ligne("avant"),
-                    ligne(
-                        "Exception non interceptée dans le fil « main »",
-                        niveau = NiveauJournal.ERREUR,
-                        etiquette = "Plantage",
-                    ),
-                ),
-            )
-            avancer()
-
-            val plantage = viewModel.etat.value.plantage
-            assertNotNull("le plantage est signalé dans l'état (R4)", plantage)
-            assertEquals("com.exemple.app/4321", plantage?.idSession)
-
-            // Ré-émissions de sessions SANS nouveau plantage : inchangé
-            // (le snackbar de l'activité s'appuie sur l'identifiant).
-            pont.reemettre()
-            avancer()
-            assertEquals(
-                "com.exemple.app/4321",
-                viewModel.etat.value.plantage
-                    ?.idSession,
-            )
-        }
-
-    @Test
-    fun `les pertes annoncees paraissent dans l etat`() =
-        runTest {
-            pont.ouvrir("com.exemple.app", 4321)
-            val viewModel = viewModel()
-            avancer()
-
-            pont.pertes("com.exemple.app", 4321, 214L)
-            avancer()
-
-            assertEquals(214L, viewModel.etat.value.lignesPerdues)
-        }
+        assertEquals(214L, viewModel.etat.value.lignesPerdues)
+    }
 
     // ------------------------------------------------------------------
     // Doubles de test.
@@ -364,19 +352,13 @@ class LogcatViewModelTest {
 
         override fun instantane(idSession: String): List<LigneJournal> = tampons[idSession]?.toList() ?: emptyList()
 
-        override fun lignesDepuis(
-            idSession: String,
-            position: Int,
-        ): LotJournal {
+        override fun lignesDepuis(idSession: String, position: Int): LotJournal {
             val tampon = tampons[idSession] ?: return LotJournal(0, emptyList())
             val lignes = if (position >= tampon.size) emptyList() else tampon.subList(position, tampon.size).toList()
             return LotJournal(tampon.size, lignes)
         }
 
-        fun ouvrir(
-            paquet: String,
-            pid: Int,
-        ): String {
+        fun ouvrir(paquet: String, pid: Int): String {
             val id = "$paquet/$pid"
             tampons[id] = mutableListOf()
             etatSessions.value =
@@ -393,11 +375,7 @@ class LogcatViewModelTest {
             return id
         }
 
-        fun pousser(
-            paquet: String,
-            pid: Int,
-            lignes: List<LigneJournal>,
-        ) {
+        fun pousser(paquet: String, pid: Int, lignes: List<LigneJournal>) {
             val id = "$paquet/$pid"
             tampons.getValue(id).addAll(lignes)
             etatSessions.value =
@@ -406,11 +384,7 @@ class LogcatViewModelTest {
                 }
         }
 
-        fun terminer(
-            paquet: String,
-            pid: Int,
-            raison: String,
-        ) {
+        fun terminer(paquet: String, pid: Int, raison: String) {
             val id = "$paquet/$pid"
             etatSessions.value =
                 etatSessions.value.map { session ->
@@ -422,11 +396,7 @@ class LogcatViewModelTest {
                 }
         }
 
-        fun pertes(
-            paquet: String,
-            pid: Int,
-            pertes: Long,
-        ) {
+        fun pertes(paquet: String, pid: Int, pertes: Long) {
             val id = "$paquet/$pid"
             etatSessions.value =
                 etatSessions.value.map { session ->
@@ -438,20 +408,15 @@ class LogcatViewModelTest {
             etatSessions.value = etatSessions.value.toList()
         }
 
-        fun sessionArchivee(
-            paquet: String,
-            pid: Int,
-            raison: String,
-        ): SessionJournal =
-            SessionJournal(
-                id = "$paquet/$pid",
-                identite = IdentiteSessionJournal(paquet, pid, paquet),
-                etat = EtatSessionJournal.TERMINEE,
-                fin = FinSessionJournal(raison, 1_500L),
-                nombreLignes = 3,
-                lignesPerdues = 0,
-                sortiePrecedente = null,
-            )
+        fun sessionArchivee(paquet: String, pid: Int, raison: String): SessionJournal = SessionJournal(
+            id = "$paquet/$pid",
+            identite = IdentiteSessionJournal(paquet, pid, paquet),
+            etat = EtatSessionJournal.TERMINEE,
+            fin = FinSessionJournal(raison, 1_500L),
+            nombreLignes = 3,
+            lignesPerdues = 0,
+            sortiePrecedente = null,
+        )
     }
 
     /** Faux de l'archive : en mémoire, la plus récente d'abord. */
@@ -460,10 +425,7 @@ class LogcatViewModelTest {
 
         override suspend fun charger(): List<SessionJournalArchivee> = archivees.toList()
 
-        override suspend fun archiver(
-            session: SessionJournal,
-            derniereLigne: LigneJournal?,
-        ) {
+        override suspend fun archiver(session: SessionJournal, derniereLigne: LigneJournal?) {
             archivees.removeAll { it.session.id == session.id }
             archivees.add(0, SessionJournalArchivee(session, derniereLigne))
         }

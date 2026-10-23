@@ -56,14 +56,10 @@ internal class FileSink(
     /** Événements transitant dans la file bornée. */
     private sealed interface Event {
         /** Une entrée à écrire. */
-        data class Entry(
-            val entry: LogEntry,
-        ) : Event
+        data class Entry(val entry: LogEntry) : Event
 
         /** Ordre de vidage immédiat, accusé par un verrou. */
-        class Flush(
-            val latch: CountDownLatch,
-        ) : Event
+        class Flush(val latch: CountDownLatch) : Event
     }
 
     private val canal =

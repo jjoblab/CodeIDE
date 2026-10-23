@@ -119,10 +119,7 @@ internal object FormateurDiagnosticGit {
     }
 
     /** Remplace la valeur après [prefixeLigne] (nom de projet). */
-    private fun masquerValeur(
-        ligne: String,
-        prefixeLigne: String,
-    ): String =
+    private fun masquerValeur(ligne: String, prefixeLigne: String): String =
         if (ligne.startsWith(prefixeLigne) && ligne.length > prefixeLigne.length &&
             !ligne.substring(prefixeLigne.length).startsWith(INDISPONIBLE)
         ) {

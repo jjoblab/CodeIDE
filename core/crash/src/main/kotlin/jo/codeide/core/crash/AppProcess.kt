@@ -51,30 +51,28 @@ public enum class AppProcess {
         }
 
         /** Nom du processus courant, par l'API système puis par /proc. */
-        private fun nomCourant(): String =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                Application.getProcessName()
-            } else {
-                lireProcCmdline()
-            }
+        private fun nomCourant(): String = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Application.getProcessName()
+        } else {
+            lireProcCmdline()
+        }
 
         /**
          * Lecture de `/proc/self/cmdline` (API 26-27) : lisible sans
          * permission, contenu tronqué au premier octet nul.
          */
-        private fun lireProcCmdline(): String =
-            try {
-                java.io
-                    .File("/proc/self/cmdline")
-                    .readBytes()
-                    .takeWhile { octet -> octet != 0.toByte() }
-                    .toByteArray()
-                    .decodeToString()
-            } catch (erreur: Exception) {
-                // Chemin de repli : un nom vide ne correspond ni au paquet ni
-                // au suffixe :crash — la détection rendra OTHER et le
-                // gestionnaire saura déléguer de toute façon.
-                ""
-            }
+        private fun lireProcCmdline(): String = try {
+            java.io
+                .File("/proc/self/cmdline")
+                .readBytes()
+                .takeWhile { octet -> octet != 0.toByte() }
+                .toByteArray()
+                .decodeToString()
+        } catch (erreur: Exception) {
+            // Chemin de repli : un nom vide ne correspond ni au paquet ni
+            // au suffixe :crash — la détection rendra OTHER et le
+            // gestionnaire saura déléguer de toute façon.
+            ""
+        }
     }
 }

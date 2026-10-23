@@ -32,64 +32,58 @@ class SettingsUseCasesTest {
         )
 
     @Test
-    fun `observer expose l'état courant puis les mises à jour`() =
-        runTest {
-            assertEquals(AppSettings.defaults(buildDebuggable = false), observer().first())
+    fun `observer expose l'état courant puis les mises à jour`() = runTest {
+        assertEquals(AppSettings.defaults(buildDebuggable = false), observer().first())
 
-            mettreAJour { it.copy(themeMode = ThemeMode.DARK) }
+        mettreAJour { it.copy(themeMode = ThemeMode.DARK) }
 
-            assertEquals(ThemeMode.DARK, observer().first().themeMode)
-        }
-
-    @Test
-    fun `une mise à jour ne touche que les champs modifiés`() =
-        runTest {
-            mettreAJour { it.copy(authorName = "Jo") }
-
-            val reglages = depot.reglages
-
-            assertEquals("Jo", reglages.authorName)
-            assertEquals(ThemeMode.SYSTEM, reglages.themeMode)
-            assertEquals(true, reglages.useDynamicColor)
-            assertEquals(License.MIT, reglages.defaultLicense)
-        }
+        assertEquals(ThemeMode.DARK, observer().first().themeMode)
+    }
 
     @Test
-    fun `définir le dossier de travail persiste l'emplacement`() =
-        runTest {
-            definirDossier(dossier)
+    fun `une mise à jour ne touche que les champs modifiés`() = runTest {
+        mettreAJour { it.copy(authorName = "Jo") }
 
-            assertEquals(dossier, observer().first().workspace)
-        }
+        val reglages = depot.reglages
 
-    @Test
-    fun `effacer le dossier de travail repasse à non configuré`() =
-        runTest {
-            definirDossier(dossier)
-
-            definirDossier(null)
-
-            assertNull(observer().first().workspace)
-        }
+        assertEquals("Jo", reglages.authorName)
+        assertEquals(ThemeMode.SYSTEM, reglages.themeMode)
+        assertEquals(true, reglages.useDynamicColor)
+        assertEquals(License.MIT, reglages.defaultLicense)
+    }
 
     @Test
-    fun `un échec d'écriture remonte typé sans muter l'état`() =
-        runTest {
-            depot.writeError = IOException("stockage plein")
+    fun `définir le dossier de travail persiste l'emplacement`() = runTest {
+        definirDossier(dossier)
 
-            val resultat = definirDossier(dossier)
-
-            assertEquals(AppError.StorageReason.Io, raisonStockage(resultat as AppResult.Failure))
-            assertNull(depot.reglages.workspace)
-        }
+        assertEquals(dossier, observer().first().workspace)
+    }
 
     @Test
-    fun `l'assistant terminé est un simple champ du modèle`() =
-        runTest {
-            mettreAJour { it.copy(isSetupCompleted = true) }
+    fun `effacer le dossier de travail repasse à non configuré`() = runTest {
+        definirDossier(dossier)
 
-            assertEquals(true, observer().first().isSetupCompleted)
-        }
+        definirDossier(null)
+
+        assertNull(observer().first().workspace)
+    }
+
+    @Test
+    fun `un échec d'écriture remonte typé sans muter l'état`() = runTest {
+        depot.writeError = IOException("stockage plein")
+
+        val resultat = definirDossier(dossier)
+
+        assertEquals(AppError.StorageReason.Io, raisonStockage(resultat as AppResult.Failure))
+        assertNull(depot.reglages.workspace)
+    }
+
+    @Test
+    fun `l'assistant terminé est un simple champ du modèle`() = runTest {
+        mettreAJour { it.copy(isSetupCompleted = true) }
+
+        assertEquals(true, observer().first().isSetupCompleted)
+    }
 
 /** Extrait la raison d'une erreur de stockage (null si autre type d'erreur). */
     private fun raisonStockage(echec: AppResult.Failure): AppError.StorageReason? =

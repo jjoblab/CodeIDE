@@ -25,25 +25,13 @@ internal object ExpressionParser {
     private sealed interface Jeton {
         val position: Int
 
-        data class Identifiant(
-            val nom: String,
-            override val position: Int,
-        ) : Jeton
+        data class Identifiant(val nom: String, override val position: Int) : Jeton
 
-        data class Chaine(
-            val valeur: String,
-            override val position: Int,
-        ) : Jeton
+        data class Chaine(val valeur: String, override val position: Int) : Jeton
 
-        data class Booleen(
-            val valeur: Boolean,
-            override val position: Int,
-        ) : Jeton
+        data class Booleen(val valeur: Boolean, override val position: Int) : Jeton
 
-        data class Operateur(
-            val symbole: String,
-            override val position: Int,
-        ) : Jeton
+        data class Operateur(val symbole: String, override val position: Int) : Jeton
 
         data object Fin : Jeton {
             override val position: Int = -1
@@ -148,10 +136,7 @@ internal object ExpressionParser {
     }
 
     /** Lit un littéral chaîne depuis un guillemet ouvrant ; échappements limités. */
-    private fun lireChaine(
-        texte: String,
-        debut: Int,
-    ): Pair<String, Int> {
+    private fun lireChaine(texte: String, debut: Int): Pair<String, Int> {
         val contenu = StringBuilder()
         var index = debut + 1
         while (index < texte.length && texte[index] != '"') {
@@ -193,11 +178,7 @@ internal object ExpressionParser {
     }
 
     /** Un opérateur binaire de caractères doit être doublé (`&&`, `||`, `==`). */
-    private fun exigerDouble(
-        texte: String,
-        index: Int,
-        attendu: Char,
-    ) {
+    private fun exigerDouble(texte: String, index: Int, attendu: Char) {
         if (texte.getOrNull(index + 1) != attendu) {
             throw ExpressionException(index, "opérateur incomplet « $attendu » à la position ${index + 1}")
         }
@@ -206,9 +187,7 @@ internal object ExpressionParser {
     // -------------------------------------------------------------- syntaxe
 
     /** Curseur de jetons : consommation et jeton courant. */
-    private class Curseur(
-        private val jetons: List<Jeton>,
-    ) {
+    private class Curseur(private val jetons: List<Jeton>) {
         private var index = 0
 
         /** Jeton courant — la fin tenue pour acquise au-delà du dernier jeton. */
@@ -217,12 +196,11 @@ internal object ExpressionParser {
         fun avancer(): Jeton = jetons.getOrElse(index) { Jeton.Fin }.also { index++ }
 
         /** Position lisible du jeton courant (fin ramenée au dernier jeton réel). */
-        fun positionLisible(): Int =
-            if (courant is Jeton.Fin) {
-                maxOf(jetons.size - 2, 0)
-            } else {
-                courant.position
-            }
+        fun positionLisible(): Int = if (courant is Jeton.Fin) {
+            maxOf(jetons.size - 2, 0)
+        } else {
+            courant.position
+        }
 
         fun attendreFin() {
             if (courant != Jeton.Fin) {
@@ -238,10 +216,7 @@ internal object ExpressionParser {
     private fun symboleCourant(curseur: Curseur): String? = (curseur.courant as? Jeton.Operateur)?.symbole
 
     /** `expression := ou` — point d'entrée avec garde de profondeur. */
-    private fun parseOu(
-        curseur: Curseur,
-        profondeur: Int,
-    ): ExpressionNode {
+    private fun parseOu(curseur: Curseur, profondeur: Int): ExpressionNode {
         // Chaque parenthèse ou négation consomme un cran : la profondeur
         // compte les niveaux d'imbrication réels (15 parenthèses imbriquées
         // passent, la 16e échoue — la borne protège la pile d'appels).
@@ -258,10 +233,7 @@ internal object ExpressionParser {
     }
 
     /** `et := egalite ( '&&' egalite )*`. */
-    private fun parseEt(
-        curseur: Curseur,
-        profondeur: Int,
-    ): ExpressionNode {
+    private fun parseEt(curseur: Curseur, profondeur: Int): ExpressionNode {
         var gauche = parseEgalite(curseur, profondeur)
         while (symboleCourant(curseur) == "&&") {
             val position = curseur.avancer().position
@@ -272,10 +244,7 @@ internal object ExpressionParser {
     }
 
     /** `egalite := unaire ( ('==' | '!=') unaire )*`. */
-    private fun parseEgalite(
-        curseur: Curseur,
-        profondeur: Int,
-    ): ExpressionNode {
+    private fun parseEgalite(curseur: Curseur, profondeur: Int): ExpressionNode {
         var gauche = parseUnaire(curseur, profondeur)
         while (true) {
             val symbole = symboleCourant(curseur)
@@ -293,10 +262,7 @@ internal object ExpressionParser {
     }
 
     /** `unaire := '!' unaire | primaire`. */
-    private fun parseUnaire(
-        curseur: Curseur,
-        profondeur: Int,
-    ): ExpressionNode {
+    private fun parseUnaire(curseur: Curseur, profondeur: Int): ExpressionNode {
         if (symboleCourant(curseur) == "!") {
             val position = curseur.avancer().position
             return ExpressionNode.Non(parseUnaire(curseur, profondeur + 1), position)
@@ -351,12 +317,11 @@ internal object ExpressionParser {
     }
 
     /** Description d'un jeton pour les messages d'erreur. */
-    private fun decrire(jeton: Jeton): String =
-        when (jeton) {
-            is Jeton.Identifiant -> "identifiant « ${jeton.nom} »"
-            is Jeton.Chaine -> "littéral chaîne"
-            is Jeton.Booleen -> "booléen ${jeton.valeur}"
-            is Jeton.Operateur -> "« ${jeton.symbole} »"
-            Jeton.Fin -> "fin d'expression"
-        }
+    private fun decrire(jeton: Jeton): String = when (jeton) {
+        is Jeton.Identifiant -> "identifiant « ${jeton.nom} »"
+        is Jeton.Chaine -> "littéral chaîne"
+        is Jeton.Booleen -> "booléen ${jeton.valeur}"
+        is Jeton.Operateur -> "« ${jeton.symbole} »"
+        Jeton.Fin -> "fin d'expression"
+    }
 }

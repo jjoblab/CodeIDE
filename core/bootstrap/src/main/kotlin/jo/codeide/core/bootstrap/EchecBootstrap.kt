@@ -13,8 +13,5 @@ import jo.codeide.core.model.AppError.BootstrapReason
  * l'annulation suit la voie coroutine standard et devient l'état
  * `Annulee`.
  */
-internal class EchecBootstrap(
-    val raison: BootstrapReason,
-    val details: String,
-    cause: Throwable? = null,
-) : Exception(details, cause)
+internal class EchecBootstrap(val raison: BootstrapReason, val details: String, cause: Throwable? = null) :
+    Exception(details, cause)

@@ -134,16 +134,16 @@ class TemplateModelTest {
         val evaluation =
             TemplateFormEvaluation(
                 parameters =
-                    listOf(
-                        TemplateParameterEvaluation(
-                            parameterId = "packageName",
-                            visible = true,
-                            effectiveValue = "app.demo",
-                            error = null,
-                            label = "Paquet",
-                            help = "",
-                        ),
+                listOf(
+                    TemplateParameterEvaluation(
+                        parameterId = "packageName",
+                        visible = true,
+                        effectiveValue = "app.demo",
+                        error = null,
+                        label = "Paquet",
+                        help = "",
                     ),
+                ),
                 computedValues = mapOf("estApplication" to "true"),
                 isValid = true,
             )

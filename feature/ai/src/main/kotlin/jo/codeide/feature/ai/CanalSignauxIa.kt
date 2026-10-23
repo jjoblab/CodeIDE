@@ -23,10 +23,7 @@ public sealed interface SignalIaExterne {
      * (action utilisateur explicite côté barre) ; `false` = le champ
      * est pré-rempli, l'utilisateur relit puis envoie.
      */
-    public data class Consigne(
-        public val texte: String,
-        public val envoiImmediat: Boolean,
-    ) : SignalIaExterne
+    public data class Consigne(public val texte: String, public val envoiImmediat: Boolean) : SignalIaExterne
 
     /** Relance la dernière génération (garde : aucune si rien à relancer). */
     public data object Regenerer : SignalIaExterne
@@ -42,20 +39,20 @@ public sealed interface SignalIaExterne {
  */
 @Singleton
 public class CanalSignauxIa
-    @Inject
-    constructor() {
-        private val interne = MutableStateFlow<SignalIaExterne?>(null)
+@Inject
+constructor() {
+    private val interne = MutableStateFlow<SignalIaExterne?>(null)
 
-        /** Dernier signal publié (consommé une fois, puis `null`). */
-        public val signal: StateFlow<SignalIaExterne?> = interne.asStateFlow()
+    /** Dernier signal publié (consommé une fois, puis `null`). */
+    public val signal: StateFlow<SignalIaExterne?> = interne.asStateFlow()
 
-        /** Publie un signal (remplace un éventuel signal non consommé). */
-        public fun publier(signal: SignalIaExterne) {
-            interne.value = signal
-        }
-
-        /** Consomme le signal courant (aucun rejeu). */
-        public fun consommer() {
-            interne.value = null
-        }
+    /** Publie un signal (remplace un éventuel signal non consommé). */
+    public fun publier(signal: SignalIaExterne) {
+        interne.value = signal
     }
+
+    /** Consomme le signal courant (aucun rejeu). */
+    public fun consommer() {
+        interne.value = null
+    }
+}

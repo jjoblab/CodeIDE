@@ -40,10 +40,8 @@ internal object ModuleSessionProjet {
      */
     @Provides
     @Singleton
-    fun gestionnaireSessionProjet(
-        journal: AppLogger,
-        horloge: TimeProvider,
-    ): GestionnaireSessionProjet = GestionnaireSessionProjet(journal = journal, horloge = horloge)
+    fun gestionnaireSessionProjet(journal: AppLogger, horloge: TimeProvider): GestionnaireSessionProjet =
+        GestionnaireSessionProjet(journal = journal, horloge = horloge)
 
     /**
      * Port d'observation de session (mission « Cycle de vie » étape E) :
@@ -58,11 +56,10 @@ internal object ModuleSessionProjet {
     fun observateurSessionProjet(
         gestionnaireSession: GestionnaireSessionProjet,
         dispatchers: DispatcherProvider,
-    ): ObservateurSessionProjet =
-        jo.codeide.feature.editor.ObservateurSessionProjetEspace(
-            gestionnaireSession = gestionnaireSession,
-            dispatchers = dispatchers,
-        )
+    ): ObservateurSessionProjet = jo.codeide.feature.editor.ObservateurSessionProjetEspace(
+        gestionnaireSession = gestionnaireSession,
+        dispatchers = dispatchers,
+    )
 
     /**
      * Portée des fermetures : supervisée (une fermeture en échec n'en
@@ -83,7 +80,6 @@ internal object ModuleSessionProjet {
      */
     @Provides
     @Singleton
-    fun tableCapacitesLsp(): jo.codeide.core.domain.TableCapacitesLsp =
-        jo.codeide.feature.editor
-            .TableCapacitesLspHote()
+    fun tableCapacitesLsp(): jo.codeide.core.domain.TableCapacitesLsp = jo.codeide.feature.editor
+        .TableCapacitesLspHote()
 }

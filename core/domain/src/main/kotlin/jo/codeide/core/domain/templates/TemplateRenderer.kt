@@ -4,11 +4,8 @@ package jo.codeide.core.domain.templates
  * Erreur de rendu d'un template : fichier et ligne toujours présents
  * (exigence de l'étape 8 : échec explicite, jamais de `{{…}}` résiduel).
  */
-internal class TemplateRenderException(
-    val fichier: String,
-    val ligne: Int,
-    message: String,
-) : Exception("[$fichier:$ligne] $message") {
+internal class TemplateRenderException(val fichier: String, val ligne: Int, message: String) :
+    Exception("[$fichier:$ligne] $message") {
     /**
      * Variante sans fichier (filtres, validateurs appelés hors rendu de
      * fichier) : la ligne seule qualifie l'erreur.
@@ -22,16 +19,10 @@ internal class TemplateRenderException(
 /** Nœud d'un fichier de template analysé. */
 internal sealed interface TemplateNode {
     /** Texte brut (échappements `\{{` déjà résolus). */
-    data class Texte(
-        val texte: String,
-    ) : TemplateNode
+    data class Texte(val texte: String) : TemplateNode
 
     /** `{{nom}}` ou `{{nom|filtre}}`. */
-    data class Variable(
-        val nom: String,
-        val filtre: String?,
-        val ligne: Int,
-    ) : TemplateNode
+    data class Variable(val nom: String, val filtre: String?, val ligne: Int) : TemplateNode
 
     /** `{{#if expr}}…{{#else}}…{{/if}}` (imbrication bornée). */
     data class Conditionnel(
@@ -42,10 +33,7 @@ internal sealed interface TemplateNode {
     ) : TemplateNode
 
     /** `{{t:clé}}` — dictionnaire i18n du modèle. */
-    data class Traduction(
-        val cle: String,
-        val ligne: Int,
-    ) : TemplateNode
+    data class Traduction(val cle: String, val ligne: Int) : TemplateNode
 }
 
 /**
@@ -76,10 +64,7 @@ internal object TemplateRenderer {
     private val MOTIF_CLE_I18N = Regex("[a-zA-Z0-9_.-]+")
 
     /** Analyse [source] ; [fichier] sert aux messages d'erreur. */
-    fun analyser(
-        source: String,
-        fichier: String,
-    ): List<TemplateNode> {
+    fun analyser(source: String, fichier: String): List<TemplateNode> {
         val analyseur = Analyseur(source, fichier)
         return analyseur.analyserTout()
     }
@@ -168,10 +153,7 @@ internal object TemplateRenderer {
         }
 
     /** Analyse d'un contenu : curseur, suivi de ligne, imbrication bornée. */
-    private class Analyseur(
-        private val source: String,
-        private val fichier: String,
-    ) {
+    private class Analyseur(private val source: String, private val fichier: String) {
         private var index = 0
         private var ligne = 1
 
@@ -238,10 +220,7 @@ internal object TemplateRenderer {
         }
 
         /** Pousse le texte accumulé (s'il est non vide) dans les nœuds. */
-        private fun viderTexte(
-            noeuds: MutableList<TemplateNode>,
-            texte: StringBuilder,
-        ) {
+        private fun viderTexte(noeuds: MutableList<TemplateNode>, texte: StringBuilder) {
             if (texte.isNotEmpty()) {
                 noeuds += TemplateNode.Texte(texte.toString())
                 texte.setLength(0)
@@ -252,36 +231,32 @@ internal object TemplateRenderer {
          * Traite une balise ouvrante `{{…}}` ; retourne le marqueur d'arrêt
          * consommé (`{{#else}}`/`{{/if}}`) ou `null`.
          */
-        private fun traiterBalise(
-            noeuds: MutableList<TemplateNode>,
-            profondeur: Int,
-        ): String? =
-            when {
-                source.startsWith("{{#if", index) -> {
-                    noeuds += analyserConditionnel(profondeur)
-                    null
-                }
-
-                source.startsWith("{{#else}}", index) -> {
-                    index += "{{#else}}".length
-                    "{{#else}}"
-                }
-
-                source.startsWith("{{/if}}", index) -> {
-                    index += "{{/if}}".length
-                    "{{/if}}"
-                }
-
-                source.startsWith("{{t:", index) -> {
-                    noeuds += analyserTraduction()
-                    null
-                }
-
-                else -> {
-                    noeuds += analyserVariable()
-                    null
-                }
+        private fun traiterBalise(noeuds: MutableList<TemplateNode>, profondeur: Int): String? = when {
+            source.startsWith("{{#if", index) -> {
+                noeuds += analyserConditionnel(profondeur)
+                null
             }
+
+            source.startsWith("{{#else}}", index) -> {
+                index += "{{#else}}".length
+                "{{#else}}"
+            }
+
+            source.startsWith("{{/if}}", index) -> {
+                index += "{{/if}}".length
+                "{{/if}}"
+            }
+
+            source.startsWith("{{t:", index) -> {
+                noeuds += analyserTraduction()
+                null
+            }
+
+            else -> {
+                noeuds += analyserVariable()
+                null
+            }
+        }
 
         /** `{{#if expression}}branche{{#else}}branche{{/if}}`. */
         @Suppress("SwallowedException", "ThrowsCount") // Erreur typée fichier + ligne, un throw par balise.

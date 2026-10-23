@@ -141,19 +141,14 @@ public class SuppressionSureTest {
             "</RelativeLayout>"
 
     /** Le span de l'élément [indice] (spans du texte via l'aligneur). */
-    private fun spanDe(
-        texte: String,
-        indice: Int,
-    ): InsertionXml.SpanParent? {
+    private fun spanDe(texte: String, indice: Int): InsertionXml.SpanParent? {
         val element = AligneurElementsXml.aligner(texte, null).getOrNull(indice) ?: return null
         return if (element.debut < 0) null else InsertionXml.SpanParent(element.debut, element.fin)
     }
 
     /** L'application de l'édition (le contrat : le résultat est le nouveau texte). */
-    private fun appliquer(
-        texte: String,
-        edition: EditionAttributsXml.EditionAttributsXmlResultat,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: EditionAttributsXml.EditionAttributsXmlResultat): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     @Test
     fun `supprime l element et ses references mortes en une seule edition`() {

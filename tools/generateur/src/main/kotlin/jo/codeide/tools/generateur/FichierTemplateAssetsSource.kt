@@ -21,9 +21,7 @@ import java.io.IOException
  * @property racineAssets répertoire racine des assets (celui qui contient
  * `templates/` et `licenses/`).
  */
-public class FichierTemplateAssetsSource(
-    private val racineAssets: File,
-) : TemplateAssetsSource {
+public class FichierTemplateAssetsSource(private val racineAssets: File) : TemplateAssetsSource {
     public override suspend fun listTemplateDirectories(): AppResult<List<String>> {
         val repertoire = File(racineAssets, REPERTOIRE_MODELES)
         val repertoires =
@@ -39,10 +37,7 @@ public class FichierTemplateAssetsSource(
         return AppResult.Success(repertoires)
     }
 
-    public override suspend fun readTemplateFile(
-        templateId: String,
-        cheminRelatif: String,
-    ): AppResult<ByteArray> {
+    public override suspend fun readTemplateFile(templateId: String, cheminRelatif: String): AppResult<ByteArray> {
         if (!idModeleSur(templateId) || !cheminInterne(cheminRelatif)) {
             return AppResult.Failure(
                 AppError.Storage(AppError.StorageReason.NotFound, "$templateId/$cheminRelatif"),

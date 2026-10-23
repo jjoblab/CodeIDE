@@ -64,10 +64,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
         attachToRoot: Boolean,
     ): FragmentSettingsBinding = FragmentSettingsBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Contenu edge-to-edge : la racine absorbe barres système et clavier.
@@ -118,10 +115,7 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
     ): ModeleLigne = ModeleLigne(section, icone, titre, description, bientot, sousTitre)
 
     /** Construit les rangées d'une carte — composant partagé, jamais gonflé depuis un layout local. */
-    private fun ajouterRangees(
-        conteneur: LinearLayout,
-        modeles: List<ModeleLigne>,
-    ) {
+    private fun ajouterRangees(conteneur: LinearLayout, modeles: List<ModeleLigne>) {
         modeles.forEach { modele ->
             val rangee = RangeeParametre(requireContext())
             rangee.layoutParams =
@@ -346,40 +340,37 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
     }
 
     /** Libellé localisé d'une palette (sous-titre du maître, ADR 0060). */
-    private fun libellePalette(palette: PaletteCouleur): Int =
-        when (palette) {
-            PaletteCouleur.INDIGO -> R.string.settings_palette_indigo
-            PaletteCouleur.BLEU -> R.string.settings_palette_bleu
-            PaletteCouleur.TURQUOISE -> R.string.settings_palette_turquoise
-            PaletteCouleur.VERT -> R.string.settings_palette_vert
-            PaletteCouleur.AMBRE -> R.string.settings_palette_ambre
-            PaletteCouleur.ROUGE -> R.string.settings_palette_rouge
-            PaletteCouleur.VIOLET -> R.string.settings_palette_violet
-            PaletteCouleur.ROSE -> R.string.settings_palette_rose
-        }
+    private fun libellePalette(palette: PaletteCouleur): Int = when (palette) {
+        PaletteCouleur.INDIGO -> R.string.settings_palette_indigo
+        PaletteCouleur.BLEU -> R.string.settings_palette_bleu
+        PaletteCouleur.TURQUOISE -> R.string.settings_palette_turquoise
+        PaletteCouleur.VERT -> R.string.settings_palette_vert
+        PaletteCouleur.AMBRE -> R.string.settings_palette_ambre
+        PaletteCouleur.ROUGE -> R.string.settings_palette_rouge
+        PaletteCouleur.VIOLET -> R.string.settings_palette_violet
+        PaletteCouleur.ROSE -> R.string.settings_palette_rose
+    }
 }
 
 /** Libellé localisé d'un thème de l'éditeur (sous-titre du maître, v0.37.0). */
-private fun libelleThemeEditeur(theme: ThemeEditeur): Int =
-    when (theme) {
-        ThemeEditeur.AUTO -> R.string.settings_theme_auto
-        ThemeEditeur.VSCODE_SOMBRE -> R.string.settings_theme_vscode_sombre
-        ThemeEditeur.VSCODE_CLAIR -> R.string.settings_theme_vscode_clair
-        ThemeEditeur.DRACULA -> R.string.settings_theme_dracula
-        ThemeEditeur.ONE_DARK -> R.string.settings_theme_one_dark
-        ThemeEditeur.MONOKAI -> R.string.settings_theme_monokai
-        ThemeEditeur.SOLARIZED_SOMBRE -> R.string.settings_theme_solarized_sombre
-        ThemeEditeur.GITHUB_CLAIR -> R.string.settings_theme_github_clair
-        ThemeEditeur.GITHUB_SOMBRE -> R.string.settings_theme_github_sombre
-        ThemeEditeur.NORD -> R.string.settings_theme_nord
-    }
+private fun libelleThemeEditeur(theme: ThemeEditeur): Int = when (theme) {
+    ThemeEditeur.AUTO -> R.string.settings_theme_auto
+    ThemeEditeur.VSCODE_SOMBRE -> R.string.settings_theme_vscode_sombre
+    ThemeEditeur.VSCODE_CLAIR -> R.string.settings_theme_vscode_clair
+    ThemeEditeur.DRACULA -> R.string.settings_theme_dracula
+    ThemeEditeur.ONE_DARK -> R.string.settings_theme_one_dark
+    ThemeEditeur.MONOKAI -> R.string.settings_theme_monokai
+    ThemeEditeur.SOLARIZED_SOMBRE -> R.string.settings_theme_solarized_sombre
+    ThemeEditeur.GITHUB_CLAIR -> R.string.settings_theme_github_clair
+    ThemeEditeur.GITHUB_SOMBRE -> R.string.settings_theme_github_sombre
+    ThemeEditeur.NORD -> R.string.settings_theme_nord
+}
 
 /** Libellé localisé d'une rétention de l'historique (sous-titre du
  *  maître, mission H6). */
-private fun libelleRetention(retention: RetentionHistorique): Int =
-    when (retention) {
-        RetentionHistorique.JOURS_1 -> R.string.settings_historique_1_jour
-        RetentionHistorique.JOURS_5 -> R.string.settings_historique_5_jours
-        RetentionHistorique.JOURS_15 -> R.string.settings_historique_15_jours
-        RetentionHistorique.JOURS_30 -> R.string.settings_historique_30_jours
-    }
+private fun libelleRetention(retention: RetentionHistorique): Int = when (retention) {
+    RetentionHistorique.JOURS_1 -> R.string.settings_historique_1_jour
+    RetentionHistorique.JOURS_5 -> R.string.settings_historique_5_jours
+    RetentionHistorique.JOURS_15 -> R.string.settings_historique_15_jours
+    RetentionHistorique.JOURS_30 -> R.string.settings_historique_30_jours
+}

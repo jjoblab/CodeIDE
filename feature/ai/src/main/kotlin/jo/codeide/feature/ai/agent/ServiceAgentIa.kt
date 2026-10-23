@@ -36,11 +36,10 @@ public class DecisionServiceAgentIa {
     }
 
     /** La notification doit-elle être affichée pour ce statut ? */
-    public fun decider(statut: StatutAgentIa): Action =
-        when (statut) {
-            StatutAgentIa.EN_COURS -> Action.AFFICHER
-            else -> Action.MASQUER
-        }
+    public fun decider(statut: StatutAgentIa): Action = when (statut) {
+        StatutAgentIa.EN_COURS -> Action.AFFICHER
+        else -> Action.MASQUER
+    }
 }
 
 /**
@@ -60,11 +59,7 @@ public class ServiceAgentIa : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int,
-    ): Int {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_ARRETER) {
             controleur.arreter()
         }
@@ -95,24 +90,23 @@ public class ServiceAgentIa : Service() {
         }
     }
 
-    private fun construireNotification() =
-        NotificationCompat
-            .Builder(this, CANAL)
-            .setSmallIcon(android.R.drawable.ic_menu_manage)
-            .setContentTitle(getString(R.string.agent_service_titre))
-            .setContentText(getString(R.string.agent_service_texte))
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .addAction(
-                0,
-                getString(R.string.agent_service_arreter),
-                PendingIntent.getService(
-                    this,
-                    REQUETE_ARRETER_AGENT,
-                    Intent(this, ServiceAgentIa::class.java).setAction(ACTION_ARRETER),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                ),
-            ).build()
+    private fun construireNotification() = NotificationCompat
+        .Builder(this, CANAL)
+        .setSmallIcon(android.R.drawable.ic_menu_manage)
+        .setContentTitle(getString(R.string.agent_service_titre))
+        .setContentText(getString(R.string.agent_service_texte))
+        .setOngoing(true)
+        .setOnlyAlertOnce(true)
+        .addAction(
+            0,
+            getString(R.string.agent_service_arreter),
+            PendingIntent.getService(
+                this,
+                REQUETE_ARRETER_AGENT,
+                Intent(this, ServiceAgentIa::class.java).setAction(ACTION_ARRETER),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            ),
+        ).build()
 
     private companion object {
         /** Canal de notification (créé à chaque construction, même patron que TerminalService). */

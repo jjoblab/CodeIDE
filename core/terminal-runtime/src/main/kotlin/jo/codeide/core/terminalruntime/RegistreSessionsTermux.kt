@@ -116,223 +116,213 @@ internal interface DemarreurService {
 //   dispatchers, journal).
 @Suppress("TooManyFunctions", "LongParameterList")
 internal class RegistreSessionsTermux
-    @Inject
-    constructor(
-        private val localisateur: ToolchainLocator,
-        private val environnement: ProcessEnvironmentProvider,
-        private val fabrique: FabriqueCoquilles,
-        private val demarreurService: DemarreurService,
-        private val horloge: TimeProvider,
-        private val dispatchers: DispatcherProvider,
-        private val journal: AppLogger,
-    ) : TerminalSessionRepository,
-        TerminalRuntime,
-        EcouteurCoquille {
-        /** Entrée interne : la coquille + les métadonnées propres au registre. */
-        private data class Entree(
-            val id: String,
-            val coquille: CoquilleSession,
-            var label: String,
-            val repertoireTravail: String,
-            val creation: Instant,
+@Inject
+constructor(
+    private val localisateur: ToolchainLocator,
+    private val environnement: ProcessEnvironmentProvider,
+    private val fabrique: FabriqueCoquilles,
+    private val demarreurService: DemarreurService,
+    private val horloge: TimeProvider,
+    private val dispatchers: DispatcherProvider,
+    private val journal: AppLogger,
+) : TerminalSessionRepository,
+    TerminalRuntime,
+    EcouteurCoquille {
+    /** Entrée interne : la coquille + les métadonnées propres au registre. */
+    private data class Entree(
+        val id: String,
+        val coquille: CoquilleSession,
+        var label: String,
+        val repertoireTravail: String,
+        val creation: Instant,
+    )
+
+    private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
+    private val verrou = Mutex()
+
+    private val entrees = mutableListOf<Entree>()
+
+    // Noms sans préfixe « _ » : la règle ktlint backing-property-naming
+    // exige une propriété publique homonyme (ex. `sessions`), incompatible
+    // avec des fonctions observe*() du port — nommage explicite à la place.
+    private val sessionsPubliees = MutableStateFlow<List<TerminalSessionSummary>>(emptyList())
+    private val sessionActivePubliee = MutableStateFlow<String?>(null)
+
+    // Signal de repeint (v0.31.5) : tampon 1, dernier gagnant — voir le
+    // KDoc de TerminalRuntime.observeSorties.
+    private val sortiesPubliees =
+        MutableSharedFlow<Unit>(
+            replay = 0,
+            extraBufferCapacity = 1,
+            onBufferOverflow = BufferOverflow.DROP_OLDEST,
         )
 
-        private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
-        private val verrou = Mutex()
+    /** File d'attente du throttle de sortie (une seule tâche en vol). */
+    private var rafraichissementDiffere: Job? = null
 
-        private val entrees = mutableListOf<Entree>()
+    override fun observeSessions(): StateFlow<List<TerminalSessionSummary>> = sessionsPubliees.asStateFlow()
 
-        // Noms sans préfixe « _ » : la règle ktlint backing-property-naming
-        // exige une propriété publique homonyme (ex. `sessions`), incompatible
-        // avec des fonctions observe*() du port — nommage explicite à la place.
-        private val sessionsPubliees = MutableStateFlow<List<TerminalSessionSummary>>(emptyList())
-        private val sessionActivePubliee = MutableStateFlow<String?>(null)
+    override fun observeActiveSessionId(): StateFlow<String?> = sessionActivePubliee.asStateFlow()
 
-        // Signal de repeint (v0.31.5) : tampon 1, dernier gagnant — voir le
-        // KDoc de TerminalRuntime.observeSorties.
-        private val sortiesPubliees =
-            MutableSharedFlow<Unit>(
-                replay = 0,
-                extraBufferCapacity = 1,
-                onBufferOverflow = BufferOverflow.DROP_OLDEST,
-            )
+    override fun observeSorties(): SharedFlow<Unit> = sortiesPubliees.asSharedFlow()
 
-        /** File d'attente du throttle de sortie (une seule tâche en vol). */
-        private var rafraichissementDiffere: Job? = null
-
-        override fun observeSessions(): StateFlow<List<TerminalSessionSummary>> = sessionsPubliees.asStateFlow()
-
-        override fun observeActiveSessionId(): StateFlow<String?> = sessionActivePubliee.asStateFlow()
-
-        override fun observeSorties(): SharedFlow<Unit> = sortiesPubliees.asSharedFlow()
-
-        override suspend fun createSession(
-            workingDirectory: File,
-            label: String?,
-        ): String =
-            withContext(dispatchers.default) {
-                verrou.withLock {
-                    val id = UUID.randomUUID().toString()
-                    val libelle = label ?: "Session ${entrees.size + 1}"
-                    val variables = environnement.baseEnvironment() + TERM_SESSION
-                    // Thread PRINCIPAL obligatoire (v0.31.2, rapport
-                    // d'appareil réel 511e1c7f) : le constructeur de
-                    // `TerminalSession` crée son `MainThreadHandler` — un
-                    // `Handler` sans Looper explicite — qui exige
-                    // `Looper.myLooper() != null`, donc le thread
-                    // principal. Lancé depuis un worker `Default` (tout le
-                    // reste du registre y vit), il plantait avec « Can't
-                    // create handler inside thread … not called
-                    // Looper.prepare() ». Termux crée lui aussi ses
-                    // sessions sur l'UI ; le fork/exec du pty est bref
-                    // (millisecondes), comme dans Termux.
-                    val coquille =
-                        withContext(dispatchers.main) {
-                            fabrique.creer(
-                                shell = localisateur.defaultShell(),
-                                repertoireTravail = workingDirectory.absolutePath,
-                                environnement = variables.map { (cle, valeur) -> "$cle=$valeur" }.toTypedArray(),
-                                ecouteur = this@RegistreSessionsTermux,
-                            )
-                        }
-                    entrees +=
-                        Entree(
-                            id,
-                            coquille,
-                            libelle,
-                            workingDirectory.absolutePath,
-                            Instant.ofEpochMilli(horloge.nowMillis()),
+    override suspend fun createSession(workingDirectory: File, label: String?): String =
+        withContext(dispatchers.default) {
+            verrou.withLock {
+                val id = UUID.randomUUID().toString()
+                val libelle = label ?: "Session ${entrees.size + 1}"
+                val variables = environnement.baseEnvironment() + TERM_SESSION
+                // Thread PRINCIPAL obligatoire (v0.31.2, rapport
+                // d'appareil réel 511e1c7f) : le constructeur de
+                // `TerminalSession` crée son `MainThreadHandler` — un
+                // `Handler` sans Looper explicite — qui exige
+                // `Looper.myLooper() != null`, donc le thread
+                // principal. Lancé depuis un worker `Default` (tout le
+                // reste du registre y vit), il plantait avec « Can't
+                // create handler inside thread … not called
+                // Looper.prepare() ». Termux crée lui aussi ses
+                // sessions sur l'UI ; le fork/exec du pty est bref
+                // (millisecondes), comme dans Termux.
+                val coquille =
+                    withContext(dispatchers.main) {
+                        fabrique.creer(
+                            shell = localisateur.defaultShell(),
+                            repertoireTravail = workingDirectory.absolutePath,
+                            environnement = variables.map { (cle, valeur) -> "$cle=$valeur" }.toTypedArray(),
+                            ecouteur = this@RegistreSessionsTermux,
                         )
-                    publier()
-                    // Les sessions vivent hors écran : le service foreground
-                    // doit exister dès la première (section 4.2).
-                    demarreurService.demarrer()
-                    // TOUJOURS activer la nouvelle session (v0.31.5) : la
-                    // création est un geste utilisateur — onglet « + », bouton
-                    // de la toolbar, carte d'aperçu — et l'écran doit montrer
-                    // la session fraîche, pas retomber sur l'ancienne.
-                    sessionActivePubliee.value = id
-                    journal.i(TAG) { "session de terminal créée" }
-                    id
-                }
-            }
-
-        override fun setActiveSession(sessionId: String) {
-            sessionActivePubliee.value = sessionId
-        }
-
-        override suspend fun renameSession(
-            sessionId: String,
-            label: String,
-        ) {
-            withContext(dispatchers.default) {
-                verrou.withLock {
-                    entree(sessionId)?.let { it.label = label }
-                    publier()
-                }
-            }
-        }
-
-        override suspend fun closeSession(sessionId: String) {
-            withContext(dispatchers.default) {
-                verrou.withLock {
-                    val entree = entree(sessionId) ?: return@withContext
-                    entree.coquille.terminer()
-                    entrees.remove(entree)
-                    if (sessionActivePubliee.value == sessionId) {
-                        sessionActivePubliee.value = entrees.lastOrNull()?.id
                     }
-                    publier()
-                    journal.i(TAG) { "session de terminal fermée" }
-                }
+                entrees +=
+                    Entree(
+                        id,
+                        coquille,
+                        libelle,
+                        workingDirectory.absolutePath,
+                        Instant.ofEpochMilli(horloge.nowMillis()),
+                    )
+                publier()
+                // Les sessions vivent hors écran : le service foreground
+                // doit exister dès la première (section 4.2).
+                demarreurService.demarrer()
+                // TOUJOURS activer la nouvelle session (v0.31.5) : la
+                // création est un geste utilisateur — onglet « + », bouton
+                // de la toolbar, carte d'aperçu — et l'écran doit montrer
+                // la session fraîche, pas retomber sur l'ancienne.
+                sessionActivePubliee.value = id
+                journal.i(TAG) { "session de terminal créée" }
+                id
             }
         }
 
-        override fun sessionFor(sessionId: String): com.termux.terminal.TerminalSession? {
-            val coquille = synchronized(entrees) { entree(sessionId)?.coquille }
-            return (coquille as? CoquilleTermux)?.session
-        }
+    override fun setActiveSession(sessionId: String) {
+        sessionActivePubliee.value = sessionId
+    }
 
-        override fun envoyerTexte(
-            sessionId: String,
-            texte: String,
-        ) {
-            // Session inconnue ou fermée : sans effet (contrat du port) —
-            // l'appelant pilote une session que l'utilisateur peut avoir
-            // refermée entre-temps, jamais d'exception pour ça.
-            val coquille = synchronized(entrees) { entree(sessionId)?.coquille } ?: return
-            coquille.envoyerTexte(texte)
-        }
-
-        // ------------------------------------------------------------------
-        // Écoute des coquilles (callbacks Termux, thread du pty).
-        // ------------------------------------------------------------------
-
-        override fun surTexteModifie() {
-            // Repeint immédiat (v0.31.5) : le texte tapé doit apparaître au
-            // fil de l'eau — l'aperçu throttlé ne sert que la carte.
-            sortiesPubliees.tryEmit(Unit)
-            planifierRafraichissement()
-        }
-
-        override fun surTitreModifie() {
-            planifierRafraichissement()
-        }
-
-        override fun surTerminee() {
-            // Terminaison naturelle : l'entrée reste (isAlive = false),
-            // publiée immédiatement — la carte d'aperçu change d'état. Le
-            // signal de repeint accompagne : l'écran final du shell s'affiche.
-            sortiesPubliees.tryEmit(Unit)
-            rafraichissementDiffere?.cancel()
-            portee.launch { verrou.withLock { publier() } }
-        }
-
-        /** Programme un rafraîchissement throttlé (fenêtre de conflation). */
-        private fun planifierRafraichissement() {
-            if (rafraichissementDiffere?.isActive == true) return
-            rafraichissementDiffere =
-                portee.launch {
-                    delay(FENETRE_THROTTLE_MS)
-                    verrou.withLock { publier() }
-                }
-        }
-
-        /** Reconstruit et publie la liste des métadonnées. */
-        private fun publier() {
-            sessionsPubliees.value =
-                entrees.map { entree ->
-                    TerminalSessionSummary(
-                        id = entree.id,
-                        label = entree.label,
-                        workingDirectoryPath = entree.repertoireTravail,
-                        isAlive = entree.coquille.estVivante(),
-                        lastOutputPreview = borner(entree.coquille.apercuTranscript()),
-                        createdAt = entree.creation,
-                    )
-                }
-        }
-
-        /** Aperçu borné, replat sur une ligne. */
-        private fun borner(transcript: String): String =
-            transcript
-                .takeLast(LONGUEUR_APERCU)
-                .replace('\n', ' ')
-                .replace('\r', ' ')
-                .trim()
-
-        private fun entree(id: String): Entree? = entrees.firstOrNull { it.id == id }
-
-        private companion object {
-            const val TAG = "TerminalRuntime"
-
-            /** Fenêtre de throttle des sorties (millisecondes). */
-            const val FENETRE_THROTTLE_MS = 250L
-
-            /** Longueur maximale de l'aperçu de sortie. */
-            const val LONGUEUR_APERCU = 160
-
-            /** Terminal déclaré au shell (couleurs, capacités). */
-            val TERM_SESSION = mapOf("TERM" to "xterm-256color")
+    override suspend fun renameSession(sessionId: String, label: String) {
+        withContext(dispatchers.default) {
+            verrou.withLock {
+                entree(sessionId)?.let { it.label = label }
+                publier()
+            }
         }
     }
+
+    override suspend fun closeSession(sessionId: String) {
+        withContext(dispatchers.default) {
+            verrou.withLock {
+                val entree = entree(sessionId) ?: return@withContext
+                entree.coquille.terminer()
+                entrees.remove(entree)
+                if (sessionActivePubliee.value == sessionId) {
+                    sessionActivePubliee.value = entrees.lastOrNull()?.id
+                }
+                publier()
+                journal.i(TAG) { "session de terminal fermée" }
+            }
+        }
+    }
+
+    override fun sessionFor(sessionId: String): com.termux.terminal.TerminalSession? {
+        val coquille = synchronized(entrees) { entree(sessionId)?.coquille }
+        return (coquille as? CoquilleTermux)?.session
+    }
+
+    override fun envoyerTexte(sessionId: String, texte: String) {
+        // Session inconnue ou fermée : sans effet (contrat du port) —
+        // l'appelant pilote une session que l'utilisateur peut avoir
+        // refermée entre-temps, jamais d'exception pour ça.
+        val coquille = synchronized(entrees) { entree(sessionId)?.coquille } ?: return
+        coquille.envoyerTexte(texte)
+    }
+
+    // ------------------------------------------------------------------
+    // Écoute des coquilles (callbacks Termux, thread du pty).
+    // ------------------------------------------------------------------
+
+    override fun surTexteModifie() {
+        // Repeint immédiat (v0.31.5) : le texte tapé doit apparaître au
+        // fil de l'eau — l'aperçu throttlé ne sert que la carte.
+        sortiesPubliees.tryEmit(Unit)
+        planifierRafraichissement()
+    }
+
+    override fun surTitreModifie() {
+        planifierRafraichissement()
+    }
+
+    override fun surTerminee() {
+        // Terminaison naturelle : l'entrée reste (isAlive = false),
+        // publiée immédiatement — la carte d'aperçu change d'état. Le
+        // signal de repeint accompagne : l'écran final du shell s'affiche.
+        sortiesPubliees.tryEmit(Unit)
+        rafraichissementDiffere?.cancel()
+        portee.launch { verrou.withLock { publier() } }
+    }
+
+    /** Programme un rafraîchissement throttlé (fenêtre de conflation). */
+    private fun planifierRafraichissement() {
+        if (rafraichissementDiffere?.isActive == true) return
+        rafraichissementDiffere =
+            portee.launch {
+                delay(FENETRE_THROTTLE_MS)
+                verrou.withLock { publier() }
+            }
+    }
+
+    /** Reconstruit et publie la liste des métadonnées. */
+    private fun publier() {
+        sessionsPubliees.value =
+            entrees.map { entree ->
+                TerminalSessionSummary(
+                    id = entree.id,
+                    label = entree.label,
+                    workingDirectoryPath = entree.repertoireTravail,
+                    isAlive = entree.coquille.estVivante(),
+                    lastOutputPreview = borner(entree.coquille.apercuTranscript()),
+                    createdAt = entree.creation,
+                )
+            }
+    }
+
+    /** Aperçu borné, replat sur une ligne. */
+    private fun borner(transcript: String): String = transcript
+        .takeLast(LONGUEUR_APERCU)
+        .replace('\n', ' ')
+        .replace('\r', ' ')
+        .trim()
+
+    private fun entree(id: String): Entree? = entrees.firstOrNull { it.id == id }
+
+    private companion object {
+        const val TAG = "TerminalRuntime"
+
+        /** Fenêtre de throttle des sorties (millisecondes). */
+        const val FENETRE_THROTTLE_MS = 250L
+
+        /** Longueur maximale de l'aperçu de sortie. */
+        const val LONGUEUR_APERCU = 160
+
+        /** Terminal déclaré au shell (couleurs, capacités). */
+        val TERM_SESSION = mapOf("TERM" to "xterm-256color")
+    }
+}

@@ -56,10 +56,7 @@ public object PlanInsertionFamille {
     }
 
     /** Une cellule de la grille 3 × 3 (miroir `{r, c}` — ligne 0 en HAUT, colonne 0 au DÉBUT). */
-    public data class Cellule(
-        val ligne: Int,
-        val colonne: Int,
-    )
+    public data class Cellule(val ligne: Int, val colonne: Int)
 
     /**
      * Le DÉPOSÉ (miroir du widget `w` de la maquette) : l'extrait de la
@@ -79,10 +76,7 @@ public object PlanInsertionFamille {
     )
 
     /** Un point du rendu, en px bitmap (miroir des `{x, y}` de la maquette). */
-    public data class PointDp(
-        val x: Float,
-        val y: Float,
-    )
+    public data class PointDp(val x: Float, val y: Float)
 
     /**
      * Les MARGES à écrire sur le déposé, en dp (§ 6.3-6.4 : multiples de 8,
@@ -97,17 +91,16 @@ public object PlanInsertionFamille {
         public var bas: Int = 0,
     ) {
         /** Les paires attribut/valeur des marges, dans l'ordre du fichier d'or (haut, bas, horizontal/start, end). */
-        public fun versAttributs(): List<Pair<String, String>> =
-            buildList {
-                if (haut > 0) add("android:layout_marginTop" to "${haut}dp")
-                if (bas > 0) add("android:layout_marginBottom" to "${bas}dp")
-                if (debut > 0 && debut == fin) {
-                    add("android:layout_marginHorizontal" to "${debut}dp")
-                } else {
-                    if (debut > 0) add("android:layout_marginStart" to "${debut}dp")
-                    if (fin > 0) add("android:layout_marginEnd" to "${fin}dp")
-                }
+        public fun versAttributs(): List<Pair<String, String>> = buildList {
+            if (haut > 0) add("android:layout_marginTop" to "${haut}dp")
+            if (bas > 0) add("android:layout_marginBottom" to "${bas}dp")
+            if (debut > 0 && debut == fin) {
+                add("android:layout_marginHorizontal" to "${debut}dp")
+            } else {
+                if (debut > 0) add("android:layout_marginStart" to "${debut}dp")
+                if (fin > 0) add("android:layout_marginEnd" to "${fin}dp")
             }
+        }
     }
 
     /** Le GENRE d'un plan (miroir `kind` de la maquette) — pilote le résumé du popup. */
@@ -528,17 +521,17 @@ public object PlanInsertionFamille {
         val fantome = fantomeAncre(contexte, pointAncre, taille)
         return Plan(
             attributs =
-                listOf(
-                    "app:layout_anchor" to "@id/$idAncre",
-                    "app:layout_anchorGravity" to gravite,
-                ),
+            listOf(
+                "app:layout_anchor" to "@id/$idAncre",
+                "app:layout_anchorGravity" to gravite,
+            ),
             marges =
-                Marges(
-                    debut = MARGE_DEFAUT_DP,
-                    haut = MARGE_DEFAUT_DP,
-                    fin = MARGE_DEFAUT_DP,
-                    bas = MARGE_DEFAUT_DP,
-                ),
+            Marges(
+                debut = MARGE_DEFAUT_DP,
+                haut = MARGE_DEFAUT_DP,
+                fin = MARGE_DEFAUT_DP,
+                bas = MARGE_DEFAUT_DP,
+            ),
             fantome = fantome,
             libelle = "ancré à @id/$idAncre · ${G9_TXT[cellule.ligne][cellule.colonne]}",
             genre = GenrePlan.PILE,
@@ -548,13 +541,12 @@ public object PlanInsertionFamille {
     }
 
     /** Les marges 16 dp des bords TOUCHÉS par la gravité (miroir les quatre `if (parts.includes(...))`). */
-    private fun margesDeGravite(parties: List<String>): Marges =
-        Marges(
-            debut = if ("start" in parties) MARGE_DEFAUT_DP else 0,
-            haut = if ("top" in parties) MARGE_DEFAUT_DP else 0,
-            fin = if ("end" in parties) MARGE_DEFAUT_DP else 0,
-            bas = if ("bottom" in parties) MARGE_DEFAUT_DP else 0,
-        )
+    private fun margesDeGravite(parties: List<String>): Marges = Marges(
+        debut = if ("start" in parties) MARGE_DEFAUT_DP else 0,
+        haut = if ("top" in parties) MARGE_DEFAUT_DP else 0,
+        fin = if ("end" in parties) MARGE_DEFAUT_DP else 0,
+        bas = if ("bottom" in parties) MARGE_DEFAUT_DP else 0,
+    )
 
     /**
      * L'alignement croisé VERTICAL d'une règle `below`/`above` (miroir
@@ -623,11 +615,7 @@ public object PlanInsertionFamille {
      * sémantiques que le tri `DependencyGraph` (marges de l'ANCRE et de la
      * vue pour `below`/`toEndOf`…, marge de la vue seule pour `align*`).
      */
-    private fun fantomeRegle(
-        contexte: Contexte,
-        plan: Plan,
-        extrait: String?,
-    ): ZonesDepot.RectangleDepot? {
+    private fun fantomeRegle(contexte: Contexte, plan: Plan, extrait: String?): ZonesDepot.RectangleDepot? {
         val taille = tailleDepose(contexte, extrait)
         val margesPx = margesEnPx(contexte, plan.marges)
         val (gauche, droite) = bornesHorizontales(contexte, plan.attributs, margesPx)
@@ -754,10 +742,7 @@ public object PlanInsertionFamille {
     }
 
     /** Le point d'ancrage sur la vue ancre selon `anchorGravity` (miroir `gx`/`gy` de `framePlan`). */
-    private fun pointDAncrage(
-        ancre: InfoVueRendu,
-        parties: List<String>,
-    ): PointDp {
+    private fun pointDAncrage(ancre: InfoVueRendu, parties: List<String>): PointDp {
         val x =
             when {
                 "end" in parties -> {
@@ -804,11 +789,7 @@ public object PlanInsertionFamille {
      * au rectangle, 0 dedans) : paire (indice dans les enfants du parent,
      * distance en px), ou null.
      */
-    private fun frereLePlusProche(
-        contexte: Contexte,
-        x: Float,
-        y: Float,
-    ): Pair<Int, Float>? {
+    private fun frereLePlusProche(contexte: Contexte, x: Float, y: Float): Pair<Int, Float>? {
         var meilleur: Pair<Int, Float>? = null
         for ((indice, enfant) in contexte.enfants.withIndex()) {
             if (enfant.droite <= enfant.gauche || enfant.bas <= enfant.haut) continue
@@ -821,11 +802,7 @@ public object PlanInsertionFamille {
     }
 
     /** Le côté où le point DÉPASSE le plus du frère (miroir `beyond` : dedans → le bord le plus proche). */
-    private fun coteLePlusProche(
-        reference: InfoVueRendu,
-        x: Float,
-        y: Float,
-    ): Cote {
+    private fun coteLePlusProche(reference: InfoVueRendu, x: Float, y: Float): Cote {
         val depassements =
             mapOf(
                 Cote.DESSOUS to y - reference.bas,
@@ -852,24 +829,19 @@ public object PlanInsertionFamille {
         gauche: Float,
         haut: Float,
         taille: TailleDepose,
-    ): Float =
-        when (cote) {
-            Cote.DESSOUS -> haut - reference.bas
-            Cote.DESSUS -> reference.haut - (haut + taille.hauteurPx)
-            Cote.DROITE -> gauche - reference.droite
-            Cote.GAUCHE -> reference.gauche - (gauche + taille.largeurPx)
-        }
+    ): Float = when (cote) {
+        Cote.DESSOUS -> haut - reference.bas
+        Cote.DESSUS -> reference.haut - (haut + taille.hauteurPx)
+        Cote.DROITE -> gauche - reference.droite
+        Cote.GAUCHE -> reference.gauche - (gauche + taille.largeurPx)
+    }
 
     /**
      * La cellule d'ancrage au parent depuis le point (miroir `cellAt` +
      * recentrage ± 16 dp : le centre d'un axe FORCE la ligne/colonne 1,
      * une cellule centrale SANS centrage retombe sur le bord 0).
      */
-    private fun celluleCentree(
-        contexte: Contexte,
-        x: Float,
-        y: Float,
-    ): Cellule {
+    private fun celluleCentree(contexte: Contexte, x: Float, y: Float): Cellule {
         val cellule =
             celluleSous(contexte.vues, contexte.indiceParent, x, y) ?: Cellule(ligne = 0, colonne = 0)
         val tolerance = contexte.pxParDp * TOLERANCE_ALIGNEMENT_DP
@@ -877,21 +849,21 @@ public object PlanInsertionFamille {
         val axeVertical = abs(y - centre(contexte.interieurHaut, contexte.interieurBas, 0f)) <= tolerance
         return Cellule(
             ligne =
-                if (axeVertical) {
-                    1
-                } else if (cellule.ligne == 1) {
-                    0
-                } else {
-                    cellule.ligne
-                },
+            if (axeVertical) {
+                1
+            } else if (cellule.ligne == 1) {
+                0
+            } else {
+                cellule.ligne
+            },
             colonne =
-                if (axeHorizontal) {
-                    1
-                } else if (cellule.colonne == 1) {
-                    0
-                } else {
-                    cellule.colonne
-                },
+            if (axeHorizontal) {
+                1
+            } else if (cellule.colonne == 1) {
+                0
+            } else {
+                cellule.colonne
+            },
         )
     }
 
@@ -906,11 +878,7 @@ public object PlanInsertionFamille {
      * issue DISTINCTE du refus (X4).
      */
     @Suppress("ReturnCount")
-    private fun contexteDe(
-        vues: List<InfoVueRendu>,
-        indiceParent: Int,
-        densiteDpi: Int,
-    ): Contexte? {
+    private fun contexteDe(vues: List<InfoVueRendu>, indiceParent: Int, densiteDpi: Int): Contexte? {
         val parent = vues.getOrNull(indiceParent) ?: return null
         if (parent.droite <= parent.gauche || parent.bas <= parent.haut) return null
         return Contexte(vues, indiceParent, parent, densiteDpi)
@@ -937,18 +905,14 @@ public object PlanInsertionFamille {
         val familleParent: FamilleParent = FamilleParent.deNom(parent.famille) ?: FamilleParent.deBalise(parent.classe)
 
         /** Le parent contient-il une `AppBarLayout` parmi ses enfants directs (§ 6.3 — comportement lié) ? */
-        fun contientAppbar(): Boolean =
-            enfants.any {
-                (FamilleParent.deNom(it.famille) ?: FamilleParent.deBalise(it.classe)) == FamilleParent.APPBAR
-            }
+        fun contientAppbar(): Boolean = enfants.any {
+            (FamilleParent.deNom(it.famille) ?: FamilleParent.deBalise(it.classe)) == FamilleParent.APPBAR
+        }
     }
 
     /** La TAILLE du déposé (miroir `defSize`) : `match_parent` → parent moins
      * padding (min 24 dp), fixe → valeur, sinon 96 dp ; hauteur ≥ `minHeight`. */
-    private fun tailleDepose(
-        contexte: Contexte,
-        extrait: String?,
-    ): TailleDepose {
+    private fun tailleDepose(contexte: Contexte, extrait: String?): TailleDepose {
         val dimensions = dimensionsDeExtrait(extrait)
         val largeurDp =
             when (dimensions.largeur) {
@@ -981,88 +945,69 @@ public object PlanInsertionFamille {
             largeur = dimensionDe(REGEX_LARGEUR.find(premiereBalise)?.groupValues?.get(1)),
             hauteur = dimensionDe(REGEX_HAUTEUR.find(premiereBalise)?.groupValues?.get(1)),
             minHauteurDp =
-                REGEX_MIN_HAUTEUR
-                    .find(premiereBalise)
-                    ?.groupValues
-                    ?.get(1)
-                    ?.substringBefore("dp")
-                    ?.toIntOrNull() ?: 0,
+            REGEX_MIN_HAUTEUR
+                .find(premiereBalise)
+                ?.groupValues
+                ?.get(1)
+                ?.substringBefore("dp")
+                ?.toIntOrNull() ?: 0,
         )
     }
 
     /** Une dimension d'extrait : `match_parent`/`fill_parent`, nombre en dp, ou `wrap_content`/absente. */
-    private fun dimensionDe(valeur: String?): DimensionExtrait =
-        when {
-            valeur == null -> {
-                DimensionExtrait.ENVELOPPE
-            }
-
-            valeur == "match_parent" || valeur == "fill_parent" -> {
-                DimensionExtrait.PARENT
-            }
-
-            valeur.endsWith("dp") -> {
-                valeur.substringBefore("dp").toIntOrNull()?.let { DimensionExtrait.FIXE(it) }
-                    ?: DimensionExtrait.ENVELOPPE
-            }
-
-            else -> {
-                DimensionExtrait.ENVELOPPE
-            }
+    private fun dimensionDe(valeur: String?): DimensionExtrait = when {
+        valeur == null -> {
+            DimensionExtrait.ENVELOPPE
         }
 
+        valeur == "match_parent" || valeur == "fill_parent" -> {
+            DimensionExtrait.PARENT
+        }
+
+        valeur.endsWith("dp") -> {
+            valeur.substringBefore("dp").toIntOrNull()?.let { DimensionExtrait.FIXE(it) }
+                ?: DimensionExtrait.ENVELOPPE
+        }
+
+        else -> {
+            DimensionExtrait.ENVELOPPE
+        }
+    }
+
     /** La référence `@id/x` d'une valeur d'attribut, retrouvée dans les enfants du parent (null si introuvable). */
-    private fun referenceDe(
-        contexte: Contexte,
-        valeur: String,
-    ): InfoVueRendu? {
+    private fun referenceDe(contexte: Contexte, valeur: String): InfoVueRendu? {
         val nom = valeur.substringAfterLast('/', "").takeIf { valeur.startsWith("@") } ?: return null
         return contexte.enfants.firstOrNull { it.idRes == nom }
     }
 
     /** Un attribut BOOLÉEN du plan (`true` seulement — miroir `A(n)`). */
-    private fun attributBooleen(
-        plan: Plan,
-        vararg noms: String,
-    ): Boolean = plan.attributs.any { it.first.substringAfter(':') in noms && it.second == "true" }
+    private fun attributBooleen(plan: Plan, vararg noms: String): Boolean =
+        plan.attributs.any { it.first.substringAfter(':') in noms && it.second == "true" }
 
     /** L'identifiant affichable d'une vue (miroir `@id/x` ; sans id, le nom de classe en repli). */
     private fun idAffichable(vue: InfoVueRendu): String? = vue.idRes.ifEmpty { null }
 
     /** Une marge dp ARRONDIE au multiple de 8, jamais négative, plafonnée à 64 (miroir `r8` + `Math.min(64, …)`). */
-    private fun margeArrondie(
-        contexte: Contexte,
-        valeurPx: Float,
-    ): Int = min(PLAFOND_MARGE_DP, arrondi8(contexte, valeurPx))
+    private fun margeArrondie(contexte: Contexte, valeurPx: Float): Int =
+        min(PLAFOND_MARGE_DP, arrondi8(contexte, valeurPx))
 
     /** Une valeur px CONVERTIE en dp puis arrondie au multiple de 8, jamais
      * négative (miroir `r8 = n => Math.max(0, Math.round(n / 8) * 8)`). */
-    private fun arrondi8(
-        contexte: Contexte,
-        valeurPx: Float,
-    ): Int {
+    private fun arrondi8(contexte: Contexte, valeurPx: Float): Int {
         val dp = valeurPx / contexte.pxParDp
         return max(0, (dp / ARRONDI_MARGE_DP).roundToInt() * ARRONDI_MARGE_DP)
     }
 
     /** Les marges dp d'un plan CONVERTIES en px (fantôme). */
-    private fun margesEnPx(
-        contexte: Contexte,
-        marges: Marges,
-    ): MargesPx =
-        MargesPx(
-            debut = marges.debut * contexte.pxParDp,
-            haut = marges.haut * contexte.pxParDp,
-            fin = marges.fin * contexte.pxParDp,
-            bas = marges.bas * contexte.pxParDp,
-        )
+    private fun margesEnPx(contexte: Contexte, marges: Marges): MargesPx = MargesPx(
+        debut = marges.debut * contexte.pxParDp,
+        haut = marges.haut * contexte.pxParDp,
+        fin = marges.fin * contexte.pxParDp,
+        bas = marges.bas * contexte.pxParDp,
+    )
 
     /** Le centre d'un segment de longueur [taille] (miroir `(W - w) / 2`). */
-    private fun centre(
-        debut: Float,
-        fin: Float,
-        taille: Float,
-    ): Float = debut + (fin - debut - taille) / DEUX
+    private fun centre(debut: Float, fin: Float, taille: Float): Float = debut + (fin - debut - taille) / DEUX
 
     /** La valeur 3 (grille 3 × 3 — constante des divisions de cellule). */
     private const val TROIS: Float = 3f
@@ -1104,27 +1049,17 @@ public object PlanInsertionFamille {
         data object PARENT : DimensionExtrait
 
         /** Une valeur fixe en dp. */
-        data class FIXE(
-            val dp: Int,
-        ) : DimensionExtrait
+        data class FIXE(val dp: Int) : DimensionExtrait
 
         /** `wrap_content` ou absente. */
         data object ENVELOPPE : DimensionExtrait
     }
 
     /** La taille du déposé, en px bitmap. */
-    private class TailleDepose(
-        val largeurPx: Float,
-        val hauteurPx: Float,
-    )
+    private class TailleDepose(val largeurPx: Float, val hauteurPx: Float)
 
     /** Les marges d'un plan, en px bitmap (fantôme). */
-    private class MargesPx(
-        val debut: Float,
-        val haut: Float,
-        val fin: Float,
-        val bas: Float,
-    )
+    private class MargesPx(val debut: Float, val haut: Float, val fin: Float, val bas: Float)
 
     /** `android:layout_width` de la première balise de l'extrait. */
     private val REGEX_LARGEUR: Regex = Regex("""android:layout_width="([^"]+)"""")
@@ -1136,11 +1071,8 @@ public object PlanInsertionFamille {
     private val REGEX_MIN_HAUTEUR: Regex = Regex("""android:minHeight="(\d+)dp"""")
 
     /** La colonne/ligne d'une cellule sous le point (bornée 0..2 — miroir `Math.min(2, Math.max(0, …))`). */
-    private fun ligneColonne(
-        coordonnee: Float,
-        debut: Float,
-        longueur: Float,
-    ): Int = ((coordonnee - debut) / (longueur / TROIS)).toInt().coerceIn(0, 2)
+    private fun ligneColonne(coordonnee: Float, debut: Float, longueur: Float): Int =
+        ((coordonnee - debut) / (longueur / TROIS)).toInt().coerceIn(0, 2)
 
     /** Conversion d'un entier px en dp arrondi (dimensions `match_parent`). */
     private fun dpArrondi(px: Float): Int = px.roundToInt()

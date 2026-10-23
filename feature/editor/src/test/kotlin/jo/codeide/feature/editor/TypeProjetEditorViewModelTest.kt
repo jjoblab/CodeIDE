@@ -34,93 +34,88 @@ class TypeProjetEditorViewModelTest : BaseEditorViewModelTest() {
     }
 
     @Test
-    fun `un projet cree expose son type reconnu avec repli identifiant`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerType(
-                """
+    fun `un projet cree expose son type reconnu avec repli identifiant`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerType(
+            """
                 {
                   "schemaVersion": 1,
                   "templateId": "kotlin-jvm",
                   "templateVersion": "1.0.0",
                   "generator": "CodeIDE 0.10.0"
                 }
-                """.trimIndent(),
-            )
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+            """.trimIndent(),
+        )
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            val type = viewModel.etat.value.typeProjet
-            assertNotNull(type)
-            // Catalogue vide dans ce socle : repli sur l'identifiant brut.
-            assertEquals("kotlin-jvm", type?.nomModele)
-            assertEquals("1.0.0", type?.versionModele)
-        }
-
-    @Test
-    fun `un dossier importe sans metadata garde un type null`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerType(json = null)
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-
-            // L'interface en déduit « dossier importé » (templateId sentinelle).
-            assertNull(viewModel.etat.value.typeProjet)
-        }
+        val type = viewModel.etat.value.typeProjet
+        assertNotNull(type)
+        // Catalogue vide dans ce socle : repli sur l'identifiant brut.
+        assertEquals("kotlin-jvm", type?.nomModele)
+        assertEquals("1.0.0", type?.versionModele)
+    }
 
     @Test
-    fun `un fichier de projet corrompu laisse le type null sans crash`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerType("{ pas du JSON")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+    fun `un dossier importe sans metadata garde un type null`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerType(json = null)
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            assertNull(viewModel.etat.value.typeProjet)
-        }
-
-    @Test
-    fun `rafraichir reconnait un type ajoute apres l ouverture`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            assertNull(viewModel.etat.value.typeProjet)
-
-            semerType("""{"schemaVersion": 1, "templateId": "java"}""")
-            viewModel.onAction(ActionEditor.Rafraichir)
-            advanceUntilIdle()
-
-            assertEquals(
-                "java",
-                viewModel.etat.value.typeProjet
-                    ?.nomModele,
-            )
-        }
+        // L'interface en déduit « dossier importé » (templateId sentinelle).
+        assertNull(viewModel.etat.value.typeProjet)
+    }
 
     @Test
-    fun `preciser la langue rejoue la resolution du nom`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerType("""{"schemaVersion": 1, "templateId": "kotlin-jvm"}""")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            assertEquals(
-                "kotlin-jvm",
-                viewModel.etat.value.typeProjet
-                    ?.nomModele,
-            )
+    fun `un fichier de projet corrompu laisse le type null sans crash`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerType("{ pas du JSON")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            // Nouvelle langue (re-création de l'activité après changement) :
-            // le nom est re-résolu — même repli ici, catalogue vide.
-            viewModel.onAction(ActionEditor.PreciserLangue("fr"))
-            advanceUntilIdle()
+        assertNull(viewModel.etat.value.typeProjet)
+    }
 
-            assertEquals(
-                "kotlin-jvm",
-                viewModel.etat.value.typeProjet
-                    ?.nomModele,
-            )
-        }
+    @Test
+    fun `rafraichir reconnait un type ajoute apres l ouverture`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        assertNull(viewModel.etat.value.typeProjet)
+
+        semerType("""{"schemaVersion": 1, "templateId": "java"}""")
+        viewModel.onAction(ActionEditor.Rafraichir)
+        advanceUntilIdle()
+
+        assertEquals(
+            "java",
+            viewModel.etat.value.typeProjet
+                ?.nomModele,
+        )
+    }
+
+    @Test
+    fun `preciser la langue rejoue la resolution du nom`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerType("""{"schemaVersion": 1, "templateId": "kotlin-jvm"}""")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        assertEquals(
+            "kotlin-jvm",
+            viewModel.etat.value.typeProjet
+                ?.nomModele,
+        )
+
+        // Nouvelle langue (re-création de l'activité après changement) :
+        // le nom est re-résolu — même repli ici, catalogue vide.
+        viewModel.onAction(ActionEditor.PreciserLangue("fr"))
+        advanceUntilIdle()
+
+        assertEquals(
+            "kotlin-jvm",
+            viewModel.etat.value.typeProjet
+                ?.nomModele,
+        )
+    }
 }

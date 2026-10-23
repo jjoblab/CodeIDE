@@ -13,31 +13,27 @@ package jo.codeide.core.domain
  */
 public object DiagnosticInstallation {
     /** Ligne de récapitulatif d'une phase (codes neutres). */
-    internal fun ligneDePhase(
-        phase: InstallPhase,
-        etat: PhaseState,
-    ): String =
-        when (etat) {
-            is PhaseState.Succeeded -> {
-                "$phase : SUCCEEDED (${etat.versions.entries.joinToString { "${it.key}=${it.value}" }})"
-            }
-
-            is PhaseState.Degraded -> {
-                "$phase : DEGRADED (${etat.warnings.joinToString { it.componentId }})"
-            }
-
-            is PhaseState.Failed -> {
-                "$phase : FAILED (${etat.error.reason}) ${etat.error.details}"
-            }
-
-            is PhaseState.Running -> {
-                "$phase : RUNNING (${etat.step.step})"
-            }
-
-            PhaseState.NotStarted -> {
-                "$phase : NOT_STARTED"
-            }
+    internal fun ligneDePhase(phase: InstallPhase, etat: PhaseState): String = when (etat) {
+        is PhaseState.Succeeded -> {
+            "$phase : SUCCEEDED (${etat.versions.entries.joinToString { "${it.key}=${it.value}" }})"
         }
+
+        is PhaseState.Degraded -> {
+            "$phase : DEGRADED (${etat.warnings.joinToString { it.componentId }})"
+        }
+
+        is PhaseState.Failed -> {
+            "$phase : FAILED (${etat.error.reason}) ${etat.error.details}"
+        }
+
+        is PhaseState.Running -> {
+            "$phase : RUNNING (${etat.step.step})"
+        }
+
+        PhaseState.NotStarted -> {
+            "$phase : NOT_STARTED"
+        }
+    }
 
     /** Récapitulatif textuel des quatre phases, codes neutres. */
     public fun resumeDesPhases(etat: EnvironmentSetupState): List<String> =
@@ -47,8 +43,6 @@ public object DiagnosticInstallation {
      * Diagnostic complet copiable : journal intégral (borné par le cadre)
      * suivi du récapitulatif des phases.
      */
-    public fun diagnostic(
-        etat: EnvironmentSetupState,
-        journal: List<String>,
-    ): String = (journal + resumeDesPhases(etat)).joinToString("\n")
+    public fun diagnostic(etat: EnvironmentSetupState, journal: List<String>): String =
+        (journal + resumeDesPhases(etat)).joinToString("\n")
 }

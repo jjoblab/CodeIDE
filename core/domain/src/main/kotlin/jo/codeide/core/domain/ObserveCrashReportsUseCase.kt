@@ -12,14 +12,12 @@ import javax.inject.Inject
  * depuis le cycle de vie de l'UI (`repeatOnLifecycle`).
  */
 public class ObserveCrashReportsUseCase
-    @Inject
-    constructor(
-        private val repository: CrashReportRepository,
-    ) {
-        /**
-         * Observe les résumés, du plus récent au plus ancien.
-         *
-         * @return le flot des résumés de rapports conservés.
-         */
-        public operator fun invoke(): Flow<List<CrashReportSummary>> = repository.observeSummaries()
-    }
+@Inject
+constructor(private val repository: CrashReportRepository) {
+    /**
+     * Observe les résumés, du plus récent au plus ancien.
+     *
+     * @return le flot des résumés de rapports conservés.
+     */
+    public operator fun invoke(): Flow<List<CrashReportSummary>> = repository.observeSummaries()
+}

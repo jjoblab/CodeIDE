@@ -266,12 +266,11 @@ class CrashActivity : AppCompatActivity() {
         binding.crashBoutonFermer.setOnClickListener { finish() }
     }
 
-    private fun libelleType(type: CrashType): String =
-        when (type) {
-            CrashType.EXCEPTION -> getString(R.string.crash_type_exception)
-            CrashType.ANR -> getString(R.string.crash_type_anr)
-            CrashType.NATIVE -> getString(R.string.crash_type_natif)
-        }
+    private fun libelleType(type: CrashType): String = when (type) {
+        CrashType.EXCEPTION -> getString(R.string.crash_type_exception)
+        CrashType.ANR -> getString(R.string.crash_type_anr)
+        CrashType.NATIVE -> getString(R.string.crash_type_natif)
+    }
 
     /** Résumé d'appareil non identifiant, une ligne. */
     private fun resumeAppareil(rapport: CrashReport): String =

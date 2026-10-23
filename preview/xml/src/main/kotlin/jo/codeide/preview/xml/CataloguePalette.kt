@@ -91,17 +91,16 @@ public object CataloguePalette {
      * connues portent leur nom d'artefact, une coordonnée inconnue
      * s'affiche TELLE QUELLE (jamais tronquée à tort).
      */
-    public fun libelleCourtDependance(coordonnee: String): String =
-        when (coordonnee) {
-            DEPENDANCE_MATERIAL -> "Material"
-            DEPENDANCE_RECYCLERVIEW -> "RecyclerView"
-            DEPENDANCE_CONSTRAINTLAYOUT -> "ConstraintLayout"
-            DEPENDANCE_VIEWPAGER2 -> "ViewPager2"
-            DEPENDANCE_APPCOMPAT -> "AppCompat"
-            DEPENDANCE_DRAWERLAYOUT -> "DrawerLayout"
-            DEPENDANCE_SWIPEREFRESH -> "SwipeRefreshLayout"
-            else -> coordonnee
-        }
+    public fun libelleCourtDependance(coordonnee: String): String = when (coordonnee) {
+        DEPENDANCE_MATERIAL -> "Material"
+        DEPENDANCE_RECYCLERVIEW -> "RecyclerView"
+        DEPENDANCE_CONSTRAINTLAYOUT -> "ConstraintLayout"
+        DEPENDANCE_VIEWPAGER2 -> "ViewPager2"
+        DEPENDANCE_APPCOMPAT -> "AppCompat"
+        DEPENDANCE_DRAWERLAYOUT -> "DrawerLayout"
+        DEPENDANCE_SWIPEREFRESH -> "SwipeRefreshLayout"
+        else -> coordonnee
+    }
 
     /**
      * Le catalogue COMPLET (miroir `WIDGETS`, même ordre) : les 22 entrées
@@ -145,18 +144,14 @@ public object CataloguePalette {
      * Les entrées d'une catégorie (« Tous » renvoie tout — miroir
      * `fillGrid`).
      */
-    public fun parCategorie(categorie: String): List<EntreePalette> =
-        if (categorie == TOUTES) {
-            CATALOGUE
-        } else {
-            CATALOGUE.filter { it.categorie == categorie }
-        }
+    public fun parCategorie(categorie: String): List<EntreePalette> = if (categorie == TOUTES) {
+        CATALOGUE
+    } else {
+        CATALOGUE.filter { it.categorie == categorie }
+    }
 
     /** Filtre par recherche (miroir `fillGrid` : nom + classe, insensible à la casse). */
-    public fun rechercher(
-        categorie: String,
-        requete: String,
-    ): List<EntreePalette> {
+    public fun rechercher(categorie: String, requete: String): List<EntreePalette> {
         val requeteEpuree = requete.trim()
         val base = parCategorie(categorie)
         if (requeteEpuree.isEmpty()) return base

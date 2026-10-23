@@ -35,168 +35,157 @@ class EnvironnementViewModelTest {
     private fun viewModel() = EnvironnementViewModel(orchestrateur, magasin, auditeur)
 
     @Test
-    fun `composants projetés avec versions vérifiées et tailles réelles`() =
-        runTest {
-            magasin.etat =
-                PersistedInstallState(
-                    schemaVersion = 2,
-                    phases = emptyMap(),
-                    installedComponents =
-                        listOf(
-                            composant("build-tools", "35.0.2", "build-tools/35.0.2"),
-                            composant("platform-tools", "37.0.1", "platform-tools/latest"),
+    fun `composants projetés avec versions vérifiées et tailles réelles`() = runTest {
+        magasin.etat =
+            PersistedInstallState(
+                schemaVersion = 2,
+                phases = emptyMap(),
+                installedComponents =
+                listOf(
+                    composant("build-tools", "35.0.2", "build-tools/35.0.2"),
+                    composant("platform-tools", "37.0.1", "platform-tools/latest"),
+                ),
+                sdkLicenseAcceptedAtMillis = null,
+            )
+        orchestrateur.semerEtat(
+            etat(
+                mapOf(
+                    InstallPhase.ANDROID_SDK to
+                        PhaseState.Succeeded(
+                            verifiedAtMillis = 1L,
+                            versions = mapOf("build-tools" to "35.0.2", "platform-tools" to "37.0.1"),
                         ),
-                    sdkLicenseAcceptedAtMillis = null,
-                )
-            orchestrateur.semerEtat(
-                etat(
-                    mapOf(
-                        InstallPhase.ANDROID_SDK to
-                            PhaseState.Succeeded(
-                                verifiedAtMillis = 1L,
-                                versions = mapOf("build-tools" to "35.0.2", "platform-tools" to "37.0.1"),
-                            ),
-                    ),
                 ),
+            ),
+        )
+        auditeur.tailles["build-tools"] = 127L * MIO
+        auditeur.tailles["platform-tools"] = 12L * MIO
+
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        val composants = viewModel.composants.value
+        assertEquals(2, composants.size)
+        val buildTools = composants.first { it.id == "build-tools" }
+        assertEquals("35.0.2", buildTools.version)
+        assertEquals("r1", buildTools.revision)
+        assertEquals(127L * MIO, buildTools.tailleOctets)
+        assertTrue(buildTools.verifie)
+        assertTrue(buildTools.desinstallable)
+        assertFalse(buildTools.paquetApt)
+    }
+
+    @Test
+    fun `composant absent du disque - taille null, non vérifié`() = runTest {
+        magasin.etat =
+            PersistedInstallState(
+                schemaVersion = 2,
+                phases = emptyMap(),
+                installedComponents = listOf(composant("cmdline-tools", "12.0", "cmdline-tools/latest")),
+                sdkLicenseAcceptedAtMillis = null,
             )
-            auditeur.tailles["build-tools"] = 127L * MIO
-            auditeur.tailles["platform-tools"] = 12L * MIO
 
-            val viewModel = viewModel()
-            advanceUntilIdle()
+        val viewModel = viewModel()
+        advanceUntilIdle()
 
-            val composants = viewModel.composants.value
-            assertEquals(2, composants.size)
-            val buildTools = composants.first { it.id == "build-tools" }
-            assertEquals("35.0.2", buildTools.version)
-            assertEquals("r1", buildTools.revision)
-            assertEquals(127L * MIO, buildTools.tailleOctets)
-            assertTrue(buildTools.verifie)
-            assertTrue(buildTools.desinstallable)
-            assertFalse(buildTools.paquetApt)
-        }
+        val cmdline = viewModel.composants.value.single()
+        assertNull(cmdline.tailleOctets)
+        assertFalse(cmdline.verifie)
+    }
 
     @Test
-    fun `composant absent du disque - taille null, non vérifié`() =
-        runTest {
-            magasin.etat =
-                PersistedInstallState(
-                    schemaVersion = 2,
-                    phases = emptyMap(),
-                    installedComponents = listOf(composant("cmdline-tools", "12.0", "cmdline-tools/latest")),
-                    sdkLicenseAcceptedAtMillis = null,
-                )
-
-            val viewModel = viewModel()
-            advanceUntilIdle()
-
-            val cmdline = viewModel.composants.value.single()
-            assertNull(cmdline.tailleOctets)
-            assertFalse(cmdline.verifie)
-        }
-
-    @Test
-    fun `rangée JDK ajoutée quand la phase JAVA est vérifiée`() =
-        runTest {
-            magasin.etat =
-                PersistedInstallState(
-                    schemaVersion = 2,
-                    phases = emptyMap(),
-                    installedComponents = emptyList(),
-                    sdkLicenseAcceptedAtMillis = null,
-                )
-            orchestrateur.semerEtat(
-                etat(
-                    mapOf(
-                        InstallPhase.JAVA to
-                            PhaseState.Succeeded(verifiedAtMillis = 2L, versions = mapOf("jdk" to "17.0.20")),
-                    ),
+    fun `rangée JDK ajoutée quand la phase JAVA est vérifiée`() = runTest {
+        magasin.etat =
+            PersistedInstallState(
+                schemaVersion = 2,
+                phases = emptyMap(),
+                installedComponents = emptyList(),
+                sdkLicenseAcceptedAtMillis = null,
+            )
+        orchestrateur.semerEtat(
+            etat(
+                mapOf(
+                    InstallPhase.JAVA to
+                        PhaseState.Succeeded(verifiedAtMillis = 2L, versions = mapOf("jdk" to "17.0.20")),
                 ),
-            )
-            auditeur.tailleJdk = 212L * MIO
+            ),
+        )
+        auditeur.tailleJdk = 212L * MIO
 
-            val viewModel = viewModel()
-            advanceUntilIdle()
+        val viewModel = viewModel()
+        advanceUntilIdle()
 
-            val jdk = viewModel.composants.value.single()
-            assertEquals("jdk", jdk.id)
-            assertEquals("17.0.20", jdk.version)
-            assertNull(jdk.revision)
-            assertEquals(212L * MIO, jdk.tailleOctets)
-            assertTrue(jdk.verifie)
-            assertFalse(jdk.desinstallable)
-            assertTrue(jdk.paquetApt)
-        }
-
-    @Test
-    fun `pas de rangée JDK sans phase JAVA vérifiée`() =
-        runTest {
-            val viewModel = viewModel()
-            advanceUntilIdle()
-
-            assertTrue(viewModel.composants.value.isEmpty())
-        }
+        val jdk = viewModel.composants.value.single()
+        assertEquals("jdk", jdk.id)
+        assertEquals("17.0.20", jdk.version)
+        assertNull(jdk.revision)
+        assertEquals(212L * MIO, jdk.tailleOctets)
+        assertTrue(jdk.verifie)
+        assertFalse(jdk.desinstallable)
+        assertTrue(jdk.paquetApt)
+    }
 
     @Test
-    fun `verifier relaie la profondeur vers l orchestrateur`() =
-        runTest {
-            val viewModel = viewModel()
-            advanceUntilIdle()
+    fun `pas de rangée JDK sans phase JAVA vérifiée`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
 
-            viewModel.verifier(profonde = false)
-            viewModel.verifier(profonde = true)
-            advanceUntilIdle()
-
-            assertEquals(listOf(false, true), orchestrateur.verifications)
-        }
+        assertTrue(viewModel.composants.value.isEmpty())
+    }
 
     @Test
-    fun `reparer cible la première phase non vérifiée`() =
-        runTest {
-            orchestrateur.semerEtat(
-                etat(
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Succeeded(verifiedAtMillis = 1L, versions = emptyMap()),
-                        InstallPhase.PACKAGE_TOOLS to PhaseState.NotStarted,
-                        InstallPhase.JAVA to PhaseState.NotStarted,
-                    ),
+    fun `verifier relaie la profondeur vers l orchestrateur`() = runTest {
+        val viewModel = viewModel()
+        advanceUntilIdle()
+
+        viewModel.verifier(profonde = false)
+        viewModel.verifier(profonde = true)
+        advanceUntilIdle()
+
+        assertEquals(listOf(false, true), orchestrateur.verifications)
+    }
+
+    @Test
+    fun `reparer cible la première phase non vérifiée`() = runTest {
+        orchestrateur.semerEtat(
+            etat(
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(verifiedAtMillis = 1L, versions = emptyMap()),
+                    InstallPhase.PACKAGE_TOOLS to PhaseState.NotStarted,
+                    InstallPhase.JAVA to PhaseState.NotStarted,
                 ),
-            )
-            val viewModel = viewModel()
-            advanceUntilIdle()
+            ),
+        )
+        val viewModel = viewModel()
+        advanceUntilIdle()
 
-            viewModel.reparer()
-            advanceUntilIdle()
+        viewModel.reparer()
+        advanceUntilIdle()
 
-            // repair est journalisé par le fake comme un lancement ciblé.
-            assertEquals(listOf(InstallPhase.PACKAGE_TOOLS), orchestrateur.lancements)
-        }
+        // repair est journalisé par le fake comme un lancement ciblé.
+        assertEquals(listOf(InstallPhase.PACKAGE_TOOLS), orchestrateur.lancements)
+    }
 
     @Test
-    fun `desinstaller relaie l identifiant puis rafraîchit`() =
-        runTest {
-            magasin.etat =
-                PersistedInstallState(
-                    schemaVersion = 2,
-                    phases = emptyMap(),
-                    installedComponents = listOf(composant("cmdline-tools", "12.0", "cmdline-tools/latest")),
-                    sdkLicenseAcceptedAtMillis = null,
-                )
-            val viewModel = viewModel()
-            advanceUntilIdle()
+    fun `desinstaller relaie l identifiant puis rafraîchit`() = runTest {
+        magasin.etat =
+            PersistedInstallState(
+                schemaVersion = 2,
+                phases = emptyMap(),
+                installedComponents = listOf(composant("cmdline-tools", "12.0", "cmdline-tools/latest")),
+                sdkLicenseAcceptedAtMillis = null,
+            )
+        val viewModel = viewModel()
+        advanceUntilIdle()
 
-            viewModel.desinstaller("cmdline-tools")
-            advanceUntilIdle()
+        viewModel.desinstaller("cmdline-tools")
+        advanceUntilIdle()
 
-            assertEquals(listOf("cmdline-tools"), orchestrateur.desinstalles)
-        }
+        assertEquals(listOf("cmdline-tools"), orchestrateur.desinstalles)
+    }
 
-    private fun composant(
-        id: String,
-        version: String,
-        installPath: String,
-    ) = InstalledComponent(
+    private fun composant(id: String, version: String, installPath: String) = InstalledComponent(
         id = id,
         version = version,
         revision = "r1",
@@ -205,12 +194,11 @@ class EnvironnementViewModelTest {
         installPath = installPath,
     )
 
-    private fun etat(phases: Map<InstallPhase, PhaseState>) =
-        jo.codeide.core.domain.EnvironmentSetupState(
-            phases = phases,
-            running = null,
-            sdkLicenseAcceptedAtMillis = null,
-        )
+    private fun etat(phases: Map<InstallPhase, PhaseState>) = jo.codeide.core.domain.EnvironmentSetupState(
+        phases = phases,
+        running = null,
+        sdkLicenseAcceptedAtMillis = null,
+    )
 
     private companion object {
         private const val MIO: Long = 1024L * 1024

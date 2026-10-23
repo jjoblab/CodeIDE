@@ -14,9 +14,7 @@ import jo.codeide.core.model.LogEntry
  *
  * @param capacity nombre maximal d'entrées conservées, strictement positif.
  */
-internal class CircularLogBuffer(
-    private val capacity: Int,
-) {
+internal class CircularLogBuffer(private val capacity: Int) {
     init {
         require(capacity > 0) { "La capacité du tampon circulaire doit être positive." }
     }
@@ -40,10 +38,9 @@ internal class CircularLogBuffer(
      *
      * @return une copie indépendante, sûre à parcourir hors verrou.
      */
-    fun snapshot(): List<LogEntry> =
-        synchronized(deque) {
-            deque.toList()
-        }
+    fun snapshot(): List<LogEntry> = synchronized(deque) {
+        deque.toList()
+    }
 
     /** Efface le tampon. */
     fun clear() {
@@ -53,8 +50,7 @@ internal class CircularLogBuffer(
     }
 
     /** Nombre courant d'entrées conservées. */
-    fun size(): Int =
-        synchronized(deque) {
-            deque.size
-        }
+    fun size(): Int = synchronized(deque) {
+        deque.size
+    }
 }

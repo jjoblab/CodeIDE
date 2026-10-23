@@ -48,7 +48,7 @@ object FixtureModele {
     fun parametres(auteur: String = ""): jo.codeide.core.testing.FakeSettingsRepository =
         jo.codeide.core.testing.FakeSettingsRepository(
             initial =
-                jo.codeide.core.model
-                    .AppSettings(authorName = auteur),
+            jo.codeide.core.model
+                .AppSettings(authorName = auteur),
         )
 }

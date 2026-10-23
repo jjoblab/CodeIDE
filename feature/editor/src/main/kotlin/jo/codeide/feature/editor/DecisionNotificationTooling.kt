@@ -24,10 +24,7 @@ internal sealed interface DecisionNotificationTooling {
      * @property canal canal de l'activité (Sync, Build ou Taches).
      * @property taches tâches du build (libellé), vide sinon.
      */
-    data class EnCours(
-        val canal: CanalTooling,
-        val taches: List<String> = emptyList(),
-    ) : DecisionNotificationTooling
+    data class EnCours(val canal: CanalTooling, val taches: List<String> = emptyList()) : DecisionNotificationTooling
 
     /**
      * Dernier résultat : notification FINALE (non persistante, reste
@@ -59,10 +56,7 @@ internal fun decisionNotificationTooling(etat: EtatGradle): DecisionNotification
     etat.canalActif?.let { canal -> decisionEnCours(canal, etat) } ?: decisionResultat(etat)
 
 /** Activité en vol : notification en cours, tâches du build en libellé. */
-private fun decisionEnCours(
-    canal: CanalTooling,
-    etat: EtatGradle,
-): DecisionNotificationTooling =
+private fun decisionEnCours(canal: CanalTooling, etat: EtatGradle): DecisionNotificationTooling =
     if (canal == CanalTooling.BUILD) {
         DecisionNotificationTooling.EnCours(canal = canal, taches = etat.taches)
     } else {
@@ -74,74 +68,71 @@ private fun decisionEnCours(
  * Taches ne produit pas de notification de résultat (le sélecteur EST
  * le résultat).
  */
-private fun decisionResultat(etat: EtatGradle): DecisionNotificationTooling =
-    when (etat.canalDernierResultat) {
-        CanalTooling.SYNC -> resultatSync(etat)
-        CanalTooling.BUILD -> resultatBuild(etat)
-        null, CanalTooling.TACHES -> DecisionNotificationTooling.Rien
-    }
+private fun decisionResultat(etat: EtatGradle): DecisionNotificationTooling = when (etat.canalDernierResultat) {
+    CanalTooling.SYNC -> resultatSync(etat)
+    CanalTooling.BUILD -> resultatBuild(etat)
+    null, CanalTooling.TACHES -> DecisionNotificationTooling.Rien
+}
 
 /** Résultat de sync : l'échec prime (un échec récent ne montre JAMAIS
  *  le succès périmé qui le précède), puis le résultat complet. */
-private fun resultatSync(etat: EtatGradle): DecisionNotificationTooling =
-    when {
-        etat.messageEchecSync != null -> {
-            DecisionNotificationTooling.Resultat(
-                canal = CanalTooling.SYNC,
-                reussi = false,
-                messageEchec = etat.messageEchecSync,
-            )
-        }
-
-        etat.synchronisationReussie != null -> {
-            // Correctif n°9 : valeur locale — le smart-cast remplace les
-            // trois `!!` (l'échec a déjà été traité par la branche ci-dessus).
-            val resultat = etat.synchronisationReussie
-            DecisionNotificationTooling.Resultat(
-                canal = CanalTooling.SYNC,
-                reussi = resultat.reussie,
-                dureeMs = resultat.dureeMs,
-                messageEchec = resultat.messageEchec,
-            )
-        }
-
-        else -> {
-            DecisionNotificationTooling.Rien
-        }
+private fun resultatSync(etat: EtatGradle): DecisionNotificationTooling = when {
+    etat.messageEchecSync != null -> {
+        DecisionNotificationTooling.Resultat(
+            canal = CanalTooling.SYNC,
+            reussi = false,
+            messageEchec = etat.messageEchecSync,
+        )
     }
+
+    etat.synchronisationReussie != null -> {
+        // Correctif n°9 : valeur locale — le smart-cast remplace les
+        // trois `!!` (l'échec a déjà été traité par la branche ci-dessus).
+        val resultat = etat.synchronisationReussie
+        DecisionNotificationTooling.Resultat(
+            canal = CanalTooling.SYNC,
+            reussi = resultat.reussie,
+            dureeMs = resultat.dureeMs,
+            messageEchec = resultat.messageEchec,
+        )
+    }
+
+    else -> {
+        DecisionNotificationTooling.Rien
+    }
+}
 
 /** Résultat de build selon son statut terminal. */
-private fun resultatBuild(etat: EtatGradle): DecisionNotificationTooling =
-    when (etat.statutBuild) {
-        StatutBuild.REUSSI -> {
-            DecisionNotificationTooling.Resultat(
-                canal = CanalTooling.BUILD,
-                reussi = true,
-                dureeMs = etat.dureeBuildMs ?: 0,
-            )
-        }
-
-        StatutBuild.ECHOUE -> {
-            DecisionNotificationTooling.Resultat(
-                canal = CanalTooling.BUILD,
-                reussi = false,
-                dureeMs = etat.dureeBuildMs ?: 0,
-                messageEchec = etat.messageEchecBuild,
-            )
-        }
-
-        StatutBuild.ANNULE -> {
-            DecisionNotificationTooling.Resultat(
-                canal = CanalTooling.BUILD,
-                reussi = false,
-                annule = true,
-                dureeMs = etat.dureeBuildMs ?: 0,
-            )
-        }
-
-        // EN_COURS est couvert par canalActif ; un build sans statut
-        // n'a jamais démarré.
-        else -> {
-            DecisionNotificationTooling.Rien
-        }
+private fun resultatBuild(etat: EtatGradle): DecisionNotificationTooling = when (etat.statutBuild) {
+    StatutBuild.REUSSI -> {
+        DecisionNotificationTooling.Resultat(
+            canal = CanalTooling.BUILD,
+            reussi = true,
+            dureeMs = etat.dureeBuildMs ?: 0,
+        )
     }
+
+    StatutBuild.ECHOUE -> {
+        DecisionNotificationTooling.Resultat(
+            canal = CanalTooling.BUILD,
+            reussi = false,
+            dureeMs = etat.dureeBuildMs ?: 0,
+            messageEchec = etat.messageEchecBuild,
+        )
+    }
+
+    StatutBuild.ANNULE -> {
+        DecisionNotificationTooling.Resultat(
+            canal = CanalTooling.BUILD,
+            reussi = false,
+            annule = true,
+            dureeMs = etat.dureeBuildMs ?: 0,
+        )
+    }
+
+    // EN_COURS est couvert par canalActif ; un build sans statut
+    // n'a jamais démarré.
+    else -> {
+        DecisionNotificationTooling.Rien
+    }
+}

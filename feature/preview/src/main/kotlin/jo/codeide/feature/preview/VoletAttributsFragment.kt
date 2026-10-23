@@ -167,38 +167,31 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
                 brancherBarre(barre)
             }
 
-            override fun sectionOuverte(
-                section: CatalogueAttributs.SectionAttributs,
-                position: Int,
-            ): Boolean =
-                when {
-                    // La recherche OUVRE les sections qui restent (miroir
-                    // `d.open = qq ? true : …`).
-                    rechercheInterne.value.isNotBlank() -> {
-                        true
-                    }
-
-                    // La section AUTRES s'ouvre par défaut dès qu'elle
-                    // PORTE des rangées (miroir `rows.length > 0`).
-                    section.autres -> {
-                        viewModel
-                            .attributsSelection()
-                            ?.let { attrs -> nomsInconnus(attrs).isNotEmpty() }
-                            ?: false
-                    }
-
-                    // L'état MÉMORISÉ d'abord (miroir `S.so[t] ?? …`), sinon
-                    // l'ouverture par défaut — le tap ÉCRIT dans la carte
-                    // (basculerSection), c'est ici qu'on la RELIT.
-                    else -> {
-                        etatSections[section.titre.name] ?: ouvertureParDefaut(section, position)
-                    }
+            override fun sectionOuverte(section: CatalogueAttributs.SectionAttributs, position: Int): Boolean = when {
+                // La recherche OUVRE les sections qui restent (miroir
+                // `d.open = qq ? true : …`).
+                rechercheInterne.value.isNotBlank() -> {
+                    true
                 }
 
-            override fun basculerSection(
-                section: CatalogueAttributs.SectionAttributs,
-                ouverte: Boolean,
-            ) {
+                // La section AUTRES s'ouvre par défaut dès qu'elle
+                // PORTE des rangées (miroir `rows.length > 0`).
+                section.autres -> {
+                    viewModel
+                        .attributsSelection()
+                        ?.let { attrs -> nomsInconnus(attrs).isNotEmpty() }
+                        ?: false
+                }
+
+                // L'état MÉMORISÉ d'abord (miroir `S.so[t] ?? …`), sinon
+                // l'ouverture par défaut — le tap ÉCRIT dans la carte
+                // (basculerSection), c'est ici qu'on la RELIT.
+                else -> {
+                    etatSections[section.titre.name] ?: ouvertureParDefaut(section, position)
+                }
+            }
+
+            override fun basculerSection(section: CatalogueAttributs.SectionAttributs, ouverte: Boolean) {
                 // La recherche NE MÉMORISE PAS (miroir `if (!qq) S.so[t] = d.open`).
                 if (rechercheInterne.value.isBlank()) etatSections[section.titre.name] = ouverte
             }
@@ -219,11 +212,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
     private fun gonfleur(): LayoutInflater = LayoutInflater.from(requireContext())
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        conteneur: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, conteneur: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentVoletAttributsBinding.inflate(inflater, conteneur, false)
         adaptateur = AdaptateurAttributs(evenementsAdaptateur)
         liaison.voletAttributs.layoutManager = LinearLayoutManager(requireContext())
@@ -314,71 +303,70 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** La LISTE des items du volet (PREVIEW_UI.md § 8, de haut en bas). */
-    private fun itemsVolet(vue: InfoVueRendu?): List<ItemAttributs> =
-        buildList {
-            // PE11 § 7 — les ouvertures PAR DÉFAUT se recomptent sur la
-            // liste FILTRÉE de CETTE passe (miroir `++opened` de `fill`).
-            ouvertesParDefaut = emptySet()
-            ouvertesComptees = 0
-            if (vue == null) {
-                add(ItemAttributs.Vide)
-                return@buildList
-            }
-            val classe = viewModel.classeSelection() ?: vue.classe
-            val familleParent = viewModel.familleParentSelection() ?: FamilleParent.AUCUN
-            val familleVue = viewModel.familleVueSelection() ?: FamilleParent.deBalise(classe)
-            add(ItemAttributs.Titre(getString(R.string.preview_modifier_classe, classe)))
-            add(ItemAttributs.BarreOutils)
-            val attrs = viewModel.attributsSelection()
-            if (attrs == null) {
-                // Un span périmé retombe en LECTURE SEULE avec explication
-                // (miroir piège § 6 du prompt) — les corrections du rendu
-                // seraient stalles aussi : elles vivent avec l'éditable.
-                add(ItemAttributs.LectureSeule(getString(R.string.preview_edition_impossible_toast)))
-            } else {
-                // PE11g — LES CORRECTIONS RAPIDES (miroir quickFixes) : une
-                // carte par problème de la vue qui a UNE action, AVANT les
-                // sections (PREVIEW_UI.md § 8 : item 2 « correctifs »).
-                ajouterCorrectifs(this, vue)
-                val sections = CatalogueAttributs.sections(classe, familleParent, familleVue)
-                var visibles = 0
-                var masques = 0
-                sections.forEachIndexed { position, section ->
-                    // La section AUTRES (PE11h — miroir `sc.other`) : les
-                    // rangées viennent du DOCUMENT, pas du catalogue.
-                    if (section.autres) {
-                        if (ajouterSectionAutres(this, attrs, section, position)) {
-                            visibles++
-                            noterOuvertureParDefaut(section, position)
-                        }
-                        return@forEachIndexed
+    private fun itemsVolet(vue: InfoVueRendu?): List<ItemAttributs> = buildList {
+        // PE11 § 7 — les ouvertures PAR DÉFAUT se recomptent sur la
+        // liste FILTRÉE de CETTE passe (miroir `++opened` de `fill`).
+        ouvertesParDefaut = emptySet()
+        ouvertesComptees = 0
+        if (vue == null) {
+            add(ItemAttributs.Vide)
+            return@buildList
+        }
+        val classe = viewModel.classeSelection() ?: vue.classe
+        val familleParent = viewModel.familleParentSelection() ?: FamilleParent.AUCUN
+        val familleVue = viewModel.familleVueSelection() ?: FamilleParent.deBalise(classe)
+        add(ItemAttributs.Titre(getString(R.string.preview_modifier_classe, classe)))
+        add(ItemAttributs.BarreOutils)
+        val attrs = viewModel.attributsSelection()
+        if (attrs == null) {
+            // Un span périmé retombe en LECTURE SEULE avec explication
+            // (miroir piège § 6 du prompt) — les corrections du rendu
+            // seraient stalles aussi : elles vivent avec l'éditable.
+            add(ItemAttributs.LectureSeule(getString(R.string.preview_edition_impossible_toast)))
+        } else {
+            // PE11g — LES CORRECTIONS RAPIDES (miroir quickFixes) : une
+            // carte par problème de la vue qui a UNE action, AVANT les
+            // sections (PREVIEW_UI.md § 8 : item 2 « correctifs »).
+            ajouterCorrectifs(this, vue)
+            val sections = CatalogueAttributs.sections(classe, familleParent, familleVue)
+            var visibles = 0
+            var masques = 0
+            sections.forEachIndexed { position, section ->
+                // La section AUTRES (PE11h — miroir `sc.other`) : les
+                // rangées viennent du DOCUMENT, pas du catalogue.
+                if (section.autres) {
+                    if (ajouterSectionAutres(this, attrs, section, position)) {
+                        visibles++
+                        noterOuvertureParDefaut(section, position)
                     }
-                    val controles = controlesFiltres(section)
-                    if (controles.isEmpty()) return@forEachIndexed
-                    masques += section.controles.size - controles.size
-                    visibles++
-                    noterOuvertureParDefaut(section, position)
-                    add(
-                        ItemAttributs.Carte(
-                            section = section,
-                            controles = controles,
-                            attrs = attrs,
-                            position = position,
-                            titre = titreSectionRes(section.titre),
-                            definis = nombreDefinis(section, attrs),
-                        ),
-                    )
+                    return@forEachIndexed
                 }
-                ajouterPiedSections(this, classe, visibles, masques)
-                add(ItemAttributs.Separateur)
+                val controles = controlesFiltres(section)
+                if (controles.isEmpty()) return@forEachIndexed
+                masques += section.controles.size - controles.size
+                visibles++
+                noterOuvertureParDefaut(section, position)
+                add(
+                    ItemAttributs.Carte(
+                        section = section,
+                        controles = controles,
+                        attrs = attrs,
+                        position = position,
+                        titre = titreSectionRes(section.titre),
+                        definis = nombreDefinis(section, attrs),
+                    ),
+                )
             }
-            for (groupe in FeuilleApercu.groupesAttributs(vue, viewModel.moteur.profil.densiteDpi)) {
-                add(ItemAttributs.TitreGroupe(groupe.titre))
-                groupe.entrees.forEach { entree ->
-                    add(ItemAttributs.Attribut(entree.libelle, entree.valeur))
-                }
+            ajouterPiedSections(this, classe, visibles, masques)
+            add(ItemAttributs.Separateur)
+        }
+        for (groupe in FeuilleApercu.groupesAttributs(vue, viewModel.moteur.profil.densiteDpi)) {
+            add(ItemAttributs.TitreGroupe(groupe.titre))
+            groupe.entrees.forEach { entree ->
+                add(ItemAttributs.Attribut(entree.libelle, entree.valeur))
             }
         }
+    }
 
     /** Le titre localisé d'une section (clé sémantique → ressource — table
      * unique, miroir [ETIQUETTES_RES]). */
@@ -428,19 +416,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * sections VISIBLES hors Identité s'ouvrent, comptées sur la liste
      * FILTRÉE par [itemsVolet] (l'ordre de rendu, pas le catalogue nu).
      */
-    private fun ouvertureParDefaut(
-        section: CatalogueAttributs.SectionAttributs,
-        position: Int,
-    ): Boolean = position in ouvertesParDefaut && section.titre != CatalogueAttributs.TitreSection.IDENTITE
+    private fun ouvertureParDefaut(section: CatalogueAttributs.SectionAttributs, position: Int): Boolean =
+        position in ouvertesParDefaut && section.titre != CatalogueAttributs.TitreSection.IDENTITE
 
     /**
      * NOTE une section VISIBLE pour l'ouverture par défaut (appelé par
      * [itemsVolet] dans l'ordre de rendu — l'Identité ne compte jamais).
      */
-    private fun noterOuvertureParDefaut(
-        section: CatalogueAttributs.SectionAttributs,
-        position: Int,
-    ) {
+    private fun noterOuvertureParDefaut(section: CatalogueAttributs.SectionAttributs, position: Int) {
         if (section.titre != CatalogueAttributs.TitreSection.IDENTITE) {
             ouvertesComptees++
             if (ouvertesComptees <= OUVERTES_DEFAUT) {
@@ -456,12 +439,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * un nom d'attribut), puis le bouton large « Afficher les N autres »
      * (mode Courants, attributs masqués — miroir le `.linkbtn.wide`).
      */
-    private fun ajouterPiedSections(
-        items: MutableList<ItemAttributs>,
-        classe: String,
-        visibles: Int,
-        masques: Int,
-    ) {
+    private fun ajouterPiedSections(items: MutableList<ItemAttributs>, classe: String, visibles: Int, masques: Int) {
         if (visibles == 0) {
             items.add(ItemAttributs.Message(getString(R.string.preview_attr_aucun, rechercheInterne.value.trim())))
             rechercheInterne.value.trim().takeIf { NOM_SUGGESTION.matches(it) }?.let { nom ->
@@ -483,10 +461,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * la VUE SÉLECTIONNÉE qui a UNE action — le titre de groupe n'apparaît
      * que s'il y a des cartes (miroir le bloc `.fixes` absent à zéro fix).
      */
-    private fun ajouterCorrectifs(
-        items: MutableList<ItemAttributs>,
-        vue: InfoVueRendu,
-    ) {
+    private fun ajouterCorrectifs(items: MutableList<ItemAttributs>, vue: InfoVueRendu) {
         val vues = renduCourant?.vues ?: return
         // PE12f — les problèmes de FAMILLE, lus dans le TEXTE VIVANT :
         // ils se rattachent à la sélection par le DÉBUT de l'élément (le
@@ -515,22 +490,19 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * « Ajouter la dépendance » de la classe introuvable est HORS périmètre
      * (brief : « n'afficher le bouton que si l'action existe »).
      */
-    private fun correctifDe(
-        probleme: ProblemesPreview.ProblemeApercu,
-        vue: InfoVueRendu,
-    ): ItemAttributs.Correctif? {
+    private fun correctifDe(probleme: ProblemesPreview.ProblemeApercu, vue: InfoVueRendu): ItemAttributs.Correctif? {
         val action = actionDe(probleme.genre) ?: return null
         return ItemAttributs.Correctif(
             genre = probleme.genre,
             titre = LibellesProblemes.titre(requireContext(), probleme.genre, vue),
             message =
-                LibellesProblemes.message(
-                    requireContext(),
-                    probleme.genre,
-                    vue,
-                    viewModel.moteur.profil.densiteDpi,
-                    viewModel.echellePolice,
-                ),
+            LibellesProblemes.message(
+                requireContext(),
+                probleme.genre,
+                vue,
+                viewModel.moteur.profil.densiteDpi,
+                viewModel.echellePolice,
+            ),
             bouton = getString(boutonDe(action)),
             action = action,
         )
@@ -543,29 +515,28 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * ils passent par [correctifFamilleDe], leur correctif vit sur le
      * SPAN du texte, pas sur la sélection du rendu).
      */
-    private fun actionDe(genre: ProblemesPreview.GenreProbleme): ActionCorrectif? =
-        when (genre) {
-            ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> null
+    private fun actionDe(genre: ProblemesPreview.GenreProbleme): ActionCorrectif? = when (genre) {
+        ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> null
 
-            ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> ActionCorrectif.ElargirCible
+        ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> ActionCorrectif.ElargirCible
 
-            ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> ActionCorrectif.OuvrirContentDescription
+        ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> ActionCorrectif.OuvrirContentDescription
 
-            ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> ActionCorrectif.ExtraireTexte
+        ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> ActionCorrectif.ExtraireTexte
 
-            ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> ActionCorrectif.AutoriserDeuxLignes
+        ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> ActionCorrectif.AutoriserDeuxLignes
 
-            ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN,
-            ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE,
-            ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
-            ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
-            ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
-            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
-            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
-            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
-            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
-            -> null
-        }
+        ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN,
+        ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE,
+        ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
+        ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
+        ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
+        ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+        ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+        ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
+        ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
+        -> null
+    }
 
     /**
      * La CARTE d'un problème de FAMILLE (PE12f — miroir les `fixer` de la
@@ -584,65 +555,63 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         )
 
     /** Le LIBELLÉ localisé du bouton d'une action (miroir `fx.b`). */
-    private fun boutonDe(action: ActionCorrectif): Int =
-        when (action) {
-            ActionCorrectif.ElargirCible -> R.string.preview_correctif_cible_bouton
-            ActionCorrectif.ExtraireTexte -> R.string.preview_correctif_extraire_bouton
-            ActionCorrectif.AutoriserDeuxLignes -> R.string.preview_correctif_tronque_bouton
-            ActionCorrectif.OuvrirContentDescription -> R.string.preview_correctif_description_bouton
-            is ActionCorrectif.CorrigerFamille -> boutonFamille(action.probleme)
-        }
+    private fun boutonDe(action: ActionCorrectif): Int = when (action) {
+        ActionCorrectif.ElargirCible -> R.string.preview_correctif_cible_bouton
+        ActionCorrectif.ExtraireTexte -> R.string.preview_correctif_extraire_bouton
+        ActionCorrectif.AutoriserDeuxLignes -> R.string.preview_correctif_tronque_bouton
+        ActionCorrectif.OuvrirContentDescription -> R.string.preview_correctif_description_bouton
+        is ActionCorrectif.CorrigerFamille -> boutonFamille(action.probleme)
+    }
 
     /**
      * Le LIBELLÉ du bouton d'un problème de FAMILLE (PE12f, spec § 9) :
      * « Retirer cet attribut » au singulier, « ces attributs » sinon
      * (miroir `orph.length > 1`).
      */
-    private fun boutonFamille(probleme: ProblemesFamilles.Probleme): Int =
-        when (probleme.genre) {
-            ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
-                if (probleme.attributs.size == 1) {
-                    R.string.preview_correctif_retirer_attribut
-                } else {
-                    R.string.preview_correctif_retirer_attributs
-                }
-            }
-
-            ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE -> {
-                R.string.preview_correctif_retirer_regle
-            }
-
-            ProblemesPreview.GenreProbleme.ANCRE_INVALIDE -> {
-                R.string.preview_correctif_retirer_ancre
-            }
-
-            ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT -> {
-                R.string.preview_correctif_ajouter_comportement
-            }
-
-            ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
-                R.string.preview_correctif_casser_boucle
-            }
-
-            // v0.170.0 — contenance : l'enfant unique dépassé
-            // s'ENVELOPPE (miroir la résolution canonique du lint
-            // ScrollViewChildren) ; les trois autres genres RETIRENT
-            // les enfants fautifs.
-            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
-                R.string.preview_correctif_envelopper
-            }
-
-            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
-            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
-            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
-            -> {
-                R.string.preview_correctif_retirer_enfants
-            }
-
-            else -> {
-                error("genre de rendu : pas de bouton de famille — $probleme")
+    private fun boutonFamille(probleme: ProblemesFamilles.Probleme): Int = when (probleme.genre) {
+        ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
+            if (probleme.attributs.size == 1) {
+                R.string.preview_correctif_retirer_attribut
+            } else {
+                R.string.preview_correctif_retirer_attributs
             }
         }
+
+        ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE -> {
+            R.string.preview_correctif_retirer_regle
+        }
+
+        ProblemesPreview.GenreProbleme.ANCRE_INVALIDE -> {
+            R.string.preview_correctif_retirer_ancre
+        }
+
+        ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT -> {
+            R.string.preview_correctif_ajouter_comportement
+        }
+
+        ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
+            R.string.preview_correctif_casser_boucle
+        }
+
+        // v0.170.0 — contenance : l'enfant unique dépassé
+        // s'ENVELOPPE (miroir la résolution canonique du lint
+        // ScrollViewChildren) ; les trois autres genres RETIRENT
+        // les enfants fautifs.
+        ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
+            R.string.preview_correctif_envelopper
+        }
+
+        ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+        ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+        ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
+        -> {
+            R.string.preview_correctif_retirer_enfants
+        }
+
+        else -> {
+            error("genre de rendu : pas de bouton de famille — $probleme")
+        }
+    }
 
     /** L'étiquette localisée d'un contrôle (clé sémantique → ressource). */
     private fun etiquetteRes(etiquette: CatalogueAttributs.Etiquette): String =
@@ -652,33 +621,31 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private fun nombreDefinis(
         section: CatalogueAttributs.SectionAttributs,
         attrs: List<EditionAttributsXml.AttributSource>,
-    ): Int =
-        section.controles.count { controle ->
-            controle.nomsAttributs.any { nom ->
-                attrs.any { it.nom == nom && it.valeur.isNotEmpty() }
-            }
+    ): Int = section.controles.count { controle ->
+        controle.nomsAttributs.any { nom ->
+            attrs.any { it.nom == nom && it.valeur.isNotEmpty() }
         }
+    }
 
     /** La DÉRIVATION d'un contrôle (miroir `ctl` : un type = un item layout). */
     private fun controleSection(
         controle: CatalogueAttributs.ControleAttribut,
         attrs: List<EditionAttributsXml.AttributSource>,
-    ): View =
-        when (controle) {
-            is CatalogueAttributs.ControleAttribut.Identifiant -> controleIdentifiant(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Texte -> controleTexte(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Nombre -> controleNombre(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Choix -> controleChoix(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Liste -> controleListe(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Drapeaux -> controleDrapeaux(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.TypeSaisie -> controleTypeSaisie(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Couleur -> controleCouleur(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Ressource -> controleRessource(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Curseur -> controleCurseur(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Ratio -> controleRatio(controle, attrs)
-            else -> controleComposite(controle, attrs)
-        }
+    ): View = when (controle) {
+        is CatalogueAttributs.ControleAttribut.Identifiant -> controleIdentifiant(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Texte -> controleTexte(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Nombre -> controleNombre(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Choix -> controleChoix(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Liste -> controleListe(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Drapeaux -> controleDrapeaux(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.TypeSaisie -> controleTypeSaisie(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.TriEtat -> controleTriEtat(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Couleur -> controleCouleur(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Ressource -> controleRessource(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Curseur -> controleCurseur(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Ratio -> controleRatio(controle, attrs)
+        else -> controleComposite(controle, attrs)
+    }
 
     /**
      * Les contrôles COMPOSITES (miroir de la seconde moitié du `when` de
@@ -688,24 +655,21 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private fun controleComposite(
         controle: CatalogueAttributs.ControleAttribut,
         attrs: List<EditionAttributsXml.AttributSource>,
-    ): View =
-        when (controle) {
-            is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Coins -> controleCoins(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.ReferenceId -> controleReferenceId(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.Bascules -> controleBascules(controle, attrs)
-            is CatalogueAttributs.ControleAttribut.ActionRapide -> controleActionRapide(controle)
-            is CatalogueAttributs.ControleAttribut.ContraintesLecture -> controleContraintesLecture(controle, attrs)
-            CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
-            CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
-            else -> error("contrôle à champ routé par controleSection : $controle")
-        }
+    ): View = when (controle) {
+        is CatalogueAttributs.ControleAttribut.Cotes -> controleCotes(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Coins -> controleCoins(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.ReferenceId -> controleReferenceId(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.Bascules -> controleBascules(controle, attrs)
+        is CatalogueAttributs.ControleAttribut.ActionRapide -> controleActionRapide(controle)
+        is CatalogueAttributs.ControleAttribut.ContraintesLecture -> controleContraintesLecture(controle, attrs)
+        CatalogueAttributs.ControleAttribut.Dimensions -> controleDimensions()
+        CatalogueAttributs.ControleAttribut.Contraintes -> controleContraintes()
+        else -> error("contrôle à champ routé par controleSection : $controle")
+    }
 
     /** La valeur courante d'un contrôle nommé (lecture dans les attributs lus). */
-    private fun valeurDe(
-        nom: String,
-        attrs: List<EditionAttributsXml.AttributSource>,
-    ): String? = attrs.firstOrNull { it.nom == nom }?.valeur
+    private fun valeurDe(nom: String, attrs: List<EditionAttributsXml.AttributSource>): String? =
+        attrs.firstOrNull { it.nom == nom }?.valeur
 
     /**
      * L'EN-TÊTE commun des contrôles (PE12c — miroir `fieldBox` de la
@@ -754,10 +718,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** Résout une couleur THÈME (?attr) et la pose sur le TEXTE (miroir le `textColor` de Pastille.App/.Tools). */
-    private fun poserTeinteTexte(
-        vue: TextView,
-        attribut: Int,
-    ) {
+    private fun poserTeinteTexte(vue: TextView, attribut: Int) {
         val tape = TypedValue()
         if (!vue.context.theme.resolveAttribute(attribut, tape, true)) return
         vue.setTextColor(
@@ -766,16 +727,15 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** La NOTE de section (PE12c — miroir `sc.note`) : une ligne .note2 en tête du corps. */
-    private fun vueNoteSection(note: CatalogueAttributs.NoteSection): TextView =
-        when (note) {
-            CatalogueAttributs.NoteSection.REGLES_SOEURS -> {
-                noteSousChamp(getString(R.string.preview_note_regles_soeurs))
-            }
-
-            CatalogueAttributs.NoteSection.OUTILS_APERCU -> {
-                noteSousChamp(getString(R.string.preview_note_outils_apercu))
-            }
+    private fun vueNoteSection(note: CatalogueAttributs.NoteSection): TextView = when (note) {
+        CatalogueAttributs.NoteSection.REGLES_SOEURS -> {
+            noteSousChamp(getString(R.string.preview_note_regles_soeurs))
         }
+
+        CatalogueAttributs.NoteSection.OUTILS_APERCU -> {
+            noteSousChamp(getString(R.string.preview_note_outils_apercu))
+        }
+    }
 
     /** La note SOUS un champ (miroir `.note2`) : le style Note de la référence, écart d'étiquette en marge haute. */
     private fun noteSousChamp(texte: String): TextView =
@@ -790,15 +750,11 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
         }
 
     /** Un bloc LECTURE SEULE (item_lecture_seule.xml — mono sur surface 2). */
-    private fun blocLectureSeule(
-        parent: ViewGroup,
-        texte: String,
-    ): TextView =
-        ItemLectureSeuleBinding
-            .inflate(gonfleur(), parent, false)
-            .apply {
-                valeurLectureSeule.text = texte
-            }.valeurLectureSeule
+    private fun blocLectureSeule(parent: ViewGroup, texte: String): TextView = ItemLectureSeuleBinding
+        .inflate(gonfleur(), parent, false)
+        .apply {
+            valeurLectureSeule.text = texte
+        }.valeurLectureSeule
 
     /** Un contrôle TEXTE (controle_texte.xml) : littéral éditable ou
      * référence en lecture seule (miroir `.ro`), EXTRACTION offerte (PE8c). */
@@ -865,10 +821,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** Le commit d'un champ TEXTE : vide = rien (miroir les champs PE7e). */
-    private fun commiterTexte(
-        champ: EditText,
-        action: (String) -> Boolean,
-    ) {
+    private fun commiterTexte(champ: EditText, action: (String) -> Boolean) {
         val saisie =
             champ.text
                 ?.toString()
@@ -884,18 +837,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     private fun verdictTexte(
         genre: CatalogueAttributs.GenreValidationTexte?,
         valeur: String,
-    ): ValidationAttribut.Resultat? =
-        when (genre) {
-            CatalogueAttributs.GenreValidationTexte.NOM_ACTIVITE -> ValidationAttribut.nomActivite(valeur)
-            CatalogueAttributs.GenreValidationTexte.NOM_METHODE_JAVA -> ValidationAttribut.nomMethodeJava(valeur)
-            null -> null
-        }
+    ): ValidationAttribut.Resultat? = when (genre) {
+        CatalogueAttributs.GenreValidationTexte.NOM_ACTIVITE -> ValidationAttribut.nomActivite(valeur)
+        CatalogueAttributs.GenreValidationTexte.NOM_METHODE_JAVA -> ValidationAttribut.nomMethodeJava(valeur)
+        null -> null
+    }
 
     /** Le TEXTE localisé d'un message de validation (règle 3 — jamais de chaîne en dur). */
-    private fun messageValidation(
-        genre: ValidationAttribut.GenreMessage,
-        arguments: List<String>,
-    ): String =
+    private fun messageValidation(genre: ValidationAttribut.GenreMessage, arguments: List<String>): String =
         when (arguments.size) {
             0 -> getString(messageRessource(genre))
             1 -> getString(messageRessource(genre), arguments[0])
@@ -973,12 +922,11 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** Le nom SANS préfixe d'une valeur d'id (`@+id/x`/`@id/x` → `x`), sinon la valeur brute. */
-    private fun nomCourant(valeur: String): String =
-        when {
-            valeur.startsWith("@+id/") -> valeur.removePrefix("@+id/")
-            valeur.startsWith("@id/") -> valeur.removePrefix("@id/")
-            else -> valeur
-        }
+    private fun nomCourant(valeur: String): String = when {
+        valeur.startsWith("@+id/") -> valeur.removePrefix("@+id/")
+        valeur.startsWith("@id/") -> valeur.removePrefix("@id/")
+        else -> valeur
+    }
 
     /** Le commit d'un RENOMMAGE (miroir `commiterNombre`) : vide = rien,
      * nom invalide/identique = retour visuel, sinon l'édition — un refus
@@ -1024,10 +972,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * en …')` de la maquette) : « Renommé en @+id/x · N références mises
      * à jour » au pluriel, le message simple sans référence.
      */
-    private fun annoncerRenommage(
-        nouveau: String,
-        references: Int,
-    ) {
+    private fun annoncerRenommage(nouveau: String, references: Int) {
         val texte =
             if (references == 0) {
                 getString(R.string.preview_renomme_simple, nouveau)
@@ -1410,14 +1355,13 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * « introuvable » (miroir `RES` de la maquette — l'état VIVANT du
      * ViewModel, rechargé à chaque suivi de projet).
      */
-    private fun verdictCouleur(valeur: String?): ValidationAttribut.Resultat =
-        ValidationAttribut.couleur(
-            valeur,
-            viewModel.couleursProjet.value
-                .map { it.nom }
-                .toSet(),
-            viewModel.drawablesProjet.value,
-        )
+    private fun verdictCouleur(valeur: String?): ValidationAttribut.Resultat = ValidationAttribut.couleur(
+        valeur,
+        viewModel.couleursProjet.value
+            .map { it.nom }
+            .toSet(),
+        viewModel.drawablesProjet.value,
+    )
 
     /**
      * POSE la TEINTE de la pastille du contrôle couleur (miroir
@@ -1428,10 +1372,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * de l'activité porte les mêmes noms). Introuvable = SANS teinte :
      * le damier reste seul (miroir `transparent`).
      */
-    private fun poserTeintePastille(
-        vue: View,
-        valeur: String?,
-    ) {
+    private fun poserTeintePastille(vue: View, valeur: String?) {
         vue.setBackgroundResource(R.drawable.apercu_pastille_teinte)
         val teinte =
             CouleursProjetXml
@@ -1560,20 +1501,19 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** La ressource chaîne d'un genre de message (règle 3 — jamais de chaîne en dur). */
-    private fun messageRessource(genre: ValidationAttribut.GenreMessage): Int =
-        when (genre) {
-            ValidationAttribut.GenreMessage.COULEUR_INVALIDE -> R.string.preview_attr_couleur_invalide
-            ValidationAttribut.GenreMessage.COULEUR_INTROUVABLE -> R.string.preview_attr_couleur_introuvable
-            ValidationAttribut.GenreMessage.DRAWABLE_INTROUVABLE -> R.string.preview_attr_drawable_introuvable
-            ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE -> R.string.preview_attr_reference_attendue
-            ValidationAttribut.GenreMessage.TYPE_REFUSE -> R.string.preview_attr_type_refuse
-            ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE -> R.string.preview_attr_ressource_introuvable
-            ValidationAttribut.GenreMessage.VALEUR_BORNEE -> R.string.preview_attr_curseur_bornes
-            ValidationAttribut.GenreMessage.RATIO_INVALIDE -> R.string.preview_attr_ratio_invalide
-            ValidationAttribut.GenreMessage.NOM_ACTIVITE_ATTENDU -> R.string.preview_attr_activite_attendue
-            ValidationAttribut.GenreMessage.NOM_METHODE_ATTENDU -> R.string.preview_attr_methode_attendue
-            ValidationAttribut.GenreMessage.NOM_ATTRIBUT_LIBRE -> R.string.preview_attr_libre_nom_invalide
-        }
+    private fun messageRessource(genre: ValidationAttribut.GenreMessage): Int = when (genre) {
+        ValidationAttribut.GenreMessage.COULEUR_INVALIDE -> R.string.preview_attr_couleur_invalide
+        ValidationAttribut.GenreMessage.COULEUR_INTROUVABLE -> R.string.preview_attr_couleur_introuvable
+        ValidationAttribut.GenreMessage.DRAWABLE_INTROUVABLE -> R.string.preview_attr_drawable_introuvable
+        ValidationAttribut.GenreMessage.REFERENCE_ATTENDUE -> R.string.preview_attr_reference_attendue
+        ValidationAttribut.GenreMessage.TYPE_REFUSE -> R.string.preview_attr_type_refuse
+        ValidationAttribut.GenreMessage.RESSOURCE_INTROUVABLE -> R.string.preview_attr_ressource_introuvable
+        ValidationAttribut.GenreMessage.VALEUR_BORNEE -> R.string.preview_attr_curseur_bornes
+        ValidationAttribut.GenreMessage.RATIO_INVALIDE -> R.string.preview_attr_ratio_invalide
+        ValidationAttribut.GenreMessage.NOM_ACTIVITE_ATTENDU -> R.string.preview_attr_activite_attendue
+        ValidationAttribut.GenreMessage.NOM_METHODE_ATTENDU -> R.string.preview_attr_methode_attendue
+        ValidationAttribut.GenreMessage.NOM_ATTRIBUT_LIBRE -> R.string.preview_attr_libre_nom_invalide
+    }
 
     /** Retire le message de validation (miroir `showMsg(f, null)` retire le bloc). */
     private fun masquerMessageControle(message: TextView) {
@@ -1631,20 +1571,19 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** La teinte d'une entrée FIXE de la palette (trio système + deux `?attr/` de thème). */
-    private fun teintePaletteFixe(nom: String): Int? =
-        when {
-            nom.startsWith("@android:color/") -> {
-                CouleursProjetXml.resoudre(nom, emptyMap())?.toInt()
-            }
-
-            nom.startsWith("?attr/") -> {
-                teinteTheme(nom.removePrefix("?attr/"))
-            }
-
-            else -> {
-                null
-            }
+    private fun teintePaletteFixe(nom: String): Int? = when {
+        nom.startsWith("@android:color/") -> {
+            CouleursProjetXml.resoudre(nom, emptyMap())?.toInt()
         }
+
+        nom.startsWith("?attr/") -> {
+            teinteTheme(nom.removePrefix("?attr/"))
+        }
+
+        else -> {
+            null
+        }
+    }
 
     /**
      * Un contrôle RESSOURCE (controle_ressource.xml, PE11f — miroir
@@ -2130,10 +2069,8 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * L'adaptateur des options d'une référence : les entrées « (boucle) »
      * sont DÉSACTIVÉES (miroir `o.disabled`), les autres choisissables.
      */
-    private inner class AdaptateurReferences(
-        libelles: List<String>,
-        private val grisees: List<Boolean>,
-    ) : ArrayAdapter<String>(requireContext(), R.layout.item_option_liste, libelles) {
+    private inner class AdaptateurReferences(libelles: List<String>, private val grisees: List<Boolean>) :
+        ArrayAdapter<String>(requireContext(), R.layout.item_option_liste, libelles) {
         override fun areAllItemsEnabled(): Boolean = false
 
         override fun isEnabled(position: Int): Boolean = grisees.getOrNull(position) != true
@@ -2351,11 +2288,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * `dimrow`) : segments wrap/match/fixe + champ dp révélé quand le
      * mode est FIXE (le champ prend le relais sans valeur).
      */
-    private fun rangeeDimension(
-        rangee: ItemDimensionBinding,
-        axe: EditionAttributsXml.Axe,
-        libelle: String,
-    ) {
+    private fun rangeeDimension(rangee: ItemDimensionBinding, axe: EditionAttributsXml.Axe, libelle: String) {
         val nomAttribut = if (axe == EditionAttributsXml.Axe.LARGEUR) ATTR_LARGEUR else ATTR_HAUTEUR
         val valeur = viewModel.valeurAttributSelection(nomAttribut) ?: ""
         val (modeCourant, valeurFixe) = modeDimensionDe(valeur)
@@ -2388,29 +2321,28 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** Le mode + la valeur fixe d'une dimension courante (miroir `mode`). */
-    private fun modeDimensionDe(valeur: String): Pair<EditionAttributsXml.ModeDimension, Int?> =
-        when {
-            valeur == "wrap_content" -> {
-                EditionAttributsXml.ModeDimension.WRAP to null
-            }
+    private fun modeDimensionDe(valeur: String): Pair<EditionAttributsXml.ModeDimension, Int?> = when {
+        valeur == "wrap_content" -> {
+            EditionAttributsXml.ModeDimension.WRAP to null
+        }
 
-            valeur == "match_parent" -> {
-                EditionAttributsXml.ModeDimension.MATCH to null
-            }
+        valeur == "match_parent" -> {
+            EditionAttributsXml.ModeDimension.MATCH to null
+        }
 
-            valeur.endsWith("dp") -> {
-                val nombre = valeur.removeSuffix("dp").toIntOrNull()
-                if (nombre != null) {
-                    EditionAttributsXml.ModeDimension.FIXE to nombre
-                } else {
-                    EditionAttributsXml.ModeDimension.FIXE to null
-                }
-            }
-
-            else -> {
+        valeur.endsWith("dp") -> {
+            val nombre = valeur.removeSuffix("dp").toIntOrNull()
+            if (nombre != null) {
+                EditionAttributsXml.ModeDimension.FIXE to nombre
+            } else {
                 EditionAttributsXml.ModeDimension.FIXE to null
             }
         }
+
+        else -> {
+            EditionAttributsXml.ModeDimension.FIXE to null
+        }
+    }
 
     /** Écrit une dimension sur la sélection (silencieux — même raison). */
     private fun ecrireDimension(
@@ -2442,10 +2374,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** Le LIAGE d'une rangée d'ancre (controle_contrainte.xml, miroir `.crow`). */
-    private fun rangeeContrainte(
-        lue: EditionAttributsXml.ContrainteLue,
-        parent: ViewGroup,
-    ): View {
+    private fun rangeeContrainte(lue: EditionAttributsXml.ContrainteLue, parent: ViewGroup): View {
         val rangee = ControleContrainteBinding.inflate(gonfleur(), parent, false)
         val libelle = libelleAncre(lue.cote)
         rangee.libelleAncre.text = libelle
@@ -2497,10 +2426,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
 
     /** Le menu de CIBLE d'une ancre (popover_menu_cible.xml — Aucune,
      * parent, puis les frères à id ; la cible courante est marquée). */
-    private fun menuCible(
-        ancre: View,
-        lue: EditionAttributsXml.ContrainteLue,
-    ) {
+    private fun menuCible(ancre: View, lue: EditionAttributsXml.ContrainteLue) {
         if (menuCiblePopover.estOuvert) {
             menuCiblePopover.masquer()
             return
@@ -2540,15 +2466,14 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
     }
 
     /** Le libellé localisé d'une ancre (Début/Fin/Haut/Bas). */
-    private fun libelleAncre(cote: EditionAttributsXml.Cote): String =
-        getString(
-            when (cote) {
-                EditionAttributsXml.Cote.DEBUT -> R.string.preview_contrainte_debut
-                EditionAttributsXml.Cote.FIN -> R.string.preview_contrainte_fin
-                EditionAttributsXml.Cote.HAUT -> R.string.preview_contrainte_haut
-                EditionAttributsXml.Cote.BAS -> R.string.preview_contrainte_bas
-            },
-        )
+    private fun libelleAncre(cote: EditionAttributsXml.Cote): String = getString(
+        when (cote) {
+            EditionAttributsXml.Cote.DEBUT -> R.string.preview_contrainte_debut
+            EditionAttributsXml.Cote.FIN -> R.string.preview_contrainte_fin
+            EditionAttributsXml.Cote.HAUT -> R.string.preview_contrainte_haut
+            EditionAttributsXml.Cote.BAS -> R.string.preview_contrainte_bas
+        },
+    )
 
     // ── PE11h : action rapide, contraintes en lecture, attribut libre ────
 
@@ -2637,10 +2562,7 @@ internal class VoletAttributsFragment : VoletFeuilleFragment() {
      * édition, retour maison du nom — miroir `mutate(() => setEx(v, n,
      * ''), n + ' supprimé')`).
      */
-    private fun rangeeAttributLibre(
-        attr: EditionAttributsXml.AttributSource,
-        parent: ViewGroup,
-    ): View {
+    private fun rangeeAttributLibre(attr: EditionAttributsXml.AttributSource, parent: ViewGroup): View {
         val rangee = ItemAttributLibreBinding.inflate(gonfleur(), parent, false)
         rangee.nomAttributLibre.text = attr.nom
         rangee.valeurAttributLibre.setText(attr.valeur)

@@ -20,10 +20,8 @@ import jo.codeide.feature.preview.databinding.ItemPastillePaletteBinding
  * Chaque pastille porte son NOM en `contentDescription` (miroir
  * `b.title = n ; b.setAttribute('aria-label', n)`).
  */
-internal class AdaptateurPastilles(
-    private val pastilles: List<Pastille>,
-    private val auChoix: (String) -> Unit,
-) : RecyclerView.Adapter<AdaptateurPastilles.Detenteur>() {
+internal class AdaptateurPastilles(private val pastilles: List<Pastille>, private val auChoix: (String) -> Unit) :
+    RecyclerView.Adapter<AdaptateurPastilles.Detenteur>() {
     /** UNE entrée de la palette (nom complet + teinte ARGB résolue). */
     internal data class Pastille(
         /** Le NOM complet écrit au clic (`@color/x`, `@android:color/white`, `?attr/colorPrimary`). */
@@ -33,24 +31,16 @@ internal class AdaptateurPastilles(
     )
 
     /** Le détenteur d'une pastille. */
-    internal class Detenteur(
-        val liaison: ItemPastillePaletteBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    internal class Detenteur(val liaison: ItemPastillePaletteBinding) : RecyclerView.ViewHolder(liaison.root)
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Detenteur {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Detenteur {
         val gonfleur = LayoutInflater.from(parent.context)
         return Detenteur(ItemPastillePaletteBinding.inflate(gonfleur, parent, false))
     }
 
     override fun getItemCount(): Int = pastilles.size
 
-    override fun onBindViewHolder(
-        detenteur: Detenteur,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(detenteur: Detenteur, position: Int) {
         val pastille = pastilles[position]
         val racine = detenteur.liaison.pastillePalette
         racine.contentDescription = pastille.nom
@@ -64,10 +54,7 @@ internal class AdaptateurPastilles(
      * `apercu_pastille_palette_teinte` TINTÉ (SRC_IN sur le blanc).
      * La racine est RECYCLÉE : la teinte se retire avant de se poser.
      */
-    private fun poserTeinte(
-        racine: FrameLayout,
-        teinte: Int?,
-    ) {
+    private fun poserTeinte(racine: FrameLayout, teinte: Int?) {
         racine.findViewWithTag<View>(MARQUE_TEINTE)?.let(racine::removeView)
         val ressources = racine.resources
         val inset = ressources.getDimensionPixelSize(R.dimen.apercu_pastille_palette_inset)
@@ -98,10 +85,8 @@ internal class AdaptateurPastilles(
          * la largeur utile par la CELLULE 34 dp = 28 + 2×3 de marges
          * de l'item). Bornée à 1 (jamais de colonne nulle).
          */
-        internal fun colonnesPastille(
-            largeurPx: Int,
-            cellulePx: Int,
-        ): Int = if (largeurPx <= 0 || cellulePx <= 0) 1 else maxOf(1, largeurPx / cellulePx)
+        internal fun colonnesPastille(largeurPx: Int, cellulePx: Int): Int =
+            if (largeurPx <= 0 || cellulePx <= 0) 1 else maxOf(1, largeurPx / cellulePx)
 
         /** La MARQUE de la couche teinte posée au liage (lookup au recyclage). */
         private const val MARQUE_TEINTE: String = "teinte"

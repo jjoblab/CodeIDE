@@ -11,9 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * est semé par le test ; défaut = échec réseau (aucun manifeste v2
  * publié à ce jour, § 12.7 — le vrai client échouerait pareil).
  */
-public class FakeToolManifestClient(
-    private var manifeste: ToolManifest? = null,
-) : ToolManifestClient {
+public class FakeToolManifestClient(private var manifeste: ToolManifest? = null) : ToolManifestClient {
     /** Nombre de récupérations demandées. */
     public val appels: AtomicInteger = AtomicInteger(0)
 

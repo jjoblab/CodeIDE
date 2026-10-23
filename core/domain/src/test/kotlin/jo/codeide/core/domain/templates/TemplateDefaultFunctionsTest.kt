@@ -22,10 +22,10 @@ class TemplateDefaultFunctionsTest {
             auteur = "Jeanne Dupont",
             nomPackage = "jeanne.monapp",
             valeursParametres =
-                mapOf(
-                    "appName" to "Mon App",
-                    "artifactId" to "demo-api",
-                ),
+            mapOf(
+                "appName" to "Mon App",
+                "artifactId" to "demo-api",
+            ),
         )
 
     @Test

@@ -130,10 +130,7 @@ public class GestionnaireSessionProjet(
      * Changement de projet : fermer l'EXISTANT d'abord (séquentiellement,
      * délais compris — I1), puis ouvrir le nouveau.
      */
-    private suspend fun basculerVers(
-        projet: ProjectId,
-        travaux: suspend () -> AppResult<Unit>,
-    ): AppResult<Unit> {
+    private suspend fun basculerVers(projet: ProjectId, travaux: suspend () -> AppResult<Unit>): AppResult<Unit> {
         val fermeture = session.fermer(RaisonFermeture.ChangementDeProjet)
         return when (fermeture) {
             is AppResult.Failure -> {

@@ -68,10 +68,7 @@ internal class MoteurGitCli(
     private val sondes: SondesEnvironnementGit,
 ) : MoteurGit {
     /** Identité Git pour les commits (nom + email utilisateur). */
-    internal data class IdentiteGit(
-        val nom: String,
-        val email: String,
-    )
+    internal data class IdentiteGit(val nom: String, val email: String)
 
     override suspend fun statut(cheminFuse: String): ResultatGit<StatutGit> {
         val sortie = executer(cheminFuse, listOf("status", "--porcelain=v1", "-z"))
@@ -80,10 +77,7 @@ internal class MoteurGitCli(
         return ResultatGit.Succes(StatutGit(parseurStatut(texte)))
     }
 
-    override suspend fun journal(
-        cheminFuse: String,
-        limite: Int,
-    ): ResultatGit<List<CommitGit>> {
+    override suspend fun journal(cheminFuse: String, limite: Int): ResultatGit<List<CommitGit>> {
         // Format : un commit par ligne, champs séparés par NUL (%x00).
         // Pas de -z : on utilise le newline comme séparateur de commits
         // (le sujet %s est une ligne sans newline).
@@ -94,18 +88,12 @@ internal class MoteurGitCli(
         return ResultatGit.Succes(parseurJournal(texte))
     }
 
-    override suspend fun indexer(
-        cheminFuse: String,
-        chemins: List<String>,
-    ): ResultatGit<Unit> {
+    override suspend fun indexer(cheminFuse: String, chemins: List<String>): ResultatGit<Unit> {
         val args = if (chemins.isEmpty()) listOf("add", "-A") else listOf("add", "--") + chemins
         return unitSiSucces(executer(cheminFuse, args))
     }
 
-    override suspend fun desindexer(
-        cheminFuse: String,
-        chemins: List<String>,
-    ): ResultatGit<Unit> {
+    override suspend fun desindexer(cheminFuse: String, chemins: List<String>): ResultatGit<Unit> {
         val args = if (chemins.isEmpty()) listOf("reset", "HEAD", "--") else listOf("reset", "HEAD", "--") + chemins
         return unitSiSucces(executer(cheminFuse, args))
     }
@@ -122,18 +110,12 @@ internal class MoteurGitCli(
         return if (hash is ResultatGit.Succes) ResultatGit.Succes(hash.valeur.trim()) else ResultatGit.Succes("")
     }
 
-    override suspend fun tirer(
-        cheminFuse: String,
-        rebase: Boolean,
-    ): ResultatGit<Unit> {
+    override suspend fun tirer(cheminFuse: String, rebase: Boolean): ResultatGit<Unit> {
         val args = if (rebase) listOf("pull", "--rebase") else listOf("pull", "--no-rebase")
         return unitSiSucces(executer(cheminFuse, args))
     }
 
-    override suspend fun pousser(
-        cheminFuse: String,
-        forceWithLease: Boolean,
-    ): ResultatGit<Unit> {
+    override suspend fun pousser(cheminFuse: String, forceWithLease: Boolean): ResultatGit<Unit> {
         val args = if (forceWithLease) listOf("push", "--force-with-lease") else listOf("push")
         return unitSiSucces(executer(cheminFuse, args))
     }
@@ -167,10 +149,8 @@ internal class MoteurGitCli(
         return ResultatGit.Succes(resultat)
     }
 
-    override suspend fun basculerBranche(
-        cheminFuse: String,
-        nom: String,
-    ): ResultatGit<Unit> = unitSiSucces(executer(cheminFuse, listOf("checkout", nom)))
+    override suspend fun basculerBranche(cheminFuse: String, nom: String): ResultatGit<Unit> =
+        unitSiSucces(executer(cheminFuse, listOf("checkout", nom)))
 
     override suspend fun cloner(
         url: String,
@@ -186,10 +166,7 @@ internal class MoteurGitCli(
         return ClassificationEtatDepot.classer(brute)
     }
 
-    override suspend fun diagnostiquer(
-        nomProjet: String?,
-        cheminFuse: String?,
-    ): RapportDiagnosticGit {
+    override suspend fun diagnostiquer(nomProjet: String?, cheminFuse: String?): RapportDiagnosticGit {
         val binaire = resoudreBinaireGit()
         val version =
             binaire?.let {
@@ -217,10 +194,8 @@ internal class MoteurGitCli(
 
     // G3 — Diff
 
-    override suspend fun diff(
-        cheminFuse: String,
-        chemin: String,
-    ): ResultatGit<String> = executer(cheminFuse, listOf("diff", "--", chemin))
+    override suspend fun diff(cheminFuse: String, chemin: String): ResultatGit<String> =
+        executer(cheminFuse, listOf("diff", "--", chemin))
 
     // G7 — Stash
 
@@ -243,11 +218,10 @@ internal class MoteurGitCli(
     }
 
     /** Convertit un [ResultatGit] de String en [ResultatGit] de Unit. */
-    private fun unitSiSucces(resultat: ResultatGit<String>): ResultatGit<Unit> =
-        when (resultat) {
-            is ResultatGit.Succes -> ResultatGit.Succes(Unit)
-            is ResultatGit.Echec -> resultat
-        }
+    private fun unitSiSucces(resultat: ResultatGit<String>): ResultatGit<Unit> = when (resultat) {
+        is ResultatGit.Succes -> ResultatGit.Succes(Unit)
+        is ResultatGit.Echec -> resultat
+    }
 
     /**
      * Exécute une commande git et retourne la sortie stdout (succès) ou
@@ -327,10 +301,7 @@ internal class MoteurGitCli(
      * Exécution pour le Diagnostic Git : stderr capté intégral (borné
      * généreusement) — le diagnostic ne tronque pas la preuve.
      */
-    private suspend fun executerDiagnostic(
-        cheminFuse: String,
-        args: List<String>,
-    ): ResultatCommandeGit {
+    private suspend fun executerDiagnostic(cheminFuse: String, args: List<String>): ResultatCommandeGit {
         val brute = executerBrut(cheminFuse, args, limiteStderr = SupervisionProcessus.LIMITE_STDERR_DIAGNOSTIC)
         return ResultatCommandeGit(
             code = brute.code,
@@ -346,11 +317,7 @@ internal class MoteurGitCli(
      * L'expurgation (chemins, courriels) est appliquée en aval par le
      * pipeline de journalisation (règle 11) — le producteur reste sobre.
      */
-    private fun journalCommande(
-        args: List<String>,
-        code: Int,
-        stderr: List<String>,
-    ) {
+    private fun journalCommande(args: List<String>, code: Int, stderr: List<String>) {
         if (code == 0 && stderr.isEmpty()) {
             journal.d(TAG_JOURNAL) { "git ${args.joinToString(" ")} -> code 0" }
             return
@@ -360,24 +327,22 @@ internal class MoteurGitCli(
     }
 
     /** Variables d'environnement pour l'identité Git. */
-    private fun envIdentite(identite: IdentiteGit): Map<String, String> =
-        mapOf(
-            "GIT_AUTHOR_NAME" to identite.nom,
-            "GIT_AUTHOR_EMAIL" to identite.email,
-            "GIT_COMMITTER_NAME" to identite.nom,
-            "GIT_COMMITTER_EMAIL" to identite.email,
-        )
+    private fun envIdentite(identite: IdentiteGit): Map<String, String> = mapOf(
+        "GIT_AUTHOR_NAME" to identite.nom,
+        "GIT_AUTHOR_EMAIL" to identite.email,
+        "GIT_COMMITTER_NAME" to identite.nom,
+        "GIT_COMMITTER_EMAIL" to identite.email,
+    )
 
     /**
      * Environnement pertinent du diagnostic : `HOME`, `PATH`, `TMPDIR`,
      * `LD_LIBRARY_PATH`, `PREFIX` et toutes les `GIT_*` — trié par clé
      * pour un rapport reproductible d'une exécution à l'autre.
      */
-    private fun environnementPertinent(): Map<String, String> =
-        sondes
-            .environnement()
-            .filterKeys { it in VARIABLES_GARDEES || it.startsWith(PREFIXE_GIT) }
-            .toSortedMap()
+    private fun environnementPertinent(): Map<String, String> = sondes
+        .environnement()
+        .filterKeys { it in VARIABLES_GARDEES || it.startsWith(PREFIXE_GIT) }
+        .toSortedMap()
 
     internal companion object {
         /** Étiquette de journal des commandes git (identifiant court, anglais). */
@@ -408,10 +373,7 @@ internal class MoteurGitCli(
          * Retourne le couple (point de montage, type de système de
          * fichiers), ou `null` si introuvable/illisible.
          */
-        internal fun pointDeMontage(
-            chemin: String?,
-            contenu: String?,
-        ): Pair<String, String>? {
+        internal fun pointDeMontage(chemin: String?, contenu: String?): Pair<String, String>? {
             if (chemin == null || contenu == null) return null
             val cible = normaliser(chemin)
             return contenu
@@ -436,23 +398,18 @@ internal class MoteurGitCli(
          * Retire le slash final (la racine `/` devient vide : préfixe de
          * tout chemin — le montage racine doit pouvoir matcher).
          */
-        private fun normaliser(chemin: String): String =
-            when {
-                chemin == "/" -> ""
-                chemin.length > 1 && chemin.endsWith('/') -> chemin.dropLast(1)
-                else -> chemin
-            }
+        private fun normaliser(chemin: String): String = when {
+            chemin == "/" -> ""
+            chemin.length > 1 && chemin.endsWith('/') -> chemin.dropLast(1)
+            else -> chemin
+        }
 
         /** `a/b/c` est-il sous `a/b` ? (préfixe par segments entiers). */
-        private fun prefixeParSegments(
-            chemin: String,
-            prefixe: String,
-        ): Boolean =
-            when {
-                chemin == prefixe -> true
-                prefixe.isEmpty() -> true
-                else -> chemin.startsWith("$prefixe/")
-            }
+        private fun prefixeParSegments(chemin: String, prefixe: String): Boolean = when {
+            chemin == prefixe -> true
+            prefixe.isEmpty() -> true
+            else -> chemin.startsWith("$prefixe/")
+        }
 
         /**
          * Parse la sortie de `git status --porcelain=v1 -z` en liste de
@@ -498,18 +455,17 @@ internal class MoteurGitCli(
         }
 
         /** Convertit un code `--porcelain` en [StatutFichier]. */
-        internal fun codeVersStatut(code: Char): StatutFichier =
-            when (code) {
-                'M' -> StatutFichier.MODIFIE
-                'A' -> StatutFichier.AJOUTE
-                'D' -> StatutFichier.SUPPRIME
-                'R' -> StatutFichier.RENOMME
-                'C' -> StatutFichier.COPIE
-                '?' -> StatutFichier.NON_SUIVI
-                '!' -> StatutFichier.IGNORE
-                'U' -> StatutFichier.CONFLIT
-                else -> StatutFichier.NON_MODIFIE
-            }
+        internal fun codeVersStatut(code: Char): StatutFichier = when (code) {
+            'M' -> StatutFichier.MODIFIE
+            'A' -> StatutFichier.AJOUTE
+            'D' -> StatutFichier.SUPPRIME
+            'R' -> StatutFichier.RENOMME
+            'C' -> StatutFichier.COPIE
+            '?' -> StatutFichier.NON_SUIVI
+            '!' -> StatutFichier.IGNORE
+            'U' -> StatutFichier.CONFLIT
+            else -> StatutFichier.NON_MODIFIE
+        }
 
         /** Champs d'une ligne `/proc/self/mounts` : périph, point, type, options, dump, pass. */
         private const val CHAMPS_MONTS = 6
@@ -522,21 +478,20 @@ internal class MoteurGitCli(
      * Traduction d'une exécution brute en résultat métier (succès =
      * stdout, échec = message + stderr).
      */
-    private fun ExecutionGitBrute.versResultat(): ResultatGit<String> =
-        when {
-            messageEchec != null -> {
-                ResultatGit.Echec(messageEchec ?: "", "")
-            }
-
-            code == 0 -> {
-                ResultatGit.Succes(stdout)
-            }
-
-            else -> {
-                ResultatGit.Echec(
-                    message = stderr.ifBlank { "git a échoué (code $code)" },
-                    sortieErreur = stderr,
-                )
-            }
+    private fun ExecutionGitBrute.versResultat(): ResultatGit<String> = when {
+        messageEchec != null -> {
+            ResultatGit.Echec(messageEchec ?: "", "")
         }
+
+        code == 0 -> {
+            ResultatGit.Succes(stdout)
+        }
+
+        else -> {
+            ResultatGit.Echec(
+                message = stderr.ifBlank { "git a échoué (code $code)" },
+                sortieErreur = stderr,
+            )
+        }
+    }
 }

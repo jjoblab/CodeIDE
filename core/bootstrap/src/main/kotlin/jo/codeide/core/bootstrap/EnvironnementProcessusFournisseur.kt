@@ -34,23 +34,23 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class EnvironnementProcessusFournisseur
-    @Inject
-    constructor(
-        @ApplicationContext contexte: Context,
-        private val toolchain: ToolchainLocator,
-    ) : ProcessEnvironmentProvider {
-        private val racine: File = contexte.filesDir
+@Inject
+constructor(
+    @ApplicationContext contexte: Context,
+    private val toolchain: ToolchainLocator,
+) : ProcessEnvironmentProvider {
+    private val racine: File = contexte.filesDir
 
-        override fun baseEnvironment(): Map<String, String> {
-            assurerRepertoiresProcessus(racine)
-            return EnvironnementProcessus.construire(
-                racine = racine,
-                herite = System.getenv(),
-                javaHome = toolchain.javaHome(),
-                androidHome = toolchain.androidHome(),
-            )
-        }
+    override fun baseEnvironment(): Map<String, String> {
+        assurerRepertoiresProcessus(racine)
+        return EnvironnementProcessus.construire(
+            racine = racine,
+            herite = System.getenv(),
+            javaHome = toolchain.javaHome(),
+            androidHome = toolchain.androidHome(),
+        )
     }
+}
 
 /**
  * Garantit l'existence des répertoires attendus par l'environnement des

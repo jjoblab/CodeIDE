@@ -13,34 +13,28 @@ import javax.inject.Inject
  */
 @Reusable
 internal class SafArborescences
-    @Inject
-    constructor() : ArborescencesSaf {
-        override fun idDocument(grantUri: String): String? =
-            runCatching {
-                UrisDocuments.idArbre(grantUri.toUri())
-            }.getOrNull()
+@Inject
+constructor() : ArborescencesSaf {
+    override fun idDocument(grantUri: String): String? = runCatching {
+        UrisDocuments.idArbre(grantUri.toUri())
+    }.getOrNull()
 
-        override fun idDocumentDeUriDocument(documentUri: String): String? =
-            runCatching {
-                UrisDocuments.idDocument(documentUri.toUri())
-            }.getOrNull()
+    override fun idDocumentDeUriDocument(documentUri: String): String? = runCatching {
+        UrisDocuments.idDocument(documentUri.toUri())
+    }.getOrNull()
 
-        override fun uriDocument(grantUri: String): String? =
-            runCatching {
-                val arbre = grantUri.toUri()
-                UrisDocuments.uriDocument(arbre, UrisDocuments.idArbre(arbre)).toString()
-            }.getOrNull()
+    override fun uriDocument(grantUri: String): String? = runCatching {
+        val arbre = grantUri.toUri()
+        UrisDocuments.uriDocument(arbre, UrisDocuments.idArbre(arbre)).toString()
+    }.getOrNull()
 
-        override fun uriDocumentDansArbre(
-            grantUri: String,
-            idDocument: String,
-        ): String? {
-            if (idDocument.isBlank()) return null
-            return runCatching {
-                // `appendPath` (via buildDocumentUriUsingTree) ré-encode
-                // chaque segment de l'identifiant décodé — séparateurs en
-                // `%2F` compris, comme pour le document racine.
-                UrisDocuments.uriDocument(grantUri.toUri(), idDocument).toString()
-            }.getOrNull()
-        }
+    override fun uriDocumentDansArbre(grantUri: String, idDocument: String): String? {
+        if (idDocument.isBlank()) return null
+        return runCatching {
+            // `appendPath` (via buildDocumentUriUsingTree) ré-encode
+            // chaque segment de l'identifiant décodé — séparateurs en
+            // `%2F` compris, comme pour le document racine.
+            UrisDocuments.uriDocument(grantUri.toUri(), idDocument).toString()
+        }.getOrNull()
     }
+}

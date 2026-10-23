@@ -26,27 +26,23 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class LanceurProcessusNatifs
-    @Inject
-    constructor(
-        private val environnement: ProcessEnvironmentProvider,
-        private val dispatchers: DispatcherProvider,
-    ) : NativeProcessLauncher {
-        override fun launch(
-            command: List<String>,
-            extraEnv: Map<String, String>,
-            workingDir: File?,
-        ): ManagedProcess {
-            val constructeur = ProcessBuilder(command)
-            workingDir?.let { constructeur.directory(it) }
+@Inject
+constructor(
+    private val environnement: ProcessEnvironmentProvider,
+    private val dispatchers: DispatcherProvider,
+) : NativeProcessLauncher {
+    override fun launch(command: List<String>, extraEnv: Map<String, String>, workingDir: File?): ManagedProcess {
+        val constructeur = ProcessBuilder(command)
+        workingDir?.let { constructeur.directory(it) }
 
-            val variables = constructeur.environment()
-            variables.clear()
-            variables.putAll(environnement.baseEnvironment())
-            variables.putAll(extraEnv)
+        val variables = constructeur.environment()
+        variables.clear()
+        variables.putAll(environnement.baseEnvironment())
+        variables.putAll(extraEnv)
 
-            // Un échec de lancement (binaire introuvable, non exécutable)
-            // remonte en IOException, documentée au port — jamais avalée.
-            val processus = constructeur.start()
-            return ProcessusGere(processus, dispatchers.io)
-        }
+        // Un échec de lancement (binaire introuvable, non exécutable)
+        // remonte en IOException, documentée au port — jamais avalée.
+        val processus = constructeur.start()
+        return ProcessusGere(processus, dispatchers.io)
     }
+}

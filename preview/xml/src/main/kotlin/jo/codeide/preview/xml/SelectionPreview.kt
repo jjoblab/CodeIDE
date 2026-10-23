@@ -33,11 +33,7 @@ public object SelectionPreview {
      * @param x abscisse dans le BITMAP (px).
      * @param y ordonnée dans le BITMAP (px).
      */
-    public fun vueSelectableEn(
-        vues: List<InfoVueRendu>,
-        x: Float,
-        y: Float,
-    ): InfoVueRendu? {
+    public fun vueSelectableEn(vues: List<InfoVueRendu>, x: Float, y: Float): InfoVueRendu? {
         val cible = vueLaPlusProfondeEn(vues, x, y)
         if (cible < 0) return null
         var indice = cible
@@ -52,11 +48,7 @@ public object SelectionPreview {
     }
 
     /** Indice de la vue la plus PROFONDE contenant le point (-1 si aucune). */
-    public fun vueLaPlusProfondeEn(
-        vues: List<InfoVueRendu>,
-        x: Float,
-        y: Float,
-    ): Int {
+    public fun vueLaPlusProfondeEn(vues: List<InfoVueRendu>, x: Float, y: Float): Int {
         var meilleur = -1
         for ((indice, vue) in vues.withIndex()) {
             if (vue.droite <= vue.gauche || vue.bas <= vue.haut) continue
@@ -74,10 +66,7 @@ public object SelectionPreview {
      * INTERNE (plus petit span) gagne ; -1 si aucune (hors document, ou
      * vues sans span : drawables, values, includes non résolus).
      */
-    public fun indiceVuePourSpan(
-        vues: List<InfoVueRendu>,
-        offset: Int,
-    ): Int {
+    public fun indiceVuePourSpan(vues: List<InfoVueRendu>, offset: Int): Int {
         var meilleur = -1
         var meilleurTaille = Int.MAX_VALUE
         for ((indice, vue) in vues.withIndex()) {

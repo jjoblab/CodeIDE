@@ -10,10 +10,7 @@ package jo.codeide.core.ai
  * @property role rôle du message dans le fil.
  * @property blocks contenu, dans l'ordre d'émission.
  */
-public data class AiMessage(
-    public val role: AiRole,
-    public val blocks: List<AiContentBlock>,
-) {
+public data class AiMessage(public val role: AiRole, public val blocks: List<AiContentBlock>) {
     /**
      * Construit un message composé d'un unique bloc texte — le cas
      * dominant du chat (IA-3) et des actions d'éditeur (IA-5).
@@ -40,13 +37,9 @@ public data class AiMessage(
          * @param toolCallId identifiant d'appel auquel ce résultat répond.
          * @param content contenu textuel du résultat.
          */
-        public fun toolResult(
-            toolCallId: String,
-            content: String,
-        ): AiMessage =
-            AiMessage(
-                AiRole.Tool,
-                listOf(AiContentBlock.ToolResult(toolCallId, content)),
-            )
+        public fun toolResult(toolCallId: String, content: String): AiMessage = AiMessage(
+            AiRole.Tool,
+            listOf(AiContentBlock.ToolResult(toolCallId, content)),
+        )
     }
 }

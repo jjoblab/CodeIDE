@@ -44,6 +44,13 @@ dependencies {
     // ajoutera le processus :preview).
     implementation(project(":preview:xml"))
 
+    // Mission « Previews » C1 (PREVIEW.md §4) : carte « goutte d'eau » —
+    // le moteur de preview Compose (interpréteur sur l'arbre du LSP
+    // Kotlin, rendu dans le processus :preview) alimente l'hôte cel-ui
+    // B27 de l'éditeur ; la dépendance Compose reste confinée à
+    // :preview:compose, la feature ne la voit jamais (ADR 0002 intact).
+    implementation(project(":preview:compose"))
+
     // Tests du ViewModel : fakes et horloge virtuelle.
     // Lot LSP-2 : le socle de test construit un LspSettingsStore réel
     // (DataStore sur fichier temporaire) — androidx.datastore est

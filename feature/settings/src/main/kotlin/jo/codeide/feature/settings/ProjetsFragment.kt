@@ -48,10 +48,7 @@ class ProjetsFragment : BaseFragment<FragmentSettingsProjetsBinding>() {
         attachToRoot: Boolean,
     ): FragmentSettingsProjetsBinding = FragmentSettingsProjetsBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -140,16 +137,15 @@ class ProjetsFragment : BaseFragment<FragmentSettingsProjetsBinding>() {
     }
 
     /** Libellé localisé d'une licence. */
-    private fun libelleLicence(licence: License): String =
-        getString(
-            when (licence) {
-                License.NONE -> R.string.settings_licence_aucune
-                License.MIT -> R.string.settings_licence_mit
-                License.APACHE_2_0 -> R.string.settings_licence_apache
-                License.GPL_3_0 -> R.string.settings_licence_gpl
-                License.BSD_3_CLAUSE -> R.string.settings_licence_bsd
-            },
-        )
+    private fun libelleLicence(licence: License): String = getString(
+        when (licence) {
+            License.NONE -> R.string.settings_licence_aucune
+            License.MIT -> R.string.settings_licence_mit
+            License.APACHE_2_0 -> R.string.settings_licence_apache
+            License.GPL_3_0 -> R.string.settings_licence_gpl
+            License.BSD_3_CLAUSE -> R.string.settings_licence_bsd
+        },
+    )
 
     /** Choix de la licence par défaut (liste à choix unique). */
     private fun ouvrirChoixLicence() {

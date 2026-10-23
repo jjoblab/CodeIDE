@@ -38,10 +38,9 @@ internal object ClasspathApercu {
      * récent en une entrée [GenreEntreeClasspath.APK], ou une liste VIDE
      * (aucun build — repli MockView documenté).
      */
-    internal fun entrees(racine: String): List<EntreeClasspath> =
-        apkDebugLePlusRecent(racine)
-            ?.let { listOf(EntreeClasspath(it, GenreEntreeClasspath.APK)) }
-            ?: emptyList()
+    internal fun entrees(racine: String): List<EntreeClasspath> = apkDebugLePlusRecent(racine)
+        ?.let { listOf(EntreeClasspath(it, GenreEntreeClasspath.APK)) }
+        ?: emptyList()
 
     /**
      * L'APK debug le plus RÉCENT du projet : les sorties standards d'AGP
@@ -91,12 +90,11 @@ internal object ClasspathApercu {
     }
 
     /** L'APK le plus récent d'un dossier de sorties, ou `null`. */
-    private fun lePlusRecent(dossier: File): String? =
-        dossier
-            .listFiles { fichier -> fichier.isFile && fichier.name.endsWith(".apk") }
-            .orEmpty()
-            .maxByOrNull { it.lastModified() }
-            ?.path
+    private fun lePlusRecent(dossier: File): String? = dossier
+        .listFiles { fichier -> fichier.isFile && fichier.name.endsWith(".apk") }
+        .orEmpty()
+        .maxByOrNull { it.lastModified() }
+        ?.path
 
     /** `build/outputs/apk/debug` — le chemin standard des sorties APK. */
     private const val CHEMIN_BUILD: String = "build/outputs/apk/debug"

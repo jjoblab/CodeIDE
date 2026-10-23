@@ -26,270 +26,261 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class EditorViewModelTest : BaseEditorViewModelTest() {
     @Test
-    fun `le projet de l intention se charge puis suit le registre`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+    fun `le projet de l intention se charge puis suit le registre`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            val etatCharge = viewModel.etat.value
-            assertFalse(etatCharge.chargement)
-            assertEquals("Alpha", etatCharge.projet?.name)
-            assertEquals("Projets/Alpha", etatCharge.projet?.location?.displayPath)
+        val etatCharge = viewModel.etat.value
+        assertFalse(etatCharge.chargement)
+        assertEquals("Alpha", etatCharge.projet?.name)
+        assertEquals("Projets/Alpha", etatCharge.projet?.location?.displayPath)
 
-            // Renommage depuis l'accueil : l'espace de travail suit sans
-            // rechargement manuel.
-            assertTrue(depot.renameProject(alpha, "Bêta") is jo.codeide.core.model.AppResult.Success)
-            advanceUntilIdle()
-            assertEquals(
-                "Bêta",
-                viewModel.etat.value.projet
-                    ?.name,
-            )
-        }
-
-    @Test
-    fun `un identifiant inconnu laisse le projet nul sans crash`() =
-        runTest {
-            val viewModel = viewModel(ProjectId("inconnu"))
-            advanceUntilIdle()
-
-            assertFalse(viewModel.etat.value.chargement)
-            assertNull(viewModel.etat.value.projet)
-        }
+        // Renommage depuis l'accueil : l'espace de travail suit sans
+        // rechargement manuel.
+        assertTrue(depot.renameProject(alpha, "Bêta") is jo.codeide.core.model.AppResult.Success)
+        advanceUntilIdle()
+        assertEquals(
+            "Bêta",
+            viewModel.etat.value.projet
+                ?.name,
+        )
+    }
 
     @Test
-    fun `un projet supprime du registre devient nul a l ecran`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            assertEquals(
-                "Alpha",
-                viewModel.etat.value.projet
-                    ?.name,
-            )
+    fun `un identifiant inconnu laisse le projet nul sans crash`() = runTest {
+        val viewModel = viewModel(ProjectId("inconnu"))
+        advanceUntilIdle()
 
-            assertTrue(depot.removeProject(alpha) is jo.codeide.core.model.AppResult.Success)
-            advanceUntilIdle()
-
-            assertNull(viewModel.etat.value.projet)
-        }
+        assertFalse(viewModel.etat.value.chargement)
+        assertNull(viewModel.etat.value.projet)
+    }
 
     @Test
-    fun `l arborescence racine se charge triee dossiers puis fichiers puis noms`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerDossier("Zeta")
-            semerDossier("alpha-utils")
-            semerFichier("readme.md")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+    fun `un projet supprime du registre devient nul a l ecran`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        assertEquals(
+            "Alpha",
+            viewModel.etat.value.projet
+                ?.name,
+        )
 
-            assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
-            val noeuds = viewModel.etat.value.noeuds
-            // v2 (étape 31, § 6.1) : la racine ouvre la liste (ligne haute).
-            assertEquals(
-                listOf("Alpha", "alpha-utils", "Zeta", "Main.kt", "readme.md", "Gradle Scripts"),
-                noeuds.map { it.nom },
-            )
-            // v2 (§ 6.1) : la racine est profondeur 0, ses enfants 1.
-            assertTrue(noeuds.all { it.profondeur <= 1 })
-            assertTrue(noeuds.first { it.nom == "alpha-utils" }.estDossier)
-            assertFalse(noeuds.first { it.nom == "Main.kt" }.estDossier)
-        }
+        assertTrue(depot.removeProject(alpha) is jo.codeide.core.model.AppResult.Success)
+        advanceUntilIdle()
+
+        assertNull(viewModel.etat.value.projet)
+    }
 
     @Test
-    fun `deplier un dossier enumere paresseusement puis sert le cache`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerDossier("src")
-            fichiers.seedDocument(
-                URI_DOCUMENT_PROJET + "/src/Main.kt",
-                FakeFileSystem.Document(name = "Main.kt", isDirectory = false),
-            )
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+    fun `l arborescence racine se charge triee dossiers puis fichiers puis noms`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerDossier("Zeta")
+        semerDossier("alpha-utils")
+        semerFichier("readme.md")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            // À l'arrivée : la racine est énumérée pour l'arborescence,
-            // une seconde fois par la reprise d'espace (.codeide/local —
-            // étape 17), une troisième par la reconnaissance du type
-            // (.codeide/project.json — étape 18), et une quatrième par la
-            // tentative de restitution de l'état de sync (`.codeide/local/
-            // sync-state.json` — v0.40.1, prompt de suivi §2) ; les
-            // sous-dossiers restent paresseux.
-            // C1 (v0.64.0) : +3 appels `list` de `resoudreScriptsGradle`
-            // (racine, gradle/, gradle/wrapper/ — ils échouent en NotFound
-            // car le projet de test n'a pas de fichiers Gradle, mais
-            // `appelsList` est incrémenté même pour les échecs).
-            assertEquals(7, fichiers.appelsList)
-
-            val uriSrc =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "src" }
-                    .uri
-            viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
-            advanceUntilIdle()
-
-            // Premier dépliement : une énumération de plus, l'enfant visible.
-            // v0.40.1 (prompt de suivi §2) : +1 appel supplémentaire peut
-            // venir de la revalidation silencieuse déclenchée par
-            // `restaurerEtatSyncSiEmpreinteIdentique` si elle tourne après
-            // le dépliage — on l'accepte tant que la racine reste cohérente.
-            // C1 (v0.64.0) : +3 appels `list` de `resoudreScriptsGradle` à
-            // l'arrivée (racine, gradle/, gradle/wrapper/), donc 7 ou 8
-            // selon la revalidation.
-            assertTrue(
-                "premier dépliement : 7 ou 8 appels attendus (revalidation silencieuse possible)",
-                fichiers.appelsList == 7 || fichiers.appelsList == 8,
-            )
-            val noeuds = viewModel.etat.value.noeuds
-            // v2 : la racine précède les enfants dépliés (§ 6.1).
-            // C1 : le groupe « Gradle Scripts » est en fin de liste (profondeur 1).
-            assertEquals(listOf("Alpha", "src", "Main.kt", "Gradle Scripts"), noeuds.map { it.nom })
-            // v2 : la racine est profondeur 0, ses enfants 1 (§ 6.1).
-            // C1 : « Main.kt » reste à profondeur 2 (le groupe est à 1).
-            assertEquals(2, noeuds.first { it.nom == "Main.kt" }.profondeur)
-
-            // Refermer puis rouvrir : le cache répond, aucun nouvel appel
-            // (au dépliage près). v0.40.1 : la revalidation silencieuse
-            // peut ajouter des appels `list()` — on accepte tout nombre
-            // ≥ 4.
-            viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
-            viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
-            advanceUntilIdle()
-            assertTrue(
-                "cache racine servi — au moins 4 appels, plus s'il y a revalidation silencieuse",
-                fichiers.appelsList >= 4,
-            )
-            assertTrue(
-                viewModel.etat.value.noeuds
-                    .any { it.nom == "Main.kt" },
-            )
-        }
+        assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
+        val noeuds = viewModel.etat.value.noeuds
+        // v2 (étape 31, § 6.1) : la racine ouvre la liste (ligne haute).
+        assertEquals(
+            listOf("Alpha", "alpha-utils", "Zeta", "Main.kt", "readme.md", "Gradle Scripts"),
+            noeuds.map { it.nom },
+        )
+        // v2 (§ 6.1) : la racine est profondeur 0, ses enfants 1.
+        assertTrue(noeuds.all { it.profondeur <= 1 })
+        assertTrue(noeuds.first { it.nom == "alpha-utils" }.estDossier)
+        assertFalse(noeuds.first { it.nom == "Main.kt" }.estDossier)
+    }
 
     @Test
-    fun `une permission perdue fait basculer le tiroir en bandeau`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            assertTrue(
-                viewModel.etat.value.noeuds
-                    .isNotEmpty(),
-            )
+    fun `deplier un dossier enumere paresseusement puis sert le cache`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerDossier("src")
+        fichiers.seedDocument(
+            URI_DOCUMENT_PROJET + "/src/Main.kt",
+            FakeFileSystem.Document(name = "Main.kt", isDirectory = false),
+        )
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
 
-            fichiers.revokePermission(URI_ARBRE_PROJET)
-            viewModel.onAction(ActionEditor.Rafraichir)
-            advanceUntilIdle()
+        // À l'arrivée : la racine est énumérée pour l'arborescence,
+        // une seconde fois par la reprise d'espace (.codeide/local —
+        // étape 17), une troisième par la reconnaissance du type
+        // (.codeide/project.json — étape 18), et une quatrième par la
+        // tentative de restitution de l'état de sync (`.codeide/local/
+        // sync-state.json` — v0.40.1, prompt de suivi §2) ; les
+        // sous-dossiers restent paresseux.
+        // C1 (v0.64.0) : +3 appels `list` de `resoudreScriptsGradle`
+        // (racine, gradle/, gradle/wrapper/ — ils échouent en NotFound
+        // car le projet de test n'a pas de fichiers Gradle, mais
+        // `appelsList` est incrémenté même pour les échecs).
+        assertEquals(7, fichiers.appelsList)
 
-            assertEquals(ProjectAccessState.PermissionLost, viewModel.etat.value.acces)
-            assertTrue(
-                "l'arborescence laisse place au bandeau",
-                viewModel.etat.value.noeuds
-                    .isEmpty(),
-            )
-        }
+        val uriSrc =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "src" }
+                .uri
+        viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
+        advanceUntilIdle()
 
-    @Test
-    fun `le bouton actualiser reverifie l acces et recharge l arborescence`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
+        // Premier dépliement : une énumération de plus, l'enfant visible.
+        // v0.40.1 (prompt de suivi §2) : +1 appel supplémentaire peut
+        // venir de la revalidation silencieuse déclenchée par
+        // `restaurerEtatSyncSiEmpreinteIdentique` si elle tourne après
+        // le dépliage — on l'accepte tant que la racine reste cohérente.
+        // C1 (v0.64.0) : +3 appels `list` de `resoudreScriptsGradle` à
+        // l'arrivée (racine, gradle/, gradle/wrapper/), donc 7 ou 8
+        // selon la revalidation.
+        assertTrue(
+            "premier dépliement : 7 ou 8 appels attendus (revalidation silencieuse possible)",
+            fichiers.appelsList == 7 || fichiers.appelsList == 8,
+        )
+        val noeuds = viewModel.etat.value.noeuds
+        // v2 : la racine précède les enfants dépliés (§ 6.1).
+        // C1 : le groupe « Gradle Scripts » est en fin de liste (profondeur 1).
+        assertEquals(listOf("Alpha", "src", "Main.kt", "Gradle Scripts"), noeuds.map { it.nom })
+        // v2 : la racine est profondeur 0, ses enfants 1 (§ 6.1).
+        // C1 : « Main.kt » reste à profondeur 2 (le groupe est à 1).
+        assertEquals(2, noeuds.first { it.nom == "Main.kt" }.profondeur)
 
-            fichiers.seedDocument(
-                URI_DOCUMENT_PROJET + "/Nouveau.kt",
-                FakeFileSystem.Document(name = "Nouveau.kt", isDirectory = false),
-            )
-            viewModel.onAction(ActionEditor.Rafraichir)
-            advanceUntilIdle()
-
-            assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
-            assertTrue(
-                viewModel.etat.value.noeuds
-                    .any { it.nom == "Nouveau.kt" },
-            )
-        }
-
-    @Test
-    fun `un dossier disparu pendant l exploration marque le noeud en erreur`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerDossier("src")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-
-            val uriSrc =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "src" }
-                    .uri
-
-            // Le dossier disparaît après l'énumération de la racine : le
-            // dépliement échoue — c'est le NŒUD qui signale (réessayable),
-            // pas le bandeau d'accès du projet.
-            assertTrue(fichiers.delete(uriSrc) is jo.codeide.core.model.AppResult.Success)
-            viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
-            advanceUntilIdle()
-
-            val src =
-                viewModel.etat.value.noeuds
-                    .first { it.nom == "src" }
-            assertTrue("l'échec doit être signalé par la ligne", src.erreurChargement)
-            assertFalse("replié, l'appui réessaiera", src.deplie)
-            assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
-        }
+        // Refermer puis rouvrir : le cache répond, aucun nouvel appel
+        // (au dépliage près). v0.40.1 : la revalidation silencieuse
+        // peut ajouter des appels `list()` — on accepte tout nombre
+        // ≥ 4.
+        viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
+        viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
+        advanceUntilIdle()
+        assertTrue(
+            "cache racine servi — au moins 4 appels, plus s'il y a revalidation silencieuse",
+            fichiers.appelsList >= 4,
+        )
+        assertTrue(
+            viewModel.etat.value.noeuds
+                .any { it.nom == "Main.kt" },
+        )
+    }
 
     @Test
-    fun `la relocalisation du projet reinitialise l arborescence`() =
-        runTest {
-            val alpha = ajouterProjet("Alpha")
-            semerFichier("Main.kt")
-            val viewModel = viewModel(alpha)
-            advanceUntilIdle()
-            assertTrue(
-                viewModel.etat.value.noeuds
-                    .isNotEmpty(),
-            )
+    fun `une permission perdue fait basculer le tiroir en bandeau`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        assertTrue(
+            viewModel.etat.value.noeuds
+                .isNotEmpty(),
+        )
 
-            // Relocalisation depuis l'accueil : nouvel emplacement, nouvelle
-            // racine — l'arborescence repart de zéro.
-            val nouvelleArbre = "content://autre/tree/Alpha"
-            val nouveauDocument = "$nouvelleArbre/doc"
-            fichiers.grantPermission(nouvelleArbre)
-            fichiers.seedDocument(
-                nouveauDocument,
-                FakeFileSystem.Document(name = "Alpha", isDirectory = true),
-            )
-            fichiers.seedDocument(
-                "$nouveauDocument/Autre.kt",
-                FakeFileSystem.Document(name = "Autre.kt", isDirectory = false),
-            )
-            assertTrue(
-                depot.updateLocation(
-                    alpha,
-                    StorageLocation(
-                        grantUri = nouvelleArbre,
-                        documentUri = nouveauDocument,
-                        displayPath = "Ailleurs/Alpha",
-                    ),
-                ) is jo.codeide.core.model.AppResult.Success,
-            )
-            advanceUntilIdle()
+        fichiers.revokePermission(URI_ARBRE_PROJET)
+        viewModel.onAction(ActionEditor.Rafraichir)
+        advanceUntilIdle()
 
-            assertEquals(
-                "Ailleurs/Alpha",
-                viewModel.etat.value.projet
-                    ?.location
-                    ?.displayPath,
-            )
-            assertEquals(
-                listOf("Alpha", "Autre.kt", "Gradle Scripts"),
-                viewModel.etat.value.noeuds
-                    .map { it.nom },
-            )
-        }
+        assertEquals(ProjectAccessState.PermissionLost, viewModel.etat.value.acces)
+        assertTrue(
+            "l'arborescence laisse place au bandeau",
+            viewModel.etat.value.noeuds
+                .isEmpty(),
+        )
+    }
+
+    @Test
+    fun `le bouton actualiser reverifie l acces et recharge l arborescence`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+
+        fichiers.seedDocument(
+            URI_DOCUMENT_PROJET + "/Nouveau.kt",
+            FakeFileSystem.Document(name = "Nouveau.kt", isDirectory = false),
+        )
+        viewModel.onAction(ActionEditor.Rafraichir)
+        advanceUntilIdle()
+
+        assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
+        assertTrue(
+            viewModel.etat.value.noeuds
+                .any { it.nom == "Nouveau.kt" },
+        )
+    }
+
+    @Test
+    fun `un dossier disparu pendant l exploration marque le noeud en erreur`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerDossier("src")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+
+        val uriSrc =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "src" }
+                .uri
+
+        // Le dossier disparaît après l'énumération de la racine : le
+        // dépliement échoue — c'est le NŒUD qui signale (réessayable),
+        // pas le bandeau d'accès du projet.
+        assertTrue(fichiers.delete(uriSrc) is jo.codeide.core.model.AppResult.Success)
+        viewModel.onAction(ActionEditor.BasculerNoeud(uriSrc))
+        advanceUntilIdle()
+
+        val src =
+            viewModel.etat.value.noeuds
+                .first { it.nom == "src" }
+        assertTrue("l'échec doit être signalé par la ligne", src.erreurChargement)
+        assertFalse("replié, l'appui réessaiera", src.deplie)
+        assertEquals(ProjectAccessState.Available, viewModel.etat.value.acces)
+    }
+
+    @Test
+    fun `la relocalisation du projet reinitialise l arborescence`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        semerFichier("Main.kt")
+        val viewModel = viewModel(alpha)
+        advanceUntilIdle()
+        assertTrue(
+            viewModel.etat.value.noeuds
+                .isNotEmpty(),
+        )
+
+        // Relocalisation depuis l'accueil : nouvel emplacement, nouvelle
+        // racine — l'arborescence repart de zéro.
+        val nouvelleArbre = "content://autre/tree/Alpha"
+        val nouveauDocument = "$nouvelleArbre/doc"
+        fichiers.grantPermission(nouvelleArbre)
+        fichiers.seedDocument(
+            nouveauDocument,
+            FakeFileSystem.Document(name = "Alpha", isDirectory = true),
+        )
+        fichiers.seedDocument(
+            "$nouveauDocument/Autre.kt",
+            FakeFileSystem.Document(name = "Autre.kt", isDirectory = false),
+        )
+        assertTrue(
+            depot.updateLocation(
+                alpha,
+                StorageLocation(
+                    grantUri = nouvelleArbre,
+                    documentUri = nouveauDocument,
+                    displayPath = "Ailleurs/Alpha",
+                ),
+            ) is jo.codeide.core.model.AppResult.Success,
+        )
+        advanceUntilIdle()
+
+        assertEquals(
+            "Ailleurs/Alpha",
+            viewModel.etat.value.projet
+                ?.location
+                ?.displayPath,
+        )
+        assertEquals(
+            listOf("Alpha", "Autre.kt", "Gradle Scripts"),
+            viewModel.etat.value.noeuds
+                .map { it.nom },
+        )
+    }
 }

@@ -49,11 +49,7 @@ public object InsertionXml {
      * @property fin fin de la plage remplacée (offset exclu).
      * @property remplacement texte posé sur la plage.
      */
-    public data class EditionXml(
-        val debut: Int,
-        val fin: Int,
-        val remplacement: String,
-    )
+    public data class EditionXml(val debut: Int, val fin: Int, val remplacement: String)
 
     /**
      * Le span source du CONTENEUR cible (spans de l'arbre rendu).
@@ -61,10 +57,7 @@ public object InsertionXml {
      * @property debut offset du `<` ouvrant du conteneur.
      * @property fin offset après le `>` FERMANT du conteneur.
      */
-    public data class SpanParent(
-        val debut: Int,
-        val fin: Int,
-    )
+    public data class SpanParent(val debut: Int, val fin: Int)
 
     /** Indentation par niveau (convention des layouts, miroir maquette `ind + 4`). */
     private const val PAS_INDENTATION: String = "    "
@@ -94,12 +87,7 @@ public object InsertionXml {
      *         span (périme, malformation, include non résolu) — l'écriture
      *         refuse plutôt que de deviner.
      */
-    public fun inserer(
-        texte: String,
-        spanParent: SpanParent,
-        index: Int,
-        extrait: String,
-    ): EditionXml? {
+    public fun inserer(texte: String, spanParent: SpanParent, index: Int, extrait: String): EditionXml? {
         if (extrait.isBlank() || texte.isEmpty()) return null
         if (spanParent.debut < 0 || spanParent.fin <= spanParent.debut) return null
         // La marche du texte VIVANT (peut être malformé au moment du dépôt :
@@ -135,10 +123,7 @@ public object InsertionXml {
      * (miroir `nextId` : les ids réservés du document — `@+id/` et
      * `@id/` — bloquent). Identifiant libre : la base reste telle quelle.
      */
-    public fun renumeroter(
-        extrait: String,
-        texte: String,
-    ): String {
+    public fun renumeroter(extrait: String, texte: String): String {
         val bases =
             ID_EXTRAIT
                 .findAll(extrait)
@@ -168,11 +153,7 @@ public object InsertionXml {
      * marges (dp) viennent de la position du dépôt convertie par le
      * contrôleur. Délègue l'injection à [ajouterAttributs].
      */
-    public fun contraindre(
-        extrait: String,
-        margeHautDp: Int,
-        margeStartDp: Int,
-    ): String {
+    public fun contraindre(extrait: String, margeHautDp: Int, margeStartDp: Int): String {
         val attributs =
             buildList {
                 add("app:layout_constraintTop_toTopOf" to "parent")
@@ -196,10 +177,7 @@ public object InsertionXml {
      * REMPLACÉE en place, un dépôt n'écrit jamais deux fois le même
      * attribut).
      */
-    public fun ajouterAttributs(
-        extrait: String,
-        attributs: List<Pair<String, String>>,
-    ): String {
+    public fun ajouterAttributs(extrait: String, attributs: List<Pair<String, String>>): String {
         if (attributs.isEmpty()) return extrait
         val chevron = chevronOuvrant(extrait, 0) ?: return extrait
         val existants = attributsExistants(extrait, chevron)
@@ -233,10 +211,7 @@ public object InsertionXml {
     }
 
     /** Les attributs DÉJÀ POSÉS sur la première balise : nom → plage de la valeur. */
-    private fun attributsExistants(
-        extrait: String,
-        chevron: Int,
-    ): Map<String, IntRange> {
+    private fun attributsExistants(extrait: String, chevron: Int): Map<String, IntRange> {
         val balise = extrait.substring(0, chevron)
         val existants = LinkedHashMap<String, IntRange>()
         for (correspondance in REGEX_ATTRIBUT.findAll(balise)) {
@@ -269,12 +244,7 @@ public object InsertionXml {
      * par [remplacement] — le [point] est l'offset utile au composer
      * (ordre racine → insertion).
      */
-    private class FinEdition(
-        val point: Int,
-        val debut: Int,
-        val fin: Int,
-        val remplacement: String,
-    )
+    private class FinEdition(val point: Int, val debut: Int, val fin: Int, val remplacement: String)
 
     private fun AligneurElementsXml.ElementSource.aSpan(): Boolean = debut >= 0 && fin > debut
 
@@ -282,10 +252,9 @@ public object InsertionXml {
     private fun elementAuSpan(
         elements: List<AligneurElementsXml.ElementSource>,
         spanParent: SpanParent,
-    ): AligneurElementsXml.ElementSource? =
-        elements.lastOrNull { element ->
-            element.aSpan() && element.debut == spanParent.debut && element.fin == spanParent.fin
-        }
+    ): AligneurElementsXml.ElementSource? = elements.lastOrNull { element ->
+        element.aSpan() && element.debut == spanParent.debut && element.fin == spanParent.fin
+    }
 
     /**
      * Les enfants DIRECTS (reconduction de parenté par PILE sur les spans :
@@ -309,19 +278,13 @@ public object InsertionXml {
     }
 
     /** Le conteneur se ferme-t-il en `/>` (aucun enfant possible) ? */
-    private fun autoFermant(
-        texte: String,
-        parent: AligneurElementsXml.ElementSource,
-    ): Boolean {
+    private fun autoFermant(texte: String, parent: AligneurElementsXml.ElementSource): Boolean {
         val slash = texte.lastIndexOf('/', (parent.fin - 2).coerceAtLeast(parent.debut + 1))
         return slash > parent.debut && texte.substring(slash + 1, parent.fin).all { it == ' ' || it == '>' }
     }
 
     /** Le nom de balise du parent (lecture directe du texte, après le `<`). */
-    private fun nomBaliseDe(
-        texte: String,
-        parent: AligneurElementsXml.ElementSource,
-    ): String {
+    private fun nomBaliseDe(texte: String, parent: AligneurElementsXml.ElementSource): String {
         var fin = parent.debut + 1
         while (fin < texte.length && (texte[fin].isLetterOrDigit() || texte[fin] in "._-")) {
             fin += 1
@@ -361,10 +324,7 @@ public object InsertionXml {
     }
 
     /** L'offset du `<` de la balise fermante du parent (conteneur ouvert). */
-    private fun debutFermante(
-        texte: String,
-        parent: AligneurElementsXml.ElementSource,
-    ): Int? {
+    private fun debutFermante(texte: String, parent: AligneurElementsXml.ElementSource): Int? {
         if (autoFermant(texte, parent)) return null
         val position = texte.lastIndexOf('<', parent.fin - 1)
         return if (position > parent.debut) position else null
@@ -475,11 +435,7 @@ public object InsertionXml {
      * des espaces/tabulations (identifiant inclus), sinon [repli] — un
      * repli `null` signifie « document compact, style indéduisible ».
      */
-    private fun indentationDe(
-        texte: String,
-        offset: Int,
-        repli: String?,
-    ): String? {
+    private fun indentationDe(texte: String, offset: Int, repli: String?): String? {
         if (offset <= 0 || offset > texte.length) return repli
         val debutLigne = texte.lastIndexOf('\n', offset - 1) + 1
         val prefixe = texte.substring(debutLigne, offset)
@@ -487,10 +443,7 @@ public object InsertionXml {
     }
 
     /** L'indentation des enfants : le style du premier enfant détectable, sinon `null`. */
-    private fun indentEnfantDetecte(
-        texte: String,
-        enfants: List<AligneurElementsXml.ElementSource>,
-    ): String? {
+    private fun indentEnfantDetecte(texte: String, enfants: List<AligneurElementsXml.ElementSource>): String? {
         for (enfant in enfants) {
             if (!enfant.aSpan()) continue
             val detectee = indentationDe(texte, enfant.debut, repli = null)
@@ -500,23 +453,16 @@ public object InsertionXml {
     }
 
     /** Préfixe chaque ligne de l'extrait (lignes vides exceptées). */
-    private fun indenter(
-        extrait: String,
-        indent: String,
-    ): String =
-        extrait
-            .split('\n')
-            .joinToString("\n") { ligne -> if (ligne.isBlank()) ligne else indent + ligne }
+    private fun indenter(extrait: String, indent: String): String = extrait
+        .split('\n')
+        .joinToString("\n") { ligne -> if (ligne.isBlank()) ligne else indent + ligne }
 
     /**
      * L'offset du chevron `>` fermant la BALISE OUVRANTE qui commence à
      * [debut] (état guillemets : un `>` dans une valeur d'attribut ne
      * ferme pas).
      */
-    private fun chevronOuvrant(
-        texte: String,
-        debut: Int,
-    ): Int? {
+    private fun chevronOuvrant(texte: String, debut: Int): Int? {
         var i = debut
         var guillemet: Char? = null
         while (i < texte.length) {
@@ -533,10 +479,7 @@ public object InsertionXml {
     }
 
     /** L'indentation du dernier attribut d'une balise multi-lignes (repli 4 espaces). */
-    private fun indentationDernierAttribut(
-        balise: String,
-        chevron: Int,
-    ): String {
+    private fun indentationDernierAttribut(balise: String, chevron: Int): String {
         val debutLigne = balise.lastIndexOf('\n', chevron - 1) + 1
         val prefixe = balise.substring(debutLigne, chevron)
         val indent = prefixe.takeWhile { it == ' ' || it == '\t' }

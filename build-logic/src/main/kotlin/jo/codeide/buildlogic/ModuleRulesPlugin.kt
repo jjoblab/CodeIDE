@@ -174,6 +174,7 @@ class ModuleRulesPlugin : Plugin<Project> {
                 ":core:session",
                 ":core:datastore",
                 ":preview:xml",
+                ":preview:compose",
             )
         // Previews PE6-0 (maquette docs/mockups/apercu-xml.html) : l'écran
         // d'aperçu dédié consomme le moteur :preview:xml (le moteur de
@@ -200,6 +201,13 @@ class ModuleRulesPlugin : Plugin<Project> {
         // le module du processus :preview (AIDL) au-dessus, feature:editor
         // ne voyant jamais LayoutLib directement.
         chemin == ":preview:xml" -> setOf(":core:domain")
+        // Mission « Previews » Compose C1 (PREVIEW.md §4) : le moteur de
+        // preview Compose ne dépend que des contrats du domaine — le
+        // runtime Compose EMBARQUÉ (bibliothèque d'interprétation, ADR
+        // 0002 intact) et la dépendance lsp-kotlin (arbre d'appels neutre
+        // de la découverte) sont EXTERNES, hors audit ProjectDependency
+        // (même statut que libs.lsp.host côté feature:editor).
+        chemin == ":preview:compose" -> setOf(":core:domain")
         chemin == ":core:crash" -> setOf(":core:model", ":core:domain", ":core:ui")
         chemin == ":core:data" ->
             setOf(":core:model", ":core:domain", ":core:database", ":core:datastore", ":core:storage", ":core:logging")

@@ -50,10 +50,7 @@ internal data class ParametreTemplateJson(
 )
 
 @Serializable
-internal data class VariableCalculeeJson(
-    val name: String,
-    val expression: String,
-)
+internal data class VariableCalculeeJson(val name: String, val expression: String)
 
 @Serializable
 internal data class FichierTemplateJson(
@@ -66,9 +63,7 @@ internal data class FichierTemplateJson(
 )
 
 /** Erreur de manifeste : message français, échec explicite au chargement. */
-internal class TemplateManifestException(
-    message: String,
-) : Exception(message)
+internal class TemplateManifestException(message: String) : Exception(message)
 
 /** Lecteur JSON strict (taille des manifestes bornée par l'appelant). */
 internal val JsonManifestes: Json =

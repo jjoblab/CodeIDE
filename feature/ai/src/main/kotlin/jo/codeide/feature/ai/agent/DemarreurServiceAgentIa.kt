@@ -11,17 +11,15 @@ import javax.inject.Inject
  * appelle ce port, jamais le contexte directement).
  */
 public class DemarreurServiceAgentIa
-    @Inject
-    constructor(
-        @param:ApplicationContext private val contexte: Context,
-    ) {
-        /** Démarre le service premier plan (notification visible). */
-        public fun demarrer() {
-            contexte.startForegroundService(Intent(contexte, ServiceAgentIa::class.java))
-        }
-
-        /** Arrête le service (harmless si absent). */
-        public fun arreter() {
-            contexte.stopService(Intent(contexte, ServiceAgentIa::class.java))
-        }
+@Inject
+constructor(@param:ApplicationContext private val contexte: Context) {
+    /** Démarre le service premier plan (notification visible). */
+    public fun demarrer() {
+        contexte.startForegroundService(Intent(contexte, ServiceAgentIa::class.java))
     }
+
+    /** Arrête le service (harmless si absent). */
+    public fun arreter() {
+        contexte.stopService(Intent(contexte, ServiceAgentIa::class.java))
+    }
+}

@@ -30,19 +30,12 @@ class GitFragment : Fragment() {
     private val liaison: FragmentGitBinding
         get() = checkNotNull(liaisonAmorce) { "Binding détruit" }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaisonAmorce = FragmentGitBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         liaison.boutonActualiserGit.setOnClickListener { viewModel.rafraichir() }
         liaison.boutonInitialiserGit.setOnClickListener { viewModel.initialiser() }
@@ -57,19 +50,9 @@ class GitFragment : Fragment() {
         }
         liaison.messageCommit.addTextChangedListener(
             object : android.text.TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    count: Int,
-                    after: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    start: Int,
-                    before: Int,
-                    count: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
 
                 override fun afterTextChanged(s: android.text.Editable?) {
                     viewModel.messageCommit(s?.toString() ?: "")
@@ -172,20 +155,16 @@ class GitFragment : Fragment() {
     }
 
     /** Code d'affichage du statut (lettre + couleur, format Android Studio). */
-    private fun codeStatutAffichage(
-        index: StatutFichier,
-        travail: StatutFichier,
-    ): String =
-        when {
-            index == StatutFichier.AJOUTE -> "A"
-            index == StatutFichier.MODIFIE -> "M"
-            index == StatutFichier.SUPPRIME -> "D"
-            index == StatutFichier.RENOMME -> "R"
-            travail == StatutFichier.MODIFIE -> "M"
-            travail == StatutFichier.NON_SUIVI -> "U"
-            travail == StatutFichier.CONFLIT -> "C"
-            else -> " "
-        }
+    private fun codeStatutAffichage(index: StatutFichier, travail: StatutFichier): String = when {
+        index == StatutFichier.AJOUTE -> "A"
+        index == StatutFichier.MODIFIE -> "M"
+        index == StatutFichier.SUPPRIME -> "D"
+        index == StatutFichier.RENOMME -> "R"
+        travail == StatutFichier.MODIFIE -> "M"
+        travail == StatutFichier.NON_SUIVI -> "U"
+        travail == StatutFichier.CONFLIT -> "C"
+        else -> " "
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()

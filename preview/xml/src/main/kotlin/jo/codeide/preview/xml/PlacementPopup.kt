@@ -86,10 +86,7 @@ public object PlacementPopup {
      * une issue DISTINCTE du refus (philosophie X4, miroir normPos).
      */
     @Suppress("ReturnCount")
-    public fun positionsAutorisees(
-        vues: List<InfoVueRendu>,
-        indiceRef: Int,
-    ): Set<Position> {
+    public fun positionsAutorisees(vues: List<InfoVueRendu>, indiceRef: Int): Set<Position> {
         val reference = vues.getOrNull(indiceRef) ?: return emptySet()
         if (reference.indiceParent < 0 || indiceRef == 0) {
             // Racine (ou première vue du document) : DEDANS seul si
@@ -122,10 +119,7 @@ public object PlacementPopup {
      * le nom de classe simple (feuille, adaptateur, enfant attendu,
      * enfant unique plein).
      */
-    private fun dedansAutorise(
-        vues: List<InfoVueRendu>,
-        indiceRef: Int,
-    ): Boolean {
+    private fun dedansAutorise(vues: List<InfoVueRendu>, indiceRef: Int): Boolean {
         val reference = vues[indiceRef]
         return reference.conteneur &&
             ContraintesHierarchie.accepteEnfant(reference.classe, enfantsDe(vues, indiceRef).size)
@@ -137,10 +131,7 @@ public object PlacementPopup {
      * l'offre le permet — sinon la PREMIÈRE position autorisée (Dessous
      * pour un frère `RelativeLayout`, miroir `ok[0]`).
      */
-    public fun positionInitiale(
-        vues: List<InfoVueRendu>,
-        indiceRef: Int,
-    ): Position? {
+    public fun positionInitiale(vues: List<InfoVueRendu>, indiceRef: Int): Position? {
         val autorisees = positionsAutorisees(vues, indiceRef)
         return when {
             autorisees.isEmpty() -> null
@@ -174,10 +165,7 @@ public object PlacementPopup {
      * (Avant, Dedans, Après). Les positions INTERDITES (feuille sans
      * conteneur) restent à [positionsAutorisees].
      */
-    public fun jeuPositions(
-        vues: List<InfoVueRendu>,
-        indiceRef: Int,
-    ): JeuPositions {
+    public fun jeuPositions(vues: List<InfoVueRendu>, indiceRef: Int): JeuPositions {
         val reference = vues.getOrNull(indiceRef)
         return when {
             reference == null -> JeuPositions.SEQUENCE
@@ -199,11 +187,7 @@ public object PlacementPopup {
      * les sous-contrôles du popup (grille 3 × 3 pour `FRAME`/`COORDINATOR`
      * et `RELATIVE`-Dedans, rangée de marges pour `RELATIVE`, § 7).
      */
-    public fun familleParentResultant(
-        vues: List<InfoVueRendu>,
-        indiceRef: Int,
-        position: Position,
-    ): FamilleParent {
+    public fun familleParentResultant(vues: List<InfoVueRendu>, indiceRef: Int, position: Position): FamilleParent {
         val reference = vues.getOrNull(indiceRef) ?: return FamilleParent.AUTRE
         return when {
             position == Position.DEDANS -> familleDe(reference)
@@ -354,10 +338,8 @@ public object PlacementPopup {
     }
 
     /** Les indices des enfants DIRECTS, dans l'ordre du document. */
-    public fun enfantsDe(
-        vues: List<InfoVueRendu>,
-        indiceParent: Int,
-    ): List<Int> = vues.indices.filter { indice -> indice != indiceParent && vues[indice].indiceParent == indiceParent }
+    public fun enfantsDe(vues: List<InfoVueRendu>, indiceParent: Int): List<Int> =
+        vues.indices.filter { indice -> indice != indiceParent && vues[indice].indiceParent == indiceParent }
 
     /**
      * Les DONNÉES du résumé (miroir `res.innerHTML` et ses trois formes,
@@ -381,10 +363,7 @@ public object PlacementPopup {
      * des refus distincts (cible absente, parent hors arbre).
      */
     @Suppress("ReturnCount")
-    public fun resume(
-        vues: List<InfoVueRendu>,
-        cible: ZonesDepot.CibleDepot?,
-    ): ResumePlacement? {
+    public fun resume(vues: List<InfoVueRendu>, cible: ZonesDepot.CibleDepot?): ResumePlacement? {
         val cibleValide = cible ?: return null
         val parent = vues.getOrNull(cibleValide.indiceParent) ?: return null
         val idNom = parent.idRes.substringAfterLast('/')
@@ -404,8 +383,6 @@ public object PlacementPopup {
         FamilleParent.deNom(vue.famille) ?: FamilleParent.deBalise(vue.classe)
 
     /** La famille du PÈRE d'une vue (les positions en dépendent — miroir `famOf(f.p)`). */
-    private fun familleDuPere(
-        vues: List<InfoVueRendu>,
-        reference: InfoVueRendu,
-    ): FamilleParent = familleDe(vues[reference.indiceParent])
+    private fun familleDuPere(vues: List<InfoVueRendu>, reference: InfoVueRendu): FamilleParent =
+        familleDe(vues[reference.indiceParent])
 }

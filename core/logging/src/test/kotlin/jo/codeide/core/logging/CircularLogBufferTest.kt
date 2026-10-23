@@ -19,15 +19,14 @@ class CircularLogBufferTest {
         const val PAR_THREAD = 500
     }
 
-    private fun entree(index: Int) =
-        LogEntry(
-            timestampMillis = index.toLong(),
-            sessionId = "s",
-            level = LogLevel.DEBUG,
-            tag = "Stress",
-            threadName = Thread.currentThread().name,
-            message = "entrée $index",
-        )
+    private fun entree(index: Int) = LogEntry(
+        timestampMillis = index.toLong(),
+        sessionId = "s",
+        level = LogLevel.DEBUG,
+        tag = "Stress",
+        threadName = Thread.currentThread().name,
+        message = "entrée $index",
+    )
 
     @Test
     fun `conserve l'ordre et évite la plus ancienne entrée quand plein`() {

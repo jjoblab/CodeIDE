@@ -15,10 +15,7 @@ import org.junit.Test
  */
 class ExpressionParserTest {
     /** Évalue une expression dans un contexte donné. */
-    private fun evalue(
-        texte: String,
-        contexte: ContexteExpressions = emptyMap(),
-    ): ExpressionValue {
+    private fun evalue(texte: String, contexte: ContexteExpressions = emptyMap()): ExpressionValue {
         val noeud = ExpressionParser.analyser(texte)
         return ExpressionEvaluator.evaluer(noeud, contexte)
     }

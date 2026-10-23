@@ -13,16 +13,14 @@ import javax.inject.Inject
  * (`repeatOnLifecycle`).
  */
 public class ObserveLogsUseCase
-    @Inject
-    constructor(
-        private val repository: LogRepository,
-    ) {
-        /**
-         * Observe la fenêtre des entrées les plus récentes.
-         *
-         * @param limit taille de la fenêtre (au plus la capacité du tampon).
-         * @return le flot des dernières [limit] entrées.
-         */
-        public operator fun invoke(limit: Int = LogRepository.DEFAULT_OBSERVE_LIMIT): Flow<List<LogEntry>> =
-            repository.observeRecent(limit)
-    }
+@Inject
+constructor(private val repository: LogRepository) {
+    /**
+     * Observe la fenêtre des entrées les plus récentes.
+     *
+     * @param limit taille de la fenêtre (au plus la capacité du tampon).
+     * @return le flot des dernières [limit] entrées.
+     */
+    public operator fun invoke(limit: Int = LogRepository.DEFAULT_OBSERVE_LIMIT): Flow<List<LogEntry>> =
+        repository.observeRecent(limit)
+}

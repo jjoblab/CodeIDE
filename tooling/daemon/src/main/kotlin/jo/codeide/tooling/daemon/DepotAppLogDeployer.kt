@@ -29,9 +29,7 @@ internal interface SourceAppLog {
 }
 
 /** Source production : le dossier `assets/applog/` de l'app. */
-internal class SourceAppLogAssets(
-    private val context: Context,
-) : SourceAppLog {
+internal class SourceAppLogAssets(private val context: Context) : SourceAppLog {
     override fun flux(nom: String): InputStream = context.assets.open("${ApplogCoordonnees.DOSSIER_ASSETS}/$nom")
 }
 
@@ -53,10 +51,7 @@ internal class SourceAppLogAssets(
  *
  * @property dossierCible `filesDir/applog-repo`.
  */
-internal class DepotAppLogDeployer(
-    private val source: SourceAppLog,
-    private val dossierCible: File,
-) {
+internal class DepotAppLogDeployer(private val source: SourceAppLog, private val dossierCible: File) {
     /** Racine du dépôt maven local déployé (à passer au serveur par --applog-repo). */
     val racine: File
         get() = dossierCible
@@ -72,25 +67,23 @@ internal class DepotAppLogDeployer(
      *         build de l'app GARANTIT leur présence — contrôle
      *         controlerAarAssets) ou écriture impossible.
      */
-    suspend fun deployer(): File =
-        withContext(Dispatchers.IO) {
-            val empreinte = empreinteSources()
-            if (marqueur.isFile && marqueur.readText() == empreinte) {
-                return@withContext dossierCible
-            }
-            val dossierVersion = dossierVersion()
-            copierAtomique(ApplogCoordonnees.NOM_AAR, File(dossierVersion, ApplogCoordonnees.NOM_AAR))
-            copierAtomique(ApplogCoordonnees.NOM_POM, File(dossierVersion, ApplogCoordonnees.NOM_POM))
-            marqueur.writeText(empreinte)
-            dossierCible
+    suspend fun deployer(): File = withContext(Dispatchers.IO) {
+        val empreinte = empreinteSources()
+        if (marqueur.isFile && marqueur.readText() == empreinte) {
+            return@withContext dossierCible
         }
+        val dossierVersion = dossierVersion()
+        copierAtomique(ApplogCoordonnees.NOM_AAR, File(dossierVersion, ApplogCoordonnees.NOM_AAR))
+        copierAtomique(ApplogCoordonnees.NOM_POM, File(dossierVersion, ApplogCoordonnees.NOM_POM))
+        marqueur.writeText(empreinte)
+        dossierCible
+    }
 
     /** Dossier maven de la version — `jo/codeide/applog-runtime/<version>`. */
-    private fun dossierVersion(): File =
-        dossierCible
-            .resolve(ApplogCoordonnees.GROUPE.replace('.', '/'))
-            .resolve(ApplogCoordonnees.ARTEFACT)
-            .resolve(ApplogCoordonnees.VERSION)
+    private fun dossierVersion(): File = dossierCible
+        .resolve(ApplogCoordonnees.GROUPE.replace('.', '/'))
+        .resolve(ApplogCoordonnees.ARTEFACT)
+        .resolve(ApplogCoordonnees.VERSION)
 
     /**
      * Empreinte des DEUX sources (noms + SHA-256) : le moindre changement
@@ -112,10 +105,7 @@ internal class DepotAppLogDeployer(
     }
 
     /** Copie atomique d'une source vers [cible] : `.tmp` puis renommage. */
-    private fun copierAtomique(
-        nom: String,
-        cible: File,
-    ) {
+    private fun copierAtomique(nom: String, cible: File) {
         // La disposition maven crée les dossiers au passage (première fois).
         cible.parentFile?.mkdirs()
         val temporaire = File(cible.parentFile, cible.name + ".tmp")

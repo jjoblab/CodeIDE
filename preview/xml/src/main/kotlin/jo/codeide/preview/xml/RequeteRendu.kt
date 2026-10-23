@@ -80,14 +80,14 @@ public class RequeteRendu(
         texte = parcel.readString() ?: "",
         dossierRes = parcel.readString(),
         genre =
-            GenrePreview.entries.getOrElse(parcel.readInt()) { GenrePreview.LAYOUT },
+        GenrePreview.entries.getOrElse(parcel.readInt()) { GenrePreview.LAYOUT },
         profil =
-            ProfilPeripherique(
-                nom = parcel.readString() ?: "",
-                largeurDp = parcel.readInt(),
-                hauteurDp = parcel.readInt(),
-                densiteDpi = parcel.readInt(),
-            ),
+        ProfilPeripherique(
+            nom = parcel.readString() ?: "",
+            largeurDp = parcel.readInt(),
+            hauteurDp = parcel.readInt(),
+            densiteDpi = parcel.readInt(),
+        ),
         nuit = parcel.readByte() != 0.toByte(),
         langue = parcel.readString(),
         themeName = parcel.readString(),
@@ -99,10 +99,7 @@ public class RequeteRendu(
         modeGestuel = parcel.readByte() != 0.toByte(),
     )
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        drapeaux: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, drapeaux: Int) {
         parcel.writeString(texte)
         parcel.writeString(dossierRes)
         parcel.writeInt(genre.ordinal)
@@ -123,21 +120,20 @@ public class RequeteRendu(
 
     override fun describeContents(): Int = 0
 
-    override fun equals(other: Any?): Boolean =
-        other is RequeteRendu &&
-            other.texte == texte &&
-            other.dossierRes == dossierRes &&
-            other.genre == genre &&
-            other.profil == profil &&
-            other.nuit == nuit &&
-            other.langue == langue &&
-            other.themeName == themeName &&
-            other.labelActivite == labelActivite &&
-            other.classpath == classpath &&
-            other.paysage == paysage &&
-            other.echellePolice == echellePolice &&
-            other.barreNavigation == barreNavigation &&
-            other.modeGestuel == modeGestuel
+    override fun equals(other: Any?): Boolean = other is RequeteRendu &&
+        other.texte == texte &&
+        other.dossierRes == dossierRes &&
+        other.genre == genre &&
+        other.profil == profil &&
+        other.nuit == nuit &&
+        other.langue == langue &&
+        other.themeName == themeName &&
+        other.labelActivite == labelActivite &&
+        other.classpath == classpath &&
+        other.paysage == paysage &&
+        other.echellePolice == echellePolice &&
+        other.barreNavigation == barreNavigation &&
+        other.modeGestuel == modeGestuel
 
     override fun hashCode(): Int {
         var resultat = texte.hashCode()

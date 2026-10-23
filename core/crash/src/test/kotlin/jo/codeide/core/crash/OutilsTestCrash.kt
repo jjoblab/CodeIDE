@@ -35,18 +35,14 @@ internal object OutilsTestCrash {
     ): FlattenedException = FlattenedException(classe, message, listOf("Classe.methode(Fichier.kt:12)"), null)
 
     /** Entrée de journal minimale (filon de contexte). */
-    fun filon(
-        index: Int,
-        message: String = "étape $index",
-    ): LogEntry =
-        LogEntry(
-            timestampMillis = 1_000L + index,
-            sessionId = "session-1",
-            level = LogLevel.INFO,
-            tag = "App",
-            threadName = "main",
-            message = message,
-        )
+    fun filon(index: Int, message: String = "étape $index"): LogEntry = LogEntry(
+        timestampMillis = 1_000L + index,
+        sessionId = "session-1",
+        level = LogLevel.INFO,
+        tag = "App",
+        threadName = "main",
+        message = message,
+    )
 
     /** Rapport de référence, personnalisable par nommage. */
     fun rapport(
@@ -56,19 +52,18 @@ internal object OutilsTestCrash {
         filons: List<LogEntry> = listOf(filon(0)),
         boucle: Boolean = false,
         ecran: String? = "Accueil",
-    ): CrashReport =
-        CrashReport(
-            id = id,
-            type = type,
-            timestampMillis = horodatage,
-            sessionId = "session-1",
-            application = infosApplication,
-            device = appareilInconnu,
-            threadName = "main",
-            exception = exceptionAplatie(message = "boum $id"),
-            breadcrumbs = filons,
-            lastScreen = ecran,
-            processUptimeMs = 5_000L,
-            isCrashLoop = boucle,
-        )
+    ): CrashReport = CrashReport(
+        id = id,
+        type = type,
+        timestampMillis = horodatage,
+        sessionId = "session-1",
+        application = infosApplication,
+        device = appareilInconnu,
+        threadName = "main",
+        exception = exceptionAplatie(message = "boum $id"),
+        breadcrumbs = filons,
+        lastScreen = ecran,
+        processUptimeMs = 5_000L,
+        isCrashLoop = boucle,
+    )
 }

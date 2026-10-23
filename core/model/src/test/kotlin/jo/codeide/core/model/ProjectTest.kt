@@ -9,22 +9,21 @@ import org.junit.Test
  * journaux (règle 15 — identifiants uniquement).
  */
 class ProjectTest {
-    private fun projet(nom: String = "Mon application"): Project =
-        Project(
-            id = ProjectId("p-1"),
-            name = nom,
-            description = "Une description",
-            location =
-                StorageLocation(
-                    grantUri = "content://authority/tree/t1",
-                    documentUri = "content://authority/tree/t1/doc/d1",
-                    displayPath = "CodeIDE/Mon application",
-                ),
-            templateId = TemplateId("kotlin-jvm"),
-            createdAtMillis = 1_000L,
-            lastOpenedAtMillis = 2_000L,
-            isPinned = false,
-        )
+    private fun projet(nom: String = "Mon application"): Project = Project(
+        id = ProjectId("p-1"),
+        name = nom,
+        description = "Une description",
+        location =
+        StorageLocation(
+            grantUri = "content://authority/tree/t1",
+            documentUri = "content://authority/tree/t1/doc/d1",
+            displayPath = "CodeIDE/Mon application",
+        ),
+        templateId = TemplateId("kotlin-jvm"),
+        createdAtMillis = 1_000L,
+        lastOpenedAtMillis = 2_000L,
+        isPinned = false,
+    )
 
     @Test
     fun `accepte un projet complet avec horodatage d'ouverture nul`() {

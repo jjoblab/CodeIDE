@@ -27,9 +27,7 @@ import jo.codeide.preview.xml.ProblemesFamilles
  * Chrome PUR (patron [PopoverMenuApercu]) : aucun état métier — l'activité
  * pose l'état du moteur, le bandeau l'affiche.
  */
-internal class BandeauApercu(
-    binding: ActivityPreviewBinding,
-) {
+internal class BandeauApercu(binding: ActivityPreviewBinding) {
     private val racine = binding.banniereRendu
     private val message = binding.banniereMessage
     private val bouton = binding.banniereLigne
@@ -52,11 +50,7 @@ internal class BandeauApercu(
      * cycle y est lu ([habiller], spec § 12) au lieu du message brut de
      * LayoutLib.
      */
-    fun montrerErreur(
-        erreur: EtatPreviewXml.ErreurRendu,
-        texte: String,
-        allerALigne: (ligne: Int) -> Unit,
-    ) {
+    fun montrerErreur(erreur: EtatPreviewXml.ErreurRendu, texte: String, allerALigne: (ligne: Int) -> Unit) {
         val (message, ligne) = habiller(erreur, texte)
         montrer(
             texte = message,
@@ -75,10 +69,7 @@ internal class BandeauApercu(
      * vue du cycle (le message brut ne nomme ni la boucle ni la vue).
      * Toute autre erreur passe TELLE QUELLE (message lisible du moteur).
      */
-    private fun habiller(
-        erreur: EtatPreviewXml.ErreurRendu,
-        texte: String,
-    ): Pair<String, Int?> {
+    private fun habiller(erreur: EtatPreviewXml.ErreurRendu, texte: String): Pair<String, Int?> {
         val boucle = boucleDe(erreur.message, texte) ?: return erreur.message to erreur.ligne
         val message =
             ressources.getString(R.string.preview_bandeau_erreur_titre) + " · " +
@@ -91,10 +82,7 @@ internal class BandeauApercu(
     }
 
     /** La boucle du texte quand le message de rendu porte sa signature, sinon null. */
-    private fun boucleDe(
-        message: String,
-        texte: String,
-    ): ProblemesFamilles.Probleme? =
+    private fun boucleDe(message: String, texte: String): ProblemesFamilles.Probleme? =
         if (ProblemesFamilles.estBoucleRelativeLayout(message)) {
             ProblemesFamilles.boucleSurTexte(texte)
         } else {
@@ -105,10 +93,7 @@ internal class BandeauApercu(
      * `renderStatus` cas crash : deux lignes, AUCUN pliage) + « Réessayer »
      * SEUL — pas de « Détails »/« Réduire » sur ce bandeau (la maquette ne
      * les porte que sur l'erreur de rendu). */
-    fun montrerProcessusArrete(
-        texte: CharSequence,
-        reessayer: () -> Unit,
-    ) {
+    fun montrerProcessusArrete(texte: CharSequence, reessayer: () -> Unit) {
         montrer(
             texte = texte,
             libelleBouton = ressources.getString(R.string.preview_bandeau_reessayer),
@@ -130,12 +115,7 @@ internal class BandeauApercu(
      * @param pliable vrai (erreur de rendu) : message replié à UNE ligne +
      *        bouton « Détails »/« Réduire » ; faux (processus arrêté) :
      *        message complet, AUCUN bouton de pliage (miroir la maquette). */
-    private fun montrer(
-        texte: CharSequence,
-        libelleBouton: String?,
-        actionBouton: (() -> Unit)?,
-        pliable: Boolean,
-    ) {
+    private fun montrer(texte: CharSequence, libelleBouton: String?, actionBouton: (() -> Unit)?, pliable: Boolean) {
         message.text = texte
         this.actionBouton = actionBouton
         bouton.isVisible = libelleBouton != null
@@ -182,9 +162,7 @@ internal class BandeauApercu(
  * `toast_apercu` en haut-centre (fond inversé) remplace TOUT Toast
  * système — fondu 200 ms, reste 2,4 s puis s'efface en fondu.
  */
-internal class ToastApercu(
-    private val vue: TextView,
-) {
+internal class ToastApercu(private val vue: TextView) {
     /** Affiche un message (remplace et repouille le toast précédent). */
     fun montrer(texte: CharSequence) {
         vue.removeCallbacks(effacement)

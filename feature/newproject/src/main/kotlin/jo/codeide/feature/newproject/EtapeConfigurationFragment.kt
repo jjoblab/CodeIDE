@@ -30,27 +30,18 @@ class EtapeConfigurationFragment : EtapeFragment<EtapeConfigurationBinding>() {
         attachToRoot: Boolean,
     ): EtapeConfigurationBinding = EtapeConfigurationBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         rendu =
             RenduParametres(
                 binding.conteneurParametres,
                 object : RenduParametres.Ecouteur {
-                    override fun saisirTexte(
-                        parametreId: String,
-                        valeur: String,
-                    ) {
+                    override fun saisirTexte(parametreId: String, valeur: String) {
                         wizard.action(ActionWizard.SaisirTexte(parametreId, valeur))
                     }
 
-                    override fun choisirValeur(
-                        parametreId: String,
-                        valeur: String,
-                    ) {
+                    override fun choisirValeur(parametreId: String, valeur: String) {
                         wizard.action(ActionWizard.ChoisirValeur(parametreId, valeur))
                     }
 
@@ -91,17 +82,16 @@ class EtapeConfigurationFragment : EtapeFragment<EtapeConfigurationBinding>() {
     }
 
     /** Libellé affichable d'une valeur de choix (registre de présentation). */
-    private fun libelleValeur(valeur: String): String =
-        when (valeur) {
-            "application" -> getString(R.string.wizard_choix_application)
-            "library" -> getString(R.string.wizard_choix_bibliotheque)
-            "gradle-kts" -> getString(R.string.wizard_choix_gradle)
-            "maven" -> getString(R.string.wizard_choix_maven)
-            "none" -> getString(R.string.wizard_choix_sources)
-            "17" -> getString(R.string.wizard_choix_jdk17)
-            "21" -> getString(R.string.wizard_choix_jdk21)
-            else -> valeur
-        }
+    private fun libelleValeur(valeur: String): String = when (valeur) {
+        "application" -> getString(R.string.wizard_choix_application)
+        "library" -> getString(R.string.wizard_choix_bibliotheque)
+        "gradle-kts" -> getString(R.string.wizard_choix_gradle)
+        "maven" -> getString(R.string.wizard_choix_maven)
+        "none" -> getString(R.string.wizard_choix_sources)
+        "17" -> getString(R.string.wizard_choix_jdk17)
+        "21" -> getString(R.string.wizard_choix_jdk21)
+        else -> valeur
+    }
 
     /** Ajoute une puce informative (non actionnable). */
     private fun ajouterPuce(texte: String) {

@@ -587,10 +587,7 @@ public class PreviewActivity :
      * voyage en localState (contrat PE7b — [ZonesDepot.ContenuDepot]),
      * l'ombre porte la tuile ; la palette SE MASQUE le temps du drag.
      */
-    private fun lancerDrag(
-        entree: CataloguePalette.EntreePalette,
-        vueTuile: View,
-    ) {
+    private fun lancerDrag(entree: CataloguePalette.EntreePalette, vueTuile: View) {
         val contenu = ZonesDepot.ContenuDepot(entree.extraitXml, entree.nomAffiche, entree.id)
         masquerPalette()
         // PE9e : le GHOST stylé (pill violette icône + nom — miroir `.ghost`)
@@ -956,10 +953,7 @@ public class PreviewActivity :
         toastApercu.montrer(texte)
     }
 
-    private fun toast(
-        resId: Int,
-        argument: String,
-    ) {
+    private fun toast(resId: Int, argument: String) {
         toastApercu.montrer(getString(resId, argument))
     }
 

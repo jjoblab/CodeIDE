@@ -44,135 +44,91 @@ import javax.inject.Inject
  */
 sealed interface ActionParametres {
     /** Change le thème — persistance immédiate, effet immédiat. */
-    data class ChangerTheme(
-        val mode: ThemeMode,
-    ) : ActionParametres
+    data class ChangerTheme(val mode: ThemeMode) : ActionParametres
 
     /** Active ou désactive les couleurs dynamiques. */
-    data class ChangerCouleursDynamiques(
-        val activees: Boolean,
-    ) : ActionParametres
+    data class ChangerCouleursDynamiques(val activees: Boolean) : ActionParametres
 
     /**
      * Change la palette statique (ADR 0060) — sans objet quand les
      * couleurs dynamiques sont actives, mais persistée quand même :
      * elle s'appliquera dès leur désactivation.
      */
-    data class ChangerPalette(
-        val palette: PaletteCouleur,
-    ) : ActionParametres
+    data class ChangerPalette(val palette: PaletteCouleur) : ActionParametres
 
     /**
      * Change la langue (tag BCP 47, `""` pour suivre le système).
      */
-    data class ChangerLangue(
-        val tag: String,
-    ) : ActionParametres
+    data class ChangerLangue(val tag: String) : ActionParametres
 
     /**
      * Valide la saisie du nom d'auteur (perte de focus du champ) —
      * une écriture DataStore par frappe serait un goulot.
      */
-    data class ValiderNomAuteur(
-        val nom: String,
-    ) : ActionParametres
+    data class ValiderNomAuteur(val nom: String) : ActionParametres
 
     /** Change la licence par défaut proposée au wizard. */
-    data class ChangerLicence(
-        val licence: License,
-    ) : ActionParametres
+    data class ChangerLicence(val licence: License) : ActionParametres
 
     /**
      * Éditeur : largeur de tabulation des requêtes de mise en forme LSP
      * (`setFormattingOptions`, réglage réintroduit v0.168.0 — ADR 0136
      * phase 2, la promesse de l'ADR 0066 est tenue).
      */
-    data class ChangerTailleTabulation(
-        val taille: TailleTabulation,
-    ) : ActionParametres
+    data class ChangerTailleTabulation(val taille: TailleTabulation) : ActionParametres
 
     /**
      * Change la taille de la police à chasse fixe du terminal (T5 —
      * réglage dédié minimal, prompt Terminal-1 section 5).
      */
-    data class ChangerTaillePoliceTerminal(
-        val taille: TaillePoliceTerminal,
-    ) : ActionParametres
+    data class ChangerTaillePoliceTerminal(val taille: TaillePoliceTerminal) : ActionParametres
 
     /**
      * Notifications : active ou coupe le canal Synchronisation (ADR 0059).
      */
-    data class ChangerNotificationsSync(
-        val activees: Boolean,
-    ) : ActionParametres
+    data class ChangerNotificationsSync(val activees: Boolean) : ActionParametres
 
     /** Notifications : active ou coupe le canal Build (ADR 0059). */
-    data class ChangerNotificationsBuild(
-        val activees: Boolean,
-    ) : ActionParametres
+    data class ChangerNotificationsBuild(val activees: Boolean) : ActionParametres
 
     /** Notifications : son des notifications du tooling (ADR 0059). */
-    data class ChangerSonNotifications(
-        val active: Boolean,
-    ) : ActionParametres
+    data class ChangerSonNotifications(val active: Boolean) : ActionParametres
 
     /** Éditeur : retour à la ligne automatique (`setWordWrap`). */
-    data class ChangerRetourLigne(
-        val actif: Boolean,
-    ) : ActionParametres
+    data class ChangerRetourLigne(val actif: Boolean) : ActionParametres
 
     /** Éditeur : thème de coloration (`setTheme`, v0.37.0). */
-    data class ChangerThemeEditeur(
-        val theme: ThemeEditeur,
-    ) : ActionParametres
+    data class ChangerThemeEditeur(val theme: ThemeEditeur) : ActionParametres
 
     /** Éditeur : bande minimap à droite (`setMinimapEnabled`). */
-    data class ChangerMinimap(
-        val activee: Boolean,
-    ) : ActionParametres
+    data class ChangerMinimap(val activee: Boolean) : ActionParametres
 
     /** Éditeur : espaces, tabulations et fins de ligne visibles. */
-    data class ChangerCaracteresNonImprimables(
-        val affiches: Boolean,
-    ) : ActionParametres
+    data class ChangerCaracteresNonImprimables(val affiches: Boolean) : ActionParametres
 
     /** Éditeur : ligatures de la police à chasse fixe. */
-    data class ChangerLigatures(
-        val activees: Boolean,
-    ) : ActionParametres
+    data class ChangerLigatures(val activees: Boolean) : ActionParametres
 
     /** Éditeur : badges de diagnostic en fin de ligne. */
-    data class ChangerChipsDiagnostics(
-        val activees: Boolean,
-    ) : ActionParametres
+    data class ChangerChipsDiagnostics(val activees: Boolean) : ActionParametres
 
     /** Éditeur : sauvegarde automatique à la perte de focus. */
-    data class ChangerSauvegardeAuto(
-        val activee: Boolean,
-    ) : ActionParametres
+    data class ChangerSauvegardeAuto(val activee: Boolean) : ActionParametres
 
     /** Éditeur : taille de police de l'éditeur (`setFontScale`). */
-    data class ChangerTaillePoliceEditeur(
-        val taille: TaillePoliceEditeur,
-    ) : ActionParametres
+    data class ChangerTaillePoliceEditeur(val taille: TaillePoliceEditeur) : ActionParametres
 
     /** Terminal : style du curseur de l'émulateur (ADR 0059). */
-    data class ChangerStyleCurseur(
-        val style: StyleCurseurTerminal,
-    ) : ActionParametres
+    data class ChangerStyleCurseur(val style: StyleCurseurTerminal) : ActionParametres
 
     /** Terminal : copie automatique de la sélection (ADR 0059). */
-    data class ChangerCopieSelection(
-        val activee: Boolean,
-    ) : ActionParametres
+    data class ChangerCopieSelection(val activee: Boolean) : ActionParametres
 
     /** Demande l'ouverture du sélecteur SAF (effet ponctuel). */
     data object DemanderChangementDossier : ActionParametres
 
     /** Un dossier est revenu du sélecteur SAF. */
-    data class DossierChoisi(
-        val uri: String,
-    ) : ActionParametres
+    data class DossierChoisi(val uri: String) : ActionParametres
 
     /** Efface le dossier de travail du réglage. */
     data object EffacerDossier : ActionParametres
@@ -184,9 +140,7 @@ sealed interface ActionParametres {
      * Historique local (H6) : change la rétention — lue à CHAQUE purge,
      * le changement s'applique à la prochaine ouverture de projet.
      */
-    data class ChangerRetentionHistorique(
-        val retention: RetentionHistorique,
-    ) : ActionParametres
+    data class ChangerRetentionHistorique(val retention: RetentionHistorique) : ActionParametres
 
     /**
      * Historique local (H6) : efface TOUT l'historique de TOUS les
@@ -233,343 +187,340 @@ sealed interface EffetParametres {
 @Suppress("LongParameterList", "TooManyFunctions") // Use cases du domaine + une intention par fonction.
 @HiltViewModel
 class SettingsViewModel
-    @Inject
-    constructor(
-        observerParametres: ObserveSettingsUseCase,
-        private val majParametres: UpdateSettingsUseCase,
-        private val changerDossier: ChangeWorkspaceUseCase,
-        private val effacerDossier: ClearWorkspaceUseCase,
-        private val reinitialiserPreferences: ResetPreferencesUseCase,
-        private val historique: HistoriqueLocal,
-        infosBuild: CrashAppInfo,
-        private val logger: AppLogger,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatParametres(infosBuild = infosBuild))
-        private val canalEffets = Channel<EffetParametres>(Channel.BUFFERED)
+@Inject
+constructor(
+    observerParametres: ObserveSettingsUseCase,
+    private val majParametres: UpdateSettingsUseCase,
+    private val changerDossier: ChangeWorkspaceUseCase,
+    private val effacerDossier: ClearWorkspaceUseCase,
+    private val reinitialiserPreferences: ResetPreferencesUseCase,
+    private val historique: HistoriqueLocal,
+    infosBuild: CrashAppInfo,
+    private val logger: AppLogger,
+) : ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatParametres(infosBuild = infosBuild))
+    private val canalEffets = Channel<EffetParametres>(Channel.BUFFERED)
 
-        /** État observable de l'écran (UDF, section 5.3). */
-        val etat: StateFlow<EtatParametres> = etatInterne.asStateFlow()
+    /** État observable de l'écran (UDF, section 5.3). */
+    val etat: StateFlow<EtatParametres> = etatInterne.asStateFlow()
 
-        /** Effets ponctuels (sélecteur SAF, assistant). */
-        val effets: Flow<EffetParametres> = canalEffets.receiveAsFlow()
+    /** Effets ponctuels (sélecteur SAF, assistant). */
+    val effets: Flow<EffetParametres> = canalEffets.receiveAsFlow()
 
-        init {
-            observerParametres()
-                .onEach { reglages -> etatInterne.update { it.copy(reglage = reglages) } }
-                .launchIn(viewModelScope)
-            mesurerEmpreinteHistorique()
-        }
+    init {
+        observerParametres()
+            .onEach { reglages -> etatInterne.update { it.copy(reglage = reglages) } }
+            .launchIn(viewModelScope)
+        mesurerEmpreinteHistorique()
+    }
 
-        /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
-        fun onAction(action: ActionParametres) {
-            if (traiterReglageEditeur(action) || traiterReglageSection(action) ||
-                traiterReglageApparence(action)
-            ) {
-                return
-            }
-            when (action) {
-                is ActionParametres.ChangerLangue -> {
-                    ecrireReglage("langue") { it.copy(languageTag = action.tag) }
-                }
-
-                is ActionParametres.ValiderNomAuteur -> {
-                    ecrireReglage("nom d'auteur") { it.copy(authorName = action.nom.trim()) }
-                }
-
-                is ActionParametres.ChangerLicence -> {
-                    ecrireReglage("licence par défaut") { it.copy(defaultLicense = action.licence) }
-                }
-
-                is ActionParametres.ChangerTaillePoliceTerminal -> {
-                    ecrireReglage("taille de police du terminal") {
-                        it.copy(taillePoliceTerminal = action.taille)
-                    }
-                }
-
-                ActionParametres.DemanderChangementDossier -> {
-                    envoyerEffet(EffetParametres.OuvrirSelecteurDossier)
-                }
-
-                is ActionParametres.DossierChoisi -> {
-                    changerLeDossier(action.uri)
-                }
-
-                ActionParametres.EffacerDossier -> {
-                    effacerLeDossier()
-                }
-
-                ActionParametres.ReinitialiserPreferences -> {
-                    reinitialiser()
-                }
-
-                ActionParametres.RelancerAssistant -> {
-                    relancerAssistant()
-                }
-
-                // Réglages des sections ADR 0059 — déjà consommés par
-                // traiterReglageEditeur/Section/Apparence (retour vrai) : ce
-                // repli est structurel, jamais atteint.
-                else -> {
-                    Unit
-                }
-            }
-        }
-
-        /**
-         * Réglages d'apparence (ADR 0059/0060) : thème, couleurs
-         * dynamiques et palette — unifiés ici pour garder le dispatcheur
-         * `onAction` sous la borne de complexité detekt.
-         *
-         * @return vrai si l'action a été consommée (réglage persisté).
-         */
-        private fun traiterReglageApparence(action: ActionParametres): Boolean {
-            when (action) {
-                is ActionParametres.ChangerTheme -> {
-                    ecrireReglage("thème") { it.copy(themeMode = action.mode) }
-                }
-
-                is ActionParametres.ChangerCouleursDynamiques -> {
-                    ecrireReglage("couleurs dynamiques") { it.copy(useDynamicColor = action.activees) }
-                }
-
-                is ActionParametres.ChangerPalette -> {
-                    ecrireReglage("palette de couleurs") { it.copy(paletteCouleur = action.palette) }
-                }
-
-                else -> {
-                    return false
-                }
-            }
-            return true
-        }
-
-        /**
-         * Réglages de la section Éditeur (v0.37.0 — consommés au fil de
-         * l'eau par `OptionsEditeur`) : écritures directes, unifiées ici
-         * pour garder le dispatcheur `onAction` lisible.
-         *
-         * @return vrai si l'action a été consommée (réglage persisté).
-         */
-        private fun traiterReglageEditeur(action: ActionParametres): Boolean {
-            when (action) {
-                is ActionParametres.ChangerRetourLigne -> {
-                    ecrireReglage("retour à la ligne") { it.copy(editorRetourLigne = action.actif) }
-                }
-
-                is ActionParametres.ChangerThemeEditeur -> {
-                    ecrireReglage("thème de l'éditeur") { it.copy(editorThemeEditeur = action.theme) }
-                }
-
-                is ActionParametres.ChangerMinimap -> {
-                    ecrireReglage("minimap") { it.copy(editorMinimap = action.activee) }
-                }
-
-                is ActionParametres.ChangerCaracteresNonImprimables -> {
-                    ecrireReglage("caractères non imprimables") {
-                        it.copy(editorCaracteresNonImprimables = action.affiches)
-                    }
-                }
-
-                is ActionParametres.ChangerLigatures -> {
-                    ecrireReglage("ligatures") { it.copy(editorLigatures = action.activees) }
-                }
-
-                is ActionParametres.ChangerChipsDiagnostics -> {
-                    ecrireReglage("badges de diagnostic") { it.copy(editorChipsDiagnostics = action.activees) }
-                }
-
-                is ActionParametres.ChangerSauvegardeAuto -> {
-                    ecrireReglage("sauvegarde automatique") { it.copy(editorSauvegardeAuto = action.activee) }
-                }
-
-                is ActionParametres.ChangerTaillePoliceEditeur -> {
-                    ecrireReglage("taille de police éditeur") { it.copy(editorTaillePolice = action.taille) }
-                }
-
-                is ActionParametres.ChangerTailleTabulation -> {
-                    ecrireReglage("largeur de tabulation") { it.copy(editorTailleTabulation = action.taille) }
-                }
-
-                else -> {
-                    return false
-                }
-            }
-            return true
-        }
-
-        /**
-         * Réglages des sections créées par l'ADR 0059 (Terminal,
-         * Notifications) et de la section Historique local (mission H6) :
-         * écritures directes et effacement d'entretien, unifiés ici pour
-         * garder le dispatcheur `onAction` lisible.
-         *
-         * @return vrai si l'action a été consommée (réglage persisté).
-         */
-        private fun traiterReglageSection(action: ActionParametres): Boolean {
-            when (action) {
-                is ActionParametres.ChangerNotificationsSync -> {
-                    ecrireReglage("notifications sync") { it.copy(notificationsSync = action.activees) }
-                }
-
-                is ActionParametres.ChangerNotificationsBuild -> {
-                    ecrireReglage("notifications build") { it.copy(notificationsBuild = action.activees) }
-                }
-
-                is ActionParametres.ChangerSonNotifications -> {
-                    ecrireReglage("son des notifications") { it.copy(sonNotifications = action.active) }
-                }
-
-                is ActionParametres.ChangerStyleCurseur -> {
-                    ecrireReglage("style du curseur") { it.copy(styleCurseurTerminal = action.style) }
-                }
-
-                is ActionParametres.ChangerCopieSelection -> {
-                    ecrireReglage("copie de sélection") { it.copy(copieSelectionAuto = action.activee) }
-                }
-
-                is ActionParametres.ChangerRetentionHistorique -> {
-                    ecrireReglage("rétention de l'historique") {
-                        it.copy(retentionHistorique = action.retention)
-                    }
-                }
-
-                ActionParametres.EffacerHistorique -> {
-                    effacerHistorique()
-                }
-
-                else -> {
-                    return false
-                }
-            }
-            return true
-        }
-
-        /** Change le dossier de travail (validation + règle de l'ancienne permission). */
-        private fun changerLeDossier(uri: String) {
-            etatInterne.update { it.copy(verificationDossier = true, retourDossier = RetourDossier.Aucun) }
-            viewModelScope.launch {
-                when (val resultat = changerDossier(uri)) {
-                    is ValidationDossier.Valide -> {
-                        logger.i(TAG) { "dossier de travail changé" }
-                        etatInterne.update { it.copy(retourDossier = RetourDossier.Change) }
-                    }
-
-                    is ValidationDossier.Refuse -> {
-                        logger.w(TAG) { "nouveau dossier de travail refusé par la plateforme" }
-                        etatInterne.update { it.copy(retourDossier = RetourDossier.Refuse) }
-                    }
-
-                    is ValidationDossier.Erreur -> {
-                        logger.w(TAG) { "échec du changement de dossier de travail" }
-                        etatInterne.update { it.copy(retourDossier = RetourDossier.Erreur) }
-                    }
-                }
-                etatInterne.update { it.copy(verificationDossier = false) }
-            }
-        }
-
-        /** Efface le dossier de travail (règle de l'ancienne permission). */
-        private fun effacerLeDossier() {
-            etatInterne.update { it.copy(verificationDossier = true, retourDossier = RetourDossier.Aucun) }
-            viewModelScope.launch {
-                when (val resultat = effacerDossier()) {
-                    is EffacementDossier.Efface -> {
-                        logger.i(TAG) { "dossier de travail effacé" }
-                        etatInterne.update {
-                            it.copy(
-                                // UI : signaler quand la permission est conservée
-                                // (des projets vivent encore dans l'arbre).
-                                retourDossier = RetourDossier.Efface(permissionGardee = !resultat.permissionLiberee),
-                            )
-                        }
-                    }
-
-                    is EffacementDossier.Erreur -> {
-                        logger.w(TAG) { "échec de l'effacement du dossier de travail" }
-                        etatInterne.update { it.copy(retourDossier = RetourDossier.Erreur) }
-                    }
-                }
-                etatInterne.update { it.copy(verificationDossier = false) }
-            }
-        }
-
-        /** Remet les préférences à leurs valeurs par défaut (ADR 0014). */
-        private fun reinitialiser() {
-            viewModelScope.launch {
-                when (reinitialiserPreferences()) {
-                    is AppResult.Success -> {
-                        logger.i(TAG) { "préférences réinitialisées" }
-                        etatInterne.update { it.copy(retourDossier = RetourDossier.Aucun) }
-                    }
-
-                    is AppResult.Failure -> {
-                        logger.w(TAG) { "échec de la réinitialisation des préférences" }
-                    }
-                }
-            }
-        }
-
-        /** Ouvre l'assistant : le drapeau d'installation repasse à faux. */
-        private fun relancerAssistant() {
-            viewModelScope.launch {
-                when (majParametres { reglages: AppSettings -> reglages.copy(isSetupCompleted = false) }) {
-                    is AppResult.Success -> {
-                        logger.i(TAG) { "assistant de premier lancement relancé" }
-                        canalEffets.send(EffetParametres.OuvrirAssistant)
-                    }
-
-                    is AppResult.Failure -> {
-                        logger.w(TAG) { "échec du relancement de l'assistant" }
-                    }
-                }
-            }
-        }
-
-        /** Écriture de réglage avec journalisation du seul échec. */
-        private fun ecrireReglage(
-            quoi: String,
-            transformation: (AppSettings) -> AppSettings,
+    /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
+    fun onAction(action: ActionParametres) {
+        if (traiterReglageEditeur(action) || traiterReglageSection(action) ||
+            traiterReglageApparence(action)
         ) {
-            viewModelScope.launch {
-                when (val resultat = majParametres(transformation)) {
-                    is AppResult.Success -> {
-                        Unit
-                    }
+            return
+        }
+        when (action) {
+            is ActionParametres.ChangerLangue -> {
+                ecrireReglage("langue") { it.copy(languageTag = action.tag) }
+            }
 
-                    is AppResult.Failure -> {
-                        logger.w(TAG) { "échec de persistance du réglage : $quoi" }
-                    }
+            is ActionParametres.ValiderNomAuteur -> {
+                ecrireReglage("nom d'auteur") { it.copy(authorName = action.nom.trim()) }
+            }
+
+            is ActionParametres.ChangerLicence -> {
+                ecrireReglage("licence par défaut") { it.copy(defaultLicense = action.licence) }
+            }
+
+            is ActionParametres.ChangerTaillePoliceTerminal -> {
+                ecrireReglage("taille de police du terminal") {
+                    it.copy(taillePoliceTerminal = action.taille)
                 }
             }
-        }
 
-        /**
-         * Entretien (H6) : efface TOUT l'historique local (tous projets)
-         * puis remesure l'empreinte — le retour [RetourHistorique.Efface]
-         * s'affiche sous la rangée d'entretien.
-         */
-        private fun effacerHistorique() {
-            viewModelScope.launch {
-                historique.effacerTout()
-                logger.i(TAG) { "historique local effacé (entretien)" }
-                etatInterne.update { it.copy(retourHistorique = RetourHistorique.Efface) }
-                mesurerEmpreinteHistorique()
+            ActionParametres.DemanderChangementDossier -> {
+                envoyerEffet(EffetParametres.OuvrirSelecteurDossier)
             }
-        }
 
-        /** Mesure l'espace occupé par l'historique (E/S, hors fil principal). */
-        private fun mesurerEmpreinteHistorique() {
-            viewModelScope.launch {
-                val octets = historique.empreinteOctets()
-                etatInterne.update { it.copy(empreinteHistoriqueOctets = octets) }
+            is ActionParametres.DossierChoisi -> {
+                changerLeDossier(action.uri)
             }
-        }
 
-        private fun envoyerEffet(effet: EffetParametres) {
-            canalEffets.trySend(effet)
-        }
+            ActionParametres.EffacerDossier -> {
+                effacerLeDossier()
+            }
 
-        private companion object {
-            const val TAG = "Parametres"
+            ActionParametres.ReinitialiserPreferences -> {
+                reinitialiser()
+            }
+
+            ActionParametres.RelancerAssistant -> {
+                relancerAssistant()
+            }
+
+            // Réglages des sections ADR 0059 — déjà consommés par
+            // traiterReglageEditeur/Section/Apparence (retour vrai) : ce
+            // repli est structurel, jamais atteint.
+            else -> {
+                Unit
+            }
         }
     }
+
+    /**
+     * Réglages d'apparence (ADR 0059/0060) : thème, couleurs
+     * dynamiques et palette — unifiés ici pour garder le dispatcheur
+     * `onAction` sous la borne de complexité detekt.
+     *
+     * @return vrai si l'action a été consommée (réglage persisté).
+     */
+    private fun traiterReglageApparence(action: ActionParametres): Boolean {
+        when (action) {
+            is ActionParametres.ChangerTheme -> {
+                ecrireReglage("thème") { it.copy(themeMode = action.mode) }
+            }
+
+            is ActionParametres.ChangerCouleursDynamiques -> {
+                ecrireReglage("couleurs dynamiques") { it.copy(useDynamicColor = action.activees) }
+            }
+
+            is ActionParametres.ChangerPalette -> {
+                ecrireReglage("palette de couleurs") { it.copy(paletteCouleur = action.palette) }
+            }
+
+            else -> {
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * Réglages de la section Éditeur (v0.37.0 — consommés au fil de
+     * l'eau par `OptionsEditeur`) : écritures directes, unifiées ici
+     * pour garder le dispatcheur `onAction` lisible.
+     *
+     * @return vrai si l'action a été consommée (réglage persisté).
+     */
+    private fun traiterReglageEditeur(action: ActionParametres): Boolean {
+        when (action) {
+            is ActionParametres.ChangerRetourLigne -> {
+                ecrireReglage("retour à la ligne") { it.copy(editorRetourLigne = action.actif) }
+            }
+
+            is ActionParametres.ChangerThemeEditeur -> {
+                ecrireReglage("thème de l'éditeur") { it.copy(editorThemeEditeur = action.theme) }
+            }
+
+            is ActionParametres.ChangerMinimap -> {
+                ecrireReglage("minimap") { it.copy(editorMinimap = action.activee) }
+            }
+
+            is ActionParametres.ChangerCaracteresNonImprimables -> {
+                ecrireReglage("caractères non imprimables") {
+                    it.copy(editorCaracteresNonImprimables = action.affiches)
+                }
+            }
+
+            is ActionParametres.ChangerLigatures -> {
+                ecrireReglage("ligatures") { it.copy(editorLigatures = action.activees) }
+            }
+
+            is ActionParametres.ChangerChipsDiagnostics -> {
+                ecrireReglage("badges de diagnostic") { it.copy(editorChipsDiagnostics = action.activees) }
+            }
+
+            is ActionParametres.ChangerSauvegardeAuto -> {
+                ecrireReglage("sauvegarde automatique") { it.copy(editorSauvegardeAuto = action.activee) }
+            }
+
+            is ActionParametres.ChangerTaillePoliceEditeur -> {
+                ecrireReglage("taille de police éditeur") { it.copy(editorTaillePolice = action.taille) }
+            }
+
+            is ActionParametres.ChangerTailleTabulation -> {
+                ecrireReglage("largeur de tabulation") { it.copy(editorTailleTabulation = action.taille) }
+            }
+
+            else -> {
+                return false
+            }
+        }
+        return true
+    }
+
+    /**
+     * Réglages des sections créées par l'ADR 0059 (Terminal,
+     * Notifications) et de la section Historique local (mission H6) :
+     * écritures directes et effacement d'entretien, unifiés ici pour
+     * garder le dispatcheur `onAction` lisible.
+     *
+     * @return vrai si l'action a été consommée (réglage persisté).
+     */
+    private fun traiterReglageSection(action: ActionParametres): Boolean {
+        when (action) {
+            is ActionParametres.ChangerNotificationsSync -> {
+                ecrireReglage("notifications sync") { it.copy(notificationsSync = action.activees) }
+            }
+
+            is ActionParametres.ChangerNotificationsBuild -> {
+                ecrireReglage("notifications build") { it.copy(notificationsBuild = action.activees) }
+            }
+
+            is ActionParametres.ChangerSonNotifications -> {
+                ecrireReglage("son des notifications") { it.copy(sonNotifications = action.active) }
+            }
+
+            is ActionParametres.ChangerStyleCurseur -> {
+                ecrireReglage("style du curseur") { it.copy(styleCurseurTerminal = action.style) }
+            }
+
+            is ActionParametres.ChangerCopieSelection -> {
+                ecrireReglage("copie de sélection") { it.copy(copieSelectionAuto = action.activee) }
+            }
+
+            is ActionParametres.ChangerRetentionHistorique -> {
+                ecrireReglage("rétention de l'historique") {
+                    it.copy(retentionHistorique = action.retention)
+                }
+            }
+
+            ActionParametres.EffacerHistorique -> {
+                effacerHistorique()
+            }
+
+            else -> {
+                return false
+            }
+        }
+        return true
+    }
+
+    /** Change le dossier de travail (validation + règle de l'ancienne permission). */
+    private fun changerLeDossier(uri: String) {
+        etatInterne.update { it.copy(verificationDossier = true, retourDossier = RetourDossier.Aucun) }
+        viewModelScope.launch {
+            when (val resultat = changerDossier(uri)) {
+                is ValidationDossier.Valide -> {
+                    logger.i(TAG) { "dossier de travail changé" }
+                    etatInterne.update { it.copy(retourDossier = RetourDossier.Change) }
+                }
+
+                is ValidationDossier.Refuse -> {
+                    logger.w(TAG) { "nouveau dossier de travail refusé par la plateforme" }
+                    etatInterne.update { it.copy(retourDossier = RetourDossier.Refuse) }
+                }
+
+                is ValidationDossier.Erreur -> {
+                    logger.w(TAG) { "échec du changement de dossier de travail" }
+                    etatInterne.update { it.copy(retourDossier = RetourDossier.Erreur) }
+                }
+            }
+            etatInterne.update { it.copy(verificationDossier = false) }
+        }
+    }
+
+    /** Efface le dossier de travail (règle de l'ancienne permission). */
+    private fun effacerLeDossier() {
+        etatInterne.update { it.copy(verificationDossier = true, retourDossier = RetourDossier.Aucun) }
+        viewModelScope.launch {
+            when (val resultat = effacerDossier()) {
+                is EffacementDossier.Efface -> {
+                    logger.i(TAG) { "dossier de travail effacé" }
+                    etatInterne.update {
+                        it.copy(
+                            // UI : signaler quand la permission est conservée
+                            // (des projets vivent encore dans l'arbre).
+                            retourDossier = RetourDossier.Efface(permissionGardee = !resultat.permissionLiberee),
+                        )
+                    }
+                }
+
+                is EffacementDossier.Erreur -> {
+                    logger.w(TAG) { "échec de l'effacement du dossier de travail" }
+                    etatInterne.update { it.copy(retourDossier = RetourDossier.Erreur) }
+                }
+            }
+            etatInterne.update { it.copy(verificationDossier = false) }
+        }
+    }
+
+    /** Remet les préférences à leurs valeurs par défaut (ADR 0014). */
+    private fun reinitialiser() {
+        viewModelScope.launch {
+            when (reinitialiserPreferences()) {
+                is AppResult.Success -> {
+                    logger.i(TAG) { "préférences réinitialisées" }
+                    etatInterne.update { it.copy(retourDossier = RetourDossier.Aucun) }
+                }
+
+                is AppResult.Failure -> {
+                    logger.w(TAG) { "échec de la réinitialisation des préférences" }
+                }
+            }
+        }
+    }
+
+    /** Ouvre l'assistant : le drapeau d'installation repasse à faux. */
+    private fun relancerAssistant() {
+        viewModelScope.launch {
+            when (majParametres { reglages: AppSettings -> reglages.copy(isSetupCompleted = false) }) {
+                is AppResult.Success -> {
+                    logger.i(TAG) { "assistant de premier lancement relancé" }
+                    canalEffets.send(EffetParametres.OuvrirAssistant)
+                }
+
+                is AppResult.Failure -> {
+                    logger.w(TAG) { "échec du relancement de l'assistant" }
+                }
+            }
+        }
+    }
+
+    /** Écriture de réglage avec journalisation du seul échec. */
+    private fun ecrireReglage(quoi: String, transformation: (AppSettings) -> AppSettings) {
+        viewModelScope.launch {
+            when (val resultat = majParametres(transformation)) {
+                is AppResult.Success -> {
+                    Unit
+                }
+
+                is AppResult.Failure -> {
+                    logger.w(TAG) { "échec de persistance du réglage : $quoi" }
+                }
+            }
+        }
+    }
+
+    /**
+     * Entretien (H6) : efface TOUT l'historique local (tous projets)
+     * puis remesure l'empreinte — le retour [RetourHistorique.Efface]
+     * s'affiche sous la rangée d'entretien.
+     */
+    private fun effacerHistorique() {
+        viewModelScope.launch {
+            historique.effacerTout()
+            logger.i(TAG) { "historique local effacé (entretien)" }
+            etatInterne.update { it.copy(retourHistorique = RetourHistorique.Efface) }
+            mesurerEmpreinteHistorique()
+        }
+    }
+
+    /** Mesure l'espace occupé par l'historique (E/S, hors fil principal). */
+    private fun mesurerEmpreinteHistorique() {
+        viewModelScope.launch {
+            val octets = historique.empreinteOctets()
+            etatInterne.update { it.copy(empreinteHistoriqueOctets = octets) }
+        }
+    }
+
+    private fun envoyerEffet(effet: EffetParametres) {
+        canalEffets.trySend(effet)
+    }
+
+    private companion object {
+        const val TAG = "Parametres"
+    }
+}

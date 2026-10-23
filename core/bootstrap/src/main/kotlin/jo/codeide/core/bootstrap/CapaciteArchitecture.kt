@@ -24,7 +24,7 @@ internal interface CapaciteArchitecture {
 
 /** Implémentation Android : lecture de `Build.SUPPORTED_ABIS`. */
 internal class CapaciteArchitectureBuild
-    @Inject
-    constructor() : CapaciteArchitecture {
-        override fun supporteAarch64(): Boolean = Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }
-    }
+@Inject
+constructor() : CapaciteArchitecture {
+    override fun supporteAarch64(): Boolean = Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }
+}

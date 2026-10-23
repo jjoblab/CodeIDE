@@ -25,19 +25,13 @@ import android.os.Parcelable
  * @property chemin chemin absolu POSIX vers le fichier/dossier.
  * @property genre type d'entrée (cf. [GenreEntreeClasspath]).
  */
-public class EntreeClasspath(
-    public val chemin: String,
-    public val genre: GenreEntreeClasspath,
-) : Parcelable {
+public class EntreeClasspath(public val chemin: String, public val genre: GenreEntreeClasspath) : Parcelable {
     private constructor(parcel: Parcel) : this(
         chemin = parcel.readString() ?: "",
         genre = GenreEntreeClasspath.entries.getOrElse(parcel.readInt()) { GenreEntreeClasspath.JAR },
     )
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        drapeaux: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, drapeaux: Int) {
         parcel.writeString(chemin)
         parcel.writeInt(genre.ordinal)
     }

@@ -13,9 +13,7 @@ package jo.codeide.core.ai
  * @property raw valeur brute du fournisseur lorsqu'elle n'a pas de
  * traduction normalisée, sinon `null`.
  */
-public sealed class AiStopReason(
-    public val raw: String?,
-) {
+public sealed class AiStopReason(public val raw: String?) {
     /** Fin naturelle de la réponse. */
     public data object EndTurn : AiStopReason(null)
 
@@ -30,9 +28,7 @@ public sealed class AiStopReason(
      *
      * @property valeur valeur brute rapportée par le fournisseur.
      */
-    public data class Other(
-        public val valeur: String,
-    ) : AiStopReason(valeur)
+    public data class Other(public val valeur: String) : AiStopReason(valeur)
 
     public companion object {
         /**
@@ -44,13 +40,12 @@ public sealed class AiStopReason(
          * @return raison normalisée ; [Other] porte la valeur brute quand
          * elle n'est pas reconnue.
          */
-        public fun fromRaw(raw: String?): AiStopReason =
-            when (raw) {
-                null -> EndTurn
-                "end_turn", "stop" -> EndTurn
-                "max_tokens", "length" -> MaxTokens
-                "tool_use", "tool_calls" -> ToolUse
-                else -> Other(raw)
-            }
+        public fun fromRaw(raw: String?): AiStopReason = when (raw) {
+            null -> EndTurn
+            "end_turn", "stop" -> EndTurn
+            "max_tokens", "length" -> MaxTokens
+            "tool_use", "tool_calls" -> ToolUse
+            else -> Other(raw)
+        }
     }
 }

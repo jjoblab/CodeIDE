@@ -77,29 +77,25 @@ class SettingsViewModelTest {
     }
 
     /** ViewModel assemblé sur les fakes et les vrais use cases. */
-    private fun creerViewModel(): SettingsViewModel =
-        SettingsViewModel(
-            observerParametres = ObserveSettingsUseCase(depot),
-            majParametres = UpdateSettingsUseCase(depot),
-            changerDossier =
-                ChangeWorkspaceUseCase(
-                    depot,
-                    projets,
-                    fichiers,
-                    ValidateWorkspaceUseCase(fichiers, FakeArborescencesSaf(), horlogeFixe),
-                ),
-            effacerDossier = ClearWorkspaceUseCase(depot, projets, fichiers),
-            reinitialiserPreferences = ResetPreferencesUseCase(depot, projets, fichiers),
-            historique = historique,
-            infosBuild = infosBuild,
-            logger = FakeAppLogger(),
-        )
+    private fun creerViewModel(): SettingsViewModel = SettingsViewModel(
+        observerParametres = ObserveSettingsUseCase(depot),
+        majParametres = UpdateSettingsUseCase(depot),
+        changerDossier =
+        ChangeWorkspaceUseCase(
+            depot,
+            projets,
+            fichiers,
+            ValidateWorkspaceUseCase(fichiers, FakeArborescencesSaf(), horlogeFixe),
+        ),
+        effacerDossier = ClearWorkspaceUseCase(depot, projets, fichiers),
+        reinitialiserPreferences = ResetPreferencesUseCase(depot, projets, fichiers),
+        historique = historique,
+        infosBuild = infosBuild,
+        logger = FakeAppLogger(),
+    )
 
     /** Sème un dossier inscriptible et retourne son grantUri. */
-    private fun semerDossier(
-        id: String,
-        nom: String,
-    ): String {
+    private fun semerDossier(id: String, nom: String): String {
         val grantUri = "content://autorite/tree/${id.replace(":", "%3A")}"
         fichiers.seedDocument(
             "$grantUri/document/${id.replace(":", "%3A")}",
@@ -109,79 +105,76 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun `l'etat reflète les reglages courants et les infos de build`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            depot.updateSettings { it.copy(authorName = "Ada", defaultLicense = License.GPL_3_0) }
+    fun `l'etat reflète les reglages courants et les infos de build`() = runTest(regleMain.dispatcher.scheduler) {
+        depot.updateSettings { it.copy(authorName = "Ada", defaultLicense = License.GPL_3_0) }
 
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            assertEquals("Ada", viewModel.etat.value.reglage.authorName)
-            assertEquals(License.GPL_3_0, viewModel.etat.value.reglage.defaultLicense)
-            assertEquals(infosBuild, viewModel.etat.value.infosBuild)
-            assertEquals(RetourDossier.Aucun, viewModel.etat.value.retourDossier)
-        }
-
-    @Test
-    fun `chaque reglage se persiste immediatement`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
-
-            viewModel.onAction(ActionParametres.ChangerTheme(ThemeMode.DARK))
-            viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(false))
-            viewModel.onAction(ActionParametres.ChangerPalette(PaletteCouleur.VIOLET))
-            viewModel.onAction(ActionParametres.ChangerLangue("en"))
-            viewModel.onAction(ActionParametres.ValiderNomAuteur("Ada Lovelace "))
-            viewModel.onAction(ActionParametres.ChangerLicence(License.BSD_3_CLAUSE))
-            viewModel.onAction(ActionParametres.ChangerRetourLigne(false))
-            viewModel.onAction(ActionParametres.ChangerThemeEditeur(ThemeEditeur.MONOKAI))
-            viewModel.onAction(ActionParametres.ChangerMinimap(true))
-            viewModel.onAction(ActionParametres.ChangerCaracteresNonImprimables(true))
-            viewModel.onAction(ActionParametres.ChangerLigatures(true))
-            viewModel.onAction(ActionParametres.ChangerChipsDiagnostics(false))
-            viewModel.onAction(ActionParametres.ChangerSauvegardeAuto(false))
-            viewModel.onAction(ActionParametres.ChangerTaillePoliceEditeur(TaillePoliceEditeur.GRANDE))
-            viewModel.onAction(ActionParametres.ChangerTailleTabulation(TailleTabulation.DEUX))
-            advanceUntilIdle()
-
-            val reglages = depot.reglages
-            assertEquals(ThemeMode.DARK, reglages.themeMode)
-            assertFalse(reglages.useDynamicColor)
-            assertEquals(PaletteCouleur.VIOLET, reglages.paletteCouleur)
-            assertEquals("en", reglages.languageTag)
-            assertEquals("le nom d'auteur est rogné à la validation", "Ada Lovelace", reglages.authorName)
-            assertEquals(License.BSD_3_CLAUSE, reglages.defaultLicense)
-            assertFalse(reglages.editorRetourLigne)
-            assertEquals(ThemeEditeur.MONOKAI, reglages.editorThemeEditeur)
-            assertTrue(reglages.editorMinimap)
-            assertTrue(reglages.editorCaracteresNonImprimables)
-            assertTrue(reglages.editorLigatures)
-            assertFalse(reglages.editorChipsDiagnostics)
-            assertFalse(reglages.editorSauvegardeAuto)
-            assertEquals(TaillePoliceEditeur.GRANDE, reglages.editorTaillePolice)
-            assertEquals(TailleTabulation.DEUX, reglages.editorTailleTabulation)
-        }
+        assertEquals("Ada", viewModel.etat.value.reglage.authorName)
+        assertEquals(License.GPL_3_0, viewModel.etat.value.reglage.defaultLicense)
+        assertEquals(infosBuild, viewModel.etat.value.infosBuild)
+        assertEquals(RetourDossier.Aucun, viewModel.etat.value.retourDossier)
+    }
 
     @Test
-    fun `le changement de dossier valide, persiste et confirme`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `chaque reglage se persiste immediatement`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionParametres.DossierChoisi(grantUri))
-            advanceUntilIdle()
+        viewModel.onAction(ActionParametres.ChangerTheme(ThemeMode.DARK))
+        viewModel.onAction(ActionParametres.ChangerCouleursDynamiques(false))
+        viewModel.onAction(ActionParametres.ChangerPalette(PaletteCouleur.VIOLET))
+        viewModel.onAction(ActionParametres.ChangerLangue("en"))
+        viewModel.onAction(ActionParametres.ValiderNomAuteur("Ada Lovelace "))
+        viewModel.onAction(ActionParametres.ChangerLicence(License.BSD_3_CLAUSE))
+        viewModel.onAction(ActionParametres.ChangerRetourLigne(false))
+        viewModel.onAction(ActionParametres.ChangerThemeEditeur(ThemeEditeur.MONOKAI))
+        viewModel.onAction(ActionParametres.ChangerMinimap(true))
+        viewModel.onAction(ActionParametres.ChangerCaracteresNonImprimables(true))
+        viewModel.onAction(ActionParametres.ChangerLigatures(true))
+        viewModel.onAction(ActionParametres.ChangerChipsDiagnostics(false))
+        viewModel.onAction(ActionParametres.ChangerSauvegardeAuto(false))
+        viewModel.onAction(ActionParametres.ChangerTaillePoliceEditeur(TaillePoliceEditeur.GRANDE))
+        viewModel.onAction(ActionParametres.ChangerTailleTabulation(TailleTabulation.DEUX))
+        advanceUntilIdle()
 
-            assertEquals(RetourDossier.Change, viewModel.etat.value.retourDossier)
-            assertEquals(
-                "CodeIDE",
-                viewModel.etat.value.reglage.workspace
-                    ?.displayPath,
-            )
-            assertFalse(viewModel.etat.value.verificationDossier)
-            assertTrue(fichiers.hasPersistablePermission(grantUri))
-        }
+        val reglages = depot.reglages
+        assertEquals(ThemeMode.DARK, reglages.themeMode)
+        assertFalse(reglages.useDynamicColor)
+        assertEquals(PaletteCouleur.VIOLET, reglages.paletteCouleur)
+        assertEquals("en", reglages.languageTag)
+        assertEquals("le nom d'auteur est rogné à la validation", "Ada Lovelace", reglages.authorName)
+        assertEquals(License.BSD_3_CLAUSE, reglages.defaultLicense)
+        assertFalse(reglages.editorRetourLigne)
+        assertEquals(ThemeEditeur.MONOKAI, reglages.editorThemeEditeur)
+        assertTrue(reglages.editorMinimap)
+        assertTrue(reglages.editorCaracteresNonImprimables)
+        assertTrue(reglages.editorLigatures)
+        assertFalse(reglages.editorChipsDiagnostics)
+        assertFalse(reglages.editorSauvegardeAuto)
+        assertEquals(TaillePoliceEditeur.GRANDE, reglages.editorTaillePolice)
+        assertEquals(TailleTabulation.DEUX, reglages.editorTailleTabulation)
+    }
+
+    @Test
+    fun `le changement de dossier valide, persiste et confirme`() = runTest(regleMain.dispatcher.scheduler) {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
+
+        viewModel.onAction(ActionParametres.DossierChoisi(grantUri))
+        advanceUntilIdle()
+
+        assertEquals(RetourDossier.Change, viewModel.etat.value.retourDossier)
+        assertEquals(
+            "CodeIDE",
+            viewModel.etat.value.reglage.workspace
+                ?.displayPath,
+        )
+        assertFalse(viewModel.etat.value.verificationDossier)
+        assertTrue(fichiers.hasPersistablePermission(grantUri))
+    }
 
     @Test
     fun `un dossier refuse au changement affiche le refus sans rien changer`() =
@@ -234,11 +227,11 @@ class SettingsViewModelTest {
                     useDynamicColor = false,
                     languageTag = "en",
                     workspace =
-                        StorageLocation(
-                            grantUri = grantUri,
-                            documentUri = "$grantUri/document/primary%3ACodeIDE",
-                            displayPath = "CodeIDE",
-                        ),
+                    StorageLocation(
+                        grantUri = grantUri,
+                        documentUri = "$grantUri/document/primary%3ACodeIDE",
+                        displayPath = "CodeIDE",
+                    ),
                 )
             }
             projets.addProject(
@@ -284,36 +277,34 @@ class SettingsViewModelTest {
         }
 
     @Test
-    fun `l'effet selecteur de dossier est emis a la demande`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `l'effet selecteur de dossier est emis a la demande`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            val effets = mutableListOf<EffetParametres>()
-            val travail =
-                backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
-                    viewModel.effets.toList(effets)
-                }
+        val effets = mutableListOf<EffetParametres>()
+        val travail =
+            backgroundScope.launch(UnconfinedTestDispatcher(regleMain.dispatcher.scheduler)) {
+                viewModel.effets.toList(effets)
+            }
 
-            viewModel.onAction(ActionParametres.DemanderChangementDossier)
-            advanceUntilIdle()
+        viewModel.onAction(ActionParametres.DemanderChangementDossier)
+        advanceUntilIdle()
 
-            assertEquals(listOf(EffetParametres.OuvrirSelecteurDossier), effets)
-            travail.cancel()
-        }
+        assertEquals(listOf(EffetParametres.OuvrirSelecteurDossier), effets)
+        travail.cancel()
+    }
 
     @Test
-    fun `la retention de l'historique se persiste immediatement`() =
-        runTest(regleMain.dispatcher.scheduler) {
-            val viewModel = creerViewModel()
-            advanceUntilIdle()
+    fun `la retention de l'historique se persiste immediatement`() = runTest(regleMain.dispatcher.scheduler) {
+        val viewModel = creerViewModel()
+        advanceUntilIdle()
 
-            viewModel.onAction(ActionParametres.ChangerRetentionHistorique(RetentionHistorique.JOURS_30))
-            advanceUntilIdle()
+        viewModel.onAction(ActionParametres.ChangerRetentionHistorique(RetentionHistorique.JOURS_30))
+        advanceUntilIdle()
 
-            assertEquals(RetentionHistorique.JOURS_30, depot.reglages.retentionHistorique)
-            assertEquals(RetentionHistorique.JOURS_30, viewModel.etat.value.reglage.retentionHistorique)
-        }
+        assertEquals(RetentionHistorique.JOURS_30, depot.reglages.retentionHistorique)
+        assertEquals(RetentionHistorique.JOURS_30, viewModel.etat.value.reglage.retentionHistorique)
+    }
 
     @Test
     fun `l'empreinte de l'historique est chargee a l'ouverture puis remesuree apres effacement`() =

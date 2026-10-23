@@ -35,115 +35,110 @@ import javax.inject.Singleton
  */
 @Singleton
 class OptionsEditeur
-    @Inject
-    constructor(
-        observerReglages: ObserveSettingsUseCase,
-        dispatchers: DispatcherProvider,
-    ) {
-        /** Derniers réglages connus — émis à chaque changement persisté. */
-        private val reglagesInterne = MutableStateFlow(AppSettings())
+@Inject
+constructor(observerReglages: ObserveSettingsUseCase, dispatchers: DispatcherProvider) {
+    /** Derniers réglages connus — émis à chaque changement persisté. */
+    private val reglagesInterne = MutableStateFlow(AppSettings())
 
-        /** Réglages observables — l'activité y applique les changements en direct. */
-        val reglages: StateFlow<AppSettings> = reglagesInterne.asStateFlow()
+    /** Réglages observables — l'activité y applique les changements en direct. */
+    val reglages: StateFlow<AppSettings> = reglagesInterne.asStateFlow()
 
-        /**
-         * Derniers réglages connus — lecture ponctuelle pour le ViewModel
-         * (garde de la sauvegarde automatique) : un aperçu cohérent sans
-         * collecte supplémentaire.
-         */
-        internal val courants: AppSettings
-            get() = reglagesInterne.value
+    /**
+     * Derniers réglages connus — lecture ponctuelle pour le ViewModel
+     * (garde de la sauvegarde automatique) : un aperçu cohérent sans
+     * collecte supplémentaire.
+     */
+    internal val courants: AppSettings
+        get() = reglagesInterne.value
 
-        /** Thèmes cel mis en cache — un par thème forcé, deux pour l'automatique. */
-        private val themesCel = HashMap<ThemeEditeur, EditorTheme>()
+    /** Thèmes cel mis en cache — un par thème forcé, deux pour l'automatique. */
+    private val themesCel = HashMap<ThemeEditeur, EditorTheme>()
 
-        private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
+    private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
 
-        init {
-            portee.launch {
-                observerReglages().collect { reglagesInterne.value = it }
-            }
-        }
-
-        /**
-         * Facteur d'échelle de police pour [EditorView.setFontScale] (base
-         * cel : 14 sp, bornes [0.6, 2.6]) — les trois tailles miroir de
-         * celles du terminal.
-         */
-        internal fun facteurPolice(): Float =
-            when (courants.editorTaillePolice) {
-                TaillePoliceEditeur.PETITE -> ECHELLE_PETITE
-                TaillePoliceEditeur.MOYENNE -> ECHELLE_MOYENNE
-                TaillePoliceEditeur.GRANDE -> ECHELLE_GRANDE
-            }
-
-        /**
-         * Largeur de tabulation des requêtes de mise en forme LSP (v0.168.0,
-         * ADR 0136 phase 2 — réglage réintroduit, la promesse de l'ADR 0066
-         * est tenue) : miroir de [facteurPolice], la valeur suit la section
-         * Paramètres — Éditeur, carte Édition (`EditorView.setFormattingOptions`,
-         * code-editor 3.74.0). L'indentation AFFICHÉE reste auto-détectée par
-         * fichier côté bibliothèque — le réglage ne change pas le dessin.
-         */
-        internal fun largeurTabulation(): Int = courants.editorTailleTabulation.espaces
-
-        /**
-         * Politique d'espaces des requêtes de mise en forme (ADR 0136 D6,
-         * phase 2) : indenter avec des ESPACES, convention des projets
-         * Java/Kotlin Android — le réglage utilisateur porte la LARGEUR,
-         * la politique porte la NATURE ; le dessin de l'éditeur reste
-         * auto-détecté par fichier (IndentDetection). Const privée
-         * ([INDENTER_AVEC_ESPACES]) servie par cet accesseur testable,
-         * motif [facteurPolice]/[largeurTabulation].
-         */
-        internal fun indenterAvecEspaces(): Boolean = INDENTER_AVEC_ESPACES
-
-        /**
-         * Thème cel correspondant au réglage : les neuf thèmes embarqués de
-         * la bibliothèque, ou le couple clair/sombre de l'application en
-         * mode automatique (le comportement d'avant v0.37.0).
-         *
-         * @param nuit l'application est-elle en mode sombre ?
-         * @return le thème à appliquer (instance mise en cache).
-         */
-        internal fun themePour(nuit: Boolean): EditorTheme {
-            val demande = courants.editorThemeEditeur
-            if (demande == ThemeEditeur.AUTO) {
-                return themeCel(if (nuit) ThemeEditeur.VSCODE_SOMBRE else ThemeEditeur.VSCODE_CLAIR)
-            }
-            return themeCel(demande)
-        }
-
-        /** Instance cel d'un thème, créée puis mise en cache. */
-        private fun themeCel(theme: ThemeEditeur): EditorTheme =
-            themesCel.getOrPut(theme) {
-                when (theme) {
-                    ThemeEditeur.AUTO, ThemeEditeur.VSCODE_SOMBRE -> EditorTheme.dark()
-                    ThemeEditeur.VSCODE_CLAIR -> EditorTheme.light()
-                    ThemeEditeur.DRACULA -> EditorTheme.dracula()
-                    ThemeEditeur.ONE_DARK -> EditorTheme.oneDark()
-                    ThemeEditeur.MONOKAI -> EditorTheme.monokai()
-                    ThemeEditeur.SOLARIZED_SOMBRE -> EditorTheme.solarizedDark()
-                    ThemeEditeur.GITHUB_CLAIR -> EditorTheme.gitHubLight()
-                    ThemeEditeur.GITHUB_SOMBRE -> EditorTheme.gitHubDark()
-                    ThemeEditeur.NORD -> EditorTheme.nord()
-                }
-            }
-
-        private companion object {
-            /** Échelles de police (base cel 14 sp : ~12, 14 et ~17 sp). */
-            const val ECHELLE_PETITE = 0.85f
-            const val ECHELLE_MOYENNE = 1.0f
-            const val ECHELLE_GRANDE = 1.2f
-
-            /**
-             * Politique d'espaces des requêtes de mise en forme (ADR 0136
-             * D6, phase 2) : indenter avec des ESPACES, convention des
-             * projets Java/Kotlin Android — le réglage utilisateur porte
-             * la LARGEUR, la politique porte la NATURE ; le dessin de
-             * l'éditeur reste auto-détecté par fichier (IndentDetection).
-             * Servie par [indenterAvecEspaces].
-             */
-            const val INDENTER_AVEC_ESPACES = true
+    init {
+        portee.launch {
+            observerReglages().collect { reglagesInterne.value = it }
         }
     }
+
+    /**
+     * Facteur d'échelle de police pour [EditorView.setFontScale] (base
+     * cel : 14 sp, bornes [0.6, 2.6]) — les trois tailles miroir de
+     * celles du terminal.
+     */
+    internal fun facteurPolice(): Float = when (courants.editorTaillePolice) {
+        TaillePoliceEditeur.PETITE -> ECHELLE_PETITE
+        TaillePoliceEditeur.MOYENNE -> ECHELLE_MOYENNE
+        TaillePoliceEditeur.GRANDE -> ECHELLE_GRANDE
+    }
+
+    /**
+     * Largeur de tabulation des requêtes de mise en forme LSP (v0.168.0,
+     * ADR 0136 phase 2 — réglage réintroduit, la promesse de l'ADR 0066
+     * est tenue) : miroir de [facteurPolice], la valeur suit la section
+     * Paramètres — Éditeur, carte Édition (`EditorView.setFormattingOptions`,
+     * code-editor 3.74.0). L'indentation AFFICHÉE reste auto-détectée par
+     * fichier côté bibliothèque — le réglage ne change pas le dessin.
+     */
+    internal fun largeurTabulation(): Int = courants.editorTailleTabulation.espaces
+
+    /**
+     * Politique d'espaces des requêtes de mise en forme (ADR 0136 D6,
+     * phase 2) : indenter avec des ESPACES, convention des projets
+     * Java/Kotlin Android — le réglage utilisateur porte la LARGEUR,
+     * la politique porte la NATURE ; le dessin de l'éditeur reste
+     * auto-détecté par fichier (IndentDetection). Const privée
+     * ([INDENTER_AVEC_ESPACES]) servie par cet accesseur testable,
+     * motif [facteurPolice]/[largeurTabulation].
+     */
+    internal fun indenterAvecEspaces(): Boolean = INDENTER_AVEC_ESPACES
+
+    /**
+     * Thème cel correspondant au réglage : les neuf thèmes embarqués de
+     * la bibliothèque, ou le couple clair/sombre de l'application en
+     * mode automatique (le comportement d'avant v0.37.0).
+     *
+     * @param nuit l'application est-elle en mode sombre ?
+     * @return le thème à appliquer (instance mise en cache).
+     */
+    internal fun themePour(nuit: Boolean): EditorTheme {
+        val demande = courants.editorThemeEditeur
+        if (demande == ThemeEditeur.AUTO) {
+            return themeCel(if (nuit) ThemeEditeur.VSCODE_SOMBRE else ThemeEditeur.VSCODE_CLAIR)
+        }
+        return themeCel(demande)
+    }
+
+    /** Instance cel d'un thème, créée puis mise en cache. */
+    private fun themeCel(theme: ThemeEditeur): EditorTheme = themesCel.getOrPut(theme) {
+        when (theme) {
+            ThemeEditeur.AUTO, ThemeEditeur.VSCODE_SOMBRE -> EditorTheme.dark()
+            ThemeEditeur.VSCODE_CLAIR -> EditorTheme.light()
+            ThemeEditeur.DRACULA -> EditorTheme.dracula()
+            ThemeEditeur.ONE_DARK -> EditorTheme.oneDark()
+            ThemeEditeur.MONOKAI -> EditorTheme.monokai()
+            ThemeEditeur.SOLARIZED_SOMBRE -> EditorTheme.solarizedDark()
+            ThemeEditeur.GITHUB_CLAIR -> EditorTheme.gitHubLight()
+            ThemeEditeur.GITHUB_SOMBRE -> EditorTheme.gitHubDark()
+            ThemeEditeur.NORD -> EditorTheme.nord()
+        }
+    }
+
+    private companion object {
+        /** Échelles de police (base cel 14 sp : ~12, 14 et ~17 sp). */
+        const val ECHELLE_PETITE = 0.85f
+        const val ECHELLE_MOYENNE = 1.0f
+        const val ECHELLE_GRANDE = 1.2f
+
+        /**
+         * Politique d'espaces des requêtes de mise en forme (ADR 0136
+         * D6, phase 2) : indenter avec des ESPACES, convention des
+         * projets Java/Kotlin Android — le réglage utilisateur porte
+         * la LARGEUR, la politique porte la NATURE ; le dessin de
+         * l'éditeur reste auto-détecté par fichier (IndentDetection).
+         * Servie par [indenterAvecEspaces].
+         */
+        const val INDENTER_AVEC_ESPACES = true
+    }
+}

@@ -39,108 +39,105 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class TerminalViewModel
-    @Inject
-    constructor(
-        private val registre: TerminalSessionRepository,
-        private val environnement: ProcessEnvironmentProvider,
-        observeReglages: ObserveSettingsUseCase,
-        savedState: SavedStateHandle,
-        private val journal: AppLogger,
-    ) : ViewModel() {
-        /** Répertoire suggéré par le point d'entrée (T6 : accueil/tiroir). */
-        private val repertoireSuggere: String? = savedState[CLE_REPERTOIRE_SUGGERE]
+@Inject
+constructor(
+    private val registre: TerminalSessionRepository,
+    private val environnement: ProcessEnvironmentProvider,
+    observeReglages: ObserveSettingsUseCase,
+    savedState: SavedStateHandle,
+    private val journal: AppLogger,
+) : ViewModel() {
+    /** Répertoire suggéré par le point d'entrée (T6 : accueil/tiroir). */
+    private val repertoireSuggere: String? = savedState[CLE_REPERTOIRE_SUGGERE]
 
-        private val _effets = Channel<EffetTerminal>(Channel.BUFFERED)
+    private val _effets = Channel<EffetTerminal>(Channel.BUFFERED)
 
-        /** Effets ponctuels (dialogues de confirmation de fermeture). */
-        val effets = _effets.receiveAsFlow()
+    /** Effets ponctuels (dialogues de confirmation de fermeture). */
+    val effets = _effets.receiveAsFlow()
 
-        val uiState: StateFlow<EtatTerminal> =
-            combine(
-                registre.observeSessions(),
-                registre.observeActiveSessionId(),
-                observeReglages(),
-            ) { sessions, idActive, reglages ->
-                EtatTerminal(
-                    sessions = sessions,
-                    idSessionActive = idActive,
-                    taillePolice = reglages.taillePoliceTerminal,
-                    styleCurseur = reglages.styleCurseurTerminal,
-                    copieSelectionAuto = reglages.copieSelectionAuto,
-                )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS), EtatTerminal())
+    val uiState: StateFlow<EtatTerminal> =
+        combine(
+            registre.observeSessions(),
+            registre.observeActiveSessionId(),
+            observeReglages(),
+        ) { sessions, idActive, reglages ->
+            EtatTerminal(
+                sessions = sessions,
+                idSessionActive = idActive,
+                taillePolice = reglages.taillePoliceTerminal,
+                styleCurseur = reglages.styleCurseurTerminal,
+                copieSelectionAuto = reglages.copieSelectionAuto,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS), EtatTerminal())
 
-        /** Point d'entrée unique de l'écran (section 5.3 : `onAction`). */
-        fun onAction(action: ActionTerminal) {
-            when (action) {
-                is ActionTerminal.NouvelleSession -> creer(repertoireParDefaut())
-                is ActionTerminal.OuvrirSession -> registre.setActiveSession(action.sessionId)
-                is ActionTerminal.RenommerSession -> renommer(action.sessionId, action.libelle)
-                is ActionTerminal.FermerSession -> demanderFermeture(action.sessionId)
-                is ActionTerminal.ConfirmerFermeture -> fermer(action.sessionId)
-                is ActionTerminal.DupliquerSession -> dupliquer(action.sessionId)
-            }
-        }
-
-        /** Répertoire par défaut d'une nouvelle session : suggestion du
-         * point d'entrée, sinon le `HOME` de l'environnement canonique. */
-        private fun repertoireParDefaut(): File {
-            val suggere = repertoireSuggere?.takeIf { it.isNotBlank() }
-            if (suggere != null) return File(suggere)
-            val home = environnement.baseEnvironment()["HOME"]
-            return if (home.isNullOrBlank()) File(HOME_PAR_DEFAUT) else File(home)
-        }
-
-        private fun creer(repertoire: File) {
-            viewModelScope.launch {
-                registre.createSession(repertoire)
-                journal.i(TAG) { "session créée depuis l'écran du terminal" }
-            }
-        }
-
-        private fun dupliquer(sessionId: String) {
-            val source = uiState.value.sessions.firstOrNull { it.id == sessionId } ?: return
-            creer(File(source.workingDirectoryPath))
-        }
-
-        private fun renommer(
-            sessionId: String,
-            libelle: String,
-        ) {
-            val libelleNettoye = libelle.trim().takeIf { it.isNotEmpty() } ?: return
-            viewModelScope.launch { registre.renameSession(sessionId, libelleNettoye) }
-        }
-
-        private fun demanderFermeture(sessionId: String) {
-            val session = uiState.value.sessions.firstOrNull { it.id == sessionId } ?: return
-            if (commandeSembleEnCours(session)) {
-                val effet = EffetTerminal.DemanderConfirmationFermeture(sessionId, session.label)
-                viewModelScope.launch { _effets.send(effet) }
-            } else {
-                fermer(sessionId)
-            }
-        }
-
-        private fun fermer(sessionId: String) {
-            viewModelScope.launch { registre.closeSession(sessionId) }
-        }
-
-        private companion object {
-            const val TAG = "EcranTerminal"
-
-            /** Fenêtre de ré-abonnement de l'état (millisecondes) — survit
-             * aux reconstructions brèves (rotation) sans re-collecte. */
-            const val DUREE_ABONNEMENT_MS = 5_000L
-
-            /** Clé SavedStateHandle portant l'extra d'intent. */
-            const val CLE_REPERTOIRE_SUGGERE = ClesTerminal.EXTRA_REPERTOIRE
-
-            /** Repli si l'environnement n'expose pas de HOME (jamais vu en
-             * pratique : EnvironnementProcessus le fixe toujours) — racine
-             * du système, jamais un chemin `/data` codé en dur (lint). */
-            const val HOME_PAR_DEFAUT = "/"
+    /** Point d'entrée unique de l'écran (section 5.3 : `onAction`). */
+    fun onAction(action: ActionTerminal) {
+        when (action) {
+            is ActionTerminal.NouvelleSession -> creer(repertoireParDefaut())
+            is ActionTerminal.OuvrirSession -> registre.setActiveSession(action.sessionId)
+            is ActionTerminal.RenommerSession -> renommer(action.sessionId, action.libelle)
+            is ActionTerminal.FermerSession -> demanderFermeture(action.sessionId)
+            is ActionTerminal.ConfirmerFermeture -> fermer(action.sessionId)
+            is ActionTerminal.DupliquerSession -> dupliquer(action.sessionId)
         }
     }
+
+    /** Répertoire par défaut d'une nouvelle session : suggestion du
+     * point d'entrée, sinon le `HOME` de l'environnement canonique. */
+    private fun repertoireParDefaut(): File {
+        val suggere = repertoireSuggere?.takeIf { it.isNotBlank() }
+        if (suggere != null) return File(suggere)
+        val home = environnement.baseEnvironment()["HOME"]
+        return if (home.isNullOrBlank()) File(HOME_PAR_DEFAUT) else File(home)
+    }
+
+    private fun creer(repertoire: File) {
+        viewModelScope.launch {
+            registre.createSession(repertoire)
+            journal.i(TAG) { "session créée depuis l'écran du terminal" }
+        }
+    }
+
+    private fun dupliquer(sessionId: String) {
+        val source = uiState.value.sessions.firstOrNull { it.id == sessionId } ?: return
+        creer(File(source.workingDirectoryPath))
+    }
+
+    private fun renommer(sessionId: String, libelle: String) {
+        val libelleNettoye = libelle.trim().takeIf { it.isNotEmpty() } ?: return
+        viewModelScope.launch { registre.renameSession(sessionId, libelleNettoye) }
+    }
+
+    private fun demanderFermeture(sessionId: String) {
+        val session = uiState.value.sessions.firstOrNull { it.id == sessionId } ?: return
+        if (commandeSembleEnCours(session)) {
+            val effet = EffetTerminal.DemanderConfirmationFermeture(sessionId, session.label)
+            viewModelScope.launch { _effets.send(effet) }
+        } else {
+            fermer(sessionId)
+        }
+    }
+
+    private fun fermer(sessionId: String) {
+        viewModelScope.launch { registre.closeSession(sessionId) }
+    }
+
+    private companion object {
+        const val TAG = "EcranTerminal"
+
+        /** Fenêtre de ré-abonnement de l'état (millisecondes) — survit
+         * aux reconstructions brèves (rotation) sans re-collecte. */
+        const val DUREE_ABONNEMENT_MS = 5_000L
+
+        /** Clé SavedStateHandle portant l'extra d'intent. */
+        const val CLE_REPERTOIRE_SUGGERE = ClesTerminal.EXTRA_REPERTOIRE
+
+        /** Repli si l'environnement n'expose pas de HOME (jamais vu en
+         * pratique : EnvironnementProcessus le fixe toujours) — racine
+         * du système, jamais un chemin `/data` codé en dur (lint). */
+        const val HOME_PAR_DEFAUT = "/"
+    }
+}
 
 /**
  * Heuristique « une commande semble en cours » (section 5) : session

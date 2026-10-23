@@ -15,10 +15,7 @@ import java.io.File
  * SAF → FUSE, [ResoudreRepertoireProjet]) : l'agent ne voit JAMAIS un
  * chemin hors de cette racine.
  */
-public class ResolveurCheminsProjetIa(
-    private val racineReelle: File,
-    private val exclusions: ExclusionsIa,
-) {
+public class ResolveurCheminsProjetIa(private val racineReelle: File, private val exclusions: ExclusionsIa) {
     /**
      * Résout un chemin relatif (fichier ou dossier).
      *
@@ -60,15 +57,10 @@ public class ResolveurCheminsProjetIa(
     /** Résultat de résolution. */
     public sealed interface ResultatFichierIa {
         /** Fichier borné + chemin canonique relatif. */
-        public data class OK(
-            public val fichier: File,
-            public val cheminRelatif: String,
-        ) : ResultatFichierIa
+        public data class OK(public val fichier: File, public val cheminRelatif: String) : ResultatFichierIa
 
         /** Refus motivé (renvoyé au modèle, jamais d'exception). */
-        public data class Refuse(
-            public val motif: String,
-        ) : ResultatFichierIa
+        public data class Refuse(public val motif: String) : ResultatFichierIa
     }
 }
 
@@ -78,9 +70,7 @@ public class ResolveurCheminsProjetIa(
  * (exclusions + garde d'évasion déjà appliquées côté port) — le contenu
  * est borné (le port tronque) et les chemins restent RELATIFS.
  */
-public class OutilsLectureIa(
-    private val fournisseur: FournisseurContexteProjet,
-) {
+public class OutilsLectureIa(private val fournisseur: FournisseurContexteProjet) {
     /** `list_files(dossier?)` : chemins du projet (ou d'un sous-dossier). */
     public suspend fun listerFichiers(dossier: String?): ResultatOutilIa =
         when (val resultat = fournisseur.listerChemins()) {

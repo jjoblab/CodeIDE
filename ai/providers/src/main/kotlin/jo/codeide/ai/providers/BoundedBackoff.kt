@@ -51,11 +51,8 @@ public class BoundedBackoff(
      * émis au collecteur.
      * @return `true` si une nouvelle tentative doit être lancée.
      */
-    public fun shouldRetry(
-        statusCode: Int,
-        attempt: Int,
-        firstTokenReceived: Boolean,
-    ): Boolean = retryable(statusCode) && !firstTokenReceived && attempt < maxAttempts
+    public fun shouldRetry(statusCode: Int, attempt: Int, firstTokenReceived: Boolean): Boolean =
+        retryable(statusCode) && !firstTokenReceived && attempt < maxAttempts
 
     /**
      * Calcule le délai d'attente avant la prochaine tentative.
@@ -67,10 +64,7 @@ public class BoundedBackoff(
      * `[baseDelayMs, maxDelayMs]` (un `Retry-After` à 0 reste au minimum
      * [baseDelayMs] — politesse minimale).
      */
-    public fun delayMs(
-        attempt: Int,
-        retryAfterSeconds: Long?,
-    ): Long {
+    public fun delayMs(attempt: Int, retryAfterSeconds: Long?): Long {
         if (retryAfterSeconds != null) {
             return (retryAfterSeconds * MS_PAR_SECONDE).coerceIn(baseDelayMs, maxDelayMs)
         }

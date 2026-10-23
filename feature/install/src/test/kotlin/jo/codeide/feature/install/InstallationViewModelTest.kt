@@ -39,14 +39,14 @@ class InstallationViewModelTest {
         val etat =
             EnvironmentSetupStateTest.etat(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Succeeded(verifiedAtMillis = 1L, versions = emptyMap()),
-                        InstallPhase.PACKAGE_TOOLS to
-                            PhaseState.Succeeded(verifiedAtMillis = 2L, versions = emptyMap()),
-                        InstallPhase.JAVA to PhaseState.NotStarted,
-                        InstallPhase.ANDROID_SDK to PhaseState.NotStarted,
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(verifiedAtMillis = 1L, versions = emptyMap()),
+                    InstallPhase.PACKAGE_TOOLS to
+                        PhaseState.Succeeded(verifiedAtMillis = 2L, versions = emptyMap()),
+                    InstallPhase.JAVA to PhaseState.NotStarted,
+                    InstallPhase.ANDROID_SDK to PhaseState.NotStarted,
+                ),
             )
 
         assertEquals(2, InstallationViewModel.phasesTerminees(etat))
@@ -57,14 +57,14 @@ class InstallationViewModelTest {
         val etat =
             EnvironmentSetupStateTest.etat(
                 phases =
-                    mapOf(
-                        InstallPhase.ANDROID_SDK to
-                            PhaseState.Running(
-                                step = StepId(InstallPhase.ANDROID_SDK, "build-tools"),
-                                progress = Progress.Bytes(received = 61L * MIO, total = 127L * MIO),
-                                startedAtMillis = 0L,
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.ANDROID_SDK to
+                        PhaseState.Running(
+                            step = StepId(InstallPhase.ANDROID_SDK, "build-tools"),
+                            progress = Progress.Bytes(received = 61L * MIO, total = 127L * MIO),
+                            startedAtMillis = 0L,
+                        ),
+                ),
             )
 
         assertEquals("build-tools — 61 / 127 Mio", InstallationViewModel.sousEtapeCourante(etat))
@@ -75,14 +75,14 @@ class InstallationViewModelTest {
         val etat =
             EnvironmentSetupStateTest.etat(
                 phases =
-                    mapOf(
-                        InstallPhase.PACKAGE_TOOLS to
-                            PhaseState.Running(
-                                step = StepId(InstallPhase.PACKAGE_TOOLS, "pkg-update"),
-                                progress = Progress.Items(done = 2, total = 5),
-                                startedAtMillis = 0L,
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.PACKAGE_TOOLS to
+                        PhaseState.Running(
+                            step = StepId(InstallPhase.PACKAGE_TOOLS, "pkg-update"),
+                            progress = Progress.Items(done = 2, total = 5),
+                            startedAtMillis = 0L,
+                        ),
+                ),
             )
 
         assertEquals("pkg-update — 2/5", InstallationViewModel.sousEtapeCourante(etat))
@@ -154,38 +154,35 @@ class InstallationViewModelTest {
     }
 
     @Test
-    fun `le journal est replié puis déplié`() =
-        runTest {
-            val viewModel = InstallationViewModel(orchestrateur)
-            advanceUntilIdle()
+    fun `le journal est replié puis déplié`() = runTest {
+        val viewModel = InstallationViewModel(orchestrateur)
+        advanceUntilIdle()
 
-            assertFalse(viewModel.journalDeplie.value)
-            viewModel.basculerJournal()
-            assertTrue(viewModel.journalDeplie.value)
-        }
-
-    @Test
-    fun `demarrer relaie run vers l orchestrateur`() =
-        runTest {
-            val viewModel = InstallationViewModel(orchestrateur)
-            advanceUntilIdle()
-
-            viewModel.demarrer()
-            advanceUntilIdle()
-
-            assertEquals(listOf<InstallPhase?>(null), orchestrateur.lancements)
-        }
+        assertFalse(viewModel.journalDeplie.value)
+        viewModel.basculerJournal()
+        assertTrue(viewModel.journalDeplie.value)
+    }
 
     @Test
-    fun `accepterLicence enregistre l acceptation explicite`() =
-        runTest {
-            val viewModel = InstallationViewModel(orchestrateur)
-            advanceUntilIdle()
+    fun `demarrer relaie run vers l orchestrateur`() = runTest {
+        val viewModel = InstallationViewModel(orchestrateur)
+        advanceUntilIdle()
 
-            viewModel.accepterLicence()
+        viewModel.demarrer()
+        advanceUntilIdle()
 
-            assertEquals(1, orchestrateur.acceptationsLicence.get())
-        }
+        assertEquals(listOf<InstallPhase?>(null), orchestrateur.lancements)
+    }
+
+    @Test
+    fun `accepterLicence enregistre l acceptation explicite`() = runTest {
+        val viewModel = InstallationViewModel(orchestrateur)
+        advanceUntilIdle()
+
+        viewModel.accepterLicence()
+
+        assertEquals(1, orchestrateur.acceptationsLicence.get())
+    }
 
     @Test
     fun `diagnostic - journal intégral puis récapitulatif`() {
@@ -207,10 +204,9 @@ class InstallationViewModelTest {
 private object EnvironmentSetupStateTest {
     fun etatInitial() = etat(phases = emptyMap())
 
-    fun etat(phases: Map<InstallPhase, PhaseState>) =
-        jo.codeide.core.domain.EnvironmentSetupState(
-            phases = phases,
-            running = null,
-            sdkLicenseAcceptedAtMillis = null,
-        )
+    fun etat(phases: Map<InstallPhase, PhaseState>) = jo.codeide.core.domain.EnvironmentSetupState(
+        phases = phases,
+        running = null,
+        sdkLicenseAcceptedAtMillis = null,
+    )
 }

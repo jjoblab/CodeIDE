@@ -24,7 +24,7 @@ public fun interface TimeProvider {
  * système. Injectée par Hilt dans le code de production.
  */
 public class SystemTimeProvider
-    @Inject
-    constructor() : TimeProvider {
-        public override fun nowMillis(): Long = System.currentTimeMillis()
-    }
+@Inject
+constructor() : TimeProvider {
+    public override fun nowMillis(): Long = System.currentTimeMillis()
+}

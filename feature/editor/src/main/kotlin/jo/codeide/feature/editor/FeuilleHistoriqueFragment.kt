@@ -31,13 +31,9 @@ import java.util.Locale
 
 /** Une rangée de la liste : un en-tête de période OU une révision. */
 internal sealed interface RangeeHistorique {
-    data class Periode(
-        val periode: PeriodeHistorique,
-    ) : RangeeHistorique
+    data class Periode(val periode: PeriodeHistorique) : RangeeHistorique
 
-    data class Revision(
-        val revision: RevisionUi,
-    ) : RangeeHistorique
+    data class Revision(val revision: RevisionUi) : RangeeHistorique
 }
 
 /**
@@ -87,19 +83,12 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         SimpleDateFormat(getString(R.string.historique_format_date_ancien), Locale.getDefault())
     }
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FeuilleHistoriqueBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         super.onViewCreated(vue, etat)
         adaptateurRevisions =
             AdaptateurRevisions { revision -> viewModel.selectionner(revision.entree) }
@@ -131,8 +120,8 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             cheminRelatif = paquet.getString(CLE_CHEMIN).orEmpty(),
             nomFichier = paquet.getString(CLE_NOM).orEmpty(),
             mode =
-                paquet.getString(CLE_MODE)?.let { lu -> runCatching { ModeHistorique.valueOf(lu) }.getOrNull() }
-                    ?: ModeHistorique.FICHIER,
+            paquet.getString(CLE_MODE)?.let { lu -> runCatching { ModeHistorique.valueOf(lu) }.getOrNull() }
+                ?: ModeHistorique.FICHIER,
         )
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
     }
@@ -286,16 +275,15 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
     }
 
     /** Libellé localisé du TYPE d'une révision (maquette). */
-    private fun libelleDeType(type: TypeEntreeHistorique): Int =
-        when (type) {
-            TypeEntreeHistorique.MODIFICATION -> R.string.historique_type_modification
-            TypeEntreeHistorique.CREATION -> R.string.historique_type_creation
-            TypeEntreeHistorique.SUPPRESSION -> R.string.historique_type_suppression
-            TypeEntreeHistorique.RENOMMAGE -> R.string.historique_type_renommage
-            TypeEntreeHistorique.EXTERNE -> R.string.historique_type_externe
-            TypeEntreeHistorique.RESTAURATION -> R.string.historique_type_restauration
-            TypeEntreeHistorique.ETIQUETTE -> R.string.historique_type_etiquette
-        }
+    private fun libelleDeType(type: TypeEntreeHistorique): Int = when (type) {
+        TypeEntreeHistorique.MODIFICATION -> R.string.historique_type_modification
+        TypeEntreeHistorique.CREATION -> R.string.historique_type_creation
+        TypeEntreeHistorique.SUPPRESSION -> R.string.historique_type_suppression
+        TypeEntreeHistorique.RENOMMAGE -> R.string.historique_type_renommage
+        TypeEntreeHistorique.EXTERNE -> R.string.historique_type_externe
+        TypeEntreeHistorique.RESTAURATION -> R.string.historique_type_restauration
+        TypeEntreeHistorique.ETIQUETTE -> R.string.historique_type_etiquette
+    }
 
     /** Libellé localisé du moment d'une révision. */
     private fun libelleMoment(entree: EntreeHistorique): String =
@@ -334,16 +322,12 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
     // ------------------------------------------------------------------
 
     /** Adaptateur des rangées de la liste (périodes + révisions). */
-    private inner class AdaptateurRevisions(
-        private val surChoix: (RevisionUi) -> Unit,
-    ) : ListAdapter<RangeeHistorique, RecyclerView.ViewHolder>(DIFF_RANGEES) {
+    private inner class AdaptateurRevisions(private val surChoix: (RevisionUi) -> Unit) :
+        ListAdapter<RangeeHistorique, RecyclerView.ViewHolder>(DIFF_RANGEES) {
         override fun getItemViewType(position: Int): Int =
             if (getItem(position) is RangeeHistorique.Periode) TYPE_PERIODE else TYPE_REVISION
 
-        override fun onCreateViewHolder(
-            parent: ViewGroup,
-            viewType: Int,
-        ): RecyclerView.ViewHolder =
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
             if (viewType == TYPE_PERIODE) {
                 VuePeriode(
                     LigneEntetePeriodeBinding.inflate(LayoutInflater.from(parent.context), parent, false),
@@ -355,10 +339,7 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
                 )
             }
 
-        override fun onBindViewHolder(
-            holder: RecyclerView.ViewHolder,
-            position: Int,
-        ) {
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             when (val rangee = getItem(position)) {
                 is RangeeHistorique.Periode -> {
                     (holder as VuePeriode).lier(rangee.periode)
@@ -375,9 +356,8 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
     }
 
     /** En-tête de période. */
-    private inner class VuePeriode(
-        private val binding: LigneEntetePeriodeBinding,
-    ) : RecyclerView.ViewHolder(binding.root) {
+    private inner class VuePeriode(private val binding: LigneEntetePeriodeBinding) :
+        RecyclerView.ViewHolder(binding.root) {
         fun lier(periode: PeriodeHistorique) {
             binding.libellePeriode.setText(
                 when (periode) {
@@ -396,10 +376,7 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
         private val binding: LigneRevisionHistoriqueBinding,
         private val surChoix: (RevisionUi) -> Unit,
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun lier(
-            revision: RevisionUi,
-            mode: ModeHistorique,
-        ) {
+        fun lier(revision: RevisionUi, mode: ModeHistorique) {
             val entree = revision.entree
             binding.iconeRevision.setImageResource(iconeDeType(entree.type))
             when (mode) {
@@ -438,18 +415,15 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             binding.root.alpha = if (entree.contenuDisponible) ALPHA_ACTIVE else ALPHA_INACTIVE
         }
 
-        private fun tailleLisible(octets: Long): String =
-            when {
-                octets >= OCTETS_PAR_KO -> String.format(Locale.ROOT, "%.1f Ko", octets / OCTETS_PAR_KO.toDouble())
-                else -> "$octets o"
-            }
+        private fun tailleLisible(octets: Long): String = when {
+            octets >= OCTETS_PAR_KO -> String.format(Locale.ROOT, "%.1f Ko", octets / OCTETS_PAR_KO.toDouble())
+            else -> "$octets o"
+        }
     }
 
     /** Adaptateur des lignes du diff. */
     private inner class AdaptateurDiff : ListAdapter<LigneDiff, AdaptateurDiff.VueLigne>(DIFF_LIGNES) {
-        inner class VueLigne(
-            private val binding: LigneDiffBinding,
-        ) : RecyclerView.ViewHolder(binding.root) {
+        inner class VueLigne(private val binding: LigneDiffBinding) : RecyclerView.ViewHolder(binding.root) {
             fun lier(ligne: LigneDiff) {
                 val contexte = binding.root.context
                 when (ligne.type) {
@@ -487,15 +461,10 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             }
         }
 
-        override fun onCreateViewHolder(
-            parent: ViewGroup,
-            viewType: Int,
-        ): VueLigne = VueLigne(LigneDiffBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VueLigne =
+            VueLigne(LigneDiffBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-        override fun onBindViewHolder(
-            holder: VueLigne,
-            position: Int,
-        ) = holder.lier(getItem(position))
+        override fun onBindViewHolder(holder: VueLigne, position: Int) = holder.lier(getItem(position))
     }
 
     internal companion object {
@@ -507,16 +476,15 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
             cheminRelatif: String,
             nom: String,
             mode: ModeHistorique = ModeHistorique.FICHIER,
-        ): FeuilleHistoriqueFragment =
-            FeuilleHistoriqueFragment().apply {
-                arguments =
-                    Bundle().apply {
-                        putString(CLE_URI, uri)
-                        putString(CLE_CHEMIN, cheminRelatif)
-                        putString(CLE_NOM, nom)
-                        putString(CLE_MODE, mode.name)
-                    }
-            }
+        ): FeuilleHistoriqueFragment = FeuilleHistoriqueFragment().apply {
+            arguments =
+                Bundle().apply {
+                    putString(CLE_URI, uri)
+                    putString(CLE_CHEMIN, cheminRelatif)
+                    putString(CLE_NOM, nom)
+                    putString(CLE_MODE, mode.name)
+                }
+        }
 
         private const val CLE_URI = "uri"
         private const val CLE_CHEMIN = "chemin"
@@ -544,53 +512,41 @@ internal class FeuilleHistoriqueFragment : BottomSheetDialogFragment() {
 
         private val DIFF_RANGEES =
             object : DiffUtil.ItemCallback<RangeeHistorique>() {
-                override fun areItemsTheSame(
-                    ancienne: RangeeHistorique,
-                    nouvelle: RangeeHistorique,
-                ): Boolean =
-                    when {
-                        ancienne is RangeeHistorique.Periode && nouvelle is RangeeHistorique.Periode -> {
-                            ancienne.periode == nouvelle.periode
-                        }
-
-                        ancienne is RangeeHistorique.Revision && nouvelle is RangeeHistorique.Revision -> {
-                            ancienne.revision.entree.id == nouvelle.revision.entree.id
-                        }
-
-                        else -> {
-                            false
-                        }
+                override fun areItemsTheSame(ancienne: RangeeHistorique, nouvelle: RangeeHistorique): Boolean = when {
+                    ancienne is RangeeHistorique.Periode && nouvelle is RangeeHistorique.Periode -> {
+                        ancienne.periode == nouvelle.periode
                     }
 
-                override fun areContentsTheSame(
-                    ancienne: RangeeHistorique,
-                    nouvelle: RangeeHistorique,
-                ): Boolean = ancienne == nouvelle
+                    ancienne is RangeeHistorique.Revision && nouvelle is RangeeHistorique.Revision -> {
+                        ancienne.revision.entree.id == nouvelle.revision.entree.id
+                    }
+
+                    else -> {
+                        false
+                    }
+                }
+
+                override fun areContentsTheSame(ancienne: RangeeHistorique, nouvelle: RangeeHistorique): Boolean =
+                    ancienne == nouvelle
             }
 
         private val DIFF_LIGNES =
             object : DiffUtil.ItemCallback<LigneDiff>() {
-                override fun areItemsTheSame(
-                    ancienne: LigneDiff,
-                    nouvelle: LigneDiff,
-                ): Boolean = ancienne == nouvelle
+                override fun areItemsTheSame(ancienne: LigneDiff, nouvelle: LigneDiff): Boolean = ancienne == nouvelle
 
-                override fun areContentsTheSame(
-                    ancienne: LigneDiff,
-                    nouvelle: LigneDiff,
-                ): Boolean = ancienne == nouvelle
+                override fun areContentsTheSame(ancienne: LigneDiff, nouvelle: LigneDiff): Boolean =
+                    ancienne == nouvelle
             }
 
         /** Icône d'un type de révision (jetons de la maquette). */
-        private fun iconeDeType(type: TypeEntreeHistorique): Int =
-            when (type) {
-                TypeEntreeHistorique.MODIFICATION -> jo.codeide.core.ui.R.drawable.ic_editer
-                TypeEntreeHistorique.CREATION -> jo.codeide.core.ui.R.drawable.ic_fichier
-                TypeEntreeHistorique.SUPPRESSION -> jo.codeide.core.ui.R.drawable.ic_supprimer
-                TypeEntreeHistorique.RENOMMAGE -> jo.codeide.core.ui.R.drawable.ic_renommer
-                TypeEntreeHistorique.EXTERNE -> jo.codeide.core.ui.R.drawable.ic_actualiser
-                TypeEntreeHistorique.RESTAURATION -> jo.codeide.core.ui.R.drawable.ic_enregistrer
-                TypeEntreeHistorique.ETIQUETTE -> jo.codeide.core.ui.R.drawable.ic_etiquette
-            }
+        private fun iconeDeType(type: TypeEntreeHistorique): Int = when (type) {
+            TypeEntreeHistorique.MODIFICATION -> jo.codeide.core.ui.R.drawable.ic_editer
+            TypeEntreeHistorique.CREATION -> jo.codeide.core.ui.R.drawable.ic_fichier
+            TypeEntreeHistorique.SUPPRESSION -> jo.codeide.core.ui.R.drawable.ic_supprimer
+            TypeEntreeHistorique.RENOMMAGE -> jo.codeide.core.ui.R.drawable.ic_renommer
+            TypeEntreeHistorique.EXTERNE -> jo.codeide.core.ui.R.drawable.ic_actualiser
+            TypeEntreeHistorique.RESTAURATION -> jo.codeide.core.ui.R.drawable.ic_enregistrer
+            TypeEntreeHistorique.ETIQUETTE -> jo.codeide.core.ui.R.drawable.ic_etiquette
+        }
     }
 }

@@ -21,16 +21,16 @@ import javax.inject.Singleton
  */
 @Singleton
 public class RegistrePortEditeurActif
-    @Inject
-    constructor() {
-        @Volatile
-        private var port: PortEditeurActif? = null
+@Inject
+constructor() {
+    @Volatile
+    private var port: PortEditeurActif? = null
 
-        /** Enregistre (ou remplace) le port de l'éditeur actif ; `null` le retire. */
-        public fun enregistrer(port: PortEditeurActif?) {
-            this.port = port
-        }
-
-        /** Le port de l'éditeur actif, ou `null` (aucun onglet, processus recréé). */
-        public fun actif(): PortEditeurActif? = port
+    /** Enregistre (ou remplace) le port de l'éditeur actif ; `null` le retire. */
+    public fun enregistrer(port: PortEditeurActif?) {
+        this.port = port
     }
+
+    /** Le port de l'éditeur actif, ou `null` (aucun onglet, processus recréé). */
+    public fun actif(): PortEditeurActif? = port
+}

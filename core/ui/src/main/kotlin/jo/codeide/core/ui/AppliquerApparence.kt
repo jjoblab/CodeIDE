@@ -86,11 +86,7 @@ public object AppliquerApparence {
      * @param couleursDynamiques couleurs Material You demandées.
      * @param palette palette statique (sans objet si dynamiques actives).
      */
-    public fun installer(
-        application: Application,
-        couleursDynamiques: Boolean,
-        palette: PaletteCouleur,
-    ) {
+    public fun installer(application: Application, couleursDynamiques: Boolean, palette: PaletteCouleur) {
         etat = EtatCouleur(couleursDynamiques, palette)
         etatInitialise = true
         filPrincipal.post {
@@ -109,10 +105,7 @@ public object AppliquerApparence {
      * @param couleursDynamiques couleurs Material You demandées.
      * @param palette palette statique (sans objet si dynamiques actives).
      */
-    public fun mettreAJour(
-        couleursDynamiques: Boolean,
-        palette: PaletteCouleur,
-    ) {
+    public fun mettreAJour(couleursDynamiques: Boolean, palette: PaletteCouleur) {
         val precedente = etat
         if (precedente == EtatCouleur(couleursDynamiques, palette)) return
         etat = EtatCouleur(couleursDynamiques, palette)
@@ -151,17 +144,16 @@ public object AppliquerApparence {
     }
 
     /** Style d'overlay d'une palette (vérifié par test de non-régression). */
-    private fun styleOverlay(palette: PaletteCouleur): Int =
-        when (palette) {
-            PaletteCouleur.INDIGO -> R.style.ThemeOverlay_CodeIDE_PaletteIndigo
-            PaletteCouleur.BLEU -> R.style.ThemeOverlay_CodeIDE_PaletteBleu
-            PaletteCouleur.TURQUOISE -> R.style.ThemeOverlay_CodeIDE_PaletteTurquoise
-            PaletteCouleur.VERT -> R.style.ThemeOverlay_CodeIDE_PaletteVert
-            PaletteCouleur.AMBRE -> R.style.ThemeOverlay_CodeIDE_PaletteAmbre
-            PaletteCouleur.ROUGE -> R.style.ThemeOverlay_CodeIDE_PaletteRouge
-            PaletteCouleur.VIOLET -> R.style.ThemeOverlay_CodeIDE_PaletteViolet
-            PaletteCouleur.ROSE -> R.style.ThemeOverlay_CodeIDE_PaletteRose
-        }
+    private fun styleOverlay(palette: PaletteCouleur): Int = when (palette) {
+        PaletteCouleur.INDIGO -> R.style.ThemeOverlay_CodeIDE_PaletteIndigo
+        PaletteCouleur.BLEU -> R.style.ThemeOverlay_CodeIDE_PaletteBleu
+        PaletteCouleur.TURQUOISE -> R.style.ThemeOverlay_CodeIDE_PaletteTurquoise
+        PaletteCouleur.VERT -> R.style.ThemeOverlay_CodeIDE_PaletteVert
+        PaletteCouleur.AMBRE -> R.style.ThemeOverlay_CodeIDE_PaletteAmbre
+        PaletteCouleur.ROUGE -> R.style.ThemeOverlay_CodeIDE_PaletteRouge
+        PaletteCouleur.VIOLET -> R.style.ThemeOverlay_CodeIDE_PaletteViolet
+        PaletteCouleur.ROSE -> R.style.ThemeOverlay_CodeIDE_PaletteRose
+    }
 
     /** Recrée les activités vivantes — l'état a changé après leur création. */
     private fun recreerLesActivitesVivantes() {
@@ -183,17 +175,11 @@ public object AppliquerApparence {
      */
     @Suppress("TooManyFunctions")
     private object Observateur : Application.ActivityLifecycleCallbacks {
-        override fun onActivityPreCreated(
-            activity: Activity,
-            savedInstanceState: Bundle?,
-        ) {
+        override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
             appliquerA(activity)
         }
 
-        override fun onActivityCreated(
-            activity: Activity,
-            savedInstanceState: Bundle?,
-        ) {
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {
             activites.add(WeakReference(activity))
         }
 
@@ -209,10 +195,7 @@ public object AppliquerApparence {
 
         override fun onActivityStopped(activity: Activity) = Unit
 
-        override fun onActivitySaveInstanceState(
-            activity: Activity,
-            outState: Bundle,
-        ) = Unit
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) = Unit
 
         override fun onActivityPreStarted(activity: Activity) = Unit
 
@@ -226,8 +209,5 @@ public object AppliquerApparence {
     }
 
     /** État coloré immuable. */
-    private data class EtatCouleur(
-        val couleursDynamiques: Boolean,
-        val palette: PaletteCouleur,
-    )
+    private data class EtatCouleur(val couleursDynamiques: Boolean, val palette: PaletteCouleur)
 }

@@ -61,17 +61,10 @@ public class RegistreFermeture(
     private val horloge: TimeProvider = TimeProvider { System.currentTimeMillis() },
 ) {
     /** Élément enregistré — la ressource et ses paramètres de fermeture. */
-    private class ElementEnregistre(
-        val fermable: Fermable,
-        val delai: Duration,
-        val annulable: Boolean,
-    )
+    private class ElementEnregistre(val fermable: Fermable, val delai: Duration, val annulable: Boolean)
 
     /** Bilan d'une libération : verdict + interruption éventuelle de l'appelant. */
-    private class Liberation(
-        val bilan: RapportElementFermeture,
-        val interruption: CancellationException?,
-    )
+    private class Liberation(val bilan: RapportElementFermeture, val interruption: CancellationException?)
 
     private val verrouListe = ReentrantLock()
     private val elements = mutableListOf<ElementEnregistre>()
@@ -133,60 +126,56 @@ public class RegistreFermeture(
      * @param contexte raison de la fermeture, remise à chaque élément.
      * @return le rapport complet (durée par élément) — sauf interruption.
      */
-    public suspend fun fermerTout(contexte: ContexteFermeture): RapportFermeture =
-        verrouFermeture.withLock {
-            val aFermer: List<ElementEnregistre> =
-                sousVerrouListe {
-                    fermetureEnCours.set(true)
-                    val instantane = elements.toList()
-                    elements.clear()
-                    instantane
-                }
-            val debut = horloge.nowMillis()
-            val bilans = mutableListOf<RapportElementFermeture>()
-            var interruption: CancellationException? = null
-            // Le drapeau « fermeture en cours » est TOUJOURS rendu, même sur
-            // une erreur inattendue (horloge cassée) : un registre bloqué en
-            // « fermeture » refuserait tout enregistrement à jamais.
-            val rapport =
-                try {
-                    for (element in aFermer.asReversed()) {
-                        if (interruption != null && element.annulable) {
-                            // appelant annulé : seuls les non-annulables continuent (I7)
-                            bilans +=
-                                RapportElementFermeture(
-                                    nom = element.fermable.nom,
-                                    duree = Duration.ZERO,
-                                    resultat = ResultatFermetureElement.Annule,
-                                )
-                            continue
-                        }
-                        val liberation = libererElement(element, contexte)
-                        bilans += liberation.bilan
-                        if (liberation.interruption != null) {
-                            interruption = liberation.interruption
-                        }
-                    }
-                    RapportFermeture(
-                        raison = contexte.raison,
-                        dureeTotale = (horloge.nowMillis() - debut).toDuration(DurationUnit.MILLISECONDS),
-                        elements = bilans,
-                    )
-                } finally {
-                    sousVerrouListe { fermetureEnCours.set(false) }
-                }
-            journaliserRapport(rapport)
-            if (interruption != null) {
-                throw FermetureInterrompue(rapport)
+    public suspend fun fermerTout(contexte: ContexteFermeture): RapportFermeture = verrouFermeture.withLock {
+        val aFermer: List<ElementEnregistre> =
+            sousVerrouListe {
+                fermetureEnCours.set(true)
+                val instantane = elements.toList()
+                elements.clear()
+                instantane
             }
-            rapport
+        val debut = horloge.nowMillis()
+        val bilans = mutableListOf<RapportElementFermeture>()
+        var interruption: CancellationException? = null
+        // Le drapeau « fermeture en cours » est TOUJOURS rendu, même sur
+        // une erreur inattendue (horloge cassée) : un registre bloqué en
+        // « fermeture » refuserait tout enregistrement à jamais.
+        val rapport =
+            try {
+                for (element in aFermer.asReversed()) {
+                    if (interruption != null && element.annulable) {
+                        // appelant annulé : seuls les non-annulables continuent (I7)
+                        bilans +=
+                            RapportElementFermeture(
+                                nom = element.fermable.nom,
+                                duree = Duration.ZERO,
+                                resultat = ResultatFermetureElement.Annule,
+                            )
+                        continue
+                    }
+                    val liberation = libererElement(element, contexte)
+                    bilans += liberation.bilan
+                    if (liberation.interruption != null) {
+                        interruption = liberation.interruption
+                    }
+                }
+                RapportFermeture(
+                    raison = contexte.raison,
+                    dureeTotale = (horloge.nowMillis() - debut).toDuration(DurationUnit.MILLISECONDS),
+                    elements = bilans,
+                )
+            } finally {
+                sousVerrouListe { fermetureEnCours.set(false) }
+            }
+        journaliserRapport(rapport)
+        if (interruption != null) {
+            throw FermetureInterrompue(rapport)
         }
+        rapport
+    }
 
     /** Libère UN élément sous son délai propre, en tolérant pannes et annulation. */
-    private suspend fun libererElement(
-        element: ElementEnregistre,
-        contexte: ContexteFermeture,
-    ): Liberation {
+    private suspend fun libererElement(element: ElementEnregistre, contexte: ContexteFermeture): Liberation {
         val avant = horloge.nowMillis()
         var interruption: CancellationException? = null
         var verdict: ResultatFermetureElement
@@ -276,9 +265,7 @@ public class RegistreFermeture(
     }
 
     /** Poignée de désenregistrement — retire l'élément par identité. */
-    private inner class DesenregistrementInterne(
-        private val fermable: Fermable,
-    ) : Desenregistrement {
+    private inner class DesenregistrementInterne(private val fermable: Fermable) : Desenregistrement {
         override fun desenregistrer() {
             sousVerrouListe { elements.removeAll { it.fermable === fermable } }
         }

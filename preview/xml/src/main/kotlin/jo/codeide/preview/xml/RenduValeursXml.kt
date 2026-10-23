@@ -36,11 +36,7 @@ internal class RenduValeursXml(
     private val densite: Float,
 ) {
     /** Une entrée de ressource extraite du XML. */
-    internal class Entree(
-        val genre: String,
-        val nom: String,
-        val valeur: String,
-    ) {
+    internal class Entree(val genre: String, val nom: String, val valeur: String) {
         /** La valeur est-elle une couleur hexadécimale (#RRGGBB…) ? */
         internal val estCouleur: Boolean =
             valeur.length in LONGUEUR_COULEUR_MIN..LONGUEUR_COULEUR_MAX &&
@@ -61,23 +57,18 @@ internal class RenduValeursXml(
      * Renvoie null si le document n'est pas une racine `resources`
      * (classification erronée : l'appelant affichera une erreur honnête).
      */
-    internal fun extraire(texte: String): List<Entree>? =
-        try {
-            LecteurValeurs(texte).lire()
-        } catch (_: IllegalArgumentException) {
-            // Parseur inconstructible : document illisible → erreur honnête.
-            null
-        }
+    internal fun extraire(texte: String): List<Entree>? = try {
+        LecteurValeurs(texte).lire()
+    } catch (_: IllegalArgumentException) {
+        // Parseur inconstructible : document illisible → erreur honnête.
+        null
+    }
 
     /**
      * Dessine le tableau des entrées : bitmap de la largeur du profil, une
      * ligne par entrée, nuancier pour les couleurs.
      */
-    internal fun dessiner(
-        entrees: List<Entree>,
-        largeurPx: Int,
-        nuit: Boolean,
-    ): Bitmap {
+    internal fun dessiner(entrees: List<Entree>, largeurPx: Int, nuit: Boolean): Bitmap {
         val palette = if (nuit) Palette.NUITS else Palette.JOURS
         val lignes = (affichees(entrees).size + 1 + if (estTronque(entrees)) 1 else 0)
         val hauteur = lignes * hauteurLigne() + 2 * marge()
@@ -96,11 +87,7 @@ internal class RenduValeursXml(
     }
 
     /** En-tête : nombre d'entrées (et mention de troncature). */
-    private fun dessinerEntete(
-        canevas: Canvas,
-        entrees: List<Entree>,
-        palette: Palette,
-    ) {
+    private fun dessinerEntete(canevas: Canvas, entrees: List<Entree>, palette: Palette) {
         val y = marge() + hauteurLigne() - (hauteurLigne() / QUART)
         val libelle =
             "${affichees(entrees).size} entrée(s)${if (estTronque(entrees)) " (tronqué)" else ""}"
@@ -108,12 +95,7 @@ internal class RenduValeursXml(
     }
 
     /** Les lignes des entrées (nuancier, nom, valeur). */
-    private fun dessinerEntrees(
-        canevas: Canvas,
-        entrees: List<Entree>,
-        palette: Palette,
-        largeurPx: Int,
-    ) {
+    private fun dessinerEntrees(canevas: Canvas, entrees: List<Entree>, palette: Palette, largeurPx: Int) {
         var y = marge() + 2 * hauteurLigne() - (hauteurLigne() / QUART)
         for (entree in affichees(entrees)) {
             dessinerEntree(canevas, entree, palette, largeurPx, y)
@@ -122,13 +104,7 @@ internal class RenduValeursXml(
     }
 
     /** UNE ligne : nuancier + nom (tiers gauche), valeur (tiers droit). */
-    private fun dessinerEntree(
-        canevas: Canvas,
-        entree: Entree,
-        palette: Palette,
-        largeurPx: Int,
-        y: Int,
-    ) {
+    private fun dessinerEntree(canevas: Canvas, entree: Entree, palette: Palette, largeurPx: Int, y: Int) {
         var x = marge().toFloat()
         if (entree.estCouleur) {
             dessinerNuancier(canevas, entree, palette, x, y)
@@ -149,13 +125,7 @@ internal class RenduValeursXml(
     }
 
     /** Nuancier carré + liseré (couleur illisible → magenta honnête). */
-    private fun dessinerNuancier(
-        canevas: Canvas,
-        entree: Entree,
-        palette: Palette,
-        x: Float,
-        y: Int,
-    ) {
+    private fun dessinerNuancier(canevas: Canvas, entree: Entree, palette: Palette, x: Float, y: Int) {
         val couleur =
             try {
                 Color.parseColor(entree.valeur)
@@ -175,11 +145,7 @@ internal class RenduValeursXml(
     }
 
     /** Pied « … +N entrée(s) » quand la liste est tronquée (jamais silencieux). */
-    private fun dessinerPiedSiTronque(
-        canevas: Canvas,
-        entrees: List<Entree>,
-        palette: Palette,
-    ) {
+    private fun dessinerPiedSiTronque(canevas: Canvas, entrees: List<Entree>, palette: Palette) {
         if (!estTronque(entrees)) return
         val y = marge() + (affichees(entrees).size + 2) * hauteurLigne() - (hauteurLigne() / QUART)
         canevas.drawText(
@@ -200,27 +166,21 @@ internal class RenduValeursXml(
 
     private fun coteNuancier(): Int = (COTE_NUANCIER_DP * densite).toInt().coerceAtLeast(2)
 
-    private fun peintNom(palette: Palette): Paint =
-        Paint().apply {
-            color = palette.texte
-            isAntiAlias = true
-            textSize = TAILLE_NOM_DP * densite
-            isFakeBoldText = true
-        }
+    private fun peintNom(palette: Palette): Paint = Paint().apply {
+        color = palette.texte
+        isAntiAlias = true
+        textSize = TAILLE_NOM_DP * densite
+        isFakeBoldText = true
+    }
 
-    private fun peintValeur(palette: Palette): Paint =
-        Paint().apply {
-            color = palette.texteSecondaire
-            isAntiAlias = true
-            textSize = TAILLE_VALEUR_DP * densite
-        }
+    private fun peintValeur(palette: Palette): Paint = Paint().apply {
+        color = palette.texteSecondaire
+        isAntiAlias = true
+        textSize = TAILLE_VALEUR_DP * densite
+    }
 
     /** Tronque avec ellipse si le texte dépasse [largeurMax] (px). */
-    private fun tronquerTexte(
-        peinture: Paint,
-        texte: String,
-        largeurMax: Float,
-    ): String {
+    private fun tronquerTexte(peinture: Paint, texte: String, largeurMax: Float): String {
         if (largeurMax <= 0f || peinture.measureText(texte) <= largeurMax) return texte
         var coupure = texte.length
         while (coupure > 1 && peinture.measureText(texte.substring(0, coupure) + "…") > largeurMax) {
@@ -230,11 +190,7 @@ internal class RenduValeursXml(
     }
 
     /** Palette du tableau selon le régime jour/nuit. */
-    private class Palette(
-        val fond: Int,
-        val texte: Int,
-        val texteSecondaire: Int,
-    ) {
+    private class Palette(val fond: Int, val texte: Int, val texteSecondaire: Int) {
         companion object {
             val JOURS = Palette(0xFFFBFBFE.toInt(), 0xFF1D1B20.toInt(), 0xFF49454F.toInt())
             val NUITS = Palette(0xFF1B1B1F.toInt(), 0xFFE6E1E5.toInt(), 0xFFCAC4D0.toInt())
@@ -246,9 +202,7 @@ internal class RenduValeursXml(
      * entrées → texte), séparée de l'extraction pour rester lisible.
      * Retour null : document non `resources` (erreur de classification).
      */
-    private class LecteurValeurs(
-        texte: String,
-    ) {
+    private class LecteurValeurs(texte: String) {
         private val parseur: XmlPullParser =
             try {
                 val fabrique = XmlPullParserFactory.newInstance()

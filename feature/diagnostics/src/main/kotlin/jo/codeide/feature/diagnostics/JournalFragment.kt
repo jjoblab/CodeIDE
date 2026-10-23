@@ -57,10 +57,7 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
         attachToRoot: Boolean,
     ): PageJournalBinding = PageJournalBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.listeEntrees.layoutManager = LinearLayoutManager(requireContext())
@@ -69,12 +66,7 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
 
         binding.champRecherche.editText?.addTextChangedListener(
             object : SimpleTextWatcher() {
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) {
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) {
                     viewModel.onAction(ActionJournal.Rechercher(texte?.toString().orEmpty()))
                 }
             },
@@ -160,11 +152,7 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
     /** Révèle les entrées plus anciennes quand le défilement atteint le haut. */
     private val observateurDefilement =
         object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(
-                recyclerView: RecyclerView,
-                dx: Int,
-                dy: Int,
-            ) {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (dy >= 0) return
                 val gestionnaire = recyclerView.layoutManager as? LinearLayoutManager ?: return
                 if (gestionnaire.findFirstCompletelyVisibleItemPosition() <= SEUIL_HAUT &&
@@ -218,21 +206,20 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
     }
 
     /** Met en forme la chaîne d'exception aplanie (causes imbriquées). */
-    private fun formatterException(exception: FlattenedException): String =
-        buildString {
-            appendLine("${exception.className}: ${exception.message.orEmpty()}")
-            exception.frames.forEach { tranche -> appendLine("    $tranche") }
-            var cause = exception.cause
-            var profondeur = 1
-            while (cause != null && profondeur <= PROFONDEUR_CAUSES_AFFICHEES) {
-                appendLine("Caused by: ${cause.className}: ${cause.message.orEmpty()}")
-                cause.frames.take(TRANCHES_CAUSE_AFFICHEES).forEach { tranche ->
-                    appendLine("    $tranche")
-                }
-                cause = cause.cause
-                profondeur++
+    private fun formatterException(exception: FlattenedException): String = buildString {
+        appendLine("${exception.className}: ${exception.message.orEmpty()}")
+        exception.frames.forEach { tranche -> appendLine("    $tranche") }
+        var cause = exception.cause
+        var profondeur = 1
+        while (cause != null && profondeur <= PROFONDEUR_CAUSES_AFFICHEES) {
+            appendLine("Caused by: ${cause.className}: ${cause.message.orEmpty()}")
+            cause.frames.take(TRANCHES_CAUSE_AFFICHEES).forEach { tranche ->
+                appendLine("    $tranche")
             }
+            cause = cause.cause
+            profondeur++
         }
+    }
 
     /** Confirmation explicite avant l'effacement (règle du prompt). */
     private fun confirmerEffacement() {

@@ -13,7 +13,7 @@ import javax.inject.Inject
  * duplication manuelle.
  */
 public class GeneratorVersionImpl
-    @Inject
-    constructor() : GeneratorVersion {
-        override val value: String = "CodeIDE ${BuildConfig.VERSION_NAME}"
-    }
+@Inject
+constructor() : GeneratorVersion {
+    override val value: String = "CodeIDE ${BuildConfig.VERSION_NAME}"
+}

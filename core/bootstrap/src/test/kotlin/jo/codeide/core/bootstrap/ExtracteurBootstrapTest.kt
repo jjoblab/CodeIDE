@@ -54,180 +54,170 @@ class ExtracteurBootstrapTest {
     private fun octets(texte: String): ByteArray = texte.toByteArray(Charsets.UTF_8)
 
     @Test
-    fun `extrait les fichiers réguliers vers le staging`() =
-        runBlocking {
-            val archive =
-                ecrireArchive(
-                    "bin/sh" to octets("#!/system/bin/sh"),
-                    "bin/bash" to octets("#!/system/bin/sh"),
-                    "libexec/git-core/core" to octets("binaire"),
-                    "lib/apt/apt-helper/dump" to octets("helper"),
-                    "lib/apt/methods/http" to octets("methode"),
-                    "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh" to
-                        octets("#!/system/bin/sh"),
-                    "etc/apt/sources.list" to octets("deb http://exemple.invalid stable main"),
-                )
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
-
-            extracteur.extraire(archive, staging)
-
-            assertEquals(octets("#!/system/bin/sh").toList(), File(staging, "bin/sh").readBytes().toList())
-            assertEquals(
-                octets("deb http://exemple.invalid stable main").toList(),
-                File(staging, "etc/apt/sources.list").readBytes().toList(),
+    fun `extrait les fichiers réguliers vers le staging`() = runBlocking {
+        val archive =
+            ecrireArchive(
+                "bin/sh" to octets("#!/system/bin/sh"),
+                "bin/bash" to octets("#!/system/bin/sh"),
+                "libexec/git-core/core" to octets("binaire"),
+                "lib/apt/apt-helper/dump" to octets("helper"),
+                "lib/apt/methods/http" to octets("methode"),
+                "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh" to
+                    octets("#!/system/bin/sh"),
+                "etc/apt/sources.list" to octets("deb http://exemple.invalid stable main"),
             )
-        }
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
+
+        extracteur.extraire(archive, staging)
+
+        assertEquals(octets("#!/system/bin/sh").toList(), File(staging, "bin/sh").readBytes().toList())
+        assertEquals(
+            octets("deb http://exemple.invalid stable main").toList(),
+            File(staging, "etc/apt/sources.list").readBytes().toList(),
+        )
+    }
 
     @Test
-    fun `crée le répertoire tmp du staging même absent de l archive`() =
-        runBlocking {
-            // Régression v0.31.3 (rapport d'appareil réel, apt code 100) :
-            // l'archive publiée par codeide-packages n'embarque PAS
-            // l'entrée `tmp/` (contrairement au bootstrap officiel
-            // Termux) — l'extracteur doit la créer lui-même, sinon
-            // `TMPDIR` désigne le vide et `mkstemp` échoue en ENOENT.
-            val archive = ecrireArchive("bin/sh" to octets("x"))
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
+    fun `crée le répertoire tmp du staging même absent de l archive`() = runBlocking {
+        // Régression v0.31.3 (rapport d'appareil réel, apt code 100) :
+        // l'archive publiée par codeide-packages n'embarque PAS
+        // l'entrée `tmp/` (contrairement au bootstrap officiel
+        // Termux) — l'extracteur doit la créer lui-même, sinon
+        // `TMPDIR` désigne le vide et `mkstemp` échoue en ENOENT.
+        val archive = ecrireArchive("bin/sh" to octets("x"))
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            extracteur.extraire(archive, staging)
+        extracteur.extraire(archive, staging)
 
-            assertTrue(File(staging, "tmp").isDirectory)
-        }
+        assertTrue(File(staging, "tmp").isDirectory)
+    }
 
     @Test
-    fun `pose le bit d exécution sur bin libexec et les assistants apt uniquement`() =
-        runBlocking {
-            val archive =
-                ecrireArchive(
-                    "bin/sh" to octets("x"),
-                    "libexec/outil" to octets("x"),
-                    "lib/apt/apt-helper/dump" to octets("x"),
-                    "lib/apt/methods/http" to octets("x"),
-                    "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh" to octets("x"),
-                    "etc/apt/sources.list" to octets("passif"),
-                )
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
+    fun `pose le bit d exécution sur bin libexec et les assistants apt uniquement`() = runBlocking {
+        val archive =
+            ecrireArchive(
+                "bin/sh" to octets("x"),
+                "libexec/outil" to octets("x"),
+                "lib/apt/apt-helper/dump" to octets("x"),
+                "lib/apt/methods/http" to octets("x"),
+                "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh" to octets("x"),
+                "etc/apt/sources.list" to octets("passif"),
+            )
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            extracteur.extraire(archive, staging)
+        extracteur.extraire(archive, staging)
 
-            assertTrue(File(staging, "bin/sh").canExecute())
-            assertTrue(File(staging, "libexec/outil").canExecute())
-            assertTrue(File(staging, "lib/apt/apt-helper/dump").canExecute())
-            assertTrue(File(staging, "lib/apt/methods/http").canExecute())
+        assertTrue(File(staging, "bin/sh").canExecute())
+        assertTrue(File(staging, "libexec/outil").canExecute())
+        assertTrue(File(staging, "lib/apt/apt-helper/dump").canExecute())
+        assertTrue(File(staging, "lib/apt/methods/http").canExecute())
+        assertTrue(
+            File(staging, "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh").canExecute(),
+        )
+        assertFalse(File(staging, "etc/apt/sources.list").canExecute())
+    }
+
+    @Test
+    fun `crée les liens symboliques du manifeste avec les deux formes de chemin`() = runBlocking {
+        // Le lien pointe vers `busybox` (cible relative au répertoire du
+        // lien) ; les chemins du manifeste apparaissent avec et sans
+        // préfixe `./` — les deux formes sont acceptées.
+        val archive =
+            ecrireArchive(
+                "bin/busybox" to octets("x"),
+                symlinks = "busybox←./bin/ls\nbusybox←bin/dir\n",
+            )
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
+
+        extracteur.extraire(archive, staging)
+
+        for (chemin in listOf("bin/ls", "bin/dir")) {
+            val lien = File(staging, chemin)
             assertTrue(
-                File(staging, "etc/termux/termux-bootstrap/second-stage/termux-bootstrap-second-stage.sh").canExecute(),
+                "$chemin devrait être un lien symbolique",
+                java.nio.file.Files
+                    .isSymbolicLink(lien.toPath()),
             )
-            assertFalse(File(staging, "etc/apt/sources.list").canExecute())
+            assertEquals(
+                "busybox",
+                java.nio.file.Files
+                    .readSymbolicLink(lien.toPath())
+                    .toString(),
+            )
         }
+    }
 
     @Test
-    fun `crée les liens symboliques du manifeste avec les deux formes de chemin`() =
-        runBlocking {
-            // Le lien pointe vers `busybox` (cible relative au répertoire du
-            // lien) ; les chemins du manifeste apparaissent avec et sans
-            // préfixe `./` — les deux formes sont acceptées.
-            val archive =
-                ecrireArchive(
-                    "bin/busybox" to octets("x"),
-                    symlinks = "busybox←./bin/ls\nbusybox←bin/dir\n",
-                )
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
+    fun `manifeste SYMLINKS absent échoue en ArchiveCorrompue`() = runBlocking {
+        val archive = ecrireArchive("bin/sh" to octets("x"), symlinks = null)
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            extracteur.extraire(archive, staging)
+        val erreur =
+            runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
-            for (chemin in listOf("bin/ls", "bin/dir")) {
-                val lien = File(staging, chemin)
-                assertTrue(
-                    "$chemin devrait être un lien symbolique",
-                    java.nio.file.Files
-                        .isSymbolicLink(lien.toPath()),
-                )
-                assertEquals(
-                    "busybox",
-                    java.nio.file.Files
-                        .readSymbolicLink(lien.toPath())
-                        .toString(),
-                )
-            }
-        }
+        assertTrue(erreur is EchecBootstrap)
+        assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
+    }
 
     @Test
-    fun `manifeste SYMLINKS absent échoue en ArchiveCorrompue`() =
-        runBlocking {
-            val archive = ecrireArchive("bin/sh" to octets("x"), symlinks = null)
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
+    fun `ligne de manifeste malformée échoue en ArchiveCorrompue`() = runBlocking {
+        val archive = ecrireArchive("bin/sh" to octets("x"), symlinks = "sans-separateur\n")
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            val erreur =
-                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
+        val erreur =
+            runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
-            assertTrue(erreur is EchecBootstrap)
-            assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
-        }
-
-    @Test
-    fun `ligne de manifeste malformée échoue en ArchiveCorrompue`() =
-        runBlocking {
-            val archive = ecrireArchive("bin/sh" to octets("x"), symlinks = "sans-separateur\n")
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
-
-            val erreur =
-                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
-
-            assertTrue(erreur is EchecBootstrap)
-            assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
-        }
+        assertTrue(erreur is EchecBootstrap)
+        assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
+    }
 
     @Test
-    fun `entrée de traversée hors staging échoue en ArchiveCorrompue`() =
-        runBlocking {
-            val archive = ecrireArchive("../egloutissant" to octets("x"))
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
+    fun `entrée de traversée hors staging échoue en ArchiveCorrompue`() = runBlocking {
+        val archive = ecrireArchive("../egloutissant" to octets("x"))
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            val erreur =
-                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
+        val erreur =
+            runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
-            assertTrue(erreur is EchecBootstrap)
-            assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
-            assertFalse(File(staging.parentFile, "egloutissant").exists())
-        }
-
-    @Test
-    fun `archive non zip échoue en ArchiveCorrompue`() =
-        runBlocking {
-            val archive = File(dossierTemp.newFolder(), "bootstrap.zip")
-            archive.writeBytes(ByteArray(64) { 9 })
-            val staging = File(dossierTemp.newFolder(), "usr-staging")
-
-            val erreur =
-                runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
-
-            assertTrue(erreur is EchecBootstrap)
-            assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
-        }
+        assertTrue(erreur is EchecBootstrap)
+        assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
+        assertFalse(File(staging.parentFile, "egloutissant").exists())
+    }
 
     @Test
-    fun `bascule le staging vers le préfixe et remplace un préfixe existant`() =
-        runBlocking {
-            val archive = ecrireArchive("bin/sh" to octets("nouveau"))
-            val staging = File(dossierTemp.newFolder(), "installation")
-            extracteur.extraire(archive, staging)
+    fun `archive non zip échoue en ArchiveCorrompue`() = runBlocking {
+        val archive = File(dossierTemp.newFolder(), "bootstrap.zip")
+        archive.writeBytes(ByteArray(64) { 9 })
+        val staging = File(dossierTemp.newFolder(), "usr-staging")
 
-            val prefixe = File(dossierTemp.newFolder(), "usr")
-            prefixe.mkdirs()
-            File(prefixe, "bin").mkdirs()
-            File(prefixe, "bin/sh").writeText("ancien")
+        val erreur =
+            runCatching { extracteur.extraire(archive, staging) }.exceptionOrNull()
 
-            extracteur.basculer(staging, prefixe)
+        assertTrue(erreur is EchecBootstrap)
+        assertEquals(BootstrapReason.ArchiveCorrompue, (erreur as EchecBootstrap).raison)
+    }
 
-            assertFalse(staging.exists())
-            assertEquals("nouveau", File(prefixe, "bin/sh").readText())
-        }
+    @Test
+    fun `bascule le staging vers le préfixe et remplace un préfixe existant`() = runBlocking {
+        val archive = ecrireArchive("bin/sh" to octets("nouveau"))
+        val staging = File(dossierTemp.newFolder(), "installation")
+        extracteur.extraire(archive, staging)
+
+        val prefixe = File(dossierTemp.newFolder(), "usr")
+        prefixe.mkdirs()
+        File(prefixe, "bin").mkdirs()
+        File(prefixe, "bin/sh").writeText("ancien")
+
+        extracteur.basculer(staging, prefixe)
+
+        assertFalse(staging.exists())
+        assertEquals("nouveau", File(prefixe, "bin/sh").readText())
+    }
 }
 
 /** Dispatchers réels pour de vraies E/S disque en JVM. */
-private fun dispatcheursReels(): DispatcherProvider =
-    object : DispatcherProvider {
-        override val io = Dispatchers.IO
-        override val default = Dispatchers.Default
-        override val main = Dispatchers.Default
-    }
+private fun dispatcheursReels(): DispatcherProvider = object : DispatcherProvider {
+    override val io = Dispatchers.IO
+    override val default = Dispatchers.Default
+    override val main = Dispatchers.Default
+}

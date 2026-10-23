@@ -26,10 +26,7 @@ import kotlin.coroutines.coroutineContext
  * sans tuer le processus, contrairement à un `waitFor()` bloquant qui
  * ignorerait l'annulation.
  */
-internal class ProcessusGere(
-    private val processus: Process,
-    private val io: CoroutineDispatcher,
-) : ManagedProcess {
+internal class ProcessusGere(private val processus: Process, private val io: CoroutineDispatcher) : ManagedProcess {
     override val pid: Int by lazy { lirePid(processus) }
 
     override fun isAlive(): Boolean = processus.isAlive
@@ -75,25 +72,24 @@ internal class ProcessusGere(
      * approche que le EOF de SessionSocketAndroid.
      */
     @Suppress("SwallowedException")
-    private fun lignes(flux: InputStream): Flow<String> =
-        flow {
-            try {
-                BufferedReader(InputStreamReader(flux, StandardCharsets.UTF_8)).use { lecteur ->
-                    var ligne = lecteur.readLine()
-                    while (ligne != null) {
-                        emit(ligne)
-                        ligne = lecteur.readLine()
-                    }
+    private fun lignes(flux: InputStream): Flow<String> = flow {
+        try {
+            BufferedReader(InputStreamReader(flux, StandardCharsets.UTF_8)).use { lecteur ->
+                var ligne = lecteur.readLine()
+                while (ligne != null) {
+                    emit(ligne)
+                    ligne = lecteur.readLine()
                 }
-            } catch (interrompue: InterruptedIOException) {
-                // readLine() bloqué réveillé par la fermeture du flux
-                // depuis un autre fil (arrêt forcé) : fin normale.
-            } catch (fermee: IOException) {
-                // Process déjà mort : bruit de démontage du tuyau, fin
-                // normale — vivant, c'est une vraie erreur de lecture.
-                if (processus.isAlive) throw fermee
             }
-        }.flowOn(io)
+        } catch (interrompue: InterruptedIOException) {
+            // readLine() bloqué réveillé par la fermeture du flux
+            // depuis un autre fil (arrêt forcé) : fin normale.
+        } catch (fermee: IOException) {
+            // Process déjà mort : bruit de démontage du tuyau, fin
+            // normale — vivant, c'est une vraie erreur de lecture.
+            if (processus.isAlive) throw fermee
+        }
+    }.flowOn(io)
 
     private companion object {
         /** Période de sonde de [awaitExit] (millisecondes). */
@@ -105,16 +101,15 @@ internal class ProcessusGere(
     // informatif, -1 est la valeur de repli documentée au port (même
     // approche que Termux, ShellUtils.getPid).
     @Suppress("SwallowedException")
-    private fun lirePid(p: Process): Int =
+    private fun lirePid(p: Process): Int = try {
+        val champ = p.javaClass.getDeclaredField("pid")
+        champ.isAccessible = true
         try {
-            val champ = p.javaClass.getDeclaredField("pid")
-            champ.isAccessible = true
-            try {
-                champ.getInt(p)
-            } finally {
-                champ.isAccessible = false
-            }
-        } catch (t: Throwable) {
-            -1
+            champ.getInt(p)
+        } finally {
+            champ.isAccessible = false
         }
+    } catch (t: Throwable) {
+        -1
+    }
 }

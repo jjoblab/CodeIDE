@@ -26,26 +26,17 @@ import java.util.Locale
 internal class EntreesJournalCompactesAdapter :
     ListAdapter<LogEntry, EntreesJournalCompactesAdapter.VueEntree>(DiffEntrees) {
     /** Vue d'une ligne du journal compact. */
-    internal class VueEntree(
-        val liaison: LigneEntreeJournalCompacteBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    internal class VueEntree(val liaison: LigneEntreeJournalCompacteBinding) : RecyclerView.ViewHolder(liaison.root)
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): VueEntree =
-        VueEntree(
-            LigneEntreeJournalCompacteBinding.inflate(
-                LayoutInflater.from(parent.context),
-                parent,
-                false,
-            ),
-        )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VueEntree = VueEntree(
+        LigneEntreeJournalCompacteBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false,
+        ),
+    )
 
-    override fun onBindViewHolder(
-        holder: VueEntree,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: VueEntree, position: Int) {
         val entree = getItem(position)
         val contexte = holder.liaison.root.context
         holder.liaison.niveauEntree.text = entree.level.name
@@ -59,13 +50,12 @@ internal class EntreesJournalCompactesAdapter :
     }
 
     /** Couleur du niveau, jour/nuit par ressources qualifiées. */
-    private fun couleurNiveau(niveau: LogLevel): Int =
-        when (niveau) {
-            LogLevel.DEBUG -> jo.codeide.core.ui.R.color.codeide_journal_debug
-            LogLevel.INFO -> jo.codeide.core.ui.R.color.codeide_journal_info
-            LogLevel.WARN -> jo.codeide.core.ui.R.color.codeide_journal_warn
-            LogLevel.ERROR -> jo.codeide.core.ui.R.color.codeide_journal_error
-        }
+    private fun couleurNiveau(niveau: LogLevel): Int = when (niveau) {
+        LogLevel.DEBUG -> jo.codeide.core.ui.R.color.codeide_journal_debug
+        LogLevel.INFO -> jo.codeide.core.ui.R.color.codeide_journal_info
+        LogLevel.WARN -> jo.codeide.core.ui.R.color.codeide_journal_warn
+        LogLevel.ERROR -> jo.codeide.core.ui.R.color.codeide_journal_error
+    }
 
     private companion object {
         /** Motif d'heure compacte (le journal vit dans la session courante). */
@@ -74,14 +64,8 @@ internal class EntreesJournalCompactesAdapter :
 
     /** Diff structurel des entrées. */
     private object DiffEntrees : DiffUtil.ItemCallback<LogEntry>() {
-        override fun areItemsTheSame(
-            ancienne: LogEntry,
-            nouvelle: LogEntry,
-        ): Boolean = ancienne == nouvelle
+        override fun areItemsTheSame(ancienne: LogEntry, nouvelle: LogEntry): Boolean = ancienne == nouvelle
 
-        override fun areContentsTheSame(
-            ancienne: LogEntry,
-            nouvelle: LogEntry,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: LogEntry, nouvelle: LogEntry): Boolean = ancienne == nouvelle
     }
 }

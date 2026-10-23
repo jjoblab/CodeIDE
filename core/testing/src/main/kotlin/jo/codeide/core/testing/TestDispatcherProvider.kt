@@ -23,9 +23,7 @@ import kotlinx.coroutines.test.TestDispatcher
  * @param dispatcher dispatcher unique exposé pour les trois rôles.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-public class TestDispatcherProvider(
-    private val dispatcher: TestDispatcher,
-) : DispatcherProvider {
+public class TestDispatcherProvider(private val dispatcher: TestDispatcher) : DispatcherProvider {
     public override val io: CoroutineDispatcher
         get() = dispatcher
 

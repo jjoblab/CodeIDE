@@ -8,12 +8,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 
 /** Paddings initiaux d'une vue, capturés avant l'application des insets. */
-private data class PaddingsInitiaux(
-    val gauche: Int,
-    val haut: Int,
-    val droite: Int,
-    val bas: Int,
-)
+private data class PaddingsInitiaux(val gauche: Int, val haut: Int, val droite: Int, val bas: Int)
 
 /**
  * Ajoute aux paddings existants de la vue ceux des barres système (état,
@@ -25,10 +20,7 @@ private data class PaddingsInitiaux(
  * @param top absorber la barre d'état (et l'encoche) en haut.
  * @param bottom absorber la barre de navigation en bas.
  */
-public fun View.applySystemBarsInsets(
-    top: Boolean,
-    bottom: Boolean,
-) {
+public fun View.applySystemBarsInsets(top: Boolean, bottom: Boolean) {
     val initiaux = PaddingsInitiaux(paddingLeft, paddingTop, paddingRight, paddingBottom)
     ViewCompat.setOnApplyWindowInsetsListener(this) { vue, insets ->
         val barres =
@@ -63,10 +55,7 @@ public fun View.applySystemBarsInsets(
  * @param top absorber la barre d'état (et l'encoche) en marge haute.
  * @param bottom absorber la barre de navigation en marge basse.
  */
-public fun View.applySystemBarsInsetsMargins(
-    top: Boolean = true,
-    bottom: Boolean = true,
-) {
+public fun View.applySystemBarsInsetsMargins(top: Boolean = true, bottom: Boolean = true) {
     ViewCompat.setOnApplyWindowInsetsListener(this) { vue, insets ->
         val barres =
             insets.getInsets(
@@ -109,10 +98,7 @@ public fun View.applyImeBottomInset() {
  * @param top absorber la barre d'état (et l'encoche) en haut.
  * @param bottom absorber le maximum de (barre de navigation, clavier) en bas.
  */
-public fun View.applySystemBarsAndImeInsets(
-    top: Boolean,
-    bottom: Boolean,
-) {
+public fun View.applySystemBarsAndImeInsets(top: Boolean, bottom: Boolean) {
     val initiaux = PaddingsInitiaux(paddingLeft, paddingTop, paddingRight, paddingBottom)
     ViewCompat.setOnApplyWindowInsetsListener(this) { vue, insets ->
         val barres =

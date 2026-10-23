@@ -414,24 +414,23 @@ public class MoteurPreviewXml(
     }
 
     /** Traduit un résultat de transport en état du panneau. */
-    private fun etatDe(resultat: ResultatTransport): EtatPreviewXml =
-        when (resultat) {
-            is ResultatTransport.Succes -> {
-                EtatPreviewXml.RenduValide(
-                    bitmap = resultat.bitmap,
-                    dureeMs = resultat.dureeMs,
-                    nombreVues = resultat.nombreVues,
-                    largeur = resultat.largeur,
-                    hauteur = resultat.hauteur,
-                    vues = resultat.vues,
-                    vuesSysteme = resultat.vuesSysteme,
-                )
-            }
-
-            is ResultatTransport.Erreur -> {
-                EtatPreviewXml.ErreurRendu(resultat.message, resultat.ligne)
-            }
+    private fun etatDe(resultat: ResultatTransport): EtatPreviewXml = when (resultat) {
+        is ResultatTransport.Succes -> {
+            EtatPreviewXml.RenduValide(
+                bitmap = resultat.bitmap,
+                dureeMs = resultat.dureeMs,
+                nombreVues = resultat.nombreVues,
+                largeur = resultat.largeur,
+                hauteur = resultat.hauteur,
+                vues = resultat.vues,
+                vuesSysteme = resultat.vuesSysteme,
+            )
         }
+
+        is ResultatTransport.Erreur -> {
+            EtatPreviewXml.ErreurRendu(resultat.message, resultat.ligne)
+        }
+    }
 
     private companion object {
         private const val DEBOUNCE_MS = 400L

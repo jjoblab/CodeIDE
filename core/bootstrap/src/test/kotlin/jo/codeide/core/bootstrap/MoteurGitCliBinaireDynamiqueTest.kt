@@ -33,69 +33,65 @@ class MoteurGitCliBinaireDynamiqueTest {
         }
 
     /** Moteur branché sur le faux lanceur avec journal et sondes. */
-    private fun moteurAvecBinaire(resoudre: () -> String?): MoteurGitCli =
-        MoteurGitCli(
-            lanceur = lanceur,
-            resoudreBinaireGit = resoudre,
-            identite = null,
-            journal = journal,
-            sondes = sondes,
+    private fun moteurAvecBinaire(resoudre: () -> String?): MoteurGitCli = MoteurGitCli(
+        lanceur = lanceur,
+        resoudreBinaireGit = resoudre,
+        identite = null,
+        journal = journal,
+        sondes = sondes,
+    )
+
+    @Test
+    fun `git installe apres le demarrage devient utilisable sans recreer le moteur`() = runTest {
+        var binaire: String? = null
+        val moteur = moteurAvecBinaire { binaire }
+
+        // Binaire absent au premier appel : échec explicite, AUCUN
+        // processus lancé (le message oriente vers pkg install git).
+        val avant = moteur.statut("/projets/depot")
+        assertTrue(avant is ResultatGit.Echec)
+        assertTrue((avant as ResultatGit.Echec).message.contains("git n'est pas installé"))
+        assertTrue("aucun processus ne doit être lancé sans binaire", lanceur.lancements.isEmpty())
+
+        // Le terminal installe git : le MÊME moteur le découvre.
+        binaire = "/data/local/tmp/prefix/bin/git"
+        val apres = moteur.statut("/projets/depot")
+
+        assertTrue(apres is ResultatGit.Succes)
+        assertEquals(
+            listOf("/data/local/tmp/prefix/bin/git", "status", "--porcelain=v1", "-z"),
+            lanceur.lancements.single().command,
         )
+    }
 
     @Test
-    fun `git installe apres le demarrage devient utilisable sans recreer le moteur`() =
-        runTest {
-            var binaire: String? = null
-            val moteur = moteurAvecBinaire { binaire }
+    fun `le binaire reste resolu a chaque execution`() = runTest {
+        val chemins = mutableListOf<String?>()
+        val moteur = moteurAvecBinaire { chemins.lastOrNull() }
 
-            // Binaire absent au premier appel : échec explicite, AUCUN
-            // processus lancé (le message oriente vers pkg install git).
-            val avant = moteur.statut("/projets/depot")
-            assertTrue(avant is ResultatGit.Echec)
-            assertTrue((avant as ResultatGit.Echec).message.contains("git n'est pas installé"))
-            assertTrue("aucun processus ne doit être lancé sans binaire", lanceur.lancements.isEmpty())
+        chemins += "/prefix/bin/git"
+        moteur.brancheCourante("/projets/depot")
+        chemins += null
+        val echec = moteur.brancheCourante("/projets/depot")
+        chemins += "/autre/prefix/bin/git"
+        moteur.brancheCourante("/projets/depot")
 
-            // Le terminal installe git : le MÊME moteur le découvre.
-            binaire = "/data/local/tmp/prefix/bin/git"
-            val apres = moteur.statut("/projets/depot")
-
-            assertTrue(apres is ResultatGit.Succes)
-            assertEquals(
-                listOf("/data/local/tmp/prefix/bin/git", "status", "--porcelain=v1", "-z"),
-                lanceur.lancements.single().command,
-            )
-        }
+        assertTrue("le binaire disparu doit faire échouer l'opération", echec is ResultatGit.Echec)
+        assertEquals(2, lanceur.lancements.size)
+        assertEquals("/prefix/bin/git", lanceur.lancements[0].command.first())
+        assertEquals("/autre/prefix/bin/git", lanceur.lancements[1].command.first())
+    }
 
     @Test
-    fun `le binaire reste resolu a chaque execution`() =
-        runTest {
-            val chemins = mutableListOf<String?>()
-            val moteur = moteurAvecBinaire { chemins.lastOrNull() }
+    fun `est depot lit la sortie du processus resolu dynamiquement`() = runTest {
+        var binaire: String? = null
+        val moteur = moteurAvecBinaire { binaire }
+        // stdout « true » : rev-parse --is-inside-work-tree.
+        lanceur.fabrique = { ProcessusScripte(lignesStdout = listOf("true")) }
 
-            chemins += "/prefix/bin/git"
-            moteur.brancheCourante("/projets/depot")
-            chemins += null
-            val echec = moteur.brancheCourante("/projets/depot")
-            chemins += "/autre/prefix/bin/git"
-            moteur.brancheCourante("/projets/depot")
-
-            assertTrue("le binaire disparu doit faire échouer l'opération", echec is ResultatGit.Echec)
-            assertEquals(2, lanceur.lancements.size)
-            assertEquals("/prefix/bin/git", lanceur.lancements[0].command.first())
-            assertEquals("/autre/prefix/bin/git", lanceur.lancements[1].command.first())
-        }
-
-    @Test
-    fun `est depot lit la sortie du processus resolu dynamiquement`() =
-        runTest {
-            var binaire: String? = null
-            val moteur = moteurAvecBinaire { binaire }
-            // stdout « true » : rev-parse --is-inside-work-tree.
-            lanceur.fabrique = { ProcessusScripte(lignesStdout = listOf("true")) }
-
-            binaire = "/prefix/bin/git"
-            // v0.90.1 : état typé — Depot quand rev-parse répond true.
-            assertEquals(jo.codeide.core.domain.EtatDepot.Depot, moteur.etatDepot("/projets/depot"))
-            assertEquals(1, lanceur.lancements.size)
-        }
+        binaire = "/prefix/bin/git"
+        // v0.90.1 : état typé — Depot quand rev-parse répond true.
+        assertEquals(jo.codeide.core.domain.EtatDepot.Depot, moteur.etatDepot("/projets/depot"))
+        assertEquals(1, lanceur.lancements.size)
+    }
 }

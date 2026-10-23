@@ -24,7 +24,7 @@ internal interface EspaceDisqueSonde {
 
 /** Implémentation Android : `StatFs` sur le stockage privé. */
 internal class EspaceDisqueStatFs
-    @Inject
-    constructor() : EspaceDisqueSonde {
-        override fun octetsLibres(racine: File): Long = StatFs(racine.absolutePath).availableBytes
-    }
+@Inject
+constructor() : EspaceDisqueSonde {
+    override fun octetsLibres(racine: File): Long = StatFs(racine.absolutePath).availableBytes
+}

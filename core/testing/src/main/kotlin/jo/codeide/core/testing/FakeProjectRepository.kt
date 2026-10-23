@@ -82,23 +82,20 @@ public class FakeProjectRepository : ProjectRepository {
             )
     }
 
-    public override fun observeProjects(): Flow<List<Project>> =
-        combine(etat, erreur) { liste, echec ->
-            echec?.let { throw it }
-            liste.triePourAccueil()
-        }
+    public override fun observeProjects(): Flow<List<Project>> = combine(etat, erreur) { liste, echec ->
+        echec?.let { throw it }
+        liste.triePourAccueil()
+    }
 
-    public override fun observeProject(id: ProjectId): Flow<Project?> =
-        combine(etat, erreur) { liste, echec ->
-            echec?.let { throw it }
-            liste.firstOrNull { it.id == id }
-        }
+    public override fun observeProject(id: ProjectId): Flow<Project?> = combine(etat, erreur) { liste, echec ->
+        echec?.let { throw it }
+        liste.firstOrNull { it.id == id }
+    }
 
-    public override suspend fun getProject(id: ProjectId): AppResult<Project> =
-        etat.value
-            .firstOrNull { it.id == id }
-            ?.let { AppResult.Success(it) }
-            ?: AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "projet ${id.value}"))
+    public override suspend fun getProject(id: ProjectId): AppResult<Project> = etat.value
+        .firstOrNull { it.id == id }
+        ?.let { AppResult.Success(it) }
+        ?: AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "projet ${id.value}"))
 
     public override suspend fun addProject(
         name: String,
@@ -134,10 +131,7 @@ public class FakeProjectRepository : ProjectRepository {
         return AppResult.Success(Unit)
     }
 
-    public override suspend fun renameProject(
-        id: ProjectId,
-        newName: String,
-    ): AppResult<Unit> {
+    public override suspend fun renameProject(id: ProjectId, newName: String): AppResult<Unit> {
         writeError?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
 
         val nomNettoye = newName.trim()
@@ -147,15 +141,10 @@ public class FakeProjectRepository : ProjectRepository {
         return muter(id) { it.copy(name = nomNettoye) }
     }
 
-    public override suspend fun setPinned(
-        id: ProjectId,
-        pinned: Boolean,
-    ): AppResult<Unit> = muter(id) { it.copy(isPinned = pinned) }
+    public override suspend fun setPinned(id: ProjectId, pinned: Boolean): AppResult<Unit> =
+        muter(id) { it.copy(isPinned = pinned) }
 
-    public override suspend fun updateLocation(
-        id: ProjectId,
-        location: StorageLocation,
-    ): AppResult<Unit> {
+    public override suspend fun updateLocation(id: ProjectId, location: StorageLocation): AppResult<Unit> {
         writeError?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
 
         // L'unicité du dossier référencé s'applique aussi en relocalisation.
@@ -165,10 +154,8 @@ public class FakeProjectRepository : ProjectRepository {
         return muter(id) { it.copy(location = location) }
     }
 
-    public override suspend fun markOpened(
-        id: ProjectId,
-        atMillis: Long,
-    ): AppResult<Unit> = muter(id) { it.copy(lastOpenedAtMillis = atMillis) }
+    public override suspend fun markOpened(id: ProjectId, atMillis: Long): AppResult<Unit> =
+        muter(id) { it.copy(lastOpenedAtMillis = atMillis) }
 
     /** Horloge des créations ; écrasable pour les tests temporels. */
     public var horloge: () -> Long = { System.currentTimeMillis() }
@@ -178,10 +165,7 @@ public class FakeProjectRepository : ProjectRepository {
      *
      * @return le succès, ou `NotFound` si le projet est absent.
      */
-    private fun muter(
-        id: ProjectId,
-        transformation: (Project) -> Project,
-    ): AppResult<Unit> {
+    private fun muter(id: ProjectId, transformation: (Project) -> Project): AppResult<Unit> {
         val index = etat.value.indexOfFirst { it.id == id }
         if (index < 0) return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "projet ${id.value}"))
 
@@ -193,10 +177,9 @@ public class FakeProjectRepository : ProjectRepository {
      * Ordre de l'accueil : épingles d'abord, dernier ouvert d'abord
      * (jamais ouverts en fin), nom croissant insensible à la casse.
      */
-    private fun List<Project>.triePourAccueil(): List<Project> =
-        sortedWith(
-            compareByDescending<Project> { it.isPinned }
-                .thenByDescending { it.lastOpenedAtMillis ?: -1L }
-                .thenBy { it.name.lowercase() },
-        )
+    private fun List<Project>.triePourAccueil(): List<Project> = sortedWith(
+        compareByDescending<Project> { it.isPinned }
+            .thenByDescending { it.lastOpenedAtMillis ?: -1L }
+            .thenBy { it.name.lowercase() },
+    )
 }

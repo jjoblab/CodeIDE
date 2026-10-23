@@ -156,10 +156,7 @@ internal class ExecutionPhaseSdk(
     }
 
     /** Journalise l'échec NON critique d'un composant (→ `Degraded`, § 5.4). */
-    internal fun degrader(
-        composant: ManifestComponent,
-        diagnostic: String,
-    ) {
+    internal fun degrader(composant: ManifestComponent, diagnostic: String) {
         problemesInternes +=
             ComponentIssue(
                 componentId = composant.id,
@@ -189,17 +186,16 @@ internal class ExecutionPhaseSdk(
         contexte: StepContext,
         racine: File,
         sonde: EspaceDisqueSonde,
-    ): AppResult<InstallPlan> =
-        when (val frais = resoudreFrais(contexte)) {
-            is AppResult.Failure -> {
-                frais
-            }
-
-            is AppResult.Success -> {
-                controlerEspace(racine, frais.value, sonde)?.let { AppResult.Failure(it) }
-                    ?: frais.value.also { planResolu = it }.let { AppResult.Success(it) }
-            }
+    ): AppResult<InstallPlan> = when (val frais = resoudreFrais(contexte)) {
+        is AppResult.Failure -> {
+            frais
         }
+
+        is AppResult.Success -> {
+            controlerEspace(racine, frais.value, sonde)?.let { AppResult.Failure(it) }
+                ?: frais.value.also { planResolu = it }.let { AppResult.Success(it) }
+        }
+    }
 
     /** Résolution fraîche (réseau + schéma), sans mémoire ni contrôle d'espace. */
     private suspend fun resoudreFrais(contexte: StepContext): AppResult<InstallPlan> =
@@ -209,19 +205,18 @@ internal class ExecutionPhaseSdk(
         }
 
     /** Garde d'architecture puis résolution pure du plan (règles § 12.2 — ADR 0086). */
-    private fun planDepuis(manifeste: ToolManifest): AppResult<InstallPlan> =
-        if (!architecture.supporteAarch64()) {
-            AppResult.Failure(
-                AppError.EnvironmentSetup(
-                    reason = EnvironmentSetupReason.ArchitectureNonSupportee,
-                    details =
-                        "le SDK Android reconditionné n'est publié que pour aarch64 " +
-                            "(phase 1 déjà garante — défense en profondeur)",
-                ),
-            )
-        } else {
-            InstallPlanResolver.resolve(catalogue, manifeste, ARCH_APPAREIL)
-        }
+    private fun planDepuis(manifeste: ToolManifest): AppResult<InstallPlan> = if (!architecture.supporteAarch64()) {
+        AppResult.Failure(
+            AppError.EnvironmentSetup(
+                reason = EnvironmentSetupReason.ArchitectureNonSupportee,
+                details =
+                "le SDK Android reconditionné n'est publié que pour aarch64 " +
+                    "(phase 1 déjà garante — défense en profondeur)",
+            ),
+        )
+    } else {
+        InstallPlanResolver.resolve(catalogue, manifeste, ARCH_APPAREIL)
+    }
 
     /** Espace requis (archives + extraction) vs disponible — `null` = OK. */
     private fun controlerEspace(
@@ -237,8 +232,8 @@ internal class ExecutionPhaseSdk(
             AppError.EnvironmentSetup(
                 reason = EnvironmentSetupReason.EspaceDisque,
                 details =
-                    "espace insuffisant pour le plan du SDK : ${libres / MIO} Mio libres, " +
-                        "${requis / MIO} Mio requis (archives + extraction)",
+                "espace insuffisant pour le plan du SDK : ${libres / MIO} Mio libres, " +
+                    "${requis / MIO} Mio requis (archives + extraction)",
             )
         }
     }
@@ -269,9 +264,7 @@ internal sealed interface VerdictComposant {
      * Tenté pendant CETTE exécution, en échec **non critique**
      * enregistré (→ `Degraded`) — les étapes suivantes le tolèrent.
      */
-    data class Degrade(
-        val diagnostic: String,
-    ) : VerdictComposant
+    data class Degrade(val diagnostic: String) : VerdictComposant
 }
 
 // Exemption detekt ciblée (règle 16) : ReturnCount — chaque retour porte un

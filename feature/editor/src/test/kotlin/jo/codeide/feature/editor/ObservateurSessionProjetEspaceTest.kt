@@ -20,27 +20,26 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObservateurSessionProjetEspaceTest {
     @Test
-    fun `la projection suit le cycle complet de la session`() =
-        runTest {
-            val gestionnaire = GestionnaireSessionProjet()
-            val observateur =
-                ObservateurSessionProjetEspace(
-                    gestionnaireSession = gestionnaire,
-                    dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
-                )
-            val alpha = ProjectId("alpha")
+    fun `la projection suit le cycle complet de la session`() = runTest {
+        val gestionnaire = GestionnaireSessionProjet()
+        val observateur =
+            ObservateurSessionProjetEspace(
+                gestionnaireSession = gestionnaire,
+                dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
+            )
+        val alpha = ProjectId("alpha")
 
-            assertEquals(EtatSessionProjetVue.Aucune, observateur.etatSession.value)
+        assertEquals(EtatSessionProjetVue.Aucune, observateur.etatSession.value)
 
-            gestionnaire.ouvrir(alpha) {
-                jo.codeide.core.model.AppResult
-                    .Success(Unit)
-            }
-            testScheduler.advanceUntilIdle()
-            assertEquals(EtatSessionProjetVue.Ouverte(alpha), observateur.etatSession.value)
-
-            gestionnaire.fermer(RaisonFermeture.Utilisateur)
-            testScheduler.advanceUntilIdle()
-            assertEquals(EtatSessionProjetVue.Aucune, observateur.etatSession.value)
+        gestionnaire.ouvrir(alpha) {
+            jo.codeide.core.model.AppResult
+                .Success(Unit)
         }
+        testScheduler.advanceUntilIdle()
+        assertEquals(EtatSessionProjetVue.Ouverte(alpha), observateur.etatSession.value)
+
+        gestionnaire.fermer(RaisonFermeture.Utilisateur)
+        testScheduler.advanceUntilIdle()
+        assertEquals(EtatSessionProjetVue.Aucune, observateur.etatSession.value)
+    }
 }

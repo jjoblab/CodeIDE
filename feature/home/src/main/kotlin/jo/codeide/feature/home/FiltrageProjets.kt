@@ -26,23 +26,22 @@ internal fun List<Project>.filtrer(requete: String): List<Project> {
 }
 
 /** Tri de l'accueil : épingles d'abord, puis selon le choix utilisateur. */
-internal fun List<Project>.trier(tri: TriAccueil): List<Project> =
-    when (tri) {
-        TriAccueil.RECENTS -> {
-            sortedWith(
-                compareByDescending<Project> { it.isPinned }
-                    .thenByDescending { it.lastOpenedAtMillis ?: -1L }
-                    .thenBy { it.name.cleDeTri() },
-            )
-        }
-
-        TriAccueil.NOM -> {
-            sortedWith(
-                compareByDescending<Project> { it.isPinned }
-                    .thenBy { it.name.cleDeTri() },
-            )
-        }
+internal fun List<Project>.trier(tri: TriAccueil): List<Project> = when (tri) {
+    TriAccueil.RECENTS -> {
+        sortedWith(
+            compareByDescending<Project> { it.isPinned }
+                .thenByDescending { it.lastOpenedAtMillis ?: -1L }
+                .thenBy { it.name.cleDeTri() },
+        )
     }
+
+    TriAccueil.NOM -> {
+        sortedWith(
+            compareByDescending<Project> { it.isPinned }
+                .thenBy { it.name.cleDeTri() },
+        )
+    }
+}
 
 /** Clé de tri d'un nom : minuscule sans accent, déterministe. */
 private fun String.cleDeTri(): String = normaliser()
@@ -51,9 +50,8 @@ private fun String.cleDeTri(): String = normaliser()
  * Normalisation de recherche : minuscule, accents décomposés puis
  * supprimés (NFD), espacements pliés.
  */
-internal fun String.normaliser(): String =
-    Normalizer
-        .normalize(this, Normalizer.Form.NFD)
-        .replace(Regex("\\p{M}+"), "")
-        .lowercase()
-        .trim()
+internal fun String.normaliser(): String = Normalizer
+    .normalize(this, Normalizer.Form.NFD)
+    .replace(Regex("\\p{M}+"), "")
+    .lowercase()
+    .trim()

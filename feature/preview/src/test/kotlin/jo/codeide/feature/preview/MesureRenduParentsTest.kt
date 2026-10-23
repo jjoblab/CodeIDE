@@ -150,12 +150,7 @@ public class MesureRenduParentsTest {
      * Rend la fixture puis compare chaque borne déclarée à ±1 dp,
      * RELATIVEMENT à la racine du document (des deux côtés).
      */
-    private fun mesurer(
-        fichier: String,
-        nom: String,
-        theme: String?,
-        champs: Map<String, List<Champ>>,
-    ) {
+    private fun mesurer(fichier: String, nom: String, theme: String?, champs: Map<String, List<Champ>>) {
         val texte = lireFixture(fichier)
         val requete =
             RequeteRendu(
@@ -201,10 +196,7 @@ public class MesureRenduParentsTest {
     }
 
     /** La référence des coordonnées relatives : racine rendue + rect maquette. */
-    private class ReferenceRacine(
-        val rendu: InfoVueRendu,
-        val rect: JSONArray,
-    )
+    private class ReferenceRacine(val rendu: InfoVueRendu, val rect: JSONArray)
 
     /** Compare les champs déclarés d'UNE vue (libellé des messages), relativement à la racine (±1 dp). */
     private fun comparerVue(
