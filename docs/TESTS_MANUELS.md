@@ -1344,3 +1344,54 @@ plus des tuiles mortes et le rendu adopte ENFIN les styles par défaut du thème
 7. **Aucune régression de rendu** — les documents des scénarios précédents (conformité, palettes,
    chrome système, resize) se rendent à l'identique : la section « Système » de l'arbre, la
    sélection, les cotes et la pastille de vues restent inchangées.
+
+
+## Deux niveaux d'expansion, zoom, RTL, includes jumeaux et Compose C0 (PE14 S8/S9 → v0.173.0, LayoutLib 3.7.0)
+
+> Passer l'APK de l'app démo LayoutLib (`layout-editor-app-debug.apk`) pour
+> les scénarios 7-9, CodeIDE pour les 1-6. Prérequis : un projet avec
+> `res/layout/` (scénarios RTL/cookies), un layout à deux vues.
+
+1. **Feuille — deux niveaux** : dans l'aperçu, appuyer la POIGNÉE — la
+   feuille monte à la MOITIÉ (le rendu garde la moitié haute) ; appuyer
+   encore — TOTAL sous l'appbar ; appuyer encore — repliée. Le cycle
+   repasse toujours par la moitié, JAMAIS un saut direct au total.
+2. **Feuille — glissement** : glisser la feuille vers le haut et relâcher
+   à mi-course — elle s'arrête à la MOITIÉ (pas de saut au total) ;
+   glisser depuis la moitié — TOTAL ; glisser vers le bas — repli.
+   Le canvas NE DISPARAÎT JAMAIS : à la moitié il garde sa bande haute,
+   au total il est derrière la feuille (opaque) et REVIENT INTACT au
+   repli.
+3. **Zoom + édition feuille totale** : zoomer le rendu (300 %), déployer
+   la feuille au TOTAL, éditer un attribut dans le volet, replier —
+   le rendu réapparaît avec SON ZOOM (pas de retombée à 10 %, pas de
+   re-fit) ; éditer au niveau MOITIÉ : le rendu reste visible et le
+   re-rendu arrive SANS saut de zoom.
+4. **Clavier** : feuille à la MOITIÉ, taper dans un champ d'attribut —
+   la feuille passe au TOTAL au-dessus du clavier ; refermer le clavier
+   — la feuille RETOMBE À LA MOITIÉ.
+5. **RTL** : un layout à `android:layout_marginStart="16dp"` sur une vue
+   (sans marginLeft) : rendu IDENTIQUE à avant en LTR (marge à gauche).
+   Passer la langue d'aperçu à une locale RTL (le projet doit fournir
+   `values-ar` ou créer le fichier) : la marge PASSE À DROITE (miroir
+   Android Studio). `android:layoutDirection="rtl"` sur une seule vue :
+   SEULE cette vue se retourne.
+6. **Includes jumeaux — sélection** : un layout incluant DEUX fois le
+   même `@layout/item` (avec `res/layout/item.xml`) : chaque bouton
+   inclus reste SÉLECTIONNABLE par le tap (span dans le document —
+   jamais « alignement désarmé ») ; la sélection survit à l'édition des
+   vues APRÈS les includes.
+7. **Compose C0 — interpréteur** (app démo LayoutLib) : la nouvelle
+   classe `InterpreteurComposeC0` n'est pas dans l'app — vérifier par
+   le scénario 8 (le rendu affiche les littéraux composés).
+8. **Compose C0 — harnais de mesures** :
+   `adb shell am start -n jo.layoutlib.editor/jo.layoutlib.compose.ActiviteComposeC0` —
+   l'écran affiche le BITMAP composé (deux littéraux « Bonjour, Compose
+   C0 ! » et « Composé dans la session LayoutLib. ») et les MESURES
+   (inflation du host, rendu+composition, PSS total). « Relancer ×10 »
+   affiche les MÉDIANES du régime stationnaire — NOTER les chiffres
+   (critère de passage C1 : latence cible < 1 s, PSS à comparer au
+   runtime embarqué).
+9. **Compose C0 — APK** : l'APK démo passe de ~7,6 Mo à ~16,4 Mo avec
+   le runtime Compose embarqué (miroir PC1 — le coût mémoire/taille à
+   rapporter au propriétaire pour C1).

@@ -588,8 +588,12 @@ public class VuePreviewXml :
      *  - planche RETAILLÉE (changement de profil, paysage, échelle de
      *    police) → zoom conservé, décalage ré-ancré sur le centre de
      *    contenu visible ([recadrerSurNouvellePlanche]) ;
-     *  - vue NON MESURÉE (width/height = 0) → repli, [onSizeChanged]
-     *    ajustera au prochain layout.
+     *  - vue NON MESURÉE (width/height = 0 — la feuille inférieure
+     *    TOTALE couvre le canvas, v0.173.0 : « feuille expand + édition :
+     *    le rendu devient petit (de zoomé) ») → zoom et pan CONSERVÉS
+     *    pour une planche déjà POSÉE : éditer feuille déployée ne
+     *    dézoome plus ; la première planche d'une session prend
+     *    l'échelle de repli, [onSizeChanged] ajustera au prochain layout.
      * Le double-tap reste l'ajustement EXPLICITE de l'utilisateur.
      *
      *  PE6a : [densiteDpiProfil] (conversion dp des libellés de calques,
@@ -613,11 +617,21 @@ public class VuePreviewXml :
             width <= 0 || height <= 0 -> {
                 // La vue n'a pas encore été mesurée — on reporte l'ajustement.
                 // onSizeChanged re-appellera ajusterALaVue() + invalidate().
-                // En attendant, on met une échelle de repli pour ne pas
-                // dessiner à échelle 0 (invisible).
-                echelle = ECHELLE_REPLI
-                decalageX = 0f
-                decalageY = 0f
+                // v0.173.0 — retour propriétaire « feuille expand + édition :
+                // le rendu devient petit (de zoomé) » : la feuille TOTALE
+                // écrase le canvas à hauteur nulle et CHAQUE édition passait
+                // ICI, pulvérisant l'échelle au repli (ECHELLE_REPLI = 0,1×)
+                // — replier montrait un rendu minuscule. Une planche DÉJÀ
+                // POSÉE garde donc son zoom et son pan INTACTS : la vue se
+                // redresse à la prochaine mesure (onSizeChanged ne re-fit
+                // pas une planche posée, seul le pan se re-borne).
+                if (!plancheAjustee) {
+                    // Première planche jamais ajustée : échelle de repli pour
+                    // ne pas dessiner à échelle 0 (invisible).
+                    echelle = ECHELLE_REPLI
+                    decalageX = 0f
+                    decalageY = 0f
+                }
             }
 
             ancien == null -> {
@@ -2178,7 +2192,9 @@ public class VuePreviewXml :
         private const val TAILLE_CASE_DAMIER_DP = 8f
 
         private const val TAILLE_TEXTE_ETAT_DP = 12f
-        private const val ECHELLE_REPLI = 0.1f
+
+        /** Échelle de repli (interne : assertée par VuePreviewXmlTest). */
+        internal const val ECHELLE_REPLI = 0.1f
 
         /** Largeur du trait de sélection et du squelette plein, en dp écran (§ 3.5). */
         private const val LARGEUR_TRAIT_SURLIGNAGE = 2f

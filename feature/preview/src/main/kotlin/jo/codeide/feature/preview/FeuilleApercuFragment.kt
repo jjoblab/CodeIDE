@@ -133,24 +133,26 @@ public class FeuilleApercuFragment : Fragment() {
     }
 
     /**
-     * La feuille : BASCULE déployée ↔ repliée (miroir `grab.onclick :
-     * S.open = !S.open`) — ou SE DÉPLOIE sans replier une feuille déjà
-     * déployée ([deplierSeulement] : sélection d'onglet, « Ligne n »).
+     * La feuille : CYCLE des TROIS niveaux (v0.173.0 — retour propriétaire
+     * « deux niveaux pour expand à moitié puis total sous le appbar ») :
+     * replié → MOITIÉ → TOTAL → replié — ou SE DÉPLOIE au premier niveau
+     * sans toucher une feuille déjà ouverte ([deplierSeulement] : sélection
+     * d'onglet, « Ligne n » — la MOITIÉ garde le rendu visible pendant
+     * l'édition des attributs). La formule est PURE
+     * ([GeometrieFeuilleApercu.etatSuivantExpansion], testée à part).
      */
     private fun basculerFeuille(deplierSeulement: Boolean = false) {
         val comportement = comportementFeuille() ?: return
-        when {
-            deplierSeulement && comportement.state == BottomSheetBehavior.STATE_EXPANDED -> {
-                Unit
-            }
-
-            !deplierSeulement && comportement.state == BottomSheetBehavior.STATE_EXPANDED -> {
-                comportement.state = BottomSheetBehavior.STATE_COLLAPSED
-            }
-
-            else -> {
-                comportement.state = BottomSheetBehavior.STATE_EXPANDED
-            }
+        val cible =
+            GeometrieFeuilleApercu.etatSuivantExpansion(
+                etatCourant = comportement.state,
+                deplierSeulement = deplierSeulement,
+                etatReplie = BottomSheetBehavior.STATE_COLLAPSED,
+                etatMoitie = BottomSheetBehavior.STATE_HALF_EXPANDED,
+                etatTotal = BottomSheetBehavior.STATE_EXPANDED,
+            )
+        if (cible != comportement.state) {
+            comportement.state = cible
         }
     }
 

@@ -3,8 +3,6 @@ package jo.codeide.preview.xml
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.view.DragEvent
-import android.view.MotionEvent
-import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -24,40 +22,13 @@ import org.robolectric.annotation.Config
 class VuePreviewXmlTest {
     /**
      * PE11i : le moteur ne dessine AUCUNE couleur sans jetons injectés
-     * (ADR 0134 D7) — le helper pose un jeu de test (valeurs arbitraires
-     * DISTINCTES ; la parité maquette ↔ ressources vit dans
-     * `JetonsCalquesTest` côté feature).
+     * (ADR 0134 D7) — le helper délègue à la fixture partagée
+     * (`FixtureVuePreviewXml` — découpage detekt LargeClass, zéro
+     * exemption : [VuePreviewXmlRedimensionnementTest] consomme le MÊME
+     * jeu arbitraire DISTINCT ; la parité maquette ↔ ressources vit
+     * dans `JetonsCalquesTest` côté feature).
      */
-    private fun vue(): VuePreviewXml =
-        VuePreviewXml(ApplicationProvider.getApplicationContext()).apply {
-            appliquerJetons(jetonsTest)
-        }
-
-    /** Un jeu de jetons arbitraire mais complet (21 champs). */
-    private val jetonsTest =
-        JetonsCalques(
-            surface2 = 0xFFEEEEF7.toInt(),
-            damierCase = 0x21808096,
-            accent = 0xFF1E6EC8.toInt(),
-            accentDoux = 0x241E6EC8,
-            surface = 0xFFFFFFFF.toInt(),
-            texte = 0xFF1A1B21.toInt(),
-            fond = 0xFFF9F9FF.toInt(),
-            texteDoux = 0xFF5B5C66.toInt(),
-            marge = 0xFFD9822B.toInt(),
-            margeFond = 0x61D9822B,
-            remplissage = 0xFF2E8B4B.toInt(),
-            remplissageFond = 0x612E8B4B,
-            bornes = 0x801E6EC8.toInt(),
-            nouveau = 0xFF7C3AED.toInt(),
-            nouveauDoux = 0x247C3AED,
-            surNouveau = 0xFFFFFFFF.toInt(),
-            epingleAvert = 0xFFB8860B.toInt(),
-            epingleErreur = 0xFFBA1A1A.toInt(),
-            surCalque = 0xFFFFFFFF.toInt(),
-            ecranTrait = 0x2E000000.toInt(),
-            ecranOmbre = 0x38000000.toInt(),
-        )
+    private fun vue(): VuePreviewXml = vueDeTest()
 
     @Test
     fun `v0_166_4 - le zoom survit a un nouveau rendu de meme planche`() {
@@ -156,6 +127,55 @@ class VuePreviewXmlTest {
     }
 
     @Test
+    fun `v0_173_0 - le zoom survit a une edition pendant que la feuille totale ecrase le canvas`() {
+        // Retour propriétaire : « quand le bottomsheet est expand et que
+        // j'édite, le rendu devient petit (de zoomé) » — la feuille TOTALE
+        // écrase le canvas à hauteur NULLE, l'édition rend un NOUVEAU
+        // bitmap PENDANT que la vue n'est pas mesurée : AVANT, la branche
+        // de repli pulvérisait l'échelle (ECHELLE_REPLI = 0,1×) — replier
+        // montrait un rendu minuscule. La planche DÉJÀ POSÉE garde son
+        // zoom et son pan, la vue se redresse au layout suivant.
+        val vue = vue()
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        vue.zoomer(2f)
+        val echelleUtilisateur = vue.echelleCourante
+        // La feuille se déploie TOTALEMENT : le canvas tombe à hauteur 0.
+        vue.measure(512, 0)
+        vue.layout(0, 0, 512, 0)
+        // L'utilisateur édite un attribut : le NOUVEAU rendu (mêmes
+        // dimensions de planche) arrive sur la vue non mesurée.
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        assertEquals(
+            "l'édition feuille totale ne pulvérise plus le zoom",
+            echelleUtilisateur,
+            vue.echelleCourante,
+            0.0001f,
+        )
+        // La feuille se replie : le canvas revient — le zoom tient
+        // toujours (pas de re-fit, le pan seul se re-borne).
+        vue.measure(512, 512)
+        vue.layout(0, 0, 512, 512)
+        assertEquals(
+            "le rendu réapparaît avec son zoom d'origine",
+            echelleUtilisateur,
+            vue.echelleCourante,
+            0.0001f,
+        )
+    }
+
+    @Test
+    fun `v0_173_0 - la premiere planche avant mesure garde le repli`() {
+        // Miroir du gardien : un bitmap arrivant AVANT toute mesure (jamais
+        // posée) prend toujours l'échelle de repli — la branche ne la garde
+        // QUE pour les planches déjà ajustées.
+        val vue = vue()
+        vue.afficherRendu(Bitmap.createBitmap(108, 234, Bitmap.Config.ARGB_8888))
+        assertEquals(VuePreviewXml.ECHELLE_REPLI, vue.echelleCourante, 0.0001f)
+    }
+
+    @Test
     fun `mesure layout dessin - aucun lever`() {
         val vue = vue()
         vue.measure(512, 512)
@@ -183,12 +203,7 @@ class VuePreviewXmlTest {
     }
 
     /** Arbre minimal : racine(0) → [texte(1), bouton(2)] — bounds séparées. */
-    private fun vues(): List<InfoVueRendu> =
-        listOf(
-            InfoVueRendu(0, 0, 100, 200, "FrameLayout", 0, 40, -1, 0),
-            InfoVueRendu(10, 10, 90, 60, "TextView @+id/titre", 8, 22, 0, 1),
-            InfoVueRendu(10, 80, 90, 120, "Button @+id/envoyer", 24, 38, 0, 1),
-        )
+    private fun vues(): List<InfoVueRendu> = arbreVuesDeTest()
 
     @Test
     fun `calques pe6a - selection poignees etiquette parent freres - aucun lever`() {
@@ -498,264 +513,5 @@ class VuePreviewXmlTest {
         assertEquals(0, CalculsVuePreview.decalagePlancheAffichage(ModeApercu.PLAN, 100, 40))
         assertEquals(140, CalculsVuePreview.decalagePlancheAffichage(ModeApercu.LES_DEUX, 100, 40))
         assertEquals(0, CalculsVuePreview.decalagePlancheAffichage(ModeApercu.DESIGN, 100, 40))
-    }
-
-    @Test
-    fun `redimensionnement - saisie fantome puis UNE ecriture au relachement`() {
-        val vue = vue()
-        vue.measure(512, 512)
-        vue.layout(0, 0, 512, 1024)
-        val sortie = Bitmap.createBitmap(512, 1024, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(sortie)
-        vue.afficherRendu(
-            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
-            vuesRendues = vues(),
-            densiteDpiProfil = 440,
-        )
-        vue.surlignerVue(1)
-        var ecritures = 0
-        var cible = 0 to 0
-        vue.auRedimensionner = { cibleRecue ->
-            ecritures += 1
-            cible = cibleRecue.largeurDp to cibleRecue.hauteurDp
-            true
-        }
-        // Fit d'une planche 100×200 dans 512×1024 : échelle 5,12, décalages 0.
-        // Saisie de la poignée BAS-DROITE de la vue 1 (10,10 → 90,60) :
-        // coin (90, 60), ancre OPPOSÉE (10, 10) — l'événement est CONSOMMÉ.
-        assertTrue(
-            "saisie consommée",
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        // Le doigt suit : le fantôme se dessine SANS lever (rien n'est écrit).
-        assertTrue(
-            "suivi consommé",
-            vue.traiterRedimension(MotionEvent.ACTION_MOVE, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        vue.draw(canvas)
-        assertEquals("rien n'est écrit avant le relâchement", 0, ecritures)
-        // Relâchement : UNE écriture groupée — cible (50, 80) depuis l'ancre
-        // (10, 10) : 40 px → 15 dp, 70 px → 25 dp (440 dpi).
-        assertTrue(
-            "relâchement consommé",
-            vue.traiterRedimension(MotionEvent.ACTION_UP, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertEquals("UNE écriture par geste", 1, ecritures)
-        assertEquals(15 to 25, cible)
-    }
-
-    @Test
-    fun `redimensionnement - contact sans derive et saisie hors poignee`() {
-        val vue = vue()
-        vue.measure(512, 512)
-        vue.layout(0, 0, 512, 1024)
-        vue.afficherRendu(
-            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
-            vuesRendues = vues(),
-            densiteDpiProfil = 440,
-        )
-        vue.surlignerVue(1)
-        var ecritures = 0
-        vue.auRedimensionner = { _ ->
-            ecritures += 1
-            true
-        }
-        // Hors poignée (centre de la vue) : le geste n'est PAS consommé —
-        // pan/zoom/tap gardent la main.
-        assertFalse(
-            "centre de la vue : pas de saisie",
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 50f * ECHELLE_FIT, 35f * ECHELLE_FIT),
-        )
-        // Contact sur la poignée SANS dérive : consommé mais RIEN n'est
-        // écrit au relâchement (miroir le tap sans dérive du canvas).
-        assertTrue(
-            "poignée saisie",
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertTrue(
-            "relâchement consommé",
-            vue.traiterRedimension(MotionEvent.ACTION_UP, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertEquals("contact seul : aucune écriture", 0, ecritures)
-    }
-
-    @Test
-    fun `redimensionnement - sans selection ni densite aucune saisie`() {
-        val vue = vue()
-        vue.measure(512, 512)
-        vue.layout(0, 0, 512, 1024)
-        // Sans rendu du tout : rien à saisir.
-        assertFalse(
-            "sans bitmap : pas de saisie",
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 0f, 0f),
-        )
-        vue.afficherRendu(
-            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
-            vuesRendues = vues(),
-        )
-        vue.surlignerVue(1)
-        // Sans densité de profil (repli px) : le geste ne peut pas
-        // produire de dp — aucune saisie (pas de faux repli).
-        assertFalse(
-            "sans densité : pas de saisie",
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-    }
-
-    // ── PE14-S2 — compensation de préhension (C1) + fantôme persistant (C4) ──
-
-    @Test
-    fun `redimensionnement - la saisie décalée ne fait plus sauter la cible`() {
-        // § 1.3 de l'étude PE14 : le doigt saisit DANS le rayon de saisie
-        // (18 dp écran ≈ 3,5 px contenu à l'échelle du test), PAS sur le
-        // coin. Le contact à (+2, +2) du coin bas-droit doit produire la
-        // MÊME cible que le contact pile sur le coin : le coin VISUEL
-        // suit le doigt (vue 1 : 10,10 → 90,60, ancre haut-gauche).
-        val vue = vue()
-        vue.measure(512, 512)
-        vue.layout(0, 0, 512, 1024)
-        vue.afficherRendu(
-            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
-            vuesRendues = vues(),
-            densiteDpiProfil = 440,
-        )
-        vue.surlignerVue(1)
-        var cible: RedimensionApercu.CibleRedimension? = null
-        vue.auRedimensionner = { cibleRecue ->
-            cible = cibleRecue
-            true
-        }
-        // Contact pris à 2 px au sud-est du coin (dans le rayon de 18 dp
-        // écran = 3,5 px contenu) — le geste part de la TAILLE ACTUELLE.
-        assertTrue(
-            "saisie décalée consommée",
-            vue.traiterRedimension(
-                MotionEvent.ACTION_DOWN,
-                92f * ECHELLE_FIT,
-                62f * ECHELLE_FIT,
-            ),
-        )
-        // Le doigt glisse de 6 px vers le sud-est : la cible vaut la
-        // DISTANCE ANCRE→(doigt+décalage), PAS ancre→doigt (sinon +2 px
-        // par axe de trop — le « saut de préhension » de l'étude : ici
-        // 88×58 px = 32×21 dp, DEUX dp de trop par axe).
-        assertTrue(
-            "suivi consommé",
-            vue.traiterRedimension(
-                MotionEvent.ACTION_MOVE,
-                98f * ECHELLE_FIT,
-                68f * ECHELLE_FIT,
-            ),
-        )
-        assertTrue(
-            "relâchement consommé",
-            vue.traiterRedimension(
-                MotionEvent.ACTION_UP,
-                98f * ECHELLE_FIT,
-                68f * ECHELLE_FIT,
-            ),
-        )
-        val recue = cible
-        assertNotNull("UNE écriture au relâchement", recue)
-        // Ancre (10,10) → coin visé (98−2, 68−2) = (96, 66) — le contact
-        // est au sud-est du coin, la compensation RATURE vers le coin :
-        // cible 86 px → 31 dp, 56 px → 20 dp (440 dpi) — PAS 88×58 (+2 px
-        // par axe = 32×21, l'ancien comportement).
-        assertEquals(31 to 20, recue!!.largeurDp to recue.hauteurDp)
-        assertEquals("l'ancre reste le coin opposé", 10 to 10, recue.ancreX to recue.ancreY)
-        assertEquals("le coin visé est le doigt COMPENSÉ", 96 to 66, recue.coinX to recue.coinY)
-    }
-
-    @Test
-    fun `redimensionnement - le fantome persiste jusqu au rendu suivant puis se fond`() {
-        // C4 (ADR 0138) : le relâchement GARDE la cible affichée jusqu'au
-        // rendu suivant — plus de fenêtre « rien ne s'est passé » pendant
-        // le re-rendu asynchrone ; le rendu suivant amorce le fondu (150 ms
-        // — la planche nouvelle est déjà posée dessous), la réinitialisation
-        // nettoie tout.
-        val vue = vue()
-        vue.measure(512, 512)
-        vue.layout(0, 0, 512, 1024)
-        val planche = Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888)
-        vue.afficherRendu(planche, vuesRendues = vues(), densiteDpiProfil = 440)
-        vue.surlignerVue(1)
-        vue.auRedimensionner = { true }
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_MOVE, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_UP, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertTrue("la cible reste affichée après le relâchement", vue.fantomePersistantAffiche())
-        // Le rendu suivant arrive : le fantôme PERSISTE (le fondu commence,
-        // 150 ms — la planche nouvelle est déjà posée dessous).
-        vue.afficherRendu(
-            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
-            vuesRendues = vues(),
-            densiteDpiProfil = 440,
-        )
-        assertTrue("le fantôme se fond, il ne disparaît pas d'un coup", vue.fantomePersistantAffiche())
-        vue.reinitialiser()
-        assertFalse("la réinitialisation nettoie", vue.fantomePersistantAffiche())
-    }
-
-    @Test
-    fun `redimensionnement - echec d ecriture et contact sans derive ne posent aucun fantome`() {
-        // C4 (ADR 0138) : un fantôme n'est une promesse que si l'écriture a
-        // EU LIEU — l'échec efface immédiatement (pas de faux confort), un
-        // NOUVEAU geste remplace l'ancien fantôme, un contact sans dérive
-        // n'en pose AUCUN.
-        val vue = vue()
-        vue.measure(512, 512)
-        vue.layout(0, 0, 512, 1024)
-        vue.afficherRendu(
-            Bitmap.createBitmap(100, 200, Bitmap.Config.ARGB_8888),
-            vuesRendues = vues(),
-            densiteDpiProfil = 440,
-        )
-        vue.surlignerVue(1)
-        vue.auRedimensionner = { false }
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_MOVE, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_UP, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertFalse("échec d'écriture : le fantôme ne s'attarde pas", vue.fantomePersistantAffiche())
-
-        // Un NOUVEAU geste remplace l'ancien fantôme, un contact sans
-        // dérive n'en pose AUCUN.
-        vue.auRedimensionner = { true }
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_MOVE, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertTrue(
-            vue.traiterRedimension(MotionEvent.ACTION_UP, 50f * ECHELLE_FIT, 80f * ECHELLE_FIT),
-        )
-        assertTrue(vue.fantomePersistantAffiche())
-        assertTrue(
-            "nouvelle saisie",
-            vue.traiterRedimension(MotionEvent.ACTION_DOWN, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertFalse("le geste vivant remplace le fantôme", vue.fantomePersistantAffiche())
-        assertTrue(
-            "relâchement sans dérive",
-            vue.traiterRedimension(MotionEvent.ACTION_UP, 90f * ECHELLE_FIT, 60f * ECHELLE_FIT),
-        )
-        assertFalse("contact seul : aucun fantôme", vue.fantomePersistantAffiche())
-    }
-
-    private companion object {
-        /** L'échelle du fit d'une planche 100×200 dans une vue 512×1024. */
-        private const val ECHELLE_FIT = 5.12f
     }
 }

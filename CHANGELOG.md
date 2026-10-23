@@ -1,5 +1,122 @@
 # Journal des modifications
 
+## [0.173.0] – 2026-10-23
+
+### Deux niveaux d'expansion + zoom qui survit à l'édition feuille déployée (retour propriétaire) + RTL fidèle + sélection par viewCookie + spike Compose C0 — PE14 S8/S9 (LayoutLib 3.7.0)
+
+#### Corrigé (retour propriétaire, feuille inférieure de l'aperçu)
+
+- **DEUX NIVEAUX D'EXPANSION** (« Utilise deux niveaux pour expand à
+  moitié puis total sous le appbar ») : la feuille passe par
+  **REPLIÉE → MOITIÉ (`STATE_HALF_EXPANDED`, moitié BASSE de l'écran,
+  `halfExpandedRatio` 0,5) → TOTAL (sous l'appbar,
+  `expandedOffset` = bas de l'en-tête)** puis re-repliée — chaque appui
+  sur la poignée MONTE D'UN NIVEAU ; le glissement S'ARRÊTE au
+  demi-niveau (vérifié dans la source Material 1.14 : `fitToContents`
+  FAUX sinon `onViewReleased` vise le TOTAL direct — posé au montage) ;
+  la sélection d'onglet / « Ligne n » ne déploie qu'à la MOITIÉ (le
+  rendu reste VISIBLE pendant l'édition des attributs) ;
+  `GeometrieFeuilleApercu.etatSuivantExpansion` (pure, 3 niveaux par
+  entiers — testée sans Material).
+- **LE CANVA NE DISPARAÎT JAMAIS** (« le canva ne doit pas glisser pour
+  disparaitre ») : le retrait bas du canvas est BORNÉ — au niveau TOTAL
+  la vue du rendu garde sa bande minimale de 24 dp MESURÉE derrière la
+  feuille (opaque), `retraitCanvasPx` borné par
+  `conteneur − bandeCanvasMin` (formule pure testée) ; replier fait
+  réapparaître le rendu INTACT.
+- **LE ZOOM SURVIT À L'ÉDITION FEUILLE TOTALE** (« quand le bottomsheet
+  est expand et j'édite, le rendu devient petit (de zoomé) ») :
+  racine double — le retrait non borné écrasait le canvas à hauteur
+  NULLE et CHAQUE édition passait par la branche « repli »
+  d'`afficherRendu` qui PULVÉRISAIT l'échelle à `ECHELLE_REPLI`
+  (0,1×) ; la planche DÉJÀ POSÉE garde désormais zoom et pan INTACTS
+  sur vue non mesurée (`plancheAjustee`), la première planche d'une
+  session garde l'échelle de repli (`ECHELLE_REPLI` rendue interne
+  pour le test) — `onSizeChanged` ne re-fit toujours pas une planche
+  posée (v0.166.5 intact), seul le pan se re-borne.
+- **CLAVIER × NIVEAUX** : l'IME qui s'ouvre au niveau MOITIÉ monte la
+  feuille au TOTAL (les volets perdent l'IME, le bord BAS remonte
+  au-dessus du clavier — prolongement v0.166.5) et le refermer rend la
+  MOITIÉ (`moitieAvantClavier` — jamais d'expansion collée sans le
+  vouloir).
+
+#### Ajouté (LayoutLib **3.7.0** — PE14 S8/S9)
+
+- **RTL FIDÈLE (S8, étude § 2.4-5)** : le `XmlPreprocessor` ne DÉTRUIT
+  plus `layout_marginStart/End` et `paddingStart/End` (la conversion
+  *Start→*Left est RETIRÉE — `layout_marginStart` est la marge de
+  DÉPART, pas de gauche) ; `BridgeInflater` pose les marges en RELATIF
+  (`setMarginStart/End` posées APRÈS les absolues — elles l'emportent
+  sur leur côté, miroir lecture AOSP) et l'applier les paddings
+  (`setPaddingRelative`, le côté relatif absent retombe sur l'absolu) ;
+  **`DirectionRendu`** porte le QUALIFICATEUR de direction (miroir
+  `LayoutDirectionQualifier` : `setLayoutDirectionRendu` sur la
+  racine, les enfants héritent) et fait la PASSE DE RÉSOLUTION hors
+  fenêtre (`LayoutParams.resolveLayoutDirection` — le contrat API le
+  donne à `requestLayout()`, or le moteur mesure l'arbre SANS fenêtre :
+  personne ne la déclenchait) ; `android:layoutDirection` PAR VUE
+  honoré ; la direction dérive de la LANGUE d'aperçu
+  (`directionDepuisLangue` par `TextUtilsCompat` — RTL « gratuit »
+  pour ar/he/fa…, l'extension `Locale.getLayoutDirection` est HORS des
+  stubs SDK récents, la variante androidx est pure JDK).
+- **VIEWCOOKIE DE SÉLECTION (S8, étude § 2.4-4 — miroir du cookie
+  `ViewInfo`/`MergeCookie` de la référence)** : chaque vue inflatée
+  porte « **site:ordinal** » — l'identité de son NŒUD XML SOURCE
+  (ordinal = rang du START_TAG dans la marche, site = chaîne des
+  `<include>`) ; DEUX inclusions du MÊME fichier portent des cookies
+  DISTINCTS (les vues jumelles restent discernables) ; le ViewStub
+  gonflé garde l'ordinal du TAG stub (site branché pour ses
+  descendants — pas de collision) ; le cookie TRAVERSE
+  `ViewInfoCollector` jusqu'à `InfoVueRendu.cookie` (contrat Parcel
+  étendu) ; **l'appariement vue ↔ élément se fait par IDENTITÉ
+  d'abord** (`RenduLayoutLib.collecterVues` : map cookie→élément), le
+  repli PAR ORDRE ne s'arme QUE si les comptes coïncident — un écart
+  (include résolu nativement, ViewStub, rangée d'adapter) ne désarme
+  PLUS la suite du document ; l'aligneur calcule le MÊME schéma
+  (parité des marches : balise sans vue = ordinal consommé ;
+  `<fragment>` producteur au sous-arbre ignoré — parité
+  `parseFragmentPlaceholder`) ; le flag « désalignement » d'include
+  ne retire PLUS les spans (ils sont RÉELS dans le document édité — le
+  cookie les rend).
+- **SPIKE COMPOSE C0 (S9, étude § 5.4 — LayoutLib `module-compose`,
+  NON consommé par CodeIDE)** : `InterpreteurComposeC0` lit une
+  `@Composable` TRIVIALE (nom + littéraux `Text`, accolades
+  imbriquées/échappements traversés, sous-rapport honnête —
+  placeholder étalon du modèle de symboles LSP Kotlin K3+) ;
+  `SessionComposeC0` gonfle le host XML par le VRAI `BridgeInflater`
+  (`ComposeView` instanciée par RÉFLEXION — le moteur IGNORE
+  Compose), compose l'interprétation, mesure par le VRAI
+  `LayoutEngineImpl`, dessine le bitmap et MESURE latence
+  (inflation / composition+rendu) et mémoire (PSS — le runtime
+  embarqué coûte : APK démo 7,6 → 16,4 Mo) ;
+  `ActiviteComposeC0` (harnais de l'app démo, « Relancer ×10 » —
+  médianes du régime stationnaire, le critère de passage C1) ;
+  runtime Compose EMBARQUÉ (BOM 2026.09.00, miroir PC1), Kotlin par
+  le built-in d'AGP 9 (2.2.10).
+- **HYGIÈNE (S8, étude § 2.5 — « zéro code mort »)** : SUPPRIMÉS côté
+  LayoutLib — le paquet `session/*` de module-layout (16 coquilles non
+  consommées), `LayoutlibRenderer`, `Choreographer_Delegate`,
+  `HandlerActionQueue_Delegate`, `View_Delegate`, `DelegateManager`,
+  `ViewStubController` et la chaîne `ninepatch/` ; BRANCHÉ
+  `MiniLayoutLib.setProjectResources` (vrai `ResourceResolverImpl`) ;
+  le PIÈGE `ViewTagRegistry(true)` → `jo.layoutlib.design.*` (classes
+  INEXISTANTES — tout tag court partait en MockView par le chemin par
+  défaut) retiré : les constructeurs par défaut ne « préfèrent » plus
+  les classes Design.
+
+#### Tests
+
+- CodeIDE : **611 tests** (2 modules touchés : `:preview:xml` 557 —
+  +13 RTL/cookie/direction, `:feature:preview` — +6 géométrie
+  deux-niveaux/bande, cycle d'expansion ; découpage detekt
+  `LargeClass` : le redimensionnement migre vers
+  `VuePreviewXmlRedimensionnementTest`, fixture partagée
+  `FixtureVuePreviewXml`).
+- LayoutLib : **1003 tests** (944 → 1003 : `DirectionRenduTest`,
+  `AttributeApplierRtlTest`, `BridgeInflaterViewCookieTest`,
+  préservation RTL du préprocesseur, interpréteur C0 ×9).
+
+
 ## [0.172.0] – 2026-10-23
 
 ### Preview de listes (tools:listitem) + attributs fidèles 1/2 (thème prévisualisé, textAppearance) — PE14 S6/S7 (LayoutLib 3.6.0)

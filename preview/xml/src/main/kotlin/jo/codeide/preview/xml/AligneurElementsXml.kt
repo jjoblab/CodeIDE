@@ -63,6 +63,14 @@ internal object AligneurElementsXml {
         var debut: Int,
         var fin: Int,
         val externe: Boolean,
+        /** Le VIEWCOOKIE du nœud (v0.173.0 — PE14 S8 : « site:ordinal », le
+         * MÊME schéma que `BridgeInflater` — un appel de `parseElement`
+         * par START_TAG, un ordinal consommé ; la chaîne des `<include>`
+         * forme le site). L'appariement vue ↔ élément se fait par
+         * IDENTITÉ dans `RenduLayoutLib.collecterVues` : un écart de
+         * COMPTE (include résolu nativement, ViewStub) ne désarme plus
+         * la suite du document. */
+        val cookie: String = "",
     )
 
     /** Résolution d'un `<include layout="@layout/x">` — couture injectable. */
@@ -101,14 +109,23 @@ internal object AligneurElementsXml {
         val lignes: LignesTexte,
     )
 
-    /** Désalignement global (include non résolu) : la suite n'est plus fiable. */
-    private var desaligne = false
-
     /** Résultat aplati en pré-ordre (parent avant enfants). */
     private val elements = mutableListOf<ElementSource>()
 
     /** Profondeur d'imbrication des includes (garde-fou anti-cycle). */
     private var profondeurInclude = 0
+
+    /**
+     * Le SITE cookie COURANT (v0.173.0 — "" = document principal ; la
+     * chaîne des ordinaux d'{@code <include>} pour un document inclus).
+     */
+    private var siteCookie = ""
+
+    /**
+     * L'ORDINAL cookie courant du document en marche (v0.173.0 — le rang
+     * du START_TAG, MÊME comptage que `BridgeInflater.parseElement`).
+     */
+    private var ordinalNoeud = 0
 
     /**
      * Aligne les éléments producteurs de vues du document [texte], en
@@ -122,9 +139,10 @@ internal object AligneurElementsXml {
         texte: String,
         resolveur: ResolveurLayout?,
     ): List<ElementSource> {
-        desaligne = false
         profondeurInclude = 0
         elements.clear()
+        siteCookie = ""
+        ordinalNoeud = 0
         marcherDocument(texte, externe = false, resolveur = resolveur)
         return elements.toList()
     }
@@ -151,6 +169,11 @@ internal object AligneurElementsXml {
      * Traite l'élément sur lequel le parseur est positionné (START_TAG) ;
      * au retour le parseur est positionné sur SON END_TAG.
      *
+     * v0.173.0 — chaque appel consomme UN ORDINAL cookie (le rang du
+     * START_TAG — MÊME comptage que `BridgeInflater.parseElement`, y
+     * compris pour les balises qui ne produisent RIEN : include, merge,
+     * requestFocus, blink, fragment).
+     *
      * @return l'élément source (null si l'élément ne produit pas de vue).
      */
     private fun traiterElement(
@@ -159,13 +182,14 @@ internal object AligneurElementsXml {
         externe: Boolean,
         resolveur: ResolveurLayout?,
     ): ElementSource? {
+        val ordinal = ordinalNoeud++
         val balise = parseur.name ?: ""
         val apresChevronOuvrant = marche.lignes.offset(parseur.lineNumber, parseur.columnNumber)
         val debut = dernierChevronAvant(marche.texte, apresChevronOuvrant)
 
         when (balise) {
             "include" -> {
-                traiterInclude(parseur, resolveur)
+                traiterInclude(parseur, resolveur, ordinal)
                 return null
             }
 
@@ -179,22 +203,26 @@ internal object AligneurElementsXml {
                 sauterEnfants(parseur)
                 return null
             }
+
+            // v0.173.0 — parité `parseFragmentPlaceholder` : un
+            // `<fragment>` produit UNE vue de remplacement et son
+            // sous-arbre est IGNORÉ par l'inflater (skipElement) — les
+            // enfants ne comptaient pas à l'inflation, ils ne comptent
+            // plus ici (l'ordinal du fragment, lui, est bien consommé).
+            "fragment" -> {
+                sauterEnfants(parseur)
+                val element =
+                    ajouterElement(balise, parseur, debut, externe, ordinal)
+                return element
+            }
         }
 
-        val etaitDesaligne = desaligne || externe
-        val element =
-            ElementSource(
-                nomBalise = balise,
-                idNom = idDe(parseur),
-                debut = if (etaitDesaligne) SANS_SPAN else debut,
-                fin = SANS_SPAN,
-                externe = externe,
-            )
-        // Pré-ordre CONTRACTUEL : le parent précède ses enfants dans la
-        // séquence aplatie — c'est l'ordre exact de l'inflation (une vue
-        // par élément producteur), l'indice i du tableau correspond à la
-        // i-ème vue du ViewInfoCollector.
-        elements.add(element)
+        // v0.173.0 — seul EXTERNE retire le span (offsets dans un AUTRE
+        // document) ; le désalignement d'include n'en retire PLUS :
+        // l'appariement par COOKIE rend les éléments suivants (leur
+        // position d'ordre ne tient plus, leur IDENTITÉ tient).
+        val etaitDesaligne = externe
+        val element = ajouterElement(balise, parseur, debut, externe, ordinal)
         // Enfants (une balise auto-fermante retombe immédiatement sur son
         // propre END_TAG : la boucle ne fait rien, la position est déjà
         // la bonne).
@@ -214,13 +242,50 @@ internal object AligneurElementsXml {
     }
 
     /**
+     * Pose l'élément producteur avec SON cookie « site:ordinal »
+     * (v0.173.0 — MÊME schéma que `BridgeInflater.poserCookie` : l'ordinal
+     * a DÉJÀ été consommé par [traiterElement], miroir du wrapper
+     * `parseElement` — la balise qui ne produit rien ne pose RIEN).
+     */
+    private fun ajouterElement(
+        balise: String,
+        parseur: XmlPullParser,
+        debut: Int,
+        externe: Boolean,
+        ordinal: Int,
+    ): ElementSource {
+        val element =
+            ElementSource(
+                nomBalise = balise,
+                idNom = idDe(parseur),
+                debut = if (externe) SANS_SPAN else debut,
+                fin = SANS_SPAN,
+                externe = externe,
+                cookie = "$siteCookie:$ordinal",
+            )
+        // Pré-ordre CONTRACTUEL : le parent précède ses enfants dans la
+        // séquence aplatie — c'est l'ordre exact de l'inflation (une vue
+        // par élément producteur), l'indice i du tableau correspond à la
+        // i-ème vue du ViewInfoCollector.
+        elements.add(element)
+        return element
+    }
+
+    /**
      * `<include layout="@layout/x">` : résout le layout référencé et marche
      * SON texte (éléments externes), puis saute le sous-arbre de l'include
      * (normalement vide — l'inflater l'ignore de la même façon).
+     *
+     * v0.173.0 — le document inclus vit dans un SITE cookie BRANCHÉ
+     * (la chaîne des ordinaux d'include — miroir `siteDe` de
+     * `BridgeInflater`) : DEUX inclusions du MÊME fichier produisent des
+     * cookies DISTINCTS, et les ordinaux du document inclus REPARTENT de
+     * zéro (l'inflater enfant est NEUF — miroir exact).
      */
     private fun traiterInclude(
         parseur: XmlPullParser,
         resolveur: ResolveurLayout?,
+        ordinal: Int,
     ) {
         val reference = attributLayoutDe(parseur) ?: ""
         val contenu =
@@ -231,16 +296,33 @@ internal object AligneurElementsXml {
             }
         if (contenu != null) {
             profondeurInclude += 1
-            marcherDocument(contenu, externe = true, resolveur = resolveur)
+            val siteSauve = siteCookie
+            val ordinalSauve = ordinalNoeud
+            siteCookie = siteDe(ordinal)
+            ordinalNoeud = 0
+            try {
+                marcherDocument(contenu, externe = true, resolveur = resolveur)
+            } finally {
+                siteCookie = siteSauve
+                ordinalNoeud = ordinalSauve
+            }
             profondeurInclude -= 1
         } else {
             // L'inflater résoudra peut-être nativement (R.layout.*) : des
-            // vues sans éléments connus vont apparaître — la séquence n'est
-            // plus garantie au-delà, on ne sélectionne plus jamais (X4).
-            desaligne = true
+            // vues sans éléments connus vont apparaître — l'appariement
+            // PAR ORDRE sautera (comptes divergents, X4 : jamais de
+            // devinette), mais les éléments du document GARDENT leurs
+            // spans : le COOKIE les rendra (v0.173.0 — S8, identité).
         }
         sauterEnfants(parseur)
     }
+
+    /**
+     * Le SITE d'un include d'ordinal [ordinal] (miroir exact de
+     * `BridgeInflater.siteDe`) : la chaîne courante étendue du rang de
+     * l'include — vide pour le document principal.
+     */
+    private fun siteDe(ordinal: Int): String = if (siteCookie.isEmpty()) ordinal.toString() else "$siteCookie>$ordinal"
 
     /** Enfants de l'élément courant (parseur juste après son START_TAG). */
     private fun traiterEnfants(

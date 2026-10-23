@@ -208,9 +208,11 @@
         </LinearLayout>
 
         <!-- .canvas : le damier et le rendu sont dessinés par VuePreviewXml ; les .hud sont des vues.
-             v0.166.5 : le RETRAIT BAS est posé par le code (PreviewActivity.
-             majRetraitFeuille) au bord courant de la feuille inférieure —
-             le rendu et les pièces basses ne passent JAMAIS dessous. -->
+             v0.166.5 : le RETRAIT BAS est posé par le code (Gestionnaire-
+             FeuilleApercu.majRetrait) au bord courant de la feuille inférieure —
+             le rendu et les pièces basses ne passent JAMAIS dessous ; v0.173.0 :
+             le retrait est BORNÉ (bande minimale 24 dp) — le canvas ne disparaît
+             jamais, son zoom survit aux éditions feuille déployée. -->
         <FrameLayout
             android:id="@+id/conteneur_rendu"
             android:layout_width="match_parent"

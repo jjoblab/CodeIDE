@@ -8,10 +8,13 @@ import org.junit.Test
  * [GeometrieFeuilleApercu], retours propriétaire du 2026-10-22 : « l'expansion
  * doit aussi arriver jusqu'au appbar », « le bottomsheet même en collapse ne
  * cache plus aussi la partie bottom du preview », « la section zoom et
- * rendue · n vues sont cachées ») : miroir `applySheet` de la maquette —
- * le peek couvre la barre de navigation, les volets REMPLISSENT l'espace
- * sous l'en-tête (moins le clavier), le canvas se retire du bord courant
- * de la feuille (la même valeur porte la réserve de la bulle).
+ * rendue · n vues sont cachées » ; v0.173.0 : « deux niveaux pour expand
+ * à moitié puis total sous le appbar », « le canva ne doit pas glisser
+ * pour disparaitre ») : miroir `applySheet` de la maquette — le peek
+ * couvre la barre de navigation, les volets REMPLISSENT l'espace sous
+ * l'en-tête (moins le clavier), le canvas se retire du bord courant de
+ * la feuille SANS JAMAIS DISPARAÎTRE (borne), et le cycle d'expansion
+ * traverse les DEUX niveaux.
  */
 public class GeometrieFeuilleApercuTest {
     // ── Le PEEK : la hauteur repliée VISIBLE au-dessus de la barre de gestes.
@@ -86,17 +89,111 @@ public class GeometrieFeuilleApercuTest {
     @Test
     public fun `repliee - le canvas se retire du peek plus la marge`() {
         // Miroir `h = (S.open ? SHEET_OPEN : 72) + 10` replié : le bord
-        // courant de la feuille + la marge du HUD (10 dp).
-        assertEquals(78 + 10, GeometrieFeuilleApercu.retraitCanvasPx(hauteurVisibleFeuillePx = 78, margeHudPx = 10))
+        // courant de la feuille + la marge du HUD (10 dp). La borne ne
+        // s'applique pas (conteneur bien plus haut que le peek).
+        assertEquals(
+            78 + 10,
+            GeometrieFeuilleApercu.retraitCanvasPx(
+                hauteurVisibleFeuillePx = 78,
+                margeHudPx = 10,
+                hauteurConteneurPx = 2200,
+                bandeCanvasMinPx = 66,
+            ),
+        )
     }
 
     @Test
-    public fun `deployee - le canvas se retire de la hauteur visible entiere`() {
-        assertEquals(2200 + 10, GeometrieFeuilleApercu.retraitCanvasPx(hauteurVisibleFeuillePx = 2200, margeHudPx = 10))
+    public fun `totale - le canvas garde sa bande minimale derriere la feuille`() {
+        // v0.173.0 — « le canva ne doit pas glisser pour disparaitre » :
+        // feuille TOTALE sous l'appbar, le retrait demandé DÉPASSE le
+        // conteneur (2200 + 27 > 2200) — il est BORNÉ : le canvas garde
+        // 24 dp (66 px) mesurés, invisibles DERRIÈRE la feuille (opaque),
+        // mais son zoom survit aux éditions faites feuille déployée.
+        assertEquals(
+            2200 - 66,
+            GeometrieFeuilleApercu.retraitCanvasPx(
+                hauteurVisibleFeuillePx = 2200,
+                margeHudPx = 27,
+                hauteurConteneurPx = 2200,
+                bandeCanvasMinPx = 66,
+            ),
+        )
+    }
+
+    @Test
+    public fun `moitie - le retrait demande passe entier`() {
+        // Niveau MOITIÉ (1200 px visibles) : la demande (1200 + 27) reste
+        // sous la borne (2200 − 66) — le canvas garde la moitié haute.
+        assertEquals(
+            1200 + 27,
+            GeometrieFeuilleApercu.retraitCanvasPx(
+                hauteurVisibleFeuillePx = 1200,
+                margeHudPx = 27,
+                hauteurConteneurPx = 2200,
+                bandeCanvasMinPx = 66,
+            ),
+        )
     }
 
     @Test
     public fun `le retrait ne descend jamais sous zero`() {
-        assertEquals(0, GeometrieFeuilleApercu.retraitCanvasPx(hauteurVisibleFeuillePx = 0, margeHudPx = 0))
+        assertEquals(
+            0,
+            GeometrieFeuilleApercu.retraitCanvasPx(
+                hauteurVisibleFeuillePx = 0,
+                margeHudPx = 0,
+                hauteurConteneurPx = 2200,
+                bandeCanvasMinPx = 66,
+            ),
+        )
+    }
+
+    @Test
+    public fun `petit conteneur - la borne ne devient jamais negative`() {
+        // Conteneur PLUS PETIT que la bande minimale (paysage court) :
+        // la borne retombe à zéro, le canvas garde TOUT son conteneur.
+        assertEquals(
+            0,
+            GeometrieFeuilleApercu.retraitCanvasPx(
+                hauteurVisibleFeuillePx = 60,
+                margeHudPx = 27,
+                hauteurConteneurPx = 60,
+                bandeCanvasMinPx = 66,
+            ),
+        )
+    }
+
+    // ── Le CYCLE d'expansion : DEUX niveaux (moitié puis total sous l'appbar).
+
+    @Test
+    public fun `appui - le cycle traverse replie moitie total replie`() {
+        // v0.173.0 — « deux niveaux pour expand à moitié puis total sous
+        // le appbar » : chaque appui sur la poignée monte d'UN niveau.
+        val replie = 1
+        val moitie = 4
+        val total = 3
+        assertEquals(moitie, GeometrieFeuilleApercu.etatSuivantExpansion(replie, false, replie, moitie, total))
+        assertEquals(total, GeometrieFeuilleApercu.etatSuivantExpansion(moitie, false, replie, moitie, total))
+        assertEquals(replie, GeometrieFeuilleApercu.etatSuivantExpansion(total, false, replie, moitie, total))
+    }
+
+    @Test
+    public fun `onglet - le deploiement s arrete a la moitie`() {
+        // Sélection d'onglet / « Ligne n » : SE déployer, jamais replier —
+        // et le premier niveau est la MOITIÉ (le rendu reste visible
+        // pendant l'édition des attributs).
+        val replie = 1
+        val moitie = 4
+        val total = 3
+        assertEquals(moitie, GeometrieFeuilleApercu.etatSuivantExpansion(replie, true, replie, moitie, total))
+        assertEquals(moitie, GeometrieFeuilleApercu.etatSuivantExpansion(moitie, true, replie, moitie, total))
+        assertEquals(total, GeometrieFeuilleApercu.etatSuivantExpansion(total, true, replie, moitie, total))
+    }
+
+    @Test
+    public fun `glissement en cours - l appui vise la moitie`() {
+        // DRAGGING/SETTLING (2/5) : l'appui vise le premier niveau posé,
+        // jamais un état intermédiaire.
+        assertEquals(4, GeometrieFeuilleApercu.etatSuivantExpansion(2, false, 1, 4, 3))
     }
 }
