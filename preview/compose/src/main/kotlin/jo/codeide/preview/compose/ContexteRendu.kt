@@ -33,7 +33,7 @@ import kotlin.math.roundToInt
  *     `createMockView` : jamais un faux rendu, jamais une exception) ;
  *  2. le COLLECTEUR des bornes ([InfoNoeudCompose] — bounds bitmap px
  *     + ligne source par nœud, écho `ComposeViewInfoParser` de la
- *     référence) : [modificateurBornes] compose le modificateur
+ *     référence) : [mextension [bornesDe] compose le modificateur
  *     `onGloballyPositioned` posé en QUEUE de chaîne (OUTERMOST — la
  *     géométrie publiée est celle DESSINÉE), [noeuds] referme le
  *     relevé AU-DELÀ de la passe de mise en page (les callbacks
@@ -106,16 +106,6 @@ internal class ContexteRendu(
         return valeur?.dp
     }
 
-    /**
-     * Le modificateur de bornes d'UN nœud — `onGloballyPositioned` en
-     * QUEUE de chaîne du récepteur (`.then(bornes)`) : la géométrie
-     * publiée est l'étendue FINALE dessinée, `boundsInRoot` donnant le
-     * repère du coin haut-gauche du canevas de composition (l'origine
-     * du bitmap — la vue est posée à (0, 0) au rendu off-screen).
-     */
-    internal fun modificateurBornes(noeud: NoeudProgramme): Modifier =
-        Modifier.onGloballyPositioned { coords: LayoutCoordinates -> poser(noeud, coords) }
-
     /** Les erreurs de résolution collectées pendant CE rendu. */
     internal val erreurs: List<ErreurCompose>
         get() = erreursInterne
@@ -124,8 +114,11 @@ internal class ContexteRendu(
     internal val noeuds: Array<InfoNoeudCompose>
         get() = geometries.toTypedArray()
 
-    /** Publie la géométrie d'un nœud positionné (callback du fil de composition). */
-    private fun poser(noeud: NoeudProgramme, coords: LayoutCoordinates) {
+    /**
+     * Publie la géométrie d'un nœud positionné (callback du fil de
+     * composition) — INTERNE au module : [bornesDe] l'invoque.
+     */
+    internal fun poser(noeud: NoeudProgramme, coords: LayoutCoordinates) {
         val bornes = coords.boundsInRoot()
         geometries += InfoNoeudCompose(
             ligne = noeud.ligne,
@@ -142,3 +135,15 @@ internal class ContexteRendu(
         erreursInterne += ErreurCompose(GenreErreurCompose.RESSOURCE_INCONNUE, designation, ligne)
     }
 }
+
+/**
+ * Le modificateur de bornes d'UN nœud — EXTENSION de [Modifier] (règle
+ * lint Compose `ModifierFactoryExtensionFunction` : toute fabrique de
+ * modificateur vit SUR Modifier, les appelants composent
+ * `Modifier.bornesDe(…)`) : `onGloballyPositioned` en tête de chaîne
+ * neuve = l'étendue FINALE dessinée, `boundsInRoot` donnant le repère
+ * du coin haut-gauche du canevas de composition (l'origine du bitmap —
+ * la vue est posée à (0, 0) au rendu off-screen).
+ */
+internal fun Modifier.bornesDe(noeud: NoeudProgramme, contexte: ContexteRendu): Modifier =
+    onGloballyPositioned { coords: LayoutCoordinates -> contexte.poser(noeud, coords) }
