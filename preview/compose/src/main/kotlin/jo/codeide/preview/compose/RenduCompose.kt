@@ -504,28 +504,28 @@ internal fun RendreNoeud(noeud: NoeudProgramme, contexte: ContexteRendu) {
         GenreNoeudCompose.TEXTE -> RendreTexte(noeud, contexte)
 
         GenreNoeudCompose.COLONNE ->
-            Column(modifier = contexte.modificateurBornes(noeud)) {
+            Column(modifier = Modifier.bornesDe(noeud, contexte)) {
                 noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
         GenreNoeudCompose.RANGEE ->
-            Row(modifier = contexte.modificateurBornes(noeud)) {
+            Row(modifier = Modifier.bornesDe(noeud, contexte)) {
                 noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
         GenreNoeudCompose.BOITE ->
-            Box(modifier = contexte.modificateurBornes(noeud)) {
+            Box(modifier = Modifier.bornesDe(noeud, contexte)) {
                 noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
 
-        GenreNoeudCompose.ESPACE -> Spacer(modifier = espaceDe(noeud, contexte))
+        GenreNoeudCompose.ESPACE -> Spacer(modifier = Modifier.espaceDu(noeud, contexte))
 
         GenreNoeudCompose.BOUTON ->
             // C1 statique : le clic n'est PAS transmis (C3 interactif) —
             // l'exigence de M3 est honorée par un no-op honnête.
             Button(
                 onClick = {},
-                modifier = contexte.modificateurBornes(noeud),
+                modifier = Modifier.bornesDe(noeud, contexte),
             ) {
                 noeud.contenu.forEach { RendreNoeud(it, contexte) }
             }
@@ -534,21 +534,21 @@ internal fun RendreNoeud(noeud: NoeudProgramme, contexte: ContexteRendu) {
             PastilleErreur(
                 "« ${noeud.nom} » hors registre (C1)",
                 GenreErreurCompose.COMPOSABLE_INCONNU,
-                modificateur = contexte.modificateurBornes(noeud),
+                modificateur = Modifier.bornesDe(noeud, contexte),
             )
 
         GenreNoeudCompose.ERREUR_EXPRESSION ->
             PastilleErreur(
                 "Non interprété : ${ellipseNom(noeud.nom)}",
                 GenreErreurCompose.EXPRESSION_NON_INTERPRETEE,
-                modificateur = contexte.modificateurBornes(noeud),
+                modificateur = Modifier.bornesDe(noeud, contexte),
             )
 
         GenreNoeudCompose.ERREUR_INLINE ->
             PastilleErreur(
                 "« ${noeud.nom} » non inliné (projet)",
                 GenreErreurCompose.COMPOSABLE_PROJET_PARAMETRES,
-                modificateur = contexte.modificateurBornes(noeud),
+                modificateur = Modifier.bornesDe(noeud, contexte),
             )
     }
 }
@@ -564,7 +564,7 @@ private fun RendreTexte(noeud: NoeudProgramme, contexte: ContexteRendu) {
     Text(
         text = texteDe(noeud, contexte),
         color = couleurTexteDe(noeud, contexte) ?: Color.Unspecified,
-        modifier = contexte.modificateurBornes(noeud),
+        modifier = Modifier.bornesDe(noeud, contexte),
     )
 }
 
@@ -634,19 +634,17 @@ private fun couleurTexteDe(noeud: NoeudProgramme, contexte: ContexteRendu): Colo
 }
 
 /**
- * Le modificateur d'un ESPACE : hauteur explicite, sinon largeur
- * explicite, sinon pleine largeur (extraction — la complexité du
- * dispatch du registre reste sous les seuils detekt). C2 : les
- * références `R.dimen.NOM` se résolvent sur le projet.
+ * Le modificateur d'un ESPACE (EXTENSION de Modifier — règle lint
+ * Compose `ModifierFactoryExtensionFunction`) : hauteur explicite,
+ * sinon largeur explicite, sinon pleine largeur ; les bornes du nœud
+ * se posent en QUEUE de chaîne (l'étendue publiée est l'étendue
+ * dessinée). C2 : les références `R.dimen.NOM` se résolvent sur le
+ * projet.
  */
-private fun espaceDe(noeud: NoeudProgramme, contexte: ContexteRendu): Modifier {
-    val bornes = contexte.modificateurBornes(noeud)
-    return hauteurDe(noeud, contexte)?.let { hauteur -> Modifier.height(hauteur).then(bornes) }
-        ?: largeurDe(noeud, contexte)?.let { largeur -> Modifier.width(largeur).then(bornes) }
-        ?: Modifier
-            .fillMaxWidth()
-            .then(bornes)
-}
+private fun Modifier.espaceDu(noeud: NoeudProgramme, contexte: ContexteRendu): Modifier =
+    hauteurDe(noeud, contexte)?.let { hauteur -> height(hauteur).bornesDe(noeud, contexte) }
+        ?: largeurDe(noeud, contexte)?.let { largeur -> width(largeur).bornesDe(noeud, contexte) }
+        ?: fillMaxWidth().bornesDe(noeud, contexte)
 
 /** Les genres d'argument acceptés comme DIMENSION d'un nœud. */
 private val GENRES_DIMENSION: Set<GenreArgumentCompose> =
