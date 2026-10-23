@@ -54,19 +54,13 @@ sealed interface EtatDossier {
     data object Verification : EtatDossier
 
     /** Dossier refusé par Android 11+ (racine, Download, Android/data…). */
-    data class Refuse(
-        val raison: ForbiddenFolders.Reason,
-    ) : EtatDossier
+    data class Refuse(val raison: ForbiddenFolders.Reason) : EtatDossier
 
     /** Échec typé de la permission, du test d'écriture ou de la persistance. */
-    data class Erreur(
-        val erreur: AppError,
-    ) : EtatDossier
+    data class Erreur(val erreur: AppError) : EtatDossier
 
     /** Dossier validé et persisté comme dossier de travail. */
-    data class Configure(
-        val dossier: StorageLocation,
-    ) : EtatDossier
+    data class Configure(val dossier: StorageLocation) : EtatDossier
 }
 
 /**

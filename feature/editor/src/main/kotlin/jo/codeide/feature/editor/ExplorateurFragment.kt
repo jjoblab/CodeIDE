@@ -129,19 +129,12 @@ class ExplorateurFragment : Fragment() {
     /** Adaptateur de l'arbre (mutations par nœud, § 11). */
     private lateinit var adaptateur: ExplorateurAdapter
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentExplorateurBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         popover = PopoverExplorateur(liaison.root)
         popoverDestination = PopoverExplorateur(liaison.root)
         brancherArbre()
@@ -200,11 +193,7 @@ class ExplorateurFragment : Fragment() {
 
     /** Appui long : popover d'actions ancré au contact (§ 10, § 17),
      *  vibration du retour haptique long. */
-    private fun surClicLongNoeud(
-        noeud: NoeudExplorateur,
-        x: Int,
-        y: Int,
-    ): Boolean {
+    private fun surClicLongNoeud(noeud: NoeudExplorateur, x: Int, y: Int): Boolean {
         liaison.root.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         montrerPopoverActions(noeud, x, y)
         return true
@@ -526,11 +515,7 @@ class ExplorateurFragment : Fragment() {
     // ------------------------------------------------------------------
 
     /** Popover d'actions d'un nœud, ancré au contact (§ 10.4). */
-    private fun montrerPopoverActions(
-        noeud: NoeudExplorateur,
-        x: Int,
-        y: Int,
-    ) {
+    private fun montrerPopoverActions(noeud: NoeudExplorateur, x: Int, y: Int) {
         val etat = viewModel.etat.value
         val presse = etat.pressePapiers
         popover.montrer(R.layout.popover_actions_noeud, x, y) { vue ->
@@ -652,7 +637,7 @@ class ExplorateurFragment : Fragment() {
                         (
                             presse.mode == ModePressePapiers.COUPER &&
                                 (noeud.uri == presse.uri || noeud.uri.startsWith("${presse.uri}/"))
-                        )
+                            )
                 action(
                     View.generateViewId(),
                     getString(R.string.popover_coller),
@@ -824,11 +809,7 @@ class ExplorateurFragment : Fragment() {
     /** Popover « Déplacer vers… » (§ 10.5) : validation LOCALE du chemin
      *  (dossier connu, pas déjà là, destination hors de l'élément) pour
      *  afficher les erreurs EN LIGNE sans fermer le popover. */
-    private fun montrerPopoverDeplacer(
-        noeud: NoeudExplorateur,
-        x: Int,
-        y: Int,
-    ) {
+    private fun montrerPopoverDeplacer(noeud: NoeudExplorateur, x: Int, y: Int) {
         val etat = viewModel.etat.value
         popover.montrer(R.layout.popover_deplacer, x, y) { vue ->
             val origine = vue.findViewById<MaterialTextView>(R.id.champ_origine_deplacer)
@@ -890,7 +871,7 @@ class ExplorateurFragment : Fragment() {
                     (
                         evenement?.action == android.view.KeyEvent.ACTION_DOWN &&
                             evenement.keyCode == android.view.KeyEvent.KEYCODE_ENTER
-                    )
+                        )
                 ) {
                     valider()
                     true
@@ -989,11 +970,7 @@ class ExplorateurFragment : Fragment() {
     }
 
     /** Popover « Supprimer » (§ 10.5) : confirmation avant action. */
-    private fun montrerPopoverSupprimer(
-        noeud: NoeudExplorateur,
-        x: Int,
-        y: Int,
-    ) {
+    private fun montrerPopoverSupprimer(noeud: NoeudExplorateur, x: Int, y: Int) {
         popover.montrer(R.layout.popover_supprimer, x, y) { vue ->
             vue.findViewById<MaterialTextView>(R.id.message_supprimer).text =
                 vue.context.getString(
@@ -1015,10 +992,7 @@ class ExplorateurFragment : Fragment() {
      *  dossiers de build — pré-cochées depuis l'état, chaque case envoie
      *  l'action correspondante SANS refermer le popover (les bascules
      *  s'enchaînent), puis pastilles figées + notation. */
-    private fun montrerPopoverLegende(
-        x: Int,
-        y: Int,
-    ) {
+    private fun montrerPopoverLegende(x: Int, y: Int) {
         val etat = viewModel.etat.value
         popover.montrer(R.layout.popover_legende, x, y) { vue ->
             vue
@@ -1062,11 +1036,7 @@ class ExplorateurFragment : Fragment() {
 
     /** Popover « Nouveau » de l'entête (§ 10.5) : ancré sous le bouton,
      *  contexte « Créer dans — dossier », deux actions. */
-    private fun montrerPopoverNouveau(
-        uriDossier: String,
-        x: Int,
-        y: Int,
-    ) {
+    private fun montrerPopoverNouveau(uriDossier: String, x: Int, y: Int) {
         val etat = viewModel.etat.value
         val noeud = etat.noeuds.find { it.uri == uriDossier }
         popover.montrer(R.layout.popover_actions_noeud, x, y) { vue ->
@@ -1088,11 +1058,7 @@ class ExplorateurFragment : Fragment() {
             }
             val conteneur = vue.findViewById<LinearLayout>(R.id.actions_popover)
 
-            fun action(
-                libelle: String,
-                icone: Int,
-                estDossier: Boolean,
-            ) {
+            fun action(libelle: String, icone: Int, estDossier: Boolean) {
                 val ligne =
                     LayoutInflater.from(contexte).inflate(R.layout.ligne_action_popover, conteneur, false)
                 ligne.findViewById<android.widget.ImageView>(R.id.icone_action_popover).setImageResource(icone)
@@ -1132,10 +1098,7 @@ class ExplorateurFragment : Fragment() {
     /** Chemin relatif du nœud dans l'arbre courant ("" pour la racine) :
      *  recalculé depuis la liste aplatie — le parent d'une ligne est le
      *  dossier **le plus proche avant elle** de profondeur moindre. */
-    private fun cheminRelatif(
-        noeud: NoeudExplorateur,
-        etat: EtatEditor,
-    ): String {
+    private fun cheminRelatif(noeud: NoeudExplorateur, etat: EtatEditor): String {
         if (noeud.estRacine) return ""
         val index = etat.noeuds.indexOf(noeud)
         if (index < 0) return noeud.nom
@@ -1158,10 +1121,7 @@ class ExplorateurFragment : Fragment() {
 
     /** Chemin relatif du PARENT du nœud (valeur initiale du champ
      *  Destination du popover Déplacer, § 10.5). */
-    private fun cheminParentRelatif(
-        noeud: NoeudExplorateur,
-        etat: EtatEditor,
-    ): String {
+    private fun cheminParentRelatif(noeud: NoeudExplorateur, etat: EtatEditor): String {
         if (noeud.estRacine) return ""
         val index = etat.noeuds.indexOf(noeud)
         if (index < 0) return ""

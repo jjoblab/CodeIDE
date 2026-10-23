@@ -45,70 +45,64 @@ class CrashReportRepositoryImplTest {
     }
 
     @Test
-    fun `l'observation initiale reflète l'état du disque`() =
-        runTest(scheduler) {
-            store.save(OutilsTestCrash.rapport(id = "seul", horodatage = 10_000L))
+    fun `l'observation initiale reflète l'état du disque`() = runTest(scheduler) {
+        store.save(OutilsTestCrash.rapport(id = "seul", horodatage = 10_000L))
 
-            val resumes = depot.observeSummaries().first()
+        val resumes = depot.observeSummaries().first()
 
-            assertEquals(listOf("seul"), resumes.map { it.id })
-            assertFalse(resumes.single().isReviewed)
-        }
-
-    @Test
-    fun `la consultation rafraîchit l'observation`() =
-        runTest(scheduler) {
-            store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
-
-            assertTrue(depot.markReviewed("a"))
-            assertTrue(
-                depot
-                    .observeSummaries()
-                    .first()
-                    .single()
-                    .isReviewed,
-            )
-            assertTrue(depot.hasUnreviewed().not())
-        }
+        assertEquals(listOf("seul"), resumes.map { it.id })
+        assertFalse(resumes.single().isReviewed)
+    }
 
     @Test
-    fun `la suppression rafraîchit l'observation`() =
-        runTest(scheduler) {
-            store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
-            store.save(OutilsTestCrash.rapport(id = "b", horodatage = 20_000L))
+    fun `la consultation rafraîchit l'observation`() = runTest(scheduler) {
+        store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
 
-            assertTrue(depot.delete("b"))
-            assertEquals(listOf("a"), depot.observeSummaries().first().map { it.id })
-            assertFalse(depot.delete("b"))
-        }
-
-    @Test
-    fun `la suppression totale vide le répertoire et l'observation`() =
-        runTest(scheduler) {
-            store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
-            store.save(OutilsTestCrash.rapport(id = "b", horodatage = 20_000L))
-
-            assertEquals(2, depot.deleteAll())
-            assertTrue(depot.observeSummaries().first().isEmpty())
-            assertEquals(0, depot.deleteAll())
-        }
+        assertTrue(depot.markReviewed("a"))
+        assertTrue(
+            depot
+                .observeSummaries()
+                .first()
+                .single()
+                .isReviewed,
+        )
+        assertTrue(depot.hasUnreviewed().not())
+    }
 
     @Test
-    fun `la lecture suit les identifiants et tolère l'absence`() =
-        runTest(scheduler) {
-            store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
+    fun `la suppression rafraîchit l'observation`() = runTest(scheduler) {
+        store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
+        store.save(OutilsTestCrash.rapport(id = "b", horodatage = 20_000L))
 
-            assertNotNull(depot.get("a"))
-            assertNull(depot.get("introuvable"))
-        }
+        assertTrue(depot.delete("b"))
+        assertEquals(listOf("a"), depot.observeSummaries().first().map { it.id })
+        assertFalse(depot.delete("b"))
+    }
 
     @Test
-    fun `la présence de non consultés suit l'état des témoins`() =
-        runTest(scheduler) {
-            store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
+    fun `la suppression totale vide le répertoire et l'observation`() = runTest(scheduler) {
+        store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
+        store.save(OutilsTestCrash.rapport(id = "b", horodatage = 20_000L))
 
-            assertTrue(depot.hasUnreviewed())
-            assertTrue(depot.markReviewed("a"))
-            assertFalse(depot.hasUnreviewed())
-        }
+        assertEquals(2, depot.deleteAll())
+        assertTrue(depot.observeSummaries().first().isEmpty())
+        assertEquals(0, depot.deleteAll())
+    }
+
+    @Test
+    fun `la lecture suit les identifiants et tolère l'absence`() = runTest(scheduler) {
+        store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
+
+        assertNotNull(depot.get("a"))
+        assertNull(depot.get("introuvable"))
+    }
+
+    @Test
+    fun `la présence de non consultés suit l'état des témoins`() = runTest(scheduler) {
+        store.save(OutilsTestCrash.rapport(id = "a", horodatage = 10_000L))
+
+        assertTrue(depot.hasUnreviewed())
+        assertTrue(depot.markReviewed("a"))
+        assertFalse(depot.hasUnreviewed())
+    }
 }

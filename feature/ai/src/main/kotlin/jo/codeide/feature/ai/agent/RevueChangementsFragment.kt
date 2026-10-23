@@ -27,19 +27,12 @@ public class RevueChangementsFragment : Fragment() {
     private val modele: AgentViewModel by viewModels()
     private var liaison: FragmentRevueChangementsBinding? = null
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentRevueChangementsBinding.inflate(inflater, container, false)
         return liaison!!.root
     }
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val liaison = liaison ?: return
         val adapter = AdapterRevueFichiers { _, _ -> majBoutons(liaison) }

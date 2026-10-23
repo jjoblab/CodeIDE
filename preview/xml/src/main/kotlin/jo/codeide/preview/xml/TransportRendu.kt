@@ -62,9 +62,7 @@ public sealed interface ResultatTransport {
 }
 
 /** Panne de TRANSPORT (processus mort, liaison impossible, délai dépassé). */
-public class ProcessusIndisponible(
-    message: String,
-) : IllegalStateException(message)
+public class ProcessusIndisponible(message: String) : IllegalStateException(message)
 
 /**
  * Transport LOCAL (repli) — le pipeline PE1 tel quel, appelé sur le fil
@@ -78,10 +76,7 @@ public class ProcessusIndisponible(
  * sans Looper. On wrappe donc le rendu sur un `HandlerThread` dédié qui
  * A un Looper — c'est le motif standard pour le rendu de vues Android.
  */
-public class TransportRenduLocal(
-    contexte: Context,
-    journal: AppLogger?,
-) : TransportRendu {
+public class TransportRenduLocal(contexte: Context, journal: AppLogger?) : TransportRendu {
     private val pipeline = RenduLayoutLib(contexte, journal)
 
     /** Thread de rendu dédié avec Looper (G4) — les animators le nécessitent. */
@@ -118,10 +113,7 @@ public class TransportRenduLocal(
     }
 
     /** Exécute le rendu sur le HandlerThread dédié (avec Looper). */
-    private suspend fun rendreSurLooper(
-        handler: Handler,
-        requete: RequeteRendu,
-    ): ResultatTransport =
+    private suspend fun rendreSurLooper(handler: Handler, requete: RequeteRendu): ResultatTransport =
         suspendCancellableCoroutine { cont ->
             val runnable =
                 Runnable {
@@ -197,9 +189,7 @@ public class TransportRenduLocal(
  * (liaison, délai, échec = ISSUES distinctes du contrat §6).
  */
 @Suppress("SwallowedException", "ReturnCount")
-internal class TransportRenduProcess(
-    private val liaison: LiaisonService,
-) : TransportRendu {
+internal class TransportRenduProcess(private val liaison: LiaisonService) : TransportRendu {
     /** Binder vivant (null : à relancer). */
     private var binder: IRenduApercu? = null
 
@@ -327,10 +317,7 @@ internal interface LiaisonService {
      *
      * @return false si la liaison n'a pas pu être DEMANDÉE.
      */
-    public fun lier(
-        onConnecte: (android.os.IBinder) -> Unit,
-        onMort: () -> Unit,
-    ): Boolean
+    public fun lier(onConnecte: (android.os.IBinder) -> Unit, onMort: () -> Unit): Boolean
 
     /** Délie (idle-shutdown : le processus :preview meurt seul ensuite). */
     public fun delier()
@@ -346,15 +333,10 @@ internal interface LiaisonService {
  *
  * Exemption detekt ciblée (règle 16) : SwallowedException — déliaison idempotente (Android). */
 @Suppress("SwallowedException")
-internal class LiaisonServiceContexte(
-    private val contexte: Context,
-) : LiaisonService {
+internal class LiaisonServiceContexte(private val contexte: Context) : LiaisonService {
     private var connexion: Connexion? = null
 
-    override fun lier(
-        onConnecte: (android.os.IBinder) -> Unit,
-        onMort: () -> Unit,
-    ): Boolean {
+    override fun lier(onConnecte: (android.os.IBinder) -> Unit, onMort: () -> Unit): Boolean {
         delier()
         val serviceConnexion =
             Connexion(
@@ -381,14 +363,9 @@ internal class LiaisonServiceContexte(
     }
 
     /** ServiceConnection + DeathRecipient réels. */
-    private class Connexion(
-        private val onConnecte: (android.os.IBinder) -> Unit,
-        private val onMort: () -> Unit,
-    ) : android.content.ServiceConnection {
-        override fun onServiceConnected(
-            nom: android.content.ComponentName,
-            service: android.os.IBinder,
-        ) {
+    private class Connexion(private val onConnecte: (android.os.IBinder) -> Unit, private val onMort: () -> Unit) :
+        android.content.ServiceConnection {
+        override fun onServiceConnected(nom: android.content.ComponentName, service: android.os.IBinder) {
             service.linkToDeath(
                 object : android.os.IBinder.DeathRecipient {
                     override fun binderDied() {

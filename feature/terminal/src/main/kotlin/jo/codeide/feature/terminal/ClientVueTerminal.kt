@@ -103,16 +103,10 @@ internal class ClientVueTerminal(
         }
     }
 
-    override fun onKeyDown(
-        keyCode: Int,
-        e: KeyEvent,
-        session: TerminalSession,
-    ): Boolean = false // Traitement par défaut de la vue (modificateurs compris).
+    override fun onKeyDown(keyCode: Int, e: KeyEvent, session: TerminalSession): Boolean =
+        false // Traitement par défaut de la vue (modificateurs compris).
 
-    override fun onKeyUp(
-        keyCode: Int,
-        e: KeyEvent,
-    ): Boolean = false
+    override fun onKeyUp(keyCode: Int, e: KeyEvent): Boolean = false
 
     override fun onLongPress(event: MotionEvent): Boolean = false
 
@@ -124,49 +118,23 @@ internal class ClientVueTerminal(
 
     override fun readFnKey(): Boolean = false
 
-    override fun onCodePoint(
-        codePoint: Int,
-        altKey: Boolean,
-        session: TerminalSession,
-    ): Boolean = false
+    override fun onCodePoint(codePoint: Int, altKey: Boolean, session: TerminalSession): Boolean = false
 
     override fun onEmulatorSet() = surEmulateurPret()
 
     // Journaux internes de la vue : silencieux par design (KDoc de
     // classe) — les événements utiles passent par l'AppLogger du registre.
-    override fun logError(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logError(tag: String, message: String) = Unit
 
-    override fun logWarn(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logWarn(tag: String, message: String) = Unit
 
-    override fun logInfo(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logInfo(tag: String, message: String) = Unit
 
-    override fun logDebug(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logDebug(tag: String, message: String) = Unit
 
-    override fun logVerbose(
-        tag: String,
-        message: String,
-    ) = Unit
+    override fun logVerbose(tag: String, message: String) = Unit
 
-    override fun logStackTraceWithMessage(
-        tag: String,
-        message: String,
-        e: Exception,
-    ) = Unit
+    override fun logStackTraceWithMessage(tag: String, message: String, e: Exception) = Unit
 
-    override fun logStackTrace(
-        tag: String,
-        e: Exception,
-    ) = Unit
+    override fun logStackTrace(tag: String, e: Exception) = Unit
 }

@@ -44,10 +44,7 @@ class LangageLspFragment : BaseFragment<FragmentLspLangageBinding>() {
         attachToRoot: Boolean,
     ): FragmentLspLangageBinding = FragmentLspLangageBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         // Identifiant d'énumération reçu du graphe (patron BientotFragment :
         // valueOf — jamais de comparaison de libellé affichable).

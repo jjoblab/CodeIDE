@@ -22,28 +22,25 @@ public class PlacementPopupTest {
     private val densite = 160
 
     /** Racine `RelativeLayout` : avatar (feuille), stats (conteneur), racine. */
-    private fun arbreRelative(): List<InfoVueRendu> =
-        listOf(
-            vue(0, 0, 360, 640, "RelativeLayout", "root", parent = -1, conteneur = true, famille = "RELATIVE"),
-            vue(16, 16, 96, 96, "ImageView", "avatar", parent = 0),
-            vue(16, 185, 344, 233, "LinearLayout", "stats", parent = 0, conteneur = true, famille = "LINEAR"),
-        )
+    private fun arbreRelative(): List<InfoVueRendu> = listOf(
+        vue(0, 0, 360, 640, "RelativeLayout", "root", parent = -1, conteneur = true, famille = "RELATIVE"),
+        vue(16, 16, 96, 96, "ImageView", "avatar", parent = 0),
+        vue(16, 185, 344, 233, "LinearLayout", "stats", parent = 0, conteneur = true, famille = "LINEAR"),
+    )
 
     /** Racine `FrameLayout` : badge (feuille), legende (conteneur). */
-    private fun arbreFrame(): List<InfoVueRendu> =
-        listOf(
-            vue(0, 0, 360, 220, "FrameLayout", "root", parent = -1, conteneur = true, famille = "FRAME"),
-            vue(264, 16, 344, 40, "TextView", "badge", parent = 0),
-            vue(0, 158, 360, 220, "LinearLayout", "legende", parent = 0, conteneur = true, famille = "LINEAR"),
-        )
+    private fun arbreFrame(): List<InfoVueRendu> = listOf(
+        vue(0, 0, 360, 220, "FrameLayout", "root", parent = -1, conteneur = true, famille = "FRAME"),
+        vue(264, 16, 344, 40, "TextView", "badge", parent = 0),
+        vue(0, 158, 360, 220, "LinearLayout", "legende", parent = 0, conteneur = true, famille = "LINEAR"),
+    )
 
     /** Racine `LinearLayout` : texte (feuille), groupe (conteneur). */
-    private fun arbreLineaire(): List<InfoVueRendu> =
-        listOf(
-            vue(0, 0, 360, 640, "LinearLayout", "root", parent = -1, conteneur = true, famille = "LINEAR"),
-            vue(16, 16, 200, 40, "TextView", "texte", parent = 0),
-            vue(16, 56, 344, 104, "LinearLayout", "groupe", parent = 0, conteneur = true, famille = "LINEAR"),
-        )
+    private fun arbreLineaire(): List<InfoVueRendu> = listOf(
+        vue(0, 0, 360, 640, "LinearLayout", "root", parent = -1, conteneur = true, famille = "LINEAR"),
+        vue(16, 16, 200, 40, "TextView", "texte", parent = 0),
+        vue(16, 56, 344, 104, "LinearLayout", "groupe", parent = 0, conteneur = true, famille = "LINEAR"),
+    )
 
     @Test
     public fun `un frere d un parent relative offre les quatre cotes plus dedans si conteneur`() {
@@ -243,20 +240,19 @@ public class PlacementPopupTest {
         parent: Int,
         conteneur: Boolean = false,
         famille: String = "",
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = classe,
-            debutElement = 0,
-            finElement = 1,
-            indiceParent = parent,
-            profondeur = if (parent < 0) 0 else 1,
-            classe = classe,
-            idRes = id,
-            conteneur = conteneur,
-            famille = famille,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = classe,
+        debutElement = 0,
+        finElement = 1,
+        indiceParent = parent,
+        profondeur = if (parent < 0) 0 else 1,
+        classe = classe,
+        idRes = id,
+        conteneur = conteneur,
+        famille = famille,
+    )
 }

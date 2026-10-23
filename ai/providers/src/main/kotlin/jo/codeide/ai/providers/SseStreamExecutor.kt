@@ -34,10 +34,7 @@ public interface SseEventMapper {
      * @param emit émission d'un ou plusieurs événements normalisés
      * (fonction suspendue — ne pas conserver au-delà de l'appel).
      */
-    public suspend fun onEvent(
-        event: SseEvent,
-        emit: suspend (AiEvent) -> Unit,
-    )
+    public suspend fun onEvent(event: SseEvent, emit: suspend (AiEvent) -> Unit)
 
     /**
      * Fin du flux (EOF propre) : l'adaptateur émet ici l'événement
@@ -52,14 +49,10 @@ public interface SseEventMapper {
 /** Issu d'une tentative de flux (boucle de reprise de [SseStreamExecutor]). */
 private sealed interface IssueTentative {
     /** Réponse reprise-able (429/5xx avant jeton) : attendre puis retenter. */
-    data class Reprise(
-        val delaiMs: Long,
-    ) : IssueTentative
+    data class Reprise(val delaiMs: Long) : IssueTentative
 
     /** Échec modélisé : l'événement [AiEvent.Failure] termine le flux. */
-    data class Echec(
-        val erreur: AppError,
-    ) : IssueTentative
+    data class Echec(val erreur: AppError) : IssueTentative
 
     /** Flux terminé normalement (événement terminal déjà émis). */
     data object Termine : IssueTentative
@@ -90,31 +83,27 @@ internal class SseStreamExecutor(
      * @return flux froid, terminé par un événement [AiEvent.Done] ou
      * [AiEvent.Failure] (ou par l'annulation du collecteur).
      */
-    public fun stream(
-        spec: AiHttpRequestSpec,
-        mapperFactory: () -> SseEventMapper,
-    ): Flow<AiEvent> =
-        flow {
-            var tentative = 0
-            while (true) {
-                tentative++
-                when (val issue = executerTentative(spec, mapperFactory, tentative) { evenement -> emit(evenement) }) {
-                    is IssueTentative.Reprise -> {
-                        delay(issue.delaiMs)
-                        continue
-                    }
+    public fun stream(spec: AiHttpRequestSpec, mapperFactory: () -> SseEventMapper): Flow<AiEvent> = flow {
+        var tentative = 0
+        while (true) {
+            tentative++
+            when (val issue = executerTentative(spec, mapperFactory, tentative) { evenement -> emit(evenement) }) {
+                is IssueTentative.Reprise -> {
+                    delay(issue.delaiMs)
+                    continue
+                }
 
-                    is IssueTentative.Echec -> {
-                        emit(AiEvent.Failure(issue.erreur))
-                        return@flow
-                    }
+                is IssueTentative.Echec -> {
+                    emit(AiEvent.Failure(issue.erreur))
+                    return@flow
+                }
 
-                    IssueTentative.Termine -> {
-                        return@flow
-                    }
+                IssueTentative.Termine -> {
+                    return@flow
                 }
             }
         }
+    }
 
     /**
      * Exécute **une** tentative : ouverture, reprise bornée sur non 200,

@@ -75,11 +75,11 @@ public class FakeCrashReportRepository : CrashReportRepository {
                         type = rapport.type,
                         exceptionClassName = rapport.exception.className,
                         shortMessage =
-                            rapport.exception.message
-                                .orEmpty()
-                                .lineSequence()
-                                .firstOrNull()
-                                .orEmpty(),
+                        rapport.exception.message
+                            .orEmpty()
+                            .lineSequence()
+                            .firstOrNull()
+                            .orEmpty(),
                         isReviewed = rapport.id in consultes,
                     )
                 }

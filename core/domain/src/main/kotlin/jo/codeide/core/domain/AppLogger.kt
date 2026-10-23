@@ -46,36 +46,19 @@ public interface AppLogger {
      * @param message texte du message — lambda évaluée **seulement** si
      * [level] passe le filtre courant.
      */
-    public fun log(
-        level: LogLevel,
-        tag: String,
-        throwable: Throwable? = null,
-        message: () -> String,
-    )
+    public fun log(level: LogLevel, tag: String, throwable: Throwable? = null, message: () -> String)
 
     /** Raccourci pour [log] au niveau [LogLevel.DEBUG]. */
-    public fun d(
-        tag: String,
-        message: () -> String,
-    ): Unit = log(LogLevel.DEBUG, tag, null, message)
+    public fun d(tag: String, message: () -> String): Unit = log(LogLevel.DEBUG, tag, null, message)
 
     /** Raccourci pour [log] au niveau [LogLevel.INFO]. */
-    public fun i(
-        tag: String,
-        message: () -> String,
-    ): Unit = log(LogLevel.INFO, tag, null, message)
+    public fun i(tag: String, message: () -> String): Unit = log(LogLevel.INFO, tag, null, message)
 
     /** Raccourci pour [log] au niveau [LogLevel.WARN]. */
-    public fun w(
-        tag: String,
-        throwable: Throwable? = null,
-        message: () -> String,
-    ): Unit = log(LogLevel.WARN, tag, throwable, message)
+    public fun w(tag: String, throwable: Throwable? = null, message: () -> String): Unit =
+        log(LogLevel.WARN, tag, throwable, message)
 
     /** Raccourci pour [log] au niveau [LogLevel.ERROR]. */
-    public fun e(
-        tag: String,
-        throwable: Throwable? = null,
-        message: () -> String,
-    ): Unit = log(LogLevel.ERROR, tag, throwable, message)
+    public fun e(tag: String, throwable: Throwable? = null, message: () -> String): Unit =
+        log(LogLevel.ERROR, tag, throwable, message)
 }

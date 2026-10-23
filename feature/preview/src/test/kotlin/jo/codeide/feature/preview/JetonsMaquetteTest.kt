@@ -87,10 +87,7 @@ public class JetonsMaquetteTest {
     // ── Aides (aucune valeur de design codée ici : tout vient du JSON) ──
 
     /** Compare chaque jeton du JSON à sa déclinaison de colors.xml. */
-    private fun verifierDeclinaison(
-        fichier: File,
-        declinaison: String,
-    ) {
+    private fun verifierDeclinaison(fichier: File, declinaison: String) {
         val couleurs = couleurs(fichier)
         val jetons = jetonsMaquette.keys().asSequence().toList()
         val manquants = jetons.filter { it !in couleurs }
@@ -137,10 +134,7 @@ public class JetonsMaquetteTest {
     }
 
     /** Les items `name="…"` d'un style donné dans themes.xml. */
-    private fun nomsItemsStyle(
-        fichier: File,
-        nomStyle: String,
-    ): Set<String> {
+    private fun nomsItemsStyle(fichier: File, nomStyle: String): Set<String> {
         val document = document(fichier)
         val noeuds = document.getElementsByTagName("style")
         for (indice in 0 until noeuds.length) {

@@ -45,20 +45,13 @@ public class HistoriqueFragment : Fragment() {
 
     private var adaptateurAmorce: AdaptateurConversations? = null
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val liaisonLocale = FragmentIaHistoriqueBinding.inflate(inflater, container, false)
         liaisonAmorce = liaisonLocale
         return liaisonLocale.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, savedInstanceState: Bundle?) {
         super.onViewCreated(vue, savedInstanceState)
         val adaptateur = AdaptateurConversations(::ouvrir, ::ouvrirMenu)
         adaptateurAmorce = adaptateur
@@ -167,29 +160,18 @@ private class AdaptateurConversations(
     private val surOuvrir: (String) -> Unit,
     private val surMenu: (ConversationIa) -> Unit,
 ) : ListAdapter<ConversationIa, TitulaireConversation>(ComparateurConversations) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): TitulaireConversation =
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TitulaireConversation =
         TitulaireConversation(LigneConversationBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-    override fun onBindViewHolder(
-        titulaire: TitulaireConversation,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(titulaire: TitulaireConversation, position: Int) {
         titulaire.lier(getItem(position), surOuvrir, surMenu)
     }
 }
 
 /** Titulaire d'une ligne : titre, méta (date · modèle · messages), menu. */
-private class TitulaireConversation(
-    private val liaison: LigneConversationBinding,
-) : RecyclerView.ViewHolder(liaison.root) {
-    fun lier(
-        conversation: ConversationIa,
-        surOuvrir: (String) -> Unit,
-        surMenu: (ConversationIa) -> Unit,
-    ) {
+private class TitulaireConversation(private val liaison: LigneConversationBinding) :
+    RecyclerView.ViewHolder(liaison.root) {
+    fun lier(conversation: ConversationIa, surOuvrir: (String) -> Unit, surMenu: (ConversationIa) -> Unit) {
         val contexte = liaison.root.context
         liaison.titreConversation.text = conversation.titre
         val relatif =
@@ -209,13 +191,8 @@ private class TitulaireConversation(
 
 /** DiffUtil sur l'identifiant stable (tri par dernier message). */
 private object ComparateurConversations : DiffUtil.ItemCallback<ConversationIa>() {
-    override fun areItemsTheSame(
-        ancienne: ConversationIa,
-        nouvelle: ConversationIa,
-    ): Boolean = ancienne.identifiant == nouvelle.identifiant
+    override fun areItemsTheSame(ancienne: ConversationIa, nouvelle: ConversationIa): Boolean =
+        ancienne.identifiant == nouvelle.identifiant
 
-    override fun areContentsTheSame(
-        ancienne: ConversationIa,
-        nouvelle: ConversationIa,
-    ): Boolean = ancienne == nouvelle
+    override fun areContentsTheSame(ancienne: ConversationIa, nouvelle: ConversationIa): Boolean = ancienne == nouvelle
 }

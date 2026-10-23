@@ -76,10 +76,7 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
     override suspend fun listerRevisions(cheminRelatif: String): List<EntreeHistorique> =
         enregistrements.filter { it.cheminRelatif == cheminRelatif }.mapNotNull { it.retour }.asReversed()
 
-    override suspend fun listerRevisionsSous(
-        cheminDossier: String,
-        limite: Int,
-    ): List<EntreeHistorique> {
+    override suspend fun listerRevisionsSous(cheminDossier: String, limite: Int): List<EntreeHistorique> {
         val prefixe = if (cheminDossier.isBlank()) "" else "$cheminDossier/"
         return enregistrements
             .filter {
@@ -93,10 +90,7 @@ public class FakeHistoriqueLocal : HistoriqueLocal {
 
     override suspend fun derniereEmpreinte(cheminRelatif: String): String? = empreintesSemees[cheminRelatif]
 
-    override suspend fun etiqueter(
-        nom: String,
-        cheminRelatif: String?,
-    ): EntreeHistorique? {
+    override suspend fun etiqueter(nom: String, cheminRelatif: String?): EntreeHistorique? {
         etiquettes += nom to cheminRelatif
         val entree =
             EntreeHistorique(

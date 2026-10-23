@@ -37,17 +37,16 @@ public data class DeviceInfo(
          * prise (chemin critique réduit à l'essentiel) et comme valeur de
          * repli des rapports reconstruits a posteriori.
          */
-        public fun inconnu(): DeviceInfo =
-            DeviceInfo(
-                manufacturer = "inconnu",
-                model = "inconnu",
-                androidVersion = "inconnue",
-                apiLevel = 0,
-                abi = "inconnue",
-                locale = "inconnue",
-                maxMemoryBytes = 0,
-                freeMemoryBytes = 0,
-                storageFreeBytes = 0,
-            )
+        public fun inconnu(): DeviceInfo = DeviceInfo(
+            manufacturer = "inconnu",
+            model = "inconnu",
+            androidVersion = "inconnue",
+            apiLevel = 0,
+            abi = "inconnue",
+            locale = "inconnue",
+            maxMemoryBytes = 0,
+            freeMemoryBytes = 0,
+            storageFreeBytes = 0,
+        )
     }
 }

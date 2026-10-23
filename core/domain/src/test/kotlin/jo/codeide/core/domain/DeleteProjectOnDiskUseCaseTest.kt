@@ -28,10 +28,7 @@ class DeleteProjectOnDiskUseCaseTest {
     private val supprimer = DeleteProjectOnDiskUseCase(depot, fichiers, retirer)
 
     /** Ajoute un projet vivant sur [grantUri] avec dossier et permission. */
-    private suspend fun projetSurArbre(
-        grantUri: String,
-        nom: String,
-    ): jo.codeide.core.model.Project {
+    private suspend fun projetSurArbre(grantUri: String, nom: String): jo.codeide.core.model.Project {
         val uriDocument = "content://arbre/$grantUri/$nom"
         fichiers.seedDocument(uriDocument, FakeFileSystem.Document(name = nom, isDirectory = true))
         fichiers.grantPermission(grantUri)
@@ -41,66 +38,61 @@ class DeleteProjectOnDiskUseCaseTest {
     }
 
     @Test
-    fun `la suppression efface le dossier puis retire l'entrée du registre`() =
-        runTest {
-            val projet = projetSurArbre("arbre", "MonProjet")
+    fun `la suppression efface le dossier puis retire l'entrée du registre`() = runTest {
+        val projet = projetSurArbre("arbre", "MonProjet")
 
-            val resultat = supprimer(projet.id)
+        val resultat = supprimer(projet.id)
 
-            assertTrue(resultat is AppResult.Success)
-            assertTrue(depot.observeProjects().first().isEmpty())
-            assertFalse(fichiers.exists("content://arbre/arbre/MonProjet"))
-        }
-
-    @Test
-    fun `la permission de l'arbre est libérée avec le dernier projet`() =
-        runTest {
-            val projet = projetSurArbre("arbre", "MonProjet")
-
-            supprimer(projet.id)
-
-            assertFalse(fichiers.hasPersistablePermission("arbre"))
-        }
+        assertTrue(resultat is AppResult.Success)
+        assertTrue(depot.observeProjects().first().isEmpty())
+        assertFalse(fichiers.exists("content://arbre/arbre/MonProjet"))
+    }
 
     @Test
-    fun `un échec de suppression du dossier laisse le registre intact`() =
-        runTest {
-            val projet = projetSurArbre("arbre", "MonProjet")
-            fichiers.deleteFailure = java.io.IOException("E/S")
+    fun `la permission de l'arbre est libérée avec le dernier projet`() = runTest {
+        val projet = projetSurArbre("arbre", "MonProjet")
 
-            val resultat = supprimer(projet.id)
+        supprimer(projet.id)
 
-            assertEquals(AppError.StorageReason.Io, ((resultat as AppResult.Failure).error as AppError.Storage).reason)
-            assertEquals(1, depot.observeProjects().first().size)
-            assertTrue(fichiers.hasPersistablePermission("arbre"))
-        }
+        assertFalse(fichiers.hasPersistablePermission("arbre"))
+    }
 
     @Test
-    fun `un projet inconnu retourne NotFound sans rien effacer`() =
-        runTest {
-            val resultat =
-                supprimer(
-                    jo.codeide.core.model
-                        .ProjectId("inconnu"),
-                )
+    fun `un échec de suppression du dossier laisse le registre intact`() = runTest {
+        val projet = projetSurArbre("arbre", "MonProjet")
+        fichiers.deleteFailure = java.io.IOException("E/S")
 
-            assertEquals(
-                AppError.StorageReason.NotFound,
-                ((resultat as AppResult.Failure).error as AppError.Storage).reason,
+        val resultat = supprimer(projet.id)
+
+        assertEquals(AppError.StorageReason.Io, ((resultat as AppResult.Failure).error as AppError.Storage).reason)
+        assertEquals(1, depot.observeProjects().first().size)
+        assertTrue(fichiers.hasPersistablePermission("arbre"))
+    }
+
+    @Test
+    fun `un projet inconnu retourne NotFound sans rien effacer`() = runTest {
+        val resultat =
+            supprimer(
+                jo.codeide.core.model
+                    .ProjectId("inconnu"),
             )
-        }
+
+        assertEquals(
+            AppError.StorageReason.NotFound,
+            ((resultat as AppResult.Failure).error as AppError.Storage).reason,
+        )
+    }
 
     @Test
-    fun `les projets frères du même arbre survivent`() =
-        runTest {
-            val premier = projetSurArbre("arbre", "Premier")
-            projetSurArbre("arbre", "Second")
+    fun `les projets frères du même arbre survivent`() = runTest {
+        val premier = projetSurArbre("arbre", "Premier")
+        projetSurArbre("arbre", "Second")
 
-            supprimer(premier.id)
+        supprimer(premier.id)
 
-            // Le dossier frère vit toujours, la permission reste tenue.
-            assertTrue(fichiers.exists("content://arbre/arbre/Second"))
-            assertTrue(fichiers.hasPersistablePermission("arbre"))
-            assertEquals(1, depot.observeProjects().first().size)
-        }
+        // Le dossier frère vit toujours, la permission reste tenue.
+        assertTrue(fichiers.exists("content://arbre/arbre/Second"))
+        assertTrue(fichiers.hasPersistablePermission("arbre"))
+        assertEquals(1, depot.observeProjects().first().size)
+    }
 }

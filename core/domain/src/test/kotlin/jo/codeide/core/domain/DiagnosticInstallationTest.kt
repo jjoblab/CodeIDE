@@ -28,13 +28,13 @@ class DiagnosticInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Succeeded(
-                                verifiedAtMillis = 1L,
-                                versions = mapOf("sh" to "5.2.1", "apt" to "2.7.14"),
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(
+                            verifiedAtMillis = 1L,
+                            versions = mapOf("sh" to "5.2.1", "apt" to "2.7.14"),
+                        ),
+                ),
                 running = null,
                 sdkLicenseAcceptedAtMillis = null,
             )
@@ -49,13 +49,13 @@ class DiagnosticInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.ANDROID_SDK to
-                            PhaseState.Degraded(
-                                verifiedAtMillis = 2L,
-                                warnings = listOf(ComponentIssue("cmdline-tools", "12.0", "code 1")),
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.ANDROID_SDK to
+                        PhaseState.Degraded(
+                            verifiedAtMillis = 2L,
+                            warnings = listOf(ComponentIssue("cmdline-tools", "12.0", "code 1")),
+                        ),
+                ),
                 running = null,
                 sdkLicenseAcceptedAtMillis = null,
             )
@@ -70,17 +70,17 @@ class DiagnosticInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.PACKAGE_TOOLS to
-                            PhaseState.Failed(
-                                error =
-                                    AppError.EnvironmentSetup(
-                                        reason = EnvironmentSetupReason.Reseau,
-                                        details = "impossible de joindre le dépôt",
-                                    ),
-                                logTail = listOf("E: dépôt injoignable"),
+                mapOf(
+                    InstallPhase.PACKAGE_TOOLS to
+                        PhaseState.Failed(
+                            error =
+                            AppError.EnvironmentSetup(
+                                reason = EnvironmentSetupReason.Reseau,
+                                details = "impossible de joindre le dépôt",
                             ),
-                    ),
+                            logTail = listOf("E: dépôt injoignable"),
+                        ),
+                ),
                 running = null,
                 sdkLicenseAcceptedAtMillis = null,
             )
@@ -96,14 +96,14 @@ class DiagnosticInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.JAVA to
-                            PhaseState.Running(
-                                step = StepId(InstallPhase.JAVA, "openjdk"),
-                                progress = Progress.Indeterminate,
-                                startedAtMillis = 3L,
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.JAVA to
+                        PhaseState.Running(
+                            step = StepId(InstallPhase.JAVA, "openjdk"),
+                            progress = Progress.Indeterminate,
+                            startedAtMillis = 3L,
+                        ),
+                ),
                 running = InstallPhase.JAVA,
                 sdkLicenseAcceptedAtMillis = null,
             )
@@ -118,10 +118,10 @@ class DiagnosticInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Succeeded(verifiedAtMillis = 4L, versions = mapOf("sh" to "5.2.1")),
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(verifiedAtMillis = 4L, versions = mapOf("sh" to "5.2.1")),
+                ),
                 running = null,
                 sdkLicenseAcceptedAtMillis = null,
             )

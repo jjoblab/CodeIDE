@@ -96,11 +96,11 @@ class EntreeClasspathTest {
                 profil = ProfilPeripherique.PAR_DEFAUT,
                 nuit = false,
                 classpath =
-                    listOf(
-                        EntreeClasspath("/lib/foo.jar", GenreEntreeClasspath.JAR),
-                        EntreeClasspath("/lib/bar.aar", GenreEntreeClasspath.AAR),
-                        EntreeClasspath("/build/classes/", GenreEntreeClasspath.DOSSIER),
-                    ),
+                listOf(
+                    EntreeClasspath("/lib/foo.jar", GenreEntreeClasspath.JAR),
+                    EntreeClasspath("/lib/bar.aar", GenreEntreeClasspath.AAR),
+                    EntreeClasspath("/build/classes/", GenreEntreeClasspath.DOSSIER),
+                ),
             )
         val parcel = Parcel.obtain()
         try {

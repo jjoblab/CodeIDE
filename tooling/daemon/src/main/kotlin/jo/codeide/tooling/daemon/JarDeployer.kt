@@ -37,9 +37,7 @@ internal interface SourceJarTooling {
  * vide) branchée sur `preBuild` (ADR 0040) — son absence ici est un état
  * corrompu d'installation, signalé tel quel.
  */
-internal class SourceJarAssets(
-    private val context: Context,
-) : SourceJarTooling {
+internal class SourceJarAssets(private val context: Context) : SourceJarTooling {
     override fun flux(): InputStream = context.assets.open(CHEMIN_ASSET_JAR)
 
     private companion object {
@@ -68,28 +66,20 @@ internal class SourceJarAssets(
  * cause + cause originale) : le journal de l'échec est ACTIONNABLE,
  * pas un « The source file doesn't exist. » sans contexte.
  */
-internal sealed class EchecDeploiementJar(
-    message: String,
-    cause: Throwable?,
-) : IOException(message, cause) {
+internal sealed class EchecDeploiementJar(message: String, cause: Throwable?) : IOException(message, cause) {
     /** L'asset source est illisible — installation corrompue : définitif. */
-    internal class SourceJarIndisible(
-        cause: Throwable,
-    ) : EchecDeploiementJar(
+    internal class SourceJarIndisible(cause: Throwable) :
+        EchecDeploiementJar(
             "asset $CHEMIN_ASSET_JAR illisible (installation corrompue ? réinstaller l'app) : ${cause.message}",
             cause,
         )
 
     /** Le répertoire cible est incréable : retentable. */
-    internal class CibleInaccessible(
-        chemin: File,
-    ) : EchecDeploiementJar("répertoire de déploiement incréable : $chemin", null)
+    internal class CibleInaccessible(chemin: File) :
+        EchecDeploiementJar("répertoire de déploiement incréable : $chemin", null)
 
     /** Écriture, remplacement ou marqueur en échec : retentable. */
-    internal class EcritureImpossible(
-        message: String,
-        cause: Throwable?,
-    ) : EchecDeploiementJar(message, cause)
+    internal class EcritureImpossible(message: String, cause: Throwable?) : EchecDeploiementJar(message, cause)
 }
 
 /** Chemin du JAR dans les assets (miroir de [SourceJarAssets]). */
@@ -162,34 +152,33 @@ internal class JarDeployer(
      *   (définitif) ou CibleInaccessible/EcritureImpossible (retentables) ;
      *   l'appelant ([DaemonManager]) décide selon le type.
      */
-    suspend fun deployer(): File =
-        exclusion.withLock {
-            withContext(dispatchers.io) {
-                // v0.99.1 : la création du répertoire est VERIFIÉE — un
-                // échec silencieux produisait en cascade un ENOENT obscur
-                // sur le `.tmp` (le « The source file doesn't exist. » de
-                // terrain, sans chemin ni cause).
-                if (!dossierCible.isDirectory && !dossierCible.mkdirs()) {
-                    throw EchecDeploiementJar.CibleInaccessible(dossierCible)
-                }
-                val empreinte =
-                    try {
-                        empreinteSource()
-                    } catch (lecture: IOException) {
-                        throw EchecDeploiementJar.SourceJarIndisible(lecture)
-                    }
-                // v0.100.1 : un marqueur illisible (stockage transitoire) n'est
-                // PAS un échec — il force simplement le redéploiement.
-                if (jar.isFile && marqueurPorte(empreinte)) {
-                    return@withContext jar
-                }
-                purgerTmpHerite()
-                val temporaire = nomTemporaireUnique()
-                copier(temporaire)
-                installer(temporaire, empreinte)
-                jar
+    suspend fun deployer(): File = exclusion.withLock {
+        withContext(dispatchers.io) {
+            // v0.99.1 : la création du répertoire est VERIFIÉE — un
+            // échec silencieux produisait en cascade un ENOENT obscur
+            // sur le `.tmp` (le « The source file doesn't exist. » de
+            // terrain, sans chemin ni cause).
+            if (!dossierCible.isDirectory && !dossierCible.mkdirs()) {
+                throw EchecDeploiementJar.CibleInaccessible(dossierCible)
             }
+            val empreinte =
+                try {
+                    empreinteSource()
+                } catch (lecture: IOException) {
+                    throw EchecDeploiementJar.SourceJarIndisible(lecture)
+                }
+            // v0.100.1 : un marqueur illisible (stockage transitoire) n'est
+            // PAS un échec — il force simplement le redéploiement.
+            if (jar.isFile && marqueurPorte(empreinte)) {
+                return@withContext jar
+            }
+            purgerTmpHerite()
+            val temporaire = nomTemporaireUnique()
+            copier(temporaire)
+            installer(temporaire, empreinte)
+            jar
         }
+    }
 
     /**
      * Purge du `.tmp` à NOM FIXE hérité (≤ v0.100.0) — le nouveau code
@@ -207,12 +196,11 @@ internal class JarDeployer(
      * `android.os.Process.myPid()` n'est pas utilisé : inaccessible aux
      * tests JVM purs du module — « not mocked »).
      */
-    private fun nomTemporaireUnique(): File =
-        File(
-            dossierCible,
-            "${GradleProtocol.SERVER_JAR_NAME}.${COMPTEUR_DEPLOIEMENTS.incrementAndGet()}" +
-                ".${System.nanoTime()}.tmp",
-        )
+    private fun nomTemporaireUnique(): File = File(
+        dossierCible,
+        "${GradleProtocol.SERVER_JAR_NAME}.${COMPTEUR_DEPLOIEMENTS.incrementAndGet()}" +
+            ".${System.nanoTime()}.tmp",
+    )
 
     /**
      * Copie de la source vers le `.tmp` — TYÉ en échec d'écriture
@@ -252,10 +240,7 @@ internal class JarDeployer(
      * message typé propre.
      */
     @Suppress("ThrowsCount")
-    private fun installer(
-        temporaire: File,
-        empreinte: String,
-    ) {
+    private fun installer(temporaire: File, empreinte: String) {
         if (jar.isFile && !jar.delete()) {
             temporaire.delete()
             throw EchecDeploiementJar.EcritureImpossible(
@@ -299,12 +284,11 @@ internal class JarDeployer(
      * succès), l'exception n'est PAS une erreur à remonter.
      */
     @Suppress("SwallowedException")
-    private fun marqueurPorte(empreinte: String): Boolean =
-        try {
-            marqueur.isFile && marqueur.readText() == empreinte
-        } catch (lecture: IOException) {
-            false
-        }
+    private fun marqueurPorte(empreinte: String): Boolean = try {
+        marqueur.isFile && marqueur.readText() == empreinte
+    } catch (lecture: IOException) {
+        false
+    }
 
     /** Empreinte SHA-256 hexadécimale du JAR source (hex minuscule). */
     private fun empreinteSource(): String {
@@ -354,9 +338,7 @@ internal object GenerateurSecret {
 }
 
 /** Ouvre un flux sur des octets en mémoire (tests du déploiement). */
-internal class SourceJarMemoire(
-    private val octets: ByteArray,
-) : SourceJarTooling {
+internal class SourceJarMemoire(private val octets: ByteArray) : SourceJarTooling {
     override fun flux(): InputStream = octets.inputStream()
 }
 

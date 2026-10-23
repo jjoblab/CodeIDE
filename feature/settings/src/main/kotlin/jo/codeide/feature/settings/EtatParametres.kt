@@ -16,9 +16,7 @@ sealed interface RetourDossier {
     data object Change : RetourDossier
 
     /** Dossier effacé — [permissionGardee] signale qu'un projet l'utilise. */
-    data class Efface(
-        val permissionGardee: Boolean,
-    ) : RetourDossier
+    data class Efface(val permissionGardee: Boolean) : RetourDossier
 
     /** Dossier refusé par Android 11+ (message clair par raison). */
     data object Refuse : RetourDossier

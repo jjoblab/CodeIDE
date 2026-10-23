@@ -61,7 +61,4 @@ public interface LogRepository {
  * @property bytes taille cumulée des fichiers, en octets.
  * @property fileCount nombre de fichiers (fichier courant + archives).
  */
-public data class LogDiskUsage(
-    public val bytes: Long,
-    public val fileCount: Int,
-)
+public data class LogDiskUsage(public val bytes: Long, public val fileCount: Int)

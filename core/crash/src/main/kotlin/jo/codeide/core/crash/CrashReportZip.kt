@@ -38,26 +38,21 @@ internal object CrashReportZip {
         return sortie.toByteArray()
     }
 
-    private fun ajouter(
-        zip: ZipOutputStream,
-        nom: String,
-        octets: ByteArray,
-    ) {
+    private fun ajouter(zip: ZipOutputStream, nom: String, octets: ByteArray) {
         zip.putNextEntry(ZipEntry(nom))
         zip.write(octets)
         zip.closeEntry()
     }
 
-    private fun detailAppareil(rapport: CrashReport): String =
-        buildString {
-            appendLine("CodeIDE — informations d'appareil (non identifiantes)")
-            appendLine("Fabricant : ${rapport.device.manufacturer}")
-            appendLine("Modèle : ${rapport.device.model}")
-            appendLine("Android : ${rapport.device.androidVersion} (API ${rapport.device.apiLevel})")
-            appendLine("ABI : ${rapport.device.abi}")
-            appendLine("Locale : ${rapport.device.locale}")
-            appendLine("Mémoire max : ${rapport.device.maxMemoryBytes} octets")
-            appendLine("Mémoire libre : ${rapport.device.freeMemoryBytes} octets")
-            appendLine("Stockage libre : ${rapport.device.storageFreeBytes} octets")
-        }
+    private fun detailAppareil(rapport: CrashReport): String = buildString {
+        appendLine("CodeIDE — informations d'appareil (non identifiantes)")
+        appendLine("Fabricant : ${rapport.device.manufacturer}")
+        appendLine("Modèle : ${rapport.device.model}")
+        appendLine("Android : ${rapport.device.androidVersion} (API ${rapport.device.apiLevel})")
+        appendLine("ABI : ${rapport.device.abi}")
+        appendLine("Locale : ${rapport.device.locale}")
+        appendLine("Mémoire max : ${rapport.device.maxMemoryBytes} octets")
+        appendLine("Mémoire libre : ${rapport.device.freeMemoryBytes} octets")
+        appendLine("Stockage libre : ${rapport.device.storageFreeBytes} octets")
+    }
 }

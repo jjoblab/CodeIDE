@@ -44,10 +44,7 @@ class EtatLspFragment : BaseFragment<FragmentLspEtatBinding>() {
         attachToRoot: Boolean,
     ): FragmentLspEtatBinding = FragmentLspEtatBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -86,11 +83,7 @@ class EtatLspFragment : BaseFragment<FragmentLspEtatBinding>() {
     }
 
     /** Résumé d'un moteur : sous-titre composé + dernier passage absolu. */
-    private fun rendreResume(
-        rangee: jo.codeide.core.ui.RangeeParametre,
-        nom: String,
-        ligne: LigneMoteur,
-    ) {
+    private fun rendreResume(rangee: jo.codeide.core.ui.RangeeParametre, nom: String, ligne: LigneMoteur) {
         val morceaux = ligne.sousTitres.map { resoudreTexteLsp(it) }.toMutableList()
         ligne.dernierPassageMs?.let { horodatage ->
             morceaux.add(getString(R.string.lsp_dernier_passage_heure, heureDePassage(horodatage)))

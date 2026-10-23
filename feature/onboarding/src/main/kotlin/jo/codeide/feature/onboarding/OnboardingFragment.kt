@@ -86,10 +86,7 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
         attachToRoot: Boolean,
     ): FragmentOnboardingBinding = FragmentOnboardingBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Contenu edge-to-edge : la racine absorbe barres système et clavier
@@ -142,12 +139,11 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
     }
 
     /** Libellé du bouton d'action selon la page (commencer, suivant, finir). */
-    private fun libelleSuivant(page: PageOnboarding): Int =
-        when (page) {
-            PageOnboarding.BIENVENUE -> R.string.onboarding_commencer
-            PageOnboarding.TERMINE -> R.string.onboarding_terminer
-            else -> R.string.onboarding_suivant
-        }
+    private fun libelleSuivant(page: PageOnboarding): Int = when (page) {
+        PageOnboarding.BIENVENUE -> R.string.onboarding_commencer
+        PageOnboarding.TERMINE -> R.string.onboarding_terminer
+        else -> R.string.onboarding_suivant
+    }
 
     /** Application des effets ponctuels (section 5.3). */
     private fun appliquer(effet: EffetOnboarding) {
@@ -236,10 +232,7 @@ class OnboardingFragment : BaseFragment<FragmentOnboardingBinding>() {
      * restent réversibles — la page relit l'état réel au retour
      * ([NotificationsPage.onResume]).
      */
-    private fun ouvrirReglages(
-        action: String,
-        configurer: Intent.() -> Unit,
-    ) {
+    private fun ouvrirReglages(action: String, configurer: Intent.() -> Unit) {
         val intention = Intent(action).apply(configurer)
         startActivity(intention)
     }

@@ -165,20 +165,19 @@ class InfoVueRenduTest {
     fun `egalite et hashCode - le champ famille participe`() {
         // PE12a — deux vues identiques sauf la famille : ni égales, ni de
         // même empreinte ; même famille → parité complète.
-        fun vueDeFamille(famille: String) =
-            InfoVueRendu(
-                gauche = 0,
-                haut = 0,
-                droite = 40,
-                bas = 40,
-                libelle = "FrameLayout",
-                debutElement = 0,
-                finElement = 9,
-                indiceParent = -1,
-                profondeur = 0,
-                classe = "FrameLayout",
-                famille = famille,
-            )
+        fun vueDeFamille(famille: String) = InfoVueRendu(
+            gauche = 0,
+            haut = 0,
+            droite = 40,
+            bas = 40,
+            libelle = "FrameLayout",
+            debutElement = 0,
+            finElement = 9,
+            indiceParent = -1,
+            profondeur = 0,
+            classe = "FrameLayout",
+            famille = famille,
+        )
         val cadre = vueDeFamille("FRAME")
         val coordinatrice = vueDeFamille("COORDINATOR")
         val memeCadre = vueDeFamille("FRAME")

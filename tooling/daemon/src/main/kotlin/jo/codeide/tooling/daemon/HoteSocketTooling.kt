@@ -35,10 +35,7 @@ internal interface HoteSocketTooling {
      * @throws java.io.IOException délai expiré sans connexion de
      * l'orchestrateur, ou écoute défaillante — tentative consommable.
      */
-    suspend fun accepterUneFois(
-        secretAttendu: String,
-        delaiMs: Long,
-    ): SessionTooling
+    suspend fun accepterUneFois(secretAttendu: String, delaiMs: Long): SessionTooling
 
     /** Referme l'écoute (idempotent). */
     fun fermer()
@@ -50,18 +47,14 @@ internal interface HoteSocketTooling {
  * concentrée là-bas (aucune shadow Robolectric : filtrée du kover des
  * deux modules, même précédent que la colle Termux/JNI).
  */
-internal class HoteSocketAndroid(
-    private val serveur: GradleSocketServer,
-) : HoteSocketTooling {
+internal class HoteSocketAndroid(private val serveur: GradleSocketServer) : HoteSocketTooling {
     override val cheminSocket: File
         get() = serveur.cheminSocket
 
     override fun ouvrir() = serveur.ouvrir()
 
-    override suspend fun accepterUneFois(
-        secretAttendu: String,
-        delaiMs: Long,
-    ): SessionTooling = serveur.accepterUneFois(secretAttendu, delaiMs)
+    override suspend fun accepterUneFois(secretAttendu: String, delaiMs: Long): SessionTooling =
+        serveur.accepterUneFois(secretAttendu, delaiMs)
 
     override fun fermer() = serveur.fermer()
 }

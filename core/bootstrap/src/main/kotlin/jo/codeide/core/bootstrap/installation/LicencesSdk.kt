@@ -50,10 +50,7 @@ internal object LicencesSdk {
      * @return `true` si toutes les licences sont présentes et conformes
      * après l'appel.
      */
-    internal suspend fun ecrire(
-        racineSdk: File,
-        dispatchers: DispatcherProvider,
-    ): Boolean =
+    internal suspend fun ecrire(racineSdk: File, dispatchers: DispatcherProvider): Boolean =
         withContext(dispatchers.io) {
             val dossier = dossier(racineSdk)
             if (!dossier.isDirectory) dossier.mkdirs()
@@ -72,9 +69,8 @@ internal object LicencesSdk {
      * Les licences sont-elles présentes et conformes (hachage exact) ?
      * Contrôle léger : lecture seule, sans exécution.
      */
-    internal fun verifiees(racineSdk: File): Boolean =
-        LICENCES.all { (nom, hachage) ->
-            val fichier = File(dossier(racineSdk), nom)
-            fichier.isFile && fichier.readText().trim() == hachage
-        }
+    internal fun verifiees(racineSdk: File): Boolean = LICENCES.all { (nom, hachage) ->
+        val fichier = File(dossier(racineSdk), nom)
+        fichier.isFile && fichier.readText().trim() == hachage
+    }
 }

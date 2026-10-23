@@ -52,19 +52,12 @@ abstract class ApercuSimpleFragment(
                 "liaison de l'aperçu indisponible — vue détruite ?"
             }
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentApercuSimpleBinding.inflate(inflateur, conteneur, false)
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         val contexte = requireContext()
         liaison.titreApercu.setText(titre)
         liaison.sousTitreApercu.setText(sousTitre)

@@ -46,10 +46,7 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
         attachToRoot: Boolean,
     ): EtapeInformationsBinding = EtapeInformationsBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Le clavier ne doit jamais passer sous la carte d'emplacement.
@@ -59,17 +56,11 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
             RenduParametres(
                 binding.conteneurParametres,
                 object : RenduParametres.Ecouteur {
-                    override fun saisirTexte(
-                        parametreId: String,
-                        valeur: String,
-                    ) {
+                    override fun saisirTexte(parametreId: String, valeur: String) {
                         wizard.action(ActionWizard.SaisirTexte(parametreId, valeur))
                     }
 
-                    override fun choisirValeur(
-                        parametreId: String,
-                        valeur: String,
-                    ) {
+                    override fun choisirValeur(parametreId: String, valeur: String) {
                         wizard.action(ActionWizard.ChoisirValeur(parametreId, valeur))
                     }
 
@@ -81,12 +72,7 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
 
         binding.saisieNom.addTextChangedListener(
             object : SimpleTextWatcher() {
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) {
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) {
                     wizard.action(ActionWizard.SaisirNom(texte?.toString().orEmpty()))
                 }
             },
@@ -101,12 +87,7 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
 
         binding.saisieDescription.addTextChangedListener(
             object : SimpleTextWatcher() {
-                override fun onTextChanged(
-                    texte: CharSequence?,
-                    debut: Int,
-                    avant: Int,
-                    nombre: Int,
-                ) {
+                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) {
                     wizard.action(ActionWizard.SaisirDescription(texte?.toString().orEmpty()))
                 }
             },
@@ -225,32 +206,31 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
     }
 
     /** Message localisé de la raison d'un nom invalide. */
-    private fun messageNom(raison: RaisonValidation): String =
-        when (raison) {
-            is RaisonValidation.LongueurNom -> {
-                getString(R.string.wizard_erreur_nom_longueur)
-            }
-
-            is RaisonValidation.CaractereInterditNom -> {
-                getString(R.string.wizard_erreur_nom_caractere, raison.fautif.toString())
-            }
-
-            is RaisonValidation.PointsFictifsNom -> {
-                getString(R.string.wizard_erreur_nom_points)
-            }
-
-            is RaisonValidation.FinNomInterdite -> {
-                getString(R.string.wizard_erreur_nom_fin)
-            }
-
-            is RaisonValidation.NomReserveWindows -> {
-                getString(R.string.wizard_erreur_nom_reserves)
-            }
-
-            else -> {
-                getString(R.string.wizard_erreur_nom_generique)
-            }
+    private fun messageNom(raison: RaisonValidation): String = when (raison) {
+        is RaisonValidation.LongueurNom -> {
+            getString(R.string.wizard_erreur_nom_longueur)
         }
+
+        is RaisonValidation.CaractereInterditNom -> {
+            getString(R.string.wizard_erreur_nom_caractere, raison.fautif.toString())
+        }
+
+        is RaisonValidation.PointsFictifsNom -> {
+            getString(R.string.wizard_erreur_nom_points)
+        }
+
+        is RaisonValidation.FinNomInterdite -> {
+            getString(R.string.wizard_erreur_nom_fin)
+        }
+
+        is RaisonValidation.NomReserveWindows -> {
+            getString(R.string.wizard_erreur_nom_reserves)
+        }
+
+        else -> {
+            getString(R.string.wizard_erreur_nom_generique)
+        }
+    }
 
     override fun onDestroyView() {
         rendu = null

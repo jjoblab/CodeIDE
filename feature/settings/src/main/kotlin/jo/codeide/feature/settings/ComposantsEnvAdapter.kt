@@ -34,23 +34,15 @@ data class ComposantEnv(
  * réelles et état vérifié par composant, action de désinstallation par
  * ligne (confirmation portée par l'écran).
  */
-class ComposantsEnvAdapter(
-    private val surDesinstallation: (ComposantEnv) -> Unit,
-) : ListAdapter<ComposantEnv, ComposantsEnvAdapter.Vue>(DIFF) {
+class ComposantsEnvAdapter(private val surDesinstallation: (ComposantEnv) -> Unit) :
+    ListAdapter<ComposantEnv, ComposantsEnvAdapter.Vue>(DIFF) {
     /** Vue d'une ligne : liaison par ViewBinding. */
-    inner class Vue(
-        val liaison: RangeeComposantEnvBinding,
-    ) : RecyclerView.ViewHolder(liaison.root)
+    inner class Vue(val liaison: RangeeComposantEnvBinding) : RecyclerView.ViewHolder(liaison.root)
 
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): Vue = Vue(RangeeComposantEnvBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): Vue =
+        Vue(RangeeComposantEnvBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-    override fun onBindViewHolder(
-        holder: Vue,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: Vue, position: Int) {
         val composant = getItem(position)
         val contexte = holder.liaison.root.context
         val taille =
@@ -95,15 +87,11 @@ class ComposantsEnvAdapter(
 
         private val DIFF =
             object : DiffUtil.ItemCallback<ComposantEnv>() {
-                override fun areItemsTheSame(
-                    ancien: ComposantEnv,
-                    nouveau: ComposantEnv,
-                ): Boolean = ancien.id == nouveau.id
+                override fun areItemsTheSame(ancien: ComposantEnv, nouveau: ComposantEnv): Boolean =
+                    ancien.id == nouveau.id
 
-                override fun areContentsTheSame(
-                    ancien: ComposantEnv,
-                    nouveau: ComposantEnv,
-                ): Boolean = ancien == nouveau
+                override fun areContentsTheSame(ancien: ComposantEnv, nouveau: ComposantEnv): Boolean =
+                    ancien == nouveau
             }
     }
 }

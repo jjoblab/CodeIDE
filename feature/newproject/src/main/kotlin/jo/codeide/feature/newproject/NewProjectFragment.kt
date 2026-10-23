@@ -61,10 +61,7 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
         attachToRoot: Boolean,
     ): FragmentNewprojectBinding = FragmentNewprojectBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Contenu edge-to-edge : la racine absorbe les barres système.
@@ -175,14 +172,13 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
         childFragmentManager.findFragmentById(R.id.conteneur_etapes) as? EtapeFragment<*>
 
     /** Classe du fragment d'une étape (garde de restauration). */
-    private fun classeEtape(etape: EtapeId): Class<out EtapeFragment<*>> =
-        when (etape) {
-            EtapeId.MODELE -> EtapeModeleFragment::class.java
-            EtapeId.CONFIGURATION -> EtapeConfigurationFragment::class.java
-            EtapeId.INFORMATIONS -> EtapeInformationsFragment::class.java
-            EtapeId.FICHIERS -> EtapeFichiersFragment::class.java
-            EtapeId.RECAPITULATIF -> EtapeRecapitulatifFragment::class.java
-        }
+    private fun classeEtape(etape: EtapeId): Class<out EtapeFragment<*>> = when (etape) {
+        EtapeId.MODELE -> EtapeModeleFragment::class.java
+        EtapeId.CONFIGURATION -> EtapeConfigurationFragment::class.java
+        EtapeId.INFORMATIONS -> EtapeInformationsFragment::class.java
+        EtapeId.FICHIERS -> EtapeFichiersFragment::class.java
+        EtapeId.RECAPITULATIF -> EtapeRecapitulatifFragment::class.java
+    }
 
     /** Affiche le fragment de l'étape courante, avec transition axe X. */
     private fun rendreEtape(transition: Boolean) {
@@ -226,12 +222,11 @@ class NewProjectFragment : BaseFragment<FragmentNewprojectBinding>() {
     }
 
     /** Le réglage système « réduire les animations » est-il inactif ? */
-    private fun animationsActivees(): Boolean =
-        android.provider.Settings.Global.getFloat(
-            requireContext().contentResolver,
-            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) != 0f
+    private fun animationsActivees(): Boolean = android.provider.Settings.Global.getFloat(
+        requireContext().contentResolver,
+        android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+        1f,
+    ) != 0f
 
     /**
      * Demande de fermeture (✕, retour système depuis la première étape) :

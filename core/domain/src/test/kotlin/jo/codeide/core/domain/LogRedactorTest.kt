@@ -219,10 +219,9 @@ class LogRedactorTest {
 
     /** Hachage de référence recalculé selon le même algorithme SHA-256 tronqué.
      * Le reste haché commence par le « / » séparateur de l'autorité. */
-    private fun hacher(reste: String): String =
-        java.security.MessageDigest
-            .getInstance("SHA-256")
-            .digest(reste.toByteArray(Charsets.UTF_8))
-            .take(4)
-            .joinToString(separator = "") { "%02x".format(it) }
+    private fun hacher(reste: String): String = java.security.MessageDigest
+        .getInstance("SHA-256")
+        .digest(reste.toByteArray(Charsets.UTF_8))
+        .take(4)
+        .joinToString(separator = "") { "%02x".format(it) }
 }

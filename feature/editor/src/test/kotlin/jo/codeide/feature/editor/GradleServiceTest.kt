@@ -701,18 +701,14 @@ class GradleServiceTest {
 }
 
 /** Diagnostic de test minimal. */
-internal fun diagnostic(
-    fichier: String,
-    ligne: Int,
-): DiagnosticBuild =
-    DiagnosticBuild(
-        severite = SeveriteDiagnostic.ERREUR,
-        fichier = fichier,
-        ligne = ligne.toLong(),
-        colonne = 1,
-        message = "erreur de test",
-        source = "javac",
-    )
+internal fun diagnostic(fichier: String, ligne: Int): DiagnosticBuild = DiagnosticBuild(
+    severite = SeveriteDiagnostic.ERREUR,
+    fichier = fichier,
+    ligne = ligne.toLong(),
+    colonne = 1,
+    message = "erreur de test",
+    source = "javac",
+)
 
 /** Faux du port de lancement du service (étape 32) : compte, ne lance rien. */
 internal class FauxDemarreurServiceTooling : DemarreurServiceTooling {

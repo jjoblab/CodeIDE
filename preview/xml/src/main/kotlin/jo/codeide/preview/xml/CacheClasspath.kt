@@ -115,10 +115,7 @@ public class CacheClasspath {
     }
 
     /** Hash récursif d'un dossier (chemin relatif + taille + mtime par fichier). */
-    private fun hasherDossier(
-        racine: File,
-        condense: MessageDigest,
-    ) {
+    private fun hasherDossier(racine: File, condense: MessageDigest) {
         if (!racine.isDirectory) return
         val fichiers = racine.walkTopDown().filter { it.isFile }.sortedBy { it.path }
         for (fichier in fichiers) {

@@ -138,22 +138,15 @@ class SidebarToggleDrawable(
      */
     internal object Geometrie {
         /** Position du séparateur : 34% → 64% de la largeur intérieure. */
-        fun positionSeparateur(
-            gauche: Float,
-            droite: Float,
-            fraction: Float,
-        ): Float = gauche + (droite - gauche) * (FRACTION_MIN + AMPLITUDE * fraction)
+        fun positionSeparateur(gauche: Float, droite: Float, fraction: Float): Float =
+            gauche + (droite - gauche) * (FRACTION_MIN + AMPLITUDE * fraction)
 
         /**
          * Interpolation linéaire entre deux couleurs ARGB.
          * Évite android.graphics.Color (non mocké en test JVM pur).
          */
         @Suppress("MagicNumber") // Masques de bits pour extraction RGB d'une couleur ARGB.
-        fun interpolerCouleur(
-            from: Int,
-            to: Int,
-            t: Float,
-        ): Int {
+        fun interpolerCouleur(from: Int, to: Int, t: Float): Int {
             val rFrom = (from shr 16) and 0xFF
             val gFrom = (from shr 8) and 0xFF
             val bFrom = from and 0xFF

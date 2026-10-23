@@ -71,18 +71,17 @@ class TemplateManifestParserTest {
     }
 
     @Test
-    fun `le fixture de test passe l analyse complète`() =
-        runTest {
-            val charge = FixtureModele.charge()
-            assertEquals(
-                jo.codeide.core.model
-                    .TemplateId("fixture"),
-                charge.template.id,
-            )
-            assertEquals(6, charge.template.parameters.size)
-            assertEquals(1, charge.template.computedVariables.size)
-            assertEquals(7, charge.template.fichiers.size)
-        }
+    fun `le fixture de test passe l analyse complète`() = runTest {
+        val charge = FixtureModele.charge()
+        assertEquals(
+            jo.codeide.core.model
+                .TemplateId("fixture"),
+            charge.template.id,
+        )
+        assertEquals(6, charge.template.parameters.size)
+        assertEquals(1, charge.template.computedVariables.size)
+        assertEquals(7, charge.template.fichiers.size)
+    }
 
     @Test
     fun `un JSON illisible échoue`() {

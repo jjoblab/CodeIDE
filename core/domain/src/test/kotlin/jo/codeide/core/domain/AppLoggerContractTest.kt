@@ -23,12 +23,7 @@ class AppLoggerContractTest {
             object : AppLogger {
                 override val sessionId: String = "contrat"
 
-                override fun log(
-                    level: LogLevel,
-                    tag: String,
-                    throwable: Throwable?,
-                    message: () -> String,
-                ) {
+                override fun log(level: LogLevel, tag: String, throwable: Throwable?, message: () -> String) {
                     appels += level to message()
                 }
             }
@@ -56,12 +51,7 @@ class AppLoggerContractTest {
             object : AppLogger {
                 override val sessionId: String = "contrat"
 
-                override fun log(
-                    level: LogLevel,
-                    tag: String,
-                    throwable: Throwable?,
-                    message: () -> String,
-                ) {
+                override fun log(level: LogLevel, tag: String, throwable: Throwable?, message: () -> String) {
                     exceptionRecue += throwable
                 }
             }

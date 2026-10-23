@@ -50,9 +50,7 @@ internal object StorageProvidesModule {
     /** Résolveur de contenu de l'application. */
     @Provides
     @Singleton
-    fun provideContentResolver(
-        @ApplicationContext context: Context,
-    ): ContentResolver = context.contentResolver
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver
 
     /** Port des permissions persistantes sur le résolveur réel. */
     @Provides
@@ -77,19 +75,18 @@ internal object StorageProvidesModule {
         horloge: TimeProvider,
         repartiteurs: DispatcherProvider,
         depotParametres: SettingsRepository,
-    ): HistoriqueLocal =
-        MoteurHistoriqueLocal(
-            racine = File(context.filesDir, "historique"),
-            cleProjetCourante = { source.racineDocument },
-            horloge = horloge,
-            repartiteurs = repartiteurs,
-            retentionJoursCourante = {
-                depotParametres
-                    .observeSettings()
-                    .first()
-                    .retentionHistorique.jours
-            },
-        )
+    ): HistoriqueLocal = MoteurHistoriqueLocal(
+        racine = File(context.filesDir, "historique"),
+        cleProjetCourante = { source.racineDocument },
+        horloge = horloge,
+        repartiteurs = repartiteurs,
+        retentionJoursCourante = {
+            depotParametres
+                .observeSettings()
+                .first()
+                .retentionHistorique.jours
+        },
+    )
 
     /**
      * Le port FileSystem des projets : implémentation SAF **enveloppée
@@ -103,14 +100,13 @@ internal object StorageProvidesModule {
         historique: HistoriqueLocal,
         source: SourceProjetHistorique,
         arborescences: ArborescencesSaf,
-    ): FileSystem =
-        HistoriqueFileSystem(
-            delegue = impl,
-            historique = historique,
-            source = source,
-            arborescences = arborescences,
-            politique = PolitiqueHistorique(),
-        )
+    ): FileSystem = HistoriqueFileSystem(
+        delegue = impl,
+        historique = historique,
+        source = source,
+        arborescences = arborescences,
+        politique = PolitiqueHistorique(),
+    )
 
     /**
      * Deuxième implémentation du port `FileSystem` (étape 31, ADR 0052) :

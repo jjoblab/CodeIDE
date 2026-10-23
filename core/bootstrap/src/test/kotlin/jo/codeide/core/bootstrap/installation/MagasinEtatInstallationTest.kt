@@ -45,44 +45,44 @@ class MagasinEtatInstallationTest {
             PersistedInstallState(
                 schemaVersion = PersistedInstallState.SCHEMA_VERSION,
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Succeeded(
-                                verifiedAtMillis = 100L,
-                                versions =
-                                    mapOf("bootstrap" to "2026.08.14-r3", "apt" to "2.7.14"),
-                            ),
-                        InstallPhase.PACKAGE_TOOLS to
-                            PhaseState.Failed(
-                                error =
-                                    AppError.EnvironmentSetup(
-                                        reason = EnvironmentSetupReason.Reseau,
-                                        details = "miroirs épuisés",
-                                        sortie =
-                                            CommandOutput(
-                                                commande = "pkg update",
-                                                exitCode = 100,
-                                                lastLines = listOf("E: dépôt injoignable"),
-                                            ),
-                                    ),
-                                logTail = listOf("tentative 1 : échec", "tentative 2 : échec"),
-                            ),
-                        InstallPhase.JAVA to
-                            PhaseState.Degraded(
-                                verifiedAtMillis = 200L,
-                                warnings = listOf(ComponentIssue("cmdline-tools", "12.0", "sortie muette")),
-                            ),
-                    ),
-                installedComponents =
-                    listOf(
-                        InstalledComponent(
-                            id = "build-tools",
-                            version = "35.0.2",
-                            revision = "r1",
-                            sha256 = "ab".repeat(32),
-                            installedAtMillis = 300L,
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(
+                            verifiedAtMillis = 100L,
+                            versions =
+                            mapOf("bootstrap" to "2026.08.14-r3", "apt" to "2.7.14"),
                         ),
+                    InstallPhase.PACKAGE_TOOLS to
+                        PhaseState.Failed(
+                            error =
+                            AppError.EnvironmentSetup(
+                                reason = EnvironmentSetupReason.Reseau,
+                                details = "miroirs épuisés",
+                                sortie =
+                                CommandOutput(
+                                    commande = "pkg update",
+                                    exitCode = 100,
+                                    lastLines = listOf("E: dépôt injoignable"),
+                                ),
+                            ),
+                            logTail = listOf("tentative 1 : échec", "tentative 2 : échec"),
+                        ),
+                    InstallPhase.JAVA to
+                        PhaseState.Degraded(
+                            verifiedAtMillis = 200L,
+                            warnings = listOf(ComponentIssue("cmdline-tools", "12.0", "sortie muette")),
+                        ),
+                ),
+                installedComponents =
+                listOf(
+                    InstalledComponent(
+                        id = "build-tools",
+                        version = "35.0.2",
+                        revision = "r1",
+                        sha256 = "ab".repeat(32),
+                        installedAtMillis = 300L,
                     ),
+                ),
                 sdkLicenseAcceptedAtMillis = 400L,
             )
 
@@ -99,16 +99,16 @@ class MagasinEtatInstallationTest {
             PersistedInstallState(
                 schemaVersion = PersistedInstallState.SCHEMA_VERSION,
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Running(
-                                step =
-                                    jo.codeide.core.domain
-                                        .StepId(InstallPhase.BOOTSTRAP, "telechargement"),
-                                progress = jo.codeide.core.domain.Progress.Indeterminate,
-                                startedAtMillis = 0L,
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Running(
+                            step =
+                            jo.codeide.core.domain
+                                .StepId(InstallPhase.BOOTSTRAP, "telechargement"),
+                            progress = jo.codeide.core.domain.Progress.Indeterminate,
+                            startedAtMillis = 0L,
+                        ),
+                ),
                 installedComponents = emptyList(),
                 sdkLicenseAcceptedAtMillis = null,
             )
@@ -177,11 +177,10 @@ class MagasinEtatInstallationTest {
         assertNull(runBlocking { magasin.load() })
     }
 
-    private fun fichier(): File =
-        File(
-            ApplicationProvider.getApplicationContext<Application>().filesDir,
-            "install-state.json",
-        )
+    private fun fichier(): File = File(
+        ApplicationProvider.getApplicationContext<Application>().filesDir,
+        "install-state.json",
+    )
 
     private companion object {
         private val dispatcheursReels =

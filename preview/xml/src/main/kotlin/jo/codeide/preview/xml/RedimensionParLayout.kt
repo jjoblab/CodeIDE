@@ -260,10 +260,8 @@ public object RedimensionParLayout {
         (attributs[ATTR_POIDS]?.trim()?.toFloatOrNull() ?: 0f) > 0f
 
     /** La première règle ACTIVE (présente et non vide) de la liste — l'ordre fixe la priorité. */
-    private fun regleActive(
-        attributs: Map<String, String>,
-        regles: List<String>,
-    ): Map.Entry<String, String>? = attributs.entries.firstOrNull { it.key in regles && it.value.isNotEmpty() }
+    private fun regleActive(attributs: Map<String, String>, regles: List<String>): Map.Entry<String, String>? =
+        attributs.entries.firstOrNull { it.key in regles && it.value.isNotEmpty() }
 
     /** Le NOM d'entrée d'une référence `@+id/x` / `@id/x` (vide si pas une référence). */
     private fun nomId(valeur: String): String = valeur.substringAfterLast('/').ifBlank { "" }

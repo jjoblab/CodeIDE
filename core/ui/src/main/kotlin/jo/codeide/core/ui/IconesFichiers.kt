@@ -41,24 +41,23 @@ public object IconesFichiers {
      * @return l'identifiant du drawable correspondant au type.
      */
     @JvmStatic
-    public fun pourNom(nom: String): Int =
-        when {
-            nom.startsWith(".") -> R.drawable.ic_fichier_git
+    public fun pourNom(nom: String): Int = when {
+        nom.startsWith(".") -> R.drawable.ic_fichier_git
 
-            "." !in nom -> R.drawable.ic_fichier_script
+        "." !in nom -> R.drawable.ic_fichier_script
 
-            // C0 : noms spécifiques Android Studio (avant l'extension).
-            nom.endsWith(".gradle.kts", ignoreCase = true) -> R.drawable.ic_fichier_gradle_kts
+        // C0 : noms spécifiques Android Studio (avant l'extension).
+        nom.endsWith(".gradle.kts", ignoreCase = true) -> R.drawable.ic_fichier_gradle_kts
 
-            nom.endsWith(".gradle", ignoreCase = true) -> R.drawable.ic_fichier_gradle
+        nom.endsWith(".gradle", ignoreCase = true) -> R.drawable.ic_fichier_gradle
 
-            nom.equals("AndroidManifest.xml", ignoreCase = true) -> R.drawable.ic_fichier_manifest
+        nom.equals("AndroidManifest.xml", ignoreCase = true) -> R.drawable.ic_fichier_manifest
 
-            nom.endsWith(".pro", ignoreCase = true) ||
-                nom.startsWith("proguard", ignoreCase = true) -> R.drawable.ic_fichier_config
+        nom.endsWith(".pro", ignoreCase = true) ||
+            nom.startsWith("proguard", ignoreCase = true) -> R.drawable.ic_fichier_config
 
-            else -> pourExtension(nom.substringAfterLast('.', "").lowercase())
-        }
+        else -> pourExtension(nom.substringAfterLast('.', "").lowercase())
+    }
 
     /** Table des extensions connues (§ 8 de la spécification v2 ; v0.80.2 :
      *  archives, images, scripts web, données et polices, parité avec les

@@ -23,39 +23,39 @@ import javax.inject.Singleton
  */
 @Singleton
 class LoggingInitializer
-    @Inject
-    internal constructor(
-        private val fileSink: FileSink,
-        private val dispatchers: DispatcherProvider,
-        private val logger: CodeIdeAppLogger,
-        private val buildInfo: BuildInfo,
-        private val deviceSummary: DeviceSummary,
-    ) {
-        /** Étiquette de l'en-tête de session (identifiant, anglais). */
-        private val tag = "Session"
+@Inject
+internal constructor(
+    private val fileSink: FileSink,
+    private val dispatchers: DispatcherProvider,
+    private val logger: CodeIdeAppLogger,
+    private val buildInfo: BuildInfo,
+    private val deviceSummary: DeviceSummary,
+) {
+    /** Étiquette de l'en-tête de session (identifiant, anglais). */
+    private val tag = "Session"
 
-        @Volatile
-        private var initialised = false
+    @Volatile
+    private var initialised = false
 
-        /**
-         * Démarre le pipeline et écrit l'en-tête de session. Appeler une
-         * seule fois par processus, le plus tôt possible dans
-         * `Application.onCreate`.
-         *
-         * @throws IllegalStateException si appelé deux fois.
-         */
-        fun initialize() {
-            check(!initialised) { "La journalisation est déjà initialisée pour ce processus." }
-            initialised = true
+    /**
+     * Démarre le pipeline et écrit l'en-tête de session. Appeler une
+     * seule fois par processus, le plus tôt possible dans
+     * `Application.onCreate`.
+     *
+     * @throws IllegalStateException si appelé deux fois.
+     */
+    fun initialize() {
+        check(!initialised) { "La journalisation est déjà initialisée pour ce processus." }
+        initialised = true
 
-            // Cycle de vie = application entière ; le consommateur vit sur
-            // le dispatcher d'I/O et n'a rien d'autre à arrêter.
-            val scope = CoroutineScope(SupervisorJob() + dispatchers.io)
-            fileSink.start(scope)
+        // Cycle de vie = application entière ; le consommateur vit sur
+        // le dispatcher d'I/O et n'a rien d'autre à arrêter.
+        val scope = CoroutineScope(SupervisorJob() + dispatchers.io)
+        fileSink.start(scope)
 
-            logger.i(tag) {
-                "CodeIDE ${buildInfo.versionName} (${buildInfo.versionCode}, ${buildInfo.buildType}) — " +
-                    deviceSummary.summary()
-            }
+        logger.i(tag) {
+            "CodeIDE ${buildInfo.versionName} (${buildInfo.versionCode}, ${buildInfo.buildType}) — " +
+                deviceSummary.summary()
         }
     }
+}

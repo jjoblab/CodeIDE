@@ -1,5 +1,98 @@
 # Journal des modifications
 
+## [0.174.0] – 2026-10-24
+
+### La preview Compose vit dans la carte « goutte d'eau » : rendu statique persistant, live-edit par diff d'identité, erreurs typées — mission « Previews » C1 (PREVIEW.md §4, ADR 0140)
+
+#### Ajouté
+
+- **LA CARTE « GOUTTE D'EAU » ACCUEILLE LA PREVIEW COMPOSE (instruction
+  propriétaire, ADR 0140 D1)** : sur un fichier Kotlin (`.kt`/`.kts` — et
+  LUI SEUL : l'œil de gouttière n'apparaît JAMAIS sur un layout XML, dont
+  l'aperçu reste l'écran dédié `:feature:preview`, garde de régression
+  testée), le tap sur l'œil ouvre la carte cel-ui B27 ancrée au caret : les
+  ONGLETS de la carte sont les `@Preview @Composable` découvertes du
+  document (une pastille par fonction, ordre du document), l'écran du
+  mini-téléphone reçoit le BITMAP du rendu FIT centré, le BADGE porte
+  « document · @Preview nom » — AUCUNE mise à jour de la bibliothèque
+  code-editor n'était nécessaire, le contrat B27 couvrait déjà tout ;
+  l'hôte dédié `HostApercuCompose` (feature:editor) implémente
+  `EditorPreviewHost` : il vit dans `EditorViewModel` (survit aux
+  re-créations), l'activité ne fait que POSER la vue (`installerSur`),
+  l'onglet actif re-branche le moteur, la ré-ouverture de la carte est une
+  NOUVELLE TENTATIVE du processus `:preview` (miroir « Réessayer »).
+- **LE MODULE `:preview:compose` (PC2) — interpréteur, session persistante,
+  live-edit par diff d'identité (PC1/C1)** : la découverte est INJECTÉE
+  (fournit les `PreviewKotlin` de codeide-lsp 1.4.0, paresseuse — invoquée
+  APRÈS le debounce de 400 ms sur le fil du moteur : une frappe ne coûte
+  AUCUN parse) ; `ConvertisseurProgramme` convertit l'arbre NEUTRE du LSP
+  en `ProgrammeCompose` (digeste SHA-256 par programme) ; `RenduCompose`
+  rend chaque genre par son composable RÉEL de la bibliothèque embarquée
+  (runtime Compose confiné au module, BOM 2026.09.00 — ADR 0002 intact :
+  jamais de Compose pour l'UI CodeIDE) dans le processus `:preview`
+  (`ServicePreviewCompose` bound-only, LE MÊME processus que le service
+  XML — une machinerie, deux dialectes). Le rendu est TOUJOURS une SESSION
+  PERSISTANTE par identité (`uri#nom#index`) : le programme est POUSSÉ
+  dans la composition vivante, c'est la RECOMPOSITION qui diff, les
+  `remember` survivent aux éditions ; un digeste inchangé ne re-rend
+  RIEN (zéro appel Binder). La composition vit sur le fil du processus
+  `:preview` comme coroutine SUSPENDANTE — jamais d'interblocement fil
+  Binder/fil de composition.
+- **ERREURS TYPÉES EN PASTILLES ISOLÉES (leçon C0 de l'étude PE14 §5)** :
+  un nœud hors registre, une expression non interprétée (ellipsée
+  honnêtement), un composable de projet à paramètres ou une coupure de
+  budget devient une PASTILLE typée (`GenreErreurCompose`) dans le rendu —
+  le nœud fautif est isolé, LE RESTE SE REND (miroir `createMockView` de
+  la référence : jamais de rendu tout-ou-rien) ; les erreurs accompagnent
+  TOUJOURS le bitmap pour l'affichage inline futur (C3 les surlignera).
+- **GARDE-FOUS PC4 LIVRÉS AVEC C1 (ADR 0140 D5)** : sandbox par
+  construction (le programme n'exécute QUE les composables du REGISTRE —
+  réseau, stockage et réflexion IMPOSSIBLES), `LocalInspectionMode` vrai,
+  budgets bornés (rendu chaud 9 s / premier rendu 40 s / recomposition
+  5 s — sous les budgets transport 45/15/10 s), un rendu enlisé laisse un
+  zombie qui OCCUPE sa session (verrou tryLock : le rendu suivant répond
+  l'échec honnête, jamais un rendu fantôme), la mort du processus
+  `:preview` donne UNE reprise puis l'état typé « indisponible »
+  (`IsolationCompose`) — AUCUN repli local (composer du code utilisateur
+  dans l'IDE est ce que PC4 interdit). Le watchdog de gel avec kill reste
+  le chantier C3, documenté.
+- **CONTRAT « JAMAIS DE CARTE VIDE » (ADR 0140 D7)** : pendant les
+  frappes et les signaux discrets du moteur, le DERNIER rendu valide de
+  chaque onglet RESTE affiché ; les messages honnêtes distinguent la
+  RECHERCHE (« Recherche des @Preview… »), l'ABSENCE (« Aucune @Preview à
+  afficher »), l'échec du document et l'échec LOCAL d'un onglet ; le
+  contrat cel-ui des libellés stables est honoré : une liste d'onglets
+  qui CHANGE la carte vivante la referme/ré-ouvre au même caret (glissade
+  180 ms de la bibliothèque, l'onglet retombe à 0).
+- **52 TESTS NOUVEAUX** : 45 JVM dans `:preview:compose` (contrats Parcel,
+  convertisseur, moteur — diff d'identité et anti-boucle par digeste,
+  isolation — reprise unique puis indisponible, transport out-of-process,
+  service bound-only, rendu pixel NATIF des genres du registre et des
+  pastilles) + 7 Robolectric dans feature:editor (contrat B27 vu de
+  CodeIDE : garde Kotlin-seul, onglets du dernier rendu VALIDE, badge,
+  FIT centré pixel-vérifié, messages honnêtes, branchement/soumission/
+  ré-activation, refermeture-réouverture au même caret).
+
+#### Docs
+
+- **ADR 0140** (la preview Compose C1 vit dans la carte « goutte d'eau » —
+  décisions D1-D7, options rejetées, conséquences), PREVIEW.md §3.4
+  (rangée v0.171.0), ROADMAP (mission « Previews » C1 livrée), TESTS_MANUELS
+  (6 scénarios appareil : ouverture de la carte, onglets, live-edit, erreurs
+  typées, absence de carte vide, mort du processus).
+- **codeide-lsp 1.3.0 → 1.4.0** : la façade expose la découverte des
+  previews (frontière D6 du frère respectée — l'arbre d'appels reste
+  NEUTRE, l'interprétation vit côté CodeIDE).
+- **Exception ktlint canonique des projets Compose**
+  (`ktlint_function_naming_ignore_when_annotated_with = Composable`,
+  `.editorconfig` + relais build-logic) : les @Composable du registre
+  suivent la convention PascalCase du framework sans @Suppress ; le relais
+  `max_line_length = 120` accompagne l'override (la découverte du
+  `.editorconfig` n'est pas assurée quand un override existe — sans ce
+  relais, ktlint reformaterait le dépôt à sa marge par défaut ; le dépôt
+  a été re-canonicalisé sous cette config, aucune ligne de logique
+  touchée).
+
 ## [0.173.0] – 2026-10-23
 
 ### Deux niveaux d'expansion + zoom qui survit à l'édition feuille déployée (retour propriétaire) + RTL fidèle + sélection par viewCookie + spike Compose C0 — PE14 S8/S9 (LayoutLib 3.7.0)

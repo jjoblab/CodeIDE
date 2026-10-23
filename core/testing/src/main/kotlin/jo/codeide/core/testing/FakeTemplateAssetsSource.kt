@@ -41,11 +41,7 @@ public class FakeTemplateAssetsSource : TemplateAssetsSource {
      * @param cheminRelatif chemin relatif dans le répertoire du modèle.
      * @param octets contenu brut.
      */
-    public fun semerFichierTemplate(
-        idModele: String,
-        cheminRelatif: String,
-        octets: ByteArray,
-    ) {
+    public fun semerFichierTemplate(idModele: String, cheminRelatif: String, octets: ByteArray) {
         fichiersTemplates[idModele to cheminRelatif] = octets
     }
 
@@ -56,11 +52,7 @@ public class FakeTemplateAssetsSource : TemplateAssetsSource {
      * @param cheminRelatif chemin relatif.
      * @param texte contenu texte.
      */
-    public fun semerFichierTemplate(
-        idModele: String,
-        cheminRelatif: String,
-        texte: String,
-    ) {
+    public fun semerFichierTemplate(idModele: String, cheminRelatif: String, texte: String) {
         semerFichierTemplate(idModele, cheminRelatif, texte.toByteArray(Charsets.UTF_8))
     }
 
@@ -70,10 +62,7 @@ public class FakeTemplateAssetsSource : TemplateAssetsSource {
      * @param nomFichier nom du fichier (ex. `mit.txt`).
      * @param texte contenu texte.
      */
-    public fun semerLicence(
-        nomFichier: String,
-        texte: String,
-    ) {
+    public fun semerLicence(nomFichier: String, texte: String) {
         licences[nomFichier] = texte.toByteArray(Charsets.UTF_8)
     }
 
@@ -82,10 +71,7 @@ public class FakeTemplateAssetsSource : TemplateAssetsSource {
         return AppResult.Success(repertoires.sorted())
     }
 
-    public override suspend fun readTemplateFile(
-        templateId: String,
-        cheminRelatif: String,
-    ): AppResult<ByteArray> {
+    public override suspend fun readTemplateFile(templateId: String, cheminRelatif: String): AppResult<ByteArray> {
         readTemplateFailure?.let {
             return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: ""))
         }

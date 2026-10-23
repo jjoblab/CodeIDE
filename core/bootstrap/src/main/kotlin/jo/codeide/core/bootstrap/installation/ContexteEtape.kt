@@ -48,10 +48,8 @@ internal class ContexteEtape(
  * est une responsabilité du contexte, pas du runner — le port retourne
  * le résultat brut, le journal reçoit tout au fil de l'eau).
  */
-internal class CommandRunnerJournalise(
-    private val delegue: CommandRunner,
-    private val surLigne: (String) -> Unit,
-) : CommandRunner {
+internal class CommandRunnerJournalise(private val delegue: CommandRunner, private val surLigne: (String) -> Unit) :
+    CommandRunner {
     override suspend fun run(command: CommandSpec): CommandResult {
         surLigne("$ ${command.program} ${command.arguments.joinToString(" ")}".trimEnd())
         val resultat = delegue.run(command)

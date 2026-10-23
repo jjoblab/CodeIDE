@@ -136,10 +136,10 @@ class CrashHandlerTest {
         val (gestionnaire, _) =
             gestionnaire(
                 lance =
-                    ActivityLauncher {
-                        captures.lancements++
-                        error("impossible de lancer l'écran")
-                    },
+                ActivityLauncher {
+                    captures.lancements++
+                    error("impossible de lancer l'écran")
+                },
             )
 
         gestionnaire.uncaughtException(Thread.currentThread(), RuntimeException("boum"))

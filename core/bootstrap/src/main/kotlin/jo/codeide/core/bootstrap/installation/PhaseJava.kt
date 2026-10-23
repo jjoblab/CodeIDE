@@ -31,10 +31,7 @@ import java.io.File
  * APT est interrogé (`apt-cache policy`) et journalisé avant installation
  * (§ 5.3 : « interroge-le »).
  */
-internal class PhaseJava(
-    private val racine: File,
-    private val catalogue: ToolchainCatalog,
-) : PhaseInstallation {
+internal class PhaseJava(private val racine: File, private val catalogue: ToolchainCatalog) : PhaseInstallation {
     override val phase: InstallPhase = InstallPhase.JAVA
 
     override fun etapes(): List<InstallStep> = listOf(EtapePaquetJdk(racine, catalogue), EtapeVerificationTls(racine))
@@ -75,10 +72,7 @@ internal class PhaseJava(
  * ici avec sa sortie capturée — plus jamais de « SDK non fonctionnel »
  * muet.
  */
-private class EtapePaquetJdk(
-    private val racine: File,
-    private val catalogue: ToolchainCatalog,
-) : InstallStep {
+private class EtapePaquetJdk(private val racine: File, private val catalogue: ToolchainCatalog) : InstallStep {
     override val id: StepId = StepId(InstallPhase.JAVA, "openjdk")
 
     override suspend fun execute(context: StepContext) {
@@ -164,8 +158,8 @@ private class EtapePaquetJdk(
                 ?: return AppError.EnvironmentSetup(
                     reason = EnvironmentSetupReason.Jvm,
                     details =
-                        "aucun JDK complet (bin/java et bin/javac) trouvé dans le préfixe — " +
-                            "le paquet ${catalogue.jdkPackage} ne s'est pas installé correctement",
+                    "aucun JDK complet (bin/java et bin/javac) trouvé dans le préfixe — " +
+                        "le paquet ${catalogue.jdkPackage} ne s'est pas installé correctement",
                 )
         val versionJava = executer(context, javaHome, binaire = "java", argument = "-version")
         val versionJavac = executer(context, javaHome, binaire = "javac", argument = "-version")
@@ -175,10 +169,7 @@ private class EtapePaquetJdk(
     }
 
     /** Un binaire du JDK démarre-t-il (`-version`, code 0) ? Sinon, erreur typée avec sortie. */
-    private fun controlerDemarrage(
-        resultat: CommandResult,
-        binaire: String,
-    ): AppError.EnvironmentSetup? =
+    private fun controlerDemarrage(resultat: CommandResult, binaire: String): AppError.EnvironmentSetup? =
         if (resultat.succeeded) {
             null
         } else {
@@ -194,8 +185,8 @@ private class EtapePaquetJdk(
             AppError.EnvironmentSetup(
                 reason = EnvironmentSetupReason.Jvm,
                 details =
-                    "version majeure $majeure installée, ${catalogue.jdkMajorVersion} exigée " +
-                        "(catalogue) — le paquet du dépôt ne correspond pas à l'exigence",
+                "version majeure $majeure installée, ${catalogue.jdkMajorVersion} exigée " +
+                    "(catalogue) — le paquet du dépôt ne correspond pas à l'exigence",
                 sortie = sortieCapturee("java -version", versionJava),
             )
         }
@@ -207,30 +198,23 @@ private class EtapePaquetJdk(
         javaHome: File,
         binaire: String,
         argument: String,
-    ): CommandResult =
-        context.commands.run(
-            CommandSpec(
-                program = File(javaHome, "bin/$binaire").absolutePath,
-                arguments = listOf(argument),
-                workingDir = DispositionsBootstrap.prefix(racine),
-                timeoutMillis = PhaseJava.DELAI_VERIFICATION,
-            ),
-        )
+    ): CommandResult = context.commands.run(
+        CommandSpec(
+            program = File(javaHome, "bin/$binaire").absolutePath,
+            arguments = listOf(argument),
+            workingDir = DispositionsBootstrap.prefix(racine),
+            timeoutMillis = PhaseJava.DELAI_VERIFICATION,
+        ),
+    )
 
-    private fun erreurJvm(
-        details: String,
-        resultat: CommandResult,
-    ): AppError.EnvironmentSetup =
+    private fun erreurJvm(details: String, resultat: CommandResult): AppError.EnvironmentSetup =
         AppError.EnvironmentSetup(
             reason = EnvironmentSetupReason.Jvm,
             details = details,
             sortie = sortieCapturee("contrôle du JDK", resultat),
         )
 
-    private fun sortieCapturee(
-        commande: String,
-        resultat: CommandResult,
-    ): CommandOutput =
+    private fun sortieCapturee(commande: String, resultat: CommandResult): CommandOutput =
         CommandOutput(commande = commande, exitCode = resultat.exitCode, lastLines = resultat.tail(BORNE_SORTIE))
 
     private companion object {
@@ -254,9 +238,7 @@ private class EtapePaquetJdk(
  * sonde** fixée par le cahier (§ 5.3), pas une source de composant : les
  * sources d'artefacts viennent exclusivement du manifeste (§ 12.7).
  */
-private class EtapeVerificationTls(
-    private val racine: File,
-) : InstallStep {
+private class EtapeVerificationTls(private val racine: File) : InstallStep {
     override val id: StepId = StepId(InstallPhase.JAVA, "verification-tls")
 
     override suspend fun execute(context: StepContext) {
@@ -285,10 +267,7 @@ private class EtapeVerificationTls(
     }
 
     /** Compile la sonde (`javac`) ; sinon, erreur typée avec la sortie du compilateur. */
-    private suspend fun compiler(
-        context: StepContext,
-        javaHome: File,
-    ): AppError.EnvironmentSetup? {
+    private suspend fun compiler(context: StepContext, javaHome: File): AppError.EnvironmentSetup? {
         val dossierSonde = DispositionsBootstrap.tmpdir(racine)
         dossierSonde.mkdirs()
         val source = File(dossierSonde, "$NOM_CLASSE.java")
@@ -314,10 +293,7 @@ private class EtapeVerificationTls(
     }
 
     /** Exécute la sonde compilée (`java`) ; succès = `TLS_OK` sur stdout. */
-    private suspend fun executerSonde(
-        context: StepContext,
-        javaHome: File,
-    ): AppError.EnvironmentSetup? {
+    private suspend fun executerSonde(context: StepContext, javaHome: File): AppError.EnvironmentSetup? {
         val dossierSonde = DispositionsBootstrap.tmpdir(racine)
         context.journal("test TLS : requête HTTPS Java vers $CIBLE_SONDE")
         val sonde =

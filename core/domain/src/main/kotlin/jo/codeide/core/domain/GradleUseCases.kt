@@ -19,26 +19,25 @@ import javax.inject.Inject
  * hors thread principal.
  */
 public class SynchroniserProjetUseCase
-    @Inject
-    constructor(
-        private val tooling: GradleToolingRepository,
-        private val journal: AppLogger,
-        private val dispatchers: DispatcherProvider,
-    ) {
-        /**
-         * Synchronise le dossier [dossier] (modèles IDE-like, §5.3) avec les
-         * [arguments] Gradle réglés (v4 : `--offline` et arguments libres
-         * s'appliquent À la configuration du build).
-         */
-        public suspend operator fun invoke(
-            dossier: File,
-            arguments: List<String> = emptyList(),
-        ): AppResult<ResultatSynchronisation> =
-            withContext(dispatchers.io) {
-                journal.i(TAG) { "synchronisation demandée" }
-                tooling.synchroniser(dossier, arguments)
-            }
+@Inject
+constructor(
+    private val tooling: GradleToolingRepository,
+    private val journal: AppLogger,
+    private val dispatchers: DispatcherProvider,
+) {
+    /**
+     * Synchronise le dossier [dossier] (modèles IDE-like, §5.3) avec les
+     * [arguments] Gradle réglés (v4 : `--offline` et arguments libres
+     * s'appliquent À la configuration du build).
+     */
+    public suspend operator fun invoke(
+        dossier: File,
+        arguments: List<String> = emptyList(),
+    ): AppResult<ResultatSynchronisation> = withContext(dispatchers.io) {
+        journal.i(TAG) { "synchronisation demandée" }
+        tooling.synchroniser(dossier, arguments)
     }
+}
 
 /**
  * Cas d'usage « exécuter des tâches Gradle » (Tooling G5, §6) : lance le
@@ -57,30 +56,29 @@ public class SynchroniserProjetUseCase
  * Contexte d'exécution attendu : suspendante, hors thread principal.
  */
 public class ExecuterTachesUseCase
-    @Inject
-    constructor(
-        private val tooling: GradleToolingRepository,
-        private val journal: AppLogger,
-        private val dispatchers: DispatcherProvider,
-    ) {
-        /**
-         * Lance les [taches] sur le dossier [dossier], avec les
-         * [arguments] Gradle supplémentaires (aucun par défaut).
-         *
-         * @return identifiant du build à observer.
-         */
-        public suspend operator fun invoke(
-            dossier: File,
-            taches: List<String>,
-            arguments: List<String> = emptyList(),
-        ): String =
-            withContext(dispatchers.io) {
-                journal.i(TAG) {
-                    "build demandé (${taches.size} tâche(s), ${arguments.size} argument(s))"
-                }
-                tooling.build(dossier, taches, arguments)
-            }
+@Inject
+constructor(
+    private val tooling: GradleToolingRepository,
+    private val journal: AppLogger,
+    private val dispatchers: DispatcherProvider,
+) {
+    /**
+     * Lance les [taches] sur le dossier [dossier], avec les
+     * [arguments] Gradle supplémentaires (aucun par défaut).
+     *
+     * @return identifiant du build à observer.
+     */
+    public suspend operator fun invoke(
+        dossier: File,
+        taches: List<String>,
+        arguments: List<String> = emptyList(),
+    ): String = withContext(dispatchers.io) {
+        journal.i(TAG) {
+            "build demandé (${taches.size} tâche(s), ${arguments.size} argument(s))"
+        }
+        tooling.build(dossier, taches, arguments)
     }
+}
 
 /**
  * Cas d'usage « annuler le build courant » (Tooling G5, §6) : pure
@@ -89,15 +87,13 @@ public class ExecuterTachesUseCase
  * déjà terminé.
  */
 public class AnnulerBuildUseCase
-    @Inject
-    constructor(
-        private val tooling: GradleToolingRepository,
-    ) {
-        /** Demande l'annulation du build [buildId]. */
-        public operator fun invoke(buildId: String) {
-            tooling.cancel(buildId)
-        }
+@Inject
+constructor(private val tooling: GradleToolingRepository) {
+    /** Demande l'annulation du build [buildId]. */
+    public operator fun invoke(buildId: String) {
+        tooling.cancel(buildId)
     }
+}
 
 /**
  * Cas d'usage « lister les tâches du projet » (Tooling G5, §6) : alimente
@@ -108,16 +104,15 @@ public class AnnulerBuildUseCase
  * hors thread principal.
  */
 public class ListerTachesProjetUseCase
-    @Inject
-    constructor(
-        private val tooling: GradleToolingRepository,
-        private val dispatchers: DispatcherProvider,
-    ) {
-        /** Liste les tâches du dossier [dossier]. */
-        public suspend operator fun invoke(dossier: File): AppResult<List<InfoTache>> =
-            withContext(dispatchers.io) {
-                tooling.taches(dossier)
-            }
+@Inject
+constructor(
+    private val tooling: GradleToolingRepository,
+    private val dispatchers: DispatcherProvider,
+) {
+    /** Liste les tâches du dossier [dossier]. */
+    public suspend operator fun invoke(dossier: File): AppResult<List<InfoTache>> = withContext(dispatchers.io) {
+        tooling.taches(dossier)
     }
+}
 
 private const val TAG = "GradleUseCase"

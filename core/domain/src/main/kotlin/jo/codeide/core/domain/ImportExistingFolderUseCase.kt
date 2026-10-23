@@ -16,22 +16,16 @@ import javax.inject.Inject
  */
 public sealed interface ImportDossier {
     /** Dossier validé et ajouté au registre. */
-    public data class Ajoute(
-        val projet: Project,
-    ) : ImportDossier
+    public data class Ajoute(val projet: Project) : ImportDossier
 
     /** Le dossier est déjà référencé par un projet (index unique). */
     public data object DejaPresent : ImportDossier
 
     /** Dossier refusé par Android 11+ (racine, Download, Android/data…). */
-    public data class Refuse(
-        val raison: ForbiddenFolders.Reason,
-    ) : ImportDossier
+    public data class Refuse(val raison: ForbiddenFolders.Reason) : ImportDossier
 
     /** Échec typé de permission, de test d'écriture ou de registre. */
-    public data class Erreur(
-        val erreur: AppError,
-    ) : ImportDossier
+    public data class Erreur(val erreur: AppError) : ImportDossier
 }
 
 /**
@@ -66,116 +60,116 @@ public sealed interface ImportDossier {
  */
 @Suppress("ReturnCount")
 public class ImportExistingFolderUseCase
-    @Inject
-    constructor(
-        private val projets: ProjectRepository,
-        private val parametres: SettingsRepository,
-        private val fichiers: FileSystem,
-        private val arborescences: ArborescencesSaf,
-        private val horloge: TimeProvider,
-    ) {
-        /** Importe le dossier désigné par [grantUri] sans rien créer sur disque. */
-        public suspend operator fun invoke(grantUri: String): ImportDossier {
-            val idChoisi =
-                arborescences.idDocument(grantUri)
-                    ?: return ImportDossier.Erreur(
-                        AppError.Storage(AppError.StorageReason.Io, "URI d'arborescence illisible"),
-                    )
-
-            // Refus plateforme d'abord : jamais de permission prise sur un
-            // dossier interdit (message clair, section 5.6).
-            ForbiddenFolders.reasonFor(idChoisi)?.let { return ImportDossier.Refuse(it) }
-
-            val uriChoisi =
-                arborescences.uriDocument(grantUri)
-                    ?: return ImportDossier.Erreur(
-                        AppError.Storage(AppError.StorageReason.Io, "URI de document illisible"),
-                    )
-
-            // Politique d'héritage (ADR 0015) : un choix dans l'arbre du
-            // dossier de travail n'a pas de permission propre.
-            when (val emplacement = resoudreEmplacement(arborescences, parametres, uriChoisi, idChoisi)) {
-                is EmplacementSaf.Herite -> {
-                    return enregistrer(
-                        permissionPropre = false,
-                        grantUri = emplacement.grantUri,
-                        uriDocument = emplacement.uriDocument,
-                        idDocument = idChoisi,
-                    )
-                }
-
-                is EmplacementSaf.Illisible -> {
-                    return ImportDossier.Erreur(emplacement.erreur)
-                }
-
-                is EmplacementSaf.Propre -> {
-                    Unit
-                }
-            }
-
-            // Hors du dossier de travail : permission propre + test
-            // d'écriture, permission relâchée à tout échec.
-            when (val permission = fichiers.takePersistablePermission(grantUri)) {
-                is AppResult.Failure -> return ImportDossier.Erreur(permission.error)
-                is AppResult.Success -> Unit
-            }
-
-            val echec = testerEcriture(fichiers, uriChoisi, horloge, PREFIXE_TEMOIN)
-            if (echec != null) {
-                fichiers.releasePersistablePermission(grantUri)
-                return ImportDossier.Erreur(echec)
-            }
-
-            return enregistrer(
-                permissionPropre = true,
-                grantUri = grantUri,
-                uriDocument = uriChoisi,
-                idDocument = idChoisi,
-            )
-        }
-
-        /**
-         * Ajoute le dossier au registre ; [permissionPropre] dit si une
-         * permission a été prise pour lui et doit être relâchée en cas
-         * d'échec (l'entrée de registre est la seule raison de la garder).
-         */
-        private suspend fun enregistrer(
-            permissionPropre: Boolean,
-            grantUri: String,
-            uriDocument: String,
-            idDocument: String,
-        ): ImportDossier {
-            val libelle = libelleLisible(fichiers, uriDocument, idDocument)
-            val ajout =
-                projets.addProject(
-                    name = libelle,
-                    description = "",
-                    location = StorageLocation(grantUri, uriDocument, libelle),
-                    templateId = TemplateId.IMPORTED,
+@Inject
+constructor(
+    private val projets: ProjectRepository,
+    private val parametres: SettingsRepository,
+    private val fichiers: FileSystem,
+    private val arborescences: ArborescencesSaf,
+    private val horloge: TimeProvider,
+) {
+    /** Importe le dossier désigné par [grantUri] sans rien créer sur disque. */
+    public suspend operator fun invoke(grantUri: String): ImportDossier {
+        val idChoisi =
+            arborescences.idDocument(grantUri)
+                ?: return ImportDossier.Erreur(
+                    AppError.Storage(AppError.StorageReason.Io, "URI d'arborescence illisible"),
                 )
-            return when (ajout) {
-                is AppResult.Success -> {
-                    ImportDossier.Ajoute(ajout.value)
-                }
 
-                is AppResult.Failure -> {
-                    // Échec (y compris « déjà présent ») : la permission propre
-                    // n'est conservée que si un projet restant du registre —
-                    // ou le dossier de travail — référence encore cet arbre
-                    // (l'entrée existante peut vivre sur la même arborescence).
-                    if (permissionPropre) {
-                        libererPermissionSiInutilisee(projets, parametres, fichiers, grantUri)
-                    }
-                    when ((ajout.error as? AppError.Storage)?.reason) {
-                        AppError.StorageReason.AlreadyExists -> ImportDossier.DejaPresent
-                        else -> ImportDossier.Erreur(ajout.error)
-                    }
-                }
+        // Refus plateforme d'abord : jamais de permission prise sur un
+        // dossier interdit (message clair, section 5.6).
+        ForbiddenFolders.reasonFor(idChoisi)?.let { return ImportDossier.Refuse(it) }
+
+        val uriChoisi =
+            arborescences.uriDocument(grantUri)
+                ?: return ImportDossier.Erreur(
+                    AppError.Storage(AppError.StorageReason.Io, "URI de document illisible"),
+                )
+
+        // Politique d'héritage (ADR 0015) : un choix dans l'arbre du
+        // dossier de travail n'a pas de permission propre.
+        when (val emplacement = resoudreEmplacement(arborescences, parametres, uriChoisi, idChoisi)) {
+            is EmplacementSaf.Herite -> {
+                return enregistrer(
+                    permissionPropre = false,
+                    grantUri = emplacement.grantUri,
+                    uriDocument = emplacement.uriDocument,
+                    idDocument = idChoisi,
+                )
+            }
+
+            is EmplacementSaf.Illisible -> {
+                return ImportDossier.Erreur(emplacement.erreur)
+            }
+
+            is EmplacementSaf.Propre -> {
+                Unit
             }
         }
 
-        private companion object {
-            /** Préfixe du fichier témoin du test d'écriture. */
-            const val PREFIXE_TEMOIN = "codeide-import"
+        // Hors du dossier de travail : permission propre + test
+        // d'écriture, permission relâchée à tout échec.
+        when (val permission = fichiers.takePersistablePermission(grantUri)) {
+            is AppResult.Failure -> return ImportDossier.Erreur(permission.error)
+            is AppResult.Success -> Unit
+        }
+
+        val echec = testerEcriture(fichiers, uriChoisi, horloge, PREFIXE_TEMOIN)
+        if (echec != null) {
+            fichiers.releasePersistablePermission(grantUri)
+            return ImportDossier.Erreur(echec)
+        }
+
+        return enregistrer(
+            permissionPropre = true,
+            grantUri = grantUri,
+            uriDocument = uriChoisi,
+            idDocument = idChoisi,
+        )
+    }
+
+    /**
+     * Ajoute le dossier au registre ; [permissionPropre] dit si une
+     * permission a été prise pour lui et doit être relâchée en cas
+     * d'échec (l'entrée de registre est la seule raison de la garder).
+     */
+    private suspend fun enregistrer(
+        permissionPropre: Boolean,
+        grantUri: String,
+        uriDocument: String,
+        idDocument: String,
+    ): ImportDossier {
+        val libelle = libelleLisible(fichiers, uriDocument, idDocument)
+        val ajout =
+            projets.addProject(
+                name = libelle,
+                description = "",
+                location = StorageLocation(grantUri, uriDocument, libelle),
+                templateId = TemplateId.IMPORTED,
+            )
+        return when (ajout) {
+            is AppResult.Success -> {
+                ImportDossier.Ajoute(ajout.value)
+            }
+
+            is AppResult.Failure -> {
+                // Échec (y compris « déjà présent ») : la permission propre
+                // n'est conservée que si un projet restant du registre —
+                // ou le dossier de travail — référence encore cet arbre
+                // (l'entrée existante peut vivre sur la même arborescence).
+                if (permissionPropre) {
+                    libererPermissionSiInutilisee(projets, parametres, fichiers, grantUri)
+                }
+                when ((ajout.error as? AppError.Storage)?.reason) {
+                    AppError.StorageReason.AlreadyExists -> ImportDossier.DejaPresent
+                    else -> ImportDossier.Erreur(ajout.error)
+                }
+            }
         }
     }
+
+    private companion object {
+        /** Préfixe du fichier témoin du test d'écriture. */
+        const val PREFIXE_TEMOIN = "codeide-import"
+    }
+}

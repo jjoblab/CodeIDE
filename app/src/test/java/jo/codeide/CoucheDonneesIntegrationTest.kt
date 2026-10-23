@@ -59,54 +59,51 @@ class CoucheDonneesIntegrationTest {
     }
 
     @Test
-    fun `le registre des projets fait l'aller-retour complet`() =
-        runBlocking {
-            val emplacement =
-                StorageLocation(
-                    grantUri = "content://autorite/tree/t",
-                    documentUri = "content://autorite/tree/t/doc/integration",
-                    displayPath = "CodeIDE/Integration",
-                )
-
-            val ajoute = AddProjectUseCase(depotsProjets)("Integration", "Test", emplacement, TemplateId("kotlin-jvm"))
-
-            assertTrue(ajoute is AppResult.Success)
-            val projet = (ajoute as AppResult.Success).value
-            val registre = ObserveProjectsUseCase(depotsProjets)().first()
-
-            assertEquals(listOf(projet), registre)
-        }
-
-    @Test
-    fun `un dossier déjà référencé est refusé par l'index unique`() =
-        runBlocking {
-            val emplacement =
-                StorageLocation(
-                    grantUri = "content://autorite/tree/t",
-                    documentUri = "content://autorite/tree/t/doc/doublon",
-                    displayPath = "CodeIDE/Doublon",
-                )
-            AddProjectUseCase(depotsProjets)("Premier", "", emplacement, TemplateId("kotlin-jvm"))
-
-            val second = AddProjectUseCase(depotsProjets)("Second", "", emplacement, TemplateId("java"))
-
-            val echec = second as AppResult.Failure
-            assertTrue(echec.error is jo.codeide.core.model.AppError.Storage)
-            assertEquals(
-                jo.codeide.core.model.AppError.StorageReason.AlreadyExists,
-                (echec.error as jo.codeide.core.model.AppError.Storage).reason,
+    fun `le registre des projets fait l'aller-retour complet`() = runBlocking {
+        val emplacement =
+            StorageLocation(
+                grantUri = "content://autorite/tree/t",
+                documentUri = "content://autorite/tree/t/doc/integration",
+                displayPath = "CodeIDE/Integration",
             )
-        }
+
+        val ajoute = AddProjectUseCase(depotsProjets)("Integration", "Test", emplacement, TemplateId("kotlin-jvm"))
+
+        assertTrue(ajoute is AppResult.Success)
+        val projet = (ajoute as AppResult.Success).value
+        val registre = ObserveProjectsUseCase(depotsProjets)().first()
+
+        assertEquals(listOf(projet), registre)
+    }
 
     @Test
-    fun `les paramètres se mettent à jour via le graphe réel`() =
-        runBlocking {
-            val miseAJour = UpdateSettingsUseCase(depotsParametres)
+    fun `un dossier déjà référencé est refusé par l'index unique`() = runBlocking {
+        val emplacement =
+            StorageLocation(
+                grantUri = "content://autorite/tree/t",
+                documentUri = "content://autorite/tree/t/doc/doublon",
+                displayPath = "CodeIDE/Doublon",
+            )
+        AddProjectUseCase(depotsProjets)("Premier", "", emplacement, TemplateId("kotlin-jvm"))
 
-            val resultat = miseAJour { it.copy(logLevel = LogVerbosity.DETAILED) }
+        val second = AddProjectUseCase(depotsProjets)("Second", "", emplacement, TemplateId("java"))
 
-            assertTrue(resultat is AppResult.Success)
-            val reglages = depotsParametres.getSettings()
-            assertEquals(LogVerbosity.DETAILED, (reglages as AppResult.Success).value.logLevel)
-        }
+        val echec = second as AppResult.Failure
+        assertTrue(echec.error is jo.codeide.core.model.AppError.Storage)
+        assertEquals(
+            jo.codeide.core.model.AppError.StorageReason.AlreadyExists,
+            (echec.error as jo.codeide.core.model.AppError.Storage).reason,
+        )
+    }
+
+    @Test
+    fun `les paramètres se mettent à jour via le graphe réel`() = runBlocking {
+        val miseAJour = UpdateSettingsUseCase(depotsParametres)
+
+        val resultat = miseAJour { it.copy(logLevel = LogVerbosity.DETAILED) }
+
+        assertTrue(resultat is AppResult.Success)
+        val reglages = depotsParametres.getSettings()
+        assertEquals(LogVerbosity.DETAILED, (reglages as AppResult.Success).value.logLevel)
+    }
 }

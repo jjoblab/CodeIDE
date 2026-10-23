@@ -43,31 +43,27 @@ internal class ArchiveSessionsJournalFichiers(
     private val fichier: File
         get() = File(File(contexte.filesDir, DOSSIER), NOM_FICHIER)
 
-    override suspend fun charger(): List<SessionJournalArchivee> =
-        withContext(dispatchers.io) {
-            // Illisible (absent, IO) : liste vide — bonus de consultation,
-            // jamais une donnée critique.
-            val contenu =
-                fichier
-                    .takeIf { it.isFile }
-                    ?.let { lu -> runCatching { lu.readText() }.getOrNull() }
-                    ?: return@withContext emptyList()
-            runCatching {
-                val tableau = JSONArray(contenu)
-                val sessions = ArrayList<SessionJournalArchivee>(tableau.length())
-                for (i in 0 until tableau.length()) {
-                    sessions.add(depuisJson(tableau.getJSONObject(i)))
-                }
-                // La plus récente d'abord (ordre d'affichage du sélecteur).
-                sessions.sortByDescending { it.session.fin?.horodatageMs ?: 0L }
-                sessions
-            }.getOrDefault(emptyList())
-        }
+    override suspend fun charger(): List<SessionJournalArchivee> = withContext(dispatchers.io) {
+        // Illisible (absent, IO) : liste vide — bonus de consultation,
+        // jamais une donnée critique.
+        val contenu =
+            fichier
+                .takeIf { it.isFile }
+                ?.let { lu -> runCatching { lu.readText() }.getOrNull() }
+                ?: return@withContext emptyList()
+        runCatching {
+            val tableau = JSONArray(contenu)
+            val sessions = ArrayList<SessionJournalArchivee>(tableau.length())
+            for (i in 0 until tableau.length()) {
+                sessions.add(depuisJson(tableau.getJSONObject(i)))
+            }
+            // La plus récente d'abord (ordre d'affichage du sélecteur).
+            sessions.sortByDescending { it.session.fin?.horodatageMs ?: 0L }
+            sessions
+        }.getOrDefault(emptyList())
+    }
 
-    override suspend fun archiver(
-        session: SessionJournal,
-        derniereLigne: LigneJournal?,
-    ) = withContext(dispatchers.io) {
+    override suspend fun archiver(session: SessionJournal, derniereLigne: LigneJournal?) = withContext(dispatchers.io) {
         val actuelles = charger() + SessionJournalArchivee(session, derniereLigne)
         // Dédupliquée par identifiant (une ré-archive remplace l'ancienne),
         // bornée aux plus récentes, écrite atomiquement.
@@ -100,39 +96,38 @@ internal class ArchiveSessionsJournalFichiers(
         }
     }
 
-    private fun versJson(archivee: SessionJournalArchivee): JSONObject =
-        JSONObject()
-            .put(
-                CLE_SESSION,
-                JSONObject()
-                    .put(CLE_ID, archivee.session.id)
-                    .put(
-                        CLE_IDENTITE,
-                        JSONObject()
-                            .put(CLE_PAQUET, archivee.session.identite.paquet)
-                            .put(CLE_PID, archivee.session.identite.pid)
-                            .put(CLE_PROCESSUS, archivee.session.identite.nomProcessus),
-                    ).put(
-                        CLE_FIN,
-                        archivee.session.fin?.let { fin ->
-                            JSONObject()
-                                .put(CLE_RAISON, fin.raison)
-                                .put(CLE_HORODATAGE, fin.horodatageMs)
-                        } ?: JSONObject.NULL,
-                    ).put(CLE_NOMBRE_LIGNES, archivee.session.nombreLignes)
-                    .put(CLE_LIGNES_PERDUES, archivee.session.lignesPerdues),
-            ).put(
-                CLE_DERNIERE_LIGNE,
-                archivee.derniereLigne?.let { ligne ->
+    private fun versJson(archivee: SessionJournalArchivee): JSONObject = JSONObject()
+        .put(
+            CLE_SESSION,
+            JSONObject()
+                .put(CLE_ID, archivee.session.id)
+                .put(
+                    CLE_IDENTITE,
                     JSONObject()
-                        .put(CLE_HORODATAGE, ligne.horodatageMs)
-                        .put(CLE_PID, ligne.pid)
-                        .put(CLE_TID, ligne.tid)
-                        .put(CLE_NIVEAU, ligne.niveau.name)
-                        .put(CLE_ETIQUETTE, ligne.etiquette)
-                        .put(CLE_MESSAGE, ligne.message)
-                } ?: JSONObject.NULL,
-            )
+                        .put(CLE_PAQUET, archivee.session.identite.paquet)
+                        .put(CLE_PID, archivee.session.identite.pid)
+                        .put(CLE_PROCESSUS, archivee.session.identite.nomProcessus),
+                ).put(
+                    CLE_FIN,
+                    archivee.session.fin?.let { fin ->
+                        JSONObject()
+                            .put(CLE_RAISON, fin.raison)
+                            .put(CLE_HORODATAGE, fin.horodatageMs)
+                    } ?: JSONObject.NULL,
+                ).put(CLE_NOMBRE_LIGNES, archivee.session.nombreLignes)
+                .put(CLE_LIGNES_PERDUES, archivee.session.lignesPerdues),
+        ).put(
+            CLE_DERNIERE_LIGNE,
+            archivee.derniereLigne?.let { ligne ->
+                JSONObject()
+                    .put(CLE_HORODATAGE, ligne.horodatageMs)
+                    .put(CLE_PID, ligne.pid)
+                    .put(CLE_TID, ligne.tid)
+                    .put(CLE_NIVEAU, ligne.niveau.name)
+                    .put(CLE_ETIQUETTE, ligne.etiquette)
+                    .put(CLE_MESSAGE, ligne.message)
+            } ?: JSONObject.NULL,
+        )
 
     private fun depuisJson(json: JSONObject): SessionJournalArchivee {
         val sessionJson = json.getJSONObject(CLE_SESSION)
@@ -157,28 +152,28 @@ internal class ArchiveSessionsJournalFichiers(
                     pid = ligneJson.getInt(CLE_PID),
                     tid = ligneJson.getInt(CLE_TID),
                     niveau =
-                        runCatching { NiveauJournal.valueOf(ligneJson.getString(CLE_NIVEAU)) }
-                            .getOrDefault(NiveauJournal.INFO),
+                    runCatching { NiveauJournal.valueOf(ligneJson.getString(CLE_NIVEAU)) }
+                        .getOrDefault(NiveauJournal.INFO),
                     etiquette = ligneJson.optString(CLE_ETIQUETTE, ""),
                     message = ligneJson.optString(CLE_MESSAGE, ""),
                 )
             }
         return SessionJournalArchivee(
             session =
-                SessionJournal(
-                    id = sessionJson.getString(CLE_ID),
-                    identite =
-                        IdentiteSessionJournal(
-                            paquet = identiteJson.getString(CLE_PAQUET),
-                            pid = identiteJson.getInt(CLE_PID),
-                            nomProcessus = identiteJson.optString(CLE_PROCESSUS, identiteJson.getString(CLE_PAQUET)),
-                        ),
-                    etat = EtatSessionJournal.TERMINEE,
-                    fin = finOpt,
-                    nombreLignes = sessionJson.optInt(CLE_NOMBRE_LIGNES, 0),
-                    lignesPerdues = sessionJson.optLong(CLE_LIGNES_PERDUES, 0L),
-                    sortiePrecedente = null,
+            SessionJournal(
+                id = sessionJson.getString(CLE_ID),
+                identite =
+                IdentiteSessionJournal(
+                    paquet = identiteJson.getString(CLE_PAQUET),
+                    pid = identiteJson.getInt(CLE_PID),
+                    nomProcessus = identiteJson.optString(CLE_PROCESSUS, identiteJson.getString(CLE_PAQUET)),
                 ),
+                etat = EtatSessionJournal.TERMINEE,
+                fin = finOpt,
+                nombreLignes = sessionJson.optInt(CLE_NOMBRE_LIGNES, 0),
+                lignesPerdues = sessionJson.optLong(CLE_LIGNES_PERDUES, 0L),
+                sortiePrecedente = null,
+            ),
             derniereLigne = derniereOpt,
         )
     }

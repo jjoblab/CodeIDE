@@ -15,15 +15,14 @@ class LignesPileTest {
         etiquette: String = "MainActivity",
         message: String = "onCreate terminé",
         niveau: NiveauJournal = NiveauJournal.INFO,
-    ): LigneJournal =
-        LigneJournal(
-            horodatageMs = 1_000L,
-            pid = 4321,
-            tid = 4321,
-            niveau = niveau,
-            etiquette = etiquette,
-            message = message,
-        )
+    ): LigneJournal = LigneJournal(
+        horodatageMs = 1_000L,
+        pid = 4321,
+        tid = 4321,
+        niveau = niveau,
+        etiquette = etiquette,
+        message = message,
+    )
 
     @Test
     fun `les cadres kotlin et java sont retenus avec classe methode et ligne`() {

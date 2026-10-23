@@ -18,17 +18,16 @@ class FiltrageProjetsTest {
         description: String = "",
         epingle: Boolean = false,
         ouvert: Long? = null,
-    ): Project =
-        Project(
-            id = ProjectId(nom),
-            name = nom,
-            description = description,
-            location = StorageLocation("g", "d/$nom", nom),
-            templateId = TemplateId.IMPORTED,
-            createdAtMillis = 0L,
-            lastOpenedAtMillis = ouvert,
-            isPinned = epingle,
-        )
+    ): Project = Project(
+        id = ProjectId(nom),
+        name = nom,
+        description = description,
+        location = StorageLocation("g", "d/$nom", nom),
+        templateId = TemplateId.IMPORTED,
+        createdAtMillis = 0L,
+        lastOpenedAtMillis = ouvert,
+        isPinned = epingle,
+    )
 
     @Test
     fun `recherche vide garde tout`() {

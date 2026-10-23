@@ -51,16 +51,16 @@ class CrashReportJsonTest {
                 message = "enveloppe",
                 frames = listOf("A.un(B.kt:1)", "B.deux(C.kt:2)"),
                 cause =
-                    FlattenedException(
-                        className = "java.lang.IllegalArgumentException",
-                        message = "cause",
-                        frames = listOf("C.trois(D.kt:3)"),
-                        cause = null,
-                    ),
+                FlattenedException(
+                    className = "java.lang.IllegalArgumentException",
+                    message = "cause",
+                    frames = listOf("C.trois(D.kt:3)"),
+                    cause = null,
+                ),
                 suppressed =
-                    listOf(
-                        FlattenedException("java.io.IOException", "supprimée", emptyList(), null),
-                    ),
+                listOf(
+                    FlattenedException("java.io.IOException", "supprimée", emptyList(), null),
+                ),
             )
         val original = rapportAvecException(chaine)
 
@@ -78,17 +78,17 @@ class CrashReportJsonTest {
         val original =
             OutilsTestCrash.rapport(
                 filons =
-                    listOf(
-                        jo.codeide.core.model.LogEntry(
-                            timestampMillis = 9L,
-                            sessionId = "session-1",
-                            level = LogLevel.ERROR,
-                            tag = "Test",
-                            threadName = "DefaultDispatcher-worker-1",
-                            message = "échec",
-                            exception = exceptionFilon,
-                        ),
+                listOf(
+                    jo.codeide.core.model.LogEntry(
+                        timestampMillis = 9L,
+                        sessionId = "session-1",
+                        level = LogLevel.ERROR,
+                        tag = "Test",
+                        threadName = "DefaultDispatcher-worker-1",
+                        message = "échec",
+                        exception = exceptionFilon,
                     ),
+                ),
             )
 
         val relu =

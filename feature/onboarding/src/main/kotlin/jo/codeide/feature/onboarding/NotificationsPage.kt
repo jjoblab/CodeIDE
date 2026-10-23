@@ -48,10 +48,7 @@ class NotificationsPage : BaseFragment<PageNotificationsBinding>() {
         attachToRoot: Boolean,
     ): PageNotificationsBinding = PageNotificationsBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.boutonAutoriserNotifications.setOnClickListener {
@@ -81,10 +78,7 @@ class NotificationsPage : BaseFragment<PageNotificationsBinding>() {
     }
 
     /** Rendu : bouton de demande ou confirmation, repli réglages. */
-    private fun rendre(
-        activees: Boolean,
-        stockageActif: Boolean,
-    ) {
+    private fun rendre(activees: Boolean, stockageActif: Boolean) {
         binding.boutonAutoriserNotifications.isVisible = !activees
         binding.texteNotificationsActivees.isVisible = activees
         binding.boutonReglagesNotifications.isVisible = !activees

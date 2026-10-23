@@ -51,78 +51,73 @@ class LspSettingsStoreTest {
     }
 
     /** Crée un stock unique sur un fichier neuf, dans la portée courante. */
-    private fun nouveauStock(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            corruptionHandler =
-                androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
-                    emptyPreferences()
-                },
-            scope = portee,
-            produceFile = { File(contexte.cacheDir, "lsp-test-${compteur.incrementAndGet()}.preferences_pb") },
-        )
+    private fun nouveauStock(): DataStore<Preferences> = PreferenceDataStoreFactory.create(
+        corruptionHandler =
+        androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
+            emptyPreferences()
+        },
+        scope = portee,
+        produceFile = { File(contexte.cacheDir, "lsp-test-${compteur.incrementAndGet()}.preferences_pb") },
+    )
 
     /** Source de test sur un stock frais. */
     private fun nouvelleSource(stock: DataStore<Preferences> = nouveauStock()): LspSettingsStore =
         LspSettingsStore(stock)
 
     @Test
-    fun `un stock vide expose les defauts`() =
-        runTest {
-            assertEquals(LspSettings.parDefaut(), nouvelleSource().courant().getOrNull())
-        }
+    fun `un stock vide expose les defauts`() = runTest {
+        assertEquals(LspSettings.parDefaut(), nouvelleSource().courant().getOrNull())
+    }
 
     @Test
-    fun `aller-retour exact - budget explicite et surveillance coupee`() =
-        runTest {
-            val source = nouvelleSource()
-            val ecrit =
-                LspSettings(
-                    budgetCacheOctets = 512L * LspSettings.OCTETS_PAR_MO,
-                    surveillanceFichiersMs = 0L,
-                )
-            source.remplacer(ecrit).getOrNull()
-            assertEquals(ecrit, source.courant().getOrNull())
-            assertEquals(ecrit, source.observe().first())
-        }
-
-    @Test
-    fun `retour a l auto - la cle budget est retiree, pas mise a null`() =
-        runTest {
-            val source = nouvelleSource()
-            source
-                .remplacer(LspSettings(budgetCacheOctets = 256L * LspSettings.OCTETS_PAR_MO))
-                .getOrNull()
-            source.remplacer(LspSettings.parDefaut()).getOrNull()
-            assertEquals(LspSettings.parDefaut(), source.courant().getOrNull())
-        }
-
-    @Test
-    fun `valeurs incoherentes sur disque - repli par champ sur les defauts`() =
-        runTest {
-            val stock = nouveauStock()
-            val source = nouvelleSource(stock)
-            source
-                .remplacer(
-                    LspSettings(
-                        budgetCacheOctets = 64L * LspSettings.OCTETS_PAR_MO,
-                        surveillanceFichiersMs = 30_000L,
-                    ),
-                ).getOrNull()
-            // Édition manuelle du fichier : budget <= 0 (incohérent) et
-            // surveillance négative (interdite) — chaque champ retombe sur
-            // son défaut, la lecture ne lève jamais.
-            stock.edit {
-                it[longPreferencesKey("lsp_budget_cache_octets")] = -1L
-                it[longPreferencesKey("lsp_surveillance_fichiers_ms")] = -5_000L
-            }
-            val reglages = source.courant().getOrNull()
-            assertNull("budget incohérent → Auto", reglages?.budgetCacheOctets)
-            assertEquals(
-                "surveillance interdite → défaut",
-                LspSettings.SURVEILLANCE_PAR_DEFAUT_MS,
-                reglages?.surveillanceFichiersMs,
+    fun `aller-retour exact - budget explicite et surveillance coupee`() = runTest {
+        val source = nouvelleSource()
+        val ecrit =
+            LspSettings(
+                budgetCacheOctets = 512L * LspSettings.OCTETS_PAR_MO,
+                surveillanceFichiersMs = 0L,
             )
+        source.remplacer(ecrit).getOrNull()
+        assertEquals(ecrit, source.courant().getOrNull())
+        assertEquals(ecrit, source.observe().first())
+    }
+
+    @Test
+    fun `retour a l auto - la cle budget est retiree, pas mise a null`() = runTest {
+        val source = nouvelleSource()
+        source
+            .remplacer(LspSettings(budgetCacheOctets = 256L * LspSettings.OCTETS_PAR_MO))
+            .getOrNull()
+        source.remplacer(LspSettings.parDefaut()).getOrNull()
+        assertEquals(LspSettings.parDefaut(), source.courant().getOrNull())
+    }
+
+    @Test
+    fun `valeurs incoherentes sur disque - repli par champ sur les defauts`() = runTest {
+        val stock = nouveauStock()
+        val source = nouvelleSource(stock)
+        source
+            .remplacer(
+                LspSettings(
+                    budgetCacheOctets = 64L * LspSettings.OCTETS_PAR_MO,
+                    surveillanceFichiersMs = 30_000L,
+                ),
+            ).getOrNull()
+        // Édition manuelle du fichier : budget <= 0 (incohérent) et
+        // surveillance négative (interdite) — chaque champ retombe sur
+        // son défaut, la lecture ne lève jamais.
+        stock.edit {
+            it[longPreferencesKey("lsp_budget_cache_octets")] = -1L
+            it[longPreferencesKey("lsp_surveillance_fichiers_ms")] = -5_000L
         }
+        val reglages = source.courant().getOrNull()
+        assertNull("budget incohérent → Auto", reglages?.budgetCacheOctets)
+        assertEquals(
+            "surveillance interdite → défaut",
+            LspSettings.SURVEILLANCE_PAR_DEFAUT_MS,
+            reglages?.surveillanceFichiersMs,
+        )
+    }
 
     @Test
     fun `bornes du modele - periode negative et budget nul refuses`() {

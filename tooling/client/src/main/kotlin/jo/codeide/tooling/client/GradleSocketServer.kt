@@ -45,10 +45,7 @@ import java.io.IOException
  * dans son hôte de socket (cette classe reste la seule à parler
  * `LocalSocket`) — ses méthodes sont le contrat d'écoute.
  */
-class GradleSocketServer(
-    private val dossierSocket: File,
-    private val versionApp: String,
-) {
+class GradleSocketServer(private val dossierSocket: File, private val versionApp: String) {
     private var porteur: android.net.LocalSocket? = null
     private var serveur: android.net.LocalServerSocket? = null
 
@@ -126,10 +123,7 @@ class GradleSocketServer(
      * ou écoute défaillante — la tentative est consommable par le daemon.
      */
     @Suppress("ThrowsCount")
-    suspend fun accepterUneFois(
-        secretAttendu: String,
-        delaiMs: Long,
-    ): SessionTooling {
+    suspend fun accepterUneFois(secretAttendu: String, delaiMs: Long): SessionTooling {
         val serveur = requireNotNull(this.serveur) { "ouvrir() n'a pas été appelé" }
 
         val porteeAccept = CoroutineScope(SupervisorJob() + Dispatchers.IO)

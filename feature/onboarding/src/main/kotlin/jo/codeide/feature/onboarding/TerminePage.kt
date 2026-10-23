@@ -24,10 +24,7 @@ class TerminePage : BaseFragment<PageTermineBinding>() {
         attachToRoot: Boolean,
     ): PageTermineBinding = PageTermineBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
     }
@@ -56,12 +53,11 @@ class TerminePage : BaseFragment<PageTermineBinding>() {
             getString(R.string.page_termine_licence, getString(libelleLicence(etat.licenceDefaut)))
     }
 
-    private fun libelleLicence(licence: jo.codeide.core.model.License): Int =
-        when (licence) {
-            jo.codeide.core.model.License.NONE -> R.string.licence_none
-            jo.codeide.core.model.License.APACHE_2_0 -> R.string.licence_apache
-            jo.codeide.core.model.License.GPL_3_0 -> R.string.licence_gpl
-            jo.codeide.core.model.License.BSD_3_CLAUSE -> R.string.licence_bsd
-            jo.codeide.core.model.License.MIT -> R.string.licence_mit
-        }
+    private fun libelleLicence(licence: jo.codeide.core.model.License): Int = when (licence) {
+        jo.codeide.core.model.License.NONE -> R.string.licence_none
+        jo.codeide.core.model.License.APACHE_2_0 -> R.string.licence_apache
+        jo.codeide.core.model.License.GPL_3_0 -> R.string.licence_gpl
+        jo.codeide.core.model.License.BSD_3_CLAUSE -> R.string.licence_bsd
+        jo.codeide.core.model.License.MIT -> R.string.licence_mit
+    }
 }

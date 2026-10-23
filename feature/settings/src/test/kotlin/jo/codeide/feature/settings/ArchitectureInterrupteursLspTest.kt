@@ -95,11 +95,11 @@ class ArchitectureInterrupteursLspTest {
                 langage = jo.codeide.core.domain.LangageLsp.KOTLIN,
                 moteurs = MoteursLsp.INACTIFS,
                 capacitesAnnoncees =
-                    setOf(
-                        CapaciteLsp.INDICES_EN_LIGNE, // hors Kotlin réel : le test est générique
-                        CapaciteLsp.FORMATAGE,
-                        CapaciteLsp.COMPLETION,
-                    ),
+                setOf(
+                    CapaciteLsp.INDICES_EN_LIGNE, // hors Kotlin réel : le test est générique
+                    CapaciteLsp.FORMATAGE,
+                    CapaciteLsp.COMPLETION,
+                ),
             )
 
         assertEquals(
@@ -160,9 +160,7 @@ class ArchitectureInterrupteursLspTest {
     }
 
     /** Les trois langages, sans dépondre du domaine dans les boucles. */
-    private enum class LangagePourTest(
-        val langage: jo.codeide.core.domain.LangageLsp,
-    ) {
+    private enum class LangagePourTest(val langage: jo.codeide.core.domain.LangageLsp) {
         JAVA(jo.codeide.core.domain.LangageLsp.JAVA),
         KOTLIN(jo.codeide.core.domain.LangageLsp.KOTLIN),
         XML(jo.codeide.core.domain.LangageLsp.XML),

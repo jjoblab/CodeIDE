@@ -49,29 +49,22 @@ internal class ExtracteurBootstrap(
     private val dispatchers: DispatcherProvider,
 ) {
     /** Extraction complète + préparation des liens (sur I/O — l'appelant journalise la fin). */
-    suspend fun extraire(
-        archive: File,
-        staging: File,
-    ): Unit =
-        withContext(dispatchers.io) {
-            try {
-                extraireDans(archive, staging)
-            } catch (e: java.util.concurrent.CancellationException) {
-                throw e
-            } catch (e: EchecBootstrap) {
-                throw e
-            } catch (e: ZipException) {
-                throw EchecBootstrap(BootstrapReason.ArchiveCorrompue, "archive zip invalide : ${e.message}", cause = e)
-            } catch (e: IOException) {
-                throw traduire(e)
-            }
+    suspend fun extraire(archive: File, staging: File): Unit = withContext(dispatchers.io) {
+        try {
+            extraireDans(archive, staging)
+        } catch (e: java.util.concurrent.CancellationException) {
+            throw e
+        } catch (e: EchecBootstrap) {
+            throw e
+        } catch (e: ZipException) {
+            throw EchecBootstrap(BootstrapReason.ArchiveCorrompue, "archive zip invalide : ${e.message}", cause = e)
+        } catch (e: IOException) {
+            throw traduire(e)
         }
+    }
 
     /** Cœur d'extraction — les échecs d'E/S sont traduits par [extraire]. */
-    private suspend fun extraireDans(
-        archive: File,
-        staging: File,
-    ) {
+    private suspend fun extraireDans(archive: File, staging: File) {
         val liens = mutableListOf<Pair<String, String>>()
         ZipInputStream(FileInputStream(archive).buffered()).use { zip ->
             var entree: ZipEntry? = zip.nextEntry
@@ -120,11 +113,7 @@ internal class ExtracteurBootstrap(
     }
 
     /** Écrit une entrée de fichier régulier vers le staging, permissions comprises. */
-    private fun extraireFichier(
-        zip: ZipInputStream,
-        nom: String,
-        staging: File,
-    ) {
+    private fun extraireFichier(zip: ZipInputStream, nom: String, staging: File) {
         val cible = File(staging, nom)
         garantirRepertoire(cible.parentFile)
         FileOutputStream(cible).use { sortie ->
@@ -136,20 +125,19 @@ internal class ExtracteurBootstrap(
     }
 
     /** Traduit une erreur d'E/S d'extraction en échec typé. */
-    private fun traduire(e: IOException): EchecBootstrap =
-        when {
-            e.message?.contains("ENOSPC") == true || e.message?.contains("No space") == true -> {
-                EchecBootstrap(BootstrapReason.EspaceDisqueInsuffisant, "écriture interrompue : ${e.message}")
-            }
-
-            e.message?.contains("EACCES") == true -> {
-                EchecBootstrap(BootstrapReason.PermissionRefusee, "écriture refusée : ${e.message}")
-            }
-
-            else -> {
-                EchecBootstrap(BootstrapReason.ArchiveCorrompue, "échec d'extraction : ${e.message}")
-            }
+    private fun traduire(e: IOException): EchecBootstrap = when {
+        e.message?.contains("ENOSPC") == true || e.message?.contains("No space") == true -> {
+            EchecBootstrap(BootstrapReason.EspaceDisqueInsuffisant, "écriture interrompue : ${e.message}")
         }
+
+        e.message?.contains("EACCES") == true -> {
+            EchecBootstrap(BootstrapReason.PermissionRefusee, "écriture refusée : ${e.message}")
+        }
+
+        else -> {
+            EchecBootstrap(BootstrapReason.ArchiveCorrompue, "échec d'extraction : ${e.message}")
+        }
+    }
 
     /**
      * Bascule le staging vers le préfixe définitif : tout préfixe
@@ -158,10 +146,7 @@ internal class ExtracteurBootstrap(
      * installation peut donc rejouer ce script), puis le staging est
      * renommé.
      */
-    suspend fun basculer(
-        staging: File,
-        prefixe: File,
-    ) {
+    suspend fun basculer(staging: File, prefixe: File) {
         if (prefixe.exists() && !supprimerRecursivement(prefixe)) {
             throw EchecBootstrap(BootstrapReason.PermissionRefusee, "préfixe existant non supprimable : $prefixe")
         }
@@ -214,12 +199,11 @@ internal class ExtracteurBootstrap(
         return racine.delete()
     }
 
-    private fun estExecutable(nom: String): Boolean =
-        nom.startsWith("bin/") ||
-            nom.startsWith("libexec") ||
-            nom.startsWith("lib/apt/apt-helper") ||
-            nom.startsWith("lib/apt/methods") ||
-            nom == CHEMIN_SECOND_STAGE
+    private fun estExecutable(nom: String): Boolean = nom.startsWith("bin/") ||
+        nom.startsWith("libexec") ||
+        nom.startsWith("lib/apt/apt-helper") ||
+        nom.startsWith("lib/apt/methods") ||
+        nom == CHEMIN_SECOND_STAGE
 
     private companion object {
         private const val FICHIER_SYMLINKS = "SYMLINKS.txt"

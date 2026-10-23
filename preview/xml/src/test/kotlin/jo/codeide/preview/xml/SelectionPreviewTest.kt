@@ -23,18 +23,17 @@ class SelectionPreviewTest {
         profondeur: Int = 0,
         debut: Int = -1,
         fin: Int = -1,
-    ): InfoVueRendu =
-        InfoVueRendu(
-            gauche = gauche,
-            haut = haut,
-            droite = droite,
-            bas = bas,
-            libelle = "vue",
-            debutElement = debut,
-            finElement = fin,
-            indiceParent = parent,
-            profondeur = profondeur,
-        )
+    ): InfoVueRendu = InfoVueRendu(
+        gauche = gauche,
+        haut = haut,
+        droite = droite,
+        bas = bas,
+        libelle = "vue",
+        debutElement = debut,
+        finElement = fin,
+        indiceParent = parent,
+        profondeur = profondeur,
+    )
 
     @Test
     fun `hit-test - la vue la plus profonde gagne`() {

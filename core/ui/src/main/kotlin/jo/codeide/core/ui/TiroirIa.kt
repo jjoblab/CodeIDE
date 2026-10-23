@@ -126,10 +126,7 @@ public interface PontIaEditeur {
      * @param identifiant identifiant du diagnostic chez son producteur
      * (javac/kotlinc/LSP) — le pont ré-assemble le message.
      */
-    public fun corrigerDiagnostic(
-        cheminRelatif: String,
-        identifiant: String,
-    )
+    public fun corrigerDiagnostic(cheminRelatif: String, identifiant: String)
 
     /**
      * Ouvre le chat IA pré-rempli avec une sortie à expliquer

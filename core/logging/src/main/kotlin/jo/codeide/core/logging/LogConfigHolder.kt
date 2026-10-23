@@ -15,27 +15,25 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class LogConfigHolder
-    @Inject
-    constructor(
-        initial: LogConfig,
-    ) {
-        @Volatile
-        private var current: LogConfig = initial
+@Inject
+constructor(initial: LogConfig) {
+    @Volatile
+    private var current: LogConfig = initial
 
-        /**
-         * Lit la configuration courante.
-         *
-         * @return la configuration active (immuable).
-         */
-        fun read(): LogConfig = current
+    /**
+     * Lit la configuration courante.
+     *
+     * @return la configuration active (immuable).
+     */
+    fun read(): LogConfig = current
 
-        /**
-         * Remplace la configuration active — effet immédiat sur les entrées
-         * suivantes, sans interruption du pipeline.
-         *
-         * @param config nouvelle configuration, validée par son constructeur.
-         */
-        fun update(config: LogConfig) {
-            current = config
-        }
+    /**
+     * Remplace la configuration active — effet immédiat sur les entrées
+     * suivantes, sans interruption du pipeline.
+     *
+     * @param config nouvelle configuration, validée par son constructeur.
+     */
+    fun update(config: LogConfig) {
+        current = config
     }
+}

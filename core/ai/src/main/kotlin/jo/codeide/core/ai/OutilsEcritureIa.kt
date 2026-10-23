@@ -94,15 +94,14 @@ public class OutilsEcritureIa(
     }
 
     /** Empreinte SHA-256 du contenu actuel (conflit si divergence). */
-    private fun empreinte(fichier: File): String? =
-        if (!fichier.isFile) {
-            null
-        } else {
-            val digeste = java.security.MessageDigest.getInstance("SHA-256")
-            digeste
-                .digest(fichier.readBytes())
-                .joinToString("") { octet -> "%02x".format(octet) }
-        }
+    private fun empreinte(fichier: File): String? = if (!fichier.isFile) {
+        null
+    } else {
+        val digeste = java.security.MessageDigest.getInstance("SHA-256")
+        digeste
+            .digest(fichier.readBytes())
+            .joinToString("") { octet -> "%02x".format(octet) }
+    }
 }
 
 /**

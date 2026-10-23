@@ -41,12 +41,7 @@ public object RelationsParents {
      * est null pour les règles vers le parent et les contraintes posées
      * sur le parent (`"parent"`, marge littérale).
      */
-    public data class Relation(
-        val source: String,
-        val cible: String?,
-        val attribut: String,
-        val type: TypeRelation,
-    )
+    public data class Relation(val source: String, val cible: String?, val attribut: String, val type: TypeRelation)
 
     /**
      * Les arêtes VALIDES des enfants de [parent] (miroir `relEdges`) :
@@ -139,10 +134,7 @@ public object RelationsParents {
      * HORS table (marges, `layout_width`…) n'est JAMAIS signalé. L'ordre
      * suit [attributs] (l'ordre du document).
      */
-    public fun attributsOrphelins(
-        famille: FamilleParent,
-        attributs: Map<String, String>,
-    ): List<String> =
+    public fun attributsOrphelins(famille: FamilleParent, attributs: Map<String, String>): List<String> =
         attributs.keys.filter { cle ->
             TABLE_ORPHELINS.any { (motif, autorisees) -> motif.containsMatchIn(cle) && famille !in autorisees }
         }
@@ -154,10 +146,7 @@ public object RelationsParents {
      * (règles `RelativeLayout`) et du sous-arbre ENTIER (ancres de
      * `CoordinatorLayout`, qui cherchent dans toute la descendance).
      */
-    private class ContexteParent(
-        val freres: Set<String>,
-        val sousArbre: Set<String>,
-    )
+    private class ContexteParent(val freres: Set<String>, val sousArbre: Set<String>)
 
     /** La relation de l'attribut [cle] = [valeur] porté par [enfant], ou null si ce n'est pas une arête. */
     private fun relation(
@@ -213,16 +202,11 @@ public object RelationsParents {
      * PARTAGÉ avec [ProblemesPreview] (PE12f : l'ancre invalide interroge
      * le sous-arbre du parent ET celui de la vue ancrée — même parcours).
      */
-    internal fun contientId(
-        noeud: ArbreAttributsXml.Noeud,
-        id: String,
-    ): Boolean = noeud.id == id || noeud.enfants.any { contientId(it, id) }
+    internal fun contientId(noeud: ArbreAttributsXml.Noeud, id: String): Boolean =
+        noeud.id == id || noeud.enfants.any { contientId(it, id) }
 
     /** Collecte les identifiants du sous-arbre de [noeud] dans [dans]. */
-    private fun collecterIds(
-        noeud: ArbreAttributsXml.Noeud,
-        dans: MutableSet<String>,
-    ) {
+    private fun collecterIds(noeud: ArbreAttributsXml.Noeud, dans: MutableSet<String>) {
         noeud.id?.let { dans.add(it) }
         noeud.enfants.forEach { collecterIds(it, dans) }
     }
@@ -260,22 +244,21 @@ public object RelationsParents {
         de: String,
         vers: String,
         vus: MutableSet<String>,
-    ): List<String>? =
-        when {
-            de == vers -> {
-                listOf(de)
-            }
+    ): List<String>? = when {
+        de == vers -> {
+            listOf(de)
+        }
 
-            !vus.add(de) -> {
-                null
-            }
+        !vus.add(de) -> {
+            null
+        }
 
-            else -> {
-                aretes[de].orEmpty().firstNotNullOfOrNull { suivant ->
-                    cheminVers(aretes, suivant, vers, vus)?.let { chemin -> listOf(de) + chemin }
-                }
+        else -> {
+            aretes[de].orEmpty().firstNotNullOfOrNull { suivant ->
+                cheminVers(aretes, suivant, vers, vus)?.let { chemin -> listOf(de) + chemin }
             }
         }
+    }
 
     /**
      * Le nom de règle canonique (« android:layout_below », « layout_below »

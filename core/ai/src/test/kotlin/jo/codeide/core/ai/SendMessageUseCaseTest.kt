@@ -38,30 +38,28 @@ class SendMessageUseCaseTest {
     }
 
     @Test
-    fun `le cas d'usage délègue au fournisseur et transmet les événements`() =
-        runTest {
-            val faux = FauxProvider()
-            val useCase = SendMessageUseCase(faux)
-            val requete = AiRequest(messages = listOf(AiMessage.user("salut")), model = "modele-test")
+    fun `le cas d'usage délègue au fournisseur et transmet les événements`() = runTest {
+        val faux = FauxProvider()
+        val useCase = SendMessageUseCase(faux)
+        val requete = AiRequest(messages = listOf(AiMessage.user("salut")), model = "modele-test")
 
-            val recus = useCase(requete).toList()
+        val recus = useCase(requete).toList()
 
-            assertEquals(faux.evenements, recus)
-            assertEquals(1, faux.appels)
-            assertEquals(requete, faux.derniereRequete)
-        }
+        assertEquals(faux.evenements, recus)
+        assertEquals(1, faux.appels)
+        assertEquals(requete, faux.derniereRequete)
+    }
 
     @Test
-    fun `un échec du fournisseur traverse tel quel`() =
-        runTest {
-            val useCase = SendMessageUseCase(FauxProvider())
-            val requete = AiRequest(messages = listOf(AiMessage.user("salut")), model = "modele-test")
+    fun `un échec du fournisseur traverse tel quel`() = runTest {
+        val useCase = SendMessageUseCase(FauxProvider())
+        val requete = AiRequest(messages = listOf(AiMessage.user("salut")), model = "modele-test")
 
-            val recus = useCase(requete).toList()
+        val recus = useCase(requete).toList()
 
-            // Le flux factice ne contient pas d'échec : le contrat est
-            // testé par transparence — l'événement Failure du domaine est
-            // transmis sans altération (vérifié par le type).
-            assertEquals(2, recus.size)
-        }
+        // Le flux factice ne contient pas d'échec : le contrat est
+        // testé par transparence — l'événement Failure du domaine est
+        // transmis sans altération (vérifié par le type).
+        assertEquals(2, recus.size)
+    }
 }

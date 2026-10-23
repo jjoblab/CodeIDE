@@ -54,63 +54,60 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class ObservateurOutilsTerminal
-    @Inject
-    constructor(
-        @ApplicationContext contexte: Context,
-        orchestrateur: EnvironmentSetupOrchestrator,
-        private val dispatchers: DispatcherProvider,
-    ) : ObserveToolchainStateUseCase {
-        private val racine: File = contexte.filesDir
-        private val etatParcours: Flow<EnvironmentSetupState> = orchestrateur.state
+@Inject
+constructor(
+    @ApplicationContext contexte: Context,
+    orchestrateur: EnvironmentSetupOrchestrator,
+    private val dispatchers: DispatcherProvider,
+) : ObserveToolchainStateUseCase {
+    private val racine: File = contexte.filesDir
+    private val etatParcours: Flow<EnvironmentSetupState> = orchestrateur.state
 
-        override fun invoke(): Flow<EtatOutilsTerminal> =
-            combine(
-                etatParcours,
-                horlogeBallotage(),
-            ) { _, _ -> scanner() }
-                .distinctUntilChanged()
-                .flowOn(dispatchers.io)
+    override fun invoke(): Flow<EtatOutilsTerminal> = combine(
+        etatParcours,
+        horlogeBallotage(),
+    ) { _, _ -> scanner() }
+        .distinctUntilChanged()
+        .flowOn(dispatchers.io)
 
-        /**
-         * Ballotage tant que la collecte vit : un tic par période, stoppé
-         * net par l'annulation de la collecte (personne n'observe →
-         * personne ne scanne — `WhileSubscribed` des écrans met fin à la
-         * chaîne).
-         */
-        private fun horlogeBallotage(): Flow<Long> =
-            flow {
-                var tic = 0L
-                while (currentCoroutineContext().isActive) {
-                    emit(tic)
-                    tic += 1
-                    delay(PERIODE_BALLOTAGE_MS)
-                }
-            }
-
-        /** Rejoue le diagnostic pur du localisateur sur la racine réelle. */
-        private fun scanner(): EtatOutilsTerminal =
-            EtatOutilsTerminal(
-                bootstrapInstalle = LocalisationOutils.bootstrapInstalle(racine),
-                jdkInstalle = LocalisationOutils.trouverJavaHome(racine) != null,
-                gradleInstalle = LocalisationOutils.trouverGradleHome(racine) != null,
-                sdkAndroidInstalle = LocalisationOutils.trouverAndroidHome(racine) != null,
-                aapt2Installe = LocalisationOutils.trouverAapt2(racine) != null,
-                // v0.39.1 : le drapeau `initialise` signale aux consommateurs
-                // (sync d'ouverture) que le disque a été lu au moins une fois —
-                // la valeur par défaut `false` ne peut plus être confondue avec
-                // « JDK absent » alors que le scan n'a simplement pas encore
-                // eu lieu. Toutes les émissions suivantes portent `true`.
-                initialise = true,
-            )
-
-        private companion object {
-            /**
-             * Période de ré-interrogation du disque tant qu'un écran
-             * collecte : assez courte pour qu'une installation terminée
-             * ailleurs (terminal, tooling) soit visible « tout de suite »
-             * à l'échelle humaine, assez longue pour rester négligeable
-             * (le scan est quelques stat de fichiers).
-             */
-            private const val PERIODE_BALLOTAGE_MS = 2_000L
+    /**
+     * Ballotage tant que la collecte vit : un tic par période, stoppé
+     * net par l'annulation de la collecte (personne n'observe →
+     * personne ne scanne — `WhileSubscribed` des écrans met fin à la
+     * chaîne).
+     */
+    private fun horlogeBallotage(): Flow<Long> = flow {
+        var tic = 0L
+        while (currentCoroutineContext().isActive) {
+            emit(tic)
+            tic += 1
+            delay(PERIODE_BALLOTAGE_MS)
         }
     }
+
+    /** Rejoue le diagnostic pur du localisateur sur la racine réelle. */
+    private fun scanner(): EtatOutilsTerminal = EtatOutilsTerminal(
+        bootstrapInstalle = LocalisationOutils.bootstrapInstalle(racine),
+        jdkInstalle = LocalisationOutils.trouverJavaHome(racine) != null,
+        gradleInstalle = LocalisationOutils.trouverGradleHome(racine) != null,
+        sdkAndroidInstalle = LocalisationOutils.trouverAndroidHome(racine) != null,
+        aapt2Installe = LocalisationOutils.trouverAapt2(racine) != null,
+        // v0.39.1 : le drapeau `initialise` signale aux consommateurs
+        // (sync d'ouverture) que le disque a été lu au moins une fois —
+        // la valeur par défaut `false` ne peut plus être confondue avec
+        // « JDK absent » alors que le scan n'a simplement pas encore
+        // eu lieu. Toutes les émissions suivantes portent `true`.
+        initialise = true,
+    )
+
+    private companion object {
+        /**
+         * Période de ré-interrogation du disque tant qu'un écran
+         * collecte : assez courte pour qu'une installation terminée
+         * ailleurs (terminal, tooling) soit visible « tout de suite »
+         * à l'échelle humaine, assez longue pour rester négligeable
+         * (le scan est quelques stat de fichiers).
+         */
+        private const val PERIODE_BALLOTAGE_MS = 2_000L
+    }
+}

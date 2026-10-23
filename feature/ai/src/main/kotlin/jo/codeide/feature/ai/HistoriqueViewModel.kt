@@ -33,20 +33,13 @@ public data class EtatHistoriqueIa(
 /** Actions de l'écran Historique (UDF). */
 public sealed interface ActionHistoriqueIa {
     /** Recherche par titre (débounce 250 ms — même convention que l'accueil). */
-    public data class ChangerRecherche(
-        public val valeur: String,
-    ) : ActionHistoriqueIa
+    public data class ChangerRecherche(public val valeur: String) : ActionHistoriqueIa
 
     /** Renomme une conversation (titre non vide — dialogue borné). */
-    public data class Renommer(
-        public val conversationId: String,
-        public val titre: String,
-    ) : ActionHistoriqueIa
+    public data class Renommer(public val conversationId: String, public val titre: String) : ActionHistoriqueIa
 
     /** Supprime une conversation ET ses messages (cascade). */
-    public data class Supprimer(
-        public val conversationId: String,
-    ) : ActionHistoriqueIa
+    public data class Supprimer(public val conversationId: String) : ActionHistoriqueIa
 
     /** Tout effacer (confirmation préalable côté fragment). */
     public data object ToutEffacer : ActionHistoriqueIa
@@ -55,9 +48,7 @@ public sealed interface ActionHistoriqueIa {
 /** Effets de l'écran Historique (messages éphémères). */
 public sealed interface EffetHistoriqueIa {
     /** Message éphémère (ressource). */
-    public data class Message(
-        @param:androidx.annotation.StringRes public val ressource: Int,
-    ) : EffetHistoriqueIa
+    public data class Message(@param:androidx.annotation.StringRes public val ressource: Int) : EffetHistoriqueIa
 }
 
 /**
@@ -71,83 +62,83 @@ public sealed interface EffetHistoriqueIa {
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 @HiltViewModel
 public class HistoriqueViewModel
-    @Inject
-    constructor(
-        private val historique: ConversationStore,
-        private val reglages: ReglagesIaRepository,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatHistoriqueIa())
-        private val effetsInternes = Channel<EffetHistoriqueIa>(Channel.BUFFERED)
-        private val recherche = MutableStateFlow("")
+@Inject
+constructor(
+    private val historique: ConversationStore,
+    private val reglages: ReglagesIaRepository,
+) : ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatHistoriqueIa())
+    private val effetsInternes = Channel<EffetHistoriqueIa>(Channel.BUFFERED)
+    private val recherche = MutableStateFlow("")
 
-        /** État observable de l'écran. */
-        public val etat: StateFlow<EtatHistoriqueIa> = etatInterne.asStateFlow()
+    /** État observable de l'écran. */
+    public val etat: StateFlow<EtatHistoriqueIa> = etatInterne.asStateFlow()
 
-        /** Effets à collecter par le fragment. */
-        public val effets: Flow<EffetHistoriqueIa> = effetsInternes.receiveAsFlow()
+    /** Effets à collecter par le fragment. */
+    public val effets: Flow<EffetHistoriqueIa> = effetsInternes.receiveAsFlow()
 
-        init {
-            // Purge de rétention À L'OUVERTURE (critère IA-6) — silencieuse :
-            // un échec de purge ne gêne jamais l'écran.
-            viewModelScope.launch {
-                when (val courants = reglages.courant()) {
-                    is AppResult.Success -> historique.purgerPerimees(courants.value.retentionConversations)
-                    is AppResult.Failure -> historique.purgerPerimees(RetentionIa.JOURS_30)
-                }
+    init {
+        // Purge de rétention À L'OUVERTURE (critère IA-6) — silencieuse :
+        // un échec de purge ne gêne jamais l'écran.
+        viewModelScope.launch {
+            when (val courants = reglages.courant()) {
+                is AppResult.Success -> historique.purgerPerimees(courants.value.retentionConversations)
+                is AppResult.Failure -> historique.purgerPerimees(RetentionIa.JOURS_30)
             }
-            viewModelScope.launch { observerConversations() }
         }
+        viewModelScope.launch { observerConversations() }
+    }
 
-        /** Point d'entrée unique des actions (UDF). */
-        public fun onAction(action: ActionHistoriqueIa) {
-            when (action) {
-                is ActionHistoriqueIa.ChangerRecherche -> {
-                    etatInterne.value = etatInterne.value.copy(recherche = action.valeur)
-                    recherche.value = action.valeur
-                }
+    /** Point d'entrée unique des actions (UDF). */
+    public fun onAction(action: ActionHistoriqueIa) {
+        when (action) {
+            is ActionHistoriqueIa.ChangerRecherche -> {
+                etatInterne.value = etatInterne.value.copy(recherche = action.valeur)
+                recherche.value = action.valeur
+            }
 
-                is ActionHistoriqueIa.Renommer -> {
-                    val titre = action.titre.trim()
-                    if (titre.isNotEmpty()) {
-                        viewModelScope.launch {
-                            historique.renommer(action.conversationId, titre)
-                            emettre(EffetHistoriqueIa.Message(R.string.ia_historique_renommee))
-                        }
-                    }
-                }
-
-                is ActionHistoriqueIa.Supprimer -> {
+            is ActionHistoriqueIa.Renommer -> {
+                val titre = action.titre.trim()
+                if (titre.isNotEmpty()) {
                     viewModelScope.launch {
-                        historique.supprimer(action.conversationId)
-                        emettre(EffetHistoriqueIa.Message(R.string.ia_historique_supprimee))
-                    }
-                }
-
-                ActionHistoriqueIa.ToutEffacer -> {
-                    viewModelScope.launch {
-                        historique.toutSupprimer()
-                        emettre(EffetHistoriqueIa.Message(R.string.ia_historique_purgee))
+                        historique.renommer(action.conversationId, titre)
+                        emettre(EffetHistoriqueIa.Message(R.string.ia_historique_renommee))
                     }
                 }
             }
-        }
 
-        /** Liste observée, rebranchée à chaque changement de recherche. */
-        private suspend fun observerConversations() {
-            recherche
-                .debounce(DELAI_RECHERCHE_MS)
-                .flatMapLatest { motif -> historique.conversations(motif) }
-                .map { conversations -> etatInterne.value.copy(conversations = conversations) }
-                .onEach { etat -> etatInterne.value = etat }
-                .launchIn(viewModelScope)
-        }
+            is ActionHistoriqueIa.Supprimer -> {
+                viewModelScope.launch {
+                    historique.supprimer(action.conversationId)
+                    emettre(EffetHistoriqueIa.Message(R.string.ia_historique_supprimee))
+                }
+            }
 
-        private fun emettre(effet: EffetHistoriqueIa) {
-            viewModelScope.launch { effetsInternes.send(effet) }
-        }
-
-        private companion object {
-            /** Délai de débounce de la recherche (convention accueil). */
-            private const val DELAI_RECHERCHE_MS = 250L
+            ActionHistoriqueIa.ToutEffacer -> {
+                viewModelScope.launch {
+                    historique.toutSupprimer()
+                    emettre(EffetHistoriqueIa.Message(R.string.ia_historique_purgee))
+                }
+            }
         }
     }
+
+    /** Liste observée, rebranchée à chaque changement de recherche. */
+    private suspend fun observerConversations() {
+        recherche
+            .debounce(DELAI_RECHERCHE_MS)
+            .flatMapLatest { motif -> historique.conversations(motif) }
+            .map { conversations -> etatInterne.value.copy(conversations = conversations) }
+            .onEach { etat -> etatInterne.value = etat }
+            .launchIn(viewModelScope)
+    }
+
+    private fun emettre(effet: EffetHistoriqueIa) {
+        viewModelScope.launch { effetsInternes.send(effet) }
+    }
+
+    private companion object {
+        /** Délai de débounce de la recherche (convention accueil). */
+        private const val DELAI_RECHERCHE_MS = 250L
+    }
+}

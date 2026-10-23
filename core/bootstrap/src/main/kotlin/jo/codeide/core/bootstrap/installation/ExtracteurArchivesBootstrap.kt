@@ -23,36 +23,29 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class ExtracteurArchivesBootstrap
-    @Inject
-    constructor(
-        operations: OperationsSysteme,
-        private val dispatchers: DispatcherProvider,
-    ) : ArchiveExtractor {
-        private val extracteur = ExtracteurBootstrap(operations, dispatchers)
+@Inject
+constructor(
+    operations: OperationsSysteme,
+    private val dispatchers: DispatcherProvider,
+) : ArchiveExtractor {
+    private val extracteur = ExtracteurBootstrap(operations, dispatchers)
 
-        override suspend fun extract(
-            archive: File,
-            targetDir: File,
-        ): AppResult<Unit> =
-            try {
-                // Extraction directe (E6 : le flux d'étapes de l'ancien
-                // pipeline a été retiré — le journal du parcours couvre
-                // la granularité qui reste utile à l'écran).
-                extracteur.extraire(archive, targetDir)
-                AppResult.Success(Unit)
-            } catch (e: EchecBootstrap) {
-                AppResult.Failure(ErreursInstallation.traduire(e))
-            }
+    override suspend fun extract(archive: File, targetDir: File): AppResult<Unit> = try {
+        // Extraction directe (E6 : le flux d'étapes de l'ancien
+        // pipeline a été retiré — le journal du parcours couvre
+        // la granularité qui reste utile à l'écran).
+        extracteur.extraire(archive, targetDir)
+        AppResult.Success(Unit)
+    } catch (e: EchecBootstrap) {
+        AppResult.Failure(ErreursInstallation.traduire(e))
+    }
 
-        /** Bascule atomique staging → préfixe (sur I/O — opérations fichiers bloquantes). */
-        internal suspend fun basculer(
-            staging: File,
-            prefixe: File,
-        ) = withContext(dispatchers.io) {
-            try {
-                extracteur.basculer(staging, prefixe)
-            } catch (e: EchecBootstrap) {
-                throw EchecEtapeInstallation(ErreursInstallation.traduire(e))
-            }
+    /** Bascule atomique staging → préfixe (sur I/O — opérations fichiers bloquantes). */
+    internal suspend fun basculer(staging: File, prefixe: File) = withContext(dispatchers.io) {
+        try {
+            extracteur.basculer(staging, prefixe)
+        } catch (e: EchecBootstrap) {
+            throw EchecEtapeInstallation(ErreursInstallation.traduire(e))
         }
     }
+}

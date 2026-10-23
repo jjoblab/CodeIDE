@@ -29,12 +29,7 @@ public object EmpreinteChaineOutils {
      * stabilisé par tri des clés.
      * @return l'empreinte hexadécimale SHA-256 (64 caractères).
      */
-    public fun calculer(
-        javaHome: File?,
-        androidHome: File?,
-        aapt2: File?,
-        versions: Map<String, String>,
-    ): String {
+    public fun calculer(javaHome: File?, androidHome: File?, aapt2: File?, versions: Map<String, String>): String {
         val lignes =
             buildList {
                 add("aapt2=${aapt2?.absolutePath ?: "-"}")

@@ -53,20 +53,13 @@ class ProjetFragment : Fragment() {
     private val liaison: FragmentProjetBinding
         get() = checkNotNull(liaisonAmorce) { "Binding détruit" }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaisonAmorce = FragmentProjetBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
     @Suppress("LongMethod")
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         liaison.boutonActualiser.setOnClickListener { viewModel.chargerScripts() }
         liaison.boutonOuvrirTaches.setOnClickListener { ouvrirFeuilleTaches() }
@@ -246,10 +239,7 @@ class ProjetFragment : Fragment() {
      * s'ouvre via l'[EditorViewModel] d'activité ; le snackbar n'est plus
      * qu'un repli d'erreur).
      */
-    private fun ouvrirScriptDansEditeur(
-        uri: String?,
-        cheminRelatif: String,
-    ) {
+    private fun ouvrirScriptDansEditeur(uri: String?, cheminRelatif: String) {
         if (uri != null) {
             viewModelEditeur.onAction(ActionEditor.OuvrirFichier(uri))
         } else {

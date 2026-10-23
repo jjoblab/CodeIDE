@@ -21,19 +21,13 @@ public sealed interface EtatSessionProjetVue {
     }
 
     /** Ouverture en cours : les travaux de [projet] démarrent. */
-    public data class Ouverture(
-        override val projet: ProjectId,
-    ) : EtatSessionProjetVue
+    public data class Ouverture(override val projet: ProjectId) : EtatSessionProjetVue
 
     /** Projet ouvert : session active. */
-    public data class Ouverte(
-        override val projet: ProjectId,
-    ) : EtatSessionProjetVue
+    public data class Ouverte(override val projet: ProjectId) : EtatSessionProjetVue
 
     /** Fermeture en cours : les ressources de [projet] se libèrent. */
-    public data class Fermeture(
-        override val projet: ProjectId,
-    ) : EtatSessionProjetVue
+    public data class Fermeture(override val projet: ProjectId) : EtatSessionProjetVue
 
     /** Projet concerné par l'état — `null` pour [Aucune]. */
     public val projet: ProjectId?

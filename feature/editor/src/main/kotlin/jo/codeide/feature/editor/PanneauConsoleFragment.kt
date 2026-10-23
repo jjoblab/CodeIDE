@@ -95,11 +95,7 @@ class PanneauConsoleFragment : Fragment() {
      *  referme avant de remonter au retour de l'espace. */
     private lateinit var retourConfiguration: OnBackPressedCallback
 
-    override fun onCreateView(
-        inflateur: LayoutInflater,
-        conteneur: ViewGroup?,
-        etat: Bundle?,
-    ): View {
+    override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentPanneauConsoleBinding.inflate(inflateur, conteneur, false)
         // v0.40.1 : on AMORCE avec la sauvegarde locale du fragment (survit
         // à la rotation du fragment sans ViewModel), l'observation de
@@ -113,10 +109,7 @@ class PanneauConsoleFragment : Fragment() {
         return liaison.root
     }
 
-    override fun onViewCreated(
-        vue: View,
-        etat: Bundle?,
-    ) {
+    override fun onViewCreated(vue: View, etat: Bundle?) {
         liaison.boutonAnnulerBuild.setOnClickListener {
             viewModel.onAction(ActionEditor.AnnulerBuild)
         }
@@ -234,12 +227,11 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     /** Sortie VISIBLE courante (console du canal affiché — Sync ou Build). */
-    private fun texteVisible(): String =
-        if (liaison.defilementConsoleBuild.isVisible) {
-            liaison.texteConsoleBuild.text.toString()
-        } else {
-            liaison.texteConsoleSync.text.toString()
-        }
+    private fun texteVisible(): String = if (liaison.defilementConsoleBuild.isVisible) {
+        liaison.texteConsoleBuild.text.toString()
+    } else {
+        liaison.texteConsoleSync.text.toString()
+    }
 
     /**
      * Rend le statut (balisé de SON canal — v0.32.5), l'annulation, le

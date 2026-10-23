@@ -61,10 +61,7 @@ public class JetonsCalquesTest {
     // ── Aides (aucune valeur de design codée ici : tout vient du JSON) ──
 
     /** Compare chaque jeton du moteur à sa déclinaison de colors.xml. */
-    private fun verifierDeclinaison(
-        chemin: String,
-        declinaison: String,
-    ) {
+    private fun verifierDeclinaison(chemin: String, declinaison: String) {
         val couleurs = couleurs(File(racineDepot, chemin))
         val manquants = JetonsCalques.NOMS.filter { it !in couleurs }
         assertTrue(
@@ -82,10 +79,9 @@ public class JetonsCalquesTest {
     }
 
     /** [JetonsCalques] construit depuis le JSON, dans l'ordre de [JetonsCalques.NOMS]. */
-    private fun depuisMaquette(declinaison: String): List<Int> =
-        JetonsCalques.NOMS.map { nom ->
-            normaliserCouleur(jetonsMaquette.getJSONObject(nom).getString(declinaison))
-        }
+    private fun depuisMaquette(declinaison: String): List<Int> = JetonsCalques.NOMS.map { nom ->
+        normaliserCouleur(jetonsMaquette.getJSONObject(nom).getString(declinaison))
+    }
 
     /** Les valeurs du même ordre, lues des ressources (constructeur de l'activité). */
     private fun depuisRessources(couleurs: Map<String, Int>): List<Int> =

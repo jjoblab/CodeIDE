@@ -29,10 +29,7 @@ class DossierPage : BaseFragment<PageDossierBinding>() {
         attachToRoot: Boolean,
     ): PageDossierBinding = PageDossierBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         binding.boutonChoisir.setOnClickListener {
@@ -88,11 +85,10 @@ class DossierPage : BaseFragment<PageDossierBinding>() {
     }
 
     /** Message clair et actionnable par raison de refus (Android 11+). */
-    private fun messageRefus(raison: ForbiddenFolders.Reason): Int =
-        when (raison) {
-            ForbiddenFolders.Reason.STORAGE_ROOT -> R.string.page_dossier_refuse_racine
-            ForbiddenFolders.Reason.DOWNLOADS -> R.string.page_dossier_refuse_download
-            ForbiddenFolders.Reason.ANDROID_DATA -> R.string.page_dossier_refuse_android_data
-            ForbiddenFolders.Reason.ANDROID_OBB -> R.string.page_dossier_refuse_android_obb
-        }
+    private fun messageRefus(raison: ForbiddenFolders.Reason): Int = when (raison) {
+        ForbiddenFolders.Reason.STORAGE_ROOT -> R.string.page_dossier_refuse_racine
+        ForbiddenFolders.Reason.DOWNLOADS -> R.string.page_dossier_refuse_download
+        ForbiddenFolders.Reason.ANDROID_DATA -> R.string.page_dossier_refuse_android_data
+        ForbiddenFolders.Reason.ANDROID_OBB -> R.string.page_dossier_refuse_android_obb
+    }
 }

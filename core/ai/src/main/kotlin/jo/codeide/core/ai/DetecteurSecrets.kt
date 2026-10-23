@@ -13,10 +13,7 @@ package jo.codeide.core.ai
  */
 public object DetecteurSecrets {
     /** Un motif fermé : étiquette lisible + expression régulière. */
-    public data class Motif(
-        public val etiquette: String,
-        public val regex: Regex,
-    )
+    public data class Motif(public val etiquette: String, public val regex: Regex)
 
     /**
      * Motifs fermés — toute nouvelle famille de secrets s'ajoute ICI
@@ -52,11 +49,7 @@ public object DetecteurSecrets {
      * Balaye un texte et rend les alertes associées à un chemin
      * (pièce d'origine) — utile à l'assembleur pour situer l'alerte.
      */
-    public fun balayer(
-        texte: String,
-        cheminRelatif: String?,
-    ): List<AlerteSecret> =
-        MOTIFS
-            .filter { motif -> motif.regex.containsMatchIn(texte) }
-            .map { motif -> AlerteSecret(motif.etiquette, cheminRelatif) }
+    public fun balayer(texte: String, cheminRelatif: String?): List<AlerteSecret> = MOTIFS
+        .filter { motif -> motif.regex.containsMatchIn(texte) }
+        .map { motif -> AlerteSecret(motif.etiquette, cheminRelatif) }
 }

@@ -29,41 +29,37 @@ class EtiqueteurHistoriqueTest {
         )
 
     @Test
-    fun `etiqueter pose le nom nettoye sur le chemin demande`() =
-        runTest {
-            val entree = etiqueteur.etiqueter("  avant essai  ", "src/Main.kt")
+    fun `etiqueter pose le nom nettoye sur le chemin demande`() = runTest {
+        val entree = etiqueteur.etiqueter("  avant essai  ", "src/Main.kt")
 
-            assertNotNull(entree)
-            assertEquals("avant essai", faux.etiquettes.single().first)
-            assertEquals("src/Main.kt", faux.etiquettes.single().second)
-        }
-
-    @Test
-    fun `un nom vide ou blanc ne pose RIEN`() =
-        runTest {
-            assertNull(etiqueteur.etiqueter("   "))
-            assertNull(etiqueteur.etiqueter(""))
-
-            assertTrue(faux.etiquettes.isEmpty())
-        }
+        assertNotNull(entree)
+        assertEquals("avant essai", faux.etiquettes.single().first)
+        assertEquals("src/Main.kt", faux.etiquettes.single().second)
+    }
 
     @Test
-    fun `l etiquette utilisateur apparaît dans les revisions du chemin`() =
-        runTest {
-            etiqueteur.etiqueter("avant essai", "src/Main.kt")
+    fun `un nom vide ou blanc ne pose RIEN`() = runTest {
+        assertNull(etiqueteur.etiqueter("   "))
+        assertNull(etiqueteur.etiqueter(""))
 
-            val revisions = faux.listerRevisions("src/Main.kt")
-            assertEquals(TypeEntreeHistorique.ETIQUETTE, revisions.first().type)
-            assertEquals("avant essai", revisions.first().libelle)
-        }
+        assertTrue(faux.etiquettes.isEmpty())
+    }
 
     @Test
-    fun `avantCompilation pose l etiquette systeme au niveau du projet`() =
-        runTest {
-            val entree = etiqueteur.avantCompilation()
+    fun `l etiquette utilisateur apparaît dans les revisions du chemin`() = runTest {
+        etiqueteur.etiqueter("avant essai", "src/Main.kt")
 
-            assertNotNull(entree)
-            assertEquals(EtiqueteurHistorique.ETIQUETTE_AVANT_COMPILATION, faux.etiquettes.single().first)
-            assertEquals(null, faux.etiquettes.single().second)
-        }
+        val revisions = faux.listerRevisions("src/Main.kt")
+        assertEquals(TypeEntreeHistorique.ETIQUETTE, revisions.first().type)
+        assertEquals("avant essai", revisions.first().libelle)
+    }
+
+    @Test
+    fun `avantCompilation pose l etiquette systeme au niveau du projet`() = runTest {
+        val entree = etiqueteur.avantCompilation()
+
+        assertNotNull(entree)
+        assertEquals(EtiqueteurHistorique.ETIQUETTE_AVANT_COMPILATION, faux.etiquettes.single().first)
+        assertEquals(null, faux.etiquettes.single().second)
+    }
 }

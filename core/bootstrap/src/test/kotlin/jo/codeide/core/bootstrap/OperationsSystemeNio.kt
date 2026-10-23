@@ -14,10 +14,7 @@ import java.nio.file.attribute.PosixFilePermissions
  * [OperationsSystemeAndroid] sur appareil).
  */
 internal class OperationsSystemeNio : OperationsSysteme {
-    override fun chmod(
-        chemin: File,
-        mode: Int,
-    ) {
+    override fun chmod(chemin: File, mode: Int) {
         val permissions =
             when (mode) {
                 448 -> "rwx------"
@@ -27,10 +24,7 @@ internal class OperationsSystemeNio : OperationsSysteme {
         Files.setPosixFilePermissions(Paths.get(chemin.absolutePath), PosixFilePermissions.fromString(permissions))
     }
 
-    override fun creerLienSymbolique(
-        cible: String,
-        lien: File,
-    ) {
+    override fun creerLienSymbolique(cible: String, lien: File) {
         Files.createSymbolicLink(Paths.get(lien.absolutePath), Paths.get(cible))
     }
 }

@@ -67,19 +67,16 @@ public class ResultatRendu(
         nombreVues = parcel.readInt(),
         dureeMs = parcel.readLong(),
         bitmap =
-            if (parcel.readByte() != 0.toByte()) {
-                Bitmap.CREATOR.createFromParcel(parcel)
-            } else {
-                null
-            },
+        if (parcel.readByte() != 0.toByte()) {
+            Bitmap.CREATOR.createFromParcel(parcel)
+        } else {
+            null
+        },
         vues = parcel.createTypedArray(InfoVueRendu.CREATOR) ?: emptyArray(),
         vuesSysteme = parcel.createTypedArray(InfoVueSysteme.CREATOR) ?: emptyArray(),
     )
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        drapeaux: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, drapeaux: Int) {
         parcel.writeByte(if (ok) 1 else 0.toByte())
         parcel.writeString(message)
         parcel.writeInt(ligne)

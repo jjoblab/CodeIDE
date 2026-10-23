@@ -6,9 +6,7 @@ package jo.codeide.core.ai
  * (exclusions ADR 0124 + garde d'évasion), l'outil le rend appelable
  * par le modèle. LECTURE : aucune approbation.
  */
-public class OutilListeFichiersIa(
-    private val port: FournisseurContexteProjet,
-) : OutilIa {
+public class OutilListeFichiersIa(private val port: FournisseurContexteProjet) : OutilIa {
     override val identifiant: String = "list_files"
     override val description: String = "Liste les chemins du projet (ou d'un sous-dossier)."
     override val niveau: NiveauRisqueIa = NiveauRisqueIa.LECTURE
@@ -32,9 +30,7 @@ public class OutilListeFichiersIa(
 }
 
 /** Outil `read_file` (ADR 0125, V1) — adaptateur de l'écran Agent (IA-7b). */
-public class OutilLireFichierIa(
-    private val port: FournisseurContexteProjet,
-) : OutilIa {
+public class OutilLireFichierIa(private val port: FournisseurContexteProjet) : OutilIa {
     override val identifiant: String = "read_file"
     override val description: String = "Lit un fichier du projet (contenu borné)."
     override val niveau: NiveauRisqueIa = NiveauRisqueIa.LECTURE
@@ -59,9 +55,7 @@ public class OutilLireFichierIa(
 }
 
 /** Outil `propose_edit` (ADR 0125, V1, ÉCRITURE ATTENDUE) — l'écriture reste dans le ChangeSet. */
-public class OutilProposerModificationIa(
-    private val outils: OutilsEcritureIa,
-) : OutilIa {
+public class OutilProposerModificationIa(private val outils: OutilsEcritureIa) : OutilIa {
     override val identifiant: String = "propose_edit"
     override val description: String = "Propose le remplacement du contenu d'un fichier (sans écrire)."
     override val niveau: NiveauRisqueIa = NiveauRisqueIa.ECRITURE_ATTENTE
@@ -73,18 +67,15 @@ public class OutilProposerModificationIa(
          "required":["chemin","contenu","raison"]}
         """.trimIndent()
 
-    override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa =
-        outils.proposerModification(
-            arguments["chemin"].orEmpty(),
-            arguments["contenu"].orEmpty(),
-            arguments["raison"].orEmpty(),
-        )
+    override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa = outils.proposerModification(
+        arguments["chemin"].orEmpty(),
+        arguments["contenu"].orEmpty(),
+        arguments["raison"].orEmpty(),
+    )
 }
 
 /** Outil `create_file` (ADR 0125, V1, ÉCRITURE ATTENDUE) — l'écriture reste dans le ChangeSet. */
-public class OutilProposerCreationIa(
-    private val outils: OutilsEcritureIa,
-) : OutilIa {
+public class OutilProposerCreationIa(private val outils: OutilsEcritureIa) : OutilIa {
     override val identifiant: String = "create_file"
     override val description: String = "Propose la création d'un nouveau fichier (sans écrire)."
     override val niveau: NiveauRisqueIa = NiveauRisqueIa.ECRITURE_ATTENTE
@@ -96,18 +87,15 @@ public class OutilProposerCreationIa(
          "required":["chemin","contenu","raison"]}
         """.trimIndent()
 
-    override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa =
-        outils.proposerCreation(
-            arguments["chemin"].orEmpty(),
-            arguments["contenu"].orEmpty(),
-            arguments["raison"].orEmpty(),
-        )
+    override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa = outils.proposerCreation(
+        arguments["chemin"].orEmpty(),
+        arguments["contenu"].orEmpty(),
+        arguments["raison"].orEmpty(),
+    )
 }
 
 /** Outil `delete_file` (ADR 0125, V1, ÉCRITURE ATTENDUE) — la suppression reste dans le ChangeSet. */
-public class OutilProposerSuppressionIa(
-    private val outils: OutilsEcritureIa,
-) : OutilIa {
+public class OutilProposerSuppressionIa(private val outils: OutilsEcritureIa) : OutilIa {
     override val identifiant: String = "delete_file"
     override val description: String = "Propose la suppression d'un fichier (sans écrire, examen renforcé)."
     override val niveau: NiveauRisqueIa = NiveauRisqueIa.ECRITURE_ATTENTE
@@ -119,9 +107,8 @@ public class OutilProposerSuppressionIa(
          "required":["chemin","raison"]}
         """.trimIndent()
 
-    override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa =
-        outils.proposerSuppression(
-            arguments["chemin"].orEmpty(),
-            arguments["raison"].orEmpty(),
-        )
+    override suspend fun executer(arguments: Map<String, String>): ResultatOutilIa = outils.proposerSuppression(
+        arguments["chemin"].orEmpty(),
+        arguments["raison"].orEmpty(),
+    )
 }

@@ -56,9 +56,9 @@ class SettingsRepositoryImplTest {
         val stock: DataStore<Preferences> =
             PreferenceDataStoreFactory.create(
                 corruptionHandler =
-                    androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
-                        emptyPreferences()
-                    },
+                androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
+                    emptyPreferences()
+                },
                 scope = portee,
                 produceFile = { File(contexte.cacheDir, "test-data-${compteur.incrementAndGet()}.preferences_pb") },
             )
@@ -78,42 +78,39 @@ class SettingsRepositoryImplTest {
         )
 
     @Test
-    fun `observer puis mettre à jour, transformation complète`() =
-        runTest {
-            assertEquals(defauts, depot.observeSettings().first())
+    fun `observer puis mettre à jour, transformation complète`() = runTest {
+        assertEquals(defauts, depot.observeSettings().first())
 
-            depot.updateSettings { it.copy(authorName = "AuteurConfidentiel", logLevel = LogVerbosity.DETAILED) }
+        depot.updateSettings { it.copy(authorName = "AuteurConfidentiel", logLevel = LogVerbosity.DETAILED) }
 
-            val reglages = depot.getSettings()
-            assertTrue(reglages is AppResult.Success)
-            assertEquals("AuteurConfidentiel", (reglages as AppResult.Success).value.authorName)
-            assertEquals(LogVerbosity.DETAILED, reglages.value.logLevel)
-        }
-
-    @Test
-    fun `le dossier de travail se définit et s'efface, sans fuiter dans les journaux`() =
-        runTest {
-            depot.setWorkspace(dossier)
-            assertEquals(dossier, depot.observeSettings().first().workspace)
-
-            depot.setWorkspace(null)
-            assertNull(depot.observeSettings().first().workspace)
-
-            val messages = journal.entries.joinToString("\n") { it.message }
-            assertFalse("DossierConfidentiel" in messages)
-            assertFalse("content://" in messages)
-            assertTrue(journal.entries.any { it.tag == "Settings" && it.message.contains("défini") })
-        }
+        val reglages = depot.getSettings()
+        assertTrue(reglages is AppResult.Success)
+        assertEquals("AuteurConfidentiel", (reglages as AppResult.Success).value.authorName)
+        assertEquals(LogVerbosity.DETAILED, reglages.value.logLevel)
+    }
 
     @Test
-    fun `un réglage inchangé par une mise à jour le reste`() =
-        runTest {
-            depot.updateSettings { it.copy(isSetupCompleted = true) }
+    fun `le dossier de travail se définit et s'efface, sans fuiter dans les journaux`() = runTest {
+        depot.setWorkspace(dossier)
+        assertEquals(dossier, depot.observeSettings().first().workspace)
 
-            val reglages = depot.observeSettings().first()
+        depot.setWorkspace(null)
+        assertNull(depot.observeSettings().first().workspace)
 
-            assertEquals(true, reglages.isSetupCompleted)
-            assertEquals(defauts.authorName, reglages.authorName)
-            assertEquals(defauts.themeMode, reglages.themeMode)
-        }
+        val messages = journal.entries.joinToString("\n") { it.message }
+        assertFalse("DossierConfidentiel" in messages)
+        assertFalse("content://" in messages)
+        assertTrue(journal.entries.any { it.tag == "Settings" && it.message.contains("défini") })
+    }
+
+    @Test
+    fun `un réglage inchangé par une mise à jour le reste`() = runTest {
+        depot.updateSettings { it.copy(isSetupCompleted = true) }
+
+        val reglages = depot.observeSettings().first()
+
+        assertEquals(true, reglages.isSetupCompleted)
+        assertEquals(defauts.authorName, reglages.authorName)
+        assertEquals(defauts.themeMode, reglages.themeMode)
+    }
 }

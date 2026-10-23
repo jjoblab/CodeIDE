@@ -11,9 +11,7 @@ package jo.codeide.core.ai
  * - le fichier optionnel `.codeide/ia-ignore` du projet (un glob par
  *   ligne, `#` en commentaire) qui ÉTEND la liste par projet.
  */
-public class ExclusionsIa(
-    globsSupplementaires: List<String> = emptyList(),
-) {
+public class ExclusionsIa(globsSupplementaires: List<String> = emptyList()) {
     /** Globes effectifs : défaut + supplémentaires normalisés. */
     private val globs: List<String> =
         (
@@ -21,7 +19,7 @@ public class ExclusionsIa(
                 globsSupplementaires
                     .map(String::trim)
                     .filter { it.isNotEmpty() && !it.startsWith("#") }
-        ).distinct()
+            ).distinct()
 
     /**
      * Indique si un chemin RELATIF au projet est exclu.
@@ -44,10 +42,7 @@ public class ExclusionsIa(
     /** Filtre une liste de chemins relatifs (liste des chemins du projet). */
     public fun filtrer(chemins: List<String>): List<String> = chemins.filterNot(::estExclu)
 
-    private fun correspond(
-        chemin: String,
-        glob: String,
-    ) = when {
+    private fun correspond(chemin: String, glob: String) = when {
         glob.endsWith("/") -> {
             val dossier = glob.removeSuffix("/")
             if ("/" in dossier) {
@@ -109,11 +104,10 @@ public class ExclusionsIa(
          * sans `#` (commentaires), normalisées. `null` ou vide → aucune
          * extension (la liste par défaut s'applique seule).
          */
-        public fun depuisIaIgnore(contenu: String?): List<String> =
-            contenu
-                ?.lines()
-                ?.map(String::trim)
-                ?.filter { it.isNotEmpty() && !it.startsWith("#") }
-                ?: emptyList()
+        public fun depuisIaIgnore(contenu: String?): List<String> = contenu
+            ?.lines()
+            ?.map(String::trim)
+            ?.filter { it.isNotEmpty() && !it.startsWith("#") }
+            ?: emptyList()
     }
 }

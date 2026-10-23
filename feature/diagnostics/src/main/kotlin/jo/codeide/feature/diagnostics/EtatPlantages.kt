@@ -20,9 +20,7 @@ data class EtatPlantages(
 /** Actions intentionnelles de l'onglet Plantages. */
 sealed interface ActionPlantages {
     /** Supprime un rapport (après confirmation côté UI). */
-    data class Supprimer(
-        val id: String,
-    ) : ActionPlantages
+    data class Supprimer(val id: String) : ActionPlantages
 
     /** Supprime tous les rapports (après confirmation côté UI). */
     data object ToutSupprimer : ActionPlantages
@@ -34,7 +32,5 @@ sealed interface ActionPlantages {
 /** Effets ponctuels de l'onglet Plantages. */
 sealed interface EffetPlantages {
     /** L'archive de partage est prête — la feuille de partage doit s'ouvrir. */
-    data class ArchivePrete(
-        val archive: ExportedLogs,
-    ) : EffetPlantages
+    data class ArchivePrete(val archive: ExportedLogs) : EffetPlantages
 }

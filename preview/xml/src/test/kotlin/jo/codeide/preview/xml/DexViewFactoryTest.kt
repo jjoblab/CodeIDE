@@ -166,19 +166,18 @@ class DexViewFactoryTest {
     }
 
     /** AttributeSet vide via Proxy dynamique (fallback). */
-    private fun emptyAttributeSet(): AttributeSet =
-        java.lang.reflect.Proxy.newProxyInstance(
-            AttributeSet::class.java.classLoader,
-            arrayOf(AttributeSet::class.java),
-        ) { _, method, _ ->
-            when (method.returnType) {
-                Boolean::class.javaPrimitiveType -> false
-                Int::class.javaPrimitiveType -> 0
-                Long::class.javaPrimitiveType -> 0L
-                Float::class.javaPrimitiveType -> 0f
-                Double::class.javaPrimitiveType -> 0.0
-                String::class.java -> ""
-                else -> null
-            }
-        } as AttributeSet
+    private fun emptyAttributeSet(): AttributeSet = java.lang.reflect.Proxy.newProxyInstance(
+        AttributeSet::class.java.classLoader,
+        arrayOf(AttributeSet::class.java),
+    ) { _, method, _ ->
+        when (method.returnType) {
+            Boolean::class.javaPrimitiveType -> false
+            Int::class.javaPrimitiveType -> 0
+            Long::class.javaPrimitiveType -> 0L
+            Float::class.javaPrimitiveType -> 0f
+            Double::class.javaPrimitiveType -> 0.0
+            String::class.java -> ""
+            else -> null
+        }
+    } as AttributeSet
 }

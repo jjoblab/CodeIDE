@@ -59,11 +59,7 @@ enum class ModeHistorique {
 }
 
 /** Une révision rendue : l'entrée brute + son moment et sa période. */
-data class RevisionUi(
-    val entree: EntreeHistorique,
-    val moment: MomentHistorique,
-    val periode: PeriodeHistorique,
-)
+data class RevisionUi(val entree: EntreeHistorique, val moment: MomentHistorique, val periode: PeriodeHistorique)
 
 /**
  * État observable de la feuille « Historique » (missions H2/H3, spec
@@ -128,351 +124,333 @@ data class EtatHistorique(
 @HiltViewModel
 @Suppress("TooManyFunctions") // Une fonction par intention (H2) + modes et annulations (H3) : la surface du port.
 class HistoriqueViewModel
-    @Inject
-    constructor(
-        private val historique: HistoriqueLocal,
-        private val fichiers: FileSystem,
-        private val resolveur: ResolveurCheminHistorique,
-        private val etiqueteur: EtiqueteurHistorique,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatHistorique())
+@Inject
+constructor(
+    private val historique: HistoriqueLocal,
+    private val fichiers: FileSystem,
+    private val resolveur: ResolveurCheminHistorique,
+    private val etiqueteur: EtiqueteurHistorique,
+) : ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatHistorique())
 
-        val etat: StateFlow<EtatHistorique> = etatInterne.asStateFlow()
+    val etat: StateFlow<EtatHistorique> = etatInterne.asStateFlow()
 
-        /** Annulation possible de la dernière restauration (snackbar). */
-        private sealed interface AnnulationRestauration {
-            /** Réécrire le contenu d'avant (fichier existant). */
-            data class Reecriture(
-                val uri: String,
-                val contenuAvant: String?,
-            ) : AnnulationRestauration
+    /** Annulation possible de la dernière restauration (snackbar). */
+    private sealed interface AnnulationRestauration {
+        /** Réécrire le contenu d'avant (fichier existant). */
+        data class Reecriture(val uri: String, val contenuAvant: String?) : AnnulationRestauration
 
-            /** Supprimer le fichier RECRÉÉ (restauration d'une tombale). */
-            data class Suppression(
-                val uri: String,
-            ) : AnnulationRestauration
+        /** Supprimer le fichier RECRÉÉ (restauration d'une tombale). */
+        data class Suppression(val uri: String) : AnnulationRestauration
+    }
+
+    /** Annulation en attente (action « Annuler » du snackbar). */
+    private var annulation: AnnulationRestauration? = null
+
+    /** Révisions non filtrées du mode courant (source du filtre). */
+    private var revisionsToutes: List<RevisionUi> = emptyList()
+
+    /** Charge les révisions (appelé à l'ouverture de la feuille). */
+    fun charger(
+        uri: String,
+        cheminRelatif: String,
+        nomFichier: String,
+        mode: ModeHistorique = ModeHistorique.FICHIER,
+    ) {
+        if (etatInterne.value.chargement && etatInterne.value.revisions.isEmpty()) {
+            etatInterne.value =
+                EtatHistorique(
+                    mode = mode,
+                    uri = uri,
+                    cheminRelatif = cheminRelatif,
+                    nomFichier = nomFichier,
+                )
+            recharger()
         }
+    }
 
-        /** Annulation en attente (action « Annuler » du snackbar). */
-        private var annulation: AnnulationRestauration? = null
+    /** Sélectionne une révision : son diff paraît (mode courant). */
+    fun selectionner(entree: EntreeHistorique) {
+        etatInterne.update { it.copy(selection = entree, diffIndisponible = false, lignesDiff = emptyList()) }
+        calculerDiff()
+    }
 
-        /** Révisions non filtrées du mode courant (source du filtre). */
-        private var revisionsToutes: List<RevisionUi> = emptyList()
+    /** Revient à la liste (ferme la page de diff). */
+    fun fermerDiff() {
+        etatInterne.update { it.copy(selection = null, lignesDiff = emptyList(), diffIndisponible = false) }
+    }
 
-        /** Charge les révisions (appelé à l'ouverture de la feuille). */
-        fun charger(
-            uri: String,
-            cheminRelatif: String,
-            nomFichier: String,
-            mode: ModeHistorique = ModeHistorique.FICHIER,
-        ) {
-            if (etatInterne.value.chargement && etatInterne.value.revisions.isEmpty()) {
-                etatInterne.value =
-                    EtatHistorique(
-                        mode = mode,
-                        uri = uri,
-                        cheminRelatif = cheminRelatif,
-                        nomFichier = nomFichier,
-                    )
+    /** Bascule le diff : contenu ACTUEL ↔ révision PRÉCÉDENTE. */
+    fun definirMode(actuel: Boolean) {
+        if (etatInterne.value.modeActuel == actuel) return
+        etatInterne.update { it.copy(modeActuel = actuel) }
+        calculerDiff()
+    }
+
+    /** Bascule le filtre de la liste : tout ↔ pierres tombales seules. */
+    fun definirFiltreSupprimes(supprimesSeuls: Boolean) {
+        if (etatInterne.value.filtreSupprimes == supprimesSeuls) return
+        etatInterne.update { it.copy(filtreSupprimes = supprimesSeuls, revisions = filtrer(supprimesSeuls)) }
+    }
+
+    /**
+     * Pose une étiquette UTILISATEUR (H4) sur la portée courante de
+     * la feuille : le fichier (mode fichier), le dossier LUI-MÊME
+     * (mode dossier — l'étiquette paraît dans l'historique du
+     * dossier), le projet entier (mode projet). Nom nettoyé par
+     * [EtiqueteurHistorique] (vide : aucun effet).
+     */
+    fun etiqueter(nom: String) {
+        viewModelScope.launch {
+            val chemin =
+                when (etatInterne.value.mode) {
+                    ModeHistorique.FICHIER, ModeHistorique.DOSSIER -> etatInterne.value.cheminRelatif
+                    ModeHistorique.PROJET -> null
+                }
+            if (etiqueteur.etiqueter(nom, chemin) != null) {
+                etatInterne.update { it.copy(message = MessageHistorique.EtiquettePosee) }
                 recharger()
             }
         }
+    }
 
-        /** Sélectionne une révision : son diff paraît (mode courant). */
-        fun selectionner(entree: EntreeHistorique) {
-            etatInterne.update { it.copy(selection = entree, diffIndisponible = false, lignesDiff = emptyList()) }
-            calculerDiff()
-        }
+    /**
+     * Restaure la révision sélectionnée : écrit le contenu stocké via
+     * le port DÉCORÉ (l'état AVANT part automatiquement à
+     * l'historique). Un fichier SUPPRIMÉ est RECRÉÉ dans son dossier
+     * d'origine (résolu segment par segment — jamais d'URI inventée).
+     * [EtatHistorique.contenuRestaure] porte le texte écrit pour que
+     * l'onglet ouvert de l'éditeur se rafraîchisse — sans quoi
+     * l'auto-sauvegarde écraserait la version restaurée (leçon H2).
+     */
+    fun restaurer(entree: EntreeHistorique) {
+        viewModelScope.launch {
+            val contenu = historique.lireContenu(entree.id)
+            if (contenu == null) {
+                etatInterne.update { it.copy(message = MessageHistorique.ContenuIndisponible) }
+                return@launch
+            }
+            when (val cible = cibleEcriture(entree)) {
+                is CibleEcriture.Existante -> {
+                    restaurerExistante(cible.uri, contenu)
+                }
 
-        /** Revient à la liste (ferme la page de diff). */
-        fun fermerDiff() {
-            etatInterne.update { it.copy(selection = null, lignesDiff = emptyList(), diffIndisponible = false) }
-        }
+                is CibleEcriture.ARecreer -> {
+                    recreerFichier(cible, contenu)
+                }
 
-        /** Bascule le diff : contenu ACTUEL ↔ révision PRÉCÉDENTE. */
-        fun definirMode(actuel: Boolean) {
-            if (etatInterne.value.modeActuel == actuel) return
-            etatInterne.update { it.copy(modeActuel = actuel) }
-            calculerDiff()
-        }
-
-        /** Bascule le filtre de la liste : tout ↔ pierres tombales seules. */
-        fun definirFiltreSupprimes(supprimesSeuls: Boolean) {
-            if (etatInterne.value.filtreSupprimes == supprimesSeuls) return
-            etatInterne.update { it.copy(filtreSupprimes = supprimesSeuls, revisions = filtrer(supprimesSeuls)) }
-        }
-
-        /**
-         * Pose une étiquette UTILISATEUR (H4) sur la portée courante de
-         * la feuille : le fichier (mode fichier), le dossier LUI-MÊME
-         * (mode dossier — l'étiquette paraît dans l'historique du
-         * dossier), le projet entier (mode projet). Nom nettoyé par
-         * [EtiqueteurHistorique] (vide : aucun effet).
-         */
-        fun etiqueter(nom: String) {
-            viewModelScope.launch {
-                val chemin =
-                    when (etatInterne.value.mode) {
-                        ModeHistorique.FICHIER, ModeHistorique.DOSSIER -> etatInterne.value.cheminRelatif
-                        ModeHistorique.PROJET -> null
-                    }
-                if (etiqueteur.etiqueter(nom, chemin) != null) {
-                    etatInterne.update { it.copy(message = MessageHistorique.EtiquettePosee) }
-                    recharger()
+                CibleEcriture.Introuvable -> {
+                    etatInterne.update { it.copy(message = MessageHistorique.ParentIntrouvable) }
                 }
             }
         }
+    }
 
-        /**
-         * Restaure la révision sélectionnée : écrit le contenu stocké via
-         * le port DÉCORÉ (l'état AVANT part automatiquement à
-         * l'historique). Un fichier SUPPRIMÉ est RECRÉÉ dans son dossier
-         * d'origine (résolu segment par segment — jamais d'URI inventée).
-         * [EtatHistorique.contenuRestaure] porte le texte écrit pour que
-         * l'onglet ouvert de l'éditeur se rafraîchisse — sans quoi
-         * l'auto-sauvegarde écraserait la version restaurée (leçon H2).
-         */
-        fun restaurer(entree: EntreeHistorique) {
-            viewModelScope.launch {
-                val contenu = historique.lireContenu(entree.id)
-                if (contenu == null) {
-                    etatInterne.update { it.copy(message = MessageHistorique.ContenuIndisponible) }
-                    return@launch
-                }
-                when (val cible = cibleEcriture(entree)) {
-                    is CibleEcriture.Existante -> {
-                        restaurerExistante(cible.uri, contenu)
-                    }
-
-                    is CibleEcriture.ARecreer -> {
-                        recreerFichier(cible, contenu)
-                    }
-
-                    CibleEcriture.Introuvable -> {
-                        etatInterne.update { it.copy(message = MessageHistorique.ParentIntrouvable) }
-                    }
-                }
-            }
-        }
-
-        /** Action « Annuler » du snackbar : réécrit le contenu d'avant,
-         *  ou resupprime le fichier recréé (l'onglet ouvert se rafraîchit
-         *  par le même chemin). */
-        fun annulerRestauration() {
-            val enAttente = annulation ?: return
-            viewModelScope.launch {
-                when (enAttente) {
-                    is AnnulationRestauration.Reecriture -> {
-                        val contenu = enAttente.contenuAvant ?: return@launch
-                        if (fichiers.writeText(enAttente.uri, contenu) is AppResult.Success) {
-                            annulation = null
-                            etatInterne.update { it.copy(contenuRestaure = contenu, message = null) }
-                            recharger()
-                        } else {
-                            etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
-                        }
-                    }
-
-                    is AnnulationRestauration.Suppression -> {
-                        if (fichiers.delete(enAttente.uri) is AppResult.Success) {
-                            annulation = null
-                            etatInterne.update { it.copy(message = null) }
-                            recharger()
-                        } else {
-                            etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
-                        }
-                    }
-                }
-            }
-        }
-
-        /** Le snackbar a été rendu. */
-        fun consommerMessage() {
-            etatInterne.update { it.copy(message = null) }
-        }
-
-        /** L'onglet de l'éditeur a été rafraîchi du contenu restauré. */
-        fun consommerContenuRestaure() {
-            etatInterne.update { it.copy(contenuRestaure = null) }
-        }
-
-        // ------------------------------------------------------------------
-        // Internes.
-        // ------------------------------------------------------------------
-
-        /** Cible d'une restauration : URI existante, dossier parent
-         *  d'une recréation, ou impasse honnête. */
-        private sealed interface CibleEcriture {
-            /** Le fichier existe : écrire dedans (H2). */
-            data class Existante(
-                val uri: String,
-            ) : CibleEcriture
-
-            /** Le fichier n'existe plus : le recréer dans ce parent (H3). */
-            data class ARecreer(
-                val uriParent: String,
-                val nom: String,
-            ) : CibleEcriture
-
-            /** Ni l'un ni l'autre : le dossier parent a disparu. */
-            data object Introuvable : CibleEcriture
-        }
-
-        /** Résout la cible d'écriture de l'entrée (mode courant). */
-        private suspend fun cibleEcriture(entree: EntreeHistorique): CibleEcriture {
-            val uriExistante = uriExistanteDe(entree)
-            if (uriExistante != null) return CibleEcriture.Existante(uriExistante)
-
-            // Pierre tombale : recréer dans le parent RÉSOLU (jamais
-            // d'URI construite — leçon v0.64.0).
-            val uriParent = resolveur.resoudre(entree.cheminRelatif.substringBeforeLast('/', ""))
-            return when (uriParent) {
-                null -> CibleEcriture.Introuvable
-                else -> CibleEcriture.ARecreer(uriParent, entree.cheminRelatif.substringAfterLast('/'))
-            }
-        }
-
-        /** URI du fichier s'il existe ENCORE : l'URI de la feuille
-         *  (mode fichier) ou la résolution par énumération, sinon `null`. */
-        private suspend fun uriExistanteDe(entree: EntreeHistorique): String? =
-            when (etatInterne.value.mode) {
-                ModeHistorique.FICHIER -> {
-                    etatInterne.value.uri.takeIf { fichiers.exists(it) }
-                        ?: resolveur.resoudre(entree.cheminRelatif)
-                }
-
-                ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
-                    resolveur.resoudre(entree.cheminRelatif)
-                }
-            }
-
-        /** Restaure par écrasement d'un fichier existant (H2). */
-        private suspend fun restaurerExistante(
-            uri: String,
-            contenu: String,
-        ) {
-            val avant = fichiers.readText(uri).let { if (it is AppResult.Success) it.value else null }
-            if (fichiers.writeText(uri, contenu) is AppResult.Success) {
-                annulation = AnnulationRestauration.Reecriture(uri, avant)
-                etatInterne.update {
-                    it.copy(message = MessageHistorique.Restauree, contenuRestaure = contenu)
-                }
-                recharger()
-            } else {
-                etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
-            }
-        }
-
-        /** Recrée un fichier supprimé dans son dossier d'origine (H3) :
-         *  la création passe par le port DÉCORÉ (entrée CREATION), puis
-         *  l'écriture (annulable par construction). */
-        private suspend fun recreerFichier(
-            cible: CibleEcriture.ARecreer,
-            contenu: String,
-        ) {
-            when (
-                val creation =
-                    fichiers.createFile(cible.uriParent, cible.nom, mimeFichierTexte(cible.nom))
-            ) {
-                is AppResult.Success -> {
-                    val uri = creation.value
-                    if (fichiers.writeText(uri, contenu) is AppResult.Success) {
-                        annulation = AnnulationRestauration.Suppression(uri)
-                        etatInterne.update {
-                            it.copy(message = MessageHistorique.FichierRecree, contenuRestaure = contenu)
-                        }
+    /** Action « Annuler » du snackbar : réécrit le contenu d'avant,
+     *  ou resupprime le fichier recréé (l'onglet ouvert se rafraîchit
+     *  par le même chemin). */
+    fun annulerRestauration() {
+        val enAttente = annulation ?: return
+        viewModelScope.launch {
+            when (enAttente) {
+                is AnnulationRestauration.Reecriture -> {
+                    val contenu = enAttente.contenuAvant ?: return@launch
+                    if (fichiers.writeText(enAttente.uri, contenu) is AppResult.Success) {
+                        annulation = null
+                        etatInterne.update { it.copy(contenuRestaure = contenu, message = null) }
                         recharger()
                     } else {
                         etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
                     }
                 }
 
-                is AppResult.Failure -> {
-                    etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
-                }
-            }
-        }
-
-        /** Recharge les révisions (après restauration ou annulation). */
-        private fun recharger() {
-            viewModelScope.launch {
-                val etat = etatInterne.value
-                val maintenant = System.currentTimeMillis()
-                val brutes =
-                    when (etat.mode) {
-                        ModeHistorique.FICHIER -> {
-                            historique.listerRevisions(etat.cheminRelatif)
-                        }
-
-                        ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
-                            historique.listerRevisionsSous(
-                                etat.cheminRelatif,
-                                HistoriqueLocal.LIMITE_REVISIONS_SOUS_DOSSIER,
-                            )
-                        }
-                    }
-                revisionsToutes =
-                    brutes.map { entree ->
-                        RevisionUi(
-                            entree = entree,
-                            moment = CalculsDatesHistorique.moment(entree.horodatageMs, maintenant),
-                            periode = CalculsDatesHistorique.periode(entree.horodatageMs, maintenant),
-                        )
-                    }
-                etatInterne.update {
-                    it.copy(chargement = false, revisions = filtrer(it.filtreSupprimes))
-                }
-            }
-        }
-
-        /** Filtre courant des révisions chargées. */
-        private fun filtrer(supprimesSeuls: Boolean): List<RevisionUi> =
-            if (supprimesSeuls) {
-                revisionsToutes.filter { it.entree.type == TypeEntreeHistorique.SUPPRESSION }
-            } else {
-                revisionsToutes
-            }
-
-        /** Calcule le diff de la sélection (mode courant). */
-        private fun calculerDiff() {
-            val etat = etatInterne.value
-            val selection = etat.selection ?: return
-            viewModelScope.launch {
-                val ancien = historique.lireContenu(selection.id)
-                if (ancien == null) {
-                    etatInterne.update { it.copy(diffIndisponible = true, lignesDiff = emptyList()) }
-                    return@launch
-                }
-                val nouveau =
-                    if (etat.modeActuel) {
-                        val uri =
-                            when (etat.mode) {
-                                ModeHistorique.FICHIER -> {
-                                    etat.uri
-                                }
-
-                                ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
-                                    resolveur.resoudre(selection.cheminRelatif)
-                                }
-                            }
-                        when (val lecture = uri?.let { fichiers.readText(it) }) {
-                            is AppResult.Success -> lecture.value
-
-                            // Fichier disparu (ou hors projet) : la
-                            // révision reste consultable contre RIEN.
-                            else -> ""
-                        }
+                is AnnulationRestauration.Suppression -> {
+                    if (fichiers.delete(enAttente.uri) is AppResult.Success) {
+                        annulation = null
+                        etatInterne.update { it.copy(message = null) }
+                        recharger()
                     } else {
-                        // Révision PRÉCÉDENTE : l'entrée PLUS ANCIENNE du
-                        // MÊME chemin (les révisions d'un dossier
-                        // mélangent les fichiers — H3).
-                        val duMemeFichier = historique.listerRevisions(selection.cheminRelatif)
-                        val index = duMemeFichier.indexOfFirst { it.id == selection.id }
-                        duMemeFichier.getOrNull(index + 1)?.let { ancienne -> historique.lireContenu(ancienne.id) }
-                            ?: ""
+                        etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
                     }
-                val lignes = DiffUnifie.calculer(ancien.split('\n'), nouveau.split('\n'))
-                etatInterne.update { it.copy(lignesDiff = lignes, diffIndisponible = false) }
+                }
             }
         }
     }
+
+    /** Le snackbar a été rendu. */
+    fun consommerMessage() {
+        etatInterne.update { it.copy(message = null) }
+    }
+
+    /** L'onglet de l'éditeur a été rafraîchi du contenu restauré. */
+    fun consommerContenuRestaure() {
+        etatInterne.update { it.copy(contenuRestaure = null) }
+    }
+
+    // ------------------------------------------------------------------
+    // Internes.
+    // ------------------------------------------------------------------
+
+    /** Cible d'une restauration : URI existante, dossier parent
+     *  d'une recréation, ou impasse honnête. */
+    private sealed interface CibleEcriture {
+        /** Le fichier existe : écrire dedans (H2). */
+        data class Existante(val uri: String) : CibleEcriture
+
+        /** Le fichier n'existe plus : le recréer dans ce parent (H3). */
+        data class ARecreer(val uriParent: String, val nom: String) : CibleEcriture
+
+        /** Ni l'un ni l'autre : le dossier parent a disparu. */
+        data object Introuvable : CibleEcriture
+    }
+
+    /** Résout la cible d'écriture de l'entrée (mode courant). */
+    private suspend fun cibleEcriture(entree: EntreeHistorique): CibleEcriture {
+        val uriExistante = uriExistanteDe(entree)
+        if (uriExistante != null) return CibleEcriture.Existante(uriExistante)
+
+        // Pierre tombale : recréer dans le parent RÉSOLU (jamais
+        // d'URI construite — leçon v0.64.0).
+        val uriParent = resolveur.resoudre(entree.cheminRelatif.substringBeforeLast('/', ""))
+        return when (uriParent) {
+            null -> CibleEcriture.Introuvable
+            else -> CibleEcriture.ARecreer(uriParent, entree.cheminRelatif.substringAfterLast('/'))
+        }
+    }
+
+    /** URI du fichier s'il existe ENCORE : l'URI de la feuille
+     *  (mode fichier) ou la résolution par énumération, sinon `null`. */
+    private suspend fun uriExistanteDe(entree: EntreeHistorique): String? = when (etatInterne.value.mode) {
+        ModeHistorique.FICHIER -> {
+            etatInterne.value.uri.takeIf { fichiers.exists(it) }
+                ?: resolveur.resoudre(entree.cheminRelatif)
+        }
+
+        ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
+            resolveur.resoudre(entree.cheminRelatif)
+        }
+    }
+
+    /** Restaure par écrasement d'un fichier existant (H2). */
+    private suspend fun restaurerExistante(uri: String, contenu: String) {
+        val avant = fichiers.readText(uri).let { if (it is AppResult.Success) it.value else null }
+        if (fichiers.writeText(uri, contenu) is AppResult.Success) {
+            annulation = AnnulationRestauration.Reecriture(uri, avant)
+            etatInterne.update {
+                it.copy(message = MessageHistorique.Restauree, contenuRestaure = contenu)
+            }
+            recharger()
+        } else {
+            etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
+        }
+    }
+
+    /** Recrée un fichier supprimé dans son dossier d'origine (H3) :
+     *  la création passe par le port DÉCORÉ (entrée CREATION), puis
+     *  l'écriture (annulable par construction). */
+    private suspend fun recreerFichier(cible: CibleEcriture.ARecreer, contenu: String) {
+        when (
+            val creation =
+                fichiers.createFile(cible.uriParent, cible.nom, mimeFichierTexte(cible.nom))
+        ) {
+            is AppResult.Success -> {
+                val uri = creation.value
+                if (fichiers.writeText(uri, contenu) is AppResult.Success) {
+                    annulation = AnnulationRestauration.Suppression(uri)
+                    etatInterne.update {
+                        it.copy(message = MessageHistorique.FichierRecree, contenuRestaure = contenu)
+                    }
+                    recharger()
+                } else {
+                    etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
+                }
+            }
+
+            is AppResult.Failure -> {
+                etatInterne.update { it.copy(message = MessageHistorique.EchecEcriture) }
+            }
+        }
+    }
+
+    /** Recharge les révisions (après restauration ou annulation). */
+    private fun recharger() {
+        viewModelScope.launch {
+            val etat = etatInterne.value
+            val maintenant = System.currentTimeMillis()
+            val brutes =
+                when (etat.mode) {
+                    ModeHistorique.FICHIER -> {
+                        historique.listerRevisions(etat.cheminRelatif)
+                    }
+
+                    ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
+                        historique.listerRevisionsSous(
+                            etat.cheminRelatif,
+                            HistoriqueLocal.LIMITE_REVISIONS_SOUS_DOSSIER,
+                        )
+                    }
+                }
+            revisionsToutes =
+                brutes.map { entree ->
+                    RevisionUi(
+                        entree = entree,
+                        moment = CalculsDatesHistorique.moment(entree.horodatageMs, maintenant),
+                        periode = CalculsDatesHistorique.periode(entree.horodatageMs, maintenant),
+                    )
+                }
+            etatInterne.update {
+                it.copy(chargement = false, revisions = filtrer(it.filtreSupprimes))
+            }
+        }
+    }
+
+    /** Filtre courant des révisions chargées. */
+    private fun filtrer(supprimesSeuls: Boolean): List<RevisionUi> = if (supprimesSeuls) {
+        revisionsToutes.filter { it.entree.type == TypeEntreeHistorique.SUPPRESSION }
+    } else {
+        revisionsToutes
+    }
+
+    /** Calcule le diff de la sélection (mode courant). */
+    private fun calculerDiff() {
+        val etat = etatInterne.value
+        val selection = etat.selection ?: return
+        viewModelScope.launch {
+            val ancien = historique.lireContenu(selection.id)
+            if (ancien == null) {
+                etatInterne.update { it.copy(diffIndisponible = true, lignesDiff = emptyList()) }
+                return@launch
+            }
+            val nouveau =
+                if (etat.modeActuel) {
+                    val uri =
+                        when (etat.mode) {
+                            ModeHistorique.FICHIER -> {
+                                etat.uri
+                            }
+
+                            ModeHistorique.DOSSIER, ModeHistorique.PROJET -> {
+                                resolveur.resoudre(selection.cheminRelatif)
+                            }
+                        }
+                    when (val lecture = uri?.let { fichiers.readText(it) }) {
+                        is AppResult.Success -> lecture.value
+
+                        // Fichier disparu (ou hors projet) : la
+                        // révision reste consultable contre RIEN.
+                        else -> ""
+                    }
+                } else {
+                    // Révision PRÉCÉDENTE : l'entrée PLUS ANCIENNE du
+                    // MÊME chemin (les révisions d'un dossier
+                    // mélangent les fichiers — H3).
+                    val duMemeFichier = historique.listerRevisions(selection.cheminRelatif)
+                    val index = duMemeFichier.indexOfFirst { it.id == selection.id }
+                    duMemeFichier.getOrNull(index + 1)?.let { ancienne -> historique.lireContenu(ancienne.id) }
+                        ?: ""
+                }
+            val lignes = DiffUnifie.calculer(ancien.split('\n'), nouveau.split('\n'))
+            etatInterne.update { it.copy(lignesDiff = lignes, diffIndisponible = false) }
+        }
+    }
+}

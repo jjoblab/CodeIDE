@@ -32,17 +32,14 @@ internal object LspSettingsStoreModule {
 
     @Provides
     @Singleton
-    internal fun provideLspSettingsStore(
-        @ApplicationContext context: Context,
-    ): LspSettingsStore =
-        LspSettingsStore(
-            dataStore =
-                PreferenceDataStoreFactory.create(
-                    corruptionHandler =
-                        androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
-                            emptyPreferences()
-                        },
-                    produceFile = { context.preferencesDataStoreFile(NOM_FICHIER) },
-                ),
-        )
+    internal fun provideLspSettingsStore(@ApplicationContext context: Context): LspSettingsStore = LspSettingsStore(
+        dataStore =
+        PreferenceDataStoreFactory.create(
+            corruptionHandler =
+            androidx.datastore.core.handlers.ReplaceFileCorruptionHandler {
+                emptyPreferences()
+            },
+            produceFile = { context.preferencesDataStoreFile(NOM_FICHIER) },
+        ),
+    )
 }

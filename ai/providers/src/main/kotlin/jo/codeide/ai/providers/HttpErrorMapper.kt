@@ -23,27 +23,23 @@ public object HttpErrorMapper {
      * @return erreur modélisée : 401/403 → authentification, 429 → quota
      * (avec `Retry-After`), 5xx → indisponibilité, reste → inconnu.
      */
-    public fun fromStatus(
-        statusCode: Int,
-        retryAfterSeconds: Long? = null,
-    ): AppError =
-        when (statusCode) {
-            HTTP_NON_AUTORISE, HTTP_INTERDIT -> {
-                AppError.Ai(AppError.AiReason.Authentication, "HTTP $statusCode")
-            }
-
-            HTTP_TROP_DE_REQUETES -> {
-                AppError.Ai(AppError.AiReason.QuotaExceeded, "HTTP $statusCode", retryAfterSeconds)
-            }
-
-            in PREMIER_SERVEUR..DERNIER_SERVEUR -> {
-                AppError.Ai(AppError.AiReason.ServiceUnavailable, "HTTP $statusCode")
-            }
-
-            else -> {
-                AppError.Unknown("HTTP $statusCode")
-            }
+    public fun fromStatus(statusCode: Int, retryAfterSeconds: Long? = null): AppError = when (statusCode) {
+        HTTP_NON_AUTORISE, HTTP_INTERDIT -> {
+            AppError.Ai(AppError.AiReason.Authentication, "HTTP $statusCode")
         }
+
+        HTTP_TROP_DE_REQUETES -> {
+            AppError.Ai(AppError.AiReason.QuotaExceeded, "HTTP $statusCode", retryAfterSeconds)
+        }
+
+        in PREMIER_SERVEUR..DERNIER_SERVEUR -> {
+            AppError.Ai(AppError.AiReason.ServiceUnavailable, "HTTP $statusCode")
+        }
+
+        else -> {
+            AppError.Unknown("HTTP $statusCode")
+        }
+    }
 
     /**
      * Traduit un incident réseau d'ouverture en erreur attendue (mêmes
@@ -52,24 +48,23 @@ public object HttpErrorMapper {
      * @param exception incident capturé.
      * @return erreur modélisée.
      */
-    public fun fromIo(exception: IOException): AppError =
-        when (exception) {
-            is java.net.UnknownHostException -> {
-                AppError.Ai(AppError.AiReason.Offline, exception.message ?: "DNS")
-            }
-
-            is java.net.ConnectException -> {
-                AppError.Ai(AppError.AiReason.Offline, exception.message ?: "connexion refusée")
-            }
-
-            is java.net.SocketTimeoutException -> {
-                AppError.Ai(AppError.AiReason.Timeout, exception.message ?: "délai dépassé")
-            }
-
-            else -> {
-                AppError.Unknown(exception.javaClass.simpleName)
-            }
+    public fun fromIo(exception: IOException): AppError = when (exception) {
+        is java.net.UnknownHostException -> {
+            AppError.Ai(AppError.AiReason.Offline, exception.message ?: "DNS")
         }
+
+        is java.net.ConnectException -> {
+            AppError.Ai(AppError.AiReason.Offline, exception.message ?: "connexion refusée")
+        }
+
+        is java.net.SocketTimeoutException -> {
+            AppError.Ai(AppError.AiReason.Timeout, exception.message ?: "délai dépassé")
+        }
+
+        else -> {
+            AppError.Unknown(exception.javaClass.simpleName)
+        }
+    }
 
     /**
      * Erreur « réponse mal formée » : SSE ou JSON inattendu, flux tronqué,

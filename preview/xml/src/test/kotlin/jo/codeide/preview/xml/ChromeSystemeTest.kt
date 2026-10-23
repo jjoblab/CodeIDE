@@ -49,12 +49,11 @@ class ChromeSystemeTest {
     private fun chrome(
         config: ConfigChrome = configDefaut(),
         themeResolver: ThemeResolverImpl? = null,
-    ): ChromeSysteme =
-        ChromeSysteme(
-            ApplicationProvider.getApplicationContext(),
-            themeResolver,
-            config,
-        )
+    ): ChromeSysteme = ChromeSysteme(
+        ApplicationProvider.getApplicationContext(),
+        themeResolver,
+        config,
+    )
 
     /** La config nominale de session (miroir de RenduLayoutLib). */
     private fun configDefaut(
@@ -62,25 +61,20 @@ class ChromeSystemeTest {
         modePlacement: ModePlacementDecor = ModePlacementDecor.PADDE_PAR_DEFAUT,
         modeNavigation: ModeNavigation = ModeNavigation.TROIS_BOUTONS,
         callback: ActionBarCallback = ActionBarCallback.parDefaut(),
-    ): ConfigChrome =
-        ConfigChrome
-            .Builder()
-            .appLabel("Titre")
-            .surchargeNavigationBar(barreNavigation)
-            .modePlacement(modePlacement)
-            .modeNavigation(modeNavigation)
-            .actionBarCallback(callback)
-            .build()
+    ): ConfigChrome = ConfigChrome
+        .Builder()
+        .appLabel("Titre")
+        .surchargeNavigationBar(barreNavigation)
+        .modePlacement(modePlacement)
+        .modeNavigation(modeNavigation)
+        .actionBarCallback(callback)
+        .build()
 
     /** Un résolveur réel nourri d'un themes.xml inline, thème courant posé. */
-    private fun resolver(
-        themesXml: String,
-        theme: String,
-    ): ThemeResolverImpl =
-        ThemeResolverImpl().apply {
-            registerThemesFile(themesXml)
-            setTheme(theme)
-        }
+    private fun resolver(themesXml: String, theme: String): ThemeResolverImpl = ThemeResolverImpl().apply {
+        registerThemesFile(themesXml)
+        setTheme(theme)
+    }
 
     /** themes.xml de test : les trois régimes de fenêtre du fil historique. */
     private val themesFenetres: String =

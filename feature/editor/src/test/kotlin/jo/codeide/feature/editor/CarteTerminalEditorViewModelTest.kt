@@ -26,187 +26,176 @@ class CarteTerminalEditorViewModelTest : BaseEditorViewModelTest() {
         libelle: String,
         vivante: Boolean = true,
         sortie: String = "$ ",
-    ): TerminalSessionSummary =
-        TerminalSessionSummary(
-            id = id,
-            label = libelle,
-            workingDirectoryPath = "/home",
-            isAlive = vivante,
-            lastOutputPreview = sortie,
-            createdAt = Instant.EPOCH,
+    ): TerminalSessionSummary = TerminalSessionSummary(
+        id = id,
+        label = libelle,
+        workingDirectoryPath = "/home",
+        isAlive = vivante,
+        lastOutputPreview = sortie,
+        createdAt = Instant.EPOCH,
+    )
+
+    @Test
+    fun `aucune session - carte vide et compteur zero`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
+        val modele = viewModel(ajouterProjet("Alpha"))
+        advanceUntilIdle()
+
+        val etat = modele.etatTerminal.value
+        assertEquals(0, etat.nbSessions)
+        assertEquals(0, etat.sessionsVivantes)
+        assertNull(etat.sessionActive)
+        assertTrue(etat.bootstrapInstalle)
+    }
+
+    @Test
+    fun `une session vivante active est montree en direct`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
+        val modele = viewModel(ajouterProjet("Alpha"))
+        advanceUntilIdle()
+
+        val session = resume("s1", "Session 1", vivante = true, sortie = "$ pwd\n/home")
+        sessionsTerminal.simulerSessions(listOf(session))
+        sessionsTerminal.simulerActive("s1")
+        advanceUntilIdle()
+
+        val etat = modele.etatTerminal.value
+        assertEquals(1, etat.nbSessions)
+        assertEquals(1, etat.sessionsVivantes)
+        assertEquals("Session 1", etat.sessionActive?.label)
+        assertEquals("$ pwd\n/home", etat.sessionActive?.lastOutputPreview)
+    }
+
+    @Test
+    fun `plusieurs sessions - compteur distinct de la liste et active choisie`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
+        val modele = viewModel(ajouterProjet("Alpha"))
+        advanceUntilIdle()
+
+        sessionsTerminal.simulerSessions(
+            listOf(
+                resume("s1", "Session 1", vivante = false, sortie = "exit"),
+                resume("s2", "build", vivante = true, sortie = "BUILD SUCCESSFUL"),
+                resume("s3", "Session 3", vivante = true, sortie = "$ "),
+            ),
         )
+        sessionsTerminal.simulerActive("s2")
+        advanceUntilIdle()
+
+        val etat = modele.etatTerminal.value
+        assertEquals(3, etat.nbSessions)
+        assertEquals(2, etat.sessionsVivantes)
+        assertEquals("build", etat.sessionActive?.label)
+    }
 
     @Test
-    fun `aucune session - carte vide et compteur zero`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
-            val modele = viewModel(ajouterProjet("Alpha"))
-            advanceUntilIdle()
+    fun `session terminee reste visible avec son etat`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
+        val modele = viewModel(ajouterProjet("Alpha"))
+        advanceUntilIdle()
 
-            val etat = modele.etatTerminal.value
-            assertEquals(0, etat.nbSessions)
-            assertEquals(0, etat.sessionsVivantes)
-            assertNull(etat.sessionActive)
-            assertTrue(etat.bootstrapInstalle)
-        }
+        val morte = resume("s1", "Session 1", vivante = false, sortie = "exit")
+        sessionsTerminal.simulerSessions(listOf(morte))
+        sessionsTerminal.simulerActive("s1")
+        advanceUntilIdle()
 
-    @Test
-    fun `une session vivante active est montree en direct`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
-            val modele = viewModel(ajouterProjet("Alpha"))
-            advanceUntilIdle()
-
-            val session = resume("s1", "Session 1", vivante = true, sortie = "$ pwd\n/home")
-            sessionsTerminal.simulerSessions(listOf(session))
-            sessionsTerminal.simulerActive("s1")
-            advanceUntilIdle()
-
-            val etat = modele.etatTerminal.value
-            assertEquals(1, etat.nbSessions)
-            assertEquals(1, etat.sessionsVivantes)
-            assertEquals("Session 1", etat.sessionActive?.label)
-            assertEquals("$ pwd\n/home", etat.sessionActive?.lastOutputPreview)
-        }
+        val etat = modele.etatTerminal.value
+        assertEquals(1, etat.nbSessions)
+        assertEquals(0, etat.sessionsVivantes)
+        assertEquals(false, etat.sessionActive?.isAlive)
+    }
 
     @Test
-    fun `plusieurs sessions - compteur distinct de la liste et active choisie`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
-            val modele = viewModel(ajouterProjet("Alpha"))
-            advanceUntilIdle()
+    fun `action ouvrir terminal emet l effet avec le chemin resolu ou null`() = runTest {
+        val modele = viewModel(ajouterProjet("Alpha"))
+        val effets = mutableListOf<EffetEditor>()
+        collecterEffets(modele, effets)
+        advanceUntilIdle()
 
-            sessionsTerminal.simulerSessions(
-                listOf(
-                    resume("s1", "Session 1", vivante = false, sortie = "exit"),
-                    resume("s2", "build", vivante = true, sortie = "BUILD SUCCESSFUL"),
-                    resume("s3", "Session 3", vivante = true, sortie = "$ "),
-                ),
-            )
-            sessionsTerminal.simulerActive("s2")
-            advanceUntilIdle()
+        modele.onAction(ActionEditor.OuvrirTerminal)
+        advanceUntilIdle()
 
-            val etat = modele.etatTerminal.value
-            assertEquals(3, etat.nbSessions)
-            assertEquals(2, etat.sessionsVivantes)
-            assertEquals("build", etat.sessionActive?.label)
-        }
+        // En JVM, /storage n'existe pas : le domaine répond null et
+        // l'effet porte ce null — l'écran terminal repliera sur son
+        // HOME canonique (source unique de vérité).
+        assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirTerminal(null)), effets)
+    }
 
     @Test
-    fun `session terminee reste visible avec son etat`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
-            val modele = viewModel(ajouterProjet("Alpha"))
-            advanceUntilIdle()
+    fun `nouvelle session sans bootstrap ouvre l installation`() = runTest {
+        val modele = viewModel(ajouterProjet("Alpha"))
+        val effets = mutableListOf<EffetEditor>()
+        collecterEffets(modele, effets)
+        advanceUntilIdle()
 
-            val morte = resume("s1", "Session 1", vivante = false, sortie = "exit")
-            sessionsTerminal.simulerSessions(listOf(morte))
-            sessionsTerminal.simulerActive("s1")
-            advanceUntilIdle()
+        modele.onAction(ActionEditor.NouvelleSessionTerminal)
+        advanceUntilIdle()
 
-            val etat = modele.etatTerminal.value
-            assertEquals(1, etat.nbSessions)
-            assertEquals(0, etat.sessionsVivantes)
-            assertEquals(false, etat.sessionActive?.isAlive)
-        }
+        assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
+        assertTrue(sessionsTerminal.creations.isEmpty())
+    }
 
     @Test
-    fun `action ouvrir terminal emet l effet avec le chemin resolu ou null`() =
-        runTest {
-            val modele = viewModel(ajouterProjet("Alpha"))
-            val effets = mutableListOf<EffetEditor>()
-            collecterEffets(modele, effets)
-            advanceUntilIdle()
+    fun `installer outils terminal ouvre l installation`() = runTest {
+        val modele = viewModel(ajouterProjet("Alpha"))
+        val effets = mutableListOf<EffetEditor>()
+        collecterEffets(modele, effets)
+        advanceUntilIdle()
 
-            modele.onAction(ActionEditor.OuvrirTerminal)
-            advanceUntilIdle()
+        modele.onAction(ActionEditor.InstallerOutilsTerminal)
+        advanceUntilIdle()
 
-            // En JVM, /storage n'existe pas : le domaine répond null et
-            // l'effet porte ce null — l'écran terminal repliera sur son
-            // HOME canonique (source unique de vérité).
-            assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirTerminal(null)), effets)
-        }
+        assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
+    }
 
     @Test
-    fun `nouvelle session sans bootstrap ouvre l installation`() =
-        runTest {
-            val modele = viewModel(ajouterProjet("Alpha"))
-            val effets = mutableListOf<EffetEditor>()
-            collecterEffets(modele, effets)
-            advanceUntilIdle()
+    fun `nouvelle session avec bootstrap mais dossier introuvable n en cree pas`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
+        val modele = viewModel(ajouterProjet("Alpha"))
+        val effets = mutableListOf<EffetEditor>()
+        collecterEffets(modele, effets)
+        advanceUntilIdle()
 
-            modele.onAction(ActionEditor.NouvelleSessionTerminal)
-            advanceUntilIdle()
+        modele.onAction(ActionEditor.NouvelleSessionTerminal)
+        advanceUntilIdle()
 
-            assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
-            assertTrue(sessionsTerminal.creations.isEmpty())
-        }
-
-    @Test
-    fun `installer outils terminal ouvre l installation`() =
-        runTest {
-            val modele = viewModel(ajouterProjet("Alpha"))
-            val effets = mutableListOf<EffetEditor>()
-            collecterEffets(modele, effets)
-            advanceUntilIdle()
-
-            modele.onAction(ActionEditor.InstallerOutilsTerminal)
-            advanceUntilIdle()
-
-            assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
-        }
+        // Le dossier réel est introuvable en JVM (garde du domaine) :
+        // pas de création douteuse, l'écran terminal prend le relais.
+        assertTrue(sessionsTerminal.creations.isEmpty())
+        assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirTerminal(null)), effets)
+    }
 
     @Test
-    fun `nouvelle session avec bootstrap mais dossier introuvable n en cree pas`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
-            val modele = viewModel(ajouterProjet("Alpha"))
-            val effets = mutableListOf<EffetEditor>()
-            collecterEffets(modele, effets)
-            advanceUntilIdle()
+    fun `creer session sans bootstrap ouvre l installation`() = runTest {
+        val modele = viewModel(ajouterProjet("Alpha"))
+        val effets = mutableListOf<EffetEditor>()
+        collecterEffets(modele, effets)
+        advanceUntilIdle()
 
-            modele.onAction(ActionEditor.NouvelleSessionTerminal)
-            advanceUntilIdle()
+        // v0.32.2 : le tiroir terminal crée SANS naviguer — même
+        // garde-fou bootstrap que la création ouvrante.
+        modele.onAction(ActionEditor.CreerSessionTerminal)
+        advanceUntilIdle()
 
-            // Le dossier réel est introuvable en JVM (garde du domaine) :
-            // pas de création douteuse, l'écran terminal prend le relais.
-            assertTrue(sessionsTerminal.creations.isEmpty())
-            assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirTerminal(null)), effets)
-        }
+        assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
+        assertTrue(sessionsTerminal.creations.isEmpty())
+    }
 
     @Test
-    fun `creer session sans bootstrap ouvre l installation`() =
-        runTest {
-            val modele = viewModel(ajouterProjet("Alpha"))
-            val effets = mutableListOf<EffetEditor>()
-            collecterEffets(modele, effets)
-            advanceUntilIdle()
+    fun `creer session avec bootstrap mais dossier introuvable ne navigue pas`() = runTest {
+        observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
+        val modele = viewModel(ajouterProjet("Alpha"))
+        val effets = mutableListOf<EffetEditor>()
+        collecterEffets(modele, effets)
+        advanceUntilIdle()
 
-            // v0.32.2 : le tiroir terminal crée SANS naviguer — même
-            // garde-fou bootstrap que la création ouvrante.
-            modele.onAction(ActionEditor.CreerSessionTerminal)
-            advanceUntilIdle()
+        modele.onAction(ActionEditor.CreerSessionTerminal)
+        advanceUntilIdle()
 
-            assertEquals(listOf<EffetEditor>(EffetEditor.OuvrirInstallationTerminal), effets)
-            assertTrue(sessionsTerminal.creations.isEmpty())
-        }
-
-    @Test
-    fun `creer session avec bootstrap mais dossier introuvable ne navigue pas`() =
-        runTest {
-            observerOutils.semer(EtatOutilsTerminal(bootstrapInstalle = true))
-            val modele = viewModel(ajouterProjet("Alpha"))
-            val effets = mutableListOf<EffetEditor>()
-            collecterEffets(modele, effets)
-            advanceUntilIdle()
-
-            modele.onAction(ActionEditor.CreerSessionTerminal)
-            advanceUntilIdle()
-
-            // Dossier introuvable en JVM (garde du domaine) : pas de
-            // création douteuse ET surtout AUCUNE navigation — l'appel
-            // venant du tiroir, l'utilisateur y reste.
-            assertTrue(sessionsTerminal.creations.isEmpty())
-            assertTrue(effets.isEmpty())
-        }
+        // Dossier introuvable en JVM (garde du domaine) : pas de
+        // création douteuse ET surtout AUCUNE navigation — l'appel
+        // venant du tiroir, l'utilisateur y reste.
+        assertTrue(sessionsTerminal.creations.isEmpty())
+        assertTrue(effets.isEmpty())
+    }
 }

@@ -37,9 +37,7 @@ sealed interface ModeTerminalTiroir {
     data object SplitColonnes : ModeTerminalTiroir
 
     /** Une session remplit le tiroir. */
-    data class PleinEcranDansTiroir(
-        val sessionId: String,
-    ) : ModeTerminalTiroir
+    data class PleinEcranDansTiroir(val sessionId: String) : ModeTerminalTiroir
 }
 
 /**
@@ -70,9 +68,7 @@ data class EtatTerminalTiroir(
  */
 sealed interface ActionTerminalTiroir {
     /** Change le mode d'affichage (liste / splits / retour liste). */
-    data class ChoisirMode(
-        val mode: ModeTerminalTiroir,
-    ) : ActionTerminalTiroir
+    data class ChoisirMode(val mode: ModeTerminalTiroir) : ActionTerminalTiroir
 }
 
 /**
@@ -87,44 +83,44 @@ sealed interface ActionTerminalTiroir {
  */
 @HiltViewModel
 class TerminalTiroirViewModel
-    @Inject
-    constructor(
-        registre: TerminalSessionRepository,
-        observerOutils: ObserveToolchainStateUseCase,
-        observeReglages: ObserveSettingsUseCase,
-    ) : ViewModel() {
-        /** Mode courant (cœur local — les sessions viennent du registre). */
-        private val modeInterne = MutableStateFlow<ModeTerminalTiroir>(ModeTerminalTiroir.Liste)
+@Inject
+constructor(
+    registre: TerminalSessionRepository,
+    observerOutils: ObserveToolchainStateUseCase,
+    observeReglages: ObserveSettingsUseCase,
+) : ViewModel() {
+    /** Mode courant (cœur local — les sessions viennent du registre). */
+    private val modeInterne = MutableStateFlow<ModeTerminalTiroir>(ModeTerminalTiroir.Liste)
 
-        /** État observable du fragment. */
-        val etat: StateFlow<EtatTerminalTiroir> =
-            combine(
-                registre.observeSessions(),
-                modeInterne,
-                observerOutils(),
-                observeReglages(),
-            ) { sessions, mode, outils, reglages ->
-                EtatTerminalTiroir(
-                    sessions = sessions,
-                    bootstrapInstalle = outils.bootstrapInstalle,
-                    mode = mode.aplatirSiSessionPerdue(sessions),
-                    copieSelectionAuto = reglages.copieSelectionAuto,
-                )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS), EtatTerminalTiroir())
+    /** État observable du fragment. */
+    val etat: StateFlow<EtatTerminalTiroir> =
+        combine(
+            registre.observeSessions(),
+            modeInterne,
+            observerOutils(),
+            observeReglages(),
+        ) { sessions, mode, outils, reglages ->
+            EtatTerminalTiroir(
+                sessions = sessions,
+                bootstrapInstalle = outils.bootstrapInstalle,
+                mode = mode.aplatirSiSessionPerdue(sessions),
+                copieSelectionAuto = reglages.copieSelectionAuto,
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(DUREE_ABONNEMENT_MS), EtatTerminalTiroir())
 
-        /** Point d'entrée unique du fragment. */
-        fun onAction(action: ActionTerminalTiroir) {
-            when (action) {
-                is ActionTerminalTiroir.ChoisirMode -> modeInterne.value = action.mode
-            }
-        }
-
-        private companion object {
-            /** Fenêtre de ré-abonnement (millisecondes) — même règle que
-             * l'écran plein écran : survit aux reconstructions brèves. */
-            const val DUREE_ABONNEMENT_MS = 5_000L
+    /** Point d'entrée unique du fragment. */
+    fun onAction(action: ActionTerminalTiroir) {
+        when (action) {
+            is ActionTerminalTiroir.ChoisirMode -> modeInterne.value = action.mode
         }
     }
+
+    private companion object {
+        /** Fenêtre de ré-abonnement (millisecondes) — même règle que
+         * l'écran plein écran : survit aux reconstructions brèves. */
+        const val DUREE_ABONNEMENT_MS = 5_000L
+    }
+}
 
 /**
  * Un mode plein écran pointant une session disparue retombe sur la

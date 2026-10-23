@@ -33,10 +33,7 @@ public interface ArchiveSessionsJournal {
      * @param session la session VENUE de se terminer (état TERMINEE)
      * @param derniereLigne la dernière ligne reçue, ou `null` (aucune)
      */
-    public suspend fun archiver(
-        session: SessionJournal,
-        derniereLigne: LigneJournal?,
-    )
+    public suspend fun archiver(session: SessionJournal, derniereLigne: LigneJournal?)
 }
 
 /**
@@ -46,7 +43,4 @@ public interface ArchiveSessionsJournal {
  * @property session l'état final de la session (identité, fin, compteurs)
  * @property derniereLigne la dernière ligne reçue — l'aperçu, ou `null`
  */
-public data class SessionJournalArchivee(
-    public val session: SessionJournal,
-    public val derniereLigne: LigneJournal?,
-)
+public data class SessionJournalArchivee(public val session: SessionJournal, public val derniereLigne: LigneJournal?)

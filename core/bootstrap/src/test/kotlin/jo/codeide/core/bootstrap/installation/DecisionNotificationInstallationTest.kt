@@ -29,17 +29,17 @@ class DecisionNotificationInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Failed(
-                                error =
-                                    jo.codeide.core.model.AppError.EnvironmentSetup(
-                                        reason = jo.codeide.core.model.AppError.EnvironmentSetupReason.Reseau,
-                                        details = "miroirs épuisés",
-                                    ),
-                                logTail = emptyList(),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Failed(
+                            error =
+                            jo.codeide.core.model.AppError.EnvironmentSetup(
+                                reason = jo.codeide.core.model.AppError.EnvironmentSetupReason.Reseau,
+                                details = "miroirs épuisés",
                             ),
-                    ),
+                            logTail = emptyList(),
+                        ),
+                ),
                 running = null,
                 sdkLicenseAcceptedAtMillis = null,
             )
@@ -52,14 +52,14 @@ class DecisionNotificationInstallationTest {
         val etat =
             EnvironmentSetupState(
                 phases =
-                    mapOf(
-                        InstallPhase.BOOTSTRAP to
-                            PhaseState.Running(
-                                step = StepId(InstallPhase.BOOTSTRAP, "telechargement"),
-                                progress = Progress.Bytes(received = 1_000, total = 4_000),
-                                startedAtMillis = 0L,
-                            ),
-                    ),
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Running(
+                            step = StepId(InstallPhase.BOOTSTRAP, "telechargement"),
+                            progress = Progress.Bytes(received = 1_000, total = 4_000),
+                            startedAtMillis = 0L,
+                        ),
+                ),
                 running = InstallPhase.BOOTSTRAP,
                 sdkLicenseAcceptedAtMillis = null,
             )

@@ -30,9 +30,7 @@ import org.junit.runner.Description
  * maximal).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-public class MainDispatcherRule(
-    public val dispatcher: TestDispatcher = StandardTestDispatcher(),
-) : TestWatcher() {
+public class MainDispatcherRule(public val dispatcher: TestDispatcher = StandardTestDispatcher()) : TestWatcher() {
     override fun starting(description: Description) {
         Dispatchers.setMain(dispatcher)
     }

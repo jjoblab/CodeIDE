@@ -27,11 +27,7 @@ internal object LibellesProblemes {
      * Le TITRE localisé d'un problème (miroir `p.title`) — la classe de
      * la vue fautive habille les genres qui la nomment.
      */
-    internal fun titre(
-        contexte: Context,
-        genre: ProblemesPreview.GenreProbleme,
-        vueFautive: InfoVueRendu?,
-    ): String =
+    internal fun titre(contexte: Context, genre: ProblemesPreview.GenreProbleme, vueFautive: InfoVueRendu?): String =
         when (genre) {
             ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> {
                 contexte.getString(
@@ -88,105 +84,100 @@ internal object LibellesProblemes {
         vueFautive: InfoVueRendu?,
         densiteDpi: Int,
         echellePolice: Float,
-    ): String =
-        when (genre) {
-            ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> {
-                contexte.getString(R.string.preview_probleme_classe_absente_message)
-            }
+    ): String = when (genre) {
+        ProblemesPreview.GenreProbleme.CLASSE_ABSENTE -> {
+            contexte.getString(R.string.preview_probleme_classe_absente_message)
+        }
 
-            ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> {
-                contexte.getString(R.string.preview_probleme_sans_description_message)
-            }
+        ProblemesPreview.GenreProbleme.SANS_CONTENT_DESCRIPTION -> {
+            contexte.getString(R.string.preview_probleme_sans_description_message)
+        }
 
-            ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> {
-                contexte.getString(R.string.preview_probleme_texte_code_message)
-            }
+        ProblemesPreview.GenreProbleme.TEXTE_CODE_DUR -> {
+            contexte.getString(R.string.preview_probleme_texte_code_message)
+        }
 
-            ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> {
-                if (vueFautive != null && densiteDpi > 0) {
-                    contexte.getString(
-                        R.string.preview_probleme_cible_tactile_message,
-                        CalquesApercu.pxVersDp(vueFautive.largeurPx, densiteDpi),
-                        CalquesApercu.pxVersDp(vueFautive.hauteurPx, densiteDpi),
-                    )
-                } else {
-                    contexte.getString(R.string.preview_probleme_cible_tactile_message_sans_mesure)
-                }
-            }
-
-            ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> {
-                contexte.getString(R.string.preview_probleme_tronque_message, echelleAffichee(contexte, echellePolice))
-            }
-
-            // Même garde que [titre] : les messages de famille vivent dans
-            // [messageFamille], composés des données du problème TEXTE.
-            ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN,
-            ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE,
-            ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
-            ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
-            ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
-            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
-            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
-            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
-            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
-            -> {
-                error("genre de famille : message par messageFamille")
+        ProblemesPreview.GenreProbleme.CIBLE_TACTILE -> {
+            if (vueFautive != null && densiteDpi > 0) {
+                contexte.getString(
+                    R.string.preview_probleme_cible_tactile_message,
+                    CalquesApercu.pxVersDp(vueFautive.largeurPx, densiteDpi),
+                    CalquesApercu.pxVersDp(vueFautive.hauteurPx, densiteDpi),
+                )
+            } else {
+                contexte.getString(R.string.preview_probleme_cible_tactile_message_sans_mesure)
             }
         }
+
+        ProblemesPreview.GenreProbleme.TEXTE_TRONQUE -> {
+            contexte.getString(R.string.preview_probleme_tronque_message, echelleAffichee(contexte, echellePolice))
+        }
+
+        // Même garde que [titre] : les messages de famille vivent dans
+        // [messageFamille], composés des données du problème TEXTE.
+        ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN,
+        ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE,
+        ProblemesPreview.GenreProbleme.ANCRE_INVALIDE,
+        ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT,
+        ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE,
+        ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS,
+        ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR,
+        ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE,
+        ProblemesPreview.GenreProbleme.ENFANT_INATTENDU,
+        -> {
+            error("genre de famille : message par messageFamille")
+        }
+    }
 
     /**
      * Le TITRE localisé d'un problème de FAMILLE (PE12f — miroir les
      * `title` de la moitié famille de `computeProblems` : ils ne nomment
      * PAS la classe de la vue, le titre suffit).
      */
-    internal fun titreFamille(
-        contexte: Context,
-        probleme: ProblemesFamilles.Probleme,
-    ): String =
-        when (probleme.genre) {
-            ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
-                contexte.getString(R.string.preview_probleme_orphelin_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE -> {
-                contexte.getString(R.string.preview_probleme_reference_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.ANCRE_INVALIDE -> {
-                contexte.getString(R.string.preview_probleme_ancre_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT -> {
-                contexte.getString(R.string.preview_probleme_comportement_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
-                contexte.getString(R.string.preview_probleme_boucle_titre)
-            }
-
-            // v0.170.0 — les genres de CONTENANCE (S3) : le TITRE suffit,
-            // le message nomme le conteneur.
-            ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS -> {
-                contexte.getString(R.string.preview_probleme_feuille_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR -> {
-                contexte.getString(R.string.preview_probleme_adaptateur_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
-                contexte.getString(R.string.preview_probleme_unique_titre)
-            }
-
-            ProblemesPreview.GenreProbleme.ENFANT_INATTENDU -> {
-                contexte.getString(R.string.preview_probleme_inattendu_titre)
-            }
-
-            // Garde de programmation : les genres de RENDU passent par [titre].
-            else -> {
-                error("genre de rendu : libellé par titre — $probleme")
-            }
+    internal fun titreFamille(contexte: Context, probleme: ProblemesFamilles.Probleme): String = when (probleme.genre) {
+        ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
+            contexte.getString(R.string.preview_probleme_orphelin_titre)
         }
+
+        ProblemesPreview.GenreProbleme.REFERENCE_INTROUVABLE -> {
+            contexte.getString(R.string.preview_probleme_reference_titre)
+        }
+
+        ProblemesPreview.GenreProbleme.ANCRE_INVALIDE -> {
+            contexte.getString(R.string.preview_probleme_ancre_titre)
+        }
+
+        ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT -> {
+            contexte.getString(R.string.preview_probleme_comportement_titre)
+        }
+
+        ProblemesPreview.GenreProbleme.DEPENDANCE_CIRCULAIRE -> {
+            contexte.getString(R.string.preview_probleme_boucle_titre)
+        }
+
+        // v0.170.0 — les genres de CONTENANCE (S3) : le TITRE suffit,
+        // le message nomme le conteneur.
+        ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS -> {
+            contexte.getString(R.string.preview_probleme_feuille_titre)
+        }
+
+        ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR -> {
+            contexte.getString(R.string.preview_probleme_adaptateur_titre)
+        }
+
+        ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE -> {
+            contexte.getString(R.string.preview_probleme_unique_titre)
+        }
+
+        ProblemesPreview.GenreProbleme.ENFANT_INATTENDU -> {
+            contexte.getString(R.string.preview_probleme_inattendu_titre)
+        }
+
+        // Garde de programmation : les genres de RENDU passent par [titre].
+        else -> {
+            error("genre de rendu : libellé par titre — $probleme")
+        }
+    }
 
     /**
      * Le MESSAGE localisé d'un problème de FAMILLE (PE12f) : les noms
@@ -194,10 +185,7 @@ internal object LibellesProblemes {
      * les attributs SANS préfixe d'espace de noms paraissent (miroir
      * `n.replace(/^\w+:/, '')` de la maquette).
      */
-    internal fun messageFamille(
-        contexte: Context,
-        probleme: ProblemesFamilles.Probleme,
-    ): String =
+    internal fun messageFamille(contexte: Context, probleme: ProblemesFamilles.Probleme): String =
         when (probleme.genre) {
             ProblemesPreview.GenreProbleme.ATTRIBUT_ORPHELIN -> {
                 contexte.getString(
@@ -273,13 +261,9 @@ internal object LibellesProblemes {
      * entière sans décimale (« ×2 »), sinon UNE décimale du locale —
      * « ×1,3 » en français, « ×1.3 » en anglais.
      */
-    private fun echelleAffichee(
-        contexte: Context,
-        echelle: Float,
-    ): String =
-        if (echelle % 1f == 0f) {
-            echelle.toInt().toString()
-        } else {
-            String.format(contexte.resources.configuration.locales[0], FORMAT_DECIMALE, echelle)
-        }
+    private fun echelleAffichee(contexte: Context, echelle: Float): String = if (echelle % 1f == 0f) {
+        echelle.toInt().toString()
+    } else {
+        String.format(contexte.resources.configuration.locales[0], FORMAT_DECIMALE, echelle)
+    }
 }

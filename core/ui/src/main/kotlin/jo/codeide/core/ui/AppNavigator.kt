@@ -189,10 +189,7 @@ public interface AppNavigator {
      * @param nomFichier nom lisible proposé au partage.
      * @param emplacementInterne emplacement opaque de l'archive produite.
      */
-    public fun partagerArchive(
-        nomFichier: String,
-        emplacementInterne: String,
-    ): Unit
+    public fun partagerArchive(nomFichier: String, emplacementInterne: String): Unit
 
     /**
      * Ouvre l'**espace de travail** d'un projet (étape 13) : `EditorActivity`
@@ -271,10 +268,7 @@ public interface AppNavigator {
      * plus au registre).
      * @param uri URI du document à prévisualiser.
      */
-    public fun openPreview(
-        projectId: String,
-        uri: String,
-    ): Unit
+    public fun openPreview(projectId: String, uri: String): Unit
 }
 
 /**

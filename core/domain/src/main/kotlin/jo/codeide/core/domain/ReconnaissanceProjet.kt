@@ -45,47 +45,42 @@ public data class TypeProjetReconnu(
  */
 @Suppress("ReturnCount")
 public class ReconnaitreTypeProjetUseCase
-    @Inject
-    constructor(
-        private val fichiers: FileSystem,
-    ) {
-        /**
-         * Reconnaît le type du projet.
-         *
-         * @param uriRacine URI de document du dossier racine du projet.
-         * @return le type déclaré, ou `null` si absent/illisible/invalide.
-         */
-        public suspend operator fun invoke(uriRacine: String): TypeProjetReconnu? {
-            val dossierCodeide = dossierEnfant(uriRacine, CheminsProjet.DOSSIER_CODEIDE) ?: return null
-            val fichier =
-                (fichiers.list(dossierCodeide) as? AppResult.Success)
-                    ?.value
-                    ?.firstOrNull { !it.isDirectory && it.name == CheminsProjet.NOM_FICHIER }
-                    ?: return null
-            val contenu = (fichiers.readText(fichier.uri) as? AppResult.Success)?.value ?: return null
-            val metadata =
-                runCatching { CODEC.decodeFromString(MetadataLue.serializer(), contenu) }.getOrNull()
-                    ?: return null
-            // Schéma plus récent que celui connu : format inconnu, on s'abstient.
-            if (metadata.schemaVersion > TemplateEngine.SCHEMA_METADATA) return null
-            if (metadata.templateId.isBlank()) return null
-            return TypeProjetReconnu(
-                templateId = metadata.templateId,
-                templateVersion = metadata.templateVersion?.takeIf(String::isNotBlank),
-                generateur = metadata.generator?.takeIf(String::isNotBlank),
-            )
-        }
-
-        /** Premier sous-dossier direct de [uriParent] portant ce nom. */
-        private suspend fun dossierEnfant(
-            uriParent: String,
-            nom: String,
-        ): String? =
-            (fichiers.list(uriParent) as? AppResult.Success)
+@Inject
+constructor(private val fichiers: FileSystem) {
+    /**
+     * Reconnaît le type du projet.
+     *
+     * @param uriRacine URI de document du dossier racine du projet.
+     * @return le type déclaré, ou `null` si absent/illisible/invalide.
+     */
+    public suspend operator fun invoke(uriRacine: String): TypeProjetReconnu? {
+        val dossierCodeide = dossierEnfant(uriRacine, CheminsProjet.DOSSIER_CODEIDE) ?: return null
+        val fichier =
+            (fichiers.list(dossierCodeide) as? AppResult.Success)
                 ?.value
-                ?.firstOrNull { it.isDirectory && it.name == nom }
-                ?.uri
+                ?.firstOrNull { !it.isDirectory && it.name == CheminsProjet.NOM_FICHIER }
+                ?: return null
+        val contenu = (fichiers.readText(fichier.uri) as? AppResult.Success)?.value ?: return null
+        val metadata =
+            runCatching { CODEC.decodeFromString(MetadataLue.serializer(), contenu) }.getOrNull()
+                ?: return null
+        // Schéma plus récent que celui connu : format inconnu, on s'abstient.
+        if (metadata.schemaVersion > TemplateEngine.SCHEMA_METADATA) return null
+        if (metadata.templateId.isBlank()) return null
+        return TypeProjetReconnu(
+            templateId = metadata.templateId,
+            templateVersion = metadata.templateVersion?.takeIf(String::isNotBlank),
+            generateur = metadata.generator?.takeIf(String::isNotBlank),
+        )
     }
+
+    /** Premier sous-dossier direct de [uriParent] portant ce nom. */
+    private suspend fun dossierEnfant(uriParent: String, nom: String): String? =
+        (fichiers.list(uriParent) as? AppResult.Success)
+            ?.value
+            ?.firstOrNull { it.isDirectory && it.name == nom }
+            ?.uri
+}
 
 /**
  * Projection de lecture de `.codeide/project.json` — volontairement

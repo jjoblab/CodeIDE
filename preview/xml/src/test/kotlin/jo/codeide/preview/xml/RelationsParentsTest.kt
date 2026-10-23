@@ -413,10 +413,7 @@ class RelationsParentsTest {
 
     private fun parentCoordonnateur(corps: String): ArbreAttributsXml.Noeud = lireParent("CoordinatorLayout", corps)
 
-    private fun lireParent(
-        balise: String,
-        corps: String,
-    ): ArbreAttributsXml.Noeud {
+    private fun lireParent(balise: String, corps: String): ArbreAttributsXml.Noeud {
         val texte =
             "<$balise xmlns:android=\"http://schemas.android.com/apk/res/android\" " +
                 "xmlns:app=\"http://schemas.android.com/apk/res/auto\">$corps</$balise>"

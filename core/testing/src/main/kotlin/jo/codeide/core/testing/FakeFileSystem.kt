@@ -98,10 +98,7 @@ public class FakeFileSystem : FileSystem {
      * @param uri URI du document.
      * @param document contenu et métadonnées.
      */
-    public fun seedDocument(
-        uri: String,
-        document: Document,
-    ) {
+    public fun seedDocument(uri: String, document: Document) {
         documents[uri] = document
         publier()
     }
@@ -169,10 +166,7 @@ public class FakeFileSystem : FileSystem {
         }
     }
 
-    public override suspend fun createDirectory(
-        parentDirectoryUri: String,
-        name: String,
-    ): AppResult<String> {
+    public override suspend fun createDirectory(parentDirectoryUri: String, name: String): AppResult<String> {
         createFailure?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
 
         val parent =
@@ -207,15 +201,10 @@ public class FakeFileSystem : FileSystem {
         return creer(parentDirectoryUri, name, isDirectory = false, mimeType = mimeType)
     }
 
-    public override suspend fun writeText(
-        documentUri: String,
-        text: String,
-    ): AppResult<Unit> = writeBytes(documentUri, text.toByteArray(Charsets.UTF_8))
+    public override suspend fun writeText(documentUri: String, text: String): AppResult<Unit> =
+        writeBytes(documentUri, text.toByteArray(Charsets.UTF_8))
 
-    public override suspend fun writeBytes(
-        documentUri: String,
-        bytes: ByteArray,
-    ): AppResult<Unit> {
+    public override suspend fun writeBytes(documentUri: String, bytes: ByteArray): AppResult<Unit> {
         writeFailure?.let { return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: "")) }
 
         val document =
@@ -255,10 +244,7 @@ public class FakeFileSystem : FileSystem {
         return AppResult.Success(document.bytes)
     }
 
-    public override suspend fun rename(
-        documentUri: String,
-        nouveauNom: String,
-    ): AppResult<String> {
+    public override suspend fun rename(documentUri: String, nouveauNom: String): AppResult<String> {
         renameFailure?.let {
             return AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, it.message ?: ""))
         }
@@ -346,14 +332,13 @@ public class FakeFileSystem : FileSystem {
         return AppResult.Success(uri)
     }
 
-    private fun Document.toStat(uri: String): FileStat =
-        FileStat(
-            uri = uri,
-            name = name,
-            isDirectory = isDirectory,
-            sizeBytes = if (isDirectory) 0L else bytes.size.toLong(),
-            lastModifiedMillis = lastModifiedMillis,
-        )
+    private fun Document.toStat(uri: String): FileStat = FileStat(
+        uri = uri,
+        name = name,
+        isDirectory = isDirectory,
+        sizeBytes = if (isDirectory) 0L else bytes.size.toLong(),
+        lastModifiedMillis = lastModifiedMillis,
+    )
 
     private fun publier() {
         etat.value = documents.toMap()

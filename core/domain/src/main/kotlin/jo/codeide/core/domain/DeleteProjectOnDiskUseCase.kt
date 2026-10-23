@@ -41,33 +41,33 @@ import javax.inject.Inject
  */
 @Suppress("ReturnCount")
 public class DeleteProjectOnDiskUseCase
-    @Inject
-    constructor(
-        private val projets: ProjectRepository,
-        private val fichiers: FileSystem,
-        private val retirerDeLaListe: RemoveProjectUseCase,
-    ) {
-        /**
-         * Supprime le dossier du projet [id] sur le disque, puis son
-         * entrée de registre.
-         *
-         * @param id identifiant du projet à supprimer.
-         * @return le succès, ou l'échec typé (`NotFound` si le projet est
-         * inconnu, erreur de stockage si le dossier n'a pu être effacé —
-         * le registre est alors intact).
-         */
-        public suspend operator fun invoke(id: ProjectId): AppResult<Unit> {
-            val projet =
-                projets.getProject(id).getOrNull()
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.NotFound, "projet ${id.value}"),
-                    )
+@Inject
+constructor(
+    private val projets: ProjectRepository,
+    private val fichiers: FileSystem,
+    private val retirerDeLaListe: RemoveProjectUseCase,
+) {
+    /**
+     * Supprime le dossier du projet [id] sur le disque, puis son
+     * entrée de registre.
+     *
+     * @param id identifiant du projet à supprimer.
+     * @return le succès, ou l'échec typé (`NotFound` si le projet est
+     * inconnu, erreur de stockage si le dossier n'a pu être effacé —
+     * le registre est alors intact).
+     */
+    public suspend operator fun invoke(id: ProjectId): AppResult<Unit> {
+        val projet =
+            projets.getProject(id).getOrNull()
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.NotFound, "projet ${id.value}"),
+                )
 
-            // Disque d'abord : un échec laisse le registre intact.
-            val suppression = fichiers.delete(projet.location.documentUri)
-            if (suppression is AppResult.Failure) return suppression
+        // Disque d'abord : un échec laisse le registre intact.
+        val suppression = fichiers.delete(projet.location.documentUri)
+        if (suppression is AppResult.Failure) return suppression
 
-            // Registre ensuite (avec équilibre des permissions).
-            return retirerDeLaListe(id)
-        }
+        // Registre ensuite (avec équilibre des permissions).
+        return retirerDeLaListe(id)
     }
+}

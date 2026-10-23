@@ -58,10 +58,7 @@ public class InfoVueSysteme(
         profondeur = parcel.readInt(),
     )
 
-    override fun writeToParcel(
-        parcel: Parcel,
-        drapeaux: Int,
-    ) {
+    override fun writeToParcel(parcel: Parcel, drapeaux: Int) {
         parcel.writeInt(gauche)
         parcel.writeInt(haut)
         parcel.writeInt(droite)
@@ -73,12 +70,11 @@ public class InfoVueSysteme(
 
     override fun describeContents(): Int = 0
 
-    override fun equals(other: Any?): Boolean =
-        other is InfoVueSysteme &&
-            other.gauche == gauche && other.haut == haut &&
-            other.droite == droite && other.bas == bas &&
-            other.classe == classe && other.type == type &&
-            other.profondeur == profondeur
+    override fun equals(other: Any?): Boolean = other is InfoVueSysteme &&
+        other.gauche == gauche && other.haut == haut &&
+        other.droite == droite && other.bas == bas &&
+        other.classe == classe && other.type == type &&
+        other.profondeur == profondeur
 
     override fun hashCode(): Int {
         var resultat = gauche

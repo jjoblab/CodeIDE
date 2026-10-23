@@ -17,18 +17,16 @@ import javax.inject.Inject
  * requête ne part avant l'abonnement (flux froid).
  */
 public class SendMessageUseCase
-    @Inject
-    constructor(
-        private val provider: AiProvider,
-    ) {
-        /**
-         * Envoie la requête au fournisseur et rapporte les événements
-         * normalisés au fil de l'eau (transparence : le cas d'usage
-         * délègue au port sans altérer les événements).
-         *
-         * @param request la conversation et ses paramètres.
-         * @return flux froid d'événements, terminé par
-         * [AiEvent.Done] ou [AiEvent.Failure].
-         */
-        public operator fun invoke(request: AiRequest): Flow<AiEvent> = provider.stream(request)
-    }
+@Inject
+constructor(private val provider: AiProvider) {
+    /**
+     * Envoie la requête au fournisseur et rapporte les événements
+     * normalisés au fil de l'eau (transparence : le cas d'usage
+     * délègue au port sans altérer les événements).
+     *
+     * @param request la conversation et ses paramètres.
+     * @return flux froid d'événements, terminé par
+     * [AiEvent.Done] ou [AiEvent.Failure].
+     */
+    public operator fun invoke(request: AiRequest): Flow<AiEvent> = provider.stream(request)
+}

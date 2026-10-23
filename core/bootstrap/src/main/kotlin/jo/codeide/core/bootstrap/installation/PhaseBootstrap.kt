@@ -48,17 +48,16 @@ internal class PhaseBootstrap(
     /** Configuration APT du préfixe — collaborateur interne, comme l'ancien pipeline. */
     private val configurateurApt = ConfigurateurApt(lanceur, dispatchers)
 
-    override fun etapes(): List<InstallStep> =
-        listOf(
-            EtapePrealables(sonde, architecture, catalogue, racine),
-            EtapeTelechargement(telechargements, configuration, racine),
-            EtapeExtraction(extraction, telechargements, configuration, racine),
-            EtapeBascule(extraction, racine),
-            EtapeSecondStage(racine),
-            EtapeConfigurationApt(racine, configuration, configurateurApt),
-            EtapeVerificationBootstrap(racine),
-            EtapeMarqueurInstallation(racine),
-        )
+    override fun etapes(): List<InstallStep> = listOf(
+        EtapePrealables(sonde, architecture, catalogue, racine),
+        EtapeTelechargement(telechargements, configuration, racine),
+        EtapeExtraction(extraction, telechargements, configuration, racine),
+        EtapeBascule(extraction, racine),
+        EtapeSecondStage(racine),
+        EtapeConfigurationApt(racine, configuration, configurateurApt),
+        EtapeVerificationBootstrap(racine),
+        EtapeMarqueurInstallation(racine),
+    )
 
     override suspend fun recenserVersions(contexte: StepContext): Map<String, String> {
         val prefixe = DispositionsBootstrap.prefix(racine)
@@ -69,11 +68,7 @@ internal class PhaseBootstrap(
     }
 
     /** Première ligne de sortie d'un outil, ou `null` (recensement best-effort, phase déjà vérifiée). */
-    private suspend fun ligneDeVersion(
-        contexte: StepContext,
-        programme: String,
-        arguments: List<String>,
-    ): String? {
+    private suspend fun ligneDeVersion(contexte: StepContext, programme: String, arguments: List<String>): String? {
         val resultat =
             contexte.commands.run(
                 CommandSpec(program = programme, arguments = arguments, timeoutMillis = DELAI_VERIFICATION),
@@ -185,12 +180,11 @@ private class EtapeTelechargement(
             File(prefixe, PhaseBootstrap.CHEMIN_SECOND_STAGE).isFile
     }
 
-    private fun requete(): DownloadRequest =
-        DownloadRequest(
-            sources = listOf(configuration.urlArchive),
-            sha256 = configuration.empreinteAttendue,
-            sizeBytes = 0L,
-        )
+    private fun requete(): DownloadRequest = DownloadRequest(
+        sources = listOf(configuration.urlArchive),
+        sha256 = configuration.empreinteAttendue,
+        sizeBytes = 0L,
+    )
 }
 
 /** Étape `extraction` : zip vers `usr-staging`, garde anti-traversée, liens, `tmp/`. */
@@ -232,7 +226,7 @@ private class EtapeExtraction(
             File(staging, "bin/sh").isFile &&
                 File(staging, "bin/bash").isFile &&
                 File(staging, PhaseBootstrap.CHEMIN_SECOND_STAGE).isFile
-        ) ||
+            ) ||
             (File(prefixe, "bin/sh").isFile && File(prefixe, PhaseBootstrap.CHEMIN_SECOND_STAGE).isFile)
     }
 
@@ -246,10 +240,8 @@ private class EtapeExtraction(
 }
 
 /** Étape `bascule` : bascule atomique `usr-staging` → `usr` (sur I/O). */
-private class EtapeBascule(
-    private val extraction: ExtracteurArchivesBootstrap,
-    private val racine: File,
-) : InstallStep {
+private class EtapeBascule(private val extraction: ExtracteurArchivesBootstrap, private val racine: File) :
+    InstallStep {
     override val id: StepId = StepId(InstallPhase.BOOTSTRAP, "bascule")
 
     override suspend fun execute(context: StepContext) {

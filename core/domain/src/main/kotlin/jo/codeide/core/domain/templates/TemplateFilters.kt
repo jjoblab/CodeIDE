@@ -57,31 +57,23 @@ internal object TemplateFilters {
      * @return la valeur filtrée.
      * @throws TemplateRenderException si le filtre est inconnu.
      */
-    fun appliquer(
-        nom: String,
-        entree: String,
-        ligne: Int,
-    ): String =
-        when (nom) {
-            "kotlinString" -> echapperChaineCode(entree, echapperDollar = true)
-            "javaString" -> echapperChaineCode(entree, echapperDollar = false)
-            "xml" -> echapperXml(entree)
-            "json" -> echapperJson(entree)
-            "tomlString" -> echapperToml(entree)
-            "md" -> echapperMarkdown(entree)
-            "slug" -> slug(entree)
-            "lower" -> entree.lowercase()
-            "upper" -> entree.uppercase()
-            "packagePath" -> entree.replace(".", "/")
-            "resourceName" -> nomRessource(entree)
-            else -> throw TemplateRenderException(ligne, "filtre inconnu « $nom »")
-        }
+    fun appliquer(nom: String, entree: String, ligne: Int): String = when (nom) {
+        "kotlinString" -> echapperChaineCode(entree, echapperDollar = true)
+        "javaString" -> echapperChaineCode(entree, echapperDollar = false)
+        "xml" -> echapperXml(entree)
+        "json" -> echapperJson(entree)
+        "tomlString" -> echapperToml(entree)
+        "md" -> echapperMarkdown(entree)
+        "slug" -> slug(entree)
+        "lower" -> entree.lowercase()
+        "upper" -> entree.uppercase()
+        "packagePath" -> entree.replace(".", "/")
+        "resourceName" -> nomRessource(entree)
+        else -> throw TemplateRenderException(ligne, "filtre inconnu « $nom »")
+    }
 
     /** Échappement d'un littéral chaîne Kotlin ou Java. */
-    private fun echapperChaineCode(
-        entree: String,
-        echapperDollar: Boolean,
-    ): String {
+    private fun echapperChaineCode(entree: String, echapperDollar: Boolean): String {
         val sortie = StringBuilder(entree.length)
         for (caractere in entree) {
             when (caractere) {
@@ -122,99 +114,96 @@ internal object TemplateFilters {
     }
 
     /** Échappement d'un contenu XML (`& < > " '`). */
-    private fun echapperXml(entree: String): String =
-        buildString(entree.length) {
-            for (caractere in entree) {
-                when (caractere) {
-                    '&' -> append("&amp;")
-                    '<' -> append("&lt;")
-                    '>' -> append("&gt;")
-                    '"' -> append("&quot;")
-                    '\'' -> append("&apos;")
-                    else -> append(caractere)
-                }
+    private fun echapperXml(entree: String): String = buildString(entree.length) {
+        for (caractere in entree) {
+            when (caractere) {
+                '&' -> append("&amp;")
+                '<' -> append("&lt;")
+                '>' -> append("&gt;")
+                '"' -> append("&quot;")
+                '\'' -> append("&apos;")
+                else -> append(caractere)
             }
         }
+    }
 
     /** Échappement d'un littéral JSON (RFC 8259). */
-    private fun echapperJson(entree: String): String =
-        buildString(entree.length) {
-            for (caractere in entree) {
-                when (caractere) {
-                    '"' -> {
-                        append("\\\"")
-                    }
+    private fun echapperJson(entree: String): String = buildString(entree.length) {
+        for (caractere in entree) {
+            when (caractere) {
+                '"' -> {
+                    append("\\\"")
+                }
 
-                    '\\' -> {
-                        append("\\\\")
-                    }
+                '\\' -> {
+                    append("\\\\")
+                }
 
-                    '\n' -> {
-                        append("\\n")
-                    }
+                '\n' -> {
+                    append("\\n")
+                }
 
-                    '\r' -> {
-                        append("\\r")
-                    }
+                '\r' -> {
+                    append("\\r")
+                }
 
-                    '\t' -> {
-                        append("\\t")
-                    }
+                '\t' -> {
+                    append("\\t")
+                }
 
-                    '\b' -> {
-                        append("\\b")
-                    }
+                '\b' -> {
+                    append("\\b")
+                }
 
-                    '\u000C' -> {
-                        append("\\f")
-                    }
+                '\u000C' -> {
+                    append("\\f")
+                }
 
-                    else -> {
-                        if (caractere.code < SEUIL_CONTROLE) {
-                            append("\\u%04x".format(caractere.code))
-                        } else {
-                            append(caractere)
-                        }
+                else -> {
+                    if (caractere.code < SEUIL_CONTROLE) {
+                        append("\\u%04x".format(caractere.code))
+                    } else {
+                        append(caractere)
                     }
                 }
             }
         }
+    }
 
     /** Échappement d'une chaîne basique TOML (contrôles interdits en brut). */
-    private fun echapperToml(entree: String): String =
-        buildString(entree.length) {
-            for (caractere in entree) {
-                when (caractere) {
-                    '"' -> {
-                        append("\\\"")
-                    }
+    private fun echapperToml(entree: String): String = buildString(entree.length) {
+        for (caractere in entree) {
+            when (caractere) {
+                '"' -> {
+                    append("\\\"")
+                }
 
-                    '\\' -> {
-                        append("\\\\")
-                    }
+                '\\' -> {
+                    append("\\\\")
+                }
 
-                    '\n' -> {
-                        append("\\n")
-                    }
+                '\n' -> {
+                    append("\\n")
+                }
 
-                    '\r' -> {
-                        append("\\r")
-                    }
+                '\r' -> {
+                    append("\\r")
+                }
 
-                    '\t' -> {
-                        append("\\t")
-                    }
+                '\t' -> {
+                    append("\\t")
+                }
 
-                    else -> {
-                        if (caractere.code < SEUIL_CONTROLE || caractere.code == POINT_DEL) {
-                            append("\\u%04X".format(caractere.code))
-                        } else {
-                            append(caractere)
-                        }
+                else -> {
+                    if (caractere.code < SEUIL_CONTROLE || caractere.code == POINT_DEL) {
+                        append("\\u%04X".format(caractere.code))
+                    } else {
+                        append(caractere)
                     }
                 }
             }
         }
+    }
 
     /** Échappement Markdown des caractères structurants. */
     private fun echapperMarkdown(entree: String): String {

@@ -17,15 +17,13 @@ import javax.inject.Inject
  * projet enregistré.
  */
 public class ObserveProjectUseCase
-    @Inject
-    constructor(
-        private val repository: ProjectRepository,
-    ) {
-        /**
-         * Observe le projet identifié.
-         *
-         * @param id identifiant du projet.
-         * @return le flot du projet, ou d'une valeur `null` introuvable.
-         */
-        public operator fun invoke(id: ProjectId): Flow<Project?> = repository.observeProject(id)
-    }
+@Inject
+constructor(private val repository: ProjectRepository) {
+    /**
+     * Observe le projet identifié.
+     *
+     * @param id identifiant du projet.
+     * @return le flot du projet, ou d'une valeur `null` introuvable.
+     */
+    public operator fun invoke(id: ProjectId): Flow<Project?> = repository.observeProject(id)
+}

@@ -30,13 +30,12 @@ import javax.inject.Singleton
 internal object AppCrashModule {
     @Provides
     @Singleton
-    fun provideCrashAppInfo(): CrashAppInfo =
-        CrashAppInfo(
-            versionName = BuildConfig.VERSION_NAME,
-            versionCode = BuildConfig.VERSION_CODE.toLong(),
-            buildType = if (BuildConfig.DEBUG) "debug" else "release",
-            applicationId = BuildConfig.APPLICATION_ID,
-        )
+    fun provideCrashAppInfo(): CrashAppInfo = CrashAppInfo(
+        versionName = BuildConfig.VERSION_NAME,
+        versionCode = BuildConfig.VERSION_CODE.toLong(),
+        buildType = if (BuildConfig.DEBUG) "debug" else "release",
+        applicationId = BuildConfig.APPLICATION_ID,
+    )
 
     /**
      * Photographie actuelle de l'appareil — mêmes champs **non
@@ -45,27 +44,26 @@ internal object AppCrashModule {
      */
     @Provides
     @Singleton
-    fun provideDeviceInfo(logger: AppLogger): DeviceInfo =
-        DeviceInfo(
-            manufacturer = Build.MANUFACTURER,
-            model = Build.MODEL,
-            androidVersion = Build.VERSION.RELEASE ?: "inconnue",
-            apiLevel = Build.VERSION.SDK_INT,
-            abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "inconnue",
-            locale = Locale.getDefault().toLanguageTag(),
-            maxMemoryBytes = Runtime.getRuntime().maxMemory(),
-            freeMemoryBytes = Runtime.getRuntime().freeMemory(),
-            storageFreeBytes =
-                try {
-                    StatFs(Environment.getDataDirectory().path).availableBytes
-                } catch (e: IllegalArgumentException) {
-                    // Système de fichiers interne illisible : la valeur
-                    // importe peu pour la fiche informative — repli à 0
-                    // plutôt qu'un écran qui refuse de s'ouvrir.
-                    logger.w(TAG, e) { "espace de stockage interne illisible" }
-                    0L
-                },
-        )
+    fun provideDeviceInfo(logger: AppLogger): DeviceInfo = DeviceInfo(
+        manufacturer = Build.MANUFACTURER,
+        model = Build.MODEL,
+        androidVersion = Build.VERSION.RELEASE ?: "inconnue",
+        apiLevel = Build.VERSION.SDK_INT,
+        abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "inconnue",
+        locale = Locale.getDefault().toLanguageTag(),
+        maxMemoryBytes = Runtime.getRuntime().maxMemory(),
+        freeMemoryBytes = Runtime.getRuntime().freeMemory(),
+        storageFreeBytes =
+        try {
+            StatFs(Environment.getDataDirectory().path).availableBytes
+        } catch (e: IllegalArgumentException) {
+            // Système de fichiers interne illisible : la valeur
+            // importe peu pour la fiche informative — repli à 0
+            // plutôt qu'un écran qui refuse de s'ouvrir.
+            logger.w(TAG, e) { "espace de stockage interne illisible" }
+            0L
+        },
+    )
 
     private const val TAG = "InfosAppareil"
 }

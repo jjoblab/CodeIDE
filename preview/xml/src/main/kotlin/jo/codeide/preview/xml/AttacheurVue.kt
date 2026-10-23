@@ -84,23 +84,19 @@ internal object AttacheurVue {
      *         appelé directement), `false` si la réflexion a échoué
      *         (retomber sur le dessin manuel [RenduLayoutLib.dessinerVue]).
      */
-    fun injecter(
-        racine: View,
-        journal: ((String) -> Unit)? = null,
-    ): Boolean =
-        try {
-            val attachInfo = obtenirAttachInfo()
-            poserFauxParent(racine)
-            propager(racine, attachInfo)
-            true
-        } catch (t: Throwable) {
-            // Réflexion cassée (Android version différente) — pas fatal,
-            // l'appelant retombera sur le dessin manuel. On journalise la
-            // cause pour permettre le diagnostic (champ renommé, signature
-            // changée, etc.).
-            journal?.invoke("AttachInfo injection échouée : ${t.javaClass.simpleName}: ${t.message}")
-            false
-        }
+    fun injecter(racine: View, journal: ((String) -> Unit)? = null): Boolean = try {
+        val attachInfo = obtenirAttachInfo()
+        poserFauxParent(racine)
+        propager(racine, attachInfo)
+        true
+    } catch (t: Throwable) {
+        // Réflexion cassée (Android version différente) — pas fatal,
+        // l'appelant retombera sur le dessin manuel. On journalise la
+        // cause pour permettre le diagnostic (champ renommé, signature
+        // changée, etc.).
+        journal?.invoke("AttachInfo injection échouée : ${t.javaClass.simpleName}: ${t.message}")
+        false
+    }
 
     /**
      * Obtient l'AttachInfo mis en cache, ou le crée + configure si premier appel.
@@ -210,10 +206,7 @@ internal object AttacheurVue {
      * `onAttachedToWindow()` sur chaque vue — l'initialisation propre
      * (BoringLayout pour TextView, drawable callbacks pour ImageView, etc.).
      */
-    private fun propager(
-        racine: View,
-        attachInfo: Any,
-    ) {
+    private fun propager(racine: View, attachInfo: Any) {
         val typeAttachInfo = Class.forName("android.view.View\$AttachInfo")
         val methode =
             View::class.java.getDeclaredMethod(

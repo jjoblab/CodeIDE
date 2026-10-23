@@ -23,10 +23,8 @@ class RegistrePontJournauxTest {
     private val identite =
         IdentiteSessionJournal(paquet = "com.exemple.app", pid = 4321, nomProcessus = "com.exemple.app")
 
-    private fun trameLigne(
-        message: String,
-        horodatage: Long = 1_000L,
-    ): String = "L\tI\t$horodatage\t4321\t4400\tEtq\t$message"
+    private fun trameLigne(message: String, horodatage: Long = 1_000L): String =
+        "L\tI\t$horodatage\t4321\t4400\tEtq\t$message"
 
     @Test
     fun `l ouverture d une session la rend vivante et consultable`() {
@@ -41,35 +39,34 @@ class RegistrePontJournauxTest {
     }
 
     @Test
-    fun `les lots de trames alimentent tampon compteur et flux`() =
-        runTest {
-            val id = registre.ouvrirSession(identite)
-            val lots = ArrayList<LotJournal>()
-            // L'abonné s'installe AVANT les émissions : un flux partagé sans
-            // rejeu ne redonne pas le passé (l'instantané est là pour ça).
-            val abonnement = registre.lignes(id).onEach { lots.add(it) }.launchIn(this)
-            advanceUntilIdle()
+    fun `les lots de trames alimentent tampon compteur et flux`() = runTest {
+        val id = registre.ouvrirSession(identite)
+        val lots = ArrayList<LotJournal>()
+        // L'abonné s'installe AVANT les émissions : un flux partagé sans
+        // rejeu ne redonne pas le passé (l'instantané est là pour ça).
+        val abonnement = registre.lignes(id).onEach { lots.add(it) }.launchIn(this)
+        advanceUntilIdle()
 
-            val produites =
-                registre.ajouterTrames(
-                    id,
-                    listOf(trameLigne("un"), trameLigne("deux"), "X\t3\tmanque de mémoire"),
-                    lignesPerduesAnnoncees = 0,
-                )
+        val produites =
+            registre.ajouterTrames(
+                id,
+                listOf(trameLigne("un"), trameLigne("deux"), "X\t3\tmanque de mémoire"),
+                lignesPerduesAnnoncees = 0,
+            )
 
-            advanceUntilIdle()
-            assertEquals(2, produites)
-            assertEquals(2, registre.instantane(id).size)
-            assertEquals("un", registre.instantane(id)[0].message)
-            assertEquals(2, registre.sessions.value[0].nombreLignes)
-            assertEquals("un lot émis", 1L, lots.size.toLong())
-            // R3 : le lot part AVEC sa position (nombre de lignes après lui).
-            assertEquals(2, lots[0].apres)
-            assertEquals(2, lots[0].lignes.size)
-            // La trame X documente la sortie précédente de la session.
-            assertEquals("manque de mémoire", registre.sessions.value[0].sortiePrecedente)
-            abonnement.cancel()
-        }
+        advanceUntilIdle()
+        assertEquals(2, produites)
+        assertEquals(2, registre.instantane(id).size)
+        assertEquals("un", registre.instantane(id)[0].message)
+        assertEquals(2, registre.sessions.value[0].nombreLignes)
+        assertEquals("un lot émis", 1L, lots.size.toLong())
+        // R3 : le lot part AVEC sa position (nombre de lignes après lui).
+        assertEquals(2, lots[0].apres)
+        assertEquals(2, lots[0].lignes.size)
+        // La trame X documente la sortie précédente de la session.
+        assertEquals("manque de mémoire", registre.sessions.value[0].sortiePrecedente)
+        abonnement.cancel()
+    }
 
     @Test
     fun `les pertes annoncees par le pont s accumulent sans faux silence`() {
@@ -119,32 +116,31 @@ class RegistrePontJournauxTest {
     }
 
     @Test
-    fun `le tampon borne garde les plus recentes et compte les pertes d affichage`() =
-        runTest {
-            val id = registre.ouvrirSession(identite)
-            // Un abonné EXISTE mais est lent (le fil de test est occupé par
-            // la salve) : le tampon d'émissions (512 lots) déborde, les
-            // lignes non émises sont COMPTÉES, jamais perdues en silence.
-            // L'abonné s'installe avant la salve, mais le fil de test
-            // reste OCCUPÉ par la salve : il ne draine rien — le tampon
-            // d'émissions déborde, exactement le scénario éprouvé.
-            val abonnement = registre.lignes(id).launchIn(this)
-            advanceUntilIdle() // l'abonné s'installe avant la salve
+    fun `le tampon borne garde les plus recentes et compte les pertes d affichage`() = runTest {
+        val id = registre.ouvrirSession(identite)
+        // Un abonné EXISTE mais est lent (le fil de test est occupé par
+        // la salve) : le tampon d'émissions (512 lots) déborde, les
+        // lignes non émises sont COMPTÉES, jamais perdues en silence.
+        // L'abonné s'installe avant la salve, mais le fil de test
+        // reste OCCUPÉ par la salve : il ne draine rien — le tampon
+        // d'émissions déborde, exactement le scénario éprouvé.
+        val abonnement = registre.lignes(id).launchIn(this)
+        advanceUntilIdle() // l'abonné s'installe avant la salve
 
-            for (numero in 0 until 600) {
-                registre.ajouterTrames(id, listOf(trameLigne("ligne-$numero", horodatage = numero.toLong())), 0)
-            }
-
-            // Le TAMPON garde les 8 plus récentes (capacité du test).
-            assertEquals(8, registre.instantane(id).size)
-            assertEquals("ligne-599", registre.instantane(id).last().message)
-            // Les 600 lignes sont comptées ; 512 lots partis, 88 comptés
-            // en pertes d'affichage (600 − 512 = 88, déterministe).
-            val session = registre.sessions.value[0]
-            assertEquals(600, session.nombreLignes)
-            assertEquals(88L, session.lignesPerdues)
-            abonnement.cancel()
+        for (numero in 0 until 600) {
+            registre.ajouterTrames(id, listOf(trameLigne("ligne-$numero", horodatage = numero.toLong())), 0)
         }
+
+        // Le TAMPON garde les 8 plus récentes (capacité du test).
+        assertEquals(8, registre.instantane(id).size)
+        assertEquals("ligne-599", registre.instantane(id).last().message)
+        // Les 600 lignes sont comptées ; 512 lots partis, 88 comptés
+        // en pertes d'affichage (600 − 512 = 88, déterministe).
+        val session = registre.sessions.value[0]
+        assertEquals(600, session.nombreLignes)
+        assertEquals(88L, session.lignesPerdues)
+        abonnement.cancel()
+    }
 
     @Test
     fun `le delta incremental rend les lignes apres la position`() {

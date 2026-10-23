@@ -77,57 +77,52 @@ public class MoteurHistoriqueLocal(
         contenu: String?,
         tailleOctets: Long,
         libelle: String?,
-    ): EntreeHistorique? =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                if (cleCourante() == null) return@withContext null
-                val precedente = entrees().lastOrNull { it.cheminRelatif == cheminRelatif }
+    ): EntreeHistorique? = verrou.withLock {
+        withContext(repartiteurs.io) {
+            if (cleCourante() == null) return@withContext null
+            val precedente = entrees().lastOrNull { it.cheminRelatif == cheminRelatif }
 
-                // Pas d'historique de bruit (ADR 0105) : même contenu et
-                // même nature que la transition précédente du chemin.
-                if (precedente?.type == type && precedente?.empreinte == empreinteDe(contenu)) {
-                    return@withContext null
-                }
-
-                // Contenu disponible seulement sous le plafond par fichier
-                // (au-delà : entrée honnête SANS contenu).
-                val contenuStocke =
-                    if (contenu != null && contenu.length > politique.tailleMaxFichierOctets) null else contenu
-                val empreinteStockee = empreinteDe(contenuStocke)
-                if (contenuStocke != null && empreinteStockee != null) {
-                    ecrireBlob(empreinteStockee, contenuStocke)
-                }
-
-                val entree =
-                    EntreeHistorique(
-                        id = prochaineId(),
-                        cheminRelatif = cheminRelatif,
-                        type = type,
-                        horodatageMs = horloge.nowMillis(),
-                        empreinte = empreinteStockee,
-                        tailleOctets = tailleOctets,
-                        libelle = libelle,
-                    )
-                entrees() += entree
-                reecrireIndex()
-                entree
+            // Pas d'historique de bruit (ADR 0105) : même contenu et
+            // même nature que la transition précédente du chemin.
+            if (precedente?.type == type && precedente?.empreinte == empreinteDe(contenu)) {
+                return@withContext null
             }
-        }
 
-    override suspend fun listerRevisions(cheminRelatif: String): List<EntreeHistorique> =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                if (cleCourante() == null) {
-                    return@withContext emptyList()
-                }
-                entrees().filter { it.cheminRelatif == cheminRelatif }.asReversed()
+            // Contenu disponible seulement sous le plafond par fichier
+            // (au-delà : entrée honnête SANS contenu).
+            val contenuStocke =
+                if (contenu != null && contenu.length > politique.tailleMaxFichierOctets) null else contenu
+            val empreinteStockee = empreinteDe(contenuStocke)
+            if (contenuStocke != null && empreinteStockee != null) {
+                ecrireBlob(empreinteStockee, contenuStocke)
             }
-        }
 
-    override suspend fun listerRevisionsSous(
-        cheminDossier: String,
-        limite: Int,
-    ): List<EntreeHistorique> =
+            val entree =
+                EntreeHistorique(
+                    id = prochaineId(),
+                    cheminRelatif = cheminRelatif,
+                    type = type,
+                    horodatageMs = horloge.nowMillis(),
+                    empreinte = empreinteStockee,
+                    tailleOctets = tailleOctets,
+                    libelle = libelle,
+                )
+            entrees() += entree
+            reecrireIndex()
+            entree
+        }
+    }
+
+    override suspend fun listerRevisions(cheminRelatif: String): List<EntreeHistorique> = verrou.withLock {
+        withContext(repartiteurs.io) {
+            if (cleCourante() == null) {
+                return@withContext emptyList()
+            }
+            entrees().filter { it.cheminRelatif == cheminRelatif }.asReversed()
+        }
+    }
+
+    override suspend fun listerRevisionsSous(cheminDossier: String, limite: Int): List<EntreeHistorique> =
         verrou.withLock {
             withContext(repartiteurs.io) {
                 if (cleCourante() == null) {
@@ -145,106 +140,97 @@ public class MoteurHistoriqueLocal(
             }
         }
 
-    override suspend fun lireContenu(id: Long): String? =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                if (cleCourante() == null) {
-                    return@withContext null
-                }
-                val entree = entrees().firstOrNull { it.id == id } ?: return@withContext null
-                entree.empreinte?.let { File(dossierBlobs(), it).takeIf(File::isFile)?.readText() }
+    override suspend fun lireContenu(id: Long): String? = verrou.withLock {
+        withContext(repartiteurs.io) {
+            if (cleCourante() == null) {
+                return@withContext null
             }
+            val entree = entrees().firstOrNull { it.id == id } ?: return@withContext null
+            entree.empreinte?.let { File(dossierBlobs(), it).takeIf(File::isFile)?.readText() }
         }
+    }
 
-    override suspend fun derniereEmpreinte(cheminRelatif: String): String? =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                if (cleCourante() == null) {
-                    return@withContext null
-                }
-                entrees().lastOrNull { it.cheminRelatif == cheminRelatif }?.empreinte
+    override suspend fun derniereEmpreinte(cheminRelatif: String): String? = verrou.withLock {
+        withContext(repartiteurs.io) {
+            if (cleCourante() == null) {
+                return@withContext null
             }
+            entrees().lastOrNull { it.cheminRelatif == cheminRelatif }?.empreinte
         }
+    }
 
-    override suspend fun etiqueter(
-        nom: String,
-        cheminRelatif: String?,
-    ): EntreeHistorique? =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                if (cleCourante() == null) {
-                    return@withContext null
-                }
-                val entree =
-                    EntreeHistorique(
-                        id = prochaineId(),
-                        cheminRelatif = cheminRelatif ?: CHEMIN_PROJET,
-                        type = TypeEntreeHistorique.ETIQUETTE,
-                        horodatageMs = horloge.nowMillis(),
-                        empreinte = null,
-                        tailleOctets = 0L,
-                        libelle = nom,
-                    )
-                entrees() += entree
+    override suspend fun etiqueter(nom: String, cheminRelatif: String?): EntreeHistorique? = verrou.withLock {
+        withContext(repartiteurs.io) {
+            if (cleCourante() == null) {
+                return@withContext null
+            }
+            val entree =
+                EntreeHistorique(
+                    id = prochaineId(),
+                    cheminRelatif = cheminRelatif ?: CHEMIN_PROJET,
+                    type = TypeEntreeHistorique.ETIQUETTE,
+                    horodatageMs = horloge.nowMillis(),
+                    empreinte = null,
+                    tailleOctets = 0L,
+                    libelle = nom,
+                )
+            entrees() += entree
+            reecrireIndex()
+            entree
+        }
+    }
+
+    override suspend fun purger(): Unit = verrou.withLock {
+        withContext(repartiteurs.io) {
+            if (cleCourante() == null) return@withContext
+            val existantes = entrees()
+            val maintenant = horloge.nowMillis()
+            // Rétention lue à CHAQUE purge (H6 — réglage des
+            // Paramètres, ADR 0105) : un changement s'applique ici.
+            val ageMaxMs = retentionJoursCourante() * MILLIS_PAR_JOUR
+
+            var conservees = existantes.filter { maintenant - it.horodatageMs <= ageMaxMs }
+            // Quota : les entrées les plus anciennes d'abord, jusqu'à
+            // ce que les blobs DISTINCTS restants respectent le quota.
+            var referencees = empreintesReferencees(conservees)
+            while (referencees.sumOf { it.taille } > politique.quotaOctets && conservees.isNotEmpty()) {
+                conservees = conservees.drop(1)
+                referencees = empreintesReferencees(conservees)
+            }
+            // Nombre maximal d'entrées.
+            if (conservees.size > politique.nbMaxEntrees) {
+                conservees = conservees.takeLast(politique.nbMaxEntrees)
+            }
+
+            if (conservees.size != existantes.size) {
+                indexEnMemoire = conservees.toMutableList()
                 reecrireIndex()
-                entree
+            }
+            supprimerBlobsOrphelins(referencees.map { it.empreinte }.toSet())
+        }
+    }
+
+    override suspend fun empreinteOctets(): Long = verrou.withLock {
+        withContext(repartiteurs.io) {
+            // TOUT projet confondu, index compris — l'écran
+            // d'entretien (H6) ne dépend d'aucun projet ouvert.
+            if (!racine.isDirectory) {
+                0L
+            } else {
+                racine.walkTopDown().filter { it.isFile }.sumOf { it.length() }
             }
         }
+    }
 
-    override suspend fun purger(): Unit =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                if (cleCourante() == null) return@withContext
-                val existantes = entrees()
-                val maintenant = horloge.nowMillis()
-                // Rétention lue à CHAQUE purge (H6 — réglage des
-                // Paramètres, ADR 0105) : un changement s'applique ici.
-                val ageMaxMs = retentionJoursCourante() * MILLIS_PAR_JOUR
-
-                var conservees = existantes.filter { maintenant - it.horodatageMs <= ageMaxMs }
-                // Quota : les entrées les plus anciennes d'abord, jusqu'à
-                // ce que les blobs DISTINCTS restants respectent le quota.
-                var referencees = empreintesReferencees(conservees)
-                while (referencees.sumOf { it.taille } > politique.quotaOctets && conservees.isNotEmpty()) {
-                    conservees = conservees.drop(1)
-                    referencees = empreintesReferencees(conservees)
-                }
-                // Nombre maximal d'entrées.
-                if (conservees.size > politique.nbMaxEntrees) {
-                    conservees = conservees.takeLast(politique.nbMaxEntrees)
-                }
-
-                if (conservees.size != existantes.size) {
-                    indexEnMemoire = conservees.toMutableList()
-                    reecrireIndex()
-                }
-                supprimerBlobsOrphelins(referencees.map { it.empreinte }.toSet())
-            }
+    override suspend fun effacerTout(): Unit = verrou.withLock {
+        withContext(repartiteurs.io) {
+            // Index en mémoire INVALIDÉ : le prochain accès
+            // rechargera (un dossier absent = historique vide).
+            indexEnMemoire = null
+            dossierCharge = null
+            racine.deleteRecursively()
         }
-
-    override suspend fun empreinteOctets(): Long =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                // TOUT projet confondu, index compris — l'écran
-                // d'entretien (H6) ne dépend d'aucun projet ouvert.
-                if (!racine.isDirectory) {
-                    0L
-                } else {
-                    racine.walkTopDown().filter { it.isFile }.sumOf { it.length() }
-                }
-            }
-        }
-
-    override suspend fun effacerTout(): Unit =
-        verrou.withLock {
-            withContext(repartiteurs.io) {
-                // Index en mémoire INVALIDÉ : le prochain accès
-                // rechargera (un dossier absent = historique vide).
-                indexEnMemoire = null
-                dossierCharge = null
-                racine.deleteRecursively()
-            }
-        }
+    }
 
     // ------------------------------------------------------------------
     // Index et blobs (intégrité par renommage atomique)
@@ -269,7 +255,7 @@ public class MoteurHistoriqueLocal(
                             document?.get(
                                 "version",
                             ) as? kotlinx.serialization.json.JsonPrimitive
-                        )?.content?.toIntOrNull()
+                            )?.content?.toIntOrNull()
                     val tableau = document?.get("entrees") as? JsonArray
                     if (version != VERSION_INDEX || tableau == null) {
                         emptyList()
@@ -315,10 +301,7 @@ public class MoteurHistoriqueLocal(
     }
 
     /** Écrit un blob (dédup : existant → saut) : `.tmp` puis renommage. */
-    private fun ecrireBlob(
-        empreinte: String,
-        contenu: String,
-    ) {
+    private fun ecrireBlob(empreinte: String, contenu: String) {
         val dossier = dossierBlobs()
         dossier.mkdirs()
         val blob = File(dossier, empreinte)
@@ -351,19 +334,15 @@ public class MoteurHistoriqueLocal(
     private fun dossierBlobs(): File = File(dossierProjet(), "blobs")
 
     /** Empreinte SHA-256 hexadécimale, ou `null` pour un contenu nul. */
-    private fun empreinteDe(contenu: String?): String? =
-        contenu?.let {
-            MessageDigest
-                .getInstance("SHA-256")
-                .digest(it.toByteArray(Charsets.UTF_8))
-                .joinToString(separator = "") { octet -> "%02x".format(octet) }
-        }
+    private fun empreinteDe(contenu: String?): String? = contenu?.let {
+        MessageDigest
+            .getInstance("SHA-256")
+            .digest(it.toByteArray(Charsets.UTF_8))
+            .joinToString(separator = "") { octet -> "%02x".format(octet) }
+    }
 
     /** (empreinte, taille) d'un blob référencé. */
-    private data class EmpreinteTaille(
-        val empreinte: String,
-        val taille: Long,
-    )
+    private data class EmpreinteTaille(val empreinte: String, val taille: Long)
 
     /** Forme persistante d'une entrée (JSON stable, ADR 0104). */
     @Serializable
@@ -376,31 +355,29 @@ public class MoteurHistoriqueLocal(
         val taille: Long = 0L,
         val libelle: String? = null,
     ) {
-        fun versEntree(): EntreeHistorique =
-            EntreeHistorique(
-                id = id,
-                cheminRelatif = chemin,
-                type =
-                    runCatching { TypeEntreeHistorique.valueOf(type) }
-                        .getOrDefault(TypeEntreeHistorique.MODIFICATION),
-                horodatageMs = horodatage,
-                empreinte = empreinte,
-                tailleOctets = taille,
-                libelle = libelle,
-            )
+        fun versEntree(): EntreeHistorique = EntreeHistorique(
+            id = id,
+            cheminRelatif = chemin,
+            type =
+            runCatching { TypeEntreeHistorique.valueOf(type) }
+                .getOrDefault(TypeEntreeHistorique.MODIFICATION),
+            horodatageMs = horodatage,
+            empreinte = empreinte,
+            tailleOctets = taille,
+            libelle = libelle,
+        )
     }
 
     /** Sérialisation d'une entrée vers le tableau JSON de l'index. */
-    private fun EntreeHistorique.versJson(): JsonObject =
-        buildJsonObject {
-            put("id", id)
-            put("chemin", cheminRelatif)
-            put("type", type.name)
-            put("horodatage", horodatageMs)
-            empreinte?.let { put("empreinte", it) }
-            put("taille", tailleOctets)
-            libelle?.let { put("libelle", it) }
-        }
+    private fun EntreeHistorique.versJson(): JsonObject = buildJsonObject {
+        put("id", id)
+        put("chemin", cheminRelatif)
+        put("type", type.name)
+        put("horodatage", horodatageMs)
+        empreinte?.let { put("empreinte", it) }
+        put("taille", tailleOctets)
+        libelle?.let { put("libelle", it) }
+    }
 
     private companion object {
         const val NOM_INDEX = "index.json"

@@ -269,10 +269,7 @@ class TerminalActivity : AppCompatActivity() {
     }
 
     /** Teinte la pastille d'état (vivante : émeraude ; terminée : grise). */
-    private fun teinterPastille(
-        pastille: View,
-        vivante: Boolean,
-    ) {
+    private fun teinterPastille(pastille: View, vivante: Boolean) {
         val couleur =
             ContextCompat.getColor(
                 this,
@@ -286,10 +283,7 @@ class TerminalActivity : AppCompatActivity() {
     }
 
     /** Menu contextuel d'un onglet (appui long, section 5). */
-    private fun menuContextuel(
-        ancre: View,
-        sessionId: String,
-    ) {
+    private fun menuContextuel(ancre: View, sessionId: String) {
         val menu = PopupMenu(this, ancre)
         menu.menuInflater.inflate(R.menu.menu_session, menu.menu)
         menu.setOnMenuItemClickListener { item ->
@@ -462,17 +456,16 @@ class TerminalActivity : AppCompatActivity() {
     }
 
     /** Taille courante de la vue (réglage ou zoom) — repli moyenne. */
-    private fun tailleCourantePx(): Int =
-        if (tailleRenduePx == AUCUNE_TAILLE) {
-            TypedValue
-                .applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP,
-                    POLICE_MOYENNE_DP.toFloat(),
-                    resources.displayMetrics,
-                ).toInt()
-        } else {
-            tailleRenduePx
-        }
+    private fun tailleCourantePx(): Int = if (tailleRenduePx == AUCUNE_TAILLE) {
+        TypedValue
+            .applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                POLICE_MOYENNE_DP.toFloat(),
+                resources.displayMetrics,
+            ).toInt()
+    } else {
+        tailleRenduePx
+    }
 
     /** Borne basse du zoom (pixels, densité courante). */
     private val zoomMinPx: Int

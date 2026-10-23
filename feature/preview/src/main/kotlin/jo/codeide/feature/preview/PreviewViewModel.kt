@@ -102,1338 +102,1293 @@ import kotlin.math.roundToInt
 // y ajoute les quatre faces de la famille de la vue et des références.
 @HiltViewModel
 public class PreviewViewModel
-    // Exemption detekt ciblée (règle 16) : LongParameterList — les 8
-    // dépendances HILT du ViewModel (PE6e-f ajoute SettingsDataStore pour
-    // les réglages persistés bulle/mode/PE6e-f) ; les regrouper masquerait
-    // l'injection.
-    @Suppress("LongParameterList")
-    @Inject
-    constructor(
-        @param:ApplicationContext private val contexte: Context,
-        private val dispatchers: DispatcherProvider,
-        private val journal: AppLogger,
-        private val registre: RegistreSourcesApercu,
-        private val resolveurChemin: ResoudreRepertoireProjet,
-        private val reglagesDataStore: SettingsDataStore,
-        sauvegarde: SavedStateHandle,
-    ) : ViewModel() {
-        /** Identifiant du projet (piège « mort du processus » : relance de l'éditeur). */
-        public val projectId: String = sauvegarde.get<String>(CLE_PROJET) ?: ""
+// Exemption detekt ciblée (règle 16) : LongParameterList — les 8
+// dépendances HILT du ViewModel (PE6e-f ajoute SettingsDataStore pour
+// les réglages persistés bulle/mode/PE6e-f) ; les regrouper masquerait
+// l'injection.
+@Suppress("LongParameterList")
+@Inject
+constructor(
+    @param:ApplicationContext private val contexte: Context,
+    private val dispatchers: DispatcherProvider,
+    private val journal: AppLogger,
+    private val registre: RegistreSourcesApercu,
+    private val resolveurChemin: ResoudreRepertoireProjet,
+    private val reglagesDataStore: SettingsDataStore,
+    sauvegarde: SavedStateHandle,
+) : ViewModel() {
+    /** Identifiant du projet (piège « mort du processus » : relance de l'éditeur). */
+    public val projectId: String = sauvegarde.get<String>(CLE_PROJET) ?: ""
 
-        /** URI du document demandé (extra de [jo.codeide.core.ui.AppNavigator.openPreview]). */
-        public val uriInitial: String = sauvegarde.get<String>(CLE_URI) ?: ""
+    /** URI du document demandé (extra de [jo.codeide.core.ui.AppNavigator.openPreview]). */
+    public val uriInitial: String = sauvegarde.get<String>(CLE_URI) ?: ""
 
-        /** Le moteur de rendu — vit HORS de l'activité (rotation sûre). */
-        val moteur =
-            MoteurPreviewXml(
-                contexte = contexte,
-                dispatchers = dispatchers,
-                journal = journal,
-                scope = viewModelScope,
-            )
-
-        /** La source branchée (null = aucune — panneau sans session). */
-        public var source: SourceApercu? = null
-            private set
-
-        /** Effet « se terminer et relancer l'éditeur » (piège mort du processus). */
-        private val finirInterne = MutableStateFlow(false)
-
-        /** L'écran doit se terminer (source disparue) — collecté une fois par l'activité. */
-        public val finir: StateFlow<Boolean> = finirInterne.asStateFlow()
-
-        /** La sélection PARTAGÉE (vue ↔ feuille) : l'indice dans l'arbre rendu, -1 aucune. */
-        private val selectionInterne = MutableStateFlow(-1)
-
-        /** La sélection partagée (PE6d — la feuille et la vue s'y alignent). */
-        public val indiceSelectionne: StateFlow<Int> = selectionInterne.asStateFlow()
-
-        /** Le DERNIER rendu valide (sélection, dépôt : vues + spans). */
-        public var dernierRendu: EtatPreviewXml.RenduValide? = null
-            private set
-
-        /** La classe du conteneur visé par le DERNIER dépôt RÉUSSI (libellé du toast). */
-        public var dernierParentDepot: String? = null
-            private set
-
-        /** URI du fichier affiché (titre + sélecteur). */
-        public var uriCourante: String? = null
-            private set
-
-        /** Écouteur de mutation branché à la source courante (détaché au changement). */
-        private var ecouteur: SourceApercu.EcouteurMutation? = null
-
-        /** Job du suivi projet (résolution FUSE suspendante — annulé au changement). */
-        private var suiviProjet: kotlinx.coroutines.Job? = null
-
-        // ── PE11e : les ressources du projet pour le contrôle COULEUR ─────
-        // Miroir `RES` de la maquette : la palette couleur montre les
-        // `@color` du projet, le validateur avertit quand une référence
-        // est INTROUVABLE. La source reste les FICHIERS de `res/` (même
-        // vérité que [lireManifeste] — jamais d'état parallel).
-
-        /** Le dossier `res/` résolu du projet courant (`null` = repli natif). */
-        private var dossierResCourant: String? = null
-
-        /** Les `@color` du projet (interne — ordre du document). */
-        private val couleursProjetInterne = MutableStateFlow<List<CouleursProjetXml.CouleurProjet>>(emptyList())
-
-        /** Les `@color` du projet : la palette couleur les montre, la pastille les résout. */
-        public val couleursProjet: StateFlow<List<CouleursProjetXml.CouleurProjet>> =
-            couleursProjetInterne
-                .asStateFlow()
-
-        /** Les noms `@drawable` du projet (interne). */
-        private val drawablesProjetInterne = MutableStateFlow<Set<String>>(emptySet())
-
-        /** Les noms `@drawable` du projet — l'avertissement « introuvable » du validateur. */
-        public val drawablesProjet: StateFlow<Set<String>> = drawablesProjetInterne.asStateFlow()
-
-        /** L'index des ressources du projet PAR TYPE (interne). */
-        private val indexRessourcesInterne = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
-
-        /**
-         * L'INDEX des ressources du projet, PAR TYPE (PE11f — miroir
-         * `RES` de la maquette) : `drawable`, `color`, `string`,
-         * `style` (entrées des `values*`) et `layout` (fichiers) — le
-         * validateur `ressource` y pique ses avertissements
-         * « introuvable », les SUGGESTIONS du contrôle en sortent.
-         */
-        public val indexRessources: StateFlow<Map<String, Set<String>>> = indexRessourcesInterne.asStateFlow()
-
-        // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
-        // ⚠️ DÉCLARÉ AVANT le bloc init — CONTRAT d'ordre d'initialisation :
-        // `init { brancher(uriInitial) }` s'exécute AU CONSTRUCTEUR et
-        // écrit cet état via [delierSource]/[majHistorique] ; une
-        // déclaration placée APRÈS l'init valait null au premier appel
-        // (crash 0.134.39, rapport 9774dd61 : NPE sur setValue pendant
-        // <init> — l'aperçu ne s'ouvrait plus du tout).
-
-        /**
-         * L'état des piles d'annulation de la source branchée (PE10c —
-         * miroir `updateEditBar` de la maquette : les icônes
-         * annuler/rétablir se mettent à jour avec l'historique).
-         */
-        public data class HistoriqueEdition(
-            val peutAnnuler: Boolean,
-            val peutRetablir: Boolean,
+    /** Le moteur de rendu — vit HORS de l'activité (rotation sûre). */
+    val moteur =
+        MoteurPreviewXml(
+            contexte = contexte,
+            dispatchers = dispatchers,
+            journal = journal,
+            scope = viewModelScope,
         )
 
-        /** L'état interne de l'historique (relu à chaque mutation). */
-        private val historiqueInterne = MutableStateFlow(HistoriqueEdition(false, false))
+    /** La source branchée (null = aucune — panneau sans session). */
+    public var source: SourceApercu? = null
+        private set
 
-        /** L'historique observables (la barre d'édition s'y aligne). */
-        public val historiqueEdition: StateFlow<HistoriqueEdition> = historiqueInterne.asStateFlow()
+    /** Effet « se terminer et relancer l'éditeur » (piège mort du processus). */
+    private val finirInterne = MutableStateFlow(false)
 
-        init {
-            brancher(uriInitial)
-            viewModelScope.launch {
-                moteur.etat.collect { etat ->
-                    if (etat is EtatPreviewXml.RenduValide) dernierRendu = etat
-                }
-            }
-            // PE7c : les réglages persistés de la bulle et du mode de la
-            // palette (DataStore tolérant — la lecture retombe sur les défauts).
-            viewModelScope.launch {
-                reglagesDataStore.observe().collect { reglage ->
-                    reglagesApercuInterne.value =
-                        ReglagesApercu(
-                            bulleFixe = reglage.apercuBulleFixe,
-                            bulleADroite = reglage.apercuBulleADroite,
-                            bulleY = reglage.apercuBulleY,
-                            paletteParPopup = reglage.apercuPaletteParPopup,
-                        )
-                }
-            }
-        }
+    /** L'écran doit se terminer (source disparue) — collecté une fois par l'activité. */
+    public val finir: StateFlow<Boolean> = finirInterne.asStateFlow()
 
-        /**
-         * Branche la source d'un document (initial ou sélecteur) :
-         * délie l'ancienne, suit le projet, classifie, rend immédiatement.
-         */
-        public fun ouvrirFichier(uri: String) {
-            if (uri == uriCourante && source != null) return
-            brancher(uri)
-        }
+    /** La sélection PARTAGÉE (vue ↔ feuille) : l'indice dans l'arbre rendu, -1 aucune. */
+    private val selectionInterne = MutableStateFlow(-1)
 
-        /** Les documents OUVERTS (registre) qui se laissent prévisualiser — le sélecteur de titre. */
-        public fun sourcesPreviewables(): List<SourceApercu> =
-            registre
-                .sources()
-                .filter { source -> ClassificateurPreview.genreDe(source.cheminRelatif, source.texte()) != null }
+    /** La sélection partagée (PE6d — la feuille et la vue s'y alignent). */
+    public val indiceSelectionne: StateFlow<Int> = selectionInterne.asStateFlow()
 
-        /** Le nom affichable du fichier courant (dernier segment du chemin relatif). */
-        public fun nomFichierCourant(): String = source?.cheminRelatif?.substringAfterLast('/') ?: ""
+    /** Le DERNIER rendu valide (sélection, dépôt : vues + spans). */
+    public var dernierRendu: EtatPreviewXml.RenduValide? = null
+        private set
 
-        /** Tap sur le rendu → le SPAN source est posé DANS la session (retour éditeur : sélection active). */
-        public fun definirSelection(
-            debut: Int,
-            fin: Int,
-        ) {
-            source?.definirSelection(debut, fin)
-        }
+    /** La classe du conteneur visé par le DERNIER dépôt RÉUSSI (libellé du toast). */
+    public var dernierParentDepot: String? = null
+        private set
 
-        /**
-         * La SÉLECTION partagée (PE6d) : l'indice de la vue dans l'arbre
-         * rendu — le SPAN suit dans la session (l'éditeur le retrouve),
-         * l'état est publié (la feuille s'aligne ; l'activité re-surligne).
-         * Indice sans vue ou sans span : la sélection SE TAIT (jamais un
-         * faux span — X4), l'indice reste affiché (l'arbre le montre).
-         */
-        public fun selectionner(indice: Int) {
-            val vue = dernierRendu?.vues?.getOrNull(indice)
-            if (vue != null && vue.selectable) {
-                source?.definirSelection(vue.debutElement, vue.finElement)
-            }
-            selectionInterne.value = indice
-        }
+    /** URI du fichier affiché (titre + sélecteur). */
+    public var uriCourante: String? = null
+        private set
 
-        /** Le texte VIVANT du document (onglet Source de la feuille — PE6d). */
-        public fun texteCourant(): String = source?.texte() ?: ""
+    /** Écouteur de mutation branché à la source courante (détaché au changement). */
+    private var ecouteur: SourceApercu.EcouteurMutation? = null
 
-        // ── PE11k : surlignage temporaire de l'INSERTION (onglet Source) ──
+    /** Job du suivi projet (résolution FUSE suspendante — annulé au changement). */
+    private var suiviProjet: kotlinx.coroutines.Job? = null
 
-        /** La plage de lignes INSÉRÉES par la dernière écriture (miroir
-         *  `S.flash` de la maquette : posée à l'insertion, retirée après
-         *  le délai — le volet Source la lit au liage). Null = rien à
-         *  surligner. */
-        private val plageInsereeInterne = MutableStateFlow<IntRange?>(null)
+    // ── PE11e : les ressources du projet pour le contrôle COULEUR ─────
+    // Miroir `RES` de la maquette : la palette couleur montre les
+    // `@color` du projet, le validateur avertit quand une référence
+    // est INTROUVABLE. La source reste les FICHIERS de `res/` (même
+    // vérité que [lireManifeste] — jamais d'état parallel).
 
-        /** La plage insérée observable (l'onglet Source s'y aligne). */
-        public val plageInseree: StateFlow<IntRange?> = plageInsereeInterne.asStateFlow()
+    /** Le dossier `res/` résolu du projet courant (`null` = repli natif). */
+    private var dossierResCourant: String? = null
 
-        /** La bougie d'effacement de la plage insérée (repouillée à chaque pose). */
-        private var bougieInseree: Job? = null
+    /** Les `@color` du projet (interne — ordre du document). */
+    private val couleursProjetInterne = MutableStateFlow<List<CouleursProjetXml.CouleurProjet>>(emptyList())
 
-        /**
-         * Pose la plage de lignes INSÉRÉES par une écriture réussie (dépôt
-         * PE7b ou placement PE7c — même miroir `S.flash = n.rid` de
-         * `insertAt`), puis l'EFFACE après le délai de la maquette (la
-         * maquette gagne sur le « ~1,2 s » de PREVIEW_UI_ECRANS.md § 9 : 2,6 s).
-         */
-        private fun marquerInsertion(
-            sourceBranchee: SourceApercu,
-            edition: InsertionXml.EditionXml,
-        ) {
-            val texte = sourceBranchee.texte()
-            if (texte.isEmpty()) return
-            // La plage posée vit dans le texte NOUVEAU : [debut, debut + remplacement[.
-            val plage =
-                FeuilleApercu.lignesDePlage(
-                    texte,
-                    edition.debut,
-                    edition.debut + edition.remplacement.length,
-                ) ?: return
-            plageInsereeInterne.value = plage
-            bougieInseree?.cancel()
-            bougieInseree =
-                viewModelScope.launch {
-                    delay(DELAI_INSERTION_MS)
-                    plageInsereeInterne.value = null
-                }
-        }
+    /** Les `@color` du projet : la palette couleur les montre, la pastille les résout. */
+    public val couleursProjet: StateFlow<List<CouleursProjetXml.CouleurProjet>> =
+        couleursProjetInterne
+            .asStateFlow()
 
-        /**
-         * Le DÉPÔT de la palette (PE7b, étendu PE12d) : cible le conteneur
-         * sous le point (le CONTENU participe — ancre FAB, taille du
-         * déposé, comportement lié), façonne l'extrait (identifiant libre —
-         * miroir `nextId`, PLAN de famille via [InsertionXml.ajouterAttributs]
-         * — marges d’abord puis règles ; contraintes + marges en dp pour
-         * un parent ConstraintLayout, maquette PE7a), compose l'ÉDITION
-         * UNIQUE ([InsertionXml.inserer]) et l'écrit dans la session
-         * ([SourceApercu.remplacer] — une seule entrée d'historique). Le
-         * rendu repart par le chemin normal (mutation → écouteur →
-         * moteur). Refus silencieux hors cible ou span périmé (X4 — jamais
-         * d'écriture hasardeuse).
-         *
-         * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde
-         * (rendu, source, cible, parent, span, édition) est une issue
-         * DISTINCTE du refus.
-         */
-        @Suppress("ReturnCount")
-        public fun appliquerDepot(
-            contenu: ZonesDepot.ContenuDepot,
-            x: Float,
-            y: Float,
-        ): Boolean {
-            val rendu = dernierRendu ?: return false
-            val sourceBranchee = source ?: return false
-            val vues = rendu.vues
-            val cible =
-                ZonesDepot.cibleSous(vues, x, y, contenu, moteur.profil.densiteDpi) ?: return false
-            val parent = vues.getOrNull(cible.indiceParent) ?: return false
-            if (!parent.selectable) return false
-            val texte = sourceBranchee.texte()
-            var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
-            val plan = cible.plan
-            if (plan != null) {
-                extrait = InsertionXml.ajouterAttributs(extrait, plan.marges.versAttributs() + plan.attributs)
-            } else if (parent.classe.endsWith("ConstraintLayout")) {
-                val densite = moteur.profil.densiteDpi
-                val margeHaut = CalquesApercu.pxVersDp((y - parent.haut).roundToInt().coerceAtLeast(0), densite)
-                val margeStart = CalquesApercu.pxVersDp((x - parent.gauche).roundToInt().coerceAtLeast(0), densite)
-                extrait = InsertionXml.contraindre(extrait, margeHaut, margeStart)
-            }
-            val edition =
-                InsertionXml.inserer(
-                    texte,
-                    InsertionXml.SpanParent(parent.debutElement, parent.finElement),
-                    cible.index,
-                    extrait,
-                ) ?: return false
-            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
-            if (ecrit) {
-                dernierParentDepot = parent.classe
-                marquerRecent(contenu.idWidget)
-                marquerInsertion(sourceBranchee, edition)
-            }
-            return ecrit
-        }
+    /** Les noms `@drawable` du projet (interne). */
+    private val drawablesProjetInterne = MutableStateFlow<Set<String>>(emptySet())
 
-        // ── PE6e-f : orientation et échelle de police ────────────────────
+    /** Les noms `@drawable` du projet — l'avertissement « introuvable » du validateur. */
+    public val drawablesProjet: StateFlow<Set<String>> = drawablesProjetInterne.asStateFlow()
 
-        /** Orientation paysage courante (libellé de la puce). */
-        public val paysage: Boolean get() = moteur.paysage
+    /** L'index des ressources du projet PAR TYPE (interne). */
+    private val indexRessourcesInterne = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
 
-        /** Échelle de police courante (libellé de la puce). */
-        public val echellePolice: Float get() = moteur.echellePolice
+    /**
+     * L'INDEX des ressources du projet, PAR TYPE (PE11f — miroir
+     * `RES` de la maquette) : `drawable`, `color`, `string`,
+     * `style` (entrées des `values*`) et `layout` (fichiers) — le
+     * validateur `ressource` y pique ses avertissements
+     * « introuvable », les SUGGESTIONS du contrôle en sortent.
+     */
+    public val indexRessources: StateFlow<Map<String, Set<String>>> = indexRessourcesInterne.asStateFlow()
 
-        /** Bascule l'orientation (puce Portrait/Paysage — rendu immédiat). */
-        public fun definirPaysage(paysage: Boolean) {
-            moteur.definirPaysage(paysage)
-        }
+    // ── PE10c : l'état RÉACTIF de l'historique d'édition ─────────────
+    // ⚠️ DÉCLARÉ AVANT le bloc init — CONTRAT d'ordre d'initialisation :
+    // `init { brancher(uriInitial) }` s'exécute AU CONSTRUCTEUR et
+    // écrit cet état via [delierSource]/[majHistorique] ; une
+    // déclaration placée APRÈS l'init valait null au premier appel
+    // (crash 0.134.39, rapport 9774dd61 : NPE sur setValue pendant
+    // <init> — l'aperçu ne s'ouvrait plus du tout).
 
-        /**
-         * RÉACTIVE le processus `:preview` (PE11i — bouton « Réessayer » du
-         * bandeau, ADR 0134 D6) : la politique d'isolation repart du régime
-         * nominal et le rendu courant est relancé.
-         */
-        public fun reactiverIsolation() {
-            moteur.reactiverIsolation()
-        }
+    /**
+     * L'état des piles d'annulation de la source branchée (PE10c —
+     * miroir `updateEditBar` de la maquette : les icônes
+     * annuler/rétablir se mettent à jour avec l'historique).
+     */
+    public data class HistoriqueEdition(val peutAnnuler: Boolean, val peutRetablir: Boolean)
 
-        /** Cycler l'échelle de police (puce Police ×n : 1,0 → 1,3 → 2,0 → 1,0). */
-        public fun cyclerEchellePolice(): Float {
-            val suivante =
-                when {
-                    moteur.echellePolice <= 1f -> ECHELLE_POLICE_MOYENNE
-                    moteur.echellePolice <= ECHELLE_POLICE_MOYENNE -> ECHELLE_POLICE_GRANDE
-                    else -> RequeteRendu.ECHELLE_POLICE_DEFAUT
-                }
-            moteur.definirEchellePolice(suivante)
-            return suivante
-        }
+    /** L'état interne de l'historique (relu à chaque mutation). */
+    private val historiqueInterne = MutableStateFlow(HistoriqueEdition(false, false))
 
-        // ── PE7c : réglages persistés (bulle, mode), récents, placement ──
+    /** L'historique observables (la barre d'édition s'y aligne). */
+    public val historiqueEdition: StateFlow<HistoriqueEdition> = historiqueInterne.asStateFlow()
 
-        /** Les réglages persistés de l'aperçu (bulle, mode). */
-        public data class ReglagesApercu(
-            val bulleFixe: Boolean,
-            val bulleADroite: Boolean,
-            val bulleY: Float,
-            val paletteParPopup: Boolean,
-        )
-
-        /** L'état courant des réglages (lu depuis le DataStore). */
-        private val reglagesApercuInterne =
-            MutableStateFlow(
-                ReglagesApercu(
-                    bulleFixe = false,
-                    bulleADroite = false,
-                    bulleY = AppSettings.BULLE_Y_DEFAUT,
-                    paletteParPopup = false,
-                ),
-            )
-
-        /** Les réglages observables (la bulle et la palette s'y alignent). */
-        public val reglagesApercu: StateFlow<ReglagesApercu> = reglagesApercuInterne.asStateFlow()
-
-        /** La puce bulle a basculé fixe ↔ flottante (persistance immédiate). */
-        public fun poserBulleFixe(fixe: Boolean) {
-            viewModelScope.launch {
-                reglagesDataStore.update { it.copy(apercuBulleFixe = fixe) }
+    init {
+        brancher(uriInitial)
+        viewModelScope.launch {
+            moteur.etat.collect { etat ->
+                if (etat is EtatPreviewXml.RenduValide) dernierRendu = etat
             }
         }
-
-        /** La bulle a été reposée (aimantation — côté + hauteur persistés). */
-        public fun poserBulle(
-            aDroite: Boolean,
-            yNormalise: Float,
-        ) {
-            viewModelScope.launch {
-                reglagesDataStore.update {
-                    it.copy(
-                        apercuBulleADroite = aDroite,
-                        apercuBulleY = yNormalise.coerceIn(0f, 1f),
-                    )
-                }
-            }
-        }
-
-        /** Le mode d'insertion de la palette a changé (persistance immédiate). */
-        public fun poserModePalette(parPopup: Boolean) {
-            viewModelScope.launch {
-                reglagesDataStore.update { it.copy(apercuPaletteParPopup = parPopup) }
-            }
-        }
-
-        /** Re-lit l'état des piles de la source (mutation, annulation, déliaison). */
-        private fun majHistorique() {
-            val sourceBranchee = source
-            historiqueInterne.value =
-                if (sourceBranchee == null) {
-                    HistoriqueEdition(false, false)
-                } else {
-                    HistoriqueEdition(sourceBranchee.peutAnnuler(), sourceBranchee.peutRetablir())
-                }
-        }
-
-        /**
-         * Les RÉCENTS de la palette (miroir `recents`, SESSION COURANTE —
-         * la persistance reste celle de la maquette, ici en mémoire).
-         */
-        private val recentsInterne = MutableStateFlow<List<String>>(emptyList())
-
-        /** Les récents observables (la grille de la palette s'y aligne). */
-        public val recents: StateFlow<List<String>> = recentsInterne.asStateFlow()
-
-        /** Note un widget au TÊTE des récents (4 max — miroir `insertAt`). */
-        private fun marquerRecent(idWidget: String?) {
-            if (idWidget == null) return
-            val suivant = (listOf(idWidget) + recentsInterne.value.filter { it != idWidget }).take(RECENTS_MAX)
-            recentsInterne.value = suivant
-        }
-
-        /**
-         * Le PLACEMENT PAR POPUP (PE7c, étendu PE12d — miroir `insertAt(w,
-         * parentRid, index)`) : la cible vient de [PlacementPopup.cible] (le
-         * jeu de positions de la famille, § 7) et PORTE son plan — le même
-         * façonnage que le dépôt ([renumeroter] + [ajouterAttributs] du plan,
-         * marges d'abord puis règles) ; SANS plan, le parent `ConstraintLayout`
-         * garde les marges par DÉFAUT de la maquette (`mt=16`, `ml/mr=24` à la
-         * racine). L'édition UNIQUE passe par le port. Refus hors cible/span
-         * périmé (X4 — jamais d'écriture hasardeuse).
-         */
-        public fun appliquerPlacement(
-            contenu: ZonesDepot.ContenuDepot,
-            cible: ZonesDepot.CibleDepot,
-        ): Boolean {
-            val rendu = dernierRendu ?: return false
-            val sourceBranchee = source ?: return false
-            val parent = rendu.vues.getOrNull(cible.indiceParent) ?: return false
-            if (!parent.selectable) return false
-            val texte = sourceBranchee.texte()
-            var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
-            val plan = cible.plan
-            if (plan != null) {
-                extrait = InsertionXml.ajouterAttributs(extrait, plan.marges.versAttributs() + plan.attributs)
-            } else if (parent.classe.endsWith("ConstraintLayout")) {
-                extrait =
-                    InsertionXml.contraindre(
-                        extrait,
-                        MARGE_PLACEMENT_HAUT_DP,
-                        MARGE_PLACEMENT_COTE_DP,
+        // PE7c : les réglages persistés de la bulle et du mode de la
+        // palette (DataStore tolérant — la lecture retombe sur les défauts).
+        viewModelScope.launch {
+            reglagesDataStore.observe().collect { reglage ->
+                reglagesApercuInterne.value =
+                    ReglagesApercu(
+                        bulleFixe = reglage.apercuBulleFixe,
+                        bulleADroite = reglage.apercuBulleADroite,
+                        bulleY = reglage.apercuBulleY,
+                        paletteParPopup = reglage.apercuPaletteParPopup,
                     )
             }
-            val edition =
-                InsertionXml.inserer(
-                    texte,
-                    InsertionXml.SpanParent(parent.debutElement, parent.finElement),
-                    cible.index,
-                    extrait,
-                ) ?: return false
-            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
-            if (ecrit) {
-                dernierParentDepot = parent.classe
-                marquerRecent(contenu.idWidget)
-                marquerInsertion(sourceBranchee, edition)
-            }
-            return ecrit
-        }
-
-        // ── PE7d : éditions d'attributs, dupliquer, supprimer, annuler ──
-
-        /** Le libellé d'une vue éditée (toasts — miroir `label(v)`). */
-        public fun libelleVue(indice: Int): String {
-            val vue = dernierRendu?.vues?.getOrNull(indice) ?: return ""
-            val idNom = vue.idRes.substringAfterLast('/')
-            return if (idNom.isEmpty()) vue.classe else vue.classe + " · @+id/" + idNom
-        }
-
-        /** La vue sélectionnée est-elle éditable (ni racine, ni hors arbre) ? */
-        public fun selectionEditable(): Boolean {
-            val indice = selectionInterne.value
-            if (indice <= 0) return false
-            val vue = dernierRendu?.vues?.getOrNull(indice) ?: return false
-            return vue.selectable && vue.indiceParent >= 0
-        }
-
-        /** La valeur ACTUELLE d'un attribut de la vue sélectionnée (volet Modifier). */
-        public fun valeurAttributSelection(nomAttribut: String): String? {
-            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
-            val sourceBranchee = source ?: return null
-            return EditionAttributsXml.valeurAttribut(
-                sourceBranchee.texte(),
-                InsertionXml.SpanParent(vue.debutElement, vue.finElement),
-                nomAttribut,
-            )
-        }
-
-        /**
-         * DÉFINIT un attribut sur la sélection (PE7e — la voie générale :
-         * remplacement, ajout à la position conventionnelle, retrait si
-         * valeur vide, xmlns posé au besoin). La RACINE reste éditable
-         * (Disposition/Affichage — miroir piège § 5 du prompt PE7e).
-         */
-        public fun definirAttributSelection(
-            nomAttribut: String,
-            valeur: String,
-        ): Boolean =
-            editerSelection(autoriserRacine = true) { rendu, span ->
-                EditionAttributsXml.definir(rendu, span, nomAttribut, valeur)
-            }
-
-        /**
-         * RENOMME l'identifiant de la sélection (PE8a) : déclaration
-         * `@+id/x` + TOUTES les références `@id/x` du fichier en UNE
-         * édition — la racine y a droit aussi. Le code (`R.id.x`) et les
-         * autres fichiers ne sont pas touchés (périmètre du prompt PE7e
-         * § 3, signalé dans l'interface).
-         *
-         * PE12g (spec § 10) : le succès remonte le NOMBRE de références
-         * mises à jour (le toast « Renommé en @+id/x · N références
-         * mises à jour ») ; `null` = refus (le volet recharge le champ).
-         */
-        public fun renommerIdentifiantSelection(nouveau: String): Int? {
-            var referencesMisesAJour = 0
-            val ok =
-                editerSelection(autoriserRacine = true) { rendu, span ->
-                    val ancien = RenommageIdentifiant.identifiantActuel(rendu, span)
-                    if (ancien != null) {
-                        referencesMisesAJour = RenommageIdentifiant.compterReferences(rendu, ancien)
-                    }
-                    RenommageIdentifiant.renommer(rendu, span, nouveau)
-                }
-            return if (ok) referencesMisesAJour else null
-        }
-
-        /** Écrit UN CÔTÉ de marge/padding sur la sélection (PE7e — miroir `.mrow`). */
-        public fun ecrireCoteSelection(
-            base: String,
-            cote: EditionAttributsXml.Cote,
-            valeurDp: Int,
-        ): Boolean =
-            editerSelection(autoriserRacine = true) { rendu, span ->
-                EditionAttributsXml.ecrireCote(rendu, span, base, cote, valeurDp)
-            }
-
-        /**
-         * Les QUATRE ancres de contrainte de la sélection (PE8b — lecture
-         * dans le texte vivant : cible + marge courantes). `null` = span
-         * périmé (le volet affiche la lecture seule).
-         */
-        public fun lireContraintesSelection(): List<EditionAttributsXml.ContrainteLue>? {
-            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
-            val sourceBranchee = source ?: return null
-            return EditionAttributsXml.lireContraintes(
-                sourceBranchee.texte(),
-                InsertionXml.SpanParent(vue.debutElement, vue.finElement),
-            )
-        }
-
-        /**
-         * Les identifiants DISPONIBLES comme cible de contrainte (PE8b) :
-         * les FRÈRES de la sélection qui portent un id (le parent se
-         * cible par la valeur plateforme `parent`). Le CONTENEUR de
-         * contrainte du rendu est la vérité (miroir l'aligneur).
-         */
-        public fun ciblesContrainteSelection(): List<String> {
-            val rendu = dernierRendu ?: return emptyList()
-            val indice = selectionInterne.value
-            val vue = rendu.vues.getOrNull(indice) ?: return emptyList()
-            return rendu.vues
-                .withIndex()
-                .filter { (i, v) -> v.indiceParent == vue.indiceParent && i != indice && v.idRes.isNotBlank() }
-                .map { it.value.idRes }
-        }
-
-        /**
-         * Écrit l'ANCRE [cote] de la sélection (PE8b) : [cible] et/ou
-         * [margeDp] (`null` = aspect intouché, `0` = marge retirée) —
-         * UNE édition au port, rendu immédiat.
-         */
-        public fun ecrireContrainteSelection(
-            cote: EditionAttributsXml.Cote,
-            cible: EditionAttributsXml.CibleContrainte?,
-            margeDp: Int?,
-        ): Boolean =
-            editerSelection { rendu, span ->
-                EditionAttributsXml.ecrireContrainte(rendu, span, cote, cible, margeDp)
-            }
-
-        /**
-         * ACTION RAPIDE « Remplir l'espace restant » (PE11h — miroir le
-         * `items` du `quick` linéaire de la maquette) : pose
-         * `android:layout_weight="1"` et passe la dimension de l'AXE DU
-         * PARENT à `0dp` (match_constraint) en UNE SEULE édition groupée
-         * (une seule entrée d'historique). L'AXE se résout au CLIC sur
-         * l'orientation du parent LUE DANS LE TEXTE VIVANT (`horizontal`
-         * → largeur, défaut → hauteur) — jamais sur le rendu, qui peut
-         * dater d'avant la frappe. `false` = sélection non éditable, span
-         * périmé ou RIEN à remplir (poids 1 + 0dp déjà posés).
-         */
-        public fun remplirEspaceRestantSelection(): Boolean {
-            val rendu = dernierRendu ?: return false
-            val sourceBranchee = source ?: return false
-            val vue = rendu.vues.getOrNull(selectionInterne.value) ?: return false
-            val parent = rendu.vues.getOrNull(vue.indiceParent) ?: return false
-            val orientation =
-                EditionAttributsXml.valeurAttribut(
-                    sourceBranchee.texte(),
-                    InsertionXml.SpanParent(parent.debutElement, parent.finElement),
-                    ATTR_ORIENTATION_PARENT,
-                )
-            val axe =
-                if (orientation == VALEUR_HORIZONTALE) {
-                    EditionAttributsXml.Axe.LARGEUR
-                } else {
-                    EditionAttributsXml.Axe.HAUTEUR
-                }
-            return editerSelection { texte, span ->
-                EditionAttributsXml.remplirEspaceRestant(texte, span, axe)
-            }
-        }
-
-        /**
-         * La session strings.xml OUVERTE du même projet (PE8c — le
-         * registre ne connaît que les documents OUVERTS) : même racine
-         * projet, chemin `res/values/strings.xml` dérivé de celui du
-         * layout édité. `null` = fermée (l'extraction est masquée).
-         */
-        private fun sourceStringsOuverte(): SourceApercu? {
-            val courant = source ?: return null
-            val projet = courant.uriProjet ?: return null
-            val cheminStrings = cheminStringsDe(courant.cheminRelatif) ?: return null
-            return registre.sources().firstOrNull {
-                it.uriProjet == projet && it.cheminRelatif == cheminStrings
-            }
-        }
-
-        /** `…/res/<qualifier>/x.xml` → `…/res/values/strings.xml` (même arbre res). */
-        private fun cheminStringsDe(chemin: String): String? {
-            val marqueur = "/res/"
-            val debut = chemin.indexOf(marqueur)
-            if (debut < 0) return null
-            return chemin.substring(0, debut + marqueur.length) + "values/strings.xml"
-        }
-
-        /**
-         * L'EXTRACTION est POSSIBLE (PE8c) : le littéral courant est
-         * éditable (non vide, pas déjà une référence) ET la session
-         * strings.xml du projet est ouverte.
-         */
-        public fun extractionPossible(nomAttribut: String): Boolean {
-            val valeur = valeurAttributSelection(nomAttribut) ?: return false
-            if (!EditionAttributsXml.estLitteral(valeur)) return false
-            return sourceStringsOuverte() != null
-        }
-
-        /**
-         * EXTRAIT le littéral de la sélection vers `@string/nomRessource`
-         * (PE8c) : l'ENTRÉE part d'abord dans strings.xml (jamais de
-         * référence orpheline si l'entrée échoue), puis la RÉFÉRENCE
-         * remplace le littéral dans le layout — rendu immédiat. Deux
-         * documents = deux entrées d'historique (documenté dans PREVIEW.md).
-         */
-        public fun extraireEnRessource(
-            nomAttribut: String,
-            nomRessource: String,
-        ): Boolean {
-            val sourceStrings = sourceStringsOuverte() ?: return false
-            val rendu = dernierRendu ?: return false
-            val sourceBranchee = source ?: return false
-            val vue = rendu.vues.getOrNull(selectionInterne.value) ?: return false
-            if (!vue.selectable) return false
-            val texte = sourceBranchee.texte()
-            val span = InsertionXml.SpanParent(vue.debutElement, vue.finElement)
-            val valeurLitterale =
-                EditionAttributsXml.valeurAttribut(texte, span, nomAttribut) ?: return false
-            // 1) L'ENTRÉE d'abord, avec la valeur d'ORIGINE.
-            val entree =
-                ExtractionRessource.entreeStrings(sourceStrings.texte(), nomRessource, valeurLitterale)
-                    ?: return false
-            if (!sourceStrings.remplacer(entree.debut, entree.fin, entree.remplacement)) return false
-            // 2) La RÉFÉRENCE dans le layout (une seule édition, rendu immédiat).
-            val reference = ExtractionRessource.extraire(texte, span, nomAttribut, nomRessource) ?: return false
-            if (!sourceBranchee.remplacer(reference.debut, reference.fin, reference.remplacement)) return false
-            moteur.soumettreImmediat { sourceBranchee.texte() }
-            return true
-        }
-
-        /**
-         * Les attributs BRUTS de la sélection (PE7e — miroir `attrsOf` :
-         * contraintes lecture seule, valeurs courantes des côtés).
-         * `null` = span périmé (le volet passe en lecture seule).
-         */
-        public fun attributsSelection(): List<EditionAttributsXml.AttributSource>? {
-            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
-            val sourceBranchee = source ?: return null
-            return EditionAttributsXml.lire(
-                sourceBranchee.texte(),
-                InsertionXml.SpanParent(vue.debutElement, vue.finElement),
-            )
-        }
-
-        /** La CLASSE de la vue sélectionnée (le catalogue en dérive les sections). */
-        public fun classeSelection(): String? = dernierRendu?.vues?.getOrNull(selectionInterne.value)?.classe
-
-        /**
-         * La FAMILLE du parent de la sélection (le catalogue en dérive les
-         * sections Contraintes / Dans le parent — PE12b : l'ancien
-         * `GenreParent` a disparu, la famille voyage telle quelle, spec
-         * § 2.3) — `null` sans rendu.
-         */
-        public fun familleParentSelection(): FamilleParent? {
-            val rendu = dernierRendu ?: return null
-            val indice = selectionInterne.value
-            val vue = rendu.vues.getOrNull(indice) ?: return null
-            if (vue.indiceParent < 0) return FamilleParent.AUCUN
-            val parent = rendu.vues.getOrNull(vue.indiceParent)
-            // PE12a — la famille du parent voyage dans le rendu (chaîne
-            // de superclasses du rendu réel, repli par balise) : plus
-            // fiable que le nom simple de classe (MotionLayout est un
-            // CONSTRAINT, spec § 2). Une famille INCONNUE (rendu ancien,
-            // chaîne altérée sur la frontière AIDL) reste AUTRE — jamais
-            // un faux genre, et ses sections n'arrivent qu'en PE12c.
-            return FamilleParent.deNom(parent?.famille) ?: FamilleParent.AUTRE
-        }
-
-        /**
-         * La FAMILLE de la vue sélectionnée ELLE-MÊME (PE12c — les
-         * sections du CONTENEUR, spec § 5.1) : la chaîne de
-         * superclasses du rendu réel, repli par balise — `null` sans
-         * rendu.
-         */
-        public fun familleVueSelection(): FamilleParent? {
-            val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
-            return FamilleParent.deNom(vue.famille) ?: FamilleParent.deBalise(vue.classe)
-        }
-
-        /**
-         * Le cache de l'ARBRE du document (PE12c) : l'arbre ne se
-         * re-parse que quand le TEXTE a changé — le volet le redemande à
-         * chaque contrôle de référence affiché.
-         */
-        private var cacheArbre: Pair<String, List<ArbreAttributsXml.Noeud>>? = null
-
-        /** L'arbre du document courant (PE12c — [ArbreAttributsXml.lire], mis en cache par texte). */
-        private fun arbreSelection(): List<ArbreAttributsXml.Noeud>? {
-            val sourceBranchee = source ?: return null
-            val texte = sourceBranchee.texte()
-            cacheArbre?.let { (precedent, arbre) -> if (precedent == texte) return arbre }
-            return ArbreAttributsXml.lire(texte).also { arbre -> cacheArbre = texte to arbre }
-        }
-
-        /**
-         * Les OPTIONS du contrôle RÉFÉRENCE D'ID de la sélection (PE12c —
-         * spec § 5.3) : candidats par PORTÉE, grisage des boucles
-         * ([RelationsParents.fermeraitBoucle]), valeur introuvable. La
-         * [valeur] courante vient des attributs lus par le volet. Sans
-         * rendu, source ou nœud correspondant : options DÉGRADÉES (aucun
-         * candidat, note conservée, valeur introuvable conservée) — le
-         * contrôle reste utilisable, jamais vide de sens.
-         */
-        public fun optionsReferenceSelection(
-            reference: CatalogueAttributs.ControleAttribut.ReferenceId,
-            valeur: String?,
-        ): ReferencesId.Options {
-            val rendu = dernierRendu
-            val vue = rendu?.vues?.getOrNull(selectionInterne.value)
-            val arbre = arbreSelection()
-            val indice =
-                if (vue == null || arbre == null) {
-                    null
-                } else {
-                    ReferencesId.indiceDe(arbre, vue.debutElement, vue.finElement)
-                }
-            return if (arbre != null && indice != null) {
-                ReferencesId.options(arbre, indice, reference, valeur)
-            } else {
-                ReferencesId.options(emptyList(), -1, reference, valeur)
-            }
-        }
-
-        /**
-         * RÉTABLIT les valeurs par défaut d'un GROUPE d'attributs de la
-         * sélection (PE12c — le bouton ↺ d'un champ : TOUS les attributs
-         * du groupe partent en UNE SEULE édition, un seul annuler —
-         * miroir le `names.forEach` du `fieldBox` de la maquette).
-         * `false` = sélection non éditable ou RIEN de défini.
-         */
-        public fun reinitialiserAttributsSelection(noms: List<String>): Boolean =
-            editerSelection(autoriserRacine = true) { texte, span ->
-                EditionAttributsXml.retirerAttributs(texte, span, noms)
-            }
-
-        /**
-         * Le cache des problèmes de FAMILLE (PE12f) : l'évaluation ne se
-         * re-parse que quand le TEXTE a changé — le badge, l'onglet
-         * Problèmes et les cartes de correctif la redemandent à chaque
-         * état du moteur (miroir [cacheArbre]).
-         */
-        private var cacheProblemesFamilles: Pair<String, List<ProblemesFamilles.Probleme>>? = null
-
-        /**
-         * Les problèmes de FAMILLE du document courant (PE12f, spec § 9 —
-         * [ProblemesFamilles.evaluer] sur le TEXTE vivant, mis en
-         * cache par texte) : SANS rendu valide eux aussi — la boucle de
-         * règles se lit alors que le rendu vient d'échouer (§ 12).
-         */
-        public fun problemesFamilles(): List<ProblemesFamilles.Probleme> {
-            val sourceBranchee = source ?: return emptyList()
-            val texte = sourceBranchee.texte()
-            cacheProblemesFamilles?.let { (precedent, problemes) -> if (precedent == texte) return problemes }
-            return ProblemesFamilles
-                .evaluer(texte)
-                .also { problemes -> cacheProblemesFamilles = texte to problemes }
-        }
-
-        /**
-         * CORRIGE un problème de famille (PE12f — miroir les `fixer.run`
-         * de la maquette : retirer les attributs en cause, POSER le
-         * comportement de défilement) ; v0.170.0 (S3) : les genres de
-         * CONTENANCE passent par [ContraintesHierarchie] — ENVELOPPER les
-         * enfants d'un enfant-unique dépassé dans un LinearLayout
-         * (résolution canonique du lint ScrollViewChildren), RETIRER les
-         * enfants fautifs d'une feuille, d'un adaptateur ou d'un
-         * conteneur à enfant attendu. L'édition se pose sur le SPAN du
-         * problème, LU DANS LE TEXTE VIVANT — pas sur la sélection du
-         * rendu, qui peut être périmée depuis (le rendu vient d'échouer :
-         * c'est le cas d'emploi de la boucle, § 12). UNE seule édition,
-         * un seul annuler ; rendu immédiat. `false` = problème périmé
-         * (l'attribut visé n'est plus au span — le volet se re-marche et
-         * la carte disparaît).
-         */
-        public fun corrigerProblemeFamille(probleme: ProblemesFamilles.Probleme): Boolean {
-            val sourceBranchee = source ?: return false
-            val texte = sourceBranchee.texte()
-            val span = InsertionXml.SpanParent(probleme.debut, probleme.fin)
-            val edition: InsertionXml.EditionXml? =
-                if (probleme.genre == ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT) {
-                    EditionAttributsXml
-                        .definirReference(
-                            texte,
-                            span,
-                            ATTRIBUT_COMPORTEMENT,
-                            ProblemesFamilles.COMPORTEMENT_DEFILEMENT,
-                        )?.versEditionXml()
-                } else if (probleme.genre == ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE) {
-                    // v0.170.0 — les enfants passent sous un LinearLayout.
-                    ContraintesHierarchie.envelopperEnfants(texte, probleme)
-                } else if (
-                    probleme.genre == ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS ||
-                    probleme.genre == ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR ||
-                    probleme.genre == ProblemesPreview.GenreProbleme.ENFANT_INATTENDU
-                ) {
-                    // v0.170.0 — les enfants fautifs partent en une édition.
-                    ContraintesHierarchie.retirerEnfants(texte, probleme)
-                } else {
-                    EditionAttributsXml
-                        .retirerAttributs(texte, span, probleme.attributs)
-                        ?.versEditionXml()
-                }
-            val ecrite = edition ?: return false
-            val ecrit = sourceBranchee.remplacer(ecrite.debut, ecrite.fin, ecrite.remplacement)
-            if (!ecrit) return false
-            moteur.soumettreImmediat { sourceBranchee.texte() }
-            return true
-        }
-
-        /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */
-        public fun ecrireDimensionSelection(
-            axe: EditionAttributsXml.Axe,
-            mode: EditionAttributsXml.ModeDimension,
-            valeurDp: Int?,
-        ): Boolean =
-            editerSelection { rendu, span ->
-                EditionAttributsXml.ecrireDimension(rendu, span, axe, mode, valeurDp)
-            }
-
-        /**
-         * REDIMENSIONNE la sélection aux dimensions de la cible (PE11l +
-         * PE14-S2, poignée d'angle de l'aperçu) : les DEUX axes partent
-         * en UNE édition groupée (une seule entrée d'historique par
-         * geste, miroir le `mutate` groupé de la maquette —
-         * [EditionAttributsXml.ecrireRedimension]), ÉTOFFÉE des
-         * ajustements PAR-LAYOUT (ADR 0138 C3) : le `layout_weight` qui
-         * contredisait la taille écrite part au passage (parent
-         * LINEAR/APPBAR), les marges du bord tenu suivent le doigt
-         * (parent RELATIVE), les positions `tools:` du bord déplacé se
-         * posent SI le document déclare déjà le dialecte (parent
-         * CONSTRAINT — arbitrage D3). `false` = sélection non éditable
-         * (racine) ou span périmé.
-         *
-         * v0.166.4 — LA RACINE EST AUTORISÉE (retour propriétaire : « le
-         * redimensionnement a aussi d'autres problèmes ») : l'aperçu
-         * dessine les POIGNÉES sur la racine (elle est sélectionnable),
-         * mais le refus silencieux rendait ces poignées MUETTES. La racine
-         * reste éditable pour ses dimensions (PE7e : ses attributs de
-         * disposition sont éditables, et l'inflater honore les dimensions
-         * DÉCLARÉES de la racine depuis LayoutLib v3.4.6) — le geste
-         * écrit `layout_width`/`layout_height` sur le tag racine et le
-         * rendu suit (sans parent, AUCUN ajustement par-layout).
-         */
-        public fun redimensionnerSelection(cible: RedimensionApercu.CibleRedimension): Boolean =
-            editerSelection(autoriserRacine = true) { texte, span ->
-                EditionAttributsXml.ecrireRedimension(
-                    texte,
-                    span,
-                    largeurDp = cible.largeurDp,
-                    hauteurDp = cible.hauteurDp,
-                    ajustements = ajustementsParLayout(texte, span, cible),
-                )
-            }
-
-        /**
-         * Les AJUSTEMENTS PAR-LAYOUT du relâchement (PE14-S2 C3, ADR
-         * 0138) : dérivés de la famille du PARENT RENDU (miroir les
-         * « targets par layout » du designer de la référence) — la
-         * géométrie vient du DERNIER RENDU (bornes absolues bitmap, la
-         * même vérité que la sélection), les règles de position du
-         * TEXTE VIVANT (lues par [EditionAttributsXml.lire]). Sans
-         * parent (racine) ou famille inconnue : AUCUN ajustement (les
-         * deux axes seuls — comportement PE11l).
-         */
-        private fun ajustementsParLayout(
-            texte: String,
-            span: InsertionXml.SpanParent,
-            cible: RedimensionApercu.CibleRedimension,
-        ): EditionAttributsXml.AjustementsRedimension {
-            val rendu = dernierRendu ?: return EditionAttributsXml.AjustementsRedimension()
-            val selection =
-                rendu.vues.getOrNull(selectionInterne.value) ?: return EditionAttributsXml.AjustementsRedimension()
-            val parent =
-                rendu.vues.getOrNull(selection.indiceParent)
-                    ?: return EditionAttributsXml.AjustementsRedimension()
-            val attributs =
-                EditionAttributsXml
-                    .lire(texte, span)
-                    ?.associate { it.nom to it.valeur }
-                    ?: return EditionAttributsXml.AjustementsRedimension()
-            val cadre =
-                RedimensionParLayout.CadreRedimension(
-                    attributs = attributs,
-                    selection = selection,
-                    parent = parent,
-                    freres = freresRendus(rendu),
-                    densiteDpi = moteur.profil.densiteDpi,
-                )
-            val famille =
-                FamilleParent.deNom(parent.famille) ?: FamilleParent.deBalise(parent.classe)
-            return when (famille) {
-                FamilleParent.LINEAR, FamilleParent.APPBAR -> {
-                    EditionAttributsXml.AjustementsRedimension(
-                        retirerPoids = RedimensionParLayout.poidsARetirer(attributs),
-                    )
-                }
-
-                FamilleParent.RELATIVE -> {
-                    EditionAttributsXml.AjustementsRedimension(
-                        marges = RedimensionParLayout.margesARetenir(cadre, cible),
-                    )
-                }
-
-                FamilleParent.CONSTRAINT -> {
-                    val (x, y) =
-                        RedimensionParLayout.positionsOutils(
-                            cadre = cadre,
-                            cible = cible,
-                            outilsAutorises = texte.contains(XMLNS_OUTILS),
-                        )
-                    EditionAttributsXml.AjustementsRedimension(positionOutilsX = x, positionOutilsY = y)
-                }
-
-                else -> {
-                    EditionAttributsXml.AjustementsRedimension()
-                }
-            }
-        }
-
-        /** Les vues rendues du document par NOM D'ID (ancres RelativeLayout — PE14-S2 C3). */
-        private fun freresRendus(rendu: EtatPreviewXml.RenduValide): Map<String, InfoVueRendu> =
-            rendu.vues.filter { it.idRes.isNotEmpty() }.associateBy { it.idRes }
-
-        /**
-         * CORRECTION « Passer à 48 dp » de la sélection (PE11g — carte de
-         * correctif, miroir `quickFixes`) : dimension fixe < 48 → 48 ;
-         * `wrap_content`/`0dp` → `minWidth`/`minHeight` = 48 dp — les
-         * DEUX axes en UNE édition groupée (une seule entrée d'historique,
-         * [EditionAttributsXml.elargirCibleTactile]). `false` = sélection
-         * non éditable, span périmé ou RIEN à élargir.
-         */
-        public fun elargirCibleSelection(): Boolean =
-            editerSelection { rendu, span ->
-                EditionAttributsXml.elargirCibleTactile(rendu, span)
-            }
-
-        /** DUPLIQUE la vue sélectionnée (miroir `dupSel`) — le libellé de la copie. */
-        public fun dupliquerSelection(): Boolean =
-            editerSelection { rendu, span ->
-                EditionAttributsXml.dupliquer(rendu, span)
-            }
-
-        /**
-         * SUPPRIME la vue sélectionnée SANS référence morte (PE12g —
-         * spec § 10, miroir `delSel`) : l'élément et ses descendants
-         * partent AVEC chaque attribut du fichier qui pointe un
-         * identifiant du sous-arbre (règles, ancre — sa gravité suit,
-         * `labelFor`), en UNE SEULE édition ([SuppressionSure.composer]).
-         *
-         * `null` = refus (sélection non éditable, span périmé) ; sinon le
-         * NOMBRE de références retirées — le toast « N références
-         * retirées » du même nom (§ 10).
-         */
-        public fun supprimerSelection(): Int? {
-            var referencesRetirees = 0
-            val ok =
-                editerSelection { rendu, span ->
-                    val suppression = SuppressionSure.composer(rendu, span)
-                    if (suppression != null) {
-                        referencesRetirees = suppression.referencesRetirees
-                    }
-                    suppression?.edition
-                }
-            if (!ok) return null
-            selectionInterne.value = -1
-            return referencesRetirees
-        }
-
-        /** Annule la DERNIÈRE édition (port — l'historique reste celui de l'éditeur). */
-        public fun annuler(): Boolean {
-            val ok = source?.annuler() ?: false
-            majHistorique()
-            return ok
-        }
-
-        /** Rétablit la dernière édition annulée (port). */
-        public fun retablir(): Boolean {
-            val ok = source?.retablir() ?: false
-            majHistorique()
-            return ok
-        }
-
-        /**
-         * Le CORPS commun des éditions PE7d : la vue sélectionnée doit
-         * rester ALIGNÉE au texte VIVANT (re-marche de l'aligneur dans
-         * chaque fonction pure) — l'édition passe au port
-         * ([SourceApercu.remplacer], une seule entrée d'historique) puis
-         * le rendu repart IMMÉDIATEMENT (miroir `soumettreImmediat` de la
-         * maquette PE7d).
-         */
-        private fun editerSelection(
-            autoriserRacine: Boolean = false,
-            composer: (texte: String, span: InsertionXml.SpanParent) ->
-            EditionAttributsXml.EditionAttributsXmlResultat?,
-        ): Boolean {
-            val rendu = dernierRendu ?: return false
-            val sourceBranchee = source ?: return false
-            val indice = selectionInterne.value
-            val vue = rendu.vues.getOrNull(indice) ?: return false
-            // PE7e : la RACINE reste éditable pour ses attributs
-            // (Disposition/Affichage) — pas pour dupliquer/supprimer.
-            if (!vue.selectable || (!autoriserRacine && vue.indiceParent < 0)) return false
-            val texte = sourceBranchee.texte()
-            val edition =
-                composer(texte, InsertionXml.SpanParent(vue.debutElement, vue.finElement)) ?: return false
-            val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
-            if (!ecrit) return false
-            // Le rendu repart IMMÉDIATEMENT (l'écouteur de mutation ne
-            // re-soumet qu'après le debounce — le même texte sera skippé
-            // par l'anti-boucle du moteur).
-            moteur.soumettreImmediat { sourceBranchee.texte() }
-            return true
-        }
-
-        override fun onCleared() {
-            delierSource()
-            suiviProjet?.cancel()
-            moteur.close()
-        }
-
-        /** Branche la source [uri] : déliaison, écoute de mutation, projet, rendu immédiat. */
-        private fun brancher(uri: String) {
-            val nouvelleSource = registre.sourceDe(uri)
-            if (nouvelleSource == null) {
-                // Piège « mort du processus » : Android ne recrée que
-                // l'activité du dessus — le registre est vide. L'écran se
-                // termine et relance l'éditeur (jamais de panneau vide).
-                journal.w(TAG) { "source absente du registre (processus mort ?) — fin d'écran : $uri" }
-                finirInterne.value = true
-                return
-            }
-            delierSource()
-            source = nouvelleSource
-            uriCourante = uri
-            majHistorique()
-            val ecouteurNouveau =
-                SourceApercu.EcouteurMutation {
-                    // Fournisseur paresseux : le texte n'est tiré qu'après debounce.
-                    moteur.soumettre { nouvelleSource.texte() }
-                    // PE10c : toute mutation (frappe, édition de la palette,
-                    // annulation) met la barre d'édition à jour.
-                    majHistorique()
-                }
-            ecouteur = ecouteurNouveau
-            nouvelleSource.ajouterEcouteur(ecouteurNouveau)
-            suivreProjet(nouvelleSource)
-            moteur.definirGenre(ClassificateurPreview.genreDe(nouvelleSource.cheminRelatif, nouvelleSource.texte()))
-            moteur.soumettreImmediat { nouvelleSource.texte() }
-        }
-
-        /** Délie l'écouteur de la source courante (changement de fichier, onCleared). */
-        private fun delierSource() {
-            val ancienne = source
-            val ancienEcouteur = ecouteur
-            if (ancienne != null && ancienEcouteur != null) {
-                ancienne.retirerEcouteur(ancienEcouteur)
-            }
-            ecouteur = null
-            historiqueInterne.value = HistoriqueEdition(false, false)
-        }
-
-        /**
-         * Suit le projet porteur (PE5/G2/G5, repris du contrôleur PE1) :
-         * `res/` résolu FUSE, thème activité et label du manifest — le
-         * rendu reprend le chrome du vrai appareil.
-         *
-         * CORRECTIF 0.134.31 (rapport 0.134.30, journal « res=null ») :
-         * 1) le dossier `res/` n'est PLUS deviné `<racine>/res` (les
-         * projets des modèles vivent en `app/src/main/res`) — il est
-         * DÉRIVÉ du chemin du layout édité (`…/res/<famille>/f.xml` →
-         * `…/res`, la même vérité que [cheminStringsDe] PE8c), avec
-         * repli sur les candidats standards ; 2) le PREMIER rendu part
-         * AVANT la résolution FUSE (soumettreImmediat de [brancher]) —
-         * quand `res/` est résolu APRÈS lui, un re-rendu immédiat
-         * s'impose (sinon `@color/…` reste non résolu jusqu'à la
-         * prochaine frappe).
-         */
-        private fun suivreProjet(sourceBranchee: SourceApercu) {
-            suiviProjet?.cancel()
-            val uriProjet = sourceBranchee.uriProjet
-            if (uriProjet == null) {
-                // Pas de projet connu : repli ressources natives (miroir PE1).
-                moteur.definirDossierRes(null)
-                moteur.definirThemeName(null)
-                moteur.definirLabelActivite(null)
-                // v0.166.3 — vraies vues : sans projet, PLUS de classpath
-                // (un APK précédent ne doit pas fuiter sur un projet vide).
-                moteur.definirClasspath(emptyList())
-                dossierResCourant = null
-                couleursProjetInterne.value = emptyList()
-                drawablesProjetInterne.value = emptySet()
-                indexRessourcesInterne.value = emptyMap()
-                return
-            }
-            suiviProjet =
-                viewModelScope.launch {
-                    val racine = resolveurChemin.resoudreEntree(uriProjet) ?: return@launch
-                    // v0.166.3 — VRAIES VUES : l'APK debug dexé du projet
-                    // alimente le pipeline G1/Phase 2 (DexViewFactory +
-                    // CacheClasspath) — AVANT le reste : le classpath ne
-                    // dépend NI de res/ NI du manifest, et les vues custom
-                    // doivent se charger dès CE rendu, pas du suivant. Sans
-                    // APK (projet jamais buildé) la liste est vide et le
-                    // repli honnête MockView + « classe absente » reste.
-                    moteur.definirClasspath(ClasspathApercu.entrees(racine))
-                    val cheminRes = dossierResProjet(racine, sourceBranchee.cheminRelatif)
-                    if (cheminRes == null) {
-                        dossierResCourant = null
-                        couleursProjetInterne.value = emptyList()
-                        drawablesProjetInterne.value = emptySet()
-                        indexRessourcesInterne.value = emptyMap()
-                        return@launch
-                    }
-                    moteur.definirDossierRes(cheminRes)
-                    dossierResCourant = cheminRes
-                    rechargerRessourcesProjet()
-                    val manifeste = lireManifeste(racine)
-                    moteur.definirThemeName(manifeste?.let { resoudreThemeActivite(it) })
-                    moteur.definirLabelActivite(manifeste?.let { resoudreLabelActivite(it) })
-                    // Le premier rendu a pu partir avec res=null (course
-                    // soumettreImmediat ↔ résolution FUSE) : re-rendu
-                    // (definirDossierRes a réarmé l'anti-boucle).
-                    moteur.soumettreImmediat { sourceBranchee.texte() }
-                }
-        }
-
-        /**
-         * Le dossier `res/` du projet, DÉRIVÉ du chemin relatif du
-         * document édité (`…/res/<famille>/f.xml` → `…/res`) puis des
-         * candidats standards — le MÊME ordre que [trouverManifeste].
-         * `null` = aucun dossier réellement présent (repli natif).
-         */
-        private fun dossierResProjet(
-            racineProjet: String,
-            cheminRelatif: String,
-        ): String? {
-            val marqueur = "/res/"
-            val debut = cheminRelatif.indexOf(marqueur)
-            if (debut > 0) {
-                val relatif = cheminRelatif.substring(0, debut + marqueur.length - 1)
-                val candidat = racineProjet.trimEnd('/') + "/" + relatif
-                if (java.io.File(candidat).isDirectory) return candidat
-            }
-            val base = racineProjet.trimEnd('/')
-            return listOf("$base/app/src/main/res", "$base/src/main/res", "$base/res")
-                .firstOrNull { java.io.File(it).isDirectory }
-        }
-
-        /** Lit le manifest d'application (chemins standards) — null si absent/illisible. */
-        private fun lireManifeste(racineProjet: String): String? {
-            val manifeste = trouverManifeste(racineProjet) ?: return null
-            return try {
-                java.io.File(manifeste).readText()
-            } catch (_: Throwable) {
-                null
-            }
-        }
-
-        /** Titre de l'action bar : `android:label` de la PREMIÈRE `<activity>` (à défaut `<application>`). */
-        @Suppress("ReturnCount") // Chaque garde = une issue distincte du contrat (miroir PE1).
-        private fun resoudreLabelActivite(contenu: String): String? {
-            val regexLabel = Regex("""android:label\s*=\s*"([^"]+)"""")
-            Regex("""<activity\b[^>]*""").find(contenu)?.let { balise ->
-                regexLabel.find(balise.value)?.let { return it.groupValues[1] }
-            }
-            Regex("""<application\b[^>]*""").find(contenu)?.let { balise ->
-                regexLabel.find(balise.value)?.let { return it.groupValues[1] }
-            }
-            return null
-        }
-
-        /** Thème activité : `android:theme` de la balise ouvrante (application). */
-        private fun resoudreThemeActivite(contenu: String): String? =
-            Regex("""android:theme\s*=\s*"(@style/[^"]+|@android:style/[^"]+)"""")
-                .find(contenu)
-                ?.groupValues
-                ?.get(1)
-
-        /** Cherche AndroidManifest.xml dans les chemins standards du projet. */
-        private fun trouverManifeste(racineProjet: String): String? {
-            val base = racineProjet.trimEnd('/')
-            val candidats =
-                listOf(
-                    "$base/app/src/main/AndroidManifest.xml",
-                    "$base/src/main/AndroidManifest.xml",
-                    "$base/AndroidManifest.xml",
-                    "$base/../AndroidManifest.xml",
-                )
-            return candidats.firstOrNull { java.io.File(it).isFile }
-        }
-
-        // ── PE11e : lecture des couleurs/drawables du projet ────────────
-
-        /**
-         * RECHARGE les `@color` et `@drawable` du projet depuis `res/`
-         * (PE11e — miroir `RES` de la maquette) : appelé au suivi du
-         * projet ET à CHAQUE ouverture de la palette couleur (les
-         * ressources ont pu changer dans l'éditeur entre-temps). Sans
-         * dossier `res/` résolu : les listes restent VIDES (le
-         * validateur se tait, la palette ne montre que les entrées
-         * FIXES — repli silencieux, jamais d'exception, règle 6).
-         */
-        public fun rechargerRessourcesProjet() {
-            val res = dossierResCourant ?: return
-            viewModelScope.launch {
-                val dossiersValeurs =
-                    java.io
-                        .File(res)
-                        .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith("values") }
-                        .orEmpty()
-                        .sortedBy { dossier -> if (dossier.name == "values") 0 else 1 }
-                val fichiers = { nom: String -> dossiersValeurs.mapNotNull { resolveDossierFichier(it, nom) } }
-                val couleurs = CouleursProjetXml.lire(fichiers("colors.xml"))
-                couleursProjetInterne.value = couleurs
-                val drawables = nomsFichiersDe(res, "drawable")
-                drawablesProjetInterne.value = drawables
-                indexRessourcesInterne.value =
-                    mapOf(
-                        "drawable" to drawables,
-                        "color" to couleurs.map { it.nom }.toSet(),
-                        "string" to RessourcesProjetXml.noms(fichiers("strings.xml"), "string"),
-                        "style" to RessourcesProjetXml.noms(fichiers("styles.xml"), "style"),
-                        "layout" to nomsFichiersDe(res, "layout"),
-                    )
-            }
-        }
-
-        /** Les noms SANS extension des fichiers des dossiers `prefixe*` de `res/`. */
-        private fun nomsFichiersDe(
-            res: String,
-            prefixe: String,
-        ): Set<String> =
-            java.io
-                .File(res)
-                .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith(prefixe) }
-                .orEmpty()
-                .flatMap { dossier -> dossier.listFiles().orEmpty().toList() }
-                .mapNotNull { fichier -> fichier.name.substringBeforeLast('.').ifEmpty { null } }
-                .toSet()
-
-        /** Le texte d'un fichier d'un dossier de ressources (`null` = absent/illisible, règle 6). */
-        private fun resolveDossierFichier(
-            dossier: java.io.File,
-            nom: String,
-        ): String? =
-            try {
-                java.io
-                    .File(dossier, nom)
-                    .takeIf { it.isFile }
-                    ?.readText()
-            } catch (_: Throwable) {
-                null
-            }
-
-        /** Extras d'intention (Publics : l'implémentation du navigateur pose les extras.) */
-        public companion object {
-            private const val TAG: String = "PreviewViewModel"
-
-            /** La déclaration du dialecte `tools:` (PE14-S2 C3, arbitrage D3 : jamais imposé). */
-            private const val XMLNS_OUTILS: String = "xmlns:tools"
-
-            /** Extra d'intention : identifiant du projet (relance de l'éditeur). */
-            public const val CLE_PROJET: String = "jo.codeide.preview.PROJECT_ID"
-
-            /** Extra d'intention : URI du document à prévisualiser. */
-            public const val CLE_URI: String = "jo.codeide.preview.URI"
-
-            /** Échelle de police MOYENNE du cycle (miroir `S.fs = 1.3`). */
-            public const val ECHELLE_POLICE_MOYENNE: Float = 1.3f
-
-            /** Échelle de police GRANDE du cycle (miroir `S.fs = 2`). */
-            public const val ECHELLE_POLICE_GRANDE: Float = 2f
-
-            /** Marge haute PAR DÉFAUT d'un placement à la racine (miroir `n.mt = 16`). */
-            private const val MARGE_PLACEMENT_HAUT_DP: Int = 16
-
-            /** Marge latérale PAR DÉFAUT à la racine (miroir `ml/mr = 24`). */
-            private const val MARGE_PLACEMENT_COTE_DP: Int = 24
-
-            /** Délai du surlignage « inséré » de la Source (PE11k — miroir le
-             *  `setTimeout(…, 2600)` de `insertAt` : la maquette gagne sur le
-             *  « ~1,2 s » de PREVIEW_UI_ECRANS.md § 9, écart documenté). */
-            private const val DELAI_INSERTION_MS: Long = 2_600L
-
-            /** Taille de la liste des récents (miroir `slice(0, 4)`). */
-            private const val RECENTS_MAX: Int = 4
-
-            /** PE12f — l'attribut posé par le correctif « Ajouter le comportement ». */
-            private const val ATTRIBUT_COMPORTEMENT: String = "app:layout_behavior"
-
-            /** PE11h — l'orientation du parent, lue dans le texte vivant. */
-            private const val ATTR_ORIENTATION_PARENT: String = "android:orientation"
-
-            /** PE11h — la seule orientation qui calcule la LARGEUR (défaut : vertical). */
-            private const val VALEUR_HORIZONTALE: String = "horizontal"
         }
     }
+
+    /**
+     * Branche la source d'un document (initial ou sélecteur) :
+     * délie l'ancienne, suit le projet, classifie, rend immédiatement.
+     */
+    public fun ouvrirFichier(uri: String) {
+        if (uri == uriCourante && source != null) return
+        brancher(uri)
+    }
+
+    /** Les documents OUVERTS (registre) qui se laissent prévisualiser — le sélecteur de titre. */
+    public fun sourcesPreviewables(): List<SourceApercu> = registre
+        .sources()
+        .filter { source -> ClassificateurPreview.genreDe(source.cheminRelatif, source.texte()) != null }
+
+    /** Le nom affichable du fichier courant (dernier segment du chemin relatif). */
+    public fun nomFichierCourant(): String = source?.cheminRelatif?.substringAfterLast('/') ?: ""
+
+    /** Tap sur le rendu → le SPAN source est posé DANS la session (retour éditeur : sélection active). */
+    public fun definirSelection(debut: Int, fin: Int) {
+        source?.definirSelection(debut, fin)
+    }
+
+    /**
+     * La SÉLECTION partagée (PE6d) : l'indice de la vue dans l'arbre
+     * rendu — le SPAN suit dans la session (l'éditeur le retrouve),
+     * l'état est publié (la feuille s'aligne ; l'activité re-surligne).
+     * Indice sans vue ou sans span : la sélection SE TAIT (jamais un
+     * faux span — X4), l'indice reste affiché (l'arbre le montre).
+     */
+    public fun selectionner(indice: Int) {
+        val vue = dernierRendu?.vues?.getOrNull(indice)
+        if (vue != null && vue.selectable) {
+            source?.definirSelection(vue.debutElement, vue.finElement)
+        }
+        selectionInterne.value = indice
+    }
+
+    /** Le texte VIVANT du document (onglet Source de la feuille — PE6d). */
+    public fun texteCourant(): String = source?.texte() ?: ""
+
+    // ── PE11k : surlignage temporaire de l'INSERTION (onglet Source) ──
+
+    /** La plage de lignes INSÉRÉES par la dernière écriture (miroir
+     *  `S.flash` de la maquette : posée à l'insertion, retirée après
+     *  le délai — le volet Source la lit au liage). Null = rien à
+     *  surligner. */
+    private val plageInsereeInterne = MutableStateFlow<IntRange?>(null)
+
+    /** La plage insérée observable (l'onglet Source s'y aligne). */
+    public val plageInseree: StateFlow<IntRange?> = plageInsereeInterne.asStateFlow()
+
+    /** La bougie d'effacement de la plage insérée (repouillée à chaque pose). */
+    private var bougieInseree: Job? = null
+
+    /**
+     * Pose la plage de lignes INSÉRÉES par une écriture réussie (dépôt
+     * PE7b ou placement PE7c — même miroir `S.flash = n.rid` de
+     * `insertAt`), puis l'EFFACE après le délai de la maquette (la
+     * maquette gagne sur le « ~1,2 s » de PREVIEW_UI_ECRANS.md § 9 : 2,6 s).
+     */
+    private fun marquerInsertion(sourceBranchee: SourceApercu, edition: InsertionXml.EditionXml) {
+        val texte = sourceBranchee.texte()
+        if (texte.isEmpty()) return
+        // La plage posée vit dans le texte NOUVEAU : [debut, debut + remplacement[.
+        val plage =
+            FeuilleApercu.lignesDePlage(
+                texte,
+                edition.debut,
+                edition.debut + edition.remplacement.length,
+            ) ?: return
+        plageInsereeInterne.value = plage
+        bougieInseree?.cancel()
+        bougieInseree =
+            viewModelScope.launch {
+                delay(DELAI_INSERTION_MS)
+                plageInsereeInterne.value = null
+            }
+    }
+
+    /**
+     * Le DÉPÔT de la palette (PE7b, étendu PE12d) : cible le conteneur
+     * sous le point (le CONTENU participe — ancre FAB, taille du
+     * déposé, comportement lié), façonne l'extrait (identifiant libre —
+     * miroir `nextId`, PLAN de famille via [InsertionXml.ajouterAttributs]
+     * — marges d’abord puis règles ; contraintes + marges en dp pour
+     * un parent ConstraintLayout, maquette PE7a), compose l'ÉDITION
+     * UNIQUE ([InsertionXml.inserer]) et l'écrit dans la session
+     * ([SourceApercu.remplacer] — une seule entrée d'historique). Le
+     * rendu repart par le chemin normal (mutation → écouteur →
+     * moteur). Refus silencieux hors cible ou span périmé (X4 — jamais
+     * d'écriture hasardeuse).
+     *
+     * Exemption detekt ciblée (règle 16) : ReturnCount — chaque garde
+     * (rendu, source, cible, parent, span, édition) est une issue
+     * DISTINCTE du refus.
+     */
+    @Suppress("ReturnCount")
+    public fun appliquerDepot(contenu: ZonesDepot.ContenuDepot, x: Float, y: Float): Boolean {
+        val rendu = dernierRendu ?: return false
+        val sourceBranchee = source ?: return false
+        val vues = rendu.vues
+        val cible =
+            ZonesDepot.cibleSous(vues, x, y, contenu, moteur.profil.densiteDpi) ?: return false
+        val parent = vues.getOrNull(cible.indiceParent) ?: return false
+        if (!parent.selectable) return false
+        val texte = sourceBranchee.texte()
+        var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
+        val plan = cible.plan
+        if (plan != null) {
+            extrait = InsertionXml.ajouterAttributs(extrait, plan.marges.versAttributs() + plan.attributs)
+        } else if (parent.classe.endsWith("ConstraintLayout")) {
+            val densite = moteur.profil.densiteDpi
+            val margeHaut = CalquesApercu.pxVersDp((y - parent.haut).roundToInt().coerceAtLeast(0), densite)
+            val margeStart = CalquesApercu.pxVersDp((x - parent.gauche).roundToInt().coerceAtLeast(0), densite)
+            extrait = InsertionXml.contraindre(extrait, margeHaut, margeStart)
+        }
+        val edition =
+            InsertionXml.inserer(
+                texte,
+                InsertionXml.SpanParent(parent.debutElement, parent.finElement),
+                cible.index,
+                extrait,
+            ) ?: return false
+        val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+        if (ecrit) {
+            dernierParentDepot = parent.classe
+            marquerRecent(contenu.idWidget)
+            marquerInsertion(sourceBranchee, edition)
+        }
+        return ecrit
+    }
+
+    // ── PE6e-f : orientation et échelle de police ────────────────────
+
+    /** Orientation paysage courante (libellé de la puce). */
+    public val paysage: Boolean get() = moteur.paysage
+
+    /** Échelle de police courante (libellé de la puce). */
+    public val echellePolice: Float get() = moteur.echellePolice
+
+    /** Bascule l'orientation (puce Portrait/Paysage — rendu immédiat). */
+    public fun definirPaysage(paysage: Boolean) {
+        moteur.definirPaysage(paysage)
+    }
+
+    /**
+     * RÉACTIVE le processus `:preview` (PE11i — bouton « Réessayer » du
+     * bandeau, ADR 0134 D6) : la politique d'isolation repart du régime
+     * nominal et le rendu courant est relancé.
+     */
+    public fun reactiverIsolation() {
+        moteur.reactiverIsolation()
+    }
+
+    /** Cycler l'échelle de police (puce Police ×n : 1,0 → 1,3 → 2,0 → 1,0). */
+    public fun cyclerEchellePolice(): Float {
+        val suivante =
+            when {
+                moteur.echellePolice <= 1f -> ECHELLE_POLICE_MOYENNE
+                moteur.echellePolice <= ECHELLE_POLICE_MOYENNE -> ECHELLE_POLICE_GRANDE
+                else -> RequeteRendu.ECHELLE_POLICE_DEFAUT
+            }
+        moteur.definirEchellePolice(suivante)
+        return suivante
+    }
+
+    // ── PE7c : réglages persistés (bulle, mode), récents, placement ──
+
+    /** Les réglages persistés de l'aperçu (bulle, mode). */
+    public data class ReglagesApercu(
+        val bulleFixe: Boolean,
+        val bulleADroite: Boolean,
+        val bulleY: Float,
+        val paletteParPopup: Boolean,
+    )
+
+    /** L'état courant des réglages (lu depuis le DataStore). */
+    private val reglagesApercuInterne =
+        MutableStateFlow(
+            ReglagesApercu(
+                bulleFixe = false,
+                bulleADroite = false,
+                bulleY = AppSettings.BULLE_Y_DEFAUT,
+                paletteParPopup = false,
+            ),
+        )
+
+    /** Les réglages observables (la bulle et la palette s'y alignent). */
+    public val reglagesApercu: StateFlow<ReglagesApercu> = reglagesApercuInterne.asStateFlow()
+
+    /** La puce bulle a basculé fixe ↔ flottante (persistance immédiate). */
+    public fun poserBulleFixe(fixe: Boolean) {
+        viewModelScope.launch {
+            reglagesDataStore.update { it.copy(apercuBulleFixe = fixe) }
+        }
+    }
+
+    /** La bulle a été reposée (aimantation — côté + hauteur persistés). */
+    public fun poserBulle(aDroite: Boolean, yNormalise: Float) {
+        viewModelScope.launch {
+            reglagesDataStore.update {
+                it.copy(
+                    apercuBulleADroite = aDroite,
+                    apercuBulleY = yNormalise.coerceIn(0f, 1f),
+                )
+            }
+        }
+    }
+
+    /** Le mode d'insertion de la palette a changé (persistance immédiate). */
+    public fun poserModePalette(parPopup: Boolean) {
+        viewModelScope.launch {
+            reglagesDataStore.update { it.copy(apercuPaletteParPopup = parPopup) }
+        }
+    }
+
+    /** Re-lit l'état des piles de la source (mutation, annulation, déliaison). */
+    private fun majHistorique() {
+        val sourceBranchee = source
+        historiqueInterne.value =
+            if (sourceBranchee == null) {
+                HistoriqueEdition(false, false)
+            } else {
+                HistoriqueEdition(sourceBranchee.peutAnnuler(), sourceBranchee.peutRetablir())
+            }
+    }
+
+    /**
+     * Les RÉCENTS de la palette (miroir `recents`, SESSION COURANTE —
+     * la persistance reste celle de la maquette, ici en mémoire).
+     */
+    private val recentsInterne = MutableStateFlow<List<String>>(emptyList())
+
+    /** Les récents observables (la grille de la palette s'y aligne). */
+    public val recents: StateFlow<List<String>> = recentsInterne.asStateFlow()
+
+    /** Note un widget au TÊTE des récents (4 max — miroir `insertAt`). */
+    private fun marquerRecent(idWidget: String?) {
+        if (idWidget == null) return
+        val suivant = (listOf(idWidget) + recentsInterne.value.filter { it != idWidget }).take(RECENTS_MAX)
+        recentsInterne.value = suivant
+    }
+
+    /**
+     * Le PLACEMENT PAR POPUP (PE7c, étendu PE12d — miroir `insertAt(w,
+     * parentRid, index)`) : la cible vient de [PlacementPopup.cible] (le
+     * jeu de positions de la famille, § 7) et PORTE son plan — le même
+     * façonnage que le dépôt ([renumeroter] + [ajouterAttributs] du plan,
+     * marges d'abord puis règles) ; SANS plan, le parent `ConstraintLayout`
+     * garde les marges par DÉFAUT de la maquette (`mt=16`, `ml/mr=24` à la
+     * racine). L'édition UNIQUE passe par le port. Refus hors cible/span
+     * périmé (X4 — jamais d'écriture hasardeuse).
+     */
+    public fun appliquerPlacement(contenu: ZonesDepot.ContenuDepot, cible: ZonesDepot.CibleDepot): Boolean {
+        val rendu = dernierRendu ?: return false
+        val sourceBranchee = source ?: return false
+        val parent = rendu.vues.getOrNull(cible.indiceParent) ?: return false
+        if (!parent.selectable) return false
+        val texte = sourceBranchee.texte()
+        var extrait = InsertionXml.renumeroter(contenu.extraitXml, texte)
+        val plan = cible.plan
+        if (plan != null) {
+            extrait = InsertionXml.ajouterAttributs(extrait, plan.marges.versAttributs() + plan.attributs)
+        } else if (parent.classe.endsWith("ConstraintLayout")) {
+            extrait =
+                InsertionXml.contraindre(
+                    extrait,
+                    MARGE_PLACEMENT_HAUT_DP,
+                    MARGE_PLACEMENT_COTE_DP,
+                )
+        }
+        val edition =
+            InsertionXml.inserer(
+                texte,
+                InsertionXml.SpanParent(parent.debutElement, parent.finElement),
+                cible.index,
+                extrait,
+            ) ?: return false
+        val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+        if (ecrit) {
+            dernierParentDepot = parent.classe
+            marquerRecent(contenu.idWidget)
+            marquerInsertion(sourceBranchee, edition)
+        }
+        return ecrit
+    }
+
+    // ── PE7d : éditions d'attributs, dupliquer, supprimer, annuler ──
+
+    /** Le libellé d'une vue éditée (toasts — miroir `label(v)`). */
+    public fun libelleVue(indice: Int): String {
+        val vue = dernierRendu?.vues?.getOrNull(indice) ?: return ""
+        val idNom = vue.idRes.substringAfterLast('/')
+        return if (idNom.isEmpty()) vue.classe else vue.classe + " · @+id/" + idNom
+    }
+
+    /** La vue sélectionnée est-elle éditable (ni racine, ni hors arbre) ? */
+    public fun selectionEditable(): Boolean {
+        val indice = selectionInterne.value
+        if (indice <= 0) return false
+        val vue = dernierRendu?.vues?.getOrNull(indice) ?: return false
+        return vue.selectable && vue.indiceParent >= 0
+    }
+
+    /** La valeur ACTUELLE d'un attribut de la vue sélectionnée (volet Modifier). */
+    public fun valeurAttributSelection(nomAttribut: String): String? {
+        val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+        val sourceBranchee = source ?: return null
+        return EditionAttributsXml.valeurAttribut(
+            sourceBranchee.texte(),
+            InsertionXml.SpanParent(vue.debutElement, vue.finElement),
+            nomAttribut,
+        )
+    }
+
+    /**
+     * DÉFINIT un attribut sur la sélection (PE7e — la voie générale :
+     * remplacement, ajout à la position conventionnelle, retrait si
+     * valeur vide, xmlns posé au besoin). La RACINE reste éditable
+     * (Disposition/Affichage — miroir piège § 5 du prompt PE7e).
+     */
+    public fun definirAttributSelection(nomAttribut: String, valeur: String): Boolean =
+        editerSelection(autoriserRacine = true) { rendu, span ->
+            EditionAttributsXml.definir(rendu, span, nomAttribut, valeur)
+        }
+
+    /**
+     * RENOMME l'identifiant de la sélection (PE8a) : déclaration
+     * `@+id/x` + TOUTES les références `@id/x` du fichier en UNE
+     * édition — la racine y a droit aussi. Le code (`R.id.x`) et les
+     * autres fichiers ne sont pas touchés (périmètre du prompt PE7e
+     * § 3, signalé dans l'interface).
+     *
+     * PE12g (spec § 10) : le succès remonte le NOMBRE de références
+     * mises à jour (le toast « Renommé en @+id/x · N références
+     * mises à jour ») ; `null` = refus (le volet recharge le champ).
+     */
+    public fun renommerIdentifiantSelection(nouveau: String): Int? {
+        var referencesMisesAJour = 0
+        val ok =
+            editerSelection(autoriserRacine = true) { rendu, span ->
+                val ancien = RenommageIdentifiant.identifiantActuel(rendu, span)
+                if (ancien != null) {
+                    referencesMisesAJour = RenommageIdentifiant.compterReferences(rendu, ancien)
+                }
+                RenommageIdentifiant.renommer(rendu, span, nouveau)
+            }
+        return if (ok) referencesMisesAJour else null
+    }
+
+    /** Écrit UN CÔTÉ de marge/padding sur la sélection (PE7e — miroir `.mrow`). */
+    public fun ecrireCoteSelection(base: String, cote: EditionAttributsXml.Cote, valeurDp: Int): Boolean =
+        editerSelection(autoriserRacine = true) { rendu, span ->
+            EditionAttributsXml.ecrireCote(rendu, span, base, cote, valeurDp)
+        }
+
+    /**
+     * Les QUATRE ancres de contrainte de la sélection (PE8b — lecture
+     * dans le texte vivant : cible + marge courantes). `null` = span
+     * périmé (le volet affiche la lecture seule).
+     */
+    public fun lireContraintesSelection(): List<EditionAttributsXml.ContrainteLue>? {
+        val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+        val sourceBranchee = source ?: return null
+        return EditionAttributsXml.lireContraintes(
+            sourceBranchee.texte(),
+            InsertionXml.SpanParent(vue.debutElement, vue.finElement),
+        )
+    }
+
+    /**
+     * Les identifiants DISPONIBLES comme cible de contrainte (PE8b) :
+     * les FRÈRES de la sélection qui portent un id (le parent se
+     * cible par la valeur plateforme `parent`). Le CONTENEUR de
+     * contrainte du rendu est la vérité (miroir l'aligneur).
+     */
+    public fun ciblesContrainteSelection(): List<String> {
+        val rendu = dernierRendu ?: return emptyList()
+        val indice = selectionInterne.value
+        val vue = rendu.vues.getOrNull(indice) ?: return emptyList()
+        return rendu.vues
+            .withIndex()
+            .filter { (i, v) -> v.indiceParent == vue.indiceParent && i != indice && v.idRes.isNotBlank() }
+            .map { it.value.idRes }
+    }
+
+    /**
+     * Écrit l'ANCRE [cote] de la sélection (PE8b) : [cible] et/ou
+     * [margeDp] (`null` = aspect intouché, `0` = marge retirée) —
+     * UNE édition au port, rendu immédiat.
+     */
+    public fun ecrireContrainteSelection(
+        cote: EditionAttributsXml.Cote,
+        cible: EditionAttributsXml.CibleContrainte?,
+        margeDp: Int?,
+    ): Boolean = editerSelection { rendu, span ->
+        EditionAttributsXml.ecrireContrainte(rendu, span, cote, cible, margeDp)
+    }
+
+    /**
+     * ACTION RAPIDE « Remplir l'espace restant » (PE11h — miroir le
+     * `items` du `quick` linéaire de la maquette) : pose
+     * `android:layout_weight="1"` et passe la dimension de l'AXE DU
+     * PARENT à `0dp` (match_constraint) en UNE SEULE édition groupée
+     * (une seule entrée d'historique). L'AXE se résout au CLIC sur
+     * l'orientation du parent LUE DANS LE TEXTE VIVANT (`horizontal`
+     * → largeur, défaut → hauteur) — jamais sur le rendu, qui peut
+     * dater d'avant la frappe. `false` = sélection non éditable, span
+     * périmé ou RIEN à remplir (poids 1 + 0dp déjà posés).
+     */
+    public fun remplirEspaceRestantSelection(): Boolean {
+        val rendu = dernierRendu ?: return false
+        val sourceBranchee = source ?: return false
+        val vue = rendu.vues.getOrNull(selectionInterne.value) ?: return false
+        val parent = rendu.vues.getOrNull(vue.indiceParent) ?: return false
+        val orientation =
+            EditionAttributsXml.valeurAttribut(
+                sourceBranchee.texte(),
+                InsertionXml.SpanParent(parent.debutElement, parent.finElement),
+                ATTR_ORIENTATION_PARENT,
+            )
+        val axe =
+            if (orientation == VALEUR_HORIZONTALE) {
+                EditionAttributsXml.Axe.LARGEUR
+            } else {
+                EditionAttributsXml.Axe.HAUTEUR
+            }
+        return editerSelection { texte, span ->
+            EditionAttributsXml.remplirEspaceRestant(texte, span, axe)
+        }
+    }
+
+    /**
+     * La session strings.xml OUVERTE du même projet (PE8c — le
+     * registre ne connaît que les documents OUVERTS) : même racine
+     * projet, chemin `res/values/strings.xml` dérivé de celui du
+     * layout édité. `null` = fermée (l'extraction est masquée).
+     */
+    private fun sourceStringsOuverte(): SourceApercu? {
+        val courant = source ?: return null
+        val projet = courant.uriProjet ?: return null
+        val cheminStrings = cheminStringsDe(courant.cheminRelatif) ?: return null
+        return registre.sources().firstOrNull {
+            it.uriProjet == projet && it.cheminRelatif == cheminStrings
+        }
+    }
+
+    /** `…/res/<qualifier>/x.xml` → `…/res/values/strings.xml` (même arbre res). */
+    private fun cheminStringsDe(chemin: String): String? {
+        val marqueur = "/res/"
+        val debut = chemin.indexOf(marqueur)
+        if (debut < 0) return null
+        return chemin.substring(0, debut + marqueur.length) + "values/strings.xml"
+    }
+
+    /**
+     * L'EXTRACTION est POSSIBLE (PE8c) : le littéral courant est
+     * éditable (non vide, pas déjà une référence) ET la session
+     * strings.xml du projet est ouverte.
+     */
+    public fun extractionPossible(nomAttribut: String): Boolean {
+        val valeur = valeurAttributSelection(nomAttribut) ?: return false
+        if (!EditionAttributsXml.estLitteral(valeur)) return false
+        return sourceStringsOuverte() != null
+    }
+
+    /**
+     * EXTRAIT le littéral de la sélection vers `@string/nomRessource`
+     * (PE8c) : l'ENTRÉE part d'abord dans strings.xml (jamais de
+     * référence orpheline si l'entrée échoue), puis la RÉFÉRENCE
+     * remplace le littéral dans le layout — rendu immédiat. Deux
+     * documents = deux entrées d'historique (documenté dans PREVIEW.md).
+     */
+    public fun extraireEnRessource(nomAttribut: String, nomRessource: String): Boolean {
+        val sourceStrings = sourceStringsOuverte() ?: return false
+        val rendu = dernierRendu ?: return false
+        val sourceBranchee = source ?: return false
+        val vue = rendu.vues.getOrNull(selectionInterne.value) ?: return false
+        if (!vue.selectable) return false
+        val texte = sourceBranchee.texte()
+        val span = InsertionXml.SpanParent(vue.debutElement, vue.finElement)
+        val valeurLitterale =
+            EditionAttributsXml.valeurAttribut(texte, span, nomAttribut) ?: return false
+        // 1) L'ENTRÉE d'abord, avec la valeur d'ORIGINE.
+        val entree =
+            ExtractionRessource.entreeStrings(sourceStrings.texte(), nomRessource, valeurLitterale)
+                ?: return false
+        if (!sourceStrings.remplacer(entree.debut, entree.fin, entree.remplacement)) return false
+        // 2) La RÉFÉRENCE dans le layout (une seule édition, rendu immédiat).
+        val reference = ExtractionRessource.extraire(texte, span, nomAttribut, nomRessource) ?: return false
+        if (!sourceBranchee.remplacer(reference.debut, reference.fin, reference.remplacement)) return false
+        moteur.soumettreImmediat { sourceBranchee.texte() }
+        return true
+    }
+
+    /**
+     * Les attributs BRUTS de la sélection (PE7e — miroir `attrsOf` :
+     * contraintes lecture seule, valeurs courantes des côtés).
+     * `null` = span périmé (le volet passe en lecture seule).
+     */
+    public fun attributsSelection(): List<EditionAttributsXml.AttributSource>? {
+        val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+        val sourceBranchee = source ?: return null
+        return EditionAttributsXml.lire(
+            sourceBranchee.texte(),
+            InsertionXml.SpanParent(vue.debutElement, vue.finElement),
+        )
+    }
+
+    /** La CLASSE de la vue sélectionnée (le catalogue en dérive les sections). */
+    public fun classeSelection(): String? = dernierRendu?.vues?.getOrNull(selectionInterne.value)?.classe
+
+    /**
+     * La FAMILLE du parent de la sélection (le catalogue en dérive les
+     * sections Contraintes / Dans le parent — PE12b : l'ancien
+     * `GenreParent` a disparu, la famille voyage telle quelle, spec
+     * § 2.3) — `null` sans rendu.
+     */
+    public fun familleParentSelection(): FamilleParent? {
+        val rendu = dernierRendu ?: return null
+        val indice = selectionInterne.value
+        val vue = rendu.vues.getOrNull(indice) ?: return null
+        if (vue.indiceParent < 0) return FamilleParent.AUCUN
+        val parent = rendu.vues.getOrNull(vue.indiceParent)
+        // PE12a — la famille du parent voyage dans le rendu (chaîne
+        // de superclasses du rendu réel, repli par balise) : plus
+        // fiable que le nom simple de classe (MotionLayout est un
+        // CONSTRAINT, spec § 2). Une famille INCONNUE (rendu ancien,
+        // chaîne altérée sur la frontière AIDL) reste AUTRE — jamais
+        // un faux genre, et ses sections n'arrivent qu'en PE12c.
+        return FamilleParent.deNom(parent?.famille) ?: FamilleParent.AUTRE
+    }
+
+    /**
+     * La FAMILLE de la vue sélectionnée ELLE-MÊME (PE12c — les
+     * sections du CONTENEUR, spec § 5.1) : la chaîne de
+     * superclasses du rendu réel, repli par balise — `null` sans
+     * rendu.
+     */
+    public fun familleVueSelection(): FamilleParent? {
+        val vue = dernierRendu?.vues?.getOrNull(selectionInterne.value) ?: return null
+        return FamilleParent.deNom(vue.famille) ?: FamilleParent.deBalise(vue.classe)
+    }
+
+    /**
+     * Le cache de l'ARBRE du document (PE12c) : l'arbre ne se
+     * re-parse que quand le TEXTE a changé — le volet le redemande à
+     * chaque contrôle de référence affiché.
+     */
+    private var cacheArbre: Pair<String, List<ArbreAttributsXml.Noeud>>? = null
+
+    /** L'arbre du document courant (PE12c — [ArbreAttributsXml.lire], mis en cache par texte). */
+    private fun arbreSelection(): List<ArbreAttributsXml.Noeud>? {
+        val sourceBranchee = source ?: return null
+        val texte = sourceBranchee.texte()
+        cacheArbre?.let { (precedent, arbre) -> if (precedent == texte) return arbre }
+        return ArbreAttributsXml.lire(texte).also { arbre -> cacheArbre = texte to arbre }
+    }
+
+    /**
+     * Les OPTIONS du contrôle RÉFÉRENCE D'ID de la sélection (PE12c —
+     * spec § 5.3) : candidats par PORTÉE, grisage des boucles
+     * ([RelationsParents.fermeraitBoucle]), valeur introuvable. La
+     * [valeur] courante vient des attributs lus par le volet. Sans
+     * rendu, source ou nœud correspondant : options DÉGRADÉES (aucun
+     * candidat, note conservée, valeur introuvable conservée) — le
+     * contrôle reste utilisable, jamais vide de sens.
+     */
+    public fun optionsReferenceSelection(
+        reference: CatalogueAttributs.ControleAttribut.ReferenceId,
+        valeur: String?,
+    ): ReferencesId.Options {
+        val rendu = dernierRendu
+        val vue = rendu?.vues?.getOrNull(selectionInterne.value)
+        val arbre = arbreSelection()
+        val indice =
+            if (vue == null || arbre == null) {
+                null
+            } else {
+                ReferencesId.indiceDe(arbre, vue.debutElement, vue.finElement)
+            }
+        return if (arbre != null && indice != null) {
+            ReferencesId.options(arbre, indice, reference, valeur)
+        } else {
+            ReferencesId.options(emptyList(), -1, reference, valeur)
+        }
+    }
+
+    /**
+     * RÉTABLIT les valeurs par défaut d'un GROUPE d'attributs de la
+     * sélection (PE12c — le bouton ↺ d'un champ : TOUS les attributs
+     * du groupe partent en UNE SEULE édition, un seul annuler —
+     * miroir le `names.forEach` du `fieldBox` de la maquette).
+     * `false` = sélection non éditable ou RIEN de défini.
+     */
+    public fun reinitialiserAttributsSelection(noms: List<String>): Boolean =
+        editerSelection(autoriserRacine = true) { texte, span ->
+            EditionAttributsXml.retirerAttributs(texte, span, noms)
+        }
+
+    /**
+     * Le cache des problèmes de FAMILLE (PE12f) : l'évaluation ne se
+     * re-parse que quand le TEXTE a changé — le badge, l'onglet
+     * Problèmes et les cartes de correctif la redemandent à chaque
+     * état du moteur (miroir [cacheArbre]).
+     */
+    private var cacheProblemesFamilles: Pair<String, List<ProblemesFamilles.Probleme>>? = null
+
+    /**
+     * Les problèmes de FAMILLE du document courant (PE12f, spec § 9 —
+     * [ProblemesFamilles.evaluer] sur le TEXTE vivant, mis en
+     * cache par texte) : SANS rendu valide eux aussi — la boucle de
+     * règles se lit alors que le rendu vient d'échouer (§ 12).
+     */
+    public fun problemesFamilles(): List<ProblemesFamilles.Probleme> {
+        val sourceBranchee = source ?: return emptyList()
+        val texte = sourceBranchee.texte()
+        cacheProblemesFamilles?.let { (precedent, problemes) -> if (precedent == texte) return problemes }
+        return ProblemesFamilles
+            .evaluer(texte)
+            .also { problemes -> cacheProblemesFamilles = texte to problemes }
+    }
+
+    /**
+     * CORRIGE un problème de famille (PE12f — miroir les `fixer.run`
+     * de la maquette : retirer les attributs en cause, POSER le
+     * comportement de défilement) ; v0.170.0 (S3) : les genres de
+     * CONTENANCE passent par [ContraintesHierarchie] — ENVELOPPER les
+     * enfants d'un enfant-unique dépassé dans un LinearLayout
+     * (résolution canonique du lint ScrollViewChildren), RETIRER les
+     * enfants fautifs d'une feuille, d'un adaptateur ou d'un
+     * conteneur à enfant attendu. L'édition se pose sur le SPAN du
+     * problème, LU DANS LE TEXTE VIVANT — pas sur la sélection du
+     * rendu, qui peut être périmée depuis (le rendu vient d'échouer :
+     * c'est le cas d'emploi de la boucle, § 12). UNE seule édition,
+     * un seul annuler ; rendu immédiat. `false` = problème périmé
+     * (l'attribut visé n'est plus au span — le volet se re-marche et
+     * la carte disparaît).
+     */
+    public fun corrigerProblemeFamille(probleme: ProblemesFamilles.Probleme): Boolean {
+        val sourceBranchee = source ?: return false
+        val texte = sourceBranchee.texte()
+        val span = InsertionXml.SpanParent(probleme.debut, probleme.fin)
+        val edition: InsertionXml.EditionXml? =
+            if (probleme.genre == ProblemesPreview.GenreProbleme.COMPORTEMENT_MANQUANT) {
+                EditionAttributsXml
+                    .definirReference(
+                        texte,
+                        span,
+                        ATTRIBUT_COMPORTEMENT,
+                        ProblemesFamilles.COMPORTEMENT_DEFILEMENT,
+                    )?.versEditionXml()
+            } else if (probleme.genre == ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE) {
+                // v0.170.0 — les enfants passent sous un LinearLayout.
+                ContraintesHierarchie.envelopperEnfants(texte, probleme)
+            } else if (
+                probleme.genre == ProblemesPreview.GenreProbleme.ENFANTS_INTERDITS ||
+                probleme.genre == ProblemesPreview.GenreProbleme.ENFANTS_ADAPTATEUR ||
+                probleme.genre == ProblemesPreview.GenreProbleme.ENFANT_INATTENDU
+            ) {
+                // v0.170.0 — les enfants fautifs partent en une édition.
+                ContraintesHierarchie.retirerEnfants(texte, probleme)
+            } else {
+                EditionAttributsXml
+                    .retirerAttributs(texte, span, probleme.attributs)
+                    ?.versEditionXml()
+            }
+        val ecrite = edition ?: return false
+        val ecrit = sourceBranchee.remplacer(ecrite.debut, ecrite.fin, ecrite.remplacement)
+        if (!ecrit) return false
+        moteur.soumettreImmediat { sourceBranchee.texte() }
+        return true
+    }
+
+    /** Écrit une dimension (wrap/match/fixe) sur la sélection (miroir `seg2`). */
+    public fun ecrireDimensionSelection(
+        axe: EditionAttributsXml.Axe,
+        mode: EditionAttributsXml.ModeDimension,
+        valeurDp: Int?,
+    ): Boolean = editerSelection { rendu, span ->
+        EditionAttributsXml.ecrireDimension(rendu, span, axe, mode, valeurDp)
+    }
+
+    /**
+     * REDIMENSIONNE la sélection aux dimensions de la cible (PE11l +
+     * PE14-S2, poignée d'angle de l'aperçu) : les DEUX axes partent
+     * en UNE édition groupée (une seule entrée d'historique par
+     * geste, miroir le `mutate` groupé de la maquette —
+     * [EditionAttributsXml.ecrireRedimension]), ÉTOFFÉE des
+     * ajustements PAR-LAYOUT (ADR 0138 C3) : le `layout_weight` qui
+     * contredisait la taille écrite part au passage (parent
+     * LINEAR/APPBAR), les marges du bord tenu suivent le doigt
+     * (parent RELATIVE), les positions `tools:` du bord déplacé se
+     * posent SI le document déclare déjà le dialecte (parent
+     * CONSTRAINT — arbitrage D3). `false` = sélection non éditable
+     * (racine) ou span périmé.
+     *
+     * v0.166.4 — LA RACINE EST AUTORISÉE (retour propriétaire : « le
+     * redimensionnement a aussi d'autres problèmes ») : l'aperçu
+     * dessine les POIGNÉES sur la racine (elle est sélectionnable),
+     * mais le refus silencieux rendait ces poignées MUETTES. La racine
+     * reste éditable pour ses dimensions (PE7e : ses attributs de
+     * disposition sont éditables, et l'inflater honore les dimensions
+     * DÉCLARÉES de la racine depuis LayoutLib v3.4.6) — le geste
+     * écrit `layout_width`/`layout_height` sur le tag racine et le
+     * rendu suit (sans parent, AUCUN ajustement par-layout).
+     */
+    public fun redimensionnerSelection(cible: RedimensionApercu.CibleRedimension): Boolean =
+        editerSelection(autoriserRacine = true) { texte, span ->
+            EditionAttributsXml.ecrireRedimension(
+                texte,
+                span,
+                largeurDp = cible.largeurDp,
+                hauteurDp = cible.hauteurDp,
+                ajustements = ajustementsParLayout(texte, span, cible),
+            )
+        }
+
+    /**
+     * Les AJUSTEMENTS PAR-LAYOUT du relâchement (PE14-S2 C3, ADR
+     * 0138) : dérivés de la famille du PARENT RENDU (miroir les
+     * « targets par layout » du designer de la référence) — la
+     * géométrie vient du DERNIER RENDU (bornes absolues bitmap, la
+     * même vérité que la sélection), les règles de position du
+     * TEXTE VIVANT (lues par [EditionAttributsXml.lire]). Sans
+     * parent (racine) ou famille inconnue : AUCUN ajustement (les
+     * deux axes seuls — comportement PE11l).
+     */
+    private fun ajustementsParLayout(
+        texte: String,
+        span: InsertionXml.SpanParent,
+        cible: RedimensionApercu.CibleRedimension,
+    ): EditionAttributsXml.AjustementsRedimension {
+        val rendu = dernierRendu ?: return EditionAttributsXml.AjustementsRedimension()
+        val selection =
+            rendu.vues.getOrNull(selectionInterne.value) ?: return EditionAttributsXml.AjustementsRedimension()
+        val parent =
+            rendu.vues.getOrNull(selection.indiceParent)
+                ?: return EditionAttributsXml.AjustementsRedimension()
+        val attributs =
+            EditionAttributsXml
+                .lire(texte, span)
+                ?.associate { it.nom to it.valeur }
+                ?: return EditionAttributsXml.AjustementsRedimension()
+        val cadre =
+            RedimensionParLayout.CadreRedimension(
+                attributs = attributs,
+                selection = selection,
+                parent = parent,
+                freres = freresRendus(rendu),
+                densiteDpi = moteur.profil.densiteDpi,
+            )
+        val famille =
+            FamilleParent.deNom(parent.famille) ?: FamilleParent.deBalise(parent.classe)
+        return when (famille) {
+            FamilleParent.LINEAR, FamilleParent.APPBAR -> {
+                EditionAttributsXml.AjustementsRedimension(
+                    retirerPoids = RedimensionParLayout.poidsARetirer(attributs),
+                )
+            }
+
+            FamilleParent.RELATIVE -> {
+                EditionAttributsXml.AjustementsRedimension(
+                    marges = RedimensionParLayout.margesARetenir(cadre, cible),
+                )
+            }
+
+            FamilleParent.CONSTRAINT -> {
+                val (x, y) =
+                    RedimensionParLayout.positionsOutils(
+                        cadre = cadre,
+                        cible = cible,
+                        outilsAutorises = texte.contains(XMLNS_OUTILS),
+                    )
+                EditionAttributsXml.AjustementsRedimension(positionOutilsX = x, positionOutilsY = y)
+            }
+
+            else -> {
+                EditionAttributsXml.AjustementsRedimension()
+            }
+        }
+    }
+
+    /** Les vues rendues du document par NOM D'ID (ancres RelativeLayout — PE14-S2 C3). */
+    private fun freresRendus(rendu: EtatPreviewXml.RenduValide): Map<String, InfoVueRendu> =
+        rendu.vues.filter { it.idRes.isNotEmpty() }.associateBy { it.idRes }
+
+    /**
+     * CORRECTION « Passer à 48 dp » de la sélection (PE11g — carte de
+     * correctif, miroir `quickFixes`) : dimension fixe < 48 → 48 ;
+     * `wrap_content`/`0dp` → `minWidth`/`minHeight` = 48 dp — les
+     * DEUX axes en UNE édition groupée (une seule entrée d'historique,
+     * [EditionAttributsXml.elargirCibleTactile]). `false` = sélection
+     * non éditable, span périmé ou RIEN à élargir.
+     */
+    public fun elargirCibleSelection(): Boolean = editerSelection { rendu, span ->
+        EditionAttributsXml.elargirCibleTactile(rendu, span)
+    }
+
+    /** DUPLIQUE la vue sélectionnée (miroir `dupSel`) — le libellé de la copie. */
+    public fun dupliquerSelection(): Boolean = editerSelection { rendu, span ->
+        EditionAttributsXml.dupliquer(rendu, span)
+    }
+
+    /**
+     * SUPPRIME la vue sélectionnée SANS référence morte (PE12g —
+     * spec § 10, miroir `delSel`) : l'élément et ses descendants
+     * partent AVEC chaque attribut du fichier qui pointe un
+     * identifiant du sous-arbre (règles, ancre — sa gravité suit,
+     * `labelFor`), en UNE SEULE édition ([SuppressionSure.composer]).
+     *
+     * `null` = refus (sélection non éditable, span périmé) ; sinon le
+     * NOMBRE de références retirées — le toast « N références
+     * retirées » du même nom (§ 10).
+     */
+    public fun supprimerSelection(): Int? {
+        var referencesRetirees = 0
+        val ok =
+            editerSelection { rendu, span ->
+                val suppression = SuppressionSure.composer(rendu, span)
+                if (suppression != null) {
+                    referencesRetirees = suppression.referencesRetirees
+                }
+                suppression?.edition
+            }
+        if (!ok) return null
+        selectionInterne.value = -1
+        return referencesRetirees
+    }
+
+    /** Annule la DERNIÈRE édition (port — l'historique reste celui de l'éditeur). */
+    public fun annuler(): Boolean {
+        val ok = source?.annuler() ?: false
+        majHistorique()
+        return ok
+    }
+
+    /** Rétablit la dernière édition annulée (port). */
+    public fun retablir(): Boolean {
+        val ok = source?.retablir() ?: false
+        majHistorique()
+        return ok
+    }
+
+    /**
+     * Le CORPS commun des éditions PE7d : la vue sélectionnée doit
+     * rester ALIGNÉE au texte VIVANT (re-marche de l'aligneur dans
+     * chaque fonction pure) — l'édition passe au port
+     * ([SourceApercu.remplacer], une seule entrée d'historique) puis
+     * le rendu repart IMMÉDIATEMENT (miroir `soumettreImmediat` de la
+     * maquette PE7d).
+     */
+    private fun editerSelection(
+        autoriserRacine: Boolean = false,
+        composer: (texte: String, span: InsertionXml.SpanParent) ->
+        EditionAttributsXml.EditionAttributsXmlResultat?,
+    ): Boolean {
+        val rendu = dernierRendu ?: return false
+        val sourceBranchee = source ?: return false
+        val indice = selectionInterne.value
+        val vue = rendu.vues.getOrNull(indice) ?: return false
+        // PE7e : la RACINE reste éditable pour ses attributs
+        // (Disposition/Affichage) — pas pour dupliquer/supprimer.
+        if (!vue.selectable || (!autoriserRacine && vue.indiceParent < 0)) return false
+        val texte = sourceBranchee.texte()
+        val edition =
+            composer(texte, InsertionXml.SpanParent(vue.debutElement, vue.finElement)) ?: return false
+        val ecrit = sourceBranchee.remplacer(edition.debut, edition.fin, edition.remplacement)
+        if (!ecrit) return false
+        // Le rendu repart IMMÉDIATEMENT (l'écouteur de mutation ne
+        // re-soumet qu'après le debounce — le même texte sera skippé
+        // par l'anti-boucle du moteur).
+        moteur.soumettreImmediat { sourceBranchee.texte() }
+        return true
+    }
+
+    override fun onCleared() {
+        delierSource()
+        suiviProjet?.cancel()
+        moteur.close()
+    }
+
+    /** Branche la source [uri] : déliaison, écoute de mutation, projet, rendu immédiat. */
+    private fun brancher(uri: String) {
+        val nouvelleSource = registre.sourceDe(uri)
+        if (nouvelleSource == null) {
+            // Piège « mort du processus » : Android ne recrée que
+            // l'activité du dessus — le registre est vide. L'écran se
+            // termine et relance l'éditeur (jamais de panneau vide).
+            journal.w(TAG) { "source absente du registre (processus mort ?) — fin d'écran : $uri" }
+            finirInterne.value = true
+            return
+        }
+        delierSource()
+        source = nouvelleSource
+        uriCourante = uri
+        majHistorique()
+        val ecouteurNouveau =
+            SourceApercu.EcouteurMutation {
+                // Fournisseur paresseux : le texte n'est tiré qu'après debounce.
+                moteur.soumettre { nouvelleSource.texte() }
+                // PE10c : toute mutation (frappe, édition de la palette,
+                // annulation) met la barre d'édition à jour.
+                majHistorique()
+            }
+        ecouteur = ecouteurNouveau
+        nouvelleSource.ajouterEcouteur(ecouteurNouveau)
+        suivreProjet(nouvelleSource)
+        moteur.definirGenre(ClassificateurPreview.genreDe(nouvelleSource.cheminRelatif, nouvelleSource.texte()))
+        moteur.soumettreImmediat { nouvelleSource.texte() }
+    }
+
+    /** Délie l'écouteur de la source courante (changement de fichier, onCleared). */
+    private fun delierSource() {
+        val ancienne = source
+        val ancienEcouteur = ecouteur
+        if (ancienne != null && ancienEcouteur != null) {
+            ancienne.retirerEcouteur(ancienEcouteur)
+        }
+        ecouteur = null
+        historiqueInterne.value = HistoriqueEdition(false, false)
+    }
+
+    /**
+     * Suit le projet porteur (PE5/G2/G5, repris du contrôleur PE1) :
+     * `res/` résolu FUSE, thème activité et label du manifest — le
+     * rendu reprend le chrome du vrai appareil.
+     *
+     * CORRECTIF 0.134.31 (rapport 0.134.30, journal « res=null ») :
+     * 1) le dossier `res/` n'est PLUS deviné `<racine>/res` (les
+     * projets des modèles vivent en `app/src/main/res`) — il est
+     * DÉRIVÉ du chemin du layout édité (`…/res/<famille>/f.xml` →
+     * `…/res`, la même vérité que [cheminStringsDe] PE8c), avec
+     * repli sur les candidats standards ; 2) le PREMIER rendu part
+     * AVANT la résolution FUSE (soumettreImmediat de [brancher]) —
+     * quand `res/` est résolu APRÈS lui, un re-rendu immédiat
+     * s'impose (sinon `@color/…` reste non résolu jusqu'à la
+     * prochaine frappe).
+     */
+    private fun suivreProjet(sourceBranchee: SourceApercu) {
+        suiviProjet?.cancel()
+        val uriProjet = sourceBranchee.uriProjet
+        if (uriProjet == null) {
+            // Pas de projet connu : repli ressources natives (miroir PE1).
+            moteur.definirDossierRes(null)
+            moteur.definirThemeName(null)
+            moteur.definirLabelActivite(null)
+            // v0.166.3 — vraies vues : sans projet, PLUS de classpath
+            // (un APK précédent ne doit pas fuiter sur un projet vide).
+            moteur.definirClasspath(emptyList())
+            dossierResCourant = null
+            couleursProjetInterne.value = emptyList()
+            drawablesProjetInterne.value = emptySet()
+            indexRessourcesInterne.value = emptyMap()
+            return
+        }
+        suiviProjet =
+            viewModelScope.launch {
+                val racine = resolveurChemin.resoudreEntree(uriProjet) ?: return@launch
+                // v0.166.3 — VRAIES VUES : l'APK debug dexé du projet
+                // alimente le pipeline G1/Phase 2 (DexViewFactory +
+                // CacheClasspath) — AVANT le reste : le classpath ne
+                // dépend NI de res/ NI du manifest, et les vues custom
+                // doivent se charger dès CE rendu, pas du suivant. Sans
+                // APK (projet jamais buildé) la liste est vide et le
+                // repli honnête MockView + « classe absente » reste.
+                moteur.definirClasspath(ClasspathApercu.entrees(racine))
+                val cheminRes = dossierResProjet(racine, sourceBranchee.cheminRelatif)
+                if (cheminRes == null) {
+                    dossierResCourant = null
+                    couleursProjetInterne.value = emptyList()
+                    drawablesProjetInterne.value = emptySet()
+                    indexRessourcesInterne.value = emptyMap()
+                    return@launch
+                }
+                moteur.definirDossierRes(cheminRes)
+                dossierResCourant = cheminRes
+                rechargerRessourcesProjet()
+                val manifeste = lireManifeste(racine)
+                moteur.definirThemeName(manifeste?.let { resoudreThemeActivite(it) })
+                moteur.definirLabelActivite(manifeste?.let { resoudreLabelActivite(it) })
+                // Le premier rendu a pu partir avec res=null (course
+                // soumettreImmediat ↔ résolution FUSE) : re-rendu
+                // (definirDossierRes a réarmé l'anti-boucle).
+                moteur.soumettreImmediat { sourceBranchee.texte() }
+            }
+    }
+
+    /**
+     * Le dossier `res/` du projet, DÉRIVÉ du chemin relatif du
+     * document édité (`…/res/<famille>/f.xml` → `…/res`) puis des
+     * candidats standards — le MÊME ordre que [trouverManifeste].
+     * `null` = aucun dossier réellement présent (repli natif).
+     */
+    private fun dossierResProjet(racineProjet: String, cheminRelatif: String): String? {
+        val marqueur = "/res/"
+        val debut = cheminRelatif.indexOf(marqueur)
+        if (debut > 0) {
+            val relatif = cheminRelatif.substring(0, debut + marqueur.length - 1)
+            val candidat = racineProjet.trimEnd('/') + "/" + relatif
+            if (java.io.File(candidat).isDirectory) return candidat
+        }
+        val base = racineProjet.trimEnd('/')
+        return listOf("$base/app/src/main/res", "$base/src/main/res", "$base/res")
+            .firstOrNull { java.io.File(it).isDirectory }
+    }
+
+    /** Lit le manifest d'application (chemins standards) — null si absent/illisible. */
+    private fun lireManifeste(racineProjet: String): String? {
+        val manifeste = trouverManifeste(racineProjet) ?: return null
+        return try {
+            java.io.File(manifeste).readText()
+        } catch (_: Throwable) {
+            null
+        }
+    }
+
+    /** Titre de l'action bar : `android:label` de la PREMIÈRE `<activity>` (à défaut `<application>`). */
+    @Suppress("ReturnCount") // Chaque garde = une issue distincte du contrat (miroir PE1).
+    private fun resoudreLabelActivite(contenu: String): String? {
+        val regexLabel = Regex("""android:label\s*=\s*"([^"]+)"""")
+        Regex("""<activity\b[^>]*""").find(contenu)?.let { balise ->
+            regexLabel.find(balise.value)?.let { return it.groupValues[1] }
+        }
+        Regex("""<application\b[^>]*""").find(contenu)?.let { balise ->
+            regexLabel.find(balise.value)?.let { return it.groupValues[1] }
+        }
+        return null
+    }
+
+    /** Thème activité : `android:theme` de la balise ouvrante (application). */
+    private fun resoudreThemeActivite(contenu: String): String? =
+        Regex("""android:theme\s*=\s*"(@style/[^"]+|@android:style/[^"]+)"""")
+            .find(contenu)
+            ?.groupValues
+            ?.get(1)
+
+    /** Cherche AndroidManifest.xml dans les chemins standards du projet. */
+    private fun trouverManifeste(racineProjet: String): String? {
+        val base = racineProjet.trimEnd('/')
+        val candidats =
+            listOf(
+                "$base/app/src/main/AndroidManifest.xml",
+                "$base/src/main/AndroidManifest.xml",
+                "$base/AndroidManifest.xml",
+                "$base/../AndroidManifest.xml",
+            )
+        return candidats.firstOrNull { java.io.File(it).isFile }
+    }
+
+    // ── PE11e : lecture des couleurs/drawables du projet ────────────
+
+    /**
+     * RECHARGE les `@color` et `@drawable` du projet depuis `res/`
+     * (PE11e — miroir `RES` de la maquette) : appelé au suivi du
+     * projet ET à CHAQUE ouverture de la palette couleur (les
+     * ressources ont pu changer dans l'éditeur entre-temps). Sans
+     * dossier `res/` résolu : les listes restent VIDES (le
+     * validateur se tait, la palette ne montre que les entrées
+     * FIXES — repli silencieux, jamais d'exception, règle 6).
+     */
+    public fun rechargerRessourcesProjet() {
+        val res = dossierResCourant ?: return
+        viewModelScope.launch {
+            val dossiersValeurs =
+                java.io
+                    .File(res)
+                    .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith("values") }
+                    .orEmpty()
+                    .sortedBy { dossier -> if (dossier.name == "values") 0 else 1 }
+            val fichiers = { nom: String -> dossiersValeurs.mapNotNull { resolveDossierFichier(it, nom) } }
+            val couleurs = CouleursProjetXml.lire(fichiers("colors.xml"))
+            couleursProjetInterne.value = couleurs
+            val drawables = nomsFichiersDe(res, "drawable")
+            drawablesProjetInterne.value = drawables
+            indexRessourcesInterne.value =
+                mapOf(
+                    "drawable" to drawables,
+                    "color" to couleurs.map { it.nom }.toSet(),
+                    "string" to RessourcesProjetXml.noms(fichiers("strings.xml"), "string"),
+                    "style" to RessourcesProjetXml.noms(fichiers("styles.xml"), "style"),
+                    "layout" to nomsFichiersDe(res, "layout"),
+                )
+        }
+    }
+
+    /** Les noms SANS extension des fichiers des dossiers `prefixe*` de `res/`. */
+    private fun nomsFichiersDe(res: String, prefixe: String): Set<String> = java.io
+        .File(res)
+        .listFiles { dossier -> dossier.isDirectory && dossier.name.startsWith(prefixe) }
+        .orEmpty()
+        .flatMap { dossier -> dossier.listFiles().orEmpty().toList() }
+        .mapNotNull { fichier -> fichier.name.substringBeforeLast('.').ifEmpty { null } }
+        .toSet()
+
+    /** Le texte d'un fichier d'un dossier de ressources (`null` = absent/illisible, règle 6). */
+    private fun resolveDossierFichier(dossier: java.io.File, nom: String): String? = try {
+        java.io
+            .File(dossier, nom)
+            .takeIf { it.isFile }
+            ?.readText()
+    } catch (_: Throwable) {
+        null
+    }
+
+    /** Extras d'intention (Publics : l'implémentation du navigateur pose les extras.) */
+    public companion object {
+        private const val TAG: String = "PreviewViewModel"
+
+        /** La déclaration du dialecte `tools:` (PE14-S2 C3, arbitrage D3 : jamais imposé). */
+        private const val XMLNS_OUTILS: String = "xmlns:tools"
+
+        /** Extra d'intention : identifiant du projet (relance de l'éditeur). */
+        public const val CLE_PROJET: String = "jo.codeide.preview.PROJECT_ID"
+
+        /** Extra d'intention : URI du document à prévisualiser. */
+        public const val CLE_URI: String = "jo.codeide.preview.URI"
+
+        /** Échelle de police MOYENNE du cycle (miroir `S.fs = 1.3`). */
+        public const val ECHELLE_POLICE_MOYENNE: Float = 1.3f
+
+        /** Échelle de police GRANDE du cycle (miroir `S.fs = 2`). */
+        public const val ECHELLE_POLICE_GRANDE: Float = 2f
+
+        /** Marge haute PAR DÉFAUT d'un placement à la racine (miroir `n.mt = 16`). */
+        private const val MARGE_PLACEMENT_HAUT_DP: Int = 16
+
+        /** Marge latérale PAR DÉFAUT à la racine (miroir `ml/mr = 24`). */
+        private const val MARGE_PLACEMENT_COTE_DP: Int = 24
+
+        /** Délai du surlignage « inséré » de la Source (PE11k — miroir le
+         *  `setTimeout(…, 2600)` de `insertAt` : la maquette gagne sur le
+         *  « ~1,2 s » de PREVIEW_UI_ECRANS.md § 9, écart documenté). */
+        private const val DELAI_INSERTION_MS: Long = 2_600L
+
+        /** Taille de la liste des récents (miroir `slice(0, 4)`). */
+        private const val RECENTS_MAX: Int = 4
+
+        /** PE12f — l'attribut posé par le correctif « Ajouter le comportement ». */
+        private const val ATTRIBUT_COMPORTEMENT: String = "app:layout_behavior"
+
+        /** PE11h — l'orientation du parent, lue dans le texte vivant. */
+        private const val ATTR_ORIENTATION_PARENT: String = "android:orientation"
+
+        /** PE11h — la seule orientation qui calcule la LARGEUR (défaut : vertical). */
+        private const val VALEUR_HORIZONTALE: String = "horizontal"
+    }
+}

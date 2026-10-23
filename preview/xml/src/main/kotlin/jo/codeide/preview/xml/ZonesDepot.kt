@@ -48,22 +48,13 @@ public object ZonesDepot {
      *        attributs restent alors à la charge du contrôleur
      *        (`InsertionXml.contraindre` pour `ConstraintLayout`).
      */
-    public data class CibleDepot(
-        val indiceParent: Int,
-        val index: Int,
-        val plan: PlanInsertionFamille.Plan? = null,
-    )
+    public data class CibleDepot(val indiceParent: Int, val index: Int, val plan: PlanInsertionFamille.Plan? = null)
 
     /**
      * Le rectangle d'une BARRE D'INSERTION (coordonnées bitmap, px du
      * profil) — dessinée par la vue comme le `.slot` de la maquette.
      */
-    public data class RectangleDepot(
-        val gauche: Float,
-        val haut: Float,
-        val droite: Float,
-        val bas: Float,
-    ) {
+    public data class RectangleDepot(val gauche: Float, val haut: Float, val droite: Float, val bas: Float) {
         /** Largeur du rectangle (px). */
         public val largeurPx: Float get() = droite - gauche
 
@@ -215,10 +206,8 @@ public object ZonesDepot {
      * S3) — [ContraintesHierarchie.accepteEnfant] sur la classe du rendu,
      * au nombre d'enfants COURANT du conteneur.
      */
-    private fun accepteUnEnfantDePlus(
-        vues: List<InfoVueRendu>,
-        indice: Int,
-    ): Boolean = ContraintesHierarchie.accepteEnfant(vues[indice].classe, vues.count { it.indiceParent == indice })
+    private fun accepteUnEnfantDePlus(vues: List<InfoVueRendu>, indice: Int): Boolean =
+        ContraintesHierarchie.accepteEnfant(vues[indice].classe, vues.count { it.indiceParent == indice })
 
     /**
      * La cible d'un `FloatingActionButton` (miroir `targetAt` : le plus
@@ -227,12 +216,7 @@ public object ZonesDepot {
      * candidate) : paire (indice du `CoordinatorLayout`, indice de l'ancre
      * ou null), ou null si aucun ancêtre `CoordinatorLayout`.
      */
-    private fun cibleFab(
-        vues: List<InfoVueRendu>,
-        indiceVise: Int,
-        x: Float,
-        y: Float,
-    ): Pair<Int, Int?>? {
+    private fun cibleFab(vues: List<InfoVueRendu>, indiceVise: Int, x: Float, y: Float): Pair<Int, Int?>? {
         var indice = indiceVise
         while (indice >= 0) {
             val vue = vues[indice]
@@ -249,11 +233,7 @@ public object ZonesDepot {
     }
 
     /** Le conteneur le plus PROFOND contenant le point (-1 si aucun — miroir `targetAt`). */
-    private fun conteneurLePlusProfond(
-        vues: List<InfoVueRendu>,
-        x: Float,
-        y: Float,
-    ): Int {
+    private fun conteneurLePlusProfond(vues: List<InfoVueRendu>, x: Float, y: Float): Int {
         var meilleur = -1
         for ((indice, vue) in vues.withIndex()) {
             if (!vue.conteneur || vue.droite <= vue.gauche || vue.bas <= vue.haut) continue
@@ -337,10 +317,7 @@ public object ZonesDepot {
     }
 
     /** Libellé du conteneur visé (miroir `'Dans ' + label(par)` — pill violette). */
-    public fun libelleCible(
-        vues: List<InfoVueRendu>,
-        cible: CibleDepot,
-    ): String {
+    public fun libelleCible(vues: List<InfoVueRendu>, cible: CibleDepot): String {
         val parent = vues.getOrNull(cible.indiceParent) ?: return ""
         return "Dans " + libelle(parent)
     }
@@ -349,11 +326,7 @@ public object ZonesDepot {
      * Libellé de la barre d'insertion (miroir `'+ ' + dv.w.name + ' · ' +
      * (t.index + 1) + '/' + (par.children.length + 1)`).
      */
-    public fun libelleInsertion(
-        vues: List<InfoVueRendu>,
-        cible: CibleDepot,
-        nomWidget: String,
-    ): String {
+    public fun libelleInsertion(vues: List<InfoVueRendu>, cible: CibleDepot, nomWidget: String): String {
         val parent = vues.getOrNull(cible.indiceParent) ?: return ""
         val nombre = vues.count { it.indiceParent == cible.indiceParent } + 1
         return "+ $nomWidget · ${cible.index + 1}/$nombre"
@@ -372,11 +345,7 @@ public object ZonesDepot {
      * en fin (bord droit du dernier frère + 4 px) ; conteneur vide →
      * centre (traité par l'appelant).
      */
-    private fun positionHorizontale(
-        enfants: List<InfoVueRendu>,
-        index: Int,
-        pxParDp: Float,
-    ): Float {
+    private fun positionHorizontale(enfants: List<InfoVueRendu>, index: Int, pxParDp: Float): Float {
         if (index == 0) {
             return enfants[0].gauche - min(enfants[0].margesGauche.toFloat(), ABSORPTION_DEBUT_DP * pxParDp) / 2f
         }
@@ -393,11 +362,7 @@ public object ZonesDepot {
      * en fin (marge basse du dernier frère absorbée à moitié + 2 px) ;
      * conteneur vide → centre (traité par l'appelant).
      */
-    private fun positionVerticale(
-        enfants: List<InfoVueRendu>,
-        index: Int,
-        pxParDp: Float,
-    ): Float {
+    private fun positionVerticale(enfants: List<InfoVueRendu>, index: Int, pxParDp: Float): Float {
         if (index == 0) {
             return enfants[0].haut - min(enfants[0].margesHaut.toFloat(), ABSORPTION_DEBUT_DP * pxParDp) / 2f
         }

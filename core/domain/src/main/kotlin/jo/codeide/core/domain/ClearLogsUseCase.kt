@@ -13,23 +13,20 @@ import javax.inject.Inject
  * Contexte d'exécution attendu : suspendu, hors thread principal.
  */
 public class ClearLogsUseCase
-    @Inject
-    constructor(
-        private val repository: LogRepository,
-    ) {
-        /**
-         * Efface l'intégralité des journaux (fichiers et tampon mémoire).
-         *
-         * @return [AppResult.Success] si tout a été effacé, sinon l'erreur
-         * d'I/O typée rencontrée.
-         */
-        public suspend operator fun invoke(): AppResult<Unit> =
-            try {
-                repository.clear()
-                AppResult.Success(Unit)
-            } catch (annulation: kotlinx.coroutines.CancellationException) {
-                throw annulation
-            } catch (e: IOException) {
-                AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
-            }
+@Inject
+constructor(private val repository: LogRepository) {
+    /**
+     * Efface l'intégralité des journaux (fichiers et tampon mémoire).
+     *
+     * @return [AppResult.Success] si tout a été effacé, sinon l'erreur
+     * d'I/O typée rencontrée.
+     */
+    public suspend operator fun invoke(): AppResult<Unit> = try {
+        repository.clear()
+        AppResult.Success(Unit)
+    } catch (annulation: kotlinx.coroutines.CancellationException) {
+        throw annulation
+    } catch (e: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
     }
+}

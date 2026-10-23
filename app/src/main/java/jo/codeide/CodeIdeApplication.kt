@@ -152,12 +152,11 @@ class CodeIdeApplication : Application() {
     }
 
     /** Mode de nuit appcompat d'un thème applicatif (miroir). */
-    private fun modeNuit(mode: ThemeMode): Int =
-        when (mode) {
-            ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
-            ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
-            ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-        }
+    private fun modeNuit(mode: ThemeMode): Int = when (mode) {
+        ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+        ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
+        ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+    }
 
     /**
      * Informe le pisteur du dernier écran connu — appelé par l'écouteur de
@@ -247,13 +246,12 @@ class CodeIdeApplication : Application() {
      * `BuildConfig` : l'installation précède l'injection Hilt, et ces
      * constantes de compilation ne se lisent nulle part ailleurs.
      */
-    private fun infosBuild(): CrashAppInfo =
-        CrashAppInfo(
-            versionName = BuildConfig.VERSION_NAME,
-            versionCode = BuildConfig.VERSION_CODE.toLong(),
-            buildType = if (BuildConfig.DEBUG) "debug" else "release",
-            applicationId = BuildConfig.APPLICATION_ID,
-        )
+    private fun infosBuild(): CrashAppInfo = CrashAppInfo(
+        versionName = BuildConfig.VERSION_NAME,
+        versionCode = BuildConfig.VERSION_CODE.toLong(),
+        buildType = if (BuildConfig.DEBUG) "debug" else "release",
+        applicationId = BuildConfig.APPLICATION_ID,
+    )
 
     /**
      * Empreinte courante de la chaîne d'outils, soumise au détecteur —

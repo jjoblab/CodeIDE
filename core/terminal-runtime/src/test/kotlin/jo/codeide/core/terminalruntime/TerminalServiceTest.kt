@@ -116,16 +116,15 @@ class TerminalServiceTest {
         override val main: CoroutineDispatcher = Dispatchers.Default
     }
 
-    private fun registre(): RegistreSessionsTermux =
-        RegistreSessionsTermux(
-            localisateur = LocalisateurFaux,
-            environnement = EnvironnementFaux,
-            fabrique = fabrique,
-            demarreurService = DemarreurImmobile,
-            horloge = { Instant.now().toEpochMilli() },
-            dispatchers = DispatcheursReels,
-            journal = FakeAppLogger(),
-        )
+    private fun registre(): RegistreSessionsTermux = RegistreSessionsTermux(
+        localisateur = LocalisateurFaux,
+        environnement = EnvironnementFaux,
+        fabrique = fabrique,
+        demarreurService = DemarreurImmobile,
+        horloge = { Instant.now().toEpochMilli() },
+        dispatchers = DispatcheursReels,
+        journal = FakeAppLogger(),
+    )
 
     /** Service réel branché sur le registre donné (champs posés par réflexion).
      *

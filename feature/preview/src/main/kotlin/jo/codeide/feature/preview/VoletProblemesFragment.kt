@@ -45,11 +45,7 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
     /** La liste (rangées recyclées), le tap sélectionne. */
     private val adaptateur = AdaptateurProblemes { indice -> viewModel.selectionner(indice) }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        conteneur: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, conteneur: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentVoletProblemesBinding.inflate(inflater, conteneur, false)
         liaison.listeProblemes.adapter = adaptateur
         liaison.listeProblemes.layoutManager = LinearLayoutManager(requireContext())
@@ -70,14 +66,13 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
     private fun problemesMarches(
         vues: List<InfoVueRendu>,
         problemes: List<ProblemesPreview.ProblemeApercu>,
-    ): List<EntreeProblemeUi> =
-        FeuilleApercu.entreesProblemes(problemes).map { entree ->
-            EntreeProblemeUi(
-                entree = entree,
-                titre = titreProbleme(entree.genre, vues.getOrNull(entree.indiceVue)),
-                detail = detailProbleme(entree, vues.getOrNull(entree.indiceVue)),
-            )
-        }
+    ): List<EntreeProblemeUi> = FeuilleApercu.entreesProblemes(problemes).map { entree ->
+        EntreeProblemeUi(
+            entree = entree,
+            titre = titreProbleme(entree.genre, vues.getOrNull(entree.indiceVue)),
+            detail = detailProbleme(entree, vues.getOrNull(entree.indiceVue)),
+        )
+    }
 
     /**
      * Les entrées des problèmes de FAMILLE (PE12f — spec § 9) : libellé
@@ -91,15 +86,15 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
             val indice = vues.indexOfFirst { it.debutElement == probleme.debut }
             EntreeProblemeUi(
                 entree =
-                    FeuilleApercu.EntreeProbleme(
-                        indiceVue = if (indice >= 0) indice else SANS_VUE,
-                        erreur = probleme.severite == ProblemesPreview.Severite.ERREUR,
-                        genre = probleme.genre,
-                    ),
+                FeuilleApercu.EntreeProbleme(
+                    indiceVue = if (indice >= 0) indice else SANS_VUE,
+                    erreur = probleme.severite == ProblemesPreview.Severite.ERREUR,
+                    genre = probleme.genre,
+                ),
                 titre = LibellesProblemes.titreFamille(requireContext(), probleme),
                 detail =
-                    libelleFamille(probleme) + "\n" +
-                        LibellesProblemes.messageFamille(requireContext(), probleme),
+                libelleFamille(probleme) + "\n" +
+                    LibellesProblemes.messageFamille(requireContext(), probleme),
             )
         }
     }
@@ -113,16 +108,11 @@ internal class VoletProblemesFragment : VoletFeuilleFragment() {
         probleme.id?.let { getString(R.string.preview_feuille_libelle, probleme.balise, it) } ?: probleme.balise
 
     /** Le titre localisé d'un problème (miroir `p.title` de `computeProblems`). */
-    private fun titreProbleme(
-        genre: ProblemesPreview.GenreProbleme,
-        vueFautive: InfoVueRendu?,
-    ): String = LibellesProblemes.titre(requireContext(), genre, vueFautive)
+    private fun titreProbleme(genre: ProblemesPreview.GenreProbleme, vueFautive: InfoVueRendu?): String =
+        LibellesProblemes.titre(requireContext(), genre, vueFautive)
 
     /** Le détail localisé (vue fautive + message, miroir `p.msg`). */
-    private fun detailProbleme(
-        entree: FeuilleApercu.EntreeProbleme,
-        vueFautive: InfoVueRendu?,
-    ): String {
+    private fun detailProbleme(entree: FeuilleApercu.EntreeProbleme, vueFautive: InfoVueRendu?): String {
         val libelle =
             vueFautive?.let { LibellesVolet.libelleVue(requireContext(), it) } ?: ""
         val message =
@@ -156,31 +146,22 @@ private const val SANS_VUE: Int = -1
  * au liage : ambre/erreur, titre, détail, « Voir »), la sélection part
  * du tap sur la rangée entière (miroir `d.onclick → select(p.rid)`).
  */
-internal class AdaptateurProblemes(
-    private val auLigne: (Int) -> Unit,
-) : ListAdapter<EntreeProblemeUi, AdaptateurProblemes.LigneProblemeVue>(ComparateurProblemes) {
-    override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): LigneProblemeVue {
+internal class AdaptateurProblemes(private val auLigne: (Int) -> Unit) :
+    ListAdapter<EntreeProblemeUi, AdaptateurProblemes.LigneProblemeVue>(ComparateurProblemes) {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LigneProblemeVue {
         val gonfleur = LayoutInflater.from(parent.context)
         return LigneProblemeVue(ItemProblemeBinding.inflate(gonfleur, parent, false), auLigne)
     }
 
     override fun getItemCount(): Int = currentList.size
 
-    override fun onBindViewHolder(
-        holder: LigneProblemeVue,
-        position: Int,
-    ) {
+    override fun onBindViewHolder(holder: LigneProblemeVue, position: Int) {
         holder.poser(currentList[position])
     }
 
     /** Le conteneur d'une rangée (item_probleme.xml). */
-    internal class LigneProblemeVue(
-        private val liaison: ItemProblemeBinding,
-        auLigne: (Int) -> Unit,
-    ) : RecyclerView.ViewHolder(liaison.root) {
+    internal class LigneProblemeVue(private val liaison: ItemProblemeBinding, auLigne: (Int) -> Unit) :
+        RecyclerView.ViewHolder(liaison.root) {
         private var indiceVue: Int = -1
 
         init {
@@ -205,15 +186,11 @@ internal class AdaptateurProblemes(
 
     /** Le comparateur (rangées stables par vue fautive + genre). */
     private object ComparateurProblemes : DiffUtil.ItemCallback<EntreeProblemeUi>() {
-        override fun areItemsTheSame(
-            ancienne: EntreeProblemeUi,
-            nouvelle: EntreeProblemeUi,
-        ): Boolean = ancienne.cle() == nouvelle.cle()
+        override fun areItemsTheSame(ancienne: EntreeProblemeUi, nouvelle: EntreeProblemeUi): Boolean =
+            ancienne.cle() == nouvelle.cle()
 
-        override fun areContentsTheSame(
-            ancienne: EntreeProblemeUi,
-            nouvelle: EntreeProblemeUi,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: EntreeProblemeUi, nouvelle: EntreeProblemeUi): Boolean =
+            ancienne == nouvelle
 
         private fun EntreeProblemeUi.cle(): String = "ligne-${entree.indiceVue}-${entree.genre}"
     }

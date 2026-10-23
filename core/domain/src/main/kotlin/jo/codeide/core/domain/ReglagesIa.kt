@@ -112,13 +112,12 @@ public object ValidationUrlIa {
      * (destinée aux journaux et à la ligne d'aide de l'écran — jamais le
      * contenu de l'URL lui-même).
      */
-    public fun erreur(url: String): String? =
-        when {
-            url.isBlank() -> "URL de base vide"
-            regexBoucleLocale.matches(url.trim()) -> null
-            regexHttps.matches(url.trim()) -> null
-            else -> "URL invalide : HTTPS requis (HTTP réservé à la boucle locale)"
-        }
+    public fun erreur(url: String): String? = when {
+        url.isBlank() -> "URL de base vide"
+        regexBoucleLocale.matches(url.trim()) -> null
+        regexHttps.matches(url.trim()) -> null
+        else -> "URL invalide : HTTPS requis (HTTP réservé à la boucle locale)"
+    }
 }
 
 /**

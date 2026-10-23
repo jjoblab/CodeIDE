@@ -14,10 +14,7 @@ import org.junit.Test
 class LogLevelApplierTest {
     // Le détenteur interne est visible depuis les tests du module : on
     // reconstruit l'ensemble pour lire l'état après application.
-    private fun etatApres(
-        initial: LogConfig,
-        action: LogLevelApplier.() -> Unit,
-    ): LogConfig {
+    private fun etatApres(initial: LogConfig, action: LogLevelApplier.() -> Unit): LogConfig {
         val holder = LogConfigHolder(initial)
         LogLevelApplier(holder).action()
         return holder.read()

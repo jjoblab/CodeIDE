@@ -38,34 +38,23 @@ sealed interface ActionTerminal {
     data object NouvelleSession : ActionTerminal
 
     /** Sélectionne une session — rebranche le rendu dessus. */
-    data class OuvrirSession(
-        val sessionId: String,
-    ) : ActionTerminal
+    data class OuvrirSession(val sessionId: String) : ActionTerminal
 
     /** Renomme une session (dialogue de l'appui long sur l'onglet). */
-    data class RenommerSession(
-        val sessionId: String,
-        val libelle: String,
-    ) : ActionTerminal
+    data class RenommerSession(val sessionId: String, val libelle: String) : ActionTerminal
 
     /**
      * Ferme une session — le ViewModel décide : fermeture directe si le
      * shell semble au repos, effet de confirmation sinon (section 5 :
      * « confirmation si une commande semble en cours »).
      */
-    data class FermerSession(
-        val sessionId: String,
-    ) : ActionTerminal
+    data class FermerSession(val sessionId: String) : ActionTerminal
 
     /** Poursuit la fermeture après confirmation explicite. */
-    data class ConfirmerFermeture(
-        val sessionId: String,
-    ) : ActionTerminal
+    data class ConfirmerFermeture(val sessionId: String) : ActionTerminal
 
     /** Duplique une session : même répertoire de travail, nouvelle session. */
-    data class DupliquerSession(
-        val sessionId: String,
-    ) : ActionTerminal
+    data class DupliquerSession(val sessionId: String) : ActionTerminal
 }
 
 /**
@@ -73,8 +62,5 @@ sealed interface ActionTerminal {
  */
 sealed interface EffetTerminal {
     /** Une commande semble en cours : demander confirmation avant fermeture. */
-    data class DemanderConfirmationFermeture(
-        val sessionId: String,
-        val libelle: String,
-    ) : EffetTerminal
+    data class DemanderConfirmationFermeture(val sessionId: String, val libelle: String) : EffetTerminal
 }

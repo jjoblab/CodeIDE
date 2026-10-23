@@ -36,67 +36,62 @@ class VerifyProjectAccessUseCaseTest {
     }
 
     @Test
-    fun `permission et dossier présents donnent disponible`() =
-        runTest {
-            fichiers.grantPermission(emplacement.grantUri)
-            fichiers.seedDocument(
-                emplacement.documentUri,
-                FakeFileSystem.Document(name = "Projet", isDirectory = true),
-            )
+    fun `permission et dossier présents donnent disponible`() = runTest {
+        fichiers.grantPermission(emplacement.grantUri)
+        fichiers.seedDocument(
+            emplacement.documentUri,
+            FakeFileSystem.Document(name = "Projet", isDirectory = true),
+        )
 
-            val etat = verifier(idProjet()) as AppResult.Success
+        val etat = verifier(idProjet()) as AppResult.Success
 
-            assertEquals(ProjectAccessState.Available, etat.value)
-        }
-
-    @Test
-    fun `permission révoquée donne permission perdue même si le dossier existe`() =
-        runTest {
-            fichiers.seedDocument(
-                emplacement.documentUri,
-                FakeFileSystem.Document(name = "Projet", isDirectory = true),
-            )
-            // Pas de grantPermission : la permission est révoquée.
-
-            val etat = verifier(idProjet()) as AppResult.Success
-
-            assertEquals(ProjectAccessState.PermissionLost, etat.value)
-        }
+        assertEquals(ProjectAccessState.Available, etat.value)
+    }
 
     @Test
-    fun `permission présente mais dossier disparu donne introuvable`() =
-        runTest {
-            fichiers.grantPermission(emplacement.grantUri)
-            // Aucun document amorcé : le dossier n'existe pas.
+    fun `permission révoquée donne permission perdue même si le dossier existe`() = runTest {
+        fichiers.seedDocument(
+            emplacement.documentUri,
+            FakeFileSystem.Document(name = "Projet", isDirectory = true),
+        )
+        // Pas de grantPermission : la permission est révoquée.
 
-            val etat = verifier(idProjet()) as AppResult.Success
+        val etat = verifier(idProjet()) as AppResult.Success
 
-            assertEquals(ProjectAccessState.Missing, etat.value)
-        }
-
-    @Test
-    fun `un projet inconnu du registre échoue par NotFound`() =
-        runTest {
-            val resultat = verifier(ProjectId("inconnu"))
-
-            assertEquals(AppError.StorageReason.NotFound, raisonStockage(resultat as AppResult.Failure))
-        }
+        assertEquals(ProjectAccessState.PermissionLost, etat.value)
+    }
 
     @Test
-    fun `une erreur d entrée sortie non classée remonte au lieu de préjuger d une disparition`() =
-        runTest {
-            fichiers.grantPermission(emplacement.grantUri)
-            fichiers.statFailure = java.io.IOException("support illisible")
-            fichiers.seedDocument(
-                emplacement.documentUri,
-                FakeFileSystem.Document(name = "Projet", isDirectory = true),
-            )
+    fun `permission présente mais dossier disparu donne introuvable`() = runTest {
+        fichiers.grantPermission(emplacement.grantUri)
+        // Aucun document amorcé : le dossier n'existe pas.
 
-            val resultat = verifier(idProjet())
+        val etat = verifier(idProjet()) as AppResult.Success
 
-            assertTrue(resultat is AppResult.Failure)
-            assertEquals(AppError.StorageReason.Io, raisonStockage(resultat as AppResult.Failure))
-        }
+        assertEquals(ProjectAccessState.Missing, etat.value)
+    }
+
+    @Test
+    fun `un projet inconnu du registre échoue par NotFound`() = runTest {
+        val resultat = verifier(ProjectId("inconnu"))
+
+        assertEquals(AppError.StorageReason.NotFound, raisonStockage(resultat as AppResult.Failure))
+    }
+
+    @Test
+    fun `une erreur d entrée sortie non classée remonte au lieu de préjuger d une disparition`() = runTest {
+        fichiers.grantPermission(emplacement.grantUri)
+        fichiers.statFailure = java.io.IOException("support illisible")
+        fichiers.seedDocument(
+            emplacement.documentUri,
+            FakeFileSystem.Document(name = "Projet", isDirectory = true),
+        )
+
+        val resultat = verifier(idProjet())
+
+        assertTrue(resultat is AppResult.Failure)
+        assertEquals(AppError.StorageReason.Io, raisonStockage(resultat as AppResult.Failure))
+    }
 
 /** Extrait la raison d'une erreur de stockage (null si autre type d'erreur). */
     private fun raisonStockage(echec: AppResult.Failure): AppError.StorageReason? =

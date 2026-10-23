@@ -19,19 +19,15 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
 class LogcatSinkTest {
-    private fun entree(
-        niveau: LogLevel,
-        exception: FlattenedException? = null,
-    ): LogEntry =
-        LogEntry(
-            timestampMillis = 0L,
-            sessionId = "s",
-            level = niveau,
-            tag = "Storage",
-            threadName = "main",
-            message = "message principal",
-            exception = exception,
-        )
+    private fun entree(niveau: LogLevel, exception: FlattenedException? = null): LogEntry = LogEntry(
+        timestampMillis = 0L,
+        sessionId = "s",
+        level = niveau,
+        tag = "Storage",
+        threadName = "main",
+        message = "message principal",
+        exception = exception,
+    )
 
     @Test
     fun `chaque niveau part avec sa priorité logcat`() {

@@ -55,10 +55,7 @@ import kotlin.math.min
  * Le filtrage ([CataloguePalette.rechercher]) reste en fonctions pures
  * du module `:preview:xml` — le popover ne porte que le chrome.
  */
-public class PalettePopover(
-    context: Context,
-    attrs: AttributeSet? = null,
-) : FrameLayout(context, attrs) {
+public class PalettePopover(context: Context, attrs: AttributeSet? = null) : FrameLayout(context, attrs) {
     private val liaison: PopoverPaletteBinding =
         PopoverPaletteBinding.inflate(LayoutInflater.from(context), this, true)
 
@@ -120,19 +117,9 @@ public class PalettePopover(
 
         liaison.champRecherche.addTextChangedListener(
             object : android.text.TextWatcher {
-                override fun beforeTextChanged(
-                    s: CharSequence?,
-                    a: Int,
-                    b: Int,
-                    c: Int,
-                ) = Unit
+                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
 
-                override fun onTextChanged(
-                    s: CharSequence?,
-                    a: Int,
-                    b: Int,
-                    c: Int,
-                ) = Unit
+                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) = Unit
 
                 override fun afterTextChanged(s: android.text.Editable?) {
                     requete = s?.toString() ?: ""
@@ -198,10 +185,7 @@ public class PalettePopover(
     }
 
     /** Pose le mode d'insertion (visuel + notification au propriétaire). */
-    public fun definirMode(
-        parPopup: Boolean,
-        notifier: Boolean,
-    ) {
+    public fun definirMode(parPopup: Boolean, notifier: Boolean) {
         this.parPopup = parPopup
         liaison.modeDrag.isSelected = !parPopup
         liaison.modePopup.isSelected = parPopup
@@ -284,12 +268,8 @@ public class PalettePopover(
  */
 internal object HauteurPalettePopover {
     /** Le calcul du `LayoutParams.height` (miroir `min(600px, 100% - 134px)`). */
-    public fun calcule(
-        hauteurConteneur: Int,
-        margeHaut: Int,
-        margeBas: Int,
-        hauteurMax: Int,
-    ): Int = min(hauteurMax, hauteurConteneur - margeHaut - margeBas).coerceAtLeast(0)
+    public fun calcule(hauteurConteneur: Int, margeHaut: Int, margeBas: Int, hauteurMax: Int): Int =
+        min(hauteurMax, hauteurConteneur - margeHaut - margeBas).coerceAtLeast(0)
 }
 
 /**
@@ -302,9 +282,7 @@ internal object HauteurPalettePopover {
  * deux colonnes vaut l'espacement à UN dp près (8/3 ne tombe pas juste).
  * Les sous-titres (pleine largeur) ne portent que l'écart de rangée.
  */
-internal class EspacementGrilleTuiles(
-    contexte: Context,
-) : RecyclerView.ItemDecoration() {
+internal class EspacementGrilleTuiles(contexte: Context) : RecyclerView.ItemDecoration() {
     /** L'écart entre deux tuiles (miroir `.tiles` gap), en px. */
     private val espacement: Int = contexte.resources.getDimensionPixelSize(R.dimen.apercu_tuiles_gap)
 
@@ -336,19 +314,13 @@ internal class EspacementGrilleTuiles(
 /** UNE ligne de la grille : sous-titre de section, tuile, ou vide. */
 public sealed class ItemTuile {
     /** Le sous-titre de section (« Récents », « Tous les widgets »). */
-    public data class SousTitre(
-        val titre: String,
-    ) : ItemTuile()
+    public data class SousTitre(val titre: String) : ItemTuile()
 
     /** Une tuile de widget. */
-    public data class Tuile(
-        val entree: CataloguePalette.EntreePalette,
-    ) : ItemTuile()
+    public data class Tuile(val entree: CataloguePalette.EntreePalette) : ItemTuile()
 
     /** Le message « aucun widget ne correspond ». */
-    public data class Vide(
-        val message: String,
-    ) : ItemTuile()
+    public data class Vide(val message: String) : ItemTuile()
 }
 
 /**
@@ -360,10 +332,7 @@ public class TuilesPaletteAdapter(
     private val auTuilePlace: (CataloguePalette.EntreePalette) -> Unit,
     private val auGlisser: (CataloguePalette.EntreePalette, View) -> Unit,
 ) : ListAdapter<ItemTuile, RecyclerView.ViewHolder>(ComparateurTuiles) {
-    public override fun onCreateViewHolder(
-        parent: ViewGroup,
-        viewType: Int,
-    ): RecyclerView.ViewHolder {
+    public override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val gonfleur = LayoutInflater.from(parent.context)
         return when (viewType) {
             TYPE_SOUS_TITRE -> {
@@ -390,17 +359,13 @@ public class TuilesPaletteAdapter(
 
     public override fun getItemCount(): Int = currentList.size
 
-    public override fun getItemViewType(position: Int): Int =
-        when (currentList[position]) {
-            is ItemTuile.SousTitre -> TYPE_SOUS_TITRE
-            is ItemTuile.Vide -> TYPE_VIDE
-            is ItemTuile.Tuile -> TYPE_TUILE
-        }
+    public override fun getItemViewType(position: Int): Int = when (currentList[position]) {
+        is ItemTuile.SousTitre -> TYPE_SOUS_TITRE
+        is ItemTuile.Vide -> TYPE_VIDE
+        is ItemTuile.Tuile -> TYPE_TUILE
+    }
 
-    public override fun onBindViewHolder(
-        holder: RecyclerView.ViewHolder,
-        position: Int,
-    ) {
+    public override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = currentList[position]) {
             is ItemTuile.SousTitre -> (holder.itemView as android.widget.TextView).text = item.titre
             is ItemTuile.Vide -> (holder.itemView as android.widget.TextView).text = item.message
@@ -469,15 +434,9 @@ public class TuilesPaletteAdapter(
 
     /** Le comparateur (tuiles stables par identifiant). */
     private object ComparateurTuiles : DiffUtil.ItemCallback<ItemTuile>() {
-        override fun areItemsTheSame(
-            ancienne: ItemTuile,
-            nouvelle: ItemTuile,
-        ): Boolean = ancienne == nouvelle
+        override fun areItemsTheSame(ancienne: ItemTuile, nouvelle: ItemTuile): Boolean = ancienne == nouvelle
 
-        override fun areContentsTheSame(
-            ancienne: ItemTuile,
-            nouvelle: ItemTuile,
-        ): Boolean = ancienne == nouvelle
+        override fun areContentsTheSame(ancienne: ItemTuile, nouvelle: ItemTuile): Boolean = ancienne == nouvelle
     }
 
     private companion object {

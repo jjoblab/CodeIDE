@@ -65,10 +65,7 @@ internal object GeometrieFeuilleApercu {
      * barre, le peek la dépasse d'autant (le contenu de la feuille
      * reçoit ce même inset en padding bas).
      */
-    internal fun peekPx(
-        densite: Float,
-        insetNavigationPx: Int,
-    ): Int = dpEnPx(densite, PEEK_DP) + insetNavigationPx
+    internal fun peekPx(densite: Float, insetNavigationPx: Int): Int = dpEnPx(densite, PEEK_DP) + insetNavigationPx
 
     /** La BANDE minimale du canvas EN PIXELS (densité posée par l'appelant). */
     internal fun bandeCanvasMinPx(densite: Float): Int = dpEnPx(densite, BANDE_CANVAS_MIN_DP)
@@ -110,10 +107,9 @@ internal object GeometrieFeuilleApercu {
         margeHudPx: Int,
         hauteurConteneurPx: Int,
         bandeCanvasMinPx: Int,
-    ): Int =
-        (hauteurVisibleFeuillePx + margeHudPx)
-            .coerceAtMost((hauteurConteneurPx - bandeCanvasMinPx).coerceAtLeast(0))
-            .coerceAtLeast(0)
+    ): Int = (hauteurVisibleFeuillePx + margeHudPx)
+        .coerceAtMost((hauteurConteneurPx - bandeCanvasMinPx).coerceAtLeast(0))
+        .coerceAtLeast(0)
 
     /**
      * Le NIVEAU SUIVANT du cycle d'expansion (v0.173.0 — « deux niveaux
@@ -132,16 +128,12 @@ internal object GeometrieFeuilleApercu {
         etatReplie: Int,
         etatMoitie: Int,
         etatTotal: Int,
-    ): Int =
-        when (etatCourant) {
-            etatTotal -> if (deplierSeulement) etatTotal else etatReplie
-            etatMoitie -> if (deplierSeulement) etatMoitie else etatTotal
-            else -> etatMoitie
-        }
+    ): Int = when (etatCourant) {
+        etatTotal -> if (deplierSeulement) etatTotal else etatReplie
+        etatMoitie -> if (deplierSeulement) etatMoitie else etatTotal
+        else -> etatMoitie
+    }
 
     /** La conversion dp → px (la densité de l'écran courant, posée par l'appelant). */
-    private fun dpEnPx(
-        densite: Float,
-        valeur: Int,
-    ): Int = (valeur * densite).toInt()
+    private fun dpEnPx(densite: Float, valeur: Int): Int = (valeur * densite).toInt()
 }

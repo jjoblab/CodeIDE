@@ -19,16 +19,10 @@ import jo.codeide.preview.xml.JetonsCalques
  */
 internal object StyleVolet {
     /** La conversion dp → px (densité de l'écran courant). */
-    internal fun dp(
-        contexte: Context,
-        valeur: Int,
-    ): Int = (valeur * contexte.resources.displayMetrics.density).toInt()
+    internal fun dp(contexte: Context, valeur: Int): Int = (valeur * contexte.resources.displayMetrics.density).toInt()
 
     /** La couleur d'un attribut du THÈME courant (une seule voie). */
-    internal fun couleur(
-        contexte: Context,
-        attribut: Int,
-    ): Int {
+    internal fun couleur(contexte: Context, attribut: Int): Int {
         val valeur = TypedValue()
         contexte.theme.resolveAttribute(attribut, valeur, true)
         return valeur.data
@@ -42,28 +36,27 @@ internal object StyleVolet {
      * changement de thème ; la parité maquette ↔ ressources est gardée
      * par `JetonsCalquesTest`.
      */
-    internal fun jetonsCalques(contexte: Context): JetonsCalques =
-        JetonsCalques(
-            surface2 = couleur(contexte, R.attr.apercuSurface2),
-            damierCase = couleur(contexte, R.attr.apercuDamierCase),
-            accent = couleur(contexte, R.attr.apercuAccent),
-            accentDoux = couleur(contexte, R.attr.apercuAccentDoux),
-            surface = couleur(contexte, R.attr.apercuSurface),
-            texte = couleur(contexte, R.attr.apercuTexte),
-            fond = couleur(contexte, R.attr.apercuFond),
-            texteDoux = couleur(contexte, R.attr.apercuTexteDoux),
-            marge = couleur(contexte, R.attr.apercuMarge),
-            margeFond = couleur(contexte, R.attr.apercuMargeFond),
-            remplissage = couleur(contexte, R.attr.apercuRemplissage),
-            remplissageFond = couleur(contexte, R.attr.apercuRemplissageFond),
-            bornes = couleur(contexte, R.attr.apercuBornes),
-            nouveau = couleur(contexte, R.attr.apercuNouveau),
-            nouveauDoux = couleur(contexte, R.attr.apercuNouveauDoux),
-            surNouveau = couleur(contexte, R.attr.apercuSurNouveau),
-            epingleAvert = couleur(contexte, R.attr.apercuEpingleAvert),
-            epingleErreur = couleur(contexte, R.attr.apercuEpingleErreur),
-            surCalque = couleur(contexte, R.attr.apercuSurCalque),
-            ecranTrait = couleur(contexte, R.attr.apercuEcranTrait),
-            ecranOmbre = couleur(contexte, R.attr.apercuEcranOmbre),
-        )
+    internal fun jetonsCalques(contexte: Context): JetonsCalques = JetonsCalques(
+        surface2 = couleur(contexte, R.attr.apercuSurface2),
+        damierCase = couleur(contexte, R.attr.apercuDamierCase),
+        accent = couleur(contexte, R.attr.apercuAccent),
+        accentDoux = couleur(contexte, R.attr.apercuAccentDoux),
+        surface = couleur(contexte, R.attr.apercuSurface),
+        texte = couleur(contexte, R.attr.apercuTexte),
+        fond = couleur(contexte, R.attr.apercuFond),
+        texteDoux = couleur(contexte, R.attr.apercuTexteDoux),
+        marge = couleur(contexte, R.attr.apercuMarge),
+        margeFond = couleur(contexte, R.attr.apercuMargeFond),
+        remplissage = couleur(contexte, R.attr.apercuRemplissage),
+        remplissageFond = couleur(contexte, R.attr.apercuRemplissageFond),
+        bornes = couleur(contexte, R.attr.apercuBornes),
+        nouveau = couleur(contexte, R.attr.apercuNouveau),
+        nouveauDoux = couleur(contexte, R.attr.apercuNouveauDoux),
+        surNouveau = couleur(contexte, R.attr.apercuSurNouveau),
+        epingleAvert = couleur(contexte, R.attr.apercuEpingleAvert),
+        epingleErreur = couleur(contexte, R.attr.apercuEpingleErreur),
+        surCalque = couleur(contexte, R.attr.apercuSurCalque),
+        ecranTrait = couleur(contexte, R.attr.apercuEcranTrait),
+        ecranOmbre = couleur(contexte, R.attr.apercuEcranOmbre),
+    )
 }

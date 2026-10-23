@@ -25,10 +25,8 @@ import jo.codeide.preview.xml.CataloguePalette
  */
 @SuppressLint("DiscouragedApi") // L'icône suit la CONVENTION ic_tuile_<id> du
 // catalogue — une table de correspondance dupliquerait CataloguePalette.
-internal class GhostPaletteDragShadowBuilder(
-    contexte: Context,
-    entree: CataloguePalette.EntreePalette,
-) : View.DragShadowBuilder() {
+internal class GhostPaletteDragShadowBuilder(contexte: Context, entree: CataloguePalette.EntreePalette) :
+    View.DragShadowBuilder() {
     /** La vue hors hiérarchie (mesurée puis dessinée dans l'ombre). */
     private val ghost: View = ItemGhostPaletteBinding.inflate(LayoutInflater.from(contexte)).root
 
@@ -50,10 +48,7 @@ internal class GhostPaletteDragShadowBuilder(
         ghost.layout(0, 0, ghost.measuredWidth, ghost.measuredHeight)
     }
 
-    override fun onProvideShadowMetrics(
-        metrics: Point,
-        touchPoint: Point,
-    ) {
+    override fun onProvideShadowMetrics(metrics: Point, touchPoint: Point) {
         metrics.set(ghost.width, ghost.height)
         // Miroir translate(-50 %, -130 %) : le doigt sous la pill —
         // le point d'accroche est à 50 % de largeur et 130 % de hauteur.

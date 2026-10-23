@@ -19,18 +19,17 @@ import org.junit.Test
  */
 public class RedimensionApercuTest {
     /** La vue sélectionnée de référence (px contenu, densité 440 — miroir les tests de calques). */
-    private fun selection(): InfoVueRendu =
-        InfoVueRendu(
-            gauche = 20,
-            haut = 40,
-            droite = 220,
-            bas = 136,
-            libelle = "TextView @+id/titre",
-            debutElement = 0,
-            finElement = 10,
-            indiceParent = 0,
-            profondeur = 1,
-        )
+    private fun selection(): InfoVueRendu = InfoVueRendu(
+        gauche = 20,
+        haut = 40,
+        droite = 220,
+        bas = 136,
+        libelle = "TextView @+id/titre",
+        debutElement = 0,
+        finElement = 10,
+        indiceParent = 0,
+        profondeur = 1,
+    )
 
     @Test
     public fun `ancre - la poignee haut-gauche ancre le coin bas-droite`() {

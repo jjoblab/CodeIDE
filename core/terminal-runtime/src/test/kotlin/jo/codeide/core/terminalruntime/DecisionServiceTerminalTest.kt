@@ -11,15 +11,14 @@ import java.time.Instant
  * sinon) — logique pure, aucun Android.
  */
 class DecisionServiceTerminalTest {
-    private fun session(vivante: Boolean): TerminalSessionSummary =
-        TerminalSessionSummary(
-            id = "x",
-            label = "Session 1",
-            workingDirectoryPath = "/a",
-            isAlive = vivante,
-            lastOutputPreview = "",
-            createdAt = Instant.EPOCH,
-        )
+    private fun session(vivante: Boolean): TerminalSessionSummary = TerminalSessionSummary(
+        id = "x",
+        label = "Session 1",
+        workingDirectoryPath = "/a",
+        isAlive = vivante,
+        lastOutputPreview = "",
+        createdAt = Instant.EPOCH,
+    )
 
     @Test
     fun `aucune session vivante arrete le service`() {

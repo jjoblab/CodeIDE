@@ -25,16 +25,16 @@ internal interface DemarreurServiceInstallation {
  */
 @Singleton
 internal class DemarreurServiceInstallationAndroid
-    @Inject
-    constructor(
-        // Annotation sans `private val` (leçon T1) : champ dérivé ci-dessous.
-        @ApplicationContext contexte: Context,
-    ) : DemarreurServiceInstallation {
-        private val contexteApplication: Context = contexte.applicationContext
+@Inject
+constructor(
+    // Annotation sans `private val` (leçon T1) : champ dérivé ci-dessous.
+    @ApplicationContext contexte: Context,
+) : DemarreurServiceInstallation {
+    private val contexteApplication: Context = contexte.applicationContext
 
-        override fun demarrer() {
-            contexteApplication.startForegroundService(
-                Intent(contexteApplication, ServiceInstallationEnvironnement::class.java),
-            )
-        }
+    override fun demarrer() {
+        contexteApplication.startForegroundService(
+            Intent(contexteApplication, ServiceInstallationEnvironnement::class.java),
+        )
     }
+}

@@ -130,10 +130,7 @@ public class ServicePontJournaux : Service() {
                 journal.i(TAG) { "pont ouvert : $nomPaquet pid=$pid ($nomProcessus)" }
             }
 
-            override fun envoyerLot(
-                trames: MutableList<String>?,
-                lignesPerdues: Long,
-            ) {
+            override fun envoyerLot(trames: MutableList<String>?, lignesPerdues: Long) {
                 val pid = Binder.getCallingPid()
                 val liaison = liaisons[pid] ?: return // jamais connecté : ignoré
                 if (trames != null && trames.isNotEmpty()) {
@@ -176,15 +173,12 @@ public class ServicePontJournaux : Service() {
  */
 @Singleton
 public class VerificateurUidPont
-    @Inject
-    public constructor() {
-        /**
-         * @param uidAppeleur UID du processus appelant (lu au noyau, non falsifiable)
-         * @param uidDuPaquet UID du paquet DÉCLARÉ (résolu par PackageManager)
-         * @return `true` si l'appelant possède réellement le paquet déclaré
-         */
-        public fun accepte(
-            uidAppeleur: Int,
-            uidDuPaquet: Int,
-        ): Boolean = uidAppeleur == uidDuPaquet
-    }
+@Inject
+public constructor() {
+    /**
+     * @param uidAppeleur UID du processus appelant (lu au noyau, non falsifiable)
+     * @param uidDuPaquet UID du paquet DÉCLARÉ (résolu par PackageManager)
+     * @return `true` si l'appelant possède réellement le paquet déclaré
+     */
+    public fun accepte(uidAppeleur: Int, uidDuPaquet: Int): Boolean = uidAppeleur == uidDuPaquet
+}

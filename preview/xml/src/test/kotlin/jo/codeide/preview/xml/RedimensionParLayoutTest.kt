@@ -15,48 +15,45 @@ import org.junit.Test
  */
 public class RedimensionParLayoutTest {
     /** La vue sélectionnée de référence (px bitmap, densité 440). */
-    private fun selection(): InfoVueRendu =
-        InfoVueRendu(
-            gauche = 20,
-            haut = 40,
-            droite = 220,
-            bas = 136,
-            libelle = "TextView @+id/titre",
-            debutElement = 0,
-            finElement = 10,
-            indiceParent = 0,
-            profondeur = 1,
-        )
+    private fun selection(): InfoVueRendu = InfoVueRendu(
+        gauche = 20,
+        haut = 40,
+        droite = 220,
+        bas = 136,
+        libelle = "TextView @+id/titre",
+        debutElement = 0,
+        finElement = 10,
+        indiceParent = 0,
+        profondeur = 1,
+    )
 
     /** Un parent RelativeLayout plein écran (px bitmap). */
-    private fun parent(): InfoVueRendu =
-        InfoVueRendu(
-            gauche = 0,
-            haut = 0,
-            droite = 440,
-            bas = 880,
-            libelle = "RelativeLayout",
-            debutElement = 0,
-            finElement = 10,
-            indiceParent = -1,
-            profondeur = 0,
-            famille = "RELATIVE",
-        )
+    private fun parent(): InfoVueRendu = InfoVueRendu(
+        gauche = 0,
+        haut = 0,
+        droite = 440,
+        bas = 880,
+        libelle = "RelativeLayout",
+        debutElement = 0,
+        finElement = 10,
+        indiceParent = -1,
+        profondeur = 0,
+        famille = "RELATIVE",
+    )
 
     /** Une vue frère rendue sous le nom d'id « ancre » (px bitmap). */
-    private fun frere(): InfoVueRendu =
-        InfoVueRendu(
-            gauche = 0,
-            haut = 60,
-            droite = 200,
-            bas = 140,
-            libelle = "TextView",
-            debutElement = 0,
-            finElement = 10,
-            indiceParent = 0,
-            profondeur = 1,
-            idRes = "ancre",
-        )
+    private fun frere(): InfoVueRendu = InfoVueRendu(
+        gauche = 0,
+        haut = 60,
+        droite = 200,
+        bas = 140,
+        libelle = "TextView",
+        debutElement = 0,
+        finElement = 10,
+        indiceParent = 0,
+        profondeur = 1,
+        idRes = "ancre",
+    )
 
     /** Le cadre complet pour [attributs] donnés. */
     private fun cadre(attributs: Map<String, String>): RedimensionParLayout.CadreRedimension =
@@ -69,15 +66,14 @@ public class RedimensionParLayoutTest {
         )
 
     /** La cible d'une saisie HAUT-GAUCHE ramenée au coin (fantôme = la vue). */
-    private fun cibleHautGauche(): RedimensionApercu.CibleRedimension =
-        RedimensionApercu.CibleRedimension(
-            largeurDp = 73,
-            hauteurDp = 35,
-            ancreX = 220,
-            ancreY = 136,
-            coinX = 20,
-            coinY = 40,
-        )
+    private fun cibleHautGauche(): RedimensionApercu.CibleRedimension = RedimensionApercu.CibleRedimension(
+        largeurDp = 73,
+        hauteurDp = 35,
+        ancreX = 220,
+        ancreY = 136,
+        coinX = 20,
+        coinY = 40,
+    )
 
     @Test
     public fun `margesARetenir - bord gauche tenu sans regle suit le doigt`() {
@@ -149,9 +145,9 @@ public class RedimensionParLayoutTest {
             RedimensionParLayout.CadreRedimension(
                 attributs = mapOf("android:layout_toRightOf" to "@+id/ancre"),
                 selection =
-                    selection().let { vue ->
-                        InfoVueRendu(120, 40, 320, 136, vue.libelle, vue.debutElement, vue.finElement, 0, 1)
-                    },
+                selection().let { vue ->
+                    InfoVueRendu(120, 40, 320, 136, vue.libelle, vue.debutElement, vue.finElement, 0, 1)
+                },
                 parent = parent(),
                 freres = mapOf("ancre" to frere()),
                 densiteDpi = 440,

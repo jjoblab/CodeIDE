@@ -126,15 +126,11 @@ public object ContraintesHierarchie {
      *   connue (défense en profondeur : le popup teste déjà `conteneur`
      *   du rendu, l'arbre textuel n'a pas ce drapeau).
      */
-    public fun accepteEnfant(
-        balise: String,
-        enfantsActuels: Int,
-    ): Boolean =
-        when (capacite(balise)) {
-            CapaciteEnfants.PLUSIEURS -> !estFeuilleConnue(balise)
-            CapaciteEnfants.UN_SEUL -> enfantsActuels == 0
-            CapaciteEnfants.ADAPTATEUR, CapaciteEnfants.ATTENDU -> false
-        }
+    public fun accepteEnfant(balise: String, enfantsActuels: Int): Boolean = when (capacite(balise)) {
+        CapaciteEnfants.PLUSIEURS -> !estFeuilleConnue(balise)
+        CapaciteEnfants.UN_SEUL -> enfantsActuels == 0
+        CapaciteEnfants.ADAPTATEUR, CapaciteEnfants.ATTENDU -> false
+    }
 
     /**
      * La FEUILLE CONNUE (TextView, Button, Chip, FloatingActionButton…) :
@@ -161,10 +157,7 @@ public object ContraintesHierarchie {
      * inattendu (erreur ou avertissement selon le refus réel) → enfant
      * unique dépassé (avertissement) → feuille avec enfants (erreur).
      */
-    public fun contenance(
-        balise: String,
-        balisesEnfants: List<String>,
-    ): ContenanceProbleme? {
+    public fun contenance(balise: String, balisesEnfants: List<String>): ContenanceProbleme? {
         if (balisesEnfants.isEmpty()) return null
         val nom = balise.substringAfterLast('.')
         return when (capacite(nom)) {
@@ -235,10 +228,7 @@ public object ContraintesHierarchie {
      * DISTINCTE du refus (philosophie X4, précédent [ZonesDepot]).
      */
     @Suppress("ReturnCount")
-    public fun envelopperEnfants(
-        texte: String,
-        probleme: ProblemesFamilles.Probleme,
-    ): InsertionXml.EditionXml? {
+    public fun envelopperEnfants(texte: String, probleme: ProblemesFamilles.Probleme): InsertionXml.EditionXml? {
         if (probleme.genre != ProblemesPreview.GenreProbleme.ENFANT_UNIQUE_DEPASSE) return null
         val noeud = noeudVivant(texte, probleme) ?: return null
         val enfants = noeud.enfants
@@ -252,9 +242,9 @@ public object ContraintesHierarchie {
             debut = debut,
             fin = dernier.fin,
             remplacement =
-                baliseEnveloppe(retrait) + "\n\n" +
-                    extraits.lignesIndentees(retrait) + "\n\n" +
-                    retrait + BALISE_ENVELOPPE_FERMANTE,
+            baliseEnveloppe(retrait) + "\n\n" +
+                extraits.lignesIndentees(retrait) + "\n\n" +
+                retrait + BALISE_ENVELOPPE_FERMANTE,
         )
     }
 
@@ -278,10 +268,7 @@ public object ContraintesHierarchie {
      * précédent [ProblemesFamilles.boucleDuParent]).
      */
     @Suppress("ReturnCount")
-    public fun retirerEnfants(
-        texte: String,
-        probleme: ProblemesFamilles.Probleme,
-    ): InsertionXml.EditionXml? {
+    public fun retirerEnfants(texte: String, probleme: ProblemesFamilles.Probleme): InsertionXml.EditionXml? {
         val genre = probleme.genre
         if (genre !in GENRES_RETRAIT) return null
         val noeud = noeudVivant(texte, probleme) ?: return null
@@ -346,10 +333,7 @@ public object ContraintesHierarchie {
     // ── Nœuds et textes ────────────────────────────────────────────────
 
     /** Le nœud du texte vivant au span du problème (début + balise), ou null si périmé. */
-    private fun noeudVivant(
-        texte: String,
-        probleme: ProblemesFamilles.Probleme,
-    ): ArbreAttributsXml.Noeud? =
+    private fun noeudVivant(texte: String, probleme: ProblemesFamilles.Probleme): ArbreAttributsXml.Noeud? =
         ArbreAttributsXml
             .lire(texte)
             .firstOrNull { it.debut == probleme.debut && it.balise == probleme.balise }
@@ -359,21 +343,17 @@ public object ContraintesHierarchie {
      * avant l'élément (le retrait part avec l'édition, le conteneur
      * reste lisible) ; sinon l'offset lui-même (défense).
      */
-    private fun debutLigne(
-        texte: String,
-        offset: Int,
-    ): Int {
+    private fun debutLigne(texte: String, offset: Int): Int {
         val debut = texte.lastIndexOf('\n', offset - 1) + 1
         val prefixe = texte.substring(debut, offset)
         return if (prefixe.isNotBlank()) offset else debut
     }
 
     /** La balise ouvrante du LinearLayout d'enveloppe, au retrait des enfants. */
-    private fun baliseEnveloppe(retrait: String): String =
-        retrait + "<LinearLayout\n" +
-            retrait + PAS + "android:layout_width=\"match_parent\"\n" +
-            retrait + PAS + "android:layout_height=\"wrap_content\"\n" +
-            retrait + PAS + "android:orientation=\"vertical\">"
+    private fun baliseEnveloppe(retrait: String): String = retrait + "<LinearLayout\n" +
+        retrait + PAS + "android:layout_width=\"match_parent\"\n" +
+        retrait + PAS + "android:layout_height=\"wrap_content\"\n" +
+        retrait + PAS + "android:orientation=\"vertical\">"
 
     /** Le texte des enfants, décalé d'UN niveau (chaque ligne gagne le retrait d'un enfant). */
     private fun String.lignesIndentees(retrait: String): String = lines().joinToString("\n") { retrait + PAS + it }

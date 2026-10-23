@@ -53,10 +53,7 @@ class WorkspaceUseCasesTest {
     }
 
     /** Sème un dossier inscriptible dans le faux et retourne son grantUri. */
-    private fun semerDossier(
-        id: String,
-        nom: String = "Dossier",
-    ): String {
+    private fun semerDossier(id: String, nom: String = "Dossier"): String {
         val grantUri = "content://autorite/tree/${id.encode()}"
         fichiers.seedDocument(
             "$grantUri/document/${id.encode()}",
@@ -69,11 +66,7 @@ class WorkspaceUseCasesTest {
     private fun String.encode(): String = replace(":", "%3A").replace("/", "%2F")
 
     /** Simule un dossier de travail déjà configuré : réglage + permission tenue. */
-    private suspend fun configurerDossier(
-        grantUri: String,
-        id: String,
-        nom: String,
-    ): StorageLocation {
+    private suspend fun configurerDossier(grantUri: String, id: String, nom: String): StorageLocation {
         fichiers.grantPermission(grantUri)
         val emplacement = emplacement(grantUri, id, nom)
         parametres.setWorkspace(emplacement)
@@ -90,217 +83,199 @@ class WorkspaceUseCasesTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `un dossier refuse par Android ne prend jamais la permission`() =
-        runTest {
-            val resultat = valider("content://autorite/tree/primary%3ADownload")
+    fun `un dossier refuse par Android ne prend jamais la permission`() = runTest {
+        val resultat = valider("content://autorite/tree/primary%3ADownload")
 
-            assertTrue(resultat is ValidationDossier.Refuse)
-            assertEquals(ForbiddenFolders.Reason.DOWNLOADS, (resultat as ValidationDossier.Refuse).raison)
-            assertFalse(fichiers.hasPersistablePermission("content://autorite/tree/primary%3ADownload"))
-        }
-
-    @Test
-    fun `un dossier valide passe le test d'ecriture et garde la permission`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-
-            val resultat = valider(grantUri)
-
-            val valide = resultat as ValidationDossier.Valide
-            assertEquals("CodeIDE", valide.emplacement.displayPath)
-            assertEquals("$grantUri/document/primary%3ACodeIDE", valide.emplacement.documentUri)
-            assertTrue(fichiers.hasPersistablePermission(grantUri))
-            assertFalse(
-                "le témoin doit être supprimé",
-                fichiers.arborescence.value.containsKey("$grantUri/document/primary%3ACodeIDE/codeide-temoin-1000.txt"),
-            )
-        }
+        assertTrue(resultat is ValidationDossier.Refuse)
+        assertEquals(ForbiddenFolders.Reason.DOWNLOADS, (resultat as ValidationDossier.Refuse).raison)
+        assertFalse(fichiers.hasPersistablePermission("content://autorite/tree/primary%3ADownload"))
+    }
 
     @Test
-    fun `un echec du test d'ecriture relache la permission prise`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE")
-            fichiers.createFailure = IOException("disque plein simulé")
+    fun `un dossier valide passe le test d'ecriture et garde la permission`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
 
-            val resultat = valider(grantUri)
+        val resultat = valider(grantUri)
 
-            val erreur = (resultat as ValidationDossier.Erreur).erreur as AppError.Storage
-            assertEquals(AppError.StorageReason.Io, erreur.reason)
-            assertFalse(fichiers.hasPersistablePermission(grantUri))
-        }
+        val valide = resultat as ValidationDossier.Valide
+        assertEquals("CodeIDE", valide.emplacement.displayPath)
+        assertEquals("$grantUri/document/primary%3ACodeIDE", valide.emplacement.documentUri)
+        assertTrue(fichiers.hasPersistablePermission(grantUri))
+        assertFalse(
+            "le témoin doit être supprimé",
+            fichiers.arborescence.value.containsKey("$grantUri/document/primary%3ACodeIDE/codeide-temoin-1000.txt"),
+        )
+    }
 
     @Test
-    fun `une uri illisible est une erreur typée sans permission`() =
-        runTest {
-            val resultat = valider("pas-une-uri")
+    fun `un echec du test d'ecriture relache la permission prise`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE")
+        fichiers.createFailure = IOException("disque plein simulé")
 
-            assertTrue(resultat is ValidationDossier.Erreur)
-            assertFalse(fichiers.arborescence.value.isNotEmpty())
-        }
+        val resultat = valider(grantUri)
+
+        val erreur = (resultat as ValidationDossier.Erreur).erreur as AppError.Storage
+        assertEquals(AppError.StorageReason.Io, erreur.reason)
+        assertFalse(fichiers.hasPersistablePermission(grantUri))
+    }
+
+    @Test
+    fun `une uri illisible est une erreur typée sans permission`() = runTest {
+        val resultat = valider("pas-une-uri")
+
+        assertTrue(resultat is ValidationDossier.Erreur)
+        assertFalse(fichiers.arborescence.value.isNotEmpty())
+    }
 
     // ------------------------------------------------------------------
     // ChangeWorkspaceUseCase
     // ------------------------------------------------------------------
 
     @Test
-    fun `changer de dossier libere l'ancienne permission sans projet dependant`() =
-        runTest {
-            val ancien = semerDossier("primary:Ancien", nom = "Ancien")
-            configurerDossier(ancien, "primary:Ancien", nom = "Ancien")
+    fun `changer de dossier libere l'ancienne permission sans projet dependant`() = runTest {
+        val ancien = semerDossier("primary:Ancien", nom = "Ancien")
+        configurerDossier(ancien, "primary:Ancien", nom = "Ancien")
 
-            val nouveau = semerDossier("primary:Nouveau", nom = "Nouveau")
-            val resultat = changer(nouveau)
+        val nouveau = semerDossier("primary:Nouveau", nom = "Nouveau")
+        val resultat = changer(nouveau)
 
-            assertTrue(resultat is ValidationDossier.Valide)
-            assertTrue(fichiers.hasPersistablePermission(nouveau))
-            assertFalse("l'ancienne permission doit être libérée", fichiers.hasPersistablePermission(ancien))
-            assertEquals(emplacement(nouveau, "primary:Nouveau", "Nouveau"), parametres.reglages.workspace)
-        }
-
-    @Test
-    fun `changer de dossier garde l'ancienne permission si un projet y vit`() =
-        runTest {
-            val ancien = semerDossier("primary:Ancien", nom = "Ancien")
-            val ancienEmplacement = configurerDossier(ancien, "primary:Ancien", nom = "Ancien")
-            semerProjetSous(ancienEmplacement)
-
-            val nouveau = semerDossier("primary:Nouveau", nom = "Nouveau")
-            val resultat = changer(nouveau)
-
-            assertTrue(resultat is ValidationDossier.Valide)
-            assertTrue("un projet vit encore dans l'ancien arbre", fichiers.hasPersistablePermission(ancien))
-            assertTrue(fichiers.hasPersistablePermission(nouveau))
-        }
+        assertTrue(resultat is ValidationDossier.Valide)
+        assertTrue(fichiers.hasPersistablePermission(nouveau))
+        assertFalse("l'ancienne permission doit être libérée", fichiers.hasPersistablePermission(ancien))
+        assertEquals(emplacement(nouveau, "primary:Nouveau", "Nouveau"), parametres.reglages.workspace)
+    }
 
     @Test
-    fun `rechanger vers le meme dossier ne libere rien`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
+    fun `changer de dossier garde l'ancienne permission si un projet y vit`() = runTest {
+        val ancien = semerDossier("primary:Ancien", nom = "Ancien")
+        val ancienEmplacement = configurerDossier(ancien, "primary:Ancien", nom = "Ancien")
+        semerProjetSous(ancienEmplacement)
 
-            val resultat = changer(grantUri)
+        val nouveau = semerDossier("primary:Nouveau", nom = "Nouveau")
+        val resultat = changer(nouveau)
 
-            assertTrue(resultat is ValidationDossier.Valide)
-            assertTrue(fichiers.hasPersistablePermission(grantUri))
-            assertEquals(emplacement(grantUri, "primary:CodeIDE", "CodeIDE"), parametres.reglages.workspace)
-        }
+        assertTrue(resultat is ValidationDossier.Valide)
+        assertTrue("un projet vit encore dans l'ancien arbre", fichiers.hasPersistablePermission(ancien))
+        assertTrue(fichiers.hasPersistablePermission(nouveau))
+    }
 
     @Test
-    fun `un dossier refuse au changement ne touche ni reglage ni ancienne permission`() =
-        runTest {
-            val ancien = semerDossier("primary:Ancien", nom = "Ancien")
-            configurerDossier(ancien, "primary:Ancien", nom = "Ancien")
+    fun `rechanger vers le meme dossier ne libere rien`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
 
-            val resultat = changer("content://autorite/tree/primary%3ADownload")
+        val resultat = changer(grantUri)
 
-            assertTrue(resultat is ValidationDossier.Refuse)
-            assertEquals(emplacement(ancien, "primary:Ancien", "Ancien"), parametres.reglages.workspace)
-            assertTrue(fichiers.hasPersistablePermission(ancien))
-        }
+        assertTrue(resultat is ValidationDossier.Valide)
+        assertTrue(fichiers.hasPersistablePermission(grantUri))
+        assertEquals(emplacement(grantUri, "primary:CodeIDE", "CodeIDE"), parametres.reglages.workspace)
+    }
+
+    @Test
+    fun `un dossier refuse au changement ne touche ni reglage ni ancienne permission`() = runTest {
+        val ancien = semerDossier("primary:Ancien", nom = "Ancien")
+        configurerDossier(ancien, "primary:Ancien", nom = "Ancien")
+
+        val resultat = changer("content://autorite/tree/primary%3ADownload")
+
+        assertTrue(resultat is ValidationDossier.Refuse)
+        assertEquals(emplacement(ancien, "primary:Ancien", "Ancien"), parametres.reglages.workspace)
+        assertTrue(fichiers.hasPersistablePermission(ancien))
+    }
 
     // ------------------------------------------------------------------
     // ClearWorkspaceUseCase
     // ------------------------------------------------------------------
 
     @Test
-    fun `effacer sans dossier de travail est un succes neutre`() =
-        runTest {
-            val resultat = effacer()
+    fun `effacer sans dossier de travail est un succes neutre`() = runTest {
+        val resultat = effacer()
 
-            assertEquals(EffacementDossier.Efface(false), resultat)
-            assertNull(parametres.reglages.workspace)
-        }
-
-    @Test
-    fun `effacer libere la permission sans projet dependant`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
-
-            val resultat = effacer()
-
-            assertEquals(EffacementDossier.Efface(true), resultat)
-            assertNull(parametres.reglages.workspace)
-            assertFalse(fichiers.hasPersistablePermission(grantUri))
-        }
+        assertEquals(EffacementDossier.Efface(false), resultat)
+        assertNull(parametres.reglages.workspace)
+    }
 
     @Test
-    fun `effacer garde la permission si un projet vit dans l'arbre`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            val emplacement = configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
-            semerProjetSous(emplacement)
+    fun `effacer libere la permission sans projet dependant`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
 
-            val resultat = effacer()
+        val resultat = effacer()
 
-            assertEquals(EffacementDossier.Efface(false), resultat)
-            assertNull(parametres.reglages.workspace)
-            assertTrue("le projet utilise encore l'arbre", fichiers.hasPersistablePermission(grantUri))
-        }
+        assertEquals(EffacementDossier.Efface(true), resultat)
+        assertNull(parametres.reglages.workspace)
+        assertFalse(fichiers.hasPersistablePermission(grantUri))
+    }
+
+    @Test
+    fun `effacer garde la permission si un projet vit dans l'arbre`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        val emplacement = configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
+        semerProjetSous(emplacement)
+
+        val resultat = effacer()
+
+        assertEquals(EffacementDossier.Efface(false), resultat)
+        assertNull(parametres.reglages.workspace)
+        assertTrue("le projet utilise encore l'arbre", fichiers.hasPersistablePermission(grantUri))
+    }
 
     // ------------------------------------------------------------------
     // ResetPreferencesUseCase
     // ------------------------------------------------------------------
 
     @Test
-    fun `reinitialiser remet les defauts mais garde l'installation terminee et les projets`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            val emplacement = configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
-            semerProjetSous(emplacement)
-            parametres.updateSettings {
-                it.copy(
-                    isSetupCompleted = true,
-                    authorName = "Ada",
-                    themeMode = ThemeMode.DARK,
-                )
-            }
-
-            val resultat = reinitialiser()
-
-            assertEquals(AppResult.Success(Unit), resultat)
-            val reglages = parametres.reglages
-            assertEquals("", reglages.authorName)
-            assertEquals(jo.codeide.core.model.ThemeMode.SYSTEM, reglages.themeMode)
-            assertTrue("le drapeau d'installation est un état, pas une préférence", reglages.isSetupCompleted)
-            assertEquals(listOf("Projet"), projets.projets.map { it.name })
+    fun `reinitialiser remet les defauts mais garde l'installation terminee et les projets`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        val emplacement = configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
+        semerProjetSous(emplacement)
+        parametres.updateSettings {
+            it.copy(
+                isSetupCompleted = true,
+                authorName = "Ada",
+                themeMode = ThemeMode.DARK,
+            )
         }
+
+        val resultat = reinitialiser()
+
+        assertEquals(AppResult.Success(Unit), resultat)
+        val reglages = parametres.reglages
+        assertEquals("", reglages.authorName)
+        assertEquals(jo.codeide.core.model.ThemeMode.SYSTEM, reglages.themeMode)
+        assertTrue("le drapeau d'installation est un état, pas une préférence", reglages.isSetupCompleted)
+        assertEquals(listOf("Projet"), projets.projets.map { it.name })
+    }
 
     @Test
-    fun `reinitialiser libere la permission du dossier sans projet dependant`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
+    fun `reinitialiser libere la permission du dossier sans projet dependant`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
 
-            val resultat = reinitialiser()
+        val resultat = reinitialiser()
 
-            assertEquals(AppResult.Success(Unit), resultat)
-            assertNull(parametres.reglages.workspace)
-            assertFalse(fichiers.hasPersistablePermission(grantUri))
-        }
+        assertEquals(AppResult.Success(Unit), resultat)
+        assertNull(parametres.reglages.workspace)
+        assertFalse(fichiers.hasPersistablePermission(grantUri))
+    }
 
     @Test
-    fun `reinitialiser garde la permission si un projet vit dans l'arbre`() =
-        runTest {
-            val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
-            val emplacement = configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
-            semerProjetSous(emplacement)
+    fun `reinitialiser garde la permission si un projet vit dans l'arbre`() = runTest {
+        val grantUri = semerDossier("primary:CodeIDE", nom = "CodeIDE")
+        val emplacement = configurerDossier(grantUri, "primary:CodeIDE", nom = "CodeIDE")
+        semerProjetSous(emplacement)
 
-            reinitialiser()
+        reinitialiser()
 
-            assertTrue(fichiers.hasPersistablePermission(grantUri))
-        }
+        assertTrue(fichiers.hasPersistablePermission(grantUri))
+    }
 
     // ------------------------------------------------------------------
     // Aides
     // ------------------------------------------------------------------
 
     /** Emplacement canonique d'un dossier semé (libellé = nom du faux). */
-    private fun emplacement(
-        grantUri: String,
-        id: String,
-        nom: String,
-    ): StorageLocation =
+    private fun emplacement(grantUri: String, id: String, nom: String): StorageLocation =
         StorageLocation(grantUri = grantUri, documentUri = "$grantUri/document/${id.encode()}", displayPath = nom)
 
     private companion object {

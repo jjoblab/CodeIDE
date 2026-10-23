@@ -80,9 +80,7 @@ internal object AligneurElementsXml {
     }
 
     /** Débuts de ligne du texte courant (offset du premier caractère de chaque ligne). */
-    private class LignesTexte(
-        private val texte: String,
-    ) {
+    private class LignesTexte(private val texte: String) {
         private val debuts: IntArray
 
         init {
@@ -94,20 +92,14 @@ internal object AligneurElementsXml {
         }
 
         /** Offset (0-based) de la position (ligne 1-based, colonne 1-based). */
-        fun offset(
-            ligne: Int,
-            colonne: Int,
-        ): Int {
+        fun offset(ligne: Int, colonne: Int): Int {
             val debutLigne = debuts[(ligne - 1).coerceIn(0, debuts.size - 1)]
             return debutLigne + (colonne - 1).coerceAtLeast(0)
         }
     }
 
     /** État de la marche d'UN document (texte + table de lignes + désalignement). */
-    private class Marche(
-        val texte: String,
-        val lignes: LignesTexte,
-    )
+    private class Marche(val texte: String, val lignes: LignesTexte)
 
     /** Résultat aplati en pré-ordre (parent avant enfants). */
     private val elements = mutableListOf<ElementSource>()
@@ -135,10 +127,7 @@ internal object AligneurElementsXml {
      * @param resolveur résolution des `<include>` (null = tout include
      *        déclenche le désalignement).
      */
-    internal fun aligner(
-        texte: String,
-        resolveur: ResolveurLayout?,
-    ): List<ElementSource> {
+    internal fun aligner(texte: String, resolveur: ResolveurLayout?): List<ElementSource> {
         profondeurInclude = 0
         elements.clear()
         siteCookie = ""
@@ -148,11 +137,7 @@ internal object AligneurElementsXml {
     }
 
     /** Marche un document entier (racine comprise) — pré-ordre complet. */
-    private fun marcherDocument(
-        texte: String,
-        externe: Boolean,
-        resolveur: ResolveurLayout?,
-    ) {
+    private fun marcherDocument(texte: String, externe: Boolean, resolveur: ResolveurLayout?) {
         val parseur = parseurSur(texte) ?: return
         // Avance jusqu'au premier START_TAG (saute prolog/doctype).
         var evenement = parseur.eventType
@@ -282,11 +267,7 @@ internal object AligneurElementsXml {
      * cookies DISTINCTS, et les ordinaux du document inclus REPARTENT de
      * zéro (l'inflater enfant est NEUF — miroir exact).
      */
-    private fun traiterInclude(
-        parseur: XmlPullParser,
-        resolveur: ResolveurLayout?,
-        ordinal: Int,
-    ) {
+    private fun traiterInclude(parseur: XmlPullParser, resolveur: ResolveurLayout?, ordinal: Int) {
         val reference = attributLayoutDe(parseur) ?: ""
         val contenu =
             if (profondeurInclude < LIMITE_INCLUDES) {
@@ -325,12 +306,7 @@ internal object AligneurElementsXml {
     private fun siteDe(ordinal: Int): String = if (siteCookie.isEmpty()) ordinal.toString() else "$siteCookie>$ordinal"
 
     /** Enfants de l'élément courant (parseur juste après son START_TAG). */
-    private fun traiterEnfants(
-        parseur: XmlPullParser,
-        marche: Marche,
-        externe: Boolean,
-        resolveur: ResolveurLayout?,
-    ) {
+    private fun traiterEnfants(parseur: XmlPullParser, marche: Marche, externe: Boolean, resolveur: ResolveurLayout?) {
         var evenement = parseur.next()
         while (evenement != XmlPullParser.END_TAG) {
             if (evenement == XmlPullParser.START_TAG) {
@@ -362,27 +338,24 @@ internal object AligneurElementsXml {
     private fun idDe(parseur: XmlPullParser): String? = parseur.getAttributeValue(NAMESPACE_ANDROID, "id")
 
     /** Parseur KXmlParser sur le texte, configuré comme LayoutLib ; null si impossible. */
-    private fun parseurSur(texte: String): XmlPullParser? =
-        try {
-            val fabrique = XmlPullParserFactory.newInstance()
-            fabrique.isNamespaceAware = true
-            val parseur = fabrique.newPullParser()
-            parseur.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
-            parseur.setInput(StringReader(texte))
-            parseur
-        } catch (_: Exception) {
-            null
-        }
+    private fun parseurSur(texte: String): XmlPullParser? = try {
+        val fabrique = XmlPullParserFactory.newInstance()
+        fabrique.isNamespaceAware = true
+        val parseur = fabrique.newPullParser()
+        parseur.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, true)
+        parseur.setInput(StringReader(texte))
+        parseur
+    } catch (_: Exception) {
+        null
+    }
 
     /**
      * Recherche ARRIÈRE du `<` ouvrant depuis la position juste après le
      * `>` du START_TAG : le `<` est interdit dans les valeurs d'attribut,
      * le premier rencontré en remontant est l'ouverture du tag.
      */
-    private fun dernierChevronAvant(
-        texte: String,
-        apresChevron: Int,
-    ): Int = texte.lastIndexOf('<', (apresChevron - 1).coerceAtMost(texte.length - 1))
+    private fun dernierChevronAvant(texte: String, apresChevron: Int): Int =
+        texte.lastIndexOf('<', (apresChevron - 1).coerceAtMost(texte.length - 1))
 
     private const val SANS_SPAN: Int = -1
 
@@ -407,10 +380,7 @@ internal object AligneurElementsXml {
      * qui suivrait la dernière) : jamais d'exception, le surlignage reste
      * affichable.
      */
-    public fun numeroLigne(
-        texte: String,
-        offset: Int,
-    ): Int {
+    public fun numeroLigne(texte: String, offset: Int): Int {
         if (offset <= 0) return 1
         var ligne = 1
         val fin = min(offset, texte.length)
@@ -426,10 +396,7 @@ internal object AligneurElementsXml {
      * Ligne bornée au document (≤ 1 → 0 ; au-delà → la fin du texte),
      * jamais d'exception.
      */
-    public fun debutLigne(
-        texte: String,
-        ligne: Int,
-    ): Int {
+    public fun debutLigne(texte: String, ligne: Int): Int {
         if (ligne <= 1) return 0
         var numero = 1
         for ((offset, caractere) in texte.withIndex()) {

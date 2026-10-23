@@ -30,88 +30,84 @@ class CommandRunnerProcessusTest {
     private val dispatcheur = StandardTestDispatcher()
 
     @Test
-    fun `la sortie intégrale de stdout et stderr est capturée avec le code de retour`() =
-        runTest(dispatcheur) {
-            val lanceur = FakeNativeProcessLauncher()
-            lanceur.fabrique = {
-                ProcessusScripte(
-                    codeSortie = 3,
-                    lignesStdout = listOf("ligne 1", "ligne 2"),
-                    lignesStderr = listOf("avertissement", "erreur fatale"),
-                )
+    fun `la sortie intégrale de stdout et stderr est capturée avec le code de retour`() = runTest(dispatcheur) {
+        val lanceur = FakeNativeProcessLauncher()
+        lanceur.fabrique = {
+            ProcessusScripte(
+                codeSortie = 3,
+                lignesStdout = listOf("ligne 1", "ligne 2"),
+                lignesStderr = listOf("avertissement", "erreur fatale"),
+            )
+        }
+        val runner = CommandRunnerProcessus(lanceur)
+
+        val resultat = runner.run(CommandSpec(program = "/prefix/bin/pkg", arguments = listOf("update")))
+
+        assertEquals(3, resultat.exitCode)
+        assertEquals(listOf("ligne 1", "ligne 2"), resultat.stdout)
+        assertEquals(listOf("avertissement", "erreur fatale"), resultat.stderr)
+        assertFalse(resultat.succeeded)
+        assertFalse(resultat.timedOut)
+    }
+
+    @Test
+    fun `le délai maximal détruit le processus et signale timedOut`() = runTest(dispatcheur) {
+        val lanceur = FakeNativeProcessLauncher()
+        val sansFin = ProcessusSansFin()
+        lanceur.fabrique = { sansFin }
+        val runner = CommandRunnerProcessus(lanceur)
+
+        val resultat =
+            runner.run(
+                CommandSpec(
+                    program = "/prefix/bin/apt",
+                    arguments = listOf("update"),
+                    timeoutMillis = 50,
+                ),
+            )
+
+        assertTrue(resultat.timedOut)
+        assertTrue(sansFin.tue)
+    }
+
+    @Test
+    fun `l annulation de l appelant détruit le sous-processus`() = runTest(dispatcheur) {
+        val lanceur = FakeNativeProcessLauncher()
+        val sansFin = ProcessusSansFin()
+        lanceur.fabrique = { sansFin }
+        val runner = CommandRunnerProcessus(lanceur)
+        var termine = false
+
+        val travail =
+            launch {
+                runner.run(CommandSpec(program = "/prefix/bin/pkg", arguments = listOf("install", "-y", "curl")))
+                termine = true
             }
-            val runner = CommandRunnerProcessus(lanceur)
+        // Démarre la coroutine jusqu'au premier suspend (le sous-processus
+        // est lancé) AVANT d'annuler — sinon elle ne s'exécute jamais.
+        dispatcheur.scheduler.runCurrent()
+        travail.cancel()
+        travail.join()
 
-            val resultat = runner.run(CommandSpec(program = "/prefix/bin/pkg", arguments = listOf("update")))
-
-            assertEquals(3, resultat.exitCode)
-            assertEquals(listOf("ligne 1", "ligne 2"), resultat.stdout)
-            assertEquals(listOf("avertissement", "erreur fatale"), resultat.stderr)
-            assertFalse(resultat.succeeded)
-            assertFalse(resultat.timedOut)
-        }
-
-    @Test
-    fun `le délai maximal détruit le processus et signale timedOut`() =
-        runTest(dispatcheur) {
-            val lanceur = FakeNativeProcessLauncher()
-            val sansFin = ProcessusSansFin()
-            lanceur.fabrique = { sansFin }
-            val runner = CommandRunnerProcessus(lanceur)
-
-            val resultat =
-                runner.run(
-                    CommandSpec(
-                        program = "/prefix/bin/apt",
-                        arguments = listOf("update"),
-                        timeoutMillis = 50,
-                    ),
-                )
-
-            assertTrue(resultat.timedOut)
-            assertTrue(sansFin.tue)
-        }
+        assertTrue(sansFin.tue)
+        assertFalse(termine)
+    }
 
     @Test
-    fun `l annulation de l appelant détruit le sous-processus`() =
-        runTest(dispatcheur) {
-            val lanceur = FakeNativeProcessLauncher()
-            val sansFin = ProcessusSansFin()
-            lanceur.fabrique = { sansFin }
-            val runner = CommandRunnerProcessus(lanceur)
-            var termine = false
+    fun `un échec de lancement monte l IOException telle quelle`() = runTest(dispatcheur) {
+        val lanceur = FakeNativeProcessLauncher()
+        lanceur.echecLancement = IOException("Permission denied")
+        val runner = CommandRunnerProcessus(lanceur)
 
-            val travail =
-                launch {
-                    runner.run(CommandSpec(program = "/prefix/bin/pkg", arguments = listOf("install", "-y", "curl")))
-                    termine = true
-                }
-            // Démarre la coroutine jusqu'au premier suspend (le sous-processus
-            // est lancé) AVANT d'annuler — sinon elle ne s'exécute jamais.
-            dispatcheur.scheduler.runCurrent()
-            travail.cancel()
-            travail.join()
-
-            assertTrue(sansFin.tue)
-            assertFalse(termine)
+        var levee: IOException? = null
+        try {
+            runner.run(CommandSpec(program = "/prefix/bin/sh"))
+        } catch (e: IOException) {
+            levee = e
         }
 
-    @Test
-    fun `un échec de lancement monte l IOException telle quelle`() =
-        runTest(dispatcheur) {
-            val lanceur = FakeNativeProcessLauncher()
-            lanceur.echecLancement = IOException("Permission denied")
-            val runner = CommandRunnerProcessus(lanceur)
-
-            var levee: IOException? = null
-            try {
-                runner.run(CommandSpec(program = "/prefix/bin/sh"))
-            } catch (e: IOException) {
-                levee = e
-            }
-
-            assertEquals("Permission denied", levee?.message)
-        }
+        assertEquals("Permission denied", levee?.message)
+    }
 
     /** Processus figé : `awaitExit` ne revient jamais — seul le timeout ou le kill l'arrête. */
     private class ProcessusSansFin : jo.codeide.core.domain.ManagedProcess {

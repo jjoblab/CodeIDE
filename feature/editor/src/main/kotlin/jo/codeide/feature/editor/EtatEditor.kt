@@ -131,12 +131,7 @@ enum class ModePressePapiers {
  * @property estDossier `true` si un dossier entier est retenu.
  * @property mode copier (clone au collage) ou couper (déplacement).
  */
-data class PressePapiersArbre(
-    val uri: String,
-    val nom: String,
-    val estDossier: Boolean,
-    val mode: ModePressePapiers,
-)
+data class PressePapiersArbre(val uri: String, val nom: String, val estDossier: Boolean, val mode: ModePressePapiers)
 
 /**
  * Édition inline dans la liste (étape 31, § 11) : création (l'éditeur
@@ -241,10 +236,7 @@ data class NotificationArbre(
  * @property uri URI du nœud cible (clic = sélection du nœud).
  * @property nom libellé du segment, `null` pour la racine (maison).
  */
-data class SegmentAriane(
-    val uri: String,
-    val nom: String?,
-)
+data class SegmentAriane(val uri: String, val nom: String?)
 
 /**
  * Onglet actif du panneau inférieur (étape 16) : **Journal** est
@@ -353,13 +345,12 @@ internal fun extensionXml(nom: String): Boolean = nom.endsWith(".xml", ignoreCas
  * coordinateur doit être HONNÊTE : un fichier sans extension de langage
  * n'est JAMAIS étiqueté Java) : "Kotlin", "XML", "Java" ou `null`.
  */
-internal fun langageLspDuFichier(chemin: String): String? =
-    when {
-        extensionKotlin(chemin) -> "Kotlin"
-        extensionXml(chemin) -> "XML"
-        extensionJava(chemin) -> "Java"
-        else -> null
-    }
+internal fun langageLspDuFichier(chemin: String): String? = when {
+    extensionKotlin(chemin) -> "Kotlin"
+    extensionXml(chemin) -> "XML"
+    extensionJava(chemin) -> "Java"
+    else -> null
+}
 
 /**
  * Intentions utilisateur de l'espace de travail (section 5.3 : `XxxAction`).
@@ -375,14 +366,10 @@ sealed interface ActionEditor {
      * Déplie ou replie le dossier [uri] — le premier dépliement énumère
      * ses enfants (paresseux), les suivants relisent le cache.
      */
-    data class BasculerNoeud(
-        val uri: String,
-    ) : ActionEditor
+    data class BasculerNoeud(val uri: String) : ActionEditor
 
     /** Ouvre le fichier [uri] en onglet (les binaires sont détournés). */
-    data class OuvrirFichier(
-        val uri: String,
-    ) : ActionEditor
+    data class OuvrirFichier(val uri: String) : ActionEditor
 
     /**
      * Saute vers un emplacement de pile cliquable de l'onglet Logcat
@@ -391,11 +378,7 @@ sealed interface ActionEditor {
      * ouverture — l'effet [EffetEditor.DefilementVersLigne] suit quand
      * le fichier est devant l'utilisateur.
      */
-    data class SauterVersLigneSource(
-        val classe: String,
-        val fichier: String,
-        val ligne: Int,
-    ) : ActionEditor
+    data class SauterVersLigneSource(val classe: String, val fichier: String, val ligne: Int) : ActionEditor
 
     /**
      * Remplace le CONTENU d'un onglet ouvert (mission H, H2) : après une
@@ -403,49 +386,31 @@ sealed interface ActionEditor {
      * restauré — l'onglet doit le SUIVRE (sinon l'auto-sauvegarde
      * écraserait la version restaurée). L'onglet redevient PROPRE.
      */
-    data class RemplacerContenuFichier(
-        val uri: String,
-        val texte: String,
-    ) : ActionEditor
+    data class RemplacerContenuFichier(val uri: String, val texte: String) : ActionEditor
 
     /** Sélectionne l'onglet à la position [index]. */
-    data class SelectionnerOnglet(
-        val index: Int,
-    ) : ActionEditor
+    data class SelectionnerOnglet(val index: Int) : ActionEditor
 
     /** Ferme l'onglet [uri] — avec confirmation s'il est modifié. */
-    data class FermerOnglet(
-        val uri: String,
-    ) : ActionEditor
+    data class FermerOnglet(val uri: String) : ActionEditor
 
     /** Ferme tous les autres onglets — les propres immédiatement. */
-    data class FermerAutresOnglets(
-        val uri: String,
-    ) : ActionEditor
+    data class FermerAutresOnglets(val uri: String) : ActionEditor
 
     /** Ferme tous les onglets — les propres immédiatement. */
     data object FermerTousOnglets : ActionEditor
 
     /** Déplace l'onglet [uri] de [decalage] position(s) (−1 ou +1). */
-    data class DeplacerOnglet(
-        val uri: String,
-        val decalage: Int,
-    ) : ActionEditor
+    data class DeplacerOnglet(val uri: String, val decalage: Int) : ActionEditor
 
     /** Enregistre l'onglet actif (action de la toolbar). */
     data object Enregistrer : ActionEditor
 
     /** Réponse au dialogue : enregistre puis ferme (puis quitte). */
-    data class EnregistrerPuisFermer(
-        val uris: List<String>,
-        val quitter: Boolean,
-    ) : ActionEditor
+    data class EnregistrerPuisFermer(val uris: List<String>, val quitter: Boolean) : ActionEditor
 
     /** Réponse au dialogue : ferme sans enregistrer (puis quitte). */
-    data class FermerSansEnregistrer(
-        val uris: List<String>,
-        val quitter: Boolean,
-    ) : ActionEditor
+    data class FermerSansEnregistrer(val uris: List<String>, val quitter: Boolean) : ActionEditor
 
     /** Retour système hors tiroir : quitte, après confirmation si sale. */
     data object Quitter : ActionEditor
@@ -464,22 +429,16 @@ sealed interface ActionEditor {
      * agrandir/réduire, glissement, retour système) — persisté pour la
      * rotation.
      */
-    data class ChangerEtatPanneau(
-        val etat: EtatPanneau,
-    ) : ActionEditor
+    data class ChangerEtatPanneau(val etat: EtatPanneau) : ActionEditor
 
     /** Sélectionne l'onglet actif du panneau inférieur — persisté. */
-    data class SelectionnerOngletPanneau(
-        val onglet: OngletPanneau,
-    ) : ActionEditor
+    data class SelectionnerOngletPanneau(val onglet: OngletPanneau) : ActionEditor
 
     /**
      * Bascule un niveau du filtre du journal applicatif (vide = tous les
      * niveaux — même règle que l'écran Diagnostic, étape 12).
      */
-    data class BasculerFiltreJournal(
-        val niveau: LogLevel,
-    ) : ActionEditor
+    data class BasculerFiltreJournal(val niveau: LogLevel) : ActionEditor
 
     // v0.40.1 (prompt de suivi §3) : l'action `BasculerFiltreConsole` est
     // SUPPRIMÉE — le chip d'action est NON cliquable. La console montre
@@ -491,77 +450,51 @@ sealed interface ActionEditor {
     data object OuvrirJournalComplet : ActionEditor
 
     /** Crée un fichier dans le dossier [uriParent] (étape 17). */
-    data class CreerFichier(
-        val uriParent: String,
-        val nom: String,
-    ) : ActionEditor
+    data class CreerFichier(val uriParent: String, val nom: String) : ActionEditor
 
     /** Crée un sous-dossier dans le dossier [uriParent] (étape 17). */
-    data class CreerDossier(
-        val uriParent: String,
-        val nom: String,
-    ) : ActionEditor
+    data class CreerDossier(val uriParent: String, val nom: String) : ActionEditor
 
     /** Renomme le document [uri] en [nouveauNom] (étape 17). */
-    data class RenommerDocument(
-        val uri: String,
-        val nouveauNom: String,
-    ) : ActionEditor
+    data class RenommerDocument(val uri: String, val nouveauNom: String) : ActionEditor
 
     /** Supprime le document [uri] après confirmation côté UI (étape 17). */
-    data class SupprimerDocument(
-        val uri: String,
-    ) : ActionEditor
+    data class SupprimerDocument(val uri: String) : ActionEditor
 
     /**
      * Bascule l'arbre affiché entre projet et stockage privé (étape 31,
      * § 5) : les deux arbres sont exclusifs, la sélection est
      * réinitialisée, les onglets de l'éditeur ne sont pas touchés.
      */
-    data class BasculerSource(
-        val source: SourceArbre,
-    ) : ActionEditor
+    data class BasculerSource(val source: SourceArbre) : ActionEditor
 
     /** Sélectionne le nœud [uri] (fil d'Ariane, point d'état, popover). */
-    data class SelectionnerNoeud(
-        val uri: String,
-    ) : ActionEditor
+    data class SelectionnerNoeud(val uri: String) : ActionEditor
 
     /** Retient [uri] au presse-papiers en mode copier (étape 31, § 11). */
-    data class CopierNoeud(
-        val uri: String,
-    ) : ActionEditor
+    data class CopierNoeud(val uri: String) : ActionEditor
 
     /**
      * C2a : copie le chemin d'un nœud de l'arbre dans le presse-papiers
      * système (chemin relatif au projet, comme Android Studio « Copy Path »).
      */
-    data class CopierCheminNoeud(
-        val uri: String,
-    ) : ActionEditor
+    data class CopierCheminNoeud(val uri: String) : ActionEditor
 
     /** Retient [uri] au presse-papiers en mode couper (étape 31, § 11). */
-    data class CouperNoeud(
-        val uri: String,
-    ) : ActionEditor
+    data class CouperNoeud(val uri: String) : ActionEditor
 
     /**
      * Colle le presse-papiers dans le dossier [uriDossier] (étape 31,
      * § 11) : copie (mode copier) ou déplacement (mode couper), suffixe
      * anti-collision « (copie N) ».
      */
-    data class CollerDans(
-        val uriDossier: String,
-    ) : ActionEditor
+    data class CollerDans(val uriDossier: String) : ActionEditor
 
     /**
      * Déplace le document [uri] vers [cheminDestination] relatif à la
      * racine de l'arbre courant (étape 31, popover « Déplacer vers… »).
      */
-    data class DeplacerVers(
-        val uri: String,
-        val cheminDestination: String,
-    ) : ActionEditor
+    data class DeplacerVers(val uri: String, val cheminDestination: String) : ActionEditor
 
     /** Vide le presse-papiers d'arbre (bouton « Vider », § 12). */
     data object ViderPressePapiers : ActionEditor
@@ -570,10 +503,7 @@ sealed interface ActionEditor {
      * Débute une création inline dans [uriParent] (étape 31, § 11) : un
      * éditeur apparaît dans la liste, la validation crée le document.
      */
-    data class DebuterCreation(
-        val uriParent: String,
-        val estDossier: Boolean,
-    ) : ActionEditor
+    data class DebuterCreation(val uriParent: String, val estDossier: Boolean) : ActionEditor
 
     /**
      * C2f : type de modèle pour la création depuis un dossier (menu
@@ -592,26 +522,19 @@ sealed interface ActionEditor {
      * Kotlin, interface, objet). La déclaration `package` est déduite du
      * chemin (parcours inverse jusqu'à `src/main/java` ou `src/main/kotlin`).
      */
-    data class DebuterCreationModele(
-        val uriParent: String,
-        val typeModele: TypeModeleCreation,
-    ) : ActionEditor
+    data class DebuterCreationModele(val uriParent: String, val typeModele: TypeModeleCreation) : ActionEditor
 
     /**
      * Débute un renommage inline du nœud [uri] (étape 31, § 11) : la
      * ligne devient un éditeur pré-rempli et sélectionné.
      */
-    data class DebuterRenommage(
-        val uri: String,
-    ) : ActionEditor
+    data class DebuterRenommage(val uri: String) : ActionEditor
 
     /** Abandonne l'édition inline en cours (Échap, annuler, clic ailleurs). */
     data object AnnulerEdition : ActionEditor
 
     /** Valide l'édition inline avec [nom] (création ou renommage). */
-    data class ValiderEdition(
-        val nom: String,
-    ) : ActionEditor
+    data class ValiderEdition(val nom: String) : ActionEditor
 
     /** Replie tous les dossiers dépliés de l'arbre courant (§ 4). */
     data object ReplierTout : ActionEditor
@@ -672,9 +595,7 @@ sealed interface ActionEditor {
      * (étape 18) : émise à la création de l'activité, republiée par le
      * système quand la langue de l'application change (re-création).
      */
-    data class PreciserLangue(
-        val langue: String,
-    ) : ActionEditor
+    data class PreciserLangue(val langue: String) : ActionEditor
 
     /**
      * Ouvre le terminal plein écran depuis la carte d'aperçu du tiroir
@@ -724,9 +645,7 @@ sealed interface ActionEditor {
      * Exécute les [taches] Gradle du projet courant (G5, §6) — la sortie
      * arrive dans l'onglet Sortie, l'état dans son en-tête.
      */
-    data class ExecuterTaches(
-        val taches: List<String>,
-    ) : ActionEditor
+    data class ExecuterTaches(val taches: List<String>) : ActionEditor
 
     /**
      * Ouvre le sélecteur de tâches (G5, §6) : liste les tâches du projet
@@ -749,9 +668,7 @@ sealed interface ActionEditor {
     data object ExecuterApplication : ActionEditor
 
     /** v0.41.1 : envoie une entrée stdin au build en cours (readln). */
-    data class EnvoyerEntreeConsole(
-        val texte: String,
-    ) : ActionEditor
+    data class EnvoyerEntreeConsole(val texte: String) : ActionEditor
 }
 
 /**
@@ -779,20 +696,13 @@ sealed interface EffetEditor {
     ) : EffetEditor
 
     /** Fichier binaire : proposer « Ouvrir avec » une autre application. */
-    data class OuvrirAvec(
-        val uri: String,
-    ) : EffetEditor
+    data class OuvrirAvec(val uri: String) : EffetEditor
 
     /** Onglets modifiés : demander Enregistrer / Ne pas enregistrer / Annuler. */
-    data class ConfirmerFermeture(
-        val uris: List<String>,
-        val quitter: Boolean,
-    ) : EffetEditor
+    data class ConfirmerFermeture(val uris: List<String>, val quitter: Boolean) : EffetEditor
 
     /** Chemin d'un onglet copié dans le presse-papiers. */
-    data class CopierChemin(
-        val chemin: String,
-    ) : EffetEditor
+    data class CopierChemin(val chemin: String) : EffetEditor
 
     /** L'espace de travail peut se refermer. */
     data object Quitter : EffetEditor
@@ -811,19 +721,14 @@ sealed interface EffetEditor {
      * actif (les parents ont été dépliés par le ViewModel, le fragment
      * n'a plus qu'à scroll).
      */
-    data class DefilementVersSource(
-        val uri: String,
-    ) : EffetEditor
+    data class DefilementVersSource(val uri: String) : EffetEditor
 
     /**
      * R4 : l'éditeur doit défiler et poser le curseur à la LIGNE du
      * fichier (on vient d'ouvrir/sélectionner son onglet — le saut suit
      * le re-branchement de la vue, comme [sauterAuProbleme]).
      */
-    data class DefilementVersLigne(
-        val uri: String,
-        val ligne: Int,
-    ) : EffetEditor
+    data class DefilementVersLigne(val uri: String, val ligne: Int) : EffetEditor
 
     /** La lecture d'un fichier a échoué. */
     data object ErreurOuverture : EffetEditor
@@ -845,9 +750,7 @@ sealed interface EffetEditor {
      * via `ResoudreRepertoireProjet`), ou `null` — l'écran terminal
      * repliera sur le `HOME` canonique.
      */
-    data class OuvrirTerminal(
-        val cheminTravail: String?,
-    ) : EffetEditor
+    data class OuvrirTerminal(val cheminTravail: String?) : EffetEditor
 
     /** Ouvrir l'écran d'installation du bootstrap (T6, bootstrap absent). */
     data object OuvrirInstallationTerminal : EffetEditor
@@ -864,9 +767,7 @@ sealed interface EffetEditor {
      *
      * @property taches tâches prêtes à afficher (chemin + libellé).
      */
-    data class OuvrirSelecteurTaches(
-        val taches: List<jo.codeide.core.domain.InfoTache>,
-    ) : EffetEditor
+    data class OuvrirSelecteurTaches(val taches: List<jo.codeide.core.domain.InfoTache>) : EffetEditor
 
     /**
      * Mission « Cycle de vie » étape E : l'espace doit se refermer — la
@@ -913,10 +814,7 @@ data class EtatTerminalTiroir(
  * @property nomModele nom affichable du modèle (i18n) ou identifiant brut.
  * @property versionModele version du modèle à la création, ou `null`.
  */
-data class TypeProjetAffiche(
-    val nomModele: String,
-    val versionModele: String? = null,
-)
+data class TypeProjetAffiche(val nomModele: String, val versionModele: String? = null)
 
 /**
  * État observable de l'espace de travail (étapes 13-18).

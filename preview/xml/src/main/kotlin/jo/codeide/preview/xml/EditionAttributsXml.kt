@@ -109,11 +109,7 @@ public object EditionAttributsXml {
      * texte VIVANT — le volet Attributs s'en alimente). `null` = attribut
      * absent, span périmé ou XML illisible.
      */
-    public fun valeurAttribut(
-        texte: String,
-        span: InsertionXml.SpanParent,
-        nomAttribut: String,
-    ): String? {
+    public fun valeurAttribut(texte: String, span: InsertionXml.SpanParent, nomAttribut: String): String? {
         val balise = baliseOuvrante(texte, span) ?: return null
         val match = regexAttribut(nomAttribut).find(balise) ?: return null
         return match.groupValues[1]
@@ -301,10 +297,8 @@ public object EditionAttributsXml {
     }
 
     /** Le span décalé du delta cumulé des écritures précédentes. */
-    private fun spanDecale(
-        span: InsertionXml.SpanParent,
-        delta: Int,
-    ): InsertionXml.SpanParent = InsertionXml.SpanParent(span.debut, span.fin + delta)
+    private fun spanDecale(span: InsertionXml.SpanParent, delta: Int): InsertionXml.SpanParent =
+        InsertionXml.SpanParent(span.debut, span.fin + delta)
 
     /**
      * CORRECTION RAPIDE « Passer à 48 dp » (PE11g — miroir `quickFixes`
@@ -320,10 +314,7 @@ public object EditionAttributsXml {
      * `null` si RIEN ne change (déjà ≥ 48 dp partout) ou span périmé
      * (jamais d'exception, règle 6).
      */
-    public fun elargirCibleTactile(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): EditionAttributsXmlResultat? {
+    public fun elargirCibleTactile(texte: String, span: InsertionXml.SpanParent): EditionAttributsXmlResultat? {
         val localise = localiser(texte, span) ?: return null
         var texteCourant = texte
         var deltaCumule = 0
@@ -401,39 +392,32 @@ public object EditionAttributsXml {
      * dimension fixe < 48 dp → 48 dp ; sinon (wrap, match, 0dp, @dimen,
      * absent) → minimum 48 dp s'il n'est pas déjà posé ≥ 48 dp.
      */
-    private fun ecrituresCible(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): List<Pair<String, String>> =
-        buildList {
-            for ((dimension, minimum) in AXES_CIBLE) {
-                val dpDimension = valeurAttribut(texte, span, dimension)?.let(::dpFixes)
-                when {
-                    dpDimension != null && dpDimension > 0 -> {
-                        if (dpDimension < CIBLE_TACTILE_DP) add(dimension to "${CIBLE_TACTILE_DP}dp")
-                    }
+    private fun ecrituresCible(texte: String, span: InsertionXml.SpanParent): List<Pair<String, String>> = buildList {
+        for ((dimension, minimum) in AXES_CIBLE) {
+            val dpDimension = valeurAttribut(texte, span, dimension)?.let(::dpFixes)
+            when {
+                dpDimension != null && dpDimension > 0 -> {
+                    if (dpDimension < CIBLE_TACTILE_DP) add(dimension to "${CIBLE_TACTILE_DP}dp")
+                }
 
-                    else -> {
-                        val dpMinimum = valeurAttribut(texte, span, minimum)?.let(::dpFixes) ?: 0.0
-                        if (dpMinimum < CIBLE_TACTILE_DP) add(minimum to "${CIBLE_TACTILE_DP}dp")
-                    }
+                else -> {
+                    val dpMinimum = valeurAttribut(texte, span, minimum)?.let(::dpFixes) ?: 0.0
+                    if (dpMinimum < CIBLE_TACTILE_DP) add(minimum to "${CIBLE_TACTILE_DP}dp")
                 }
             }
         }
+    }
 
     /** La valeur FIXE en dp d'une dimension (null si wrap/match/absente). */
-    private fun dpFixes(valeur: String): Double? =
-        REGEX_DIMENSION_DP
-            .matchEntire(valeur)
-            ?.groupValues
-            ?.get(1)
-            ?.toDoubleOrNull()
+    private fun dpFixes(valeur: String): Double? = REGEX_DIMENSION_DP
+        .matchEntire(valeur)
+        ?.groupValues
+        ?.get(1)
+        ?.toDoubleOrNull()
 
     /** Applique une édition à un texte (composition pure, hors port). */
-    private fun appliquer(
-        texte: String,
-        edition: EditionAttributsXmlResultat,
-    ): String = texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
+    private fun appliquer(texte: String, edition: EditionAttributsXmlResultat): String =
+        texte.substring(0, edition.debut) + edition.remplacement + texte.substring(edition.fin)
 
     /** Le décalage de longueur d'une édition (0 si absente). */
     private fun delta(edition: EditionAttributsXmlResultat?): Int =
@@ -446,12 +430,7 @@ public object EditionAttributsXml {
      * écrit — une référence `@string/…` reste une référence) et plage du
      * NOM (debut inclus, fin exclue — la plage de retrait).
      */
-    public data class AttributSource(
-        val nom: String,
-        val valeur: String,
-        val debut: Int,
-        val fin: Int,
-    )
+    public data class AttributSource(val nom: String, val valeur: String, val debut: Int, val fin: Int)
 
     /** UN côté d'une marge ou d'un padding ([ecrireCote]/[valeurCote]). */
     public enum class Cote {
@@ -467,10 +446,7 @@ public object EditionAttributsXml {
      * (lecture seule — contraintes, valeurs courantes). `null` = span
      * périmé ou XML illisible (jamais d'exception).
      */
-    public fun lire(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): List<AttributSource>? {
+    public fun lire(texte: String, span: InsertionXml.SpanParent): List<AttributSource>? {
         val localise = localiser(texte, span) ?: return null
         val balise = texte.substring(localise.debut, localise.chevron + 1)
         return analyserAttributs(balise, localise.debut)
@@ -551,11 +527,7 @@ public object EditionAttributsXml {
      * résolution Android), puis les raccourcis (Horizontal/Vertical, puis
      * plein). `null` = aucun attribut ne couvre ce côté.
      */
-    public fun valeurCote(
-        attributs: List<AttributSource>,
-        base: String,
-        cote: Cote,
-    ): String? {
+    public fun valeurCote(attributs: List<AttributSource>, base: String, cote: Cote): String? {
         val specifiques =
             when (cote) {
                 Cote.DEBUT -> listOf(base + "Start", base + "Left")
@@ -624,9 +596,7 @@ public object EditionAttributsXml {
         public object Parent : CibleContrainte()
 
         /** Un frère par son identifiant (sans préfixe). */
-        public data class Vue(
-            val nom: String,
-        ) : CibleContrainte()
+        public data class Vue(val nom: String) : CibleContrainte()
 
         /** Aucune — l'attribut de cible part avec sa marge si demandé. */
         public object Aucune : CibleContrainte()
@@ -647,10 +617,7 @@ public object EditionAttributsXml {
      * cible courante + marge courante, `null` quand l'attribut est absent.
      * `null` = span périmé ou XML illisible.
      */
-    public fun lireContraintes(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): List<ContrainteLue>? {
+    public fun lireContraintes(texte: String, span: InsertionXml.SpanParent): List<ContrainteLue>? {
         val localise = localiser(texte, span) ?: return null
         val balise = texte.substring(localise.debut, localise.chevron + 1)
         val attrs = analyserAttributs(balise, localise.debut)
@@ -780,12 +747,7 @@ public object EditionAttributsXml {
     }
 
     /** Planifie l'aspect MARGE : `0` = retrait, sinon écriture idempotente. */
-    private fun planifierMarge(
-        contexte: ContexteContrainte,
-        nomMarge: String,
-        margeDp: Int,
-        plan: PlanContrainte,
-    ) {
+    private fun planifierMarge(contexte: ContexteContrainte, nomMarge: String, margeDp: Int, plan: PlanContrainte) {
         val valeur = if (margeDp == 0) "" else "${margeDp}dp"
         val existant = contexte.attrs.firstOrNull { it.nom == nomMarge }
         when {
@@ -814,11 +776,7 @@ public object EditionAttributsXml {
     }
 
     /** La valeur de cible (`parent`, `@id/x`) — refus défensifs en `null`. */
-    private fun valeurCible(
-        cible: CibleContrainte,
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): String? {
+    private fun valeurCible(cible: CibleContrainte, texte: String, span: InsertionXml.SpanParent): String? {
         return when (cible) {
             is CibleContrainte.Parent -> {
                 "parent"
@@ -840,10 +798,7 @@ public object EditionAttributsXml {
     }
 
     /** L'identifiant PROPRE de la vue au span (sans préfixe), `null` sinon. */
-    private fun identifiantDe(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): String? {
+    private fun identifiantDe(texte: String, span: InsertionXml.SpanParent): String? {
         val brut = valeurAttribut(texte, span, "android:id") ?: return null
         return when {
             brut.startsWith("@+id/") -> brut.removePrefix("@+id/")
@@ -924,13 +879,12 @@ public object EditionAttributsXml {
     private fun nomMargeContrainte(ancre: String): String = "app:layout_constraint${ancre}_margin"
 
     /** Le nom d'ANCRE d'un côté (Start/End/Top/Bottom — même règle que les marges). */
-    private fun nomAncre(cote: Cote): String =
-        when (cote) {
-            Cote.DEBUT -> "Start"
-            Cote.FIN -> "End"
-            Cote.HAUT -> "Top"
-            Cote.BAS -> "Bottom"
-        }
+    private fun nomAncre(cote: Cote): String = when (cote) {
+        Cote.DEBUT -> "Start"
+        Cote.FIN -> "End"
+        Cote.HAUT -> "Top"
+        Cote.BAS -> "Bottom"
+    }
 
     /** Une édition composée redevient une partielle (même forme). */
     private fun versPartielle(edition: EditionAttributsXmlResultat): EditionPartielle =
@@ -939,61 +893,45 @@ public object EditionAttributsXml {
     // ── Détails PE7e (purs, privés) ──────────────────────────────────────
 
     /** Le nom canonique d'un côté (Start/End préféré — RTL actif). */
-    private fun nomCote(
-        base: String,
-        cote: Cote,
-    ): String =
-        when (cote) {
-            Cote.DEBUT -> base + "Start"
-            Cote.FIN -> base + "End"
-            Cote.HAUT -> base + "Top"
-            Cote.BAS -> base + "Bottom"
-        }
+    private fun nomCote(base: String, cote: Cote): String = when (cote) {
+        Cote.DEBUT -> base + "Start"
+        Cote.FIN -> base + "End"
+        Cote.HAUT -> base + "Top"
+        Cote.BAS -> base + "Bottom"
+    }
 
     /** Les noms SPÉCIFIQUES d'un côté (Start avant Left — miroir Android). */
-    private fun nomsSpecifiquesCote(
-        base: String,
-        cote: Cote,
-    ): List<String> =
-        when (cote) {
-            Cote.DEBUT -> listOf(base + "Start", base + "Left")
-            Cote.FIN -> listOf(base + "End", base + "Right")
-            Cote.HAUT -> listOf(base + "Top")
-            Cote.BAS -> listOf(base + "Bottom")
-        }
+    private fun nomsSpecifiquesCote(base: String, cote: Cote): List<String> = when (cote) {
+        Cote.DEBUT -> listOf(base + "Start", base + "Left")
+        Cote.FIN -> listOf(base + "End", base + "Right")
+        Cote.HAUT -> listOf(base + "Top")
+        Cote.BAS -> listOf(base + "Bottom")
+    }
 
     /** Les RACCOURCIS couvrant un côté (directionnel avant plein). */
-    private fun nomsRaccourcisCote(
-        base: String,
-        cote: Cote,
-    ): List<String> =
-        when (cote) {
-            Cote.DEBUT, Cote.FIN -> listOf(base + "Horizontal", base)
-            Cote.HAUT, Cote.BAS -> listOf(base + "Vertical", base)
-        }
+    private fun nomsRaccourcisCote(base: String, cote: Cote): List<String> = when (cote) {
+        Cote.DEBUT, Cote.FIN -> listOf(base + "Horizontal", base)
+        Cote.HAUT, Cote.BAS -> listOf(base + "Vertical", base)
+    }
 
     /**
      * L'ORDRE conventionnel des attributs d'un layout (miroir Android
      * Studio) : id, largeur, hauteur, autres attributs layout_ (android
      * ou app), reste — l'ajout se place au BOUT de son seau.
      */
-    private fun ordreAttribut(nom: String): Int =
-        when {
-            nom == "android:id" -> SEAU_IDENTIFIANT
-            nom == "android:layout_width" -> SEAU_LARGEUR
-            nom == "android:layout_height" -> SEAU_HAUTEUR
-            nom.startsWith("android:layout_") || nom.startsWith("app:layout_") -> SEAU_LAYOUT
-            else -> SEAU_RESTE
-        }
+    private fun ordreAttribut(nom: String): Int = when {
+        nom == "android:id" -> SEAU_IDENTIFIANT
+        nom == "android:layout_width" -> SEAU_LARGEUR
+        nom == "android:layout_height" -> SEAU_HAUTEUR
+        nom.startsWith("android:layout_") || nom.startsWith("app:layout_") -> SEAU_LAYOUT
+        else -> SEAU_RESTE
+    }
 
     /** Les attributs d'une balise ouvrante (plages ABSOLUES couvrant
      * l'ATTRIBUT COMPLET : nom + « = » + valeur + guillemets — PE8b : les
      * insertions après ancre et l'éclatement des raccourcis exigent la
      * fin RÉELLE de l'attribut, pas celle du nom). */
-    private fun analyserAttributs(
-        balise: String,
-        base: Int,
-    ): List<AttributSource> {
+    private fun analyserAttributs(balise: String, base: Int): List<AttributSource> {
         val resultat = mutableListOf<AttributSource>()
         for (match in REGEX_ATTRIBUT.findAll(balise)) {
             resultat +=
@@ -1019,11 +957,7 @@ public object EditionAttributsXml {
     }
 
     /** La plage ABSOLUE de la valeur d'un attribut (groupe 2 du regex). */
-    private fun plageValeur(
-        balise: String,
-        base: Int,
-        nom: String,
-    ): Pair<Int, Int>? {
+    private fun plageValeur(balise: String, base: Int, nom: String): Pair<Int, Int>? {
         for (match in REGEX_ATTRIBUT.findAll(balise)) {
             if (match.groupValues[1] == nom) {
                 return base + match.groups[2]!!.range.first to
@@ -1039,10 +973,7 @@ public object EditionAttributsXml {
      * part ; seul sur sa ligne, il part AVEC elle ; en ligne, un
      * séparateur part avec lui (pas de `="x"` résiduel).
      */
-    private fun retirerAttribut(
-        texte: String,
-        attr: AttributSource,
-    ): EditionAttributsXmlResultat {
+    private fun retirerAttribut(texte: String, attr: AttributSource): EditionAttributsXmlResultat {
         val finComplete = attr.fin.coerceAtMost(texte.length)
         val debutLigne = texte.lastIndexOf('\n', (attr.debut - 1).coerceAtLeast(0)) + 1
         val finLigne = texte.indexOf('\n', finComplete).let { if (it < 0) texte.length else it }
@@ -1184,10 +1115,7 @@ public object EditionAttributsXml {
     }
 
     /** La position d'insertion sans ancre (avant le `/` auto-fermant, sinon le chevron). */
-    private fun positionInsertion(
-        texte: String,
-        localise: ElementLocalise,
-    ): Int {
+    private fun positionInsertion(texte: String, localise: ElementLocalise): Int {
         val slash = texte.lastIndexOf('/', (localise.chevron - 1).coerceAtLeast(localise.debut))
         val fermetureAuto =
             slash > localise.debut && texte.substring(slash + 1, localise.chevron).all { it == ' ' }
@@ -1195,11 +1123,7 @@ public object EditionAttributsXml {
     }
 
     /** Le texte d'insertion en ligne (espace gardé propre) à [position]. */
-    private fun texteInsertionSimple(
-        texte: String,
-        position: Int,
-        injection: String,
-    ): String =
+    private fun texteInsertionSimple(texte: String, position: Int, injection: String): String =
         if (position > 0 && texte[position - 1] != ' ' && texte[position - 1] != '\n') {
             " $injection"
         } else {
@@ -1211,10 +1135,7 @@ public object EditionAttributsXml {
      * miroir `fusionRacineAutoFermante`), posé sur la RACINE du document.
      * `null` = rien à faire.
      */
-    private fun xmlnsManquant(
-        texte: String,
-        nom: String,
-    ): EditionPartielle? {
+    private fun xmlnsManquant(texte: String, nom: String): EditionPartielle? {
         val prefixe = nom.substringBefore(':', "")
         val uri =
             when (prefixe) {
@@ -1241,21 +1162,14 @@ public object EditionAttributsXml {
     }
 
     /** Une édition partielle (plage + remplacement) à composer. */
-    private class EditionPartielle(
-        val debut: Int,
-        val fin: Int,
-        val remplacement: String,
-    )
+    private class EditionPartielle(val debut: Int, val fin: Int, val remplacement: String)
 
     /**
      * COMPOSE des éditions partielles non chevauchantes en UNE seule
      * (plage englobante — miroir [InsertionXml.composerEdition]) : le
      * texte entre les plages reste intact.
      */
-    private fun composerEdition(
-        texte: String,
-        edits: List<EditionPartielle>,
-    ): EditionAttributsXmlResultat? {
+    private fun composerEdition(texte: String, edits: List<EditionPartielle>): EditionAttributsXmlResultat? {
         if (edits.isEmpty()) return null
         val triees = edits.sortedBy { it.debut }
         for (i in 1 until triees.size) {
@@ -1311,52 +1225,42 @@ public object EditionAttributsXml {
     }
 
     /** La BASE d'un nom de côté (`android:paddingStart` → `android:padding`). */
-    private fun baseDe(nomRaccourci: String): String =
-        when {
-            nomRaccourci.endsWith("Horizontal") || nomRaccourci.endsWith("Vertical") -> {
-                nomRaccourci.dropLast("Horizontal".length)
-            }
-
-            nomRaccourci.endsWith("Start") || nomRaccourci.endsWith("End") -> {
-                nomRaccourci.dropLast("Start".length)
-            }
-
-            nomRaccourci.endsWith("Left") || nomRaccourci.endsWith("Right") -> {
-                nomRaccourci.dropLast("Left".length)
-            }
-
-            nomRaccourci.endsWith("Top") || nomRaccourci.endsWith("Bottom") -> {
-                nomRaccourci.dropLast("Top".length)
-            }
-
-            else -> {
-                nomRaccourci
-            }
+    private fun baseDe(nomRaccourci: String): String = when {
+        nomRaccourci.endsWith("Horizontal") || nomRaccourci.endsWith("Vertical") -> {
+            nomRaccourci.dropLast("Horizontal".length)
         }
+
+        nomRaccourci.endsWith("Start") || nomRaccourci.endsWith("End") -> {
+            nomRaccourci.dropLast("Start".length)
+        }
+
+        nomRaccourci.endsWith("Left") || nomRaccourci.endsWith("Right") -> {
+            nomRaccourci.dropLast("Left".length)
+        }
+
+        nomRaccourci.endsWith("Top") || nomRaccourci.endsWith("Bottom") -> {
+            nomRaccourci.dropLast("Top".length)
+        }
+
+        else -> {
+            nomRaccourci
+        }
+    }
 
     /** Les côtés COUVERTS par un raccourci (H : début/fin, V : haut/bas, plein : les 4). */
-    private fun cotesCouvertes(
-        nomRaccourci: String,
-        base: String,
-    ): List<Cote>? =
-        when (nomRaccourci) {
-            base + "Horizontal" -> listOf(Cote.DEBUT, Cote.FIN)
-            base + "Vertical" -> listOf(Cote.HAUT, Cote.BAS)
-            base -> listOf(Cote.HAUT, Cote.FIN, Cote.BAS, Cote.DEBUT)
-            else -> null
-        }
+    private fun cotesCouvertes(nomRaccourci: String, base: String): List<Cote>? = when (nomRaccourci) {
+        base + "Horizontal" -> listOf(Cote.DEBUT, Cote.FIN)
+        base + "Vertical" -> listOf(Cote.HAUT, Cote.BAS)
+        base -> listOf(Cote.HAUT, Cote.FIN, Cote.BAS, Cote.DEBUT)
+        else -> null
+    }
 
     /** La fin de la ligne contenant [offset] (excluant le retour). */
-    private fun finDeLigne(
-        texte: String,
-        offset: Int,
-    ): Int = texte.indexOf('\n', offset).let { if (it < 0) texte.length else it }
+    private fun finDeLigne(texte: String, offset: Int): Int =
+        texte.indexOf('\n', offset).let { if (it < 0) texte.length else it }
 
     /** L'indentation de la ligne contenant [offset]. */
-    private fun indentationDeLigne(
-        texte: String,
-        offset: Int,
-    ): String {
+    private fun indentationDeLigne(texte: String, offset: Int): String {
         val debutLigne = texte.lastIndexOf('\n', (offset - 1).coerceAtLeast(0)) + 1
         return texte.substring(debutLigne, offset).takeWhile { it == ' ' || it == '\t' }
     }
@@ -1372,10 +1276,7 @@ public object EditionAttributsXml {
      * `"\n" + indent + copie` à la fin du bloc : le retour à la ligne
      * QUI SUIT l'original reste partagé.
      */
-    public fun dupliquer(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): EditionAttributsXmlResultat? {
+    public fun dupliquer(texte: String, span: InsertionXml.SpanParent): EditionAttributsXmlResultat? {
         val localise = localiser(texte, span) ?: return null
         val indent = indentationPropre(texte, localise.debut) ?: return null
         val original = texte.substring(localise.debut, localise.fin)
@@ -1390,10 +1291,7 @@ public object EditionAttributsXml {
      * (miroir `!f.p` de la maquette — ici la garde est le span sans
      * parent connu).
      */
-    public fun supprimer(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): EditionAttributsXmlResultat? {
+    public fun supprimer(texte: String, span: InsertionXml.SpanParent): EditionAttributsXmlResultat? {
         val localise = localiser(texte, span) ?: return null
         val debutLigne = texte.lastIndexOf('\n', (localise.debut - 1).coerceAtLeast(0)) + 1
         val prefixe = texte.substring(debutLigne, localise.debut)
@@ -1412,11 +1310,7 @@ public object EditionAttributsXml {
      * UNE édition atomique (miroir [InsertionXml.EditionXml] — même
      * contrat, type distinct pour la lisibilité des signatures PE7d).
      */
-    public data class EditionAttributsXmlResultat(
-        val debut: Int,
-        val fin: Int,
-        val remplacement: String,
-    ) {
+    public data class EditionAttributsXmlResultat(val debut: Int, val fin: Int, val remplacement: String) {
         /** L'édition équivalente du moteur d'insertion (réutilisation du format unique). */
         public fun versEditionXml(): InsertionXml.EditionXml = InsertionXml.EditionXml(debut, fin, remplacement)
     }
@@ -1424,10 +1318,7 @@ public object EditionAttributsXml {
     // ── Détails de la localisation (purs, privés) ────────────────────────
 
     /** L'élément du texte VIVANT dont le span ÉGALISE le span rendu. */
-    private fun localiser(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): ElementLocalise? {
+    private fun localiser(texte: String, span: InsertionXml.SpanParent): ElementLocalise? {
         if (texte.isEmpty()) return null
         if (span.debut < 0 || span.fin <= span.debut || span.fin > texte.length) return null
         val elements =
@@ -1444,29 +1335,19 @@ public object EditionAttributsXml {
     }
 
     /** La balise OUVRANTE de l'élément au span (lecture directe, sans marche). */
-    private fun baliseOuvrante(
-        texte: String,
-        span: InsertionXml.SpanParent,
-    ): String? {
+    private fun baliseOuvrante(texte: String, span: InsertionXml.SpanParent): String? {
         val localise = localiser(texte, span) ?: return null
         return texte.substring(localise.debut, localise.chevron + 1)
     }
 
     /** L'élément localisé : span + chevron de la balise ouvrante. */
-    private class ElementLocalise(
-        val debut: Int,
-        val fin: Int,
-        val chevron: Int,
-    )
+    private class ElementLocalise(val debut: Int, val fin: Int, val chevron: Int)
 
     /** Regex d'un attribut par nom — la valeur (groupe 1) est la plage de remplacement. */
     private fun regexAttribut(nom: String): Regex = Regex("""\b${Regex.escape(nom)}\s*=\s*"([^"]*)"""")
 
     /** L'attribution complète à insérer (`nom="valeur"`). */
-    private fun attributInjection(
-        nom: String,
-        valeur: String,
-    ): String = "$nom=\"${echapper(valeur)}\""
+    private fun attributInjection(nom: String, valeur: String): String = "$nom=\"${echapper(valeur)}\""
 
     /**
      * Échappement XML des littéraux posés en valeur d'attribut : entités,
@@ -1488,10 +1369,7 @@ public object EditionAttributsXml {
     }
 
     /** L'offset du chevron `>` fermant la balise ouvrante (état guillemets). */
-    private fun chevronOuvrant(
-        texte: String,
-        debut: Int,
-    ): Int? {
+    private fun chevronOuvrant(texte: String, debut: Int): Int? {
         var i = debut
         var guillemet: Char? = null
         while (i < texte.length) {
@@ -1521,10 +1399,7 @@ public object EditionAttributsXml {
      * n'a que des espaces/tabulations — `null` sinon (document compact :
      * la duplication se refuse, X4).
      */
-    private fun indentationPropre(
-        texte: String,
-        offset: Int,
-    ): String? {
+    private fun indentationPropre(texte: String, offset: Int): String? {
         val debutLigne = texte.lastIndexOf('\n', (offset - 1).coerceAtLeast(0)) + 1
         val prefixe = texte.substring(debutLigne, offset)
         return if (prefixe.all { it == ' ' || it == '\t' }) prefixe else null

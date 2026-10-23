@@ -10,40 +10,37 @@ import org.junit.Test
  */
 class CrashReportTest {
     /** Exception aplatie minimale, pour des rapports compacts. */
-    private fun exceptionAplatie(): FlattenedException =
-        FlattenedException(
-            className = "java.lang.IllegalStateException",
-            message = "état incohérent",
-            frames = listOf("Classe.methode(Fichier.kt:12)"),
-            cause = null,
-        )
+    private fun exceptionAplatie(): FlattenedException = FlattenedException(
+        className = "java.lang.IllegalStateException",
+        message = "état incohérent",
+        frames = listOf("Classe.methode(Fichier.kt:12)"),
+        cause = null,
+    )
 
     /** Entrée de journal minimale, pour un filon de contexte. */
-    private fun filon(): LogEntry =
-        LogEntry(
-            timestampMillis = 1_000L,
-            sessionId = "session-1",
-            level = LogLevel.INFO,
-            tag = "App",
-            threadName = "main",
-            message = "démarrage",
-        )
+    private fun filon(): LogEntry = LogEntry(
+        timestampMillis = 1_000L,
+        sessionId = "session-1",
+        level = LogLevel.INFO,
+        tag = "App",
+        threadName = "main",
+        message = "démarrage",
+    )
 
-    private fun rapport(boucle: Boolean = false): CrashReport =
-        CrashReport(
-            id = "id-rapport",
-            type = CrashType.EXCEPTION,
-            timestampMillis = 1_234L,
-            sessionId = "session-1",
-            application = CrashAppInfo("0.4.0", 400, "debug", "jo.codeide"),
-            device = DeviceInfo.inconnu(),
-            threadName = "main",
-            exception = exceptionAplatie(),
-            breadcrumbs = listOf(filon()),
-            lastScreen = "Accueil",
-            processUptimeMs = 5_000L,
-            isCrashLoop = boucle,
-        )
+    private fun rapport(boucle: Boolean = false): CrashReport = CrashReport(
+        id = "id-rapport",
+        type = CrashType.EXCEPTION,
+        timestampMillis = 1_234L,
+        sessionId = "session-1",
+        application = CrashAppInfo("0.4.0", 400, "debug", "jo.codeide"),
+        device = DeviceInfo.inconnu(),
+        threadName = "main",
+        exception = exceptionAplatie(),
+        breadcrumbs = listOf(filon()),
+        lastScreen = "Accueil",
+        processUptimeMs = 5_000L,
+        isCrashLoop = boucle,
+    )
 
     @Test
     fun `un rapport porte toutes les sections exigées`() {

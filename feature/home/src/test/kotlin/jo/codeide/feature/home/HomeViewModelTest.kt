@@ -99,10 +99,9 @@ class HomeViewModelTest {
     private fun construireViewModel(etat: SavedStateHandle): HomeViewModel {
         val resolveurFaux =
             object : ResolveurCheminFuse {
-                override suspend fun invoke(documentUri: String): String? =
-                    documentUri
-                        .takeIf { it.startsWith("content://autorite/") }
-                        ?.let { "/fuse/" + it.substringAfter("tree/") }
+                override suspend fun invoke(documentUri: String): String? = documentUri
+                    .takeIf { it.startsWith("content://autorite/") }
+                    ?.let { "/fuse/" + it.substringAfter("tree/") }
             }
         return HomeViewModel(
             ObserveSettingsUseCase(parametres),
@@ -183,497 +182,471 @@ class HomeViewModelTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `pas de bandeau tant que l'assistant n'est pas termine`() =
-        runTest(regleMain.dispatcher) {
-            parametres.updateSettings { it.copy(isSetupCompleted = false) }
-            preparerViewModel()
-            advanceUntilIdle()
+    fun `pas de bandeau tant que l'assistant n'est pas termine`() = runTest(regleMain.dispatcher) {
+        parametres.updateSettings { it.copy(isSetupCompleted = false) }
+        preparerViewModel()
+        advanceUntilIdle()
 
-            assertFalse(viewModel.etat.value.montrerBandeau)
-            assertNull(viewModel.etat.value.libelleDossier)
-        }
-
-    @Test
-    fun `pas de bandeau quand le dossier de travail est configure`() =
-        runTest(regleMain.dispatcher) {
-            parametres.updateSettings {
-                it.copy(workspace = StorageLocation("g", "d", "CodeIDE"))
-            }
-            preparerViewModel()
-            advanceUntilIdle()
-
-            assertFalse(viewModel.etat.value.montrerBandeau)
-            assertEquals("CodeIDE", viewModel.etat.value.libelleDossier)
-        }
+        assertFalse(viewModel.etat.value.montrerBandeau)
+        assertNull(viewModel.etat.value.libelleDossier)
+    }
 
     @Test
-    fun `bandeau quand l'assistant est termine sans dossier`() =
-        runTest(regleMain.dispatcher) {
-            preparerViewModel()
-            advanceUntilIdle()
-
-            assertTrue(viewModel.etat.value.montrerBandeau)
-            assertNull(viewModel.etat.value.libelleDossier)
+    fun `pas de bandeau quand le dossier de travail est configure`() = runTest(regleMain.dispatcher) {
+        parametres.updateSettings {
+            it.copy(workspace = StorageLocation("g", "d", "CodeIDE"))
         }
+        preparerViewModel()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.etat.value.montrerBandeau)
+        assertEquals("CodeIDE", viewModel.etat.value.libelleDossier)
+    }
+
+    @Test
+    fun `bandeau quand l'assistant est termine sans dossier`() = runTest(regleMain.dispatcher) {
+        preparerViewModel()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.etat.value.montrerBandeau)
+        assertNull(viewModel.etat.value.libelleDossier)
+    }
 
     // ------------------------------------------------------------------
     // États de la liste.
     // ------------------------------------------------------------------
 
     @Test
-    fun `chargement puis vide quand le registre est vide`() =
-        runTest(regleMain.dispatcher) {
-            assertTrue(viewModel.etat.value.chargement)
+    fun `chargement puis vide quand le registre est vide`() = runTest(regleMain.dispatcher) {
+        assertTrue(viewModel.etat.value.chargement)
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            assertFalse(viewModel.etat.value.chargement)
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
-            assertNull(viewModel.etat.value.erreur)
-        }
-
-    @Test
-    fun `la liste affiche les projets tries par defaut`() =
-        runTest(regleMain.dispatcher) {
-            projet("Alpha")
-            projet("Beta", ouvert = 5_000L)
-            projet("Gamma", epingle = true)
-
-            advanceUntilIdle()
-
-            // Épingle d'abord, puis dernier ouvert, puis nom.
-            assertEquals(
-                listOf("Gamma", "Beta", "Alpha"),
-                viewModel.etat.value.projets
-                    .map { it.name },
-            )
-        }
+        assertFalse(viewModel.etat.value.chargement)
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+        assertNull(viewModel.etat.value.erreur)
+    }
 
     @Test
-    fun `l accueil reflete l etat de session du processus`() =
-        runTest(regleMain.dispatcher) {
-            // Mission « Cycle de vie » étape E (matrice §6.3 : « session P
-            // ouverte ») : l'accueil consomme le port LECTURE SEULE —
-            // l'ouverture, la fermeture et le repos se VOIENT, la liste
-            // n'est plus la seule source d'état.
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-            assertEquals(
-                jo.codeide.core.domain.EtatSessionProjetVue.Aucune,
-                viewModel.etat.value.session,
-            )
+    fun `la liste affiche les projets tries par defaut`() = runTest(regleMain.dispatcher) {
+        projet("Alpha")
+        projet("Beta", ouvert = 5_000L)
+        projet("Gamma", epingle = true)
 
-            sessionVue.value =
-                jo.codeide.core.domain.EtatSessionProjetVue
-                    .Ouverte(alpha.id)
-            advanceUntilIdle()
-            assertEquals(
-                jo.codeide.core.domain.EtatSessionProjetVue
-                    .Ouverte(alpha.id),
-                viewModel.etat.value.session,
-            )
+        advanceUntilIdle()
 
-            sessionVue.value =
-                jo.codeide.core.domain.EtatSessionProjetVue
-                    .Fermeture(alpha.id)
-            advanceUntilIdle()
-            assertEquals(
-                "la transition de fermeture se montre, honnêtement",
-                jo.codeide.core.domain.EtatSessionProjetVue
-                    .Fermeture(alpha.id),
-                viewModel.etat.value.session,
-            )
-        }
+        // Épingle d'abord, puis dernier ouvert, puis nom.
+        assertEquals(
+            listOf("Gamma", "Beta", "Alpha"),
+            viewModel.etat.value.projets
+                .map { it.name },
+        )
+    }
 
     @Test
-    fun `le tri par nom reordonne en gardant les epingles en tete`() =
-        runTest(regleMain.dispatcher) {
-            projet("Zebra", ouvert = 9_000L)
-            projet("Alpha", epingle = true)
+    fun `l accueil reflete l etat de session du processus`() = runTest(regleMain.dispatcher) {
+        // Mission « Cycle de vie » étape E (matrice §6.3 : « session P
+        // ouverte ») : l'accueil consomme le port LECTURE SEULE —
+        // l'ouverture, la fermeture et le repos se VOIENT, la liste
+        // n'est plus la seule source d'état.
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
+        assertEquals(
+            jo.codeide.core.domain.EtatSessionProjetVue.Aucune,
+            viewModel.etat.value.session,
+        )
 
-            advanceUntilIdle()
-            viewModel.action(ActionAccueil.ChangerTri(TriAccueil.NOM))
-            advanceUntilIdle()
+        sessionVue.value =
+            jo.codeide.core.domain.EtatSessionProjetVue
+                .Ouverte(alpha.id)
+        advanceUntilIdle()
+        assertEquals(
+            jo.codeide.core.domain.EtatSessionProjetVue
+                .Ouverte(alpha.id),
+            viewModel.etat.value.session,
+        )
 
-            assertEquals(
-                listOf("Alpha", "Zebra"),
-                viewModel.etat.value.projets
-                    .map { it.name },
-            )
-            assertEquals(TriAccueil.NOM, viewModel.etat.value.tri)
-        }
-
-    @Test
-    fun `la recherche filtre apres le delai et seulement apres lui`() =
-        runTest(regleMain.dispatcher) {
-            projet("Application Kotlin")
-            projet("Serveur HTTP")
-            advanceUntilIdle()
-
-            viewModel.action(ActionAccueil.Rechercher("kotlin"))
-            advanceTimeBy(249)
-
-            // 249 ms : la frappe n'est pas encore appliquée.
-            assertEquals(2, viewModel.etat.value.projets.size)
-
-            advanceTimeBy(51)
-
-            assertEquals(1, viewModel.etat.value.projets.size)
-            assertEquals(
-                "Application Kotlin",
-                viewModel.etat.value.projets
-                    .first()
-                    .name,
-            )
-            assertEquals("kotlin", viewModel.etat.value.requete)
-        }
+        sessionVue.value =
+            jo.codeide.core.domain.EtatSessionProjetVue
+                .Fermeture(alpha.id)
+        advanceUntilIdle()
+        assertEquals(
+            "la transition de fermeture se montre, honnêtement",
+            jo.codeide.core.domain.EtatSessionProjetVue
+                .Fermeture(alpha.id),
+            viewModel.etat.value.session,
+        )
+    }
 
     @Test
-    fun `la recherche est insensible a la casse et aux accents`() =
-        runTest(regleMain.dispatcher) {
-            projet("Thèses")
-            projet("Autre")
-            advanceUntilIdle()
+    fun `le tri par nom reordonne en gardant les epingles en tete`() = runTest(regleMain.dispatcher) {
+        projet("Zebra", ouvert = 9_000L)
+        projet("Alpha", epingle = true)
 
-            viewModel.action(ActionAccueil.Rechercher("THESES"))
-            advanceTimeBy(300)
+        advanceUntilIdle()
+        viewModel.action(ActionAccueil.ChangerTri(TriAccueil.NOM))
+        advanceUntilIdle()
 
-            assertEquals(1, viewModel.etat.value.projets.size)
-            assertEquals(
-                "Thèses",
-                viewModel.etat.value.projets
-                    .first()
-                    .name,
-            )
-        }
+        assertEquals(
+            listOf("Alpha", "Zebra"),
+            viewModel.etat.value.projets
+                .map { it.name },
+        )
+        assertEquals(TriAccueil.NOM, viewModel.etat.value.tri)
+    }
 
     @Test
-    fun `une recherche sans resultat vide la liste et porte la requete`() =
-        runTest(regleMain.dispatcher) {
-            projet("Alpha")
-            advanceUntilIdle()
+    fun `la recherche filtre apres le delai et seulement apres lui`() = runTest(regleMain.dispatcher) {
+        projet("Application Kotlin")
+        projet("Serveur HTTP")
+        advanceUntilIdle()
 
-            viewModel.action(ActionAccueil.Rechercher("zzz"))
-            advanceTimeBy(300)
+        viewModel.action(ActionAccueil.Rechercher("kotlin"))
+        advanceTimeBy(249)
 
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
-            assertEquals("zzz", viewModel.etat.value.requete)
-        }
+        // 249 ms : la frappe n'est pas encore appliquée.
+        assertEquals(2, viewModel.etat.value.projets.size)
 
-    @Test
-    fun `la recherche survit a la rotation par le SavedStateHandle`() =
-        runTest(regleMain.dispatcher) {
-            projet("Alpha")
-            projet("Beta")
-            val etatSauvegarde = SavedStateHandle()
-            etatSauvegarde["accueil-requete"] = "alpha"
-            val viewModelRestaure = viewModelAvec(etatSauvegarde)
-            advanceUntilIdle()
+        advanceTimeBy(51)
 
-            assertEquals("alpha", viewModelRestaure.etat.value.requete)
-            assertEquals(
-                listOf("Alpha"),
-                viewModelRestaure.etat.value.projets
-                    .map { it.name },
-            )
-        }
+        assertEquals(1, viewModel.etat.value.projets.size)
+        assertEquals(
+            "Application Kotlin",
+            viewModel.etat.value.projets
+                .first()
+                .name,
+        )
+        assertEquals("kotlin", viewModel.etat.value.requete)
+    }
 
     @Test
-    fun `le tri restaure depuis le SavedStateHandle sans crash (String)`() =
-        runTest(regleMain.dispatcher) {
-            projet("Alpha")
-            projet("Beta")
-            // Écrit exactement comme la production : ChangerTri persiste
-            // tri.name (une String) — v0.100.2 : la lecture inférée
-            // `TriAccueil` levait ClassCastException à la restauration.
-            val etatSauvegarde = SavedStateHandle()
-            etatSauvegarde["accueil-tri"] = "NOM"
-            val viewModelRestaure = viewModelAvec(etatSauvegarde)
-            advanceUntilIdle()
+    fun `la recherche est insensible a la casse et aux accents`() = runTest(regleMain.dispatcher) {
+        projet("Thèses")
+        projet("Autre")
+        advanceUntilIdle()
 
-            assertEquals(TriAccueil.NOM, viewModelRestaure.etat.value.tri)
-            assertEquals(
-                listOf("Alpha", "Beta"),
-                viewModelRestaure.etat.value.projets
-                    .map { it.name },
-            )
-        }
+        viewModel.action(ActionAccueil.Rechercher("THESES"))
+        advanceTimeBy(300)
+
+        assertEquals(1, viewModel.etat.value.projets.size)
+        assertEquals(
+            "Thèses",
+            viewModel.etat.value.projets
+                .first()
+                .name,
+        )
+    }
 
     @Test
-    fun `un tri persiste inconnu retombe sur recents sans crash`() =
-        runTest(regleMain.dispatcher) {
-            val etatSauvegarde = SavedStateHandle()
-            etatSauvegarde["accueil-tri"] = "OBSOLETE"
-            val viewModelRestaure = viewModelAvec(etatSauvegarde)
-            advanceUntilIdle()
+    fun `une recherche sans resultat vide la liste et porte la requete`() = runTest(regleMain.dispatcher) {
+        projet("Alpha")
+        advanceUntilIdle()
 
-            assertEquals(TriAccueil.RECENTS, viewModelRestaure.etat.value.tri)
-        }
+        viewModel.action(ActionAccueil.Rechercher("zzz"))
+        advanceTimeBy(300)
+
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+        assertEquals("zzz", viewModel.etat.value.requete)
+    }
 
     @Test
-    fun `un registre illisible bascule en erreur puis Reessayer recharge`() =
-        runTest(regleMain.dispatcher) {
-            depot.flowError = RuntimeException("base corrompue")
-            advanceUntilIdle()
+    fun `la recherche survit a la rotation par le SavedStateHandle`() = runTest(regleMain.dispatcher) {
+        projet("Alpha")
+        projet("Beta")
+        val etatSauvegarde = SavedStateHandle()
+        etatSauvegarde["accueil-requete"] = "alpha"
+        val viewModelRestaure = viewModelAvec(etatSauvegarde)
+        advanceUntilIdle()
 
-            assertTrue(viewModel.etat.value.erreur != null)
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
+        assertEquals("alpha", viewModelRestaure.etat.value.requete)
+        assertEquals(
+            listOf("Alpha"),
+            viewModelRestaure.etat.value.projets
+                .map { it.name },
+        )
+    }
 
-            depot.flowError = null
-            projet("Alpha")
-            viewModel.action(ActionAccueil.Reessayer)
-            advanceUntilIdle()
+    @Test
+    fun `le tri restaure depuis le SavedStateHandle sans crash (String)`() = runTest(regleMain.dispatcher) {
+        projet("Alpha")
+        projet("Beta")
+        // Écrit exactement comme la production : ChangerTri persiste
+        // tri.name (une String) — v0.100.2 : la lecture inférée
+        // `TriAccueil` levait ClassCastException à la restauration.
+        val etatSauvegarde = SavedStateHandle()
+        etatSauvegarde["accueil-tri"] = "NOM"
+        val viewModelRestaure = viewModelAvec(etatSauvegarde)
+        advanceUntilIdle()
 
-            assertNull(viewModel.etat.value.erreur)
-            assertEquals(
-                listOf("Alpha"),
-                viewModel.etat.value.projets
-                    .map { it.name },
-            )
-        }
+        assertEquals(TriAccueil.NOM, viewModelRestaure.etat.value.tri)
+        assertEquals(
+            listOf("Alpha", "Beta"),
+            viewModelRestaure.etat.value.projets
+                .map { it.name },
+        )
+    }
+
+    @Test
+    fun `un tri persiste inconnu retombe sur recents sans crash`() = runTest(regleMain.dispatcher) {
+        val etatSauvegarde = SavedStateHandle()
+        etatSauvegarde["accueil-tri"] = "OBSOLETE"
+        val viewModelRestaure = viewModelAvec(etatSauvegarde)
+        advanceUntilIdle()
+
+        assertEquals(TriAccueil.RECENTS, viewModelRestaure.etat.value.tri)
+    }
+
+    @Test
+    fun `un registre illisible bascule en erreur puis Reessayer recharge`() = runTest(regleMain.dispatcher) {
+        depot.flowError = RuntimeException("base corrompue")
+        advanceUntilIdle()
+
+        assertTrue(viewModel.etat.value.erreur != null)
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+
+        depot.flowError = null
+        projet("Alpha")
+        viewModel.action(ActionAccueil.Reessayer)
+        advanceUntilIdle()
+
+        assertNull(viewModel.etat.value.erreur)
+        assertEquals(
+            listOf("Alpha"),
+            viewModel.etat.value.projets
+                .map { it.name },
+        )
+    }
 
     // ------------------------------------------------------------------
     // États d'accès (section 5.6).
     // ------------------------------------------------------------------
 
     @Test
-    fun `les etats d'acces sont calcules au premier affichage`() =
-        runTest(regleMain.dispatcher) {
-            val sain = projet("Sain")
-            val perdu = projet("Perdu")
-            fichiers.revokePermission("content://autorite/tree/Perdu")
-            val disparu = projet("Disparu")
-            fichiers.delete(arborescences.uriDocument("content://autorite/tree/Disparu")!!)
+    fun `les etats d'acces sont calcules au premier affichage`() = runTest(regleMain.dispatcher) {
+        val sain = projet("Sain")
+        val perdu = projet("Perdu")
+        fichiers.revokePermission("content://autorite/tree/Perdu")
+        val disparu = projet("Disparu")
+        fichiers.delete(arborescences.uriDocument("content://autorite/tree/Disparu")!!)
 
-            advanceUntilIdle()
+        advanceUntilIdle()
 
-            val etats = viewModel.etat.value.etatsAcces
-            assertEquals(ProjectAccessState.Available, etats[sain.id])
-            assertEquals(ProjectAccessState.PermissionLost, etats[perdu.id])
-            assertEquals(ProjectAccessState.Missing, etats[disparu.id])
-        }
+        val etats = viewModel.etat.value.etatsAcces
+        assertEquals(ProjectAccessState.Available, etats[sain.id])
+        assertEquals(ProjectAccessState.PermissionLost, etats[perdu.id])
+        assertEquals(ProjectAccessState.Missing, etats[disparu.id])
+    }
 
     @Test
-    fun `le tirer-relacher revérifie les etats d'acces`() =
-        runTest(regleMain.dispatcher) {
-            val sain = projet("Sain")
-            advanceUntilIdle()
+    fun `le tirer-relacher revérifie les etats d'acces`() = runTest(regleMain.dispatcher) {
+        val sain = projet("Sain")
+        advanceUntilIdle()
 
-            // La permission saute entre-temps (redémarrage simulé).
-            fichiers.revokePermission("content://autorite/tree/Sain")
-            viewModel.action(ActionAccueil.Rafraichir)
-            advanceUntilIdle()
+        // La permission saute entre-temps (redémarrage simulé).
+        fichiers.revokePermission("content://autorite/tree/Sain")
+        viewModel.action(ActionAccueil.Rafraichir)
+        advanceUntilIdle()
 
-            assertEquals(ProjectAccessState.PermissionLost, viewModel.etat.value.etatsAcces[sain.id])
-            assertFalse(viewModel.etat.value.rafraichissement)
-        }
+        assertEquals(ProjectAccessState.PermissionLost, viewModel.etat.value.etatsAcces[sain.id])
+        assertFalse(viewModel.etat.value.rafraichissement)
+    }
 
     // ------------------------------------------------------------------
     // Actions par projet.
     // ------------------------------------------------------------------
 
     @Test
-    fun `ouvrir marque le projet ouvert et annonce l'editeur a venir`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-            collecterEffets()
+    fun `ouvrir marque le projet ouvert et annonce l'editeur a venir`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
+        collecterEffets()
 
-            viewModel.action(ActionAccueil.OuvrirProjet(alpha.id))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.OuvrirProjet(alpha.id))
+        advanceUntilIdle()
 
-            assertEquals(10_000L, depot.getProject(alpha.id).getOrNull()!!.lastOpenedAtMillis)
-            assertEquals(EffetAccueil.OuvrirEditeur(alpha.id), effetsRecus.single())
-            arreterCollecteEffets()
-        }
-
-    @Test
-    fun `renommer avec un nom valide change le libelle`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-
-            viewModel.action(ActionAccueil.RenommerProjet(alpha.id, "Nouveau nom"))
-            advanceUntilIdle()
-
-            assertEquals(
-                "Nouveau nom",
-                viewModel.etat.value.projets
-                    .first()
-                    .name,
-            )
-        }
+        assertEquals(10_000L, depot.getProject(alpha.id).getOrNull()!!.lastOpenedAtMillis)
+        assertEquals(EffetAccueil.OuvrirEditeur(alpha.id), effetsRecus.single())
+        arreterCollecteEffets()
+    }
 
     @Test
-    fun `renommer avec un nom vide est refuse sans toucher au registre`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-            collecterEffets()
+    fun `renommer avec un nom valide change le libelle`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
 
-            viewModel.action(ActionAccueil.RenommerProjet(alpha.id, "   "))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.RenommerProjet(alpha.id, "Nouveau nom"))
+        advanceUntilIdle()
 
-            assertEquals(
-                "Alpha",
-                viewModel.etat.value.projets
-                    .first()
-                    .name,
-            )
-            assertTrue(effetsRecus.single() is EffetAccueil.Echec)
-            arreterCollecteEffets()
-        }
+        assertEquals(
+            "Nouveau nom",
+            viewModel.etat.value.projets
+                .first()
+                .name,
+        )
+    }
 
     @Test
-    fun `epingler flotte le projet en tete`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            projet("Beta", ouvert = 9_000L)
-            advanceUntilIdle()
+    fun `renommer avec un nom vide est refuse sans toucher au registre`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
+        collecterEffets()
 
-            viewModel.action(ActionAccueil.EpinglerProjet(alpha.id, true))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.RenommerProjet(alpha.id, "   "))
+        advanceUntilIdle()
 
-            assertEquals(
-                "Alpha",
-                viewModel.etat.value.projets
-                    .first()
-                    .name,
-            )
-        }
-
-    @Test
-    fun `retirer enleve le projet et libere sa permission orpheline`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-            collecterEffets()
-
-            viewModel.action(ActionAccueil.RetirerProjet(alpha.id))
-            advanceUntilIdle()
-
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
-            assertEquals(EffetAccueil.ProjetRetire, effetsRecus.single())
-            assertFalse(fichiers.hasPersistablePermission("content://autorite/tree/Alpha"))
-            arreterCollecteEffets()
-        }
+        assertEquals(
+            "Alpha",
+            viewModel.etat.value.projets
+                .first()
+                .name,
+        )
+        assertTrue(effetsRecus.single() is EffetAccueil.Echec)
+        arreterCollecteEffets()
+    }
 
     @Test
-    fun `supprimer du disque efface le dossier puis le registre`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            val uriDocument = arborescences.uriDocument("content://autorite/tree/Alpha")!!
-            advanceUntilIdle()
-            collecterEffets()
+    fun `epingler flotte le projet en tete`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        projet("Beta", ouvert = 9_000L)
+        advanceUntilIdle()
 
-            viewModel.action(ActionAccueil.SupprimerDuDisque(alpha.id))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.EpinglerProjet(alpha.id, true))
+        advanceUntilIdle()
 
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
-            assertEquals(EffetAccueil.ProjetSupprime, effetsRecus.single())
-            assertFalse(fichiers.exists(uriDocument))
-            arreterCollecteEffets()
-        }
+        assertEquals(
+            "Alpha",
+            viewModel.etat.value.projets
+                .first()
+                .name,
+        )
+    }
 
     @Test
-    fun `supprimer du disque sur un dossier protege laisse le registre intact`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-            fichiers.deleteFailure = IOException("E/S")
-            collecterEffets()
+    fun `retirer enleve le projet et libere sa permission orpheline`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
+        collecterEffets()
 
-            viewModel.action(ActionAccueil.SupprimerDuDisque(alpha.id))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.RetirerProjet(alpha.id))
+        advanceUntilIdle()
 
-            assertEquals(1, viewModel.etat.value.projets.size)
-            assertTrue(effetsRecus.single() is EffetAccueil.Echec)
-            arreterCollecteEffets()
-        }
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+        assertEquals(EffetAccueil.ProjetRetire, effetsRecus.single())
+        assertFalse(fichiers.hasPersistablePermission("content://autorite/tree/Alpha"))
+        arreterCollecteEffets()
+    }
+
+    @Test
+    fun `supprimer du disque efface le dossier puis le registre`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        val uriDocument = arborescences.uriDocument("content://autorite/tree/Alpha")!!
+        advanceUntilIdle()
+        collecterEffets()
+
+        viewModel.action(ActionAccueil.SupprimerDuDisque(alpha.id))
+        advanceUntilIdle()
+
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+        assertEquals(EffetAccueil.ProjetSupprime, effetsRecus.single())
+        assertFalse(fichiers.exists(uriDocument))
+        arreterCollecteEffets()
+    }
+
+    @Test
+    fun `supprimer du disque sur un dossier protege laisse le registre intact`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
+        fichiers.deleteFailure = IOException("E/S")
+        collecterEffets()
+
+        viewModel.action(ActionAccueil.SupprimerDuDisque(alpha.id))
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.etat.value.projets.size)
+        assertTrue(effetsRecus.single() is EffetAccueil.Echec)
+        arreterCollecteEffets()
+    }
 
     // ------------------------------------------------------------------
     // Import et relocalisation.
     // ------------------------------------------------------------------
 
     @Test
-    fun `importer un dossier ajoute le projet et annonce son nom`() =
-        runTest(regleMain.dispatcher) {
-            advanceUntilIdle()
-            collecterEffets()
-            val grantUri = "content://autorite/tree/externe"
-            fichiers.seedDocument(
-                arborescences.uriDocument(grantUri)!!,
-                FakeFileSystem.Document(name = "MonProjet", isDirectory = true),
-            )
+    fun `importer un dossier ajoute le projet et annonce son nom`() = runTest(regleMain.dispatcher) {
+        advanceUntilIdle()
+        collecterEffets()
+        val grantUri = "content://autorite/tree/externe"
+        fichiers.seedDocument(
+            arborescences.uriDocument(grantUri)!!,
+            FakeFileSystem.Document(name = "MonProjet", isDirectory = true),
+        )
 
-            viewModel.action(ActionAccueil.ImporterDossier(grantUri))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.ImporterDossier(grantUri))
+        advanceUntilIdle()
 
-            assertEquals(
-                listOf("MonProjet"),
-                viewModel.etat.value.projets
-                    .map { it.name },
-            )
-            assertEquals(EffetAccueil.ProjetImporte("MonProjet"), effetsRecus.single())
-            arreterCollecteEffets()
-        }
-
-    @Test
-    fun `importer un dossier refuse par la plateforme annonce le refus`() =
-        runTest(regleMain.dispatcher) {
-            advanceUntilIdle()
-            collecterEffets()
-
-            viewModel.action(ActionAccueil.ImporterDossier("content://autorite/tree/primary%3A"))
-            advanceUntilIdle()
-
-            assertTrue(effetsRecus.single() is EffetAccueil.DossierRefuse)
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
-            arreterCollecteEffets()
-        }
+        assertEquals(
+            listOf("MonProjet"),
+            viewModel.etat.value.projets
+                .map { it.name },
+        )
+        assertEquals(EffetAccueil.ProjetImporte("MonProjet"), effetsRecus.single())
+        arreterCollecteEffets()
+    }
 
     @Test
-    fun `relocaliser un projet deplace son emplacement`() =
-        runTest(regleMain.dispatcher) {
-            val alpha = projet("Alpha")
-            advanceUntilIdle()
-            collecterEffets()
-            val nouveauGrant = "content://autorite/tree/nouveau"
-            fichiers.seedDocument(
-                arborescences.uriDocument(nouveauGrant)!!,
-                FakeFileSystem.Document(name = "Deplace", isDirectory = true),
-            )
+    fun `importer un dossier refuse par la plateforme annonce le refus`() = runTest(regleMain.dispatcher) {
+        advanceUntilIdle()
+        collecterEffets()
 
-            viewModel.action(ActionAccueil.RelocaliserProjet(alpha.id, nouveauGrant))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.ImporterDossier("content://autorite/tree/primary%3A"))
+        advanceUntilIdle()
 
-            assertEquals(
-                nouveauGrant,
-                viewModel.etat.value.projets
-                    .first()
-                    .location.grantUri,
-            )
-            assertEquals(EffetAccueil.ProjetDeplace("Alpha"), effetsRecus.single())
-            arreterCollecteEffets()
-        }
+        assertTrue(effetsRecus.single() is EffetAccueil.DossierRefuse)
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+        arreterCollecteEffets()
+    }
+
+    @Test
+    fun `relocaliser un projet deplace son emplacement`() = runTest(regleMain.dispatcher) {
+        val alpha = projet("Alpha")
+        advanceUntilIdle()
+        collecterEffets()
+        val nouveauGrant = "content://autorite/tree/nouveau"
+        fichiers.seedDocument(
+            arborescences.uriDocument(nouveauGrant)!!,
+            FakeFileSystem.Document(name = "Deplace", isDirectory = true),
+        )
+
+        viewModel.action(ActionAccueil.RelocaliserProjet(alpha.id, nouveauGrant))
+        advanceUntilIdle()
+
+        assertEquals(
+            nouveauGrant,
+            viewModel.etat.value.projets
+                .first()
+                .location.grantUri,
+        )
+        assertEquals(EffetAccueil.ProjetDeplace("Alpha"), effetsRecus.single())
+        arreterCollecteEffets()
+    }
 
     // ------------------------------------------------------------------
     // Aides.
@@ -690,87 +663,83 @@ class HomeViewModelTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `action terminal sans bootstrap ouvre l installation`() =
-        runTest {
-            collecterEffets()
-            advanceUntilIdle()
+    fun `action terminal sans bootstrap ouvre l installation`() = runTest {
+        collecterEffets()
+        advanceUntilIdle()
 
-            viewModel.action(ActionAccueil.OuvrirTerminal)
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.OuvrirTerminal)
+        advanceUntilIdle()
 
-            assertEquals(listOf(EffetAccueil.OuvrirInstallationTerminal), effetsRecus)
-            arreterCollecteEffets()
-        }
-
-    @Test
-    fun `action terminal avec bootstrap ouvre l ecran plein ecran`() =
-        runTest {
-            observerOutils.toutInstaller()
-            collecterEffets()
-            advanceUntilIdle()
-
-            viewModel.action(ActionAccueil.OuvrirTerminal)
-            advanceUntilIdle()
-
-            assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
-            arreterCollecteEffets()
-        }
+        assertEquals(listOf(EffetAccueil.OuvrirInstallationTerminal), effetsRecus)
+        arreterCollecteEffets()
+    }
 
     @Test
-    fun `installation terminee rend le terminal ouvrable sans nouveau passage`() =
-        runTest {
-            collecterEffets()
-            advanceUntilIdle()
-            assertFalse(viewModel.etat.value.bootstrapInstalle)
+    fun `action terminal avec bootstrap ouvre l ecran plein ecran`() = runTest {
+        observerOutils.toutInstaller()
+        collecterEffets()
+        advanceUntilIdle()
 
-            // E6 : la phase BOOTSTRAP du parcours vérifiée = bootstrap
-            // installé (l'ancien `Terminee` de `BootstrapInstaller` est
-            // retiré).
-            parcours.semerEtat(
-                EnvironmentSetupState(
-                    phases =
-                        mapOf(
-                            InstallPhase.BOOTSTRAP to
-                                PhaseState.Succeeded(verifiedAtMillis = 1_000L, versions = emptyMap()),
-                        ),
-                    running = null,
-                    sdkLicenseAcceptedAtMillis = null,
+        viewModel.action(ActionAccueil.OuvrirTerminal)
+        advanceUntilIdle()
+
+        assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
+        arreterCollecteEffets()
+    }
+
+    @Test
+    fun `installation terminee rend le terminal ouvrable sans nouveau passage`() = runTest {
+        collecterEffets()
+        advanceUntilIdle()
+        assertFalse(viewModel.etat.value.bootstrapInstalle)
+
+        // E6 : la phase BOOTSTRAP du parcours vérifiée = bootstrap
+        // installé (l'ancien `Terminee` de `BootstrapInstaller` est
+        // retiré).
+        parcours.semerEtat(
+            EnvironmentSetupState(
+                phases =
+                mapOf(
+                    InstallPhase.BOOTSTRAP to
+                        PhaseState.Succeeded(verifiedAtMillis = 1_000L, versions = emptyMap()),
                 ),
-            )
-            advanceUntilIdle()
+                running = null,
+                sdkLicenseAcceptedAtMillis = null,
+            ),
+        )
+        advanceUntilIdle()
 
-            assertTrue(viewModel.etat.value.bootstrapInstalle)
-            viewModel.action(ActionAccueil.OuvrirTerminal)
-            advanceUntilIdle()
+        assertTrue(viewModel.etat.value.bootstrapInstalle)
+        viewModel.action(ActionAccueil.OuvrirTerminal)
+        advanceUntilIdle()
 
-            assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
-            arreterCollecteEffets()
-        }
+        assertEquals(listOf(EffetAccueil.OuvrirTerminalEcran), effetsRecus)
+        arreterCollecteEffets()
+    }
 
     @Test
-    fun `bootstrap pose pendant que l accueil est ouvert - le bandeau disparait`() =
-        runTest {
-            // v0.37.3 (retour d'appareil réel) : l'accueil lisait le
-            // localisateur en pull FIGÉ — un bootstrap posé ailleurs
-            // (onboarding, écran d'installation) ne faisait jamais
-            // disparaître le bandeau « terminal non installé ». L'état
-            // POUSSÉ le retire dès la transition, SANS retour sur
-            // l'accueil ni re-passage du localisateur.
-            collecterEffets()
-            advanceUntilIdle()
-            assertTrue(viewModel.etat.value.montrerBandeauTerminal)
-            assertFalse(viewModel.etat.value.bootstrapInstalle)
+    fun `bootstrap pose pendant que l accueil est ouvert - le bandeau disparait`() = runTest {
+        // v0.37.3 (retour d'appareil réel) : l'accueil lisait le
+        // localisateur en pull FIGÉ — un bootstrap posé ailleurs
+        // (onboarding, écran d'installation) ne faisait jamais
+        // disparaître le bandeau « terminal non installé ». L'état
+        // POUSSÉ le retire dès la transition, SANS retour sur
+        // l'accueil ni re-passage du localisateur.
+        collecterEffets()
+        advanceUntilIdle()
+        assertTrue(viewModel.etat.value.montrerBandeauTerminal)
+        assertFalse(viewModel.etat.value.bootstrapInstalle)
 
-            observerOutils.semer(
-                jo.codeide.core.domain
-                    .EtatOutilsTerminal(bootstrapInstalle = true),
-            )
-            advanceUntilIdle()
+        observerOutils.semer(
+            jo.codeide.core.domain
+                .EtatOutilsTerminal(bootstrapInstalle = true),
+        )
+        advanceUntilIdle()
 
-            assertFalse(viewModel.etat.value.montrerBandeauTerminal)
-            assertTrue(viewModel.etat.value.bootstrapInstalle)
-            arreterCollecteEffets()
-        }
+        assertFalse(viewModel.etat.value.montrerBandeauTerminal)
+        assertTrue(viewModel.etat.value.bootstrapInstalle)
+        arreterCollecteEffets()
+    }
 
     // ------------------------------------------------------------------
     // Clonage Git (G5, v0.80.4) : progression, ouverture, échecs typés.
@@ -785,83 +754,79 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `cloner un depot marque la progression puis ouvre l editeur`() =
-        runTest(regleMain.dispatcher) {
-            advanceUntilIdle()
-            collecterEffets()
-            amorcerDossierDeTravailClonage()
+    fun `cloner un depot marque la progression puis ouvre l editeur`() = runTest(regleMain.dispatcher) {
+        advanceUntilIdle()
+        collecterEffets()
+        amorcerDossierDeTravailClonage()
 
-            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/app.git", "app"))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/app.git", "app"))
+        advanceUntilIdle()
 
-            // Le clonage est terminé : plus de bandeau de progression.
-            assertFalse(viewModel.etat.value.clonageEnCours)
-            // Le projet cloné est enregistré ET marqué ouvert (l'éditeur
-            // suit, comme « Get from VCS » d'Android Studio).
-            val projet =
-                viewModel.etat.value.projets
-                    .single()
-            assertEquals("app", projet.name)
-            assertTrue(effetsRecus.filterIsInstance<EffetAccueil.OuvrirEditeur>().isNotEmpty())
-            arreterCollecteEffets()
-        }
-
-    @Test
-    fun `un clonage en cours bloque les clones concurrents`() =
-        runTest(regleMain.dispatcher) {
-            advanceUntilIdle()
-            amorcerDossierDeTravailClonage()
-            // Latence factice : le premier clone reste « en cours ».
-            git.latence = 1_000L
-            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/a.git", "a"))
-            advanceTimeBy(100)
-            assertTrue(viewModel.etat.value.clonageEnCours)
-
-            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/b.git", "b"))
-            advanceUntilIdle()
-
-            // Un seul clone exécuté : le second a été ignoré.
-            assertEquals(1, git.operations.count { it.startsWith("cloner:") })
-            assertFalse(viewModel.etat.value.clonageEnCours)
-        }
+        // Le clonage est terminé : plus de bandeau de progression.
+        assertFalse(viewModel.etat.value.clonageEnCours)
+        // Le projet cloné est enregistré ET marqué ouvert (l'éditeur
+        // suit, comme « Get from VCS » d'Android Studio).
+        val projet =
+            viewModel.etat.value.projets
+                .single()
+        assertEquals("app", projet.name)
+        assertTrue(effetsRecus.filterIsInstance<EffetAccueil.OuvrirEditeur>().isNotEmpty())
+        arreterCollecteEffets()
+    }
 
     @Test
-    fun `l echec de git est annonce avec le message honnete et rollback`() =
-        runTest(regleMain.dispatcher) {
-            advanceUntilIdle()
-            collecterEffets()
-            amorcerDossierDeTravailClonage()
-            git.resultatCloner =
-                jo.codeide.core.domain.ResultatGit
-                    .Echec("fatal: not found", "not found")
+    fun `un clonage en cours bloque les clones concurrents`() = runTest(regleMain.dispatcher) {
+        advanceUntilIdle()
+        amorcerDossierDeTravailClonage()
+        // Latence factice : le premier clone reste « en cours ».
+        git.latence = 1_000L
+        viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/a.git", "a"))
+        advanceTimeBy(100)
+        assertTrue(viewModel.etat.value.clonageEnCours)
 
-            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/absent.git", "absent"))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/b.git", "b"))
+        advanceUntilIdle()
 
-            val effet = effetsRecus.filterIsInstance<EffetAccueil.EchecClonageGit>().single()
-            assertEquals("fatal: not found", effet.message)
-            assertTrue(effet.rollback)
-            assertTrue(
-                viewModel.etat.value.projets
-                    .isEmpty(),
-            )
-            arreterCollecteEffets()
-        }
+        // Un seul clone exécuté : le second a été ignoré.
+        assertEquals(1, git.operations.count { it.startsWith("cloner:") })
+        assertFalse(viewModel.etat.value.clonageEnCours)
+    }
 
     @Test
-    fun `l echec d enregistrement du clone est annonce et rollback`() =
-        runTest(regleMain.dispatcher) {
-            advanceUntilIdle()
-            collecterEffets()
-            amorcerDossierDeTravailClonage()
-            depot.writeError = IOException("base verrouillée")
+    fun `l echec de git est annonce avec le message honnete et rollback`() = runTest(regleMain.dispatcher) {
+        advanceUntilIdle()
+        collecterEffets()
+        amorcerDossierDeTravailClonage()
+        git.resultatCloner =
+            jo.codeide.core.domain.ResultatGit
+                .Echec("fatal: not found", "not found")
 
-            viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/x.git", "x"))
-            advanceUntilIdle()
+        viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/absent.git", "absent"))
+        advanceUntilIdle()
 
-            val effet = effetsRecus.filterIsInstance<EffetAccueil.EchecClonage>().single()
-            assertTrue(effet.rollback)
-            assertFalse(viewModel.etat.value.clonageEnCours)
-            arreterCollecteEffets()
-        }
+        val effet = effetsRecus.filterIsInstance<EffetAccueil.EchecClonageGit>().single()
+        assertEquals("fatal: not found", effet.message)
+        assertTrue(effet.rollback)
+        assertTrue(
+            viewModel.etat.value.projets
+                .isEmpty(),
+        )
+        arreterCollecteEffets()
+    }
+
+    @Test
+    fun `l echec d enregistrement du clone est annonce et rollback`() = runTest(regleMain.dispatcher) {
+        advanceUntilIdle()
+        collecterEffets()
+        amorcerDossierDeTravailClonage()
+        depot.writeError = IOException("base verrouillée")
+
+        viewModel.action(ActionAccueil.ClonerDepot("https://exemple.org/x.git", "x"))
+        advanceUntilIdle()
+
+        val effet = effetsRecus.filterIsInstance<EffetAccueil.EchecClonage>().single()
+        assertTrue(effet.rollback)
+        assertFalse(viewModel.etat.value.clonageEnCours)
+        arreterCollecteEffets()
+    }
 }

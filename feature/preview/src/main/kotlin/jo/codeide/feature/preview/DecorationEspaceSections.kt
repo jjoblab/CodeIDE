@@ -27,21 +27,14 @@ import androidx.recyclerview.widget.RecyclerView
  * LECTURE SEULE (sous le trait de fin) gardent leurs marges propres :
  * hors de l'éditeur, hors du correctif.
  */
-internal class DecorationEspaceSections(
-    contexte: Context,
-) : RecyclerView.ItemDecoration() {
+internal class DecorationEspaceSections(contexte: Context) : RecyclerView.ItemDecoration() {
     /** L'écart de la colonne des cartes (`.secs` gap, `.ed` gap). */
     private val ecartSections: Int = contexte.resources.getDimensionPixelSize(R.dimen.apercu_gap_sections)
 
     /** L'écart intérieur du bloc des corrections (`.fixes` gap). */
     private val ecartCorrectifs: Int = contexte.resources.getDimensionPixelSize(R.dimen.apercu_correctifs_gap)
 
-    override fun getItemOffsets(
-        rect: Rect,
-        vue: View,
-        parent: RecyclerView,
-        etat: RecyclerView.State,
-    ) {
+    override fun getItemOffsets(rect: Rect, vue: View, parent: RecyclerView, etat: RecyclerView.State) {
         val adaptateur = parent.adapter as? AdaptateurAttributs ?: return
         val position = parent.getChildAdapterPosition(vue)
         // La première rangée ne porte RIEN (le padding du volet, 8/10/14/10,

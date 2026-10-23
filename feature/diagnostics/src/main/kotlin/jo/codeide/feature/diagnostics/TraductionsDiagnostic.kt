@@ -13,57 +13,53 @@ import jo.codeide.core.model.LogVerbosity
 internal object TraductionsDiagnostic {
     /** Message d'un échec applicatif typé. */
     @StringRes
-    fun message(erreur: AppError): Int =
-        when (erreur) {
-            is AppError.Storage -> R.string.diagnostics_erreur_stockage
+    fun message(erreur: AppError): Int = when (erreur) {
+        is AppError.Storage -> R.string.diagnostics_erreur_stockage
 
-            is AppError.Validation -> R.string.diagnostics_erreur_saisie
+        is AppError.Validation -> R.string.diagnostics_erreur_saisie
 
-            is AppError.Template -> R.string.diagnostics_erreur_modele
+        is AppError.Template -> R.string.diagnostics_erreur_modele
 
-            is AppError.Bootstrap -> R.string.diagnostics_erreur_outils
+        is AppError.Bootstrap -> R.string.diagnostics_erreur_outils
 
-            is AppError.EnvironmentSetup -> R.string.diagnostics_erreur_outils
+        is AppError.EnvironmentSetup -> R.string.diagnostics_erreur_outils
 
-            is AppError.Tooling -> R.string.diagnostics_erreur_outils
+        is AppError.Tooling -> R.string.diagnostics_erreur_outils
 
-            // Cycle de vie, étape B (v0.103.0) : refus coopératif du contrat
-            // de session — libellé unique, la raison précise vit dans les
-            // journaux (AppError.Session.details), pas dans l'UI.
-            is AppError.Session -> R.string.diagnostics_erreur_session
+        // Cycle de vie, étape B (v0.103.0) : refus coopératif du contrat
+        // de session — libellé unique, la raison précise vit dans les
+        // journaux (AppError.Session.details), pas dans l'UI.
+        is AppError.Session -> R.string.diagnostics_erreur_session
 
-            // Mission IA (v0.136.0, ADR 0123) : échec typé du transport IA
-            // — la raison précise (clé, quota, hors-ligne…) vit dans les
-            // journaux (AppError.Ai.details), l'écran propose une action.
-            is AppError.Ai -> R.string.diagnostics_erreur_ia
+        // Mission IA (v0.136.0, ADR 0123) : échec typé du transport IA
+        // — la raison précise (clé, quota, hors-ligne…) vit dans les
+        // journaux (AppError.Ai.details), l'écran propose une action.
+        is AppError.Ai -> R.string.diagnostics_erreur_ia
 
-            is AppError.Unknown -> R.string.diagnostics_erreur_stockage
-        }
+        is AppError.Unknown -> R.string.diagnostics_erreur_stockage
+    }
 
     /** Libellé court d'un niveau de journal (filtre et détail). */
     @StringRes
-    fun niveau(niveau: LogLevel): Int =
-        when (niveau) {
-            LogLevel.DEBUG -> R.string.diagnostics_niveau_debug
-            LogLevel.INFO -> R.string.diagnostics_niveau_info
-            LogLevel.WARN -> R.string.diagnostics_niveau_warn
-            LogLevel.ERROR -> R.string.diagnostics_niveau_error
-        }
+    fun niveau(niveau: LogLevel): Int = when (niveau) {
+        LogLevel.DEBUG -> R.string.diagnostics_niveau_debug
+        LogLevel.INFO -> R.string.diagnostics_niveau_info
+        LogLevel.WARN -> R.string.diagnostics_niveau_warn
+        LogLevel.ERROR -> R.string.diagnostics_niveau_error
+    }
 
     /** Libellé d'une verbosité proposée à l'utilisateur. */
     @StringRes
-    fun verbosite(verbosite: LogVerbosity): Int =
-        when (verbosite) {
-            LogVerbosity.NORMAL -> R.string.diagnostics_verbosite_normale
-            LogVerbosity.DETAILED -> R.string.diagnostics_verbosite_detaillee
-        }
+    fun verbosite(verbosite: LogVerbosity): Int = when (verbosite) {
+        LogVerbosity.NORMAL -> R.string.diagnostics_verbosite_normale
+        LogVerbosity.DETAILED -> R.string.diagnostics_verbosite_detaillee
+    }
 
     /** Libellé d'un type de plantage. */
     @StringRes
-    fun type(type: CrashType): Int =
-        when (type) {
-            CrashType.EXCEPTION -> R.string.diagnostics_type_exception
-            CrashType.ANR -> R.string.diagnostics_type_anr
-            CrashType.NATIVE -> R.string.diagnostics_type_natif
-        }
+    fun type(type: CrashType): Int = when (type) {
+        CrashType.EXCEPTION -> R.string.diagnostics_type_exception
+        CrashType.ANR -> R.string.diagnostics_type_anr
+        CrashType.NATIVE -> R.string.diagnostics_type_natif
+    }
 }

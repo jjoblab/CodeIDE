@@ -39,11 +39,7 @@ public object ReferencesId {
      * rendu n'a pas de nœud ici — `null`, le contrôle dégrade sans
      * candidats).
      */
-    public fun indiceDe(
-        arbre: List<ArbreAttributsXml.Noeud>,
-        debut: Int,
-        fin: Int,
-    ): Int? {
+    public fun indiceDe(arbre: List<ArbreAttributsXml.Noeud>, debut: Int, fin: Int): Int? {
         arbre.forEachIndexed { indice, noeud ->
             if (noeud.debut == debut && noeud.fin == fin) return indice
         }
@@ -86,30 +82,29 @@ public object ReferencesId {
         vue: ArbreAttributsXml.Noeud?,
         parent: ArbreAttributsXml.Noeud?,
         reference: CatalogueAttributs.ControleAttribut.ReferenceId,
-    ): List<ArbreAttributsXml.Noeud> =
-        when (reference.portee) {
-            CatalogueAttributs.ControleAttribut.ReferenceId.Portee.TOUT -> {
-                arbre.filter { it !== vue && it.id != null }
-            }
+    ): List<ArbreAttributsXml.Noeud> = when (reference.portee) {
+        CatalogueAttributs.ControleAttribut.ReferenceId.Portee.TOUT -> {
+            arbre.filter { it !== vue && it.id != null }
+        }
 
-            CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES -> {
-                parent?.enfants?.filter { it !== vue && it.id != null } ?: emptyList()
-            }
+        CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES -> {
+            parent?.enfants?.filter { it !== vue && it.id != null } ?: emptyList()
+        }
 
-            CatalogueAttributs.ControleAttribut.ReferenceId.Portee.SOUS_ARBRE -> {
-                if (reference.nom == ANCRE_COORDINATEUR && parent != null) {
-                    // Le sous-arbre du PARENT, hors le parent, la vue
-                    // et ses descendants (miroir `refCands` — ancre).
-                    sousArbre(parent, exclure = vue)
-                } else if (vue != null) {
-                    // Le sous-arbre de la VUE, hors la vue (spec § 5.3
-                    // — écart maquette consigné en tête d'objet).
-                    sousArbre(vue, exclure = null)
-                } else {
-                    emptyList()
-                }
+        CatalogueAttributs.ControleAttribut.ReferenceId.Portee.SOUS_ARBRE -> {
+            if (reference.nom == ANCRE_COORDINATEUR && parent != null) {
+                // Le sous-arbre du PARENT, hors le parent, la vue
+                // et ses descendants (miroir `refCands` — ancre).
+                sousArbre(parent, exclure = vue)
+            } else if (vue != null) {
+                // Le sous-arbre de la VUE, hors la vue (spec § 5.3
+                // — écart maquette consigné en tête d'objet).
+                sousArbre(vue, exclure = null)
+            } else {
+                emptyList()
             }
         }
+    }
 
     /**
      * Les ENTRÉES : un candidat par identifiant NU, marqué [Entree.boucle]
@@ -121,49 +116,37 @@ public object ReferencesId {
         parent: ArbreAttributsXml.Noeud?,
         vue: ArbreAttributsXml.Noeud?,
         reference: CatalogueAttributs.ControleAttribut.ReferenceId,
-    ): List<Entree> =
-        candidats.map { noeud ->
-            Entree(
-                id = noeud.id.orEmpty(),
-                boucle =
-                    reference.portee == CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES &&
-                        parent != null &&
-                        RelationsParents.fermeraitBoucle(parent, vue?.id ?: "", reference.nom, noeud.id.orEmpty()),
-            )
-        }
+    ): List<Entree> = candidats.map { noeud ->
+        Entree(
+            id = noeud.id.orEmpty(),
+            boucle =
+            reference.portee == CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES &&
+                parent != null &&
+                RelationsParents.fermeraitBoucle(parent, vue?.id ?: "", reference.nom, noeud.id.orEmpty()),
+        )
+    }
 
     /** La NOTE du champ (spec § 5.3) : FRÈRES pour les règles, ANCRE pour layout_anchor. */
-    private fun noteDe(reference: CatalogueAttributs.ControleAttribut.ReferenceId): Note =
-        when {
-            reference.portee == CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES -> Note.FRERES
+    private fun noteDe(reference: CatalogueAttributs.ControleAttribut.ReferenceId): Note = when {
+        reference.portee == CatalogueAttributs.ControleAttribut.ReferenceId.Portee.FRERES -> Note.FRERES
 
-            reference.portee == CatalogueAttributs.ControleAttribut.ReferenceId.Portee.SOUS_ARBRE &&
-                reference.nom == ANCRE_COORDINATEUR -> Note.ANCRE
+        reference.portee == CatalogueAttributs.ControleAttribut.ReferenceId.Portee.SOUS_ARBRE &&
+            reference.nom == ANCRE_COORDINATEUR -> Note.ANCRE
 
-            else -> Note.SANS
-        }
+        else -> Note.SANS
+    }
 
     /** La valeur courante NORMALISÉE si AUCUN candidat ne la porte (l'option « (introuvable) » du liage). */
-    private fun introuvableDe(
-        valeur: String?,
-        entrees: List<Entree>,
-    ): String? {
+    private fun introuvableDe(valeur: String?, entrees: List<Entree>): String? {
         val courante = valeur?.replace("@+id/", "@id/").orEmpty()
         return courante.takeIf { it.isNotBlank() && entrees.none { entree -> "@id/${entree.id}" == it } }
     }
 
     /** Une option candidate : l'identifiant NU (« bio ») et son grisage. */
-    public data class Entree(
-        val id: String,
-        val boucle: Boolean,
-    )
+    public data class Entree(val id: String, val boucle: Boolean)
 
     /** Les options calculées d'une référence d'id (voir [options]). */
-    public data class Options(
-        val entrees: List<Entree>,
-        val note: Note,
-        val introuvable: String?,
-    )
+    public data class Options(val entrees: List<Entree>, val note: Note, val introuvable: String?)
 
     /** La note sous le champ (spec § 5.3 — « aucun » reste sans note). */
     public enum class Note {

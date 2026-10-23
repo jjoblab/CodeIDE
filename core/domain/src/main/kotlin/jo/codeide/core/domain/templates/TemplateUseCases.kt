@@ -25,60 +25,60 @@ import javax.inject.Inject
  * déterministe (l'ordre du `Set` Hilt ne l'est pas).
  */
 public class ListTemplatesUseCase
-    @Inject
-    constructor(
-        private val fournisseurs: Set<@JvmSuppressWildcards ProjectTemplateProvider>,
-        private val moteur: TemplateEngine,
-    ) {
-        /**
-         * Liste le catalogue.
-         *
-         * @param langue langue d'affichage des libellés (repli anglais).
-         * @return les résumés triés par identifiant, ou l'échec typé (un
-         * manifeste corrompu d'un fournisseur échoue explicitement).
-         */
-        @Suppress("ReturnCount") // Échec fournisseur puis doublon (règle 16).
-        public suspend operator fun invoke(
-            langue: String = TemplateOptions.LANGUE_DEFAUT,
-        ): AppResult<List<TemplateSummary>> {
-            val charges = mutableListOf<LoadedTemplate>()
-            val ids = mutableSetOf<String>()
-            for (fournisseur in fournisseurs) {
-                val lot =
-                    fournisseur.provide().getOrNull()
-                        ?: return AppResult.Failure(AppError.Template("un fournisseur de modèles a échoué"))
-                for (charge in lot) {
-                    if (!ids.add(charge.template.id.value)) {
-                        return AppResult.Failure(
-                            AppError.Template(
-                                "modèle en double entre fournisseurs : « ${charge.template.id.value} »",
-                            ),
-                        )
-                    }
-                    charges += charge
+@Inject
+constructor(
+    private val fournisseurs: Set<@JvmSuppressWildcards ProjectTemplateProvider>,
+    private val moteur: TemplateEngine,
+) {
+    /**
+     * Liste le catalogue.
+     *
+     * @param langue langue d'affichage des libellés (repli anglais).
+     * @return les résumés triés par identifiant, ou l'échec typé (un
+     * manifeste corrompu d'un fournisseur échoue explicitement).
+     */
+    @Suppress("ReturnCount") // Échec fournisseur puis doublon (règle 16).
+    public suspend operator fun invoke(
+        langue: String = TemplateOptions.LANGUE_DEFAUT,
+    ): AppResult<List<TemplateSummary>> {
+        val charges = mutableListOf<LoadedTemplate>()
+        val ids = mutableSetOf<String>()
+        for (fournisseur in fournisseurs) {
+            val lot =
+                fournisseur.provide().getOrNull()
+                    ?: return AppResult.Failure(AppError.Template("un fournisseur de modèles a échoué"))
+            for (charge in lot) {
+                if (!ids.add(charge.template.id.value)) {
+                    return AppResult.Failure(
+                        AppError.Template(
+                            "modèle en double entre fournisseurs : « ${charge.template.id.value} »",
+                        ),
+                    )
                 }
+                charges += charge
             }
-            return AppResult.Success(charges.map { moteur.resumer(it, langue) }.sortedBy { it.id.value })
         }
+        return AppResult.Success(charges.map { moteur.resumer(it, langue) }.sortedBy { it.id.value })
     }
+}
 
 /** Cas d'usage « valider le nom de projet » (section 12.3, champ commun du wizard). */
 public class ValidateProjectNameUseCase
-    @Inject
-    constructor() {
-        /**
-         * Valide un nom de projet.
-         *
-         * @param nom valeur saisie.
-         * @return le succès, ou `Validation` avec le détail (français).
-         */
-        public operator fun invoke(nom: String): AppResult<Unit> {
-            val erreur =
-                TemplateValidators.valider("project-name", nom)
-                    ?: return AppResult.Success(Unit)
-            return AppResult.Failure(AppError.Validation("nom de projet : $erreur"))
-        }
+@Inject
+constructor() {
+    /**
+     * Valide un nom de projet.
+     *
+     * @param nom valeur saisie.
+     * @return le succès, ou `Validation` avec le détail (français).
+     */
+    public operator fun invoke(nom: String): AppResult<Unit> {
+        val erreur =
+            TemplateValidators.valider("project-name", nom)
+                ?: return AppResult.Success(Unit)
+        return AppResult.Failure(AppError.Validation("nom de projet : $erreur"))
     }
+}
 
 /**
  * Cas d'usage « évaluer le nom de projet » (étape 10 — section 12.3) :
@@ -87,35 +87,34 @@ public class ValidateProjectNameUseCase
  * localisée — le message français reste réservé aux journaux.
  */
 public class EvaluerNomProjetUseCase
-    @Inject
-    constructor() {
-        /**
-         * Évalue un nom de projet.
-         *
-         * @param nom valeur saisie.
-         * @return `null` si le nom est valide, sinon la raison typée.
-         */
-        public operator fun invoke(nom: String): RaisonValidation? =
-            TemplateValidators.evaluer("project-name", nom)?.raison
-    }
+@Inject
+constructor() {
+    /**
+     * Évalue un nom de projet.
+     *
+     * @param nom valeur saisie.
+     * @return `null` si le nom est valide, sinon la raison typée.
+     */
+    public operator fun invoke(nom: String): RaisonValidation? = TemplateValidators.evaluer("project-name", nom)?.raison
+}
 
 /** Cas d'usage « valider le nom de package » (section 12.3, champ commun du wizard). */
 public class ValidatePackageNameUseCase
-    @Inject
-    constructor() {
-        /**
-         * Valide un nom de package.
-         *
-         * @param nomPackage valeur saisie.
-         * @return le succès, ou `Validation` avec le détail (français).
-         */
-        public operator fun invoke(nomPackage: String): AppResult<Unit> {
-            val erreur =
-                TemplateValidators.valider("package-name", nomPackage)
-                    ?: return AppResult.Success(Unit)
-            return AppResult.Failure(AppError.Validation("nom de package : $erreur"))
-        }
+@Inject
+constructor() {
+    /**
+     * Valide un nom de package.
+     *
+     * @param nomPackage valeur saisie.
+     * @return le succès, ou `Validation` avec le détail (français).
+     */
+    public operator fun invoke(nomPackage: String): AppResult<Unit> {
+        val erreur =
+            TemplateValidators.valider("package-name", nomPackage)
+                ?: return AppResult.Success(Unit)
+        return AppResult.Failure(AppError.Validation("nom de package : $erreur"))
     }
+}
 
 /**
  * Cas d'usage « évaluer le formulaire d'un modèle » (étape 8 — section 12.2).
@@ -126,65 +125,61 @@ public class ValidatePackageNameUseCase
  * les paramètres, libellés résolus.
  */
 public class EvaluateTemplateFormUseCase
-    @Inject
-    constructor(
-        private val planificateur: TemplateProjectPlanner,
-    ) {
-        /**
-         * Évalue le formulaire courant.
-         *
-         * @param templateId modèle concerné.
-         * @param nomProjet nom du projet saisi (source des dérivations).
-         * @param valeursParametres valeurs saisies.
-         * @param modifiesManuellement identifiants modifiés à la main.
-         * @param langue langue des libellés.
-         * @return l'évaluation complète, ou `NotFound`/`Template`.
-         */
-        public suspend operator fun invoke(
-            templateId: TemplateId,
-            nomProjet: String,
-            valeursParametres: Map<String, String>,
-            modifiesManuellement: Set<String> = emptySet(),
-            langue: String = TemplateOptions.LANGUE_DEFAUT,
-        ): AppResult<TemplateFormEvaluation> {
-            val charge =
-                planificateur.trouver(templateId).getOrNull()
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.NotFound, "modèle ${templateId.value}"),
-                    )
-            val parametres = planificateur.parametresCourants()
-            return AppResult.Success(
-                planificateur.moteur.evaluerFormulaire(
-                    charge,
-                    nomProjet,
-                    parametres.authorName,
-                    valeursParametres,
-                    modifiesManuellement,
-                    langue,
-                ),
-            )
-        }
+@Inject
+constructor(private val planificateur: TemplateProjectPlanner) {
+    /**
+     * Évalue le formulaire courant.
+     *
+     * @param templateId modèle concerné.
+     * @param nomProjet nom du projet saisi (source des dérivations).
+     * @param valeursParametres valeurs saisies.
+     * @param modifiesManuellement identifiants modifiés à la main.
+     * @param langue langue des libellés.
+     * @return l'évaluation complète, ou `NotFound`/`Template`.
+     */
+    public suspend operator fun invoke(
+        templateId: TemplateId,
+        nomProjet: String,
+        valeursParametres: Map<String, String>,
+        modifiesManuellement: Set<String> = emptySet(),
+        langue: String = TemplateOptions.LANGUE_DEFAUT,
+    ): AppResult<TemplateFormEvaluation> {
+        val charge =
+            planificateur.trouver(templateId).getOrNull()
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.NotFound, "modèle ${templateId.value}"),
+                )
+        val parametres = planificateur.parametresCourants()
+        return AppResult.Success(
+            planificateur.moteur.evaluerFormulaire(
+                charge,
+                nomProjet,
+                parametres.authorName,
+                valeursParametres,
+                modifiesManuellement,
+                langue,
+            ),
+        )
     }
+}
 
 /**
  * Cas d'usage « planifier la création » (dry-run, section 12.4) : l'aperçu
  * de l'arborescence du récapitulatif — **sans rien écrire**.
  */
 public class PlanProjectCreationUseCase
-    @Inject
-    constructor(
-        private val planificateur: TemplateProjectPlanner,
-    ) {
-        /**
-         * Produit le plan complet de la création demandée.
-         *
-         * @param requete demande complète (l'emplacement parent est ignoré
-         * ici : le plan ne touche pas au disque).
-         * @return le plan (chemins + contenus finaux), ou l'échec typé.
-         */
-        public suspend operator fun invoke(requete: CreateProjectRequest): AppResult<TemplatePlan> =
-            planificateur.planifier(requete)
-    }
+@Inject
+constructor(private val planificateur: TemplateProjectPlanner) {
+    /**
+     * Produit le plan complet de la création demandée.
+     *
+     * @param requete demande complète (l'emplacement parent est ignoré
+     * ici : le plan ne touche pas au disque).
+     * @return le plan (chemins + contenus finaux), ou l'échec typé.
+     */
+    public suspend operator fun invoke(requete: CreateProjectRequest): AppResult<TemplatePlan> =
+        planificateur.planifier(requete)
+}
 
 /**
  * Planificateur partagé des créations (étape 8) : trouve le modèle parmi
@@ -198,55 +193,54 @@ public class PlanProjectCreationUseCase
  * consommé au-delà.
  */
 public class TemplateProjectPlanner
-    @Inject
-    constructor(
-        internal val moteur: TemplateEngine,
-        private val fournisseurs: Set<@JvmSuppressWildcards ProjectTemplateProvider>,
-        private val parametres: SettingsRepository,
-        private val horloge: TimeProvider,
-        private val generateur: GeneratorVersion,
-    ) {
-        /** Cherche un modèle chargé par identifiant. */
-        public suspend fun trouver(id: TemplateId): AppResult<LoadedTemplate> {
-            for (fournisseur in fournisseurs) {
-                val lot = fournisseur.provide().getOrNull() ?: continue
-                val trouve = lot.firstOrNull { it.template.id == id }
-                if (trouve != null) return AppResult.Success(trouve)
-            }
-            return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "modèle ${id.value}"))
+@Inject
+constructor(
+    internal val moteur: TemplateEngine,
+    private val fournisseurs: Set<@JvmSuppressWildcards ProjectTemplateProvider>,
+    private val parametres: SettingsRepository,
+    private val horloge: TimeProvider,
+    private val generateur: GeneratorVersion,
+) {
+    /** Cherche un modèle chargé par identifiant. */
+    public suspend fun trouver(id: TemplateId): AppResult<LoadedTemplate> {
+        for (fournisseur in fournisseurs) {
+            val lot = fournisseur.provide().getOrNull() ?: continue
+            val trouve = lot.firstOrNull { it.template.id == id }
+            if (trouve != null) return AppResult.Success(trouve)
         }
-
-        /** Paramètres applicatifs courants (auteur, licence par défaut…). */
-        internal suspend fun parametresCourants() = parametres.observeSettings().first()
-
-        /** Planifie la création correspondant à [requete]. */
-        internal suspend fun planifier(requete: CreateProjectRequest): AppResult<TemplatePlan> {
-            val charge =
-                trouver(requete.templateId).getOrNull()
-                    ?: return AppResult.Failure(
-                        AppError.Storage(AppError.StorageReason.NotFound, "modèle ${requete.templateId.value}"),
-                    )
-            val reglages = parametresCourants()
-            val requeteGeneration =
-                RequeteGeneration(
-                    nom = requete.name,
-                    description = requete.description,
-                    valeursParametres = requete.parameterValues,
-                    modifiesManuellement = requete.manuallySetParameters,
-                    options = requete.options,
-                    auteur = reglages.authorName,
-                    annee = anneeCourante(),
-                    versionGenerateur = generateur.value,
-                    renommages = requete.cheminsRenommes,
-                )
-            return moteur.planifier(charge, requeteGeneration)
-        }
-
-        /** Année civile de l'instant injecté (zone du système). */
-        private fun anneeCourante(): String =
-            Instant
-                .ofEpochMilli(horloge.nowMillis())
-                .atZone(ZoneId.systemDefault())
-                .year
-                .toString()
+        return AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "modèle ${id.value}"))
     }
+
+    /** Paramètres applicatifs courants (auteur, licence par défaut…). */
+    internal suspend fun parametresCourants() = parametres.observeSettings().first()
+
+    /** Planifie la création correspondant à [requete]. */
+    internal suspend fun planifier(requete: CreateProjectRequest): AppResult<TemplatePlan> {
+        val charge =
+            trouver(requete.templateId).getOrNull()
+                ?: return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.NotFound, "modèle ${requete.templateId.value}"),
+                )
+        val reglages = parametresCourants()
+        val requeteGeneration =
+            RequeteGeneration(
+                nom = requete.name,
+                description = requete.description,
+                valeursParametres = requete.parameterValues,
+                modifiesManuellement = requete.manuallySetParameters,
+                options = requete.options,
+                auteur = reglages.authorName,
+                annee = anneeCourante(),
+                versionGenerateur = generateur.value,
+                renommages = requete.cheminsRenommes,
+            )
+        return moteur.planifier(charge, requeteGeneration)
+    }
+
+    /** Année civile de l'instant injecté (zone du système). */
+    private fun anneeCourante(): String = Instant
+        .ofEpochMilli(horloge.nowMillis())
+        .atZone(ZoneId.systemDefault())
+        .year
+        .toString()
+}

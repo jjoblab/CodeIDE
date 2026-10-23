@@ -47,10 +47,7 @@ internal class PhaseOutilsPaquets(
     }
 
     /** Version installée d'un outil : première ligne de sa commande de vérification. */
-    private suspend fun versionDe(
-        contexte: StepContext,
-        paquet: String,
-    ): String? {
+    private suspend fun versionDe(contexte: StepContext, paquet: String): String? {
         val spec = verificationDe(paquet)
         val resultat =
             contexte.commands.run(
@@ -77,37 +74,36 @@ internal class PhaseOutilsPaquets(
     }
 
     /** Commande de vérification d'un outil (§ 5.2 — exécution réelle, jamais une existence de fichier). */
-    private fun verificationDe(paquet: String): VerificationOutil =
-        when (paquet) {
-            "curl" -> {
-                VerificationOutil("bin/curl", listOf("--version"))
-            }
-
-            "ca-certificates" -> {
-                VerificationOutil(
-                    programme = "bin/dpkg",
-                    arguments = listOf("-l", "ca-certificates"),
-                    attendu = Regex("(?m)^ii\\s+ca-certificates"),
-                    extractionVersion = Regex("(?m)^ii\\s+ca-certificates\\s+(\\S+)"),
-                )
-            }
-
-            "tar" -> {
-                VerificationOutil("bin/tar", listOf("--version"))
-            }
-
-            "xz-utils" -> {
-                VerificationOutil("bin/xz", listOf("--version"))
-            }
-
-            "unzip" -> {
-                VerificationOutil("bin/unzip", listOf("-v"))
-            }
-
-            else -> {
-                VerificationOutil("bin/$paquet", listOf("--version"))
-            }
+    private fun verificationDe(paquet: String): VerificationOutil = when (paquet) {
+        "curl" -> {
+            VerificationOutil("bin/curl", listOf("--version"))
         }
+
+        "ca-certificates" -> {
+            VerificationOutil(
+                programme = "bin/dpkg",
+                arguments = listOf("-l", "ca-certificates"),
+                attendu = Regex("(?m)^ii\\s+ca-certificates"),
+                extractionVersion = Regex("(?m)^ii\\s+ca-certificates\\s+(\\S+)"),
+            )
+        }
+
+        "tar" -> {
+            VerificationOutil("bin/tar", listOf("--version"))
+        }
+
+        "xz-utils" -> {
+            VerificationOutil("bin/xz", listOf("--version"))
+        }
+
+        "unzip" -> {
+            VerificationOutil("bin/unzip", listOf("-v"))
+        }
+
+        else -> {
+            VerificationOutil("bin/$paquet", listOf("--version"))
+        }
+    }
 
     /** Spécification de vérification d'un outil du préfixe. */
     internal data class VerificationOutil(
@@ -127,10 +123,8 @@ internal class PhaseOutilsPaquets(
  * Étape `mise-a-jour` : `pkg update` retenté à délai croissant, repli
  * journalisé `apt update` (§ 5.2) — échec persistant = échec de phase.
  */
-private class EtapeMiseAJourPaquets(
-    private val racine: File,
-    private val delais: List<Long> = DELAIS_CROISSANTS,
-) : InstallStep {
+private class EtapeMiseAJourPaquets(private val racine: File, private val delais: List<Long> = DELAIS_CROISSANTS) :
+    InstallStep {
     override val id: StepId = StepId(InstallPhase.PACKAGE_TOOLS, "mise-a-jour")
 
     override suspend fun execute(context: StepContext) {
@@ -172,31 +166,24 @@ private class EtapeMiseAJourPaquets(
             AppError.EnvironmentSetup(
                 reason = EnvironmentSetupReason.Reseau,
                 details =
-                    "mise à jour des paquets impossible après ${STRATEGIES.size} tentatives — " +
-                        "vérifier la connexion réseau et le dépôt (miroir)",
+                "mise à jour des paquets impossible après ${STRATEGIES.size} tentatives — " +
+                    "vérifier la connexion réseau et le dépôt (miroir)",
                 sortie =
-                    memoire?.let {
-                        CommandOutput(
-                            commande = it.commande,
-                            exitCode = it.resultat.exitCode,
-                            lastLines = it.resultat.tail(BORNE_SORTIE),
-                        )
-                    },
+                memoire?.let {
+                    CommandOutput(
+                        commande = it.commande,
+                        exitCode = it.resultat.exitCode,
+                        lastLines = it.resultat.tail(BORNE_SORTIE),
+                    )
+                },
             ),
         )
     }
 
     /** Dernière tentative échouée, pour le diagnostic attaché à l'échec. */
-    private data class CommandResultMemoire(
-        val commande: String,
-        val resultat: jo.codeide.core.domain.CommandResult,
-    )
+    private data class CommandResultMemoire(val commande: String, val resultat: jo.codeide.core.domain.CommandResult)
 
-    private data class Strategie(
-        val programme: String,
-        val argument: String,
-        val libelle: String,
-    )
+    private data class Strategie(val programme: String, val argument: String, val libelle: String)
 
     private companion object {
         /** Bornage des sorties attachées aux échecs (§ 3.4). */

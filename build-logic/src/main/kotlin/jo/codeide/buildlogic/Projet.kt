@@ -136,6 +136,26 @@ internal fun Project.configurerSpotless() {
         target("src/**/*.kt")
         targetExclude("**/build/**", "**/assets/templates/**")
         ktlint(libs.findVersion("ktlint").get().toString())
+            // Mission « Previews » Compose C1 (PREVIEW.md §4) :
+            // :preview:compose embarque le runtime Compose comme
+            // bibliothèque d'interprétation — ses @Composable suivent la
+            // convention PascalCase du framework (usines de type).
+            // Exception canonique des projets Compose (même propriété
+            // posée dans le .editorconfig racine, ce relais garantit la
+            // propriété dans les builds où la découverte des fichiers
+            // .editorconfig n'est pas assurée) ; INERTE pour tout module
+            // sans @Composable.
+            // max_line_length = 120 DU .editorconfig RACINE : spotless
+            // RELAIE ICI toute propriété quand un override existe — sans
+            // ce relais explicite, ktlint retombe à SA marge par défaut
+            // (140) et « re-formate » tout le dépôt en effondrant des
+            // signatures tenues à 120. Le relais préserve le style établi.
+            .editorConfigOverride(
+                mapOf(
+                    "max_line_length" to "120",
+                    "ktlint_function_naming_ignore_when_annotated_with" to "Composable",
+                ),
+            )
     }
 }
 

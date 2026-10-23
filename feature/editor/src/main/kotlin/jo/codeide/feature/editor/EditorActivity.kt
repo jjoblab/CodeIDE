@@ -541,10 +541,7 @@ class EditorActivity :
 
         liaison.racineEditeur.addDrawerListener(
             object : DrawerLayout.SimpleDrawerListener() {
-                override fun onDrawerSlide(
-                    vueTiroir: View,
-                    slideOffset: Float,
-                ) {
+                override fun onDrawerSlide(vueTiroir: View, slideOffset: Float) {
                     // E1 : met à jour la fraction de l'icône animée.
                     iconeTiroir.setFraction(slideOffset)
                     // v0.80.2 : la poignée racine suit le bord du tiroir
@@ -557,8 +554,8 @@ class EditorActivity :
                 override fun onDrawerStateChanged(nouvelEtat: Int) {
                     majRetourSysteme(
                         tiroirOuvert =
-                            nouvelEtat == DrawerLayout.STATE_IDLE &&
-                                liaison.racineEditeur.isDrawerOpen(liaison.tiroir),
+                        nouvelEtat == DrawerLayout.STATE_IDLE &&
+                            liaison.racineEditeur.isDrawerOpen(liaison.tiroir),
                     )
                 }
 
@@ -911,11 +908,11 @@ class EditorActivity :
                         DiagnosticEditeur(
                             identifiant = "${diagnostic.source}:${diagnostic.ligne}:${diagnostic.colonne}",
                             gravite =
-                                when (diagnostic.severite) {
-                                    SeveriteDiagnostic.ERREUR -> GraviteDiagnostic.ERREUR
-                                    SeveriteDiagnostic.AVERTISSEMENT -> GraviteDiagnostic.AVERTISSEMENT
-                                    else -> GraviteDiagnostic.INFO
-                                },
+                            when (diagnostic.severite) {
+                                SeveriteDiagnostic.ERREUR -> GraviteDiagnostic.ERREUR
+                                SeveriteDiagnostic.AVERTISSEMENT -> GraviteDiagnostic.AVERTISSEMENT
+                                else -> GraviteDiagnostic.INFO
+                            },
                             cheminRelatif = cheminActif,
                             ligne = diagnostic.ligne.toInt(),
                             colonne = diagnostic.colonne.toInt(),
@@ -931,11 +928,7 @@ class EditorActivity :
         /** Remplacement ATOMIQUE : beginBatch/endBatch = un seul pas
          * d'annulation (ADR 0126) ; plage invalide = échec typé, jamais
          * d'écrasement silencieux. */
-        override fun appliquerRemplacement(
-            debut: Int,
-            fin: Int,
-            texte: String,
-        ): AppResult<Unit> {
+        override fun appliquerRemplacement(debut: Int, fin: Int, texte: String): AppResult<Unit> {
             val session =
                 sessionEditeurActif()
                     ?: return AppResult.Failure(
@@ -1096,10 +1089,7 @@ class EditorActivity :
                 private var abscisseDepart = 0f
                 private var largeurDepart = 0
 
-                override fun onTouch(
-                    vue: View,
-                    evenement: MotionEvent,
-                ): Boolean {
+                override fun onTouch(vue: View, evenement: MotionEvent): Boolean {
                     when (evenement.actionMasked) {
                         MotionEvent.ACTION_DOWN -> {
                             abscisseDepart = evenement.rawX
@@ -1140,10 +1130,7 @@ class EditorActivity :
      * sélecteur pressé (fond actif + bordure accent-fort), points ⋮
      * accent, grossissement 1.08 animé (150 ms) — retour symétrique au
      * relâchement (maquette : `transition ... .15s`, `scale(1.08)`). */
-    private fun animerPoigneePendant(
-        poignee: ImageView,
-        pendant: Boolean,
-    ) {
+    private fun animerPoigneePendant(poignee: ImageView, pendant: Boolean) {
         // L'état pressé active la variante du sélecteur de fond
         // (fond #2C3644 nuit / #C9D6E4 jour + bordure accent-fort).
         poignee.isPressed = pendant
@@ -1654,6 +1641,12 @@ class EditorActivity :
     private fun brancherEditeur() {
         // CE3 (B10) : barre de recherche/remplacement.
         liaison.barreRecherche.bind(liaison.vueEditeur)
+        // Mission « Previews » C1 (PREVIEW.md §4) : la carte d'aperçu
+        // « goutte d'eau » (cel-ui B27) accueille les previews Compose de
+        // l'onglet Kotlin actif — l'hôte vit dans le ViewModel (il survit
+        // aux re-créations de l'écran), la vue n'en est que le support.
+        // Null = suites pures sans contexte (l'œil n'apparaît pas).
+        viewModel.apercuCompose?.installerSur(liaison.vueEditeur)
     }
 
     /**
@@ -1701,10 +1694,7 @@ class EditorActivity :
         poserAncragePanneau()
         comportementPanneau.addBottomSheetCallback(
             object : BottomSheetBehavior.BottomSheetCallback() {
-                override fun onStateChanged(
-                    vue: View,
-                    nouvelEtat: Int,
-                ) {
+                override fun onStateChanged(vue: View, nouvelEtat: Int) {
                     // Seules les transitions **stabilisées** remontent au
                     // ViewModel (DRAGGING/SETTLING sont transitoires) — le
                     // rejou d'un état déjà courant est sans effet (UDF).
@@ -1751,10 +1741,7 @@ class EditorActivity :
                  *  (v0.32.5, ADR 0056 décision 3) : opaque jusqu'à
                  *  mi-hauteur, éteint à l'extension — chaque trame du
                  *  glissement pose l'alpha correspondant. */
-                override fun onSlide(
-                    vue: View,
-                    glissement: Float,
-                ) {
+                override fun onSlide(vue: View, glissement: Float) {
                     appliquerFonduEntete(glissement)
                     // E3 (ADR 0093) : met à l'échelle le conteneur de l'éditeur.
                     appliquerEchelleSheet(glissement)
@@ -1988,76 +1975,75 @@ class EditorActivity :
     }
 
     /** Message localisé d'une notification de l'explorateur (§ 15). */
-    private fun texteNotification(notification: NotificationArbre): String =
-        when (notification.type) {
-            TypeNotificationArbre.ASTUCE -> {
-                getString(R.string.notif_astuce)
-            }
-
-            TypeNotificationArbre.BASCULE_PRIVE -> {
-                getString(R.string.notif_bascule_prive)
-            }
-
-            TypeNotificationArbre.BASCULE_PROJET -> {
-                getString(R.string.notif_bascule_projet)
-            }
-
-            TypeNotificationArbre.CREE -> {
-                getString(R.string.notif_cree, notification.nom)
-            }
-
-            TypeNotificationArbre.RENOMME -> {
-                getString(R.string.notif_renomme, notification.nom, notification.nomSecondaire)
-            }
-
-            TypeNotificationArbre.SUPPRIME -> {
-                getString(R.string.notif_supprime, notification.nom)
-            }
-
-            TypeNotificationArbre.COPIE -> {
-                getString(R.string.notif_copie)
-            }
-
-            TypeNotificationArbre.COUPE -> {
-                getString(R.string.notif_coupe)
-            }
-
-            TypeNotificationArbre.VIDE -> {
-                getString(R.string.notif_vide)
-            }
-
-            TypeNotificationArbre.COLLE -> {
-                getString(R.string.notif_colle, notification.nom, notification.nomSecondaire)
-            }
-
-            TypeNotificationArbre.DEPLACE -> {
-                getString(R.string.notif_deplace, notification.nom, notification.nomSecondaire)
-            }
-
-            TypeNotificationArbre.COLLE_IMPOSSIBLE -> {
-                getString(R.string.notif_colle_impossible)
-            }
-
-            TypeNotificationArbre.DEJA_PRESENT -> {
-                getString(R.string.notif_deja_present)
-            }
-
-            TypeNotificationArbre.DESTINATION_INTROUVABLE -> {
-                getString(R.string.notif_destination_introuvable)
-            }
-
-            TypeNotificationArbre.DEJA_A_CET_ENDROIT -> {
-                getString(R.string.notif_deja_cet_endroit)
-            }
-
-            TypeNotificationArbre.DEPLACEMENT_DANS_SOURCE -> {
-                getString(R.string.notif_deplacement_dans_source)
-            }
-
-            TypeNotificationArbre.NOM_INVALIDE -> {
-                getString(R.string.notif_nom_invalide)
-            }
+    private fun texteNotification(notification: NotificationArbre): String = when (notification.type) {
+        TypeNotificationArbre.ASTUCE -> {
+            getString(R.string.notif_astuce)
         }
+
+        TypeNotificationArbre.BASCULE_PRIVE -> {
+            getString(R.string.notif_bascule_prive)
+        }
+
+        TypeNotificationArbre.BASCULE_PROJET -> {
+            getString(R.string.notif_bascule_projet)
+        }
+
+        TypeNotificationArbre.CREE -> {
+            getString(R.string.notif_cree, notification.nom)
+        }
+
+        TypeNotificationArbre.RENOMME -> {
+            getString(R.string.notif_renomme, notification.nom, notification.nomSecondaire)
+        }
+
+        TypeNotificationArbre.SUPPRIME -> {
+            getString(R.string.notif_supprime, notification.nom)
+        }
+
+        TypeNotificationArbre.COPIE -> {
+            getString(R.string.notif_copie)
+        }
+
+        TypeNotificationArbre.COUPE -> {
+            getString(R.string.notif_coupe)
+        }
+
+        TypeNotificationArbre.VIDE -> {
+            getString(R.string.notif_vide)
+        }
+
+        TypeNotificationArbre.COLLE -> {
+            getString(R.string.notif_colle, notification.nom, notification.nomSecondaire)
+        }
+
+        TypeNotificationArbre.DEPLACE -> {
+            getString(R.string.notif_deplace, notification.nom, notification.nomSecondaire)
+        }
+
+        TypeNotificationArbre.COLLE_IMPOSSIBLE -> {
+            getString(R.string.notif_colle_impossible)
+        }
+
+        TypeNotificationArbre.DEJA_PRESENT -> {
+            getString(R.string.notif_deja_present)
+        }
+
+        TypeNotificationArbre.DESTINATION_INTROUVABLE -> {
+            getString(R.string.notif_destination_introuvable)
+        }
+
+        TypeNotificationArbre.DEJA_A_CET_ENDROIT -> {
+            getString(R.string.notif_deja_cet_endroit)
+        }
+
+        TypeNotificationArbre.DEPLACEMENT_DANS_SOURCE -> {
+            getString(R.string.notif_deplacement_dans_source)
+        }
+
+        TypeNotificationArbre.NOM_INVALIDE -> {
+            getString(R.string.notif_nom_invalide)
+        }
+    }
 
     /** Onglets : réconciliation de la barre avec l'état (ajouts, retraits). */
     private fun rendreOnglets(etat: EtatEditor) {
@@ -2192,10 +2178,7 @@ class EditorActivity :
     }
 
     /** Crée l'onglet graphique (vue personnalisée) pour [onglet]. */
-    private fun creerOnglet(
-        onglet: EditorTabState,
-        tous: List<EditorTabState>,
-    ): TabLayout.Tab {
+    private fun creerOnglet(onglet: EditorTabState, tous: List<EditorTabState>): TabLayout.Tab {
         val vue = VueOngletFichierBinding.inflate(layoutInflater, liaison.ongletsFichiers, false)
         vue.iconeOnglet.setImageResource(IconesFichiers.pourNom(onglet.nom))
         vue.nomOnglet.text = onglet.nom
@@ -2231,19 +2214,13 @@ class EditorActivity :
     }
 
     /** Point de modification vs fermeture, selon l'état de l'onglet. */
-    private fun majVueOnglet(
-        vue: VueOngletFichierBinding,
-        onglet: EditorTabState,
-    ) {
+    private fun majVueOnglet(vue: VueOngletFichierBinding, onglet: EditorTabState) {
         vue.pointSalissure.isVisible = onglet.isDirty
         vue.boutonFermerOnglet.isVisible = !onglet.isDirty
     }
 
     /** Entrées du menu contextuel d'onglet (5.4 + missions H2/H3). */
-    private fun construireMenuOnglet(
-        menu: PopupMenu,
-        onglet: EditorTabState,
-    ) {
+    private fun construireMenuOnglet(menu: PopupMenu, onglet: EditorTabState) {
         menu.menu.add(android.view.Menu.NONE, ID_FERMER, android.view.Menu.NONE, R.string.editor_menu_fermer)
         menu.menu.add(
             android.view.Menu.NONE,
@@ -2284,11 +2261,7 @@ class EditorActivity :
     }
 
     /** Menu contextuel d'un onglet (section 5.4). */
-    private fun menuContextuelOnglet(
-        ancre: View,
-        onglet: EditorTabState,
-        tous: List<EditorTabState>,
-    ) {
+    private fun menuContextuelOnglet(ancre: View, onglet: EditorTabState, tous: List<EditorTabState>) {
         val menu = PopupMenu(this, ancre)
         construireMenuOnglet(menu, onglet)
         menu.setOnMenuItemClickListener { item ->
@@ -2526,14 +2499,13 @@ class EditorActivity :
     }
 
     /** Traduit l'état de la pastille du modèle d'affichage vers la vue. */
-    private fun traduireEtatPastille(etat: EtatPastilleIndexation): VuePointIndexation.Etat =
-        when (etat) {
-            EtatPastilleIndexation.INITIAL -> VuePointIndexation.Etat.INITIAL
-            EtatPastilleIndexation.CONSTRUCTION -> VuePointIndexation.Etat.CONSTRUCTION
-            EtatPastilleIndexation.PRET -> VuePointIndexation.Etat.PRET
-            EtatPastilleIndexation.PARTIEL -> VuePointIndexation.Etat.PARTIEL
-            EtatPastilleIndexation.ERREUR -> VuePointIndexation.Etat.ERREUR
-        }
+    private fun traduireEtatPastille(etat: EtatPastilleIndexation): VuePointIndexation.Etat = when (etat) {
+        EtatPastilleIndexation.INITIAL -> VuePointIndexation.Etat.INITIAL
+        EtatPastilleIndexation.CONSTRUCTION -> VuePointIndexation.Etat.CONSTRUCTION
+        EtatPastilleIndexation.PRET -> VuePointIndexation.Etat.PRET
+        EtatPastilleIndexation.PARTIEL -> VuePointIndexation.Etat.PARTIEL
+        EtatPastilleIndexation.ERREUR -> VuePointIndexation.Etat.ERREUR
+    }
 
     /** Visibilité de l'action « Réindexer » (session vivante). */
     private fun majActionReindexer(visible: Boolean) {
@@ -2704,10 +2676,7 @@ class EditorActivity :
      * EXECUTER.md — le détail vivant reste dans la barre d'outils de
      * l'onglet : sélecteur, filtres, bandeaux).
      */
-    private fun rendreSousTitrePanneau(
-        onglet: OngletPanneau,
-        compte: Int,
-    ) {
+    private fun rendreSousTitrePanneau(onglet: OngletPanneau, compte: Int) {
         when (onglet) {
             OngletPanneau.CONSOLE -> {
                 liaison.sousTitrePanneau.isVisible = false
@@ -2835,22 +2804,20 @@ class EditorActivity :
             .mapNotNull { tag -> supportFragmentManager.findFragmentByTag(tag) }
 
     /** Tag du fragment de l'onglet du panneau (ordre du layout). */
-    private fun tagOngletPanneau(onglet: OngletPanneau): String =
-        when (onglet) {
-            OngletPanneau.CONSOLE -> TAG_PANNEAU_CONSOLE
-            OngletPanneau.PROBLEMES -> TAG_PANNEAU_PROBLEMES
-            OngletPanneau.JOURNAL -> TAG_PANNEAU_JOURNAL
-            OngletPanneau.LOGCAT -> TAG_PANNEAU_LOGCAT
-        }
+    private fun tagOngletPanneau(onglet: OngletPanneau): String = when (onglet) {
+        OngletPanneau.CONSOLE -> TAG_PANNEAU_CONSOLE
+        OngletPanneau.PROBLEMES -> TAG_PANNEAU_PROBLEMES
+        OngletPanneau.JOURNAL -> TAG_PANNEAU_JOURNAL
+        OngletPanneau.LOGCAT -> TAG_PANNEAU_LOGCAT
+    }
 
     /** Libellé localisé d'un onglet du panneau inférieur. */
-    private fun libelleOngletPanneau(onglet: OngletPanneau): Int =
-        when (onglet) {
-            OngletPanneau.CONSOLE -> R.string.editor_panneau_console
-            OngletPanneau.PROBLEMES -> R.string.editor_panneau_problemes
-            OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
-            OngletPanneau.LOGCAT -> R.string.editor_panneau_logcat
-        }
+    private fun libelleOngletPanneau(onglet: OngletPanneau): Int = when (onglet) {
+        OngletPanneau.CONSOLE -> R.string.editor_panneau_console
+        OngletPanneau.PROBLEMES -> R.string.editor_panneau_problemes
+        OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
+        OngletPanneau.LOGCAT -> R.string.editor_panneau_logcat
+    }
 
     /**
      * Sélecteur de tâches (v4, §3.3) : feuille Material 3 (recherche,
@@ -2883,10 +2850,7 @@ class EditorActivity :
      * re-rendu (post) pour que la vue soit rebranchée sur la bonne
      * session.
      */
-    override fun sauterAuProbleme(
-        fichier: String,
-        ligne: Int,
-    ) {
+    override fun sauterAuProbleme(fichier: String, ligne: Int) {
         val onglets = viewModel.etat.value.onglets
         val index = onglets.indexOfFirst { onglet -> fichier.endsWith(onglet.cheminRelatif) }
         if (index < 0) return
@@ -2904,12 +2868,7 @@ class EditorActivity :
      * diagnostic du panneau est transcrit au port (identifiant
      * source:ligne:colonne — convention [PortEditeurVue.diagnostics])
      * puis le chat s'ouvre pré-rempli (jamais auto-envoyé). */
-    override fun corrigerProblemeAvecIa(
-        fichier: String,
-        ligne: Int,
-        colonne: Int,
-        source: String,
-    ) {
+    override fun corrigerProblemeAvecIa(fichier: String, ligne: Int, colonne: Int, source: String) {
         val identifiant = "$source:$ligne:$colonne"
         val relatif =
             cheminRelatifFichierActif()?.takeIf { chemin -> fichier.endsWith(chemin) } ?: fichier
@@ -2931,10 +2890,7 @@ class EditorActivity :
      * bonne session (partagé par le saut au problème et le saut de pile
      * Logcat, R4).
      */
-    private fun sauterVersLigne(
-        uri: String,
-        ligne: Int,
-    ) {
+    private fun sauterVersLigne(uri: String, ligne: Int) {
         liaison.racineEditeur.post {
             val session = viewModel.sessionSuivieDe(uri)?.session ?: return@post
             val document = session.document

@@ -41,10 +41,7 @@ public sealed interface Progress {
      * @property received octets traités à ce stade.
      * @property total octets totaux annoncés, ou `null` si inconnus.
      */
-    public data class Bytes(
-        public val received: Long,
-        public val total: Long? = null,
-    ) : Progress
+    public data class Bytes(public val received: Long, public val total: Long? = null) : Progress
 
     /**
      * Progression en éléments (paquets, composants, fichiers).
@@ -52,10 +49,7 @@ public sealed interface Progress {
      * @property done éléments traités.
      * @property total éléments totaux.
      */
-    public data class Items(
-        public val done: Int,
-        public val total: Int,
-    ) : Progress
+    public data class Items(public val done: Int, public val total: Int) : Progress
 }
 
 /**
@@ -65,10 +59,7 @@ public sealed interface Progress {
  * @property phase phase à laquelle appartient l'étape.
  * @property step nom court de l'étape, stable pour les tests et le journal.
  */
-public data class StepId(
-    public val phase: InstallPhase,
-    public val step: String,
-)
+public data class StepId(public val phase: InstallPhase, public val step: String)
 
 /**
  * Composant en échec **non critique** : rendu comme avertissement d'une
@@ -117,10 +108,8 @@ public sealed interface PhaseState {
      * @property versions versions installées par composant (ex. `"jdk"` →
      * `"17.0.20"`, `"build-tools"` → `"35.0.2"`), pour le récapitulatif.
      */
-    public data class Succeeded(
-        public val verifiedAtMillis: Long,
-        public val versions: Map<String, String>,
-    ) : PhaseState
+    public data class Succeeded(public val verifiedAtMillis: Long, public val versions: Map<String, String>) :
+        PhaseState
 
     /**
      * La phase est terminée et vérifiée, avec des composants **non
@@ -131,10 +120,8 @@ public sealed interface PhaseState {
      * millisecondes epoch.
      * @property warnings composants non critiques en échec, diagnostic complet.
      */
-    public data class Degraded(
-        public val verifiedAtMillis: Long,
-        public val warnings: List<ComponentIssue>,
-    ) : PhaseState
+    public data class Degraded(public val verifiedAtMillis: Long, public val warnings: List<ComponentIssue>) :
+        PhaseState
 
     /**
      * La phase a échoué — erreur typée et **journal conservé** (le critère
@@ -145,10 +132,8 @@ public sealed interface PhaseState {
      * @property logTail dernières lignes du journal d'installation (bornées,
      * expurgées), affichables repliées.
      */
-    public data class Failed(
-        public val error: AppError.EnvironmentSetup,
-        public val logTail: List<String>,
-    ) : PhaseState
+    public data class Failed(public val error: AppError.EnvironmentSetup, public val logTail: List<String>) :
+        PhaseState
 }
 
 /**
@@ -170,29 +155,26 @@ public data class EnvironmentSetupState(
     public fun phase(phase: InstallPhase): PhaseState = phases[phase] ?: PhaseState.NotStarted
 
     /** Le parcours est-il terminé (toutes phases vérifiées, critiques comprises) ? */
-    public fun estTermine(): Boolean =
-        InstallPhase.entries.all {
-            phases[it] is PhaseState.Succeeded || phases[it] is PhaseState.Degraded
-        }
+    public fun estTermine(): Boolean = InstallPhase.entries.all {
+        phases[it] is PhaseState.Succeeded || phases[it] is PhaseState.Degraded
+    }
 
     /**
      * Première phase non vérifiée, dans l'ordre strict du parcours — c'est
      * là que `run()` reprend ; `null` quand tout est vérifié.
      */
-    public fun premierePhaseNonVerifiee(): InstallPhase? =
-        InstallPhase.entries.firstOrNull {
-            val etat = phases[it]
-            etat !is PhaseState.Succeeded && etat !is PhaseState.Degraded
-        }
+    public fun premierePhaseNonVerifiee(): InstallPhase? = InstallPhase.entries.firstOrNull {
+        val etat = phases[it]
+        etat !is PhaseState.Succeeded && etat !is PhaseState.Degraded
+    }
 
     public companion object {
         /** État initial : toutes phases `NotStarted`, aucune licence acceptée. */
-        public fun initial(): EnvironmentSetupState =
-            EnvironmentSetupState(
-                phases = emptyMap(),
-                running = null,
-                sdkLicenseAcceptedAtMillis = null,
-            )
+        public fun initial(): EnvironmentSetupState = EnvironmentSetupState(
+            phases = emptyMap(),
+            running = null,
+            sdkLicenseAcceptedAtMillis = null,
+        )
     }
 }
 
@@ -430,10 +412,7 @@ public interface DownloadManager {
      * @return le fichier téléchargé en `Success`, ou l'échec typé
      * (`Reseau`, `SommeControle`…) en `Failure`.
      */
-    public suspend fun download(
-        request: DownloadRequest,
-        onProgress: (Progress) -> Unit = {},
-    ): AppResult<File>
+    public suspend fun download(request: DownloadRequest, onProgress: (Progress) -> Unit = {}): AppResult<File>
 }
 
 /**
@@ -468,10 +447,7 @@ public interface ArchiveExtractor {
      * @return `Success` ou l'échec typé (`ArchiveCorrompue`,
      * `Permissions`… en `EnvironmentSetup`).
      */
-    public suspend fun extract(
-        archive: File,
-        targetDir: File,
-    ): AppResult<Unit>
+    public suspend fun extract(archive: File, targetDir: File): AppResult<Unit>
 }
 
 /**

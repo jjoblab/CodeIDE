@@ -26,9 +26,7 @@ import java.io.IOException
  *
  * @param directory répertoire des rapports (`filesDir/crashes/`).
  */
-class CrashReportFileStore(
-    private val directory: File,
-) {
+class CrashReportFileStore(private val directory: File) {
     init {
         require(directory.name == CrashLimits.DIRECTORY_NAME) {
             "Le répertoire des rapports doit s'appeler « ${CrashLimits.DIRECTORY_NAME} »."
@@ -84,13 +82,12 @@ class CrashReportFileStore(
      *
      * @return les résumés des rapports conservés.
      */
-    fun listSummaries(): List<CrashReportSummary> =
-        rapportsTries()
-            .mapNotNull { fichier ->
-                lireFichier(fichier)?.let { texte ->
-                    CrashReportJson.lireResume(texte, consulte = estConsulte(fichier))
-                }
+    fun listSummaries(): List<CrashReportSummary> = rapportsTries()
+        .mapNotNull { fichier ->
+            lireFichier(fichier)?.let { texte ->
+                CrashReportJson.lireResume(texte, consulte = estConsulte(fichier))
             }
+        }
 
     /**
      * Marque un rapport comme consulté (pose le fichier témoin).
@@ -143,10 +140,8 @@ class CrashReportFileStore(
     fun hasUnreviewed(): Boolean = rapportsTries().any { !estConsulte(it) }
 
     /** Chemin du fichier d'un rapport (création du nom, existence non requise). */
-    private fun fichierDe(
-        id: String,
-        timestampMillis: Long,
-    ): File = File(directory, "$timestampMillis-$id${CrashLimits.REPORT_SUFFIX}")
+    private fun fichierDe(id: String, timestampMillis: Long): File =
+        File(directory, "$timestampMillis-$id${CrashLimits.REPORT_SUFFIX}")
 
     /**
      * Fichier existant d'un rapport, par identifiant.
@@ -156,19 +151,17 @@ class CrashReportFileStore(
      * identifiant se termine par celui d'un autre (« pas-vu » finit en
      * « vu ») — le témoin serait alors posé sur le mauvais rapport.
      */
-    private fun fichierExistant(id: String): File? =
-        rapportsTries().firstOrNull { fichier ->
-            identifiantDe(fichier) ==
-                id
-        }
+    private fun fichierExistant(id: String): File? = rapportsTries().firstOrNull { fichier ->
+        identifiantDe(fichier) ==
+            id
+    }
 
     /** Rapports conservés, du plus récent au plus ancien. */
-    private fun rapportsTries(): List<File> =
-        directory
-            .listFiles { fichier ->
-                fichier.isFile && fichier.name.endsWith(CrashLimits.REPORT_SUFFIX)
-            }?.sortedByDescending { fichier -> fichier.name }
-            .orEmpty()
+    private fun rapportsTries(): List<File> = directory
+        .listFiles { fichier ->
+            fichier.isFile && fichier.name.endsWith(CrashLimits.REPORT_SUFFIX)
+        }?.sortedByDescending { fichier -> fichier.name }
+        .orEmpty()
 
     /** Identifiant porté par un fichier de rapport, ou `null` si mal nommé. */
     private fun identifiantDe(fichier: File): String? = REGEX_RAPPORT.find(fichier.name)?.groupValues?.get(1)
@@ -212,12 +205,11 @@ class CrashReportFileStore(
     }
 
     /** Lit un fichier en texte, ou `null` s'il est illisible. */
-    private fun lireFichier(fichier: File): String? =
-        try {
-            fichier.readText()
-        } catch (erreur: IOException) {
-            null
-        }
+    private fun lireFichier(fichier: File): String? = try {
+        fichier.readText()
+    } catch (erreur: IOException) {
+        null
+    }
 
     private companion object {
         /** Nom d'un rapport : `<horodatage numérique>-<identifiant>.json`. */

@@ -41,94 +41,88 @@ class ExecuterApplicationUseCaseTest {
         )
 
     @Test
-    fun `le cycle complet installe puis lance l application du projet`() =
-        runTest {
-            val projet = projetAvecApk(nomPaquet = "com.exemple.monapp")
-            val etapes = mutableListOf<EtapeExecutionApplication>()
+    fun `le cycle complet installe puis lance l application du projet`() = runTest {
+        val projet = projetAvecApk(nomPaquet = "com.exemple.monapp")
+        val etapes = mutableListOf<EtapeExecutionApplication>()
 
-            val resultat = executerApplication(projet) { etape -> etapes += etape }
+        val resultat = executerApplication(projet) { etape -> etapes += etape }
 
-            assertEquals("com.exemple.monapp", (resultat as ResultatExecutionApplication.Succes).nomPaquet)
-            assertEquals(
-                "l'APK déterministe est celui passé à l'installateur",
-                File(projet, "app/build/outputs/apk/debug/app-debug.apk").canonicalPath,
-                installateur.apksInstalles.single().canonicalPath,
-            )
-            assertEquals(listOf("com.exemple.monapp"), installateur.paquetsLances)
-            assertTrue(
-                "la progression culmine au lancement",
-                EtapeExecutionApplication.ApplicationLancee("com.exemple.monapp") in etapes,
-            )
-        }
-
-    @Test
-    fun `sans apk produit le resultat est apk absent et rien n est installe`() =
-        runTest {
-            val projet = dossierTemp.newFolder("vide")
-
-            val resultat = executerApplication(projet)
-
-            assertTrue(resultat is ResultatExecutionApplication.ApkAbsent)
-            assertTrue("aucune installation tentée", installateur.apksInstalles.isEmpty())
-        }
+        assertEquals("com.exemple.monapp", (resultat as ResultatExecutionApplication.Succes).nomPaquet)
+        assertEquals(
+            "l'APK déterministe est celui passé à l'installateur",
+            File(projet, "app/build/outputs/apk/debug/app-debug.apk").canonicalPath,
+            installateur.apksInstalles.single().canonicalPath,
+        )
+        assertEquals(listOf("com.exemple.monapp"), installateur.paquetsLances)
+        assertTrue(
+            "la progression culmine au lancement",
+            EtapeExecutionApplication.ApplicationLancee("com.exemple.monapp") in etapes,
+        )
+    }
 
     @Test
-    fun `sans metadonnees l identifiant refuse honnetement`() =
-        runTest {
-            val projet = dossierTemp.newFolder("sans-meta")
-            ecrireApk(projet)
+    fun `sans apk produit le resultat est apk absent et rien n est installe`() = runTest {
+        val projet = dossierTemp.newFolder("vide")
 
-            val resultat = executerApplication(projet)
+        val resultat = executerApplication(projet)
 
-            assertTrue(resultat is ResultatExecutionApplication.MetadonneesIllisibles)
-            assertTrue("l'installation n'est jamais tentée sans identifiant", installateur.apksInstalles.isEmpty())
-        }
+        assertTrue(resultat is ResultatExecutionApplication.ApkAbsent)
+        assertTrue("aucune installation tentée", installateur.apksInstalles.isEmpty())
+    }
 
     @Test
-    fun `l echec de signature differente porte son action correctrice`() =
-        runTest {
-            val projet = projetAvecApk(nomPaquet = "com.exemple.monapp")
-            installateur.resultatInstallation = ResultatInstallationApk.SignatureDifferente
+    fun `sans metadonnees l identifiant refuse honnetement`() = runTest {
+        val projet = dossierTemp.newFolder("sans-meta")
+        ecrireApk(projet)
 
-            val resultat = executerApplication(projet)
+        val resultat = executerApplication(projet)
 
-            val echec = resultat as ResultatExecutionApplication.Installation
-            assertEquals(ResultatInstallationApk.SignatureDifferente, echec.cause)
-            assertEquals("com.exemple.monapp", echec.nomPaquet)
-            assertTrue("aucun lancement après un échec d'installation", installateur.paquetsLances.isEmpty())
-        }
+        assertTrue(resultat is ResultatExecutionApplication.MetadonneesIllisibles)
+        assertTrue("l'installation n'est jamais tentée sans identifiant", installateur.apksInstalles.isEmpty())
+    }
 
     @Test
-    fun `l application introuvable au lancement reste un echec type`() =
-        runTest {
-            val projet = projetAvecApk(nomPaquet = "com.exemple.monapp")
-            installateur.resultatLancement = ResultatLancementApk.Introuvable("com.exemple.monapp")
+    fun `l echec de signature differente porte son action correctrice`() = runTest {
+        val projet = projetAvecApk(nomPaquet = "com.exemple.monapp")
+        installateur.resultatInstallation = ResultatInstallationApk.SignatureDifferente
 
-            val resultat = executerApplication(projet)
+        val resultat = executerApplication(projet)
 
-            assertEquals(
-                "com.exemple.monapp",
-                (resultat as ResultatExecutionApplication.LancementIntrouvable).nomPaquet,
-            )
-        }
+        val echec = resultat as ResultatExecutionApplication.Installation
+        assertEquals(ResultatInstallationApk.SignatureDifferente, echec.cause)
+        assertEquals("com.exemple.monapp", echec.nomPaquet)
+        assertTrue("aucun lancement après un échec d'installation", installateur.paquetsLances.isEmpty())
+    }
 
     @Test
-    fun `la detection du module application distingue android et jvm`() =
-        runTest {
-            val androidGradle = dossierTemp.newFolder("android-groovy").also { File(it, "app").mkdirs() }
-            File(androidGradle, "app/build.gradle").writeText("plugins { }")
-            val androidKts = dossierTemp.newFolder("android-kts").also { File(it, "app").mkdirs() }
-            File(androidKts, "app/build.gradle.kts").writeText("plugins { }")
-            val jvm = dossierTemp.newFolder("jvm")
-            File(jvm, "build.gradle.kts").writeText("plugins { }")
+    fun `l application introuvable au lancement reste un echec type`() = runTest {
+        val projet = projetAvecApk(nomPaquet = "com.exemple.monapp")
+        installateur.resultatLancement = ResultatLancementApk.Introuvable("com.exemple.monapp")
 
-            assertTrue(executerApplication.estModuleApplication(androidGradle))
-            assertTrue(executerApplication.estModuleApplication(androidKts))
-            assertTrue(
-                "un script racine ne fait pas un module application",
-                !executerApplication.estModuleApplication(jvm),
-            )
-        }
+        val resultat = executerApplication(projet)
+
+        assertEquals(
+            "com.exemple.monapp",
+            (resultat as ResultatExecutionApplication.LancementIntrouvable).nomPaquet,
+        )
+    }
+
+    @Test
+    fun `la detection du module application distingue android et jvm`() = runTest {
+        val androidGradle = dossierTemp.newFolder("android-groovy").also { File(it, "app").mkdirs() }
+        File(androidGradle, "app/build.gradle").writeText("plugins { }")
+        val androidKts = dossierTemp.newFolder("android-kts").also { File(it, "app").mkdirs() }
+        File(androidKts, "app/build.gradle.kts").writeText("plugins { }")
+        val jvm = dossierTemp.newFolder("jvm")
+        File(jvm, "build.gradle.kts").writeText("plugins { }")
+
+        assertTrue(executerApplication.estModuleApplication(androidGradle))
+        assertTrue(executerApplication.estModuleApplication(androidKts))
+        assertTrue(
+            "un script racine ne fait pas un module application",
+            !executerApplication.estModuleApplication(jvm),
+        )
+    }
 
     @Test
     fun `l analyseur d identifiant est tolerant aux documents hostiles`() {

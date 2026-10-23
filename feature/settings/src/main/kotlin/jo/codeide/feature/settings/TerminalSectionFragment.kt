@@ -40,10 +40,7 @@ class TerminalSectionFragment : BaseFragment<FragmentSettingsTerminalBinding>() 
         attachToRoot: Boolean,
     ): FragmentSettingsTerminalBinding = FragmentSettingsTerminalBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -90,17 +87,15 @@ class TerminalSectionFragment : BaseFragment<FragmentSettingsTerminalBinding>() 
 }
 
 /** Taille de police du terminal du bouton coché (MOYENNE par défaut). */
-private fun tailleDeLId(id: Int): TaillePoliceTerminal =
-    when (id) {
-        R.id.bouton_police_terminal_1 -> TaillePoliceTerminal.PETITE
-        R.id.bouton_police_terminal_3 -> TaillePoliceTerminal.GRANDE
-        else -> TaillePoliceTerminal.MOYENNE
-    }
+private fun tailleDeLId(id: Int): TaillePoliceTerminal = when (id) {
+    R.id.bouton_police_terminal_1 -> TaillePoliceTerminal.PETITE
+    R.id.bouton_police_terminal_3 -> TaillePoliceTerminal.GRANDE
+    else -> TaillePoliceTerminal.MOYENNE
+}
 
 /** Style de curseur du bouton coché (BLOC par défaut). */
-private fun styleDeLId(id: Int): StyleCurseurTerminal =
-    when (id) {
-        R.id.bouton_curseur_2 -> StyleCurseurTerminal.LIGNE
-        R.id.bouton_curseur_3 -> StyleCurseurTerminal.BARRE
-        else -> StyleCurseurTerminal.BLOC
-    }
+private fun styleDeLId(id: Int): StyleCurseurTerminal = when (id) {
+    R.id.bouton_curseur_2 -> StyleCurseurTerminal.LIGNE
+    R.id.bouton_curseur_3 -> StyleCurseurTerminal.BARRE
+    else -> StyleCurseurTerminal.BLOC
+}

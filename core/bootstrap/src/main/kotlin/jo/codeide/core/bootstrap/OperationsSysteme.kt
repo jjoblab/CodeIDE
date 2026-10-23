@@ -26,10 +26,7 @@ internal interface OperationsSysteme {
      * compris après le repli ([java.io.File] ne connaît que le bit
      * d'exécution).
      */
-    fun chmod(
-        chemin: File,
-        mode: Int,
-    )
+    fun chmod(chemin: File, mode: Int)
 
     /**
      * Crée un lien symbolique.
@@ -39,10 +36,7 @@ internal interface OperationsSysteme {
      * @param lien emplacement du lien à créer.
      * @throws IOException si la création échoue.
      */
-    fun creerLienSymbolique(
-        cible: String,
-        lien: File,
-    )
+    fun creerLienSymbolique(cible: String, lien: File)
 }
 
 /**
@@ -51,32 +45,26 @@ internal interface OperationsSysteme {
  * sur `File.setExecutable` ») lorsque l'appel natif est refusé.
  */
 internal class OperationsSystemeAndroid
-    @Inject
-    constructor() : OperationsSysteme {
-        override fun chmod(
-            chemin: File,
-            mode: Int,
-        ) {
-            try {
-                android.system.Os.chmod(chemin.absolutePath, mode)
-            } catch (e: ErrnoException) {
-                // Repli documenté (prompt Terminal-1, section 3.4) :
-                // File ne porte que le bit d'exécution, suffisant pour
-                // lancer les binaires du bootstrap.
-                if (!chemin.setExecutable(true, true)) {
-                    throw IOException("chmod refusé sur $chemin", e)
-                }
-            }
-        }
-
-        override fun creerLienSymbolique(
-            cible: String,
-            lien: File,
-        ) {
-            try {
-                android.system.Os.symlink(cible, lien.absolutePath)
-            } catch (e: ErrnoException) {
-                throw IOException("symlink refusé sur $lien", e)
+@Inject
+constructor() : OperationsSysteme {
+    override fun chmod(chemin: File, mode: Int) {
+        try {
+            android.system.Os.chmod(chemin.absolutePath, mode)
+        } catch (e: ErrnoException) {
+            // Repli documenté (prompt Terminal-1, section 3.4) :
+            // File ne porte que le bit d'exécution, suffisant pour
+            // lancer les binaires du bootstrap.
+            if (!chemin.setExecutable(true, true)) {
+                throw IOException("chmod refusé sur $chemin", e)
             }
         }
     }
+
+    override fun creerLienSymbolique(cible: String, lien: File) {
+        try {
+            android.system.Os.symlink(cible, lien.absolutePath)
+        } catch (e: ErrnoException) {
+            throw IOException("symlink refusé sur $lien", e)
+        }
+    }
+}

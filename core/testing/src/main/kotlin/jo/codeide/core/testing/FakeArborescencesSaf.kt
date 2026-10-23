@@ -53,10 +53,7 @@ public class FakeArborescencesSaf : ArborescencesSaf {
         return "$grantUri/document/${encoder(id)}"
     }
 
-    override fun uriDocumentDansArbre(
-        grantUri: String,
-        idDocument: String,
-    ): String? =
+    override fun uriDocumentDansArbre(grantUri: String, idDocument: String): String? =
         // Clauses de garde : identifiant vide, arborescence illisible.
         if (idDocument.isBlank() || segmentArbre(grantUri) == null) {
             null

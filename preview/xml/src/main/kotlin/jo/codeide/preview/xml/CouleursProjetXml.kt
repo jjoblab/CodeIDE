@@ -142,10 +142,7 @@ public object CouleursProjetXml {
      * noyer masquerait le miroir.
      */
     @Suppress("ReturnCount")
-    public fun resoudre(
-        valeur: String?,
-        couleurs: Map<String, String>,
-    ): Long? {
+    public fun resoudre(valeur: String?, couleurs: Map<String, String>): Long? {
         if (valeur.isNullOrEmpty()) return null
         HEX_LONG.find(valeur)?.let { return hexLong(it.groupValues[1]) }
         HEX_COURT.find(valeur)?.let { return hexCourt(it.groupValues[1]) }
@@ -163,12 +160,11 @@ public object CouleursProjetXml {
     }
 
     /** `RRGGBB` (alpha opaque posé) ou `AARRGGBB` → long ARGB. */
-    private fun hexLong(chiffres: String): Long =
-        if (chiffres.length == CHIFFRES_OPAQUES) {
-            OPAQUE shl DECALAGE_ALPHA or chiffres.toLong(BASE_HEXA)
-        } else {
-            chiffres.toLong(BASE_HEXA)
-        }
+    private fun hexLong(chiffres: String): Long = if (chiffres.length == CHIFFRES_OPAQUES) {
+        OPAQUE shl DECALAGE_ALPHA or chiffres.toLong(BASE_HEXA)
+    } else {
+        chiffres.toLong(BASE_HEXA)
+    }
 
     /** `RGB` (alpha opaque posé) ou `ARGB` → chaque chiffre DOUBLÉ (miroir `c + c`). */
     private fun hexCourt(chiffres: String): Long {

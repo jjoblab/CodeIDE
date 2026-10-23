@@ -37,10 +37,7 @@ public interface CrashReportsExportWriter {
      * écriture par le sélecteur système.
      * @return le succès, ou l'erreur typée rencontrée.
      */
-    public suspend fun write(
-        reports: List<CrashReport>,
-        destinationUri: String,
-    ): AppResult<Unit>
+    public suspend fun write(reports: List<CrashReport>, destinationUri: String): AppResult<Unit>
 }
 
 /**
@@ -54,39 +51,39 @@ public interface CrashReportsExportWriter {
  * Contexte d'exécution attendu : suspendu, hors thread principal.
  */
 public class ExportCrashReportsUseCase
-    @Inject
-    constructor(
-        private val repository: CrashReportRepository,
-        private val exportWriter: CrashReportsExportWriter,
-    ) {
-        /**
-         * Produit l'archive de tous les rapports conservés, dans le cache.
-         *
-         * @return le descriptif de l'archive, ou une erreur typée. Une liste
-         * vide de rapports produit une archive valide (l'appelant décide s'il
-         * désactive l'action quand la liste est vide).
-         */
-        public suspend operator fun invoke(): AppResult<ExportedLogs> {
-            val rapports = lireRapports()
-            return exportWriter.write(rapports)
-        }
-
-        /**
-         * Produit l'archive de tous les rapports conservés **directement** à
-         * la destination choisie.
-         *
-         * @param destinationUri URI de document ouverte en écriture par le
-         * sélecteur SAF.
-         * @return le succès, ou une erreur typée.
-         */
-        public suspend operator fun invoke(destinationUri: String): AppResult<Unit> {
-            val rapports = lireRapports()
-            return exportWriter.write(rapports, destinationUri)
-        }
-
-        /** Lit les rapports complets à partir des résumés conservés. */
-        private suspend fun lireRapports(): List<CrashReport> {
-            val resumes = repository.observeSummaries().first()
-            return resumes.mapNotNull { resume -> repository.get(resume.id) }
-        }
+@Inject
+constructor(
+    private val repository: CrashReportRepository,
+    private val exportWriter: CrashReportsExportWriter,
+) {
+    /**
+     * Produit l'archive de tous les rapports conservés, dans le cache.
+     *
+     * @return le descriptif de l'archive, ou une erreur typée. Une liste
+     * vide de rapports produit une archive valide (l'appelant décide s'il
+     * désactive l'action quand la liste est vide).
+     */
+    public suspend operator fun invoke(): AppResult<ExportedLogs> {
+        val rapports = lireRapports()
+        return exportWriter.write(rapports)
     }
+
+    /**
+     * Produit l'archive de tous les rapports conservés **directement** à
+     * la destination choisie.
+     *
+     * @param destinationUri URI de document ouverte en écriture par le
+     * sélecteur SAF.
+     * @return le succès, ou une erreur typée.
+     */
+    public suspend operator fun invoke(destinationUri: String): AppResult<Unit> {
+        val rapports = lireRapports()
+        return exportWriter.write(rapports, destinationUri)
+    }
+
+    /** Lit les rapports complets à partir des résumés conservés. */
+    private suspend fun lireRapports(): List<CrashReport> {
+        val resumes = repository.observeSummaries().first()
+        return resumes.mapNotNull { resume -> repository.get(resume.id) }
+    }
+}

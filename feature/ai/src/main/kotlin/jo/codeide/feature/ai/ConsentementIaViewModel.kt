@@ -34,37 +34,35 @@ public sealed interface EffetConsentementIa {
  */
 @HiltViewModel
 public class ConsentementIaViewModel
-    @Inject
-    constructor(
-        private val reglages: ReglagesIaRepository,
-    ) : ViewModel() {
-        private val effetsInternes = Channel<EffetConsentementIa>(Channel.BUFFERED)
+@Inject
+constructor(private val reglages: ReglagesIaRepository) : ViewModel() {
+    private val effetsInternes = Channel<EffetConsentementIa>(Channel.BUFFERED)
 
-        /** Effets à collecter par le fragment. */
-        public val effets: Flow<EffetConsentementIa> = effetsInternes.receiveAsFlow()
+    /** Effets à collecter par le fragment. */
+    public val effets: Flow<EffetConsentementIa> = effetsInternes.receiveAsFlow()
 
-        /** Point d'entrée unique des actions (UDF). */
-        public fun onAction(action: ActionConsentementIa) {
-            when (action) {
-                ActionConsentementIa.Accepter -> accepter()
-                ActionConsentementIa.Refuser -> emettre(EffetConsentementIa.Fermer)
-            }
-        }
-
-        private fun accepter() {
-            viewModelScope.launch {
-                reglages.update {
-                    it.copy(
-                        assistantActive = true,
-                        consentementDonne = true,
-                        consentementDateEpochMs = System.currentTimeMillis(),
-                    )
-                }
-                emettre(EffetConsentementIa.Fermer)
-            }
-        }
-
-        private fun emettre(effet: EffetConsentementIa) {
-            viewModelScope.launch { effetsInternes.send(effet) }
+    /** Point d'entrée unique des actions (UDF). */
+    public fun onAction(action: ActionConsentementIa) {
+        when (action) {
+            ActionConsentementIa.Accepter -> accepter()
+            ActionConsentementIa.Refuser -> emettre(EffetConsentementIa.Fermer)
         }
     }
+
+    private fun accepter() {
+        viewModelScope.launch {
+            reglages.update {
+                it.copy(
+                    assistantActive = true,
+                    consentementDonne = true,
+                    consentementDateEpochMs = System.currentTimeMillis(),
+                )
+            }
+            emettre(EffetConsentementIa.Fermer)
+        }
+    }
+
+    private fun emettre(effet: EffetConsentementIa) {
+        viewModelScope.launch { effetsInternes.send(effet) }
+    }
+}

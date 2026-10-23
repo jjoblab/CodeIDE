@@ -73,24 +73,16 @@ class PreviewViewModelConstructionTest {
 
         override val uriProjet: String? = null
 
-        override fun texte(): String =
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
-                "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n" +
-                "    android:layout_width=\"match_parent\"\n" +
-                "    android:layout_height=\"match_parent\"/>\n"
+        override fun texte(): String = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+            "<LinearLayout xmlns:android=\"http://schemas.android.com/apk/res/android\"\n" +
+            "    android:layout_width=\"match_parent\"\n" +
+            "    android:layout_height=\"match_parent\"/>\n"
 
-        override fun remplacer(
-            debut: Int,
-            fin: Int,
-            remplacement: String,
-        ): Boolean = false
+        override fun remplacer(debut: Int, fin: Int, remplacement: String): Boolean = false
 
         override fun selection(): Pair<Int, Int> = 0 to 0
 
-        override fun definirSelection(
-            debut: Int,
-            fin: Int,
-        ) = Unit
+        override fun definirSelection(debut: Int, fin: Int) = Unit
 
         override fun annuler(): Boolean = false
 
@@ -106,26 +98,25 @@ class PreviewViewModelConstructionTest {
     }
 
     /** Construit le ViewModel par le MÊME chemin que Hilt (aucun double). */
-    private fun construire(): PreviewViewModel =
-        PreviewViewModel(
-            contexte = ApplicationProvider.getApplicationContext(),
-            dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher()),
-            journal = FakeAppLogger(),
-            registre = registre,
-            resolveurChemin =
-                ResoudreRepertoireProjet(
-                    FakeArborescencesSaf(),
-                    TestDispatcherProvider(UnconfinedTestDispatcher()),
-                ),
-            reglagesDataStore = reglages,
-            sauvegarde =
-                SavedStateHandle(
-                    mapOf(
-                        PreviewViewModel.CLE_PROJET to "projet-test",
-                        PreviewViewModel.CLE_URI to "content://test/document/main.xml",
-                    ),
-                ),
-        )
+    private fun construire(): PreviewViewModel = PreviewViewModel(
+        contexte = ApplicationProvider.getApplicationContext(),
+        dispatchers = TestDispatcherProvider(UnconfinedTestDispatcher()),
+        journal = FakeAppLogger(),
+        registre = registre,
+        resolveurChemin =
+        ResoudreRepertoireProjet(
+            FakeArborescencesSaf(),
+            TestDispatcherProvider(UnconfinedTestDispatcher()),
+        ),
+        reglagesDataStore = reglages,
+        sauvegarde =
+        SavedStateHandle(
+            mapOf(
+                PreviewViewModel.CLE_PROJET to "projet-test",
+                PreviewViewModel.CLE_URI to "content://test/document/main.xml",
+            ),
+        ),
+    )
 
     @Test
     fun `la construction avec une source au registre passe par delierSource sans NPE`() {

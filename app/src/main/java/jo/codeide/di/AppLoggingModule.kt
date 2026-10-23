@@ -24,25 +24,21 @@ import javax.inject.Singleton
 internal object AppLoggingModule {
     @Provides
     @Singleton
-    fun provideBuildInfo(): BuildInfo =
-        BuildInfo(
-            versionName = BuildConfig.VERSION_NAME,
-            versionCode = BuildConfig.VERSION_CODE.toLong(),
-            buildType = if (BuildConfig.DEBUG) "debug" else "release",
-        )
+    fun provideBuildInfo(): BuildInfo = BuildInfo(
+        versionName = BuildConfig.VERSION_NAME,
+        versionCode = BuildConfig.VERSION_CODE.toLong(),
+        buildType = if (BuildConfig.DEBUG) "debug" else "release",
+    )
 
     @Provides
     @Singleton
-    fun provideDeviceSummary(
-        @ApplicationContext context: Context,
-    ): DeviceSummary =
-        DeviceSummary {
-            val locale =
-                context.resources.configuration.locales[0]
-                    .toLanguageTag()
-            val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "inconnue"
-            val langue = if (locale.isEmpty()) Locale.getDefault().toLanguageTag() else locale
-            "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE}, " +
-                "API ${Build.VERSION.SDK_INT}) — $abi, $langue"
-        }
+    fun provideDeviceSummary(@ApplicationContext context: Context): DeviceSummary = DeviceSummary {
+        val locale =
+            context.resources.configuration.locales[0]
+                .toLanguageTag()
+        val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "inconnue"
+        val langue = if (locale.isEmpty()) Locale.getDefault().toLanguageTag() else locale
+        "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE}, " +
+            "API ${Build.VERSION.SDK_INT}) — $abi, $langue"
+    }
 }

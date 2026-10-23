@@ -96,31 +96,21 @@ class HomeFragmentTest {
     }
 
     /** Projet de fixture pour le rendu d'une ligne. */
-    private fun projet(
-        nom: String,
-        description: String,
-    ): Project =
-        Project(
-            id = ProjectId("fixture"),
-            name = nom,
-            description = description,
-            location = StorageLocation("g", "d", nom),
-            templateId = TemplateId.IMPORTED,
-            createdAtMillis = 0L,
-            lastOpenedAtMillis = null,
-            isPinned = false,
-        )
+    private fun projet(nom: String, description: String): Project = Project(
+        id = ProjectId("fixture"),
+        name = nom,
+        description = description,
+        location = StorageLocation("g", "d", nom),
+        templateId = TemplateId.IMPORTED,
+        createdAtMillis = 0L,
+        lastOpenedAtMillis = null,
+        isPinned = false,
+    )
 
     /** Écouteur sans effet : le rendu seul est testé ici. */
     private object EcouteurSansEffet : ProjetsAccueilAdapter.EcouteurProjets {
-        override fun surClicProjet(
-            projet: Project,
-            acces: ProjectAccessState?,
-        ) = Unit
+        override fun surClicProjet(projet: Project, acces: ProjectAccessState?) = Unit
 
-        override fun surMenuProjet(
-            projet: Project,
-            acces: ProjectAccessState?,
-        ) = Unit
+        override fun surMenuProjet(projet: Project, acces: ProjectAccessState?) = Unit
     }
 }

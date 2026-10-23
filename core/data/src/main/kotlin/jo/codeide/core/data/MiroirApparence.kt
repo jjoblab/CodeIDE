@@ -72,10 +72,7 @@ public object MiroirApparence {
      * @param context contexte applicatif.
      * @param reglages état persisté source de la recopie.
      */
-    public fun ecrire(
-        context: Context,
-        reglages: AppSettings,
-    ) {
+    public fun ecrire(context: Context, reglages: AppSettings) {
         context
             .getSharedPreferences(FICHIER, Context.MODE_PRIVATE)
             .edit {

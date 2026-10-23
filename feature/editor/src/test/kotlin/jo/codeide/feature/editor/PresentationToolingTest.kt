@@ -46,11 +46,11 @@ class PresentationToolingTest {
         val etat =
             EtatGradle(
                 synchronisationReussie =
-                    ResultatSynchronisation(
-                        projectDir = "/projets/demo",
-                        reussie = true,
-                        dureeMs = 2_100,
-                    ),
+                ResultatSynchronisation(
+                    projectDir = "/projets/demo",
+                    reussie = true,
+                    dureeMs = 2_100,
+                ),
             )
 
         val libelle = PresentationTooling.libelleActivite(etat, CanalTooling.SYNC)
@@ -70,13 +70,13 @@ class PresentationToolingTest {
         val etat =
             EtatGradle(
                 synchronisationReussie =
-                    ResultatSynchronisation(
-                        projectDir = "/projets/demo",
-                        reussie = true,
-                        partielle = true,
-                        dureeMs = 3_000,
-                        messageEchec = "modèle IdeaProject indisponible",
-                    ),
+                ResultatSynchronisation(
+                    projectDir = "/projets/demo",
+                    reussie = true,
+                    partielle = true,
+                    dureeMs = 3_000,
+                    messageEchec = "modèle IdeaProject indisponible",
+                ),
                 // Miroir tenu par GradleService.publierResultatSync : un
                 // succès PARTIEL publie aussi le message d'échec des
                 // modèles manquants dans messageEchecSync.
@@ -198,7 +198,7 @@ class PresentationToolingTest {
             PresentationTooling.libelleStatut(
                 EtatGradle(
                     synchronisationReussie =
-                        ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 450),
+                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 450),
                 ),
             ),
         )
@@ -261,7 +261,7 @@ class PresentationToolingTest {
         val etat =
             EtatGradle(
                 synchronisationReussie =
-                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 350),
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 350),
             )
 
         val libelle = PresentationTooling.libelleActivite(etat, CanalTooling.SYNC)
@@ -321,14 +321,14 @@ class PresentationToolingTest {
                 synchronisationEnCours = true,
                 debutSyncMs = 0L,
                 etapesSync =
-                    listOf(
-                        EtapeSyncAffichee(
-                            etape = EtapeSync.DEPENDANCES,
-                            octetsRecus = 44_040_192L,
-                            compteur = 3,
-                            element = "kotlin-stdlib.jar",
-                        ),
+                listOf(
+                    EtapeSyncAffichee(
+                        etape = EtapeSync.DEPENDANCES,
+                        octetsRecus = 44_040_192L,
+                        compteur = 3,
+                        element = "kotlin-stdlib.jar",
                     ),
+                ),
             )
 
         val entete = PresentationTooling.etatEntete(etat)
@@ -347,9 +347,9 @@ class PresentationToolingTest {
                 synchronisationEnCours = true,
                 debutSyncMs = 0L,
                 etapesSync =
-                    listOf(
-                        EtapeSyncAffichee(etape = EtapeSync.MODELE_IDE),
-                    ),
+                listOf(
+                    EtapeSyncAffichee(etape = EtapeSync.MODELE_IDE),
+                ),
             )
 
         val entete = PresentationTooling.etatEntete(etat)
@@ -365,9 +365,9 @@ class PresentationToolingTest {
                 synchronisationEnCours = true,
                 debutSyncMs = 0L,
                 etapesSync =
-                    listOf(
-                        EtapeSyncAffichee(etape = EtapeSync.DAEMON),
-                    ),
+                listOf(
+                    EtapeSyncAffichee(etape = EtapeSync.DAEMON),
+                ),
             )
 
         val entete = PresentationTooling.etatEntete(etat)
@@ -389,7 +389,7 @@ class PresentationToolingTest {
         val reussie =
             EtatGradle(
                 synchronisationReussie =
-                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 900),
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 900),
             )
         val echoueeSync = EtatGradle(messageEchecSync = "réseau coupé")
         val buildReussi = EtatGradle(statutBuild = StatutBuild.REUSSI)
@@ -406,14 +406,14 @@ class PresentationToolingTest {
         val etat =
             EtatGradle(
                 synchronisationReussie =
-                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_500),
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_500),
                 tachesDisponibles =
-                    listOf(
-                        jo.codeide.core.domain
-                            .InfoTache(chemin = ":app:build", nomAffiche = "build"),
-                        jo.codeide.core.domain
-                            .InfoTache(chemin = ":app:test", nomAffiche = "test"),
-                    ),
+                listOf(
+                    jo.codeide.core.domain
+                        .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+                    jo.codeide.core.domain
+                        .InfoTache(chemin = ":app:test", nomAffiche = "test"),
+                ),
             )
 
         val entete = PresentationTooling.etatEntete(etat)
@@ -428,17 +428,16 @@ class PresentationToolingTest {
 
     @Test
     fun `le sous-titre de succes detaille modules et taches - v5, aperçu`() {
-        fun etatSucces(vararg etapes: EtapeSyncAffichee): EtatGradle =
-            EtatGradle(
-                synchronisationReussie =
-                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_500),
-                tachesDisponibles =
-                    listOf(
-                        jo.codeide.core.domain
-                            .InfoTache(chemin = ":app:build", nomAffiche = "build"),
-                    ),
-                etapesSync = etapes.toList(),
-            )
+        fun etatSucces(vararg etapes: EtapeSyncAffichee): EtatGradle = EtatGradle(
+            synchronisationReussie =
+            ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 2_500),
+            tachesDisponibles =
+            listOf(
+                jo.codeide.core.domain
+                    .InfoTache(chemin = ":app:build", nomAffiche = "build"),
+            ),
+            etapesSync = etapes.toList(),
+        )
 
         // v6 : la distribution en cache n'est pas émise — aucune étape
         // DISTRIBUTION dans les lignes, AUCUN octet reçu — le détail
@@ -484,21 +483,17 @@ class PresentationToolingTest {
 
     @Test
     fun `la progression est determinee quand les octets totaux sont connus`() {
-        fun etatAvec(
-            recus: Long,
-            total: Long?,
-        ): EtatGradle =
-            EtatGradle(
-                synchronisationEnCours = true,
-                etapesSync =
-                    listOf(
-                        EtapeSyncAffichee(
-                            etape = EtapeSync.DISTRIBUTION,
-                            octetsRecus = recus,
-                            octetsTotal = total,
-                        ),
-                    ),
-            )
+        fun etatAvec(recus: Long, total: Long?): EtatGradle = EtatGradle(
+            synchronisationEnCours = true,
+            etapesSync =
+            listOf(
+                EtapeSyncAffichee(
+                    etape = EtapeSync.DISTRIBUTION,
+                    octetsRecus = recus,
+                    octetsTotal = total,
+                ),
+            ),
+        )
 
         assertEquals(0.5f, PresentationTooling.etatEntete(etatAvec(50L, 100L)).progression)
         assertEquals(null, PresentationTooling.etatEntete(etatAvec(50L, null)).progression)
@@ -510,7 +505,7 @@ class PresentationToolingTest {
         val etat =
             EtatGradle(
                 synchronisationReussie =
-                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 3_100),
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 3_100),
             )
 
         val entete = PresentationTooling.etatEntete(etat)

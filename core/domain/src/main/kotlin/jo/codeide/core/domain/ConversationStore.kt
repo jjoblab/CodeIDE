@@ -13,9 +13,7 @@ import kotlinx.coroutines.flow.Flow
  * illimitée) — la règle MagicNumber ne s'applique pas à un domaine fermé.
  */
 @Suppress("MagicNumber")
-public enum class RetentionIa(
-    public val jours: Int,
-) {
+public enum class RetentionIa(public val jours: Int) {
     /** Sept jours de conservation. */
     JOURS_7(7),
 
@@ -60,17 +58,10 @@ public interface ConversationStore {
      *
      * @return l'identifiant de la conversation porteuse.
      */
-    public suspend fun ajouterMessage(
-        conversationId: String,
-        modele: String,
-        message: MessageConversationIa,
-    )
+    public suspend fun ajouterMessage(conversationId: String, modele: String, message: MessageConversationIa)
 
     /** Renomme une conversation ; renvoie le nombre de lignes modifiées. */
-    public suspend fun renommer(
-        conversationId: String,
-        titre: String,
-    ): Int
+    public suspend fun renommer(conversationId: String, titre: String): Int
 
     /**
      * Supprime une conversation ET ses messages (cascade) ; renvoie le

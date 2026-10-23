@@ -107,17 +107,13 @@ class FauxToolingEditor : GradleToolingRepository {
 
     /** Canal des téléchargements du build (v0.45.1 — non borné côté faux :
      *  le test pousse, la pompe draine, jamais de contre-pression fictive). */
-    private fun canalTelechargements(buildId: String): Channel<TelechargementBuild> =
-        synchronized(telechargements) {
-            telechargements.getOrPut(buildId) { Channel(Channel.UNLIMITED) }
-        }
+    private fun canalTelechargements(buildId: String): Channel<TelechargementBuild> = synchronized(telechargements) {
+        telechargements.getOrPut(buildId) { Channel(Channel.UNLIMITED) }
+    }
 
     override fun observeBuildState(buildId: String): Flow<EtatBuild> = etat(buildId)
 
-    override suspend fun synchroniser(
-        projectDir: File,
-        arguments: List<String>,
-    ): AppResult<ResultatSynchronisation> {
+    override suspend fun synchroniser(projectDir: File, arguments: List<String>): AppResult<ResultatSynchronisation> {
         dossierRecu = projectDir
         argumentsRecus = arguments
         nbSynchronisations++
@@ -139,10 +135,7 @@ class FauxToolingEditor : GradleToolingRepository {
         return prochainesTaches
     }
 
-    override suspend fun classpath(
-        projectDir: File,
-        arguments: List<String>,
-    ): AppResult<ClasspathProjet> {
+    override suspend fun classpath(projectDir: File, arguments: List<String>): AppResult<ClasspathProjet> {
         dossierRecu = projectDir
         nbClasspaths++
         return prochainClasspath
@@ -154,11 +147,7 @@ class FauxToolingEditor : GradleToolingRepository {
         return prochainsScripts
     }
 
-    override suspend fun build(
-        projectDir: File,
-        tasks: List<String>,
-        arguments: List<String>,
-    ): String {
+    override suspend fun build(projectDir: File, tasks: List<String>, arguments: List<String>): String {
         dossierRecu = projectDir
         tachesDemandees = tasks
         argumentsDemandes = arguments
@@ -184,10 +173,7 @@ class FauxToolingEditor : GradleToolingRepository {
         return prochaineFermetureProjet
     }
 
-    override fun envoyerEntree(
-        buildId: String,
-        texte: String,
-    ) {
+    override fun envoyerEntree(buildId: String, texte: String) {
         // v0.41.1 : no-op — le faux ne gère pas stdin.
     }
 
@@ -208,23 +194,14 @@ class FauxToolingEditor : GradleToolingRepository {
     override fun observeDiagnostics(projectDir: File): Flow<List<DiagnosticBuild>> = diagnosticsInterne
 
     /** Simule une ligne de sortie pour le build [buildId]. */
-    fun emettreLigne(
-        buildId: String,
-        flux: FluxSortieBuild = FluxSortieBuild.STDOUT,
-        ligne: String,
-    ) {
+    fun emettreLigne(buildId: String, flux: FluxSortieBuild = FluxSortieBuild.STDOUT, ligne: String) {
         canal(buildId).trySend(
             LigneSortieBuild(buildId = buildId, flux = flux, ligne = ligne, horodatageMs = 0L),
         )
     }
 
     /** Simule une tâche du build [buildId] (v3 — affichage console). */
-    fun emettreTache(
-        buildId: String,
-        chemin: String,
-        statut: StatutTache,
-        dureeMs: Long? = null,
-    ) {
+    fun emettreTache(buildId: String, chemin: String, statut: StatutTache, dureeMs: Long? = null) {
         canalTaches(buildId).trySend(
             EtatTacheBuild(buildId = buildId, chemin = chemin, statut = statut, dureeMs = dureeMs),
         )
@@ -232,12 +209,7 @@ class FauxToolingEditor : GradleToolingRepository {
 
     /** Simule un téléchargement du build [buildId] (v0.45.1 — barre de
      *  progression de la vue Build, consommé par la pompe process-wide). */
-    fun emettreTelechargement(
-        buildId: String,
-        element: String,
-        octetsRecus: Long,
-        compteur: Int? = null,
-    ) {
+    fun emettreTelechargement(buildId: String, element: String, octetsRecus: Long, compteur: Int? = null) {
         canalTelechargements(buildId).trySend(
             TelechargementBuild(
                 buildId = buildId,
@@ -251,11 +223,7 @@ class FauxToolingEditor : GradleToolingRepository {
     }
 
     /** Simule une étape de sync annoncée par l'orchestrateur (v3). */
-    fun emettreEtapeSync(
-        etape: EtapeSync,
-        terminee: Boolean = false,
-        dureeMs: Long = 0,
-    ) {
+    fun emettreEtapeSync(etape: EtapeSync, terminee: Boolean = false, dureeMs: Long = 0) {
         fluxSyncInterne.trySend(
             EvenementSyncFlux.Etape(
                 EtapeSyncTooling(etape = etape, terminee = terminee, dureeMs = dureeMs),
@@ -265,10 +233,7 @@ class FauxToolingEditor : GradleToolingRepository {
 
     /** Simule une ligne de sortie de sync (v0.48.0, ADR 0079) — le VRAI
      *  flux de Gradle (avertissement, `println`, statut du daemon). */
-    fun emettreLigneSync(
-        ligne: String,
-        flux: FluxSortieBuild = FluxSortieBuild.STDOUT,
-    ) {
+    fun emettreLigneSync(ligne: String, flux: FluxSortieBuild = FluxSortieBuild.STDOUT) {
         fluxSyncInterne.trySend(
             EvenementSyncFlux.Ligne(
                 LigneSortieSync(flux = flux, ligne = ligne, horodatageMs = 0L),
@@ -288,11 +253,7 @@ class FauxToolingEditor : GradleToolingRepository {
     }
 
     /** Simule la fin d'un build (état final + fermeture des canaux). */
-    fun terminerBuild(
-        buildId: String,
-        statut: StatutBuild,
-        messageEchec: String? = null,
-    ) {
+    fun terminerBuild(buildId: String, statut: StatutBuild, messageEchec: String? = null) {
         etat(buildId).value = EtatBuild(buildId = buildId, statut = statut, messageEchec = messageEchec)
         canal(buildId).close()
         canalTaches(buildId).close()

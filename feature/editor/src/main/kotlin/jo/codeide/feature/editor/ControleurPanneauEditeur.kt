@@ -14,10 +14,7 @@ interface ControleurPanneauEditeur {
      * fichier diagnostiqué), défile l'éditeur et pose le curseur à la
      * ligne — la vue est rebbranchée sur la bonne session avant le saut.
      */
-    fun sauterAuProbleme(
-        fichier: String,
-        ligne: Int,
-    )
+    fun sauterAuProbleme(fichier: String, ligne: Int)
 
     /**
      * Ouvre le tiroir sur l'onglet Chat de l'assistant (mission IA, lot
@@ -31,12 +28,7 @@ interface ControleurPanneauEditeur {
      * chat pré-rempli avec le diagnostic — identifiant reconstruit par
      * l'hôte (convention `source:ligne:colonne` du port d'éditeur).
      */
-    fun corrigerProblemeAvecIa(
-        fichier: String,
-        ligne: Int,
-        colonne: Int,
-        source: String,
-    )
+    fun corrigerProblemeAvecIa(fichier: String, ligne: Int, colonne: Int, source: String)
 
     /**
      * « Expliquer » (mission IA, lot IA-5, spec E3) : ouvre le chat

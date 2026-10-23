@@ -32,43 +32,38 @@ import java.io.IOException
  * dans le coffre, `noBackupFilesDir`) — seul l'aperçu `••••1234` pourrait
  * transiter, et il vit dans le coffre lui-même.
  */
-public class AiSettingsStore(
-    private val dataStore: DataStore<Preferences>,
-) {
+public class AiSettingsStore(private val dataStore: DataStore<Preferences>) {
     /** Flux des réglages IA — tolérant (corruption → défauts). */
-    public fun observe(): Flow<AiSettings> =
-        dataStore.data
-            .catch { erreur ->
-                if (erreur is IOException) emit(emptyPreferences()) else throw erreur
-            }.map { preferences -> preferences.toAiSettings() }
+    public fun observe(): Flow<AiSettings> = dataStore.data
+        .catch { erreur ->
+            if (erreur is IOException) emit(emptyPreferences()) else throw erreur
+        }.map { preferences -> preferences.toAiSettings() }
 
     /** Lecture ponctuelle (routeur IA, écrans) — tolérante (corruption → défauts). */
-    public suspend fun courant(): AppResult<AiSettings> =
-        try {
-            AppResult.Success(
-                dataStore.data
-                    .catch { erreur ->
-                        if (erreur is IOException) emit(emptyPreferences()) else throw erreur
-                    }.map { it.toAiSettings() }
-                    .first(),
-            )
-        } catch (erreur: IOException) {
-            AppResult.Failure(
-                AppError.Storage(AppError.StorageReason.Io, "lecture réglages IA : ${erreur.javaClass.simpleName}"),
-            )
-        }
+    public suspend fun courant(): AppResult<AiSettings> = try {
+        AppResult.Success(
+            dataStore.data
+                .catch { erreur ->
+                    if (erreur is IOException) emit(emptyPreferences()) else throw erreur
+                }.map { it.toAiSettings() }
+                .first(),
+        )
+    } catch (erreur: IOException) {
+        AppResult.Failure(
+            AppError.Storage(AppError.StorageReason.Io, "lecture réglages IA : ${erreur.javaClass.simpleName}"),
+        )
+    }
 
     /** Mise à jour atomique par transformation. */
-    public suspend fun update(update: (AiSettings) -> AiSettings): AppResult<Unit> =
-        try {
-            dataStore.edit { preferences ->
-                preferences.ecrire(update(preferences.toAiSettings()))
-            }
-            AppResult.Success(Unit)
-        } catch (erreur: IOException) {
-            val cause = erreur.javaClass.simpleName
-            AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, "écriture réglages IA : $cause"))
+    public suspend fun update(update: (AiSettings) -> AiSettings): AppResult<Unit> = try {
+        dataStore.edit { preferences ->
+            preferences.ecrire(update(preferences.toAiSettings()))
         }
+        AppResult.Success(Unit)
+    } catch (erreur: IOException) {
+        val cause = erreur.javaClass.simpleName
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, "écriture réglages IA : $cause"))
+    }
 }
 
 /** Clés de préférences — préfixe `ia_`, un domaine propre (jamais `AppSettings`). */
@@ -92,31 +87,29 @@ internal object ClesAi {
 }
 
 /** Le fournisseur persisté n'est lu que s'il est encore connu (liste fermée). */
-private fun fournisseurActifLisible(preferences: Preferences): String =
-    preferences[ClesAi.fournisseurActif]
-        ?.takeIf { it in setOf(FournisseursIa.ANTHROPIC, FournisseursIa.OPENAI_COMPATIBLE) }
-        ?: FournisseursIa.ANTHROPIC
+private fun fournisseurActifLisible(preferences: Preferences): String = preferences[ClesAi.fournisseurActif]
+    ?.takeIf { it in setOf(FournisseursIa.ANTHROPIC, FournisseursIa.OPENAI_COMPATIBLE) }
+    ?: FournisseursIa.ANTHROPIC
 
 /** Lecture tolérante : chaque champ retombe sur son défaut si absent/inconnu. */
-internal fun Preferences.toAiSettings(): AiSettings =
-    AiSettings(
-        assistantActive = this[ClesAi.assistantActive] ?: false,
-        consentementDonne = this[ClesAi.consentementDonne] ?: false,
-        consentementDateEpochMs = this[ClesAi.consentementDate] ?: 0L,
-        fournisseurActif = fournisseurActifLisible(this),
-        urlBaseAnthropic = this[ClesAi.urlBaseAnthropic] ?: "https://api.anthropic.com",
-        urlBaseOpenAiCompatible = this[ClesAi.urlBaseOpenAiCompatible] ?: "",
-        modeleAnthropic = this[ClesAi.modeleAnthropic] ?: "",
-        modeleOpenAiCompatible = this[ClesAi.modeleOpenAiCompatible] ?: "",
-        modelesRecensesAnthropic = lignes(this[ClesAi.modelesRecensesAnthropic]),
-        modelesRecensesOpenAiCompatible = lignes(this[ClesAi.modelesRecensesOpenAiCompatible]),
-        maxJetonsReponse = this[ClesAi.maxJetonsReponse] ?: 4_096,
-        delaiSecondes = this[ClesAi.delaiSecondes] ?: 120,
-        envoyerFichierActif = this[ClesAi.envoyerFichierActif] ?: true,
-        envoyerListeChemins = this[ClesAi.envoyerListeChemins] ?: true,
-        envoyerDiagnostics = this[ClesAi.envoyerDiagnostics] ?: true,
-        retentionConversations = retentionLisible(this[ClesAi.retentionConversations]),
-    )
+internal fun Preferences.toAiSettings(): AiSettings = AiSettings(
+    assistantActive = this[ClesAi.assistantActive] ?: false,
+    consentementDonne = this[ClesAi.consentementDonne] ?: false,
+    consentementDateEpochMs = this[ClesAi.consentementDate] ?: 0L,
+    fournisseurActif = fournisseurActifLisible(this),
+    urlBaseAnthropic = this[ClesAi.urlBaseAnthropic] ?: "https://api.anthropic.com",
+    urlBaseOpenAiCompatible = this[ClesAi.urlBaseOpenAiCompatible] ?: "",
+    modeleAnthropic = this[ClesAi.modeleAnthropic] ?: "",
+    modeleOpenAiCompatible = this[ClesAi.modeleOpenAiCompatible] ?: "",
+    modelesRecensesAnthropic = lignes(this[ClesAi.modelesRecensesAnthropic]),
+    modelesRecensesOpenAiCompatible = lignes(this[ClesAi.modelesRecensesOpenAiCompatible]),
+    maxJetonsReponse = this[ClesAi.maxJetonsReponse] ?: 4_096,
+    delaiSecondes = this[ClesAi.delaiSecondes] ?: 120,
+    envoyerFichierActif = this[ClesAi.envoyerFichierActif] ?: true,
+    envoyerListeChemins = this[ClesAi.envoyerListeChemins] ?: true,
+    envoyerDiagnostics = this[ClesAi.envoyerDiagnostics] ?: true,
+    retentionConversations = retentionLisible(this[ClesAi.retentionConversations]),
+)
 
 /** Liste ↔ chaîne multiligne (ordre conservé, entrées vides ignorées). */
 private fun lignes(valeur: String?): List<String> = valeur?.split('\n')?.filter { it.isNotBlank() } ?: emptyList()

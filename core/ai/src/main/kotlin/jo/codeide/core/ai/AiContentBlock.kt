@@ -10,9 +10,7 @@ package jo.codeide.core.ai
  */
 public sealed interface AiContentBlock {
     /** Bloc de texte brut (question, réponse, extrait de contexte). */
-    public data class Text(
-        public val text: String,
-    ) : AiContentBlock
+    public data class Text(public val text: String) : AiContentBlock
 
     /**
      * Appel d'outil demandé par le modèle (ADR 0125) : identifiant d'appel,
@@ -35,8 +33,5 @@ public sealed interface AiContentBlock {
      * @property content contenu du résultat (texte ; les sorties binaires
      * sont hors périmètre — ADR 0125).
      */
-    public data class ToolResult(
-        public val toolCallId: String,
-        public val content: String,
-    ) : AiContentBlock
+    public data class ToolResult(public val toolCallId: String, public val content: String) : AiContentBlock
 }

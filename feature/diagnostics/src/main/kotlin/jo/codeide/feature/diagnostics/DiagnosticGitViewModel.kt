@@ -26,38 +26,37 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class DiagnosticGitViewModel
-    @Inject
-    constructor(
-        private val diagnostiquer: DiagnostiquerGitProjetUseCase,
-    ) : ViewModel() {
-        private val etatInterne = MutableStateFlow(EtatDiagnosticGit())
+@Inject
+constructor(private val diagnostiquer: DiagnostiquerGitProjetUseCase) :
+    ViewModel() {
+    private val etatInterne = MutableStateFlow(EtatDiagnosticGit())
 
-        /** État observable de l'onglet Diagnostic Git. */
-        val etat: StateFlow<EtatDiagnosticGit> = etatInterne.asStateFlow()
+    /** État observable de l'onglet Diagnostic Git. */
+    val etat: StateFlow<EtatDiagnosticGit> = etatInterne.asStateFlow()
 
-        init {
-            lancer()
-        }
+    init {
+        lancer()
+    }
 
-        /** Relance le diagnostic (bouton Relancer). */
-        fun relancer() {
-            lancer()
-        }
+    /** Relance le diagnostic (bouton Relancer). */
+    fun relancer() {
+        lancer()
+    }
 
-        private fun lancer() {
-            viewModelScope.launch {
-                etatInterne.update { it.copy(chargement = true) }
-                val rapport = diagnostiquer()
-                etatInterne.update {
-                    EtatDiagnosticGit(
-                        chargement = false,
-                        texteAffiche = FormateurDiagnosticGit.formater(rapport),
-                        texteCopie = FormateurDiagnosticGit.formaterExpurge(rapport),
-                    )
-                }
+    private fun lancer() {
+        viewModelScope.launch {
+            etatInterne.update { it.copy(chargement = true) }
+            val rapport = diagnostiquer()
+            etatInterne.update {
+                EtatDiagnosticGit(
+                    chargement = false,
+                    texteAffiche = FormateurDiagnosticGit.formater(rapport),
+                    texteCopie = FormateurDiagnosticGit.formaterExpurge(rapport),
+                )
             }
         }
     }
+}
 
 /**
  * État de l'onglet « Git » de l'écran Diagnostic.

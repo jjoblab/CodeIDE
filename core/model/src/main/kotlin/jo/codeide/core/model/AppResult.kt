@@ -21,18 +21,14 @@ public sealed interface AppResult<out T> {
      *
      * @param value valeur produite par l'opération.
      */
-    public data class Success<T>(
-        public val value: T,
-    ) : AppResult<T>
+    public data class Success<T>(public val value: T) : AppResult<T>
 
     /**
      * Opération échouée de manière **attendue et modélisée**.
      *
      * @param error erreur applicative typée, traduisible en message localisé.
      */
-    public data class Failure(
-        public val error: AppError,
-    ) : AppResult<Nothing>
+    public data class Failure(public val error: AppError) : AppResult<Nothing>
 }
 
 /**
@@ -43,11 +39,10 @@ public sealed interface AppResult<out T> {
  *
  * @return la valeur en cas de succès, `null` sinon.
  */
-public fun <T> AppResult<T>.getOrNull(): T? =
-    when (this) {
-        is AppResult.Success -> value
-        is AppResult.Failure -> null
-    }
+public fun <T> AppResult<T>.getOrNull(): T? = when (this) {
+    is AppResult.Success -> value
+    is AppResult.Failure -> null
+}
 
 /**
  * Exécute [block] uniquement si le résultat est un succès, puis renvoie le

@@ -57,10 +57,7 @@ class ApparenceFragment : BaseFragment<FragmentSettingsApparenceBinding>() {
         attachToRoot: Boolean,
     ): FragmentSettingsApparenceBinding = FragmentSettingsApparenceBinding.inflate(inflater, container, attachToRoot)
 
-    override fun onViewCreated(
-        view: View,
-        savedInstanceState: Bundle?,
-    ) {
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.root.applySystemBarsAndImeInsets(top = true, bottom = true)
         binding.settingsToolbar.setNavigationOnClickListener { navigator.goBack() }
@@ -133,18 +130,16 @@ class ApparenceFragment : BaseFragment<FragmentSettingsApparenceBinding>() {
     }
 
     /** Pastille [android.content.res.ColorStateList] d'une couleur de palette. */
-    private fun pastille(idCouleur: Int): android.content.res.ColorStateList =
-        android.content.res.ColorStateList
-            .valueOf(ContextCompat.getColor(requireContext(), idCouleur))
+    private fun pastille(idCouleur: Int): android.content.res.ColorStateList = android.content.res.ColorStateList
+        .valueOf(ContextCompat.getColor(requireContext(), idCouleur))
 }
 
 /** Thème correspondant au bouton segmenté coché (SYSTÈME par défaut). */
-private fun modeDuTheme(id: Int): ThemeMode =
-    when (id) {
-        R.id.bouton_theme_2 -> ThemeMode.LIGHT
-        R.id.bouton_theme_3 -> ThemeMode.DARK
-        else -> ThemeMode.SYSTEM
-    }
+private fun modeDuTheme(id: Int): ThemeMode = when (id) {
+    R.id.bouton_theme_2 -> ThemeMode.LIGHT
+    R.id.bouton_theme_3 -> ThemeMode.DARK
+    else -> ThemeMode.SYSTEM
+}
 
 /** Opacité de l'aperçu de palette quand les couleurs dynamiques sont coupées. */
 private const val ALPHA_PALETTE_ETEINTE = 0.35f
@@ -153,53 +148,49 @@ private const val ALPHA_PALETTE_ETEINTE = 0.35f
 private const val ALPHA_BIENTOT = 0.55f
 
 /** Libellé localisé d'une palette. */
-private fun libellePalette(palette: PaletteCouleur): Int =
-    when (palette) {
-        PaletteCouleur.INDIGO -> R.string.settings_palette_indigo
-        PaletteCouleur.BLEU -> R.string.settings_palette_bleu
-        PaletteCouleur.TURQUOISE -> R.string.settings_palette_turquoise
-        PaletteCouleur.VERT -> R.string.settings_palette_vert
-        PaletteCouleur.AMBRE -> R.string.settings_palette_ambre
-        PaletteCouleur.ROUGE -> R.string.settings_palette_rouge
-        PaletteCouleur.VIOLET -> R.string.settings_palette_violet
-        PaletteCouleur.ROSE -> R.string.settings_palette_rose
-    }
+private fun libellePalette(palette: PaletteCouleur): Int = when (palette) {
+    PaletteCouleur.INDIGO -> R.string.settings_palette_indigo
+    PaletteCouleur.BLEU -> R.string.settings_palette_bleu
+    PaletteCouleur.TURQUOISE -> R.string.settings_palette_turquoise
+    PaletteCouleur.VERT -> R.string.settings_palette_vert
+    PaletteCouleur.AMBRE -> R.string.settings_palette_ambre
+    PaletteCouleur.ROUGE -> R.string.settings_palette_rouge
+    PaletteCouleur.VIOLET -> R.string.settings_palette_violet
+    PaletteCouleur.ROSE -> R.string.settings_palette_rose
+}
 
 /** Pastille primaire de chaque palette (déclinaison claire, ADR 0060). */
-private fun idPastille(palette: PaletteCouleur): Int =
-    when (palette) {
-        PaletteCouleur.INDIGO -> RUi.color.palette_indigo_pastille
-        PaletteCouleur.BLEU -> RUi.color.palette_bleu_pastille
-        PaletteCouleur.TURQUOISE -> RUi.color.palette_turquoise_pastille
-        PaletteCouleur.VERT -> RUi.color.palette_vert_pastille
-        PaletteCouleur.AMBRE -> RUi.color.palette_ambre_pastille
-        PaletteCouleur.ROUGE -> RUi.color.palette_rouge_pastille
-        PaletteCouleur.VIOLET -> RUi.color.palette_violet_pastille
-        PaletteCouleur.ROSE -> RUi.color.palette_rose_pastille
-    }
+private fun idPastille(palette: PaletteCouleur): Int = when (palette) {
+    PaletteCouleur.INDIGO -> RUi.color.palette_indigo_pastille
+    PaletteCouleur.BLEU -> RUi.color.palette_bleu_pastille
+    PaletteCouleur.TURQUOISE -> RUi.color.palette_turquoise_pastille
+    PaletteCouleur.VERT -> RUi.color.palette_vert_pastille
+    PaletteCouleur.AMBRE -> RUi.color.palette_ambre_pastille
+    PaletteCouleur.ROUGE -> RUi.color.palette_rouge_pastille
+    PaletteCouleur.VIOLET -> RUi.color.palette_violet_pastille
+    PaletteCouleur.ROSE -> RUi.color.palette_rose_pastille
+}
 
 /** Conteneur primaire de chaque palette (déclinaison claire). */
-private fun idConteneur(palette: PaletteCouleur): Int =
-    when (palette) {
-        PaletteCouleur.INDIGO -> RUi.color.codeide_primary_container
-        PaletteCouleur.BLEU -> RUi.color.palette_bleu_primaryContainer
-        PaletteCouleur.TURQUOISE -> RUi.color.palette_turquoise_primaryContainer
-        PaletteCouleur.VERT -> RUi.color.palette_vert_primaryContainer
-        PaletteCouleur.AMBRE -> RUi.color.palette_ambre_primaryContainer
-        PaletteCouleur.ROUGE -> RUi.color.palette_rouge_primaryContainer
-        PaletteCouleur.VIOLET -> RUi.color.palette_violet_primaryContainer
-        PaletteCouleur.ROSE -> RUi.color.palette_rose_primaryContainer
-    }
+private fun idConteneur(palette: PaletteCouleur): Int = when (palette) {
+    PaletteCouleur.INDIGO -> RUi.color.codeide_primary_container
+    PaletteCouleur.BLEU -> RUi.color.palette_bleu_primaryContainer
+    PaletteCouleur.TURQUOISE -> RUi.color.palette_turquoise_primaryContainer
+    PaletteCouleur.VERT -> RUi.color.palette_vert_primaryContainer
+    PaletteCouleur.AMBRE -> RUi.color.palette_ambre_primaryContainer
+    PaletteCouleur.ROUGE -> RUi.color.palette_rouge_primaryContainer
+    PaletteCouleur.VIOLET -> RUi.color.palette_violet_primaryContainer
+    PaletteCouleur.ROSE -> RUi.color.palette_rose_primaryContainer
+}
 
 /** Tertiaire de chaque palette (déclinaison claire). */
-private fun idTertiaire(palette: PaletteCouleur): Int =
-    when (palette) {
-        PaletteCouleur.INDIGO -> RUi.color.codeide_tertiary
-        PaletteCouleur.BLEU -> RUi.color.palette_bleu_tertiary
-        PaletteCouleur.TURQUOISE -> RUi.color.palette_turquoise_tertiary
-        PaletteCouleur.VERT -> RUi.color.palette_vert_tertiary
-        PaletteCouleur.AMBRE -> RUi.color.palette_ambre_tertiary
-        PaletteCouleur.ROUGE -> RUi.color.palette_rouge_tertiary
-        PaletteCouleur.VIOLET -> RUi.color.palette_violet_tertiary
-        PaletteCouleur.ROSE -> RUi.color.palette_rose_tertiary
-    }
+private fun idTertiaire(palette: PaletteCouleur): Int = when (palette) {
+    PaletteCouleur.INDIGO -> RUi.color.codeide_tertiary
+    PaletteCouleur.BLEU -> RUi.color.palette_bleu_tertiary
+    PaletteCouleur.TURQUOISE -> RUi.color.palette_turquoise_tertiary
+    PaletteCouleur.VERT -> RUi.color.palette_vert_tertiary
+    PaletteCouleur.AMBRE -> RUi.color.palette_ambre_tertiary
+    PaletteCouleur.ROUGE -> RUi.color.palette_rouge_tertiary
+    PaletteCouleur.VIOLET -> RUi.color.palette_violet_tertiary
+    PaletteCouleur.ROSE -> RUi.color.palette_rose_tertiary
+}

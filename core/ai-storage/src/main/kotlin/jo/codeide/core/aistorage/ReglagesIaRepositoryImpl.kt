@@ -17,41 +17,41 @@ import javax.inject.Singleton
  */
 @Singleton
 public class ReglagesIaRepositoryImpl
-    @Inject
-    constructor(
-        private val store: AiSettingsStore,
-        private val journal: AppLogger,
-    ) : ReglagesIaRepository {
-        override fun observeAiSettings(): Flow<AiSettings> = store.observe()
+@Inject
+constructor(
+    private val store: AiSettingsStore,
+    private val journal: AppLogger,
+) : ReglagesIaRepository {
+    override fun observeAiSettings(): Flow<AiSettings> = store.observe()
 
-        override suspend fun courant(): AppResult<AiSettings> {
-            val resultat = store.courant()
-            if (resultat is AppResult.Failure) {
-                val cause = resultat.error.javaClass.simpleName
-                journal.w(TAG) { "lecture des réglages IA impossible ($cause)" }
-            }
-            return resultat
+    override suspend fun courant(): AppResult<AiSettings> {
+        val resultat = store.courant()
+        if (resultat is AppResult.Failure) {
+            val cause = resultat.error.javaClass.simpleName
+            journal.w(TAG) { "lecture des réglages IA impossible ($cause)" }
         }
-
-        override suspend fun update(update: (AiSettings) -> AiSettings): AppResult<Unit> {
-            val resultat = store.update(update)
-            when (resultat) {
-                is AppResult.Success -> {
-                    journal.d(TAG) { "réglages IA mis à jour" }
-                }
-
-                is AppResult.Failure -> {
-                    val cause = resultat.error.javaClass.simpleName
-                    journal.w(TAG) { "écriture des réglages IA impossible ($cause)" }
-                }
-            }
-            return resultat
-        }
-
-        private companion object {
-            const val TAG = "ReglagesIa"
-        }
+        return resultat
     }
+
+    override suspend fun update(update: (AiSettings) -> AiSettings): AppResult<Unit> {
+        val resultat = store.update(update)
+        when (resultat) {
+            is AppResult.Success -> {
+                journal.d(TAG) { "réglages IA mis à jour" }
+            }
+
+            is AppResult.Failure -> {
+                val cause = resultat.error.javaClass.simpleName
+                journal.w(TAG) { "écriture des réglages IA impossible ($cause)" }
+            }
+        }
+        return resultat
+    }
+
+    private companion object {
+        const val TAG = "ReglagesIa"
+    }
+}
 
 /**
  * Source de clé **par fournisseur** (mission IA, lot IA-2) : pont entre
@@ -64,20 +64,17 @@ public class ReglagesIaRepositoryImpl
  * réglages, lui, affiche l'état exact (« à saisir » / « à ressaisir »)
  * via [CoffreClesIa.lire].
  */
-public class SourceCleFournisseur(
-    private val coffre: CoffreClesIa,
-    private val identifiant: String,
-) : jo.codeide.core.ai.ApiKeySource {
-    override suspend fun obtain(): String? =
-        when (val resultat = coffre.lire(identifiant)) {
-            is AppResult.Success -> {
-                val cle = String(resultat.value)
-                resultat.value.fill('\u0000')
-                cle
-            }
-
-            is AppResult.Failure -> {
-                null
-            }
+public class SourceCleFournisseur(private val coffre: CoffreClesIa, private val identifiant: String) :
+    jo.codeide.core.ai.ApiKeySource {
+    override suspend fun obtain(): String? = when (val resultat = coffre.lire(identifiant)) {
+        is AppResult.Success -> {
+            val cle = String(resultat.value)
+            resultat.value.fill('\u0000')
+            cle
         }
+
+        is AppResult.Failure -> {
+            null
+        }
+    }
 }

@@ -28,17 +28,15 @@ import javax.inject.Singleton
  */
 @Singleton
 internal class LogLevelApplier
-    @Inject
-    constructor(
-        private val holder: LogConfigHolder,
-    ) : LogVerbosityApplier {
-        /**
-         * Bascule le niveau minimal du moteur selon la verbosité
-         * utilisateur (`NORMAL` → `INFO`, `DETAILED` → `DEBUG`).
-         *
-         * @param verbosity verbosité lue dans les paramètres persistés.
-         */
-        override fun apply(verbosity: LogVerbosity) {
-            holder.update(holder.read().copy(minLevel = verbosity.toLogLevel()))
-        }
+@Inject
+constructor(private val holder: LogConfigHolder) : LogVerbosityApplier {
+    /**
+     * Bascule le niveau minimal du moteur selon la verbosité
+     * utilisateur (`NORMAL` → `INFO`, `DETAILED` → `DEBUG`).
+     *
+     * @param verbosity verbosité lue dans les paramètres persistés.
+     */
+    override fun apply(verbosity: LogVerbosity) {
+        holder.update(holder.read().copy(minLevel = verbosity.toLogLevel()))
     }
+}

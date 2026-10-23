@@ -82,26 +82,24 @@ internal class PortLspEspace(
     override fun tailleCacheOctets(): Long? = sessionJava.value?.tailleCacheOctets()
 
     /** Relance l'indexation du projet ouvert ; `false` sans session vivante. */
-    override fun reindexer(): Boolean =
-        sessionJava.value
-            ?.let { session ->
-                session.reindexer()
-                true
-            } ?: false
+    override fun reindexer(): Boolean = sessionJava.value
+        ?.let { session ->
+            session.reindexer()
+            true
+        } ?: false
 
     /**
      * Vide le cache d'index ; refus en DONNÉE, `null` sans session —
      * la course avec la fermeture (IllegalStateException côté hôte)
      * se traduit en absence, jamais en plantage de l'écran.
      */
-    override fun viderCache(): ResultatVidageCacheLsp? =
-        try {
-            sessionJava.value?.viderCache()?.versResultatDomaine()
-        } catch (_: IllegalStateException) {
-            // Session refermée entre la lecture de valeur et l'appel :
-            // rien à vider — l'écran ré-observera l'absence du port.
-            null
-        }
+    override fun viderCache(): ResultatVidageCacheLsp? = try {
+        sessionJava.value?.viderCache()?.versResultatDomaine()
+    } catch (_: IllegalStateException) {
+        // Session refermée entre la lecture de valeur et l'appel :
+        // rien à vider — l'écran ré-observera l'absence du port.
+        null
+    }
 
     /**
      * Demande « Détails de l'indexation » (lot LSP-4, ADR 0117) : ÉTAT
@@ -137,86 +135,80 @@ internal class PortLspEspace(
  * lit même éditeur fermé.
  */
 internal class TableCapacitesLspHote : TableCapacitesLsp {
-    override fun capacitesAnnoncees(langage: LangageLsp): Set<CapaciteLsp> =
-        CapacitesAnnoncees
-            .capacites(langage.versLangageHote())
-            .map { it.versCapaciteDomaine() }
-            .toSet()
+    override fun capacitesAnnoncees(langage: LangageLsp): Set<CapaciteLsp> = CapacitesAnnoncees
+        .capacites(langage.versLangageHote())
+        .map { it.versCapaciteDomaine() }
+        .toSet()
 }
 
 /** Miroir langage : domaine → hôte (parité verrouillée par `PortLspEspaceTest`). */
-internal fun LangageLsp.versLangageHote(): LangageLspHote =
-    when (this) {
-        LangageLsp.JAVA -> LangageLspHote.JAVA
-        LangageLsp.KOTLIN -> LangageLspHote.KOTLIN
-        LangageLsp.XML -> LangageLspHote.XML
-    }
+internal fun LangageLsp.versLangageHote(): LangageLspHote = when (this) {
+    LangageLsp.JAVA -> LangageLspHote.JAVA
+    LangageLsp.KOTLIN -> LangageLspHote.KOTLIN
+    LangageLsp.XML -> LangageLspHote.XML
+}
 
 /** Miroir capacité : hôte → domaine (parité verrouillée par `PortLspEspaceTest`). */
-internal fun CapaciteLspHote.versCapaciteDomaine(): CapaciteLsp =
-    when (this) {
-        CapaciteLspHote.COMPLETION -> CapaciteLsp.COMPLETION
-        CapaciteLspHote.SURVOL -> CapaciteLsp.SURVOL
-        CapaciteLspHote.DIAGNOSTICS -> CapaciteLsp.DIAGNOSTICS
-        CapaciteLspHote.SIGNATURES -> CapaciteLsp.SIGNATURES
-        CapaciteLspHote.DEFINITION -> CapaciteLsp.DEFINITION
-        CapaciteLspHote.REFERENCES -> CapaciteLsp.REFERENCES
-        CapaciteLspHote.RENOMMAGE -> CapaciteLsp.RENOMMAGE
-        CapaciteLspHote.ACTIONS_RAPIDES -> CapaciteLsp.ACTIONS_RAPIDES
-        CapaciteLspHote.FORMATAGE -> CapaciteLsp.FORMATAGE
-        CapaciteLspHote.INDICES_EN_LIGNE -> CapaciteLsp.INDICES_EN_LIGNE
-    }
+internal fun CapaciteLspHote.versCapaciteDomaine(): CapaciteLsp = when (this) {
+    CapaciteLspHote.COMPLETION -> CapaciteLsp.COMPLETION
+    CapaciteLspHote.SURVOL -> CapaciteLsp.SURVOL
+    CapaciteLspHote.DIAGNOSTICS -> CapaciteLsp.DIAGNOSTICS
+    CapaciteLspHote.SIGNATURES -> CapaciteLsp.SIGNATURES
+    CapaciteLspHote.DEFINITION -> CapaciteLsp.DEFINITION
+    CapaciteLspHote.REFERENCES -> CapaciteLsp.REFERENCES
+    CapaciteLspHote.RENOMMAGE -> CapaciteLsp.RENOMMAGE
+    CapaciteLspHote.ACTIONS_RAPIDES -> CapaciteLsp.ACTIONS_RAPIDES
+    CapaciteLspHote.FORMATAGE -> CapaciteLsp.FORMATAGE
+    CapaciteLspHote.INDICES_EN_LIGNE -> CapaciteLsp.INDICES_EN_LIGNE
+}
 
 /** Miroir phase : hôte → domaine (parité verrouillée par `PortLspEspaceTest`). */
-internal fun PhaseIndexation.versPhaseDomaine(): PhaseMoteurLsp =
-    when (this) {
-        PhaseIndexation.INITIAL -> PhaseMoteurLsp.INITIAL
-        PhaseIndexation.CONSTRUCTION -> PhaseMoteurLsp.CONSTRUCTION
-        PhaseIndexation.PRET -> PhaseMoteurLsp.PRET
-        PhaseIndexation.PARTIEL -> PhaseMoteurLsp.PARTIEL
-        PhaseIndexation.ERREUR -> PhaseMoteurLsp.ERREUR
-    }
+internal fun PhaseIndexation.versPhaseDomaine(): PhaseMoteurLsp = when (this) {
+    PhaseIndexation.INITIAL -> PhaseMoteurLsp.INITIAL
+    PhaseIndexation.CONSTRUCTION -> PhaseMoteurLsp.CONSTRUCTION
+    PhaseIndexation.PRET -> PhaseMoteurLsp.PRET
+    PhaseIndexation.PARTIEL -> PhaseMoteurLsp.PARTIEL
+    PhaseIndexation.ERREUR -> PhaseMoteurLsp.ERREUR
+}
 
 /**
  * Projection de l'état JAVA pour les écrans (PURE, testée en JVM) : le
  * modèle riche de l'hôte reste ici — les écrans ne voient que ce qu'ils
  * affichent : phase, avancement, comptes, messages tronqués, bilan.
  */
-internal fun EtatIndexation.versEtatMoteurLsp(): EtatMoteurLsp =
-    EtatMoteurLsp(
-        phase = phase.versPhaseDomaine(),
-        avancementPourCent =
-            if (phase == PhaseIndexation.CONSTRUCTION && total > 0) {
-                faits * POURCENT / total
-            } else {
-                null
-            },
-        fichiersIndexes = faits,
-        avertissements = avertissements.size,
-        erreurs = erreurs.size,
-        messagesErreur = erreurs.take(ERREURS_LSP_MAX),
-        dureeDernierPassageMs = bilanDernierPassage?.dureeMs,
-        horodatageDernierPassageMs = bilanDernierPassage?.horodatageMs,
-    )
+internal fun EtatIndexation.versEtatMoteurLsp(): EtatMoteurLsp = EtatMoteurLsp(
+    phase = phase.versPhaseDomaine(),
+    avancementPourCent =
+    if (phase == PhaseIndexation.CONSTRUCTION && total > 0) {
+        faits * POURCENT / total
+    } else {
+        null
+    },
+    fichiersIndexes = faits,
+    avertissements = avertissements.size,
+    erreurs = erreurs.size,
+    messagesErreur = erreurs.take(ERREURS_LSP_MAX),
+    dureeDernierPassageMs = bilanDernierPassage?.dureeMs,
+    horodatageDernierPassageMs = bilanDernierPassage?.horodatageMs,
+)
 
 /** Miroir résultat de vidage : hôte → domaine (refus en DONNÉE). */
-internal fun ResultatVidageCache.versResultatDomaine(): ResultatVidageCacheLsp =
-    when (this) {
-        is ResultatVidageCache.Videe -> {
-            ResultatVidageCacheLsp.Videe(
-                segmentsSupprimes = segmentsSupprimes,
-                octetsLiberes = octetsLiberes,
-            )
-        }
-
-        is ResultatVidageCache.Refusee -> {
-            ResultatVidageCacheLsp.Refusee(
-                raison =
-                    when (raison) {
-                        RaisonRefusVidage.INDEXATION_EN_COURS -> RaisonRefusVidageLsp.INDEXATION_EN_COURS
-                    },
-            )
-        }
+internal fun ResultatVidageCache.versResultatDomaine(): ResultatVidageCacheLsp = when (this) {
+    is ResultatVidageCache.Videe -> {
+        ResultatVidageCacheLsp.Videe(
+            segmentsSupprimes = segmentsSupprimes,
+            octetsLiberes = octetsLiberes,
+        )
     }
+
+    is ResultatVidageCache.Refusee -> {
+        ResultatVidageCacheLsp.Refusee(
+            raison =
+            when (raison) {
+                RaisonRefusVidage.INDEXATION_EN_COURS -> RaisonRefusVidageLsp.INDEXATION_EN_COURS
+            },
+        )
+    }
+}
 
 private const val POURCENT = 100

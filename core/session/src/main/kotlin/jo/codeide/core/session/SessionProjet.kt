@@ -38,20 +38,13 @@ public sealed interface EtatSession {
     public object Fermee : EtatSession
 
     /** Ouverture en cours : les travaux de démarrage s'exécutent. */
-    public data class Ouverture(
-        public val projet: ProjectId,
-    ) : EtatSession
+    public data class Ouverture(public val projet: ProjectId) : EtatSession
 
     /** Projet ouvert : les ressources peuvent s'enregistrer. */
-    public data class Ouverte(
-        public val projet: ProjectId,
-    ) : EtatSession
+    public data class Ouverte(public val projet: ProjectId) : EtatSession
 
     /** Fermeture en cours : les ressources se libèrent en ordre inverse. */
-    public data class Fermeture(
-        public val projet: ProjectId,
-        public val raison: RaisonFermeture,
-    ) : EtatSession
+    public data class Fermeture(public val projet: ProjectId, public val raison: RaisonFermeture) : EtatSession
 }
 
 /**
@@ -126,30 +119,29 @@ public class SessionProjet(
         fermable: Fermable,
         delai: Duration,
         annulable: Boolean = true,
-    ): AppResult<Desenregistrement> =
-        when (_etat.value) {
-            is EtatSession.Ouverture, is EtatSession.Ouverte -> {
-                registre.enregistrer(fermable, delai, annulable)
-            }
-
-            is EtatSession.Fermee -> {
-                AppResult.Failure(
-                    AppError.Session(
-                        reason = AppError.SessionReason.AucuneSession,
-                        details = "aucune session ouverte n'enregistre ${fermable.nom}",
-                    ),
-                )
-            }
-
-            is EtatSession.Fermeture -> {
-                AppResult.Failure(
-                    AppError.Session(
-                        reason = AppError.SessionReason.FermetureEnCours,
-                        details = "fermeture en cours, ${fermable.nom} arrive trop tard",
-                    ),
-                )
-            }
+    ): AppResult<Desenregistrement> = when (_etat.value) {
+        is EtatSession.Ouverture, is EtatSession.Ouverte -> {
+            registre.enregistrer(fermable, delai, annulable)
         }
+
+        is EtatSession.Fermee -> {
+            AppResult.Failure(
+                AppError.Session(
+                    reason = AppError.SessionReason.AucuneSession,
+                    details = "aucune session ouverte n'enregistre ${fermable.nom}",
+                ),
+            )
+        }
+
+        is EtatSession.Fermeture -> {
+            AppResult.Failure(
+                AppError.Session(
+                    reason = AppError.SessionReason.FermetureEnCours,
+                    details = "fermeture en cours, ${fermable.nom} arrive trop tard",
+                ),
+            )
+        }
+    }
 
     /**
      * Ouvre la session sur [projet] : transition `Fermee → Ouverture →
@@ -306,10 +298,7 @@ public class SessionProjet(
     }
 
     /** Exécute la fermeture du registre, publie l'état et mémorise le rapport. */
-    private suspend fun executerFermeture(
-        projet: ProjectId,
-        raison: RaisonFermeture,
-    ): AppResult<RapportFermeture> {
+    private suspend fun executerFermeture(projet: ProjectId, raison: RaisonFermeture): AppResult<RapportFermeture> {
         try {
             val rapport = registre.fermerTout(ContexteFermeture(raison))
             _etat.value = EtatSession.Fermee

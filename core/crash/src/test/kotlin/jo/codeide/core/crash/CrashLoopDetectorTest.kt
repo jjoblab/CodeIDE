@@ -19,10 +19,8 @@ class CrashLoopDetectorTest {
 
     private fun repertoire(): File = OutilsTestCrash.repertoireCrashes(dossierTemporaire.root)
 
-    private fun detecteur(
-        fenetre: Long = 60_000L,
-        seuil: Int = 3,
-    ): CrashLoopDetector = CrashLoopDetector(repertoire(), fenetre, seuil)
+    private fun detecteur(fenetre: Long = 60_000L, seuil: Int = 3): CrashLoopDetector =
+        CrashLoopDetector(repertoire(), fenetre, seuil)
 
     @Test
     fun `deux plantages dans la fenêtre ne font pas une boucle`() {

@@ -43,66 +43,61 @@ class DepotAppLogDeployerTest {
     /** Source factice par fichiers (couture — même contrat que les assets). */
     private val source =
         object : SourceAppLog {
-            override fun flux(nom: String): InputStream =
-                when (nom) {
-                    ApplogCoordonnees.NOM_AAR -> ByteArrayInputStream(contenuAar)
-                    ApplogCoordonnees.NOM_POM -> ByteArrayInputStream(contenuPom)
-                    else -> throw FileNotFoundException(nom)
-                }
+            override fun flux(nom: String): InputStream = when (nom) {
+                ApplogCoordonnees.NOM_AAR -> ByteArrayInputStream(contenuAar)
+                ApplogCoordonnees.NOM_POM -> ByteArrayInputStream(contenuPom)
+                else -> throw FileNotFoundException(nom)
+            }
         }
 
     private fun deployeur(): DepotAppLogDeployer = DepotAppLogDeployer(source, cible)
 
     @Test
-    fun `le depot respecte la disposition maven exacte`() =
-        runBlocking {
-            deployeur().deployer()
+    fun `le depot respecte la disposition maven exacte`() = runBlocking {
+        deployeur().deployer()
 
-            val dossierVersion = cible.resolve("jo/codeide/applog-runtime/1.0.0")
-            assertTrue(dossierVersion.resolve(ApplogCoordonnees.NOM_AAR).isFile)
-            assertTrue(dossierVersion.resolve(ApplogCoordonnees.NOM_POM).isFile)
-            // Aucun résidu temporaire : le renommage a tout emporté.
-            dossierVersion.listFiles()!!.forEach { fichier ->
-                assertFalse(fichier.name + " est un résidu temporaire", fichier.name.endsWith(".tmp"))
-            }
+        val dossierVersion = cible.resolve("jo/codeide/applog-runtime/1.0.0")
+        assertTrue(dossierVersion.resolve(ApplogCoordonnees.NOM_AAR).isFile)
+        assertTrue(dossierVersion.resolve(ApplogCoordonnees.NOM_POM).isFile)
+        // Aucun résidu temporaire : le renommage a tout emporté.
+        dossierVersion.listFiles()!!.forEach { fichier ->
+            assertFalse(fichier.name + " est un résidu temporaire", fichier.name.endsWith(".tmp"))
         }
+    }
 
     @Test
-    fun `le marqueur de version evite la recopie quand rien ne change`() =
-        runBlocking {
-            val avant = contenuAar.copyOf()
-            deployeur().deployer()
-            val marqueur = cible.resolve(".depot-applog-version")
-            assertTrue(marqueur.isFile)
-            val aar = cible.resolve("jo/codeide/applog-runtime/1.0.0/${ApplogCoordonnees.NOM_AAR}")
-            val empreinteTemps = aar.lastModified()
+    fun `le marqueur de version evite la recopie quand rien ne change`() = runBlocking {
+        val avant = contenuAar.copyOf()
+        deployeur().deployer()
+        val marqueur = cible.resolve(".depot-applog-version")
+        assertTrue(marqueur.isFile)
+        val aar = cible.resolve("jo/codeide/applog-runtime/1.0.0/${ApplogCoordonnees.NOM_AAR}")
+        val empreinteTemps = aar.lastModified()
 
-            contenuAar = avant // mêmes octets : pas de recopie
-            Thread.sleep(5) // le temps de fichier doit rester l'ancien
-            deployeur().deployer()
+        contenuAar = avant // mêmes octets : pas de recopie
+        Thread.sleep(5) // le temps de fichier doit rester l'ancien
+        deployeur().deployer()
 
-            assertEquals(empreinteTemps, aar.lastModified())
-        }
-
-    @Test
-    fun `un changement de bibliotheque redeploye le depot`() =
-        runBlocking {
-            deployeur().deployer()
-            val aar = cible.resolve("jo/codeide/applog-runtime/1.0.0/${ApplogCoordonnees.NOM_AAR}")
-
-            contenuAar = ByteArray(64) { (it * 3).toByte() } // nouvelle version
-            Thread.sleep(5)
-            deployeur().deployer()
-
-            val lu = FileInputStream(aar).use { it.readBytes() }
-            assertEquals(3, lu[1].toInt() and 0xFF)
-        }
+        assertEquals(empreinteTemps, aar.lastModified())
+    }
 
     @Test
-    fun `la racine du depot est exactement le dossier cible`() =
-        runBlocking {
-            val racine = deployeur().deployer()
+    fun `un changement de bibliotheque redeploye le depot`() = runBlocking {
+        deployeur().deployer()
+        val aar = cible.resolve("jo/codeide/applog-runtime/1.0.0/${ApplogCoordonnees.NOM_AAR}")
 
-            assertEquals(cible.canonicalFile, racine.canonicalFile)
-        }
+        contenuAar = ByteArray(64) { (it * 3).toByte() } // nouvelle version
+        Thread.sleep(5)
+        deployeur().deployer()
+
+        val lu = FileInputStream(aar).use { it.readBytes() }
+        assertEquals(3, lu[1].toInt() and 0xFF)
+    }
+
+    @Test
+    fun `la racine du depot est exactement le dossier cible`() = runBlocking {
+        val racine = deployeur().deployer()
+
+        assertEquals(cible.canonicalFile, racine.canonicalFile)
+    }
 }

@@ -14,10 +14,7 @@ import javax.inject.Inject
  * non destiné à l'affichage) — l'appelant applicatif le convertit en URI
  * partageable via FileProvider.
  */
-public data class ExportedLogs(
-    public val fileName: String,
-    public val location: String,
-)
+public data class ExportedLogs(public val fileName: String, public val location: String)
 
 /**
  * Abstraction de l'écriture de l'archive d'export (implémentée dans
@@ -52,10 +49,7 @@ public interface LogExportWriter {
      * écriture par le sélecteur système.
      * @return le succès, ou l'erreur typée rencontrée.
      */
-    public suspend fun write(
-        entries: List<LogEntry>,
-        destinationUri: String,
-    ): AppResult<Unit>
+    public suspend fun write(entries: List<LogEntry>, destinationUri: String): AppResult<Unit>
 }
 
 /**
@@ -70,43 +64,41 @@ public interface LogExportWriter {
  * sont déléguées au dispatcher d'I/O injecté de l'implémentation).
  */
 public class ExportLogsUseCase
-    @Inject
-    constructor(
-        private val repository: LogRepository,
-        private val exportWriter: LogExportWriter,
-    ) {
-        /**
-         * Produit l'archive complète des journaux.
-         *
-         * @return le descriptif de l'archive, ou une erreur typée (lecture
-         * ou écriture impossibles).
-         */
-        public suspend operator fun invoke(): AppResult<ExportedLogs> =
-            try {
-                val entries = repository.readAll()
-                exportWriter.write(entries)
-            } catch (annulation: kotlinx.coroutines.CancellationException) {
-                throw annulation
-            } catch (e: IOException) {
-                AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
-            }
-
-        /**
-         * Produit l'archive complète des journaux **directement** à la
-         * destination choisie (action « Enregistrer » — étape 12).
-         *
-         * @param destinationUri URI de document ouverte en écriture par le
-         * sélecteur SAF.
-         * @return le succès, ou une erreur typée (lecture ou écriture
-         * impossibles).
-         */
-        public suspend operator fun invoke(destinationUri: String): AppResult<Unit> =
-            try {
-                val entries = repository.readAll()
-                exportWriter.write(entries, destinationUri)
-            } catch (annulation: kotlinx.coroutines.CancellationException) {
-                throw annulation
-            } catch (e: IOException) {
-                AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
-            }
+@Inject
+constructor(
+    private val repository: LogRepository,
+    private val exportWriter: LogExportWriter,
+) {
+    /**
+     * Produit l'archive complète des journaux.
+     *
+     * @return le descriptif de l'archive, ou une erreur typée (lecture
+     * ou écriture impossibles).
+     */
+    public suspend operator fun invoke(): AppResult<ExportedLogs> = try {
+        val entries = repository.readAll()
+        exportWriter.write(entries)
+    } catch (annulation: kotlinx.coroutines.CancellationException) {
+        throw annulation
+    } catch (e: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
     }
+
+    /**
+     * Produit l'archive complète des journaux **directement** à la
+     * destination choisie (action « Enregistrer » — étape 12).
+     *
+     * @param destinationUri URI de document ouverte en écriture par le
+     * sélecteur SAF.
+     * @return le succès, ou une erreur typée (lecture ou écriture
+     * impossibles).
+     */
+    public suspend operator fun invoke(destinationUri: String): AppResult<Unit> = try {
+        val entries = repository.readAll()
+        exportWriter.write(entries, destinationUri)
+    } catch (annulation: kotlinx.coroutines.CancellationException) {
+        throw annulation
+    } catch (e: IOException) {
+        AppResult.Failure(AppError.Storage(AppError.StorageReason.Io, e.javaClass.simpleName))
+    }
+}

@@ -26,8 +26,7 @@ public enum class LogVerbosity {
  *
  * @return le niveau minimal correspondant du pipeline.
  */
-public fun LogVerbosity.toLogLevel(): LogLevel =
-    when (this) {
-        LogVerbosity.NORMAL -> LogLevel.INFO
-        LogVerbosity.DETAILED -> LogLevel.DEBUG
-    }
+public fun LogVerbosity.toLogLevel(): LogLevel = when (this) {
+    LogVerbosity.NORMAL -> LogLevel.INFO
+    LogVerbosity.DETAILED -> LogLevel.DEBUG
+}

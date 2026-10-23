@@ -81,9 +81,7 @@ interface SessionTooling {
  * pool `Dispatchers.IO` est partagé avec le travail LSP/diagnostics de
  * l'app) ne peut plus retarder la lecture, EOF = fin de flux.
  */
-internal class SessionSocketAndroid(
-    private val socket: android.net.LocalSocket,
-) : SessionTooling {
+internal class SessionSocketAndroid(private val socket: android.net.LocalSocket) : SessionTooling {
     private val verrouEcriture = Mutex()
 
     /** Chemin rapide installé par [acheminerVia] — appelé par le fil. */

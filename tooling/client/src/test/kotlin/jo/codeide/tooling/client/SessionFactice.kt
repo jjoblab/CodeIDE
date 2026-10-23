@@ -13,9 +13,8 @@ import java.util.concurrent.CopyOnWriteArrayList
  * sont enregistrés puis confiés à un script de réaction qui émet les
  * événements simulés de l'orchestrateur.
  */
-internal class SessionFactice(
-    private var reagir: suspend (ProtocolMessage, SessionFactice) -> Unit = { _, _ -> },
-) : SessionTooling {
+internal class SessionFactice(private var reagir: suspend (ProtocolMessage, SessionFactice) -> Unit = { _, _ -> }) :
+    SessionTooling {
     /** Messages reçus, dans l'ordre d'envoi. */
     val messages = CopyOnWriteArrayList<ProtocolMessage>()
 
@@ -61,6 +60,4 @@ internal class SessionFactice(
 }
 
 /** Erreur d'envoi simulée (connexion morte). */
-internal class EnvoiImpossible(
-    message: String = "connexion morte (simulation)",
-) : IOException(message)
+internal class EnvoiImpossible(message: String = "connexion morte (simulation)") : IOException(message)
