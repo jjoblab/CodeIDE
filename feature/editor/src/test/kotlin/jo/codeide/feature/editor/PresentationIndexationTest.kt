@@ -130,6 +130,30 @@ class PresentationIndexationTest {
     }
 
     @Test
+    fun `construction Java riche — decomptes de reprises en entiers (regression rapport 032311ee)`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(
+                    etatJava(
+                        PhaseIndexation.CONSTRUCTION,
+                        faits = 119,
+                        total = 191,
+                        reprises = 96,
+                    ),
+                ),
+            )
+        // editor_indexation_reprises = « … reprises %1$d, reconstruites
+        // %2$d. » — v0.178.1 interpolait les décomptes en String et
+        // Resources.getString levait IllegalFormatConversionException
+        // (rapport 032311ee, plantage à l'ouverture du panneau) : les
+        // arguments doivent rester des Int.
+        assertEquals(
+            TexteIndexation.Ressource(R.string.editor_indexation_reprises, listOf(96, 23)),
+            modele.panneau.resumeReprises,
+        )
+    }
+
+    @Test
     fun `construction Java riche — progression determinee visible avec compteur`() {
         val modele =
             PresentationIndexation.afficher(

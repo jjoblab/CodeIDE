@@ -1,5 +1,62 @@
 # Journal des modifications
 
+## [0.179.0] – 2026-10-24
+
+### Correctif plantage du panneau d'indexation (rapport 032311ee — `IllegalFormatConversionException`) + montée codeide-lsp 1.5.0 → 1.7.0 (bump-frère)
+
+#### Corrigé
+
+- **PLANTAGE à l'ouverture du panneau d'indexation pendant une
+  construction Java** — rapport propriétaire 032311ee (v0.178.1,
+  motorola moto g06, Android 15) :
+  `java.util.IllegalFormatConversionException: d != java.lang.String`
+  dans `FragmentDetailIndexation.resoudreTexte` (l.355) via
+  `rendreResumeReprises` — toucher la pastille pendant l'indexation
+  fermait l'application. CAUSE : `TexteIndexation.Ressource` ne
+  transportait que des `List<String>` et le présentateur interpolait
+  les décomptes de reprises (`"${java.reprises}"`), alors que la
+  chaîne `editor_indexation_reprises` (reformulée en v0.178.1) porte
+  `%1$d`/`%2$d` — `Resources.getString` délègue à `String.format`,
+  qui EXIGE un entier pour `%d`. CORRECTIF : `args` devient
+  `List<Any>` et `resumeReprisesDe` passe les décomptes en `Int`
+  (reprises, faits − reprises) — les arguments conforment désormais
+  aux substituants de leur ressource, règle posée dans le KDoc
+  anti-régression de `TexteIndexation.Ressource` (« ne JAMAIS
+  interpoler un nombre destiné à un `%d` »). Test de non-régression
+  `construction Java riche — decomptes de reprises en entiers`
+  (assertion exacte des arguments). AUDIT EXHAUSTIF des autres
+  ressources à substituant entier du module : compteurs « x sur y »
+  (`%1$s` — conformes), bilan (`%1$d` nourris en `Int` en direct),
+  pourcentage et content-description pastille (`%1$d` + `Int`)
+  — SEUL le chemin des reprises plantait.
+
+#### Montée (bump-frère — consigne propriétaire « mettre à jour CodeIDE
+à la dernière version de ses frères »)
+
+- **codeide-lsp 1.5.0 → 1.7.0** (dépôt frère publié sur GitHub
+  Packages — 1.7.0 visible dans le `maven-metadata.xml` de
+  `codeide-lsp/host`, exactement ce que Gradle résout). v1.6.0 :
+  audit E2E du serveur LSP Kotlin — 5 découvertes corrigées (ADR
+  0203–0207, dont « occurrences : la cible n'est plus son propre
+  homonyme » qui cassait `rename`). v1.7.0 : panneau GO TO complet et
+  SYMÉTRIQUE Kotlin/Java (ADR 0208–0210 : KDoc cross-fichiers au
+  survol, définition/typeDefinition Java cross-fichiers par bindings
+  ecj, `superDefinition` Kotlin — l'option Super du menu contextuel
+  devient symétrique). La surface hôte consommée par CodeIDE est
+  INTACTE (diff v1.5.0→v1.7.0 du module `lsp/host/src/main` : seul
+  `KotlinLanguageServer.kt` évolue, additivement) : la symétrie Go To
+  Kotlin s'active SANS changement de code CodeIDE — vérifié en
+  composite local (clone CI épinglé v1.7.0).
+- **LayoutLib 3.7.0, codeide-tooling 1.0.0, code-editor v4.2.0** :
+  déjà les dernières versions publiées de leurs dépôts (registres
+  GitHub Packages / JitPack interrogés) — aucune montée requise.
+
+#### Tests
+
+- `PresentationIndexationTest` : +1 test de non-régression (décomptes
+  de reprises en entiers — reproduit l'assertion qui aurait attrapé
+  le plantage 032311ee).
+
 ## [0.178.1] – 2026-10-24
 
 ### Correctif CI : les chaînes « reprises » deviennent label-nombre (heuristique lint PluralsCandidate)

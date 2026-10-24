@@ -204,12 +204,19 @@ layoutlib = "3.7.0"
 # composite, de la publication en binaire ; la substitution ignore la
 # version déclarée — la mise à jour = bump ici + ref du clonage CI.
 codeide-tooling = "1.0.0"
-# MONTÉE 1.5.0 (C4 — ADR 0143) : la découverte previews remonte la
-# LIGNE de l'annotation `@Preview` (PreviewKotlin.ligneAnnotation,
-# 1-indexée, 0 = inconnu — champ additif en queue) : l'œil de gouttière
-# vit à cette ligne (parité AS). Publication GitHub Packages du tag
-# v1.5.0 vérifiée (la CI CodeIDE consomme la 1.5.0 binaire).
-codeide-lsp = "1.5.0"
+# MONTÉE 1.7.0 (v0.179.0) : v1.6.0 corrige l'audit E2E du serveur Kotlin
+# (occurrences homonymes, alias JVM↔Kotlin… ADR 0203–0207) et v1.7.0 rend
+# le panneau GO TO symétrique Kotlin/Java (KDoc cross-fichiers ADR 0208,
+# définition/typeDefinition Java cross-fichiers ADR 0209, superDefinition
+# Kotlin ADR 0210 — s'active sans changement CodeIDE, la surface hôte
+# consommée — SessionLsp*/CapaciteLsp/TypesIndexationPublics — est
+# INTACTE : seul KotlinLanguageServer.kt évolue, additivement).
+# Publication GitHub Packages du tag v1.7.0 vérifiée (maven-metadata
+# codeide-lsp/host : 1.7.0 visible). Montée 1.5.0 précédente (C4 —
+# ADR 0143) : la découverte previews remonte la LIGNE de l'annotation
+# `@Preview` (PreviewKotlin.ligneAnnotation, 1-indexée, 0 = inconnu —
+# champ additif en queue) : l'œil de gouttière vit à cette ligne.
+codeide-lsp = "1.7.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
