@@ -267,20 +267,41 @@
     <string name="editor_indexation_construction_soustitre">Bibliothèques et SDK</string>
     <string name="editor_indexation_construction_soustitre_n">%1$s sur %2$s entrées</string>
     <string name="editor_indexation_pret_titre">Index à jour</string>
-    <string name="editor_indexation_pret_soustitre">Java prêt</string>
+    <!-- v0.178.0 (ADR 0145) : l'état global PRÊT signifie que TOUS les
+         moteurs présents de l'agrégat sont prêts — le sous-titre n'est
+         plus Java-centré. -->
+    <string name="editor_indexation_pret_soustitre">Tous les moteurs sont prêts</string>
     <string name="editor_indexation_partiel_titre">Index partiel</string>
     <string name="editor_indexation_partiel_soustitre">%1$s sur %2$s entrées indexées</string>
+    <!-- v0.178.0 (ADR 0145) : agrégat multi-moteurs — le PARTIEL global
+         sans état Java riche (moteur synthétisé seul) n'a pas de compteurs. -->
+    <string name="editor_indexation_partiel_soustitre_sans_n">Certaines entrées n\'ont pas pu être indexées</string>
     <string name="editor_indexation_erreur_titre">Index en erreur</string>
     <string name="editor_indexation_erreur_soustitre">Construction impossible</string>
 
     <!-- Compteur « n / N ». -->
     <string name="editor_indexation_compteur_n_sur_n">%1$s sur %2$s</string>
 
-    <!-- Vue par moteur. -->
+    <!-- Pourcentage à droite de l'en-tête pendant la construction
+         (maquette §2 : « 62 % » — v0.178.0, ADR 0145). -->
+    <string name="editor_indexation_pourcentage">%1$d %%</string>
+
+    <!-- Résumé des reprises pendant la construction (maquette §2 :
+         « 96 reprises, 22 reconstruites » — v0.178.0, ADR 0145). -->
+    <string name="editor_indexation_reprises">Les entrées déjà indexées sont reprises sans reconstruction : %1$d reprises, %2$d reconstruites.</string>
+
+    <!-- Vue par moteur — UN libellé par moteur de l\'agrégat (v0.178.0,
+         ADR 0145 : l\'écran n\'est plus codé en dur sur Java). -->
     <string name="editor_indexation_moteur_java">Java</string>
+    <string name="editor_indexation_moteur_kotlin">Kotlin</string>
+    <string name="editor_indexation_moteur_xml">XML</string>
     <string name="editor_indexation_moteur_pret">Prêt</string>
     <string name="editor_indexation_moteur_partiel">Partiel</string>
     <string name="editor_indexation_moteur_erreur">Erreur</string>
+    <!-- Moteur synthétisé (fenêtre de nourrissage — DEMANDES D3) : pas
+         de compteurs, la construction est indéterminée. -->
+    <string name="editor_indexation_moteur_en_construction">En construction</string>
+    <string name="editor_indexation_moteur_en_attente">En attente de synchronisation</string>
 
     <!-- Notes d'impact utilisateur. -->
     <string name="editor_indexation_note_construction">Pendant l\'indexation, la complétion des bibliothèques est limitée. L\'édition n\'est pas bloquée.</string>
@@ -310,6 +331,13 @@
     <string name="editor_indexation_pastille_cd_pret">Index à jour</string>
     <string name="editor_indexation_pastille_cd_partiel">Index partiel</string>
     <string name="editor_indexation_pastille_cd_erreur">Index en erreur</string>
+
+    <!-- Sections ÉCARTÉES / ERREURS BLOQUANTES du panneau (maquette §3
+         et §5 — v0.178.0, ADR 0145). -->
+    <string name="editor_indexation_entrees_ecartees">Entrées écartées</string>
+    <string name="editor_indexation_erreurs_bloquantes">Erreurs bloquantes</string>
+    <string name="editor_indexation_liste_travail">En cours</string>
+    <string name="editor_indexation_moteurs">Moteurs</string>
 
     <!-- États d\'entrée dans la liste de travail (lot B6). -->
     <string name="editor_indexation_entree_attente">en attente</string>

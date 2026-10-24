@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ligne d'entrée écartée / erreur bloquante du panneau de détail
+  d'indexation (maquette §3 « ENTRÉES ÉCARTÉES » et §5 « ERREURS
+  BLOQUANTES » — v0.178.0, ADR 0145). Message technique formulé par le
+  moteur (brut par nature) : une seule zone de texte, retour à la ligne
+  autorisé (aucune troncature).
+-->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/texte_entree_ecartee"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="48dp"
+    android:gravity="center_vertical"
+    android:paddingVertical="@dimen/spacing_sm"
+    android:textAppearance="?attr/textAppearanceBodyMedium"
+    android:textColor="?attr/colorOnSurface"
+    tools:text="legacy-utils.jar : jar illisible" />
