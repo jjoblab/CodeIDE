@@ -405,6 +405,7 @@ public class MoteurPreviewCompose(
                         erreurs = erreursConversion + resultat.erreurs,
                         noeuds = resultat.noeuds,
                         messageErreur = null,
+                        ligneAnnotation = preview.ligneAnnotation,
                     )
                 }
 
@@ -417,6 +418,7 @@ public class MoteurPreviewCompose(
                         erreurs = erreursConversion + resultat.erreurs,
                         noeuds = emptyList(),
                         messageErreur = resultat.message,
+                        ligneAnnotation = preview.ligneAnnotation,
                     )
                 }
             }
@@ -524,6 +526,7 @@ public class MoteurPreviewCompose(
                 erreurs = resultat.erreurs,
                 messageErreur = null,
                 noeuds = resultat.noeuds,
+                ligneAnnotation = ancien.ligneAnnotation,
             )
         val rendus = actuel.rendus.toMutableList()
         rendus[onglet] = rendu

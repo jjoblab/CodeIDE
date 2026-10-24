@@ -1,5 +1,69 @@
 # Journal des modifications
 
+## [0.177.0] – 2026-10-24
+
+### Les yeux d'aperçu vivent AUX LIGNES des `@Preview` (façon Android Studio) et la découverte parle l'URI LSP du didOpen — correctif « pas de preview » des tests manuels (mission « Previews » C4, ADR 0143)
+
+#### Corrigé
+
+- **BUG STRUCTUREL — « pas de preview » sur les fichiers projet** (vu
+  aux PREMIERS tests manuels de la mission, v0.176.0) : les onglets
+  vivent en URIS SAF `content://` mais la carte `documents` du moteur
+  LSP Kotlin est indexée par l'URI du `didOpen` =
+  `"file://" + cheminFUSE` — `HostApercuCompose` interrogeait
+  `previews(uriOngletSAF)` : la clé manquait TOUJOURS → liste vide →
+  « Aucune @Preview trouvée » JAMAIS une preview. Les tests C1-C3
+  passaient car les deux bords étaient doublés avec la MÊME chaîne
+  synthétique. CORRECTIF : résolveur FUSE suspend injecté (miroir
+  `fournisseurProjet`, `cheminFuseDe` en IO → `"file://$chemin"` —
+  miroir EXACT du `createEditor` du CoordonnateurLsp), URI traduite
+  passée au NOUVEAU port `PortDecouvertePreviews` (défaut : URI LSP
+  d'abord, REPLI best-effort sur l'uri d'onglet — échantillons, tests) ;
+  la ligne est verrouillée par des tests qui doublent la CLÉ.
+
+#### Ajouté
+
+- **UN œil par `@Preview`, À SA LIGNE (parité Android Studio — écho
+  `PreviewPickerLineMarkerProvider` de la référence : ancre = le token
+  « Preview » de l'ANNOTATION, un marqueur PAR `@Preview`, AUCUN
+  sans)** : plus d'œil suiveur de caret pour le Kotlin — l'icône vit
+  là où une preview EXISTE, un `.kt` sans `@Preview` n'a PLUS AUCUNE
+  icône (l'action du fil d'Ariane reste le toggle général). Montées
+  frères : **code-editor 4.1.0 → 4.2.0** (B28, contrat strictement
+  additif : `setPreviewAnchors` — `null` = comportement historique au
+  bit près pour les autres hôtes, VIDE = aucun œil, sinon un œil par
+  rangée clampée au document au tap ; `hitTestGutterPreviewAnchor` ;
+  tap sur un œil → carte ancrée à CETTE ligne + `onPreviewAnchorTapped`
+  (méthode à défaut) + `selectPreviewDropTab` (miroir exact d'un tap
+  d'onglet) ; re-tap sur l'œil gelé = fermeture, autre œil = ré-ancre
+  et l'onglet suit ; +11 tests cel-ui) et **codeide-lsp 1.4.0 → 1.5.0**
+  (`PreviewKotlin.ligneAnnotation` — 1-indexée, ligne du `@`, arguments
+  multi-lignes compris, `0` = inconnu ; calculée par la marche qui
+  détient DÉJÀ le texte ; +3 tests).
+- **LES LIGNES VOYAGENT PAR L'ÉTAT** : `RenduPreviewCompose
+  .ligneAnnotation` (champ en QUEUE, AIDL INCHANGÉ) enrichi par le
+  moteur depuis SA découverte (l'indice du rendu EST l'indice de la
+  preview ; le pompier C3 reporte la ligne de l'ancien onglet). L'hôte
+  publie les ancres : à CHAQUE rendu valide, au changement d'onglet
+  (TIRAGE DIRECT sans attendre un bitmap — la machine `:preview` à
+  froid prend des secondes, l'œil doit être là AVANT), à la FRAPPE
+  (débounce 400 ms, miroir moteur, écouteur sur la session de la vue —
+  chaque onglet possède la sienne), VIDÉES au changement d'onglet
+  (zéro œil périmé) ; `installerSur` REPOUSSE les ancres déjà
+  calculées (onglet actif restauré avant le branchement de la vue).
+  La marche de découverte vit HORS fil d'UI (`DispatcherProvider`
+  injecté au hôte, miroir moteur). Le tap sur un œil sélectionne
+  l'onglet de LA preview de la ligne (ligne inconnue = no-op honnête).
+
+#### Docs
+
+- ADR 0143 ACCEPTÉE (recherche référence : le picker AS ancre au token
+  « Preview » de l'annotation, DEUX marqueurs chez AS — notre œil EST
+  le picker ; le run ancré au nom de fonction reste hors périmètre) ;
+  PREVIEW.md §3.4/§4.4 ; TESTS_MANUELS §C4 ; +6 tests CodeIDE (moteur
+  1, hôte 5 : clé FUSE traduite à CHAQUE passe, repli uri SAF, ancres
+  des rendus, tirage direct sans rendu, tap → onglet de la preview).
+
 ## [0.176.0] – 2026-10-24
 
 ### La preview Compose devient interactive : forwarding du pointeur, horloge vivante, watchdog KILL et appui long → saut source (mission « Previews » C3, ADR 0142)

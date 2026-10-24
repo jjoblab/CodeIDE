@@ -1520,3 +1520,44 @@ mécaniques sont prouvées par les 18 tests automatisés.
    de la carte puis glisser HORS de l'écran (sur le bezel/l'en-tête) :
    le contact reste CLAMPÉ au bord (la ripple suit le bord, jamais un
    point hors cadre) ; relâcher dehors : le clic se résout proprement.
+
+## Preview Compose — les yeux aux lignes `@Preview` et le correctif « pas de preview » (mission « Previews » C4 → v0.177.0, ADR 0143, code-editor 4.2.0 + codeide-lsp 1.5.0)
+
+Contexte appareil : projet Kotlin OUVERT depuis l'explorateur (SAF),
+avec un fichier `.kt` contenant au moins une fonction
+`@Preview @Composable` (imports `androidx.compose.ui.tooling.preview.
+Preview` et `androidx.compose.runtime.Composable` présents). C'est LE
+cas qui échouait en v0.176.0 (clé SAF ≠ clé FUSE du didOpen).
+
+1. **La preview S'AFFICHE ENFIN sur un fichier projet** — ouvrir le
+   `.kt` à `@Preview`, taper l'œil de gouttière : la carte « goutte
+   d'eau » ouvre et REND la composition (LE correctif : en v0.176.0 la
+   carte répondait « Aucune @Preview trouvée » sur TOUT fichier projet).
+2. **Un œil à CHAQUE ligne `@Preview`, NULLE PART ailleurs** — avec
+   deux fonctions `@Preview @Composable` aux lignes L1 et L2 : un œil
+   sur la ligne de CHAQUE `@Preview` (la ligne de l'ANNOTATION, pas
+   celle du `fun`), AUCUN œil sur les autres lignes (l'œil suiveur de
+   caret de v0.176.x a DISPARU) ; les arguments multi-lignes de
+   l'annotation ne déplacent PAS l'œil (il reste à la ligne du `@`).
+3. **Un `.kt` SANS `@Preview` : AUCUNE icône** — ouvrir un fichier
+   Kotlin sans preview : aucune icône d'aperçu dans la gouttière
+   (parité Android Studio) ; l'action du fil d'Ariane ouvre la carte
+   qui répond honnêtement « aucune @Preview ».
+4. **Tap œil = LA preview de SA ligne** — taper l'œil de la deuxième
+   `@Preview` : la carte s'ouvre ancrée à CETTE ligne et l'ONGLET
+   sélectionné est CELUI de la preview tapée (pas toujours l'onglet 0) ;
+   taper l'œil d'une AUTRE preview : la carte RÉ-ANCRE et l'onglet
+   suit ; re-taper l'œil de l'ancre : la carte se REFERME.
+5. **Les yeux suivent l'édition** — AJOUTER une fonction
+   `@Preview @Composable` au fichier (avec les imports) : un NOUVEL œil
+   apparaît à sa ligne après ~400 ms (débounce) SANS ouvrir la carte ;
+   SUPPRIMER la fonction : l'œil disparaît ; déplacer une annotation
+   vers une autre ligne : l'œil suit.
+6. **Yeux immédiats, même machine froide** — ouvrir un fichier à
+   `@Preview` : les yeux apparaissent AVANT le premier rendu (le tirage
+   direct ne dépend PAS du processus `:preview` — tuer l'app puis
+   rouvrir le fichier : les yeux sont là dès l'affichage, la carte
+   elle peut prendre ses secondes à froid).
+7. **Échantillon sans LSP** — ouvrir un échantillon Kotlin (si
+   disponible) : repli best-effort sur la clé d'onglet — les yeux
+   peuvent être absents (honnête), mais AUCUN crash de la carte.

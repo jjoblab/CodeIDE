@@ -468,6 +468,7 @@ constructor(
                 etat = etat,
                 sessionKotlin = sessionLspKotlin,
                 scope = viewModelScope,
+                dispatcheurs = dispatcheurs,
                 moteur =
                 MoteurPreviewCompose(
                     contexte,
@@ -475,10 +476,21 @@ constructor(
                     journal,
                     viewModelScope,
                 ).enPort(),
-                // C2 — le PROJET de l'aperçu suit l'onglet actif :
-                // dossier `res/` + thème du manifeste (miroir PE1 du
-                // frère XML, résolution suspend FUSE).
-                fournisseurProjet = ::projetApercuCompose,
+                ports =
+                PortsDocumentApercuCompose(
+                    // C2 — le PROJET de l'aperçu suit l'onglet actif :
+                    // dossier `res/` + thème du manifeste (miroir PE1 du
+                    // frère XML, résolution suspend FUSE).
+                    fournisseurProjet = ::projetApercuCompose,
+                    // C4 — l'URI LSP du didOpen ("file://" + chemin FUSE —
+                    // miroir exact du createEditor du CoordonnateurLsp) :
+                    // la découverte previews() parle la CLÉ du moteur
+                    // Kotlin, jamais l'uri SAF de l'onglet (correctif du
+                    // bug « pas de preview » des tests manuels v0.176.0).
+                    resolveurUriLsp = { uri ->
+                        cheminFuseDe(uri)?.let { chemin -> "file://$chemin" }
+                    },
+                ),
             )
         }
 
