@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -37,14 +38,23 @@ class MoteurPreviewComposeTest {
         var requetes: MutableList<RequeteRenduCompose> = mutableListOf()
         var echecs: Int = 0
 
+        /** C3 — touches transmises (identité + événement). */
+        var touches: MutableList<Pair<String, EvenementTactileCompose>> = mutableListOf()
+
+        /** C3 — la session touchée existe-t-elle ? */
+        var sessionTouchable: Boolean = true
+
         var fournitSucces: Boolean = true
+
+        /** C3 — durée des frames Sucess (pour la cadence adaptative). */
+        var dureeFrame: Long = 3
 
         override suspend fun rendre(requete: RequeteRenduCompose): ResultatTransportCompose {
             requetes.add(requete)
             return if (fournitSucces && echecs == 0) {
                 ResultatTransportCompose.Succes(
                     bitmap = Bitmap.createBitmap(4, 4, Bitmap.Config.ARGB_8888),
-                    metriques = MetriquesRenduCompose(dureeMs = 3, nombreNoeuds = 1, largeur = 4, hauteur = 4),
+                    metriques = MetriquesRenduCompose(dureeMs = dureeFrame, nombreNoeuds = 1, largeur = 4, hauteur = 4),
                 )
             } else {
                 echecs = (echecs - 1).coerceAtLeast(0)
@@ -53,6 +63,11 @@ class MoteurPreviewComposeTest {
                     erreurs = listOf(ErreurCompose(GenreErreurCompose.PROCESSUS_INDISPONIBLE, null, 0)),
                 )
             }
+        }
+
+        override suspend fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean {
+            touches.add(identite to evenement)
+            return sessionTouchable
         }
 
         override fun close() = Unit
@@ -310,6 +325,131 @@ class MoteurPreviewComposeTest {
         val etat = moteur.etat.value as EtatPreviewCompose.RenduValide
         assertEquals("les géométries traversent l'état", 1, etat.rendus.single().noeuds.size)
         assertEquals(5, etat.rendus.single().noeuds.single().ligne)
+        moteur.close()
+    }
+
+    // ── C3 : l'horloge interactive et le forwarding ─────────────────
+
+    @Test
+    fun `C3 horloge - le pompier REJOUE la requete de l identite a cadence`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        val apresRendu = transport.requetes.size
+        assertEquals(1, apresRendu)
+
+        // Carte OUVERTE sur l'onglet 0 : le pompier re-rend la MEME
+        // requete (digeste inchangé POURTOUANT rendu — c'est l'HORLOGE
+        // qui avance, PREVIEW.md §4.4 C3), frames à ~33 ms.
+        moteur.definirInteractif("file:///a.kt#Apercu#0", 0)
+        // AVANCE BORNÉE uniquement : le pompier armé replanifie SANS FIN,
+        // advanceUntilIdle ne reviendrait JAMAIS (c'est le contrat même
+        // d'une horloge vivante).
+        advanceTimeBy(33L * 5 + 10)
+        assertTrue("le pompier a rejoue la requete", transport.requetes.size > apresRendu + 3)
+        assertEquals("la MEME requete est rejouee", "file:///a.kt#Apercu#0", transport.requetes.last().identite)
+        val etat = moteur.etat.value as EtatPreviewCompose.RenduValide
+        assertTrue("l'etat suit les frames", etat.rendus[0].bitmap != null)
+        moteur.close()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `C3 horloge - definirInteractif null ETEINT le pompier`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        moteur.definirInteractif("file:///a.kt#Apercu#0", 0)
+        advanceTimeBy(200)
+        val eteint = transport.requetes.size
+        moteur.definirInteractif(null, 0)
+        advanceTimeBy(400)
+        assertEquals("plus AUCUN appel apres l'extinction", eteint, transport.requetes.size)
+        moteur.close()
+        advanceUntilIdle()
+    }
+
+    @Test
+    fun `C3 cadence - une frame LENTE ralentit le pompier (degradation honnete)`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val rapide = FauxTransport().apply { dureeFrame = 1 }
+        val lent = FauxTransport().apply { dureeFrame = 120 }
+        val moteurRapide = moteur(dispatcher, rapide)
+        moteurRapide.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        moteurRapide.definirInteractif("file:///a.kt#Apercu#0", 0)
+        advanceTimeBy(1000)
+        moteurRapide.close()
+
+        val moteurLent = moteur(dispatcher, lent)
+        moteurLent.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        moteurLent.definirInteractif("file:///a.kt#Apercu#0", 0)
+        advanceTimeBy(1000)
+        moteurLent.close()
+
+        // Le pompier rapide tient ~30 i/s (≈ 30 frames/s de fenêtre) ; le
+        // pompier lent DÉGRADE (33 → 66 → 132 → 250 ms de palier) : il
+        // rende MOINS de frames sur la MÊME fenêtre — jamais de sautes
+        // silencieuses, la cadence suit le budget mesuré.
+        assertTrue(
+            "frames lentes < frames rapides sur 1 s (${lent.requetes.size} vs ${rapide.requetes.size})",
+            lent.requetes.size < rapide.requetes.size,
+        )
+    }
+
+    @Test
+    fun `C3 horloge - trois frames ECHOUEES eteignent le pompier, le dernier rendu reste`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+        // Le rendu INITIAL réussit : l'onglet porte un bitmap. Les frames
+        // du pompier échouent TOUTES ensuite (processus :preview mort).
+        transport.echecs = Int.MAX_VALUE
+        val etatInitial = moteur.etat.value as EtatPreviewCompose.RenduValide
+        assertTrue(etatInitial.rendus[0].bitmap != null)
+
+        moteur.definirInteractif("file:///a.kt#Apercu#0", 0)
+        advanceTimeBy(2000)
+        advanceUntilIdle()
+        val eteint = transport.requetes.size
+        advanceTimeBy(600)
+        advanceUntilIdle()
+        assertEquals("le pompier s'est eteint apres ses 3 echecs", eteint, transport.requetes.size)
+        val etat = moteur.etat.value as EtatPreviewCompose.RenduValide
+        assertTrue("le dernier rendu VALIDE reste affiche", etat.rendus[0].bitmap != null)
+        moteur.close()
+    }
+
+    @Test
+    fun `C3 forwarding - transmettreTouch rejoint la session interactive, no-op sans arment`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") { listOf(previewTexte("Apercu", "Un")) }
+        advanceUntilIdle()
+
+        // Sans session armée : la touche ne part JAMAIS (la carte ne
+        // transmet que ce qu'elle a armé).
+        moteur.transmettreTouch(EvenementTactileCompose(0, 10f, 10f, 1L, 1L, 1f))
+        advanceUntilIdle()
+        assertTrue(transport.touches.isEmpty())
+
+        moteur.definirInteractif("file:///a.kt#Apercu#0", 0)
+        moteur.transmettreTouch(EvenementTactileCompose(0, 10f, 10f, 1L, 5L, 1f))
+        // runCurrent : le relais part MAINTENANT ; le pompier armé garde
+        // sa prochaine frame en attente (jamais d'idle infini).
+        runCurrent()
+        assertEquals(1, transport.touches.size)
+        assertEquals("file:///a.kt#Apercu#0", transport.touches.single().first)
+        assertEquals(10f, transport.touches.single().second.xPx, 0.01f)
+        assertEquals(5L, transport.touches.single().second.eventTimeMs)
         moteur.close()
     }
 

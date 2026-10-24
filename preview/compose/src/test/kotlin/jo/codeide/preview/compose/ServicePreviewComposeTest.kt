@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -103,5 +104,16 @@ class ServicePreviewComposeTest {
         val second = rendreSync(binder, requete("file:///a.kt#ApercuAutre#0"))
         assertTrue(premier.ok)
         assertTrue("une seconde identité rend aussi : ${second.message}", second.ok)
+    }
+
+    @Test
+    fun `C3 transmettre - session inconnue FAUX, session vivante VRAI (a travers le binder)`() {
+        val binder = binder()
+        val identite = "file:///a.kt#Apercu#0"
+        val evenement = EvenementTactileCompose(action = 0, xPx = 5f, yPx = 5f, downTimeMs = 1L, eventTimeMs = 1L)
+        assertFalse("aucune session rendue : la touche est perdue honnêtement", binder.transmettre(identite, evenement))
+        val resultat = rendreSync(binder, requete(identite))
+        assertTrue("le rendu crée la session : ${resultat.message}", resultat.ok)
+        assertTrue("session vivante : le dispatch part", binder.transmettre(identite, evenement))
     }
 }

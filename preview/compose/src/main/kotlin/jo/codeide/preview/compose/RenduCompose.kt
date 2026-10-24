@@ -3,8 +3,10 @@ package jo.codeide.preview.compose
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.os.Process
 import android.os.SystemClock
 import android.view.Display
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewParent
 import android.view.WindowManager
@@ -17,7 +19,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
@@ -100,9 +104,20 @@ import java.util.concurrent.TimeUnit
  * inspection) ; chaque rendu est BORNÉ ([DELAI_RENDU_MS],
  * [DELAI_PREMIER_RENDU_MS], [DELAI_RECOMPOSITION_MS]) ; un rendu qui
  * DÉPASSE laisse un zombie qui OCCUPE sa session (verrou tryLock — le
- * rendu suivant répond honnêtement, jamais un rendu fantôme) ; le
- * watchdog de gel avec KILL du processus est le chantier C3 (PREVIEW.md
- * §4 PC4 complet).
+ * rendu suivant répond honnêtement, jamais un rendu fantôme) ; C3
+ * achève PC4 : le WATCHDOG de gel — [SEUIL_ZOMBIES] zombies consécutifs
+ * (le fil de composition est OTAGE, les bornes ne servent plus rien)
+ * → le processus se TUE LUI-MÊME ([tueur] — `Process.killProcess` en
+ * production, no-op injectée en tests), l'app voit la mort et sa
+ * politique reprend (une reprise, puis INDISPONIBLE).
+ *
+ * C3 — FORWARDING DES ENTRÉES ([transmettre], écho `triggerTouchEvent`
+ * de la référence) : la composition vivante de la session reçoit un
+ * VRAI [MotionEvent] reconstruit sur le FIL DE COMPOSITION — le
+ * bouton du registre gagne sa RIPPLE réelle (M3 clickable par
+ * construction), les animations suivent l'horloge du rendu. Les
+ * coordonnées voyagent en px bitmap (le repère du canevas — l'hôte a
+ * déjà inversé le FIT de la carte).
  *
  * @param contexte contexte du service (processus `:preview`).
  * @param executeur fil des opérations de cycle (fermetures) —
@@ -114,16 +129,29 @@ import java.util.concurrent.TimeUnit
  * @param resolveurs C2 — les résolveurs du PROJET (cache du service) ;
  *        `null` = la composition rend sur les DÉFAUTS DU RUNTIME
  *        (comportement C1 exact — tests et rendu sans projet).
+ * @param tueur C3 — PC4 : la mort du processus prononcée par le
+ *        watchdog (défaut : `Process.killProcess`, miroir du kill de
+ *        session de la référence ; les tests injectent une no-op et
+ *        prouvent la DÉCISION, jamais la mort réelle).
  */
+@Suppress("TooManyFunctions", "LongParameterList") // Contrat miroir du frère XML + la couture C3 injectable
 internal class RenduCompose(
     private val contexte: Context,
     private val executeur: Executor,
     private val dispatcheurComposition: CoroutineDispatcher,
     private val journal: (String) -> Unit = {},
     private val resolveurs: ResolveursCompose? = null,
+    private val tueur: () -> Unit = { Process.killProcess(Process.myPid()) },
 ) {
     /** Sessions vivantes : identité → composition persistante. */
     private val sessions = LinkedHashMap<String, Session>()
+
+    /**
+     * C3 — PC4 : rends zombies CONSECUTIFS (tryLock échoué : un rendu
+     * tient le fil de composition en otage). Toujours lu/écrit sur le
+     * fil de composition (les rends y vivent) — pas de volatile nécessaire.
+     */
+    private var zombies = 0
 
     /** Portée des travaux de rendu (le fil de composition, suspendant). */
     private val porteeRendu = CoroutineScope(SupervisorJob() + dispatcheurComposition)
@@ -181,6 +209,86 @@ internal class RenduCompose(
      */
     internal fun sessionsVivantes(): Int = synchronized(this) { sessions.size }
 
+    /**
+     * C3 — Sonde interne pour les tests : rends zombies consécutifs
+     * COURANTS (la DÉCISION du watchdog se prouve sans tuer le runner).
+     */
+    internal fun rendsZombies(): Int = zombies
+
+    /**
+     * C3 — PC4, le WATCHDOG DE GEL : un rendu a trouvé sa session
+     * OCCUPÉE (tryLock échoué — un rendu précédent tient le fil de
+     * composition en otage). Deux zombies CONSÉCUTIFS prouvent que le
+     * fil ne se libérera JAMAIS tout seul (une mesure/pose/dessin en
+     * boucle ne rend pas son verrou) : le processus est TOXIQUE, il se
+     * TUE LUI-MÊME ([tueur] — l'app voit la mort par DeathRecipient,
+     * sa politique reprend : une reprise puis INDISPONIBLE — jamais un
+     * gel silencieux). INTERNE au module : [rendreSurFil] l'invoque ;
+     * les tests prouvent la DÉCISION (le registre C1 n'exécute AUCUN
+     * code utilisateur — le gel réel est une défense en profondeur
+     * pour les futurs genres du registre).
+     */
+    internal fun rendreZombie(): ResultatRenduCompose {
+        zombies += 1
+        if (zombies >= SEUIL_ZOMBIES) {
+            journal(
+                "watchdog C3 : $zombies rends zombies consécutifs — le fil de " +
+                    "composition est otage, KILL du processus :preview",
+            )
+            tueur()
+        }
+        return echec("un rendu précédent occupe encore la session")
+    }
+
+    /**
+     * C3 — FORWARDING DES ENTRÉES : pousse UNE touche du premier doigt
+     * dans la composition VIVANTE de la session (écho `triggerTouchEvent`
+     * de la référence). Le MotionEvent est RECONSTRUIT sur place (le
+     * parcelable ne transporte que la donnée) et DISPATCHÉ sur le fil
+     * de composition (`dispatchTouchEvent` d'un arbre posé — mesure/pose
+     * du dernier rendu) : le bouton du registre gagne sa RIPPLE réelle,
+     * les pressions suivent le doigt. Les coordonnées sont CLAMPÉES aux
+     * bornes du canevas (un contact de bord reste honnête).
+     *
+     * @return faux = session INCONNUE (fermée ou jamais rendue) : une
+     * touche perdue est une donnée honnête, jamais une exception.
+     */
+    internal fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean {
+        val session = synchronized(this) { sessions[identite] } ?: return false
+        porteeRendu.launch {
+            val largeur = session.vue.width.coerceAtLeast(1)
+            val hauteur = session.vue.height.coerceAtLeast(1)
+            val x = evenement.xPx.coerceIn(0f, largeur.toFloat())
+            val y = evenement.yPx.coerceIn(0f, hauteur.toFloat())
+            val mouvement =
+                MotionEvent.obtain(
+                    evenement.downTimeMs,
+                    evenement.eventTimeMs,
+                    evenement.action,
+                    x,
+                    y,
+                    evenement.pression,
+                    TAILLE_CONTACT,
+                    AUCUN_META,
+                    PRECISION_CONTACT,
+                    PRECISION_CONTACT,
+                    APPAREIL_INCONNU,
+                    AUCUN_BORD,
+                )
+            try {
+                session.vue.dispatchTouchEvent(mouvement)
+            } catch (t: Throwable) {
+                // Un composable hostile au toucher n'emporte PAS le
+                // processus : la touche est PERDUE en donnée (miroir le
+                // rendu : l'échec isolé ne devient jamais une panne).
+                journal("toucher compose échoué : ${t.javaClass.simpleName} : ${t.message}")
+            } finally {
+                mouvement.recycle()
+            }
+        }
+        return true
+    }
+
     /** Le rendu proprement dit — coroutine SUSPENDANTE du fil de composition. */
     private suspend fun rendreSurFil(requete: RequeteRenduCompose): ResultatRenduCompose {
         val debut = SystemClock.elapsedRealtime()
@@ -198,7 +306,7 @@ internal class RenduCompose(
             // Un rendu précédent de CETTE session a dépassé son budget
             // et occupe encore la composition (zombie) : échec honnête
             // en donnée — jamais un rendu concurrent fantôme.
-            return echec("un rendu précédent occupe encore la session")
+            return rendreZombie()
         }
         try {
             // LIVE-EDIT : le programme change, la composition RESTE —
@@ -237,6 +345,10 @@ internal class RenduCompose(
             bitmap.eraseColor(if (requete.nuit) COULEUR_FOND_NUIT else COULEUR_FOND_JOUR)
             val canevas = Canvas(bitmap)
             session.vue.draw(canevas)
+            // Le rendu a MENÉ À BIEN : le fil de composition est sain —
+            // le compteur de zombies repart à zéro (PC4 : la trace de
+            // gel ne survit pas à un succès).
+            zombies = 0
             return ResultatRenduCompose(
                 ok = true,
                 message = null,
@@ -474,229 +586,29 @@ internal class RenduCompose(
          * fautif, la suite n'est que mécanique de composition.
          */
         internal const val PILES_JOURNALISEES: Int = 15
-    }
-}
 
-/**
- * Le CONTENU renderable du programme — LE REGISTRE (C1) : chaque genre
- * rend son composable réel de la bibliothèque embarquée ; les pastilles
- * d'erreur isolent le nœud fautif (le reste se rend — miroir
- * `createMockView` de la référence : jamais un rendu tout-ou-rien).
- * C2 : [contexte] porte les RÉSOLVEURS du projet (chaque référence
- * `R.string/x`/`R.color/x`/`R.dimen/x`/`MaterialTheme.colorScheme.x`
- * se RÉSOUT ici, au rendu) et le COLLECTEUR de bornes (chaque nœud
- * publie sa géométrie bitmap + sa ligne source — le sésame
- * surlignage de la carte, écho `ComposeViewInfoParser`).
- */
-@Composable
-internal fun ContenuProgramme(programme: ProgrammeCompose, contexte: ContexteRendu) {
-    Column {
-        programme.racine.forEach { RendreNoeud(it, contexte) }
-        if (programme.coupureBudget) {
-            PastilleErreur("Interprétation tronquée (budget)", GenreErreurCompose.BUDGET_INTERPRETATION)
-        }
-    }
-}
+        /**
+         * C3 — PC4 : seuil de zombies CONSÉCUTIFS qui prononce le KILL du
+         * processus (un zombie = un rendu a dépassé et tient sa session ;
+         * deux D'AFFILÉE = le fil de composition est otage, il ne se
+         * libérera pas tout seul).
+         */
+        internal const val SEUIL_ZOMBIES: Int = 2
 
-/** Rend UN nœud du programme (dispatch du registre C1 + résolution C2 + bornes C2). */
-@Composable
-internal fun RendreNoeud(noeud: NoeudProgramme, contexte: ContexteRendu) {
-    when (noeud.genre) {
-        GenreNoeudCompose.TEXTE -> RendreTexte(noeud, contexte)
+        /** Taille du contact reconstruite (valeur par défaut de la plateforme). */
+        internal const val TAILLE_CONTACT: Float = 1f
 
-        GenreNoeudCompose.COLONNE ->
-            Column(modifier = Modifier.bornesDe(noeud, contexte)) {
-                noeud.contenu.forEach { RendreNoeud(it, contexte) }
-            }
+        /** États méta absents du mouvement reconstruit. */
+        internal const val AUCUN_META: Int = 0
 
-        GenreNoeudCompose.RANGEE ->
-            Row(modifier = Modifier.bornesDe(noeud, contexte)) {
-                noeud.contenu.forEach { RendreNoeud(it, contexte) }
-            }
+        /** Précision par défaut du contact (valeur par défaut de la plateforme). */
+        internal const val PRECISION_CONTACT: Float = 1f
 
-        GenreNoeudCompose.BOITE ->
-            Box(modifier = Modifier.bornesDe(noeud, contexte)) {
-                noeud.contenu.forEach { RendreNoeud(it, contexte) }
-            }
+        /** Appareil source inconnu du mouvement reconstruit (le doigt de l'hôte). */
+        internal const val APPAREIL_INCONNU: Int = 0
 
-        GenreNoeudCompose.ESPACE -> Spacer(modifier = Modifier.espaceDu(noeud, contexte))
-
-        GenreNoeudCompose.BOUTON ->
-            // C1 statique : le clic n'est PAS transmis (C3 interactif) —
-            // l'exigence de M3 est honorée par un no-op honnête.
-            Button(
-                onClick = {},
-                modifier = Modifier.bornesDe(noeud, contexte),
-            ) {
-                noeud.contenu.forEach { RendreNoeud(it, contexte) }
-            }
-
-        GenreNoeudCompose.INCONNU ->
-            PastilleErreur(
-                "« ${noeud.nom} » hors registre (C1)",
-                GenreErreurCompose.COMPOSABLE_INCONNU,
-                modifier = Modifier.bornesDe(noeud, contexte),
-            )
-
-        GenreNoeudCompose.ERREUR_EXPRESSION ->
-            PastilleErreur(
-                "Non interprété : ${ellipseNom(noeud.nom)}",
-                GenreErreurCompose.EXPRESSION_NON_INTERPRETEE,
-                modifier = Modifier.bornesDe(noeud, contexte),
-            )
-
-        GenreNoeudCompose.ERREUR_INLINE ->
-            PastilleErreur(
-                "« ${noeud.nom} » non inliné (projet)",
-                GenreErreurCompose.COMPOSABLE_PROJET_PARAMETRES,
-                modifier = Modifier.bornesDe(noeud, contexte),
-            )
-    }
-}
-
-/**
- * Le TEXTE du registre — extrait du dispatch : sa résolution C2
- * (chaîne du projet, couleur du projet ou du THÈME) est la PLUS
- * riche du registre et portait la complexité du when au-delà du
- * seuil detekt (règle 16 : RESTRUCTURE, pas de desserrage).
- */
-@Composable
-private fun RendreTexte(noeud: NoeudProgramme, contexte: ContexteRendu) {
-    Text(
-        text = texteDe(noeud, contexte),
-        color = couleurTexteDe(noeud, contexte) ?: Color.Unspecified,
-        modifier = Modifier.bornesDe(noeud, contexte),
-    )
-}
-
-/**
- * Ellipse du nom de nœud dans la pastille « Non interprété » : le `nom`
- * d'un nœud expression est le TEXTE BRUT de l'expression (potentiellement
- * longue) — la pastille labelSmall plein cadre reste lisible en le bornant.
- * NIVEAU FICHIER : les composables du registre sont de PREMIER NIVEAU,
- * hors de la classe.
- */
-private const val LONGUEUR_PASTILLE: Int = 32
-
-/** Ellipse honnête d'un nom long (points de suspension — miroir nomCourt de l'hôte). */
-private fun ellipseNom(nom: String): String =
-    if (nom.length <= LONGUEUR_PASTILLE) nom else nom.take(LONGUEUR_PASTILLE - 1) + "…"
-
-/** Les genres d'argument acceptés comme TEXTE d'un nœud. */
-private val GENRES_TEXTE: Set<GenreArgumentCompose> =
-    setOf(GenreArgumentCompose.LITTERAL_CHAINE, GenreArgumentCompose.REFERENCE_CHAINE)
-
-/**
- * La chaîne d'un Text : `text`/`texte` nommé ou premier texte — C2 : la
- * référence `R.string.NOM` se RÉSOUT sur le résolveur du projet ; une
- * référence introuvable rend le message par DÉFAUT de C1 (le nom du
- * nœud) ET l'erreur typée [GenreErreurCompose.RESSOURCE_INCONNUE]
- * accompagne le rendu (jamais un faux rendu silencieux).
- */
-private fun texteDe(noeud: NoeudProgramme, contexte: ContexteRendu): String {
-    val arguments = noeud.arguments
-    val cible =
-        arguments.firstOrNull { it.genre in GENRES_TEXTE && (it.nom == "text" || it.nom == "texte") }
-            ?: arguments.firstOrNull { it.genre in GENRES_TEXTE }
-    return when (cible?.genre) {
-        GenreArgumentCompose.LITTERAL_CHAINE -> cible.valeur ?: noeud.nom
-
-        GenreArgumentCompose.REFERENCE_CHAINE ->
-            cible.valeur?.let { nom -> contexte.chaine(nom, noeud.ligne) } ?: noeud.nom
-
-        else -> noeud.nom
-    }
-}
-
-/** Les genres d'argument acceptés comme COULEUR d'un nœud. */
-private val GENRES_COULEUR: Set<GenreArgumentCompose> =
-    setOf(GenreArgumentCompose.REFERENCE_COULEUR, GenreArgumentCompose.REFERENCE_THEME)
-
-/**
- * La couleur explicite d'un Text (`color`/`couleur` nommé) : C2 — la
- * référence `R.color.NOM` ou `MaterialTheme.colorScheme.SLOT` se RÉSOUT
- * sur le thème/les ressources du PROJET (`null` = la couleur Material
- * par défaut du contenu, comportement C1).
- */
-private fun couleurTexteDe(noeud: NoeudProgramme, contexte: ContexteRendu): Color? {
-    val cible =
-        noeud.arguments.firstOrNull {
-            it.genre in GENRES_COULEUR && (it.nom == "color" || it.nom == "couleur")
-        } ?: return null
-    return when (cible.genre) {
-        GenreArgumentCompose.REFERENCE_COULEUR ->
-            cible.valeur?.let { nom -> contexte.couleur(nom, noeud.ligne) }
-
-        GenreArgumentCompose.REFERENCE_THEME ->
-            cible.valeur?.let { slot -> contexte.couleurDuSlot(slot, noeud.ligne) }
-
-        else -> null
-    }
-}
-
-/**
- * Le modificateur d'un ESPACE (EXTENSION de Modifier — règle lint
- * Compose `ModifierFactoryExtensionFunction`) : hauteur explicite,
- * sinon largeur explicite, sinon pleine largeur ; les bornes du nœud
- * se posent en QUEUE de chaîne (l'étendue publiée est l'étendue
- * dessinée). C2 : les références `R.dimen.NOM` se résolvent sur le
- * projet.
- */
-private fun Modifier.espaceDu(noeud: NoeudProgramme, contexte: ContexteRendu): Modifier =
-    hauteurDe(noeud, contexte)?.let { hauteur -> height(hauteur).bornesDe(noeud, contexte) }
-        ?: largeurDe(noeud, contexte)?.let { largeur -> width(largeur).bornesDe(noeud, contexte) }
-        ?: fillMaxWidth().bornesDe(noeud, contexte)
-
-/** Les genres d'argument acceptés comme DIMENSION d'un nœud. */
-private val GENRES_DIMENSION: Set<GenreArgumentCompose> =
-    setOf(GenreArgumentCompose.VALEUR_DP, GenreArgumentCompose.REFERENCE_DIMENSION)
-
-/** La hauteur dp d'un Spacer (`height`/`hauteur` ou positionnel) — littéral ou `R.dimen.NOM` du projet. */
-private fun hauteurDe(noeud: NoeudProgramme, contexte: ContexteRendu): Dp? {
-    val cible =
-        noeud.arguments.firstOrNull {
-            it.genre in GENRES_DIMENSION && (it.nom == "height" || it.nom == "hauteur" || it.nom == null)
-        } ?: return null
-    return when (cible.genre) {
-        GenreArgumentCompose.VALEUR_DP -> cible.valeur?.toFloatOrNull()?.dp
-
-        GenreArgumentCompose.REFERENCE_DIMENSION ->
-            cible.valeur?.let { nom -> contexte.dimensionDp(nom, noeud.ligne) }
-
-        else -> null
-    }
-}
-
-/** La largeur dp d'un Spacer (`width`/`largeur`) — littéral ou `R.dimen.NOM` du projet. */
-private fun largeurDe(noeud: NoeudProgramme, contexte: ContexteRendu): Dp? {
-    val cible =
-        noeud.arguments.firstOrNull {
-            it.genre in GENRES_DIMENSION && (it.nom == "width" || it.nom == "largeur")
-        } ?: return null
-    return when (cible.genre) {
-        GenreArgumentCompose.VALEUR_DP -> cible.valeur?.toFloatOrNull()?.dp
-
-        GenreArgumentCompose.REFERENCE_DIMENSION ->
-            cible.valeur?.let { nom -> contexte.dimensionDp(nom, noeud.ligne) }
-
-        else -> null
-    }
-}
-
-/** Pastille d'erreur inline (isole le nœud fautif — le reste se rend). */
-@Composable
-private fun PastilleErreur(message: String, genre: GenreErreurCompose, modifier: Modifier = Modifier) {
-    Box(
-        modifier =
-        modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.errorContainer),
-    ) {
-        Text(
-            text = "$message [${genre.name}]",
-            color = MaterialTheme.colorScheme.onErrorContainer,
-            style = MaterialTheme.typography.labelSmall,
-        )
+        /** Aucun drapeau de bord touché. */
+        internal const val AUCUN_BORD: Int = 0
     }
 }
 

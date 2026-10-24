@@ -18,7 +18,7 @@ import org.junit.Test
  * en profondeur, digeste déterministe.
  */
 class ConvertisseurProgrammeTest {
-    /** Une preview triviale : Text("…"). */
+    /** Une preview au corps composé des appels posés. */
     private fun previewTexte(vararg appels: AppelFonctionKotlin) = PreviewKotlin(
         nom = "ApercuCarte",
         paquet = "com.exemple",
@@ -62,6 +62,33 @@ class ConvertisseurProgrammeTest {
         )
         assertTrue("aucune erreur en nominal", erreurs.isEmpty())
         assertTrue("pas de coupure", !programme.coupureBudget)
+    }
+
+    @Test
+    fun `C3 registre - les indicateurs de progression M3 traversent (animation du registre)`() {
+        val (programme, erreurs) = ConvertisseurProgramme.convertir(
+            previewTexte(
+                AppelFonctionKotlin(
+                    nom = "CircularProgressIndicator",
+                    recepteur = null,
+                    ligne = 7,
+                    arguments = emptyList(),
+                    contenu = emptyList(),
+                ),
+                AppelFonctionKotlin(
+                    nom = "LinearProgressIndicator",
+                    recepteur = null,
+                    ligne = 8,
+                    arguments = emptyList(),
+                    contenu = emptyList(),
+                ),
+            ),
+        )
+        assertEquals(2, programme.racine.size)
+        assertEquals(GenreNoeudCompose.PROGRES_CIRCULAIRE, programme.racine[0].genre)
+        assertEquals(GenreNoeudCompose.PROGRES_LINEAIRE, programme.racine[1].genre)
+        assertEquals(8, programme.racine[1].ligne)
+        assertTrue("aucune erreur : indéterminés sans arguments", erreurs.isEmpty())
     }
 
     @Test
