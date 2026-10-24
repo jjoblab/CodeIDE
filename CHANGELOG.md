@@ -1,5 +1,54 @@
 # Journal des modifications
 
+## [0.181.0] – 2026-10-24
+
+### Retour propriétaire E2E sur projets Android réels : le LSP Java réparé de bout en bout (routage fichier → module) et le `kt.unresolved` sans faux positifs (bump-frère codeide-lsp 1.8.0 → 1.9.0, ADR 0215/0216 côté frère)
+
+#### Corrigé (côté frère codeide-lsp v1.9.0 — consommé tel quel par CodeIDE)
+
+- **« ActivityMainBinding cannot be resolved to a type » /
+  « Greeter cannot be resolved to a type »** (projet Android Java de
+  deux fichiers du même paquet) — cause racine D6 du rapport d'audit
+  §14 : les moteurs PAR MODULE que l'écran d'indexation montre comme
+  nourris n'étaient JAMAIS consultés — tous les services LSP Java
+  utilisaient le contexte DÉFAUT (android.jar seul, sans racines
+  sources). ADR 0215 : routage fichier → module à chaque requête
+  (`jdtPourFichier` + `AssociationFichier` enfin branché sur
+  l'instantané du modèle) — un type du MÊME PAQUET (sans import) et un
+  ViewBinding de la racine `generated` résolvent, les ERREURS du
+  propriétaire s'effacent SEULES au live-republish post-sync (scénario
+  E2E D1 : didOpen → erreurs → sync → plus rien, sans frappe).
+- **Go-to Java dégradés réparés de bout en bout** : definition sur
+  `Greeter` atterrit dans Greeter.java, references trouve les
+  occurrences du même paquet, definition sur `ActivityMainBinding`
+  atterrit dans la racine `generated` du module — le branchement
+  CodeIDE (CoordonnateurLsp → LspProject → code-editor) était SAIN, il
+  était alimenté par le mauvais moteur (preuves E2E au fil du transport
+  : capacités definition/typeDefinition/implementation/references/
+  superDefinition annoncées et fonctionnelles).
+- **« Référence non résolue : « setContentView » / « instantiate » » et
+  « beaucoup de diagnostics unresolved »** (projet Kotlin Compose) —
+  ADR 0216 : nouvelle voie « membres HÉRITÉS » de la résolution (un
+  appel NU à un membre du supertype binaire — `setContentView`
+  d'AppCompatActivity, `instantiate` d'une FragmentFactory — n'est
+  plus un faux positif) et garde des SEGMENTS de types QUALIFIÉS
+  (`android.os.Bundle` ne produit plus TROIS diagnostics android/os/
+  Bundle : le type complet est éprouvé contre le classpath, seul le
+  dernier segment d'un type réellement introuvable reste signalé,
+  miroir kotlinc). Le quick-fix d'import ne propose plus d'import
+  absurde pour un appel résolu par héritage.
+
+#### Montée (bump-frère)
+
+- **codeide-lsp 1.8.0 → 1.9.0** (dépôt frère publié sur GitHub
+  Packages — `maven-metadata.xml` de `codeide-lsp/host`) : montée
+  SANS changement de surface consommée (la surface 1.8.0 —
+  `SessionLsp*`/`CapaciteLsp`/`TypesIndexationPublics`, flux
+  `etatIndexation`, `annulerPassage()`/`reesayerEchecs()` — est
+  intacte) ; les correctifs vivent à l'intérieur du frère (routage
+  serveur Java, résolution Kotlin) et CodeIDE les reçoit en
+  re-résolvant les coordonnées. Aucune retouche UI requise.
+
 ## [0.180.0] – 2026-10-24
 
 ### L'écran d'indexation branché sur les flux RÉELS des trois moteurs (DEMANDES D1–D5 livrées côté frère, ADR 0146) + correctif plantage `rendreActions` (rapport 2ff0dee0)
