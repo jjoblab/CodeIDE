@@ -270,8 +270,11 @@
          (mockup §2 — v0.178.0, ADR 0145). -->
     <string name="editor_indexation_pourcentage">%1$d%%</string>
 
-    <!-- Reuse summary during construction (mockup §2 — v0.178.0, ADR 0145). -->
-    <string name="editor_indexation_reprises">Already-indexed entries are reused without rebuilding: %1$d reused, %2$d rebuilt.</string>
+    <!-- Reuse summary during construction (mockup §2 — v0.178.0,
+         ADR 0145). v0.178.1: each count PRECEDES its number — an integer
+         placeholder followed by a word trips the PluralsCandidate lint
+         heuristic (CI fix for v0.178.0). -->
+    <string name="editor_indexation_reprises">Already-indexed entries are reused without rebuilding: reused %1$d, rebuilt %2$d.</string>
     <string name="editor_indexation_moteur_java">Java</string>
     <string name="editor_indexation_moteur_kotlin">Kotlin</string>
     <string name="editor_indexation_moteur_xml">XML</string>
