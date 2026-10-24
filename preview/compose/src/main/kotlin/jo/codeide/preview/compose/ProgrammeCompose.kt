@@ -39,6 +39,19 @@ public enum class GenreNoeudCompose {
 
     /** Composable du projet non inliné (cycle/budget/paramétré/illisible) — pastille typée. */
     ERREUR_INLINE,
+
+    /**
+     * C3 — `CircularProgressIndicator` (material3, indéterminé par
+     * défaut) : l'ANIMATION INFINIE du registre — tourne sur l'horloge
+     * interactive (frames réelles du pompier), immobile hors interactif
+     * (le rendu statique la fige à sa pose). EN QUEUE de l'énumération :
+     * l'ordinal reste RÉTROCOMPATIBLE (un ancien parcel se lit, un
+     * ordinal inconnu retombe INCONNU).
+     */
+    PROGRES_CIRCULAIRE,
+
+    /** C3 — `LinearProgressIndicator` (material3, indéterminé) — miroir [PROGRES_CIRCULAIRE]. */
+    PROGRES_LINEAIRE,
 }
 
 /**

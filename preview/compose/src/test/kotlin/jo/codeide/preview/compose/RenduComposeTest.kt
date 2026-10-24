@@ -353,4 +353,75 @@ class RenduComposeTest {
         )
         rendu.fermer()
     }
+
+    // ── C3 : forwarding, watchdog de gel et animation du registre ────
+
+    @Test
+    fun `C3 transmettre - session inconnue FAUX, session vivante VRAI (dispatch sans exception)`() {
+        val rendu = executeur()
+        val identite = "file:///a.kt#Apercu#0"
+        // Session INCONNUE : la touche est perdue en donnée honnête.
+        assertEquals(
+            "aucune session rendue : faux",
+            false,
+            rendu.transmettre(identite, EvenementTactileCompose(0, 1f, 1f, 1L, 1L)),
+        )
+        // La session naît, puis la composition reçoit le doigt.
+        val resultat = rendreSync(rendu, requete(identite, texte("Touché")))
+        assertTrue("le rendu crée la session : ${resultat.message}", resultat.ok)
+        val ok = rendu.transmettre(identite, EvenementTactileCompose(0, 5f, 5f, 1L, 1L))
+        assertTrue("session vivante : le dispatch part (asynchrone)", ok)
+        // Le looper est pompé : la coroutine de dispatch termine sans lever
+        // (un composable hostile n'emporte JAMAIS le processus).
+        val ombre = Shadows.shadowOf(Looper.getMainLooper())
+        ombre.idleFor(Duration.ofMillis(32))
+        rendu.fermer()
+    }
+
+    @Test
+    fun `C3 watchdog - deux zombies consecutifs prononcent le KILL, un succes remet a zero`() {
+        var tues = 0
+        val rendu =
+            RenduCompose(
+                contexte = contexte,
+                executeur = ContextCompat.getMainExecutor(contexte),
+                dispatcheurComposition = kotlinx.coroutines.Dispatchers.Main,
+                journal = { journalCapte += it },
+                resolveurs = null,
+                tueur = { tues += 1 },
+            )
+        // Premier zombie : le fil est otage UNE fois — le processus vit
+        // encore (le rendu suivant peut LE LIBÉRER de lui-même).
+        rendu.rendreZombie()
+        assertEquals(1, rendu.rendsZombies())
+        assertEquals("sous le seuil : pas de kill", 0, tues)
+        // Deuxième zombie CONSECUTIF : le fil ne se libérera jamais seul.
+        rendu.rendreZombie()
+        assertEquals("au seuil : le KILL est prononcé", 1, tues)
+        assertTrue("le journal porte la trace du watchdog", journalCapte.any { it.contains("watchdog C3") })
+        // Un rendu MENÉ À BIEN remet le compteur à zéro (la trace de gel
+        // ne survit pas à un succès).
+        val resultat = rendreSync(rendu, requete("file:///a.kt#Apercu#0", texte("Sain")))
+        assertTrue(resultat.ok)
+        assertEquals("le succès purge les zombies", 0, rendu.rendsZombies())
+        rendu.fermer()
+    }
+
+    @Test
+    fun `C3 animation - les indicateurs de progression se DESSINENT (genre du registre)`() {
+        val rendu = executeur()
+        val circulaire =
+            NoeudProgramme(
+                genre = GenreNoeudCompose.PROGRES_CIRCULAIRE,
+                nom = "CircularProgressIndicator",
+                ligne = 3,
+                arguments = emptyList(),
+                contenu = emptyList(),
+            )
+        val resultat = rendreSync(rendu, requete("file:///a.kt#Progression#0", circulaire))
+        assertTrue("l'indicateur circulaire se rend : ${resultat.message}", resultat.ok)
+        assertNotNull(resultat.bitmap)
+        assertTrue("la géométrie du nœud animé est extraite", resultat.noeuds.isNotEmpty())
+        rendu.fermer()
+    }
 }

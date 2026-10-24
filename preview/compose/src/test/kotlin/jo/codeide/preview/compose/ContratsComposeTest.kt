@@ -131,6 +131,21 @@ class ContratsComposeTest {
     }
 
     @Test
+    fun `evenement tactile C3 - aller-retour avec horodatages et pression`() {
+        val evenement =
+            EvenementTactileCompose(
+                action = android.view.MotionEvent.ACTION_MOVE,
+                xPx = 12.5f,
+                yPx = 40.25f,
+                downTimeMs = 100L,
+                eventTimeMs = 133L,
+                pression = 0.75f,
+            )
+        val relu = allerRetour(evenement, EvenementTactileCompose.CREATOR)
+        assertEquals(evenement, relu)
+    }
+
+    @Test
     fun `identite - format uri#nom#index`() {
         assertEquals(
             "file:///apercu.kt#ApercuCarte#1",

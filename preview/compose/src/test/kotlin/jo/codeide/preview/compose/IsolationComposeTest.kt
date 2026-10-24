@@ -52,6 +52,11 @@ class IsolationComposeTest {
             )
         }
 
+        override suspend fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean {
+            // C3 — une touche dans le faux processus : la session existe.
+            return true
+        }
+
         override fun close() {
             fermes += 1
         }
