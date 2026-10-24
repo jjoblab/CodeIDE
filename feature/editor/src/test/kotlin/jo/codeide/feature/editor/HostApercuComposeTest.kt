@@ -8,6 +8,8 @@ import androidx.test.core.app.ApplicationProvider
 import jo.codeeditor.document.EditorDocument
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
+import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.testing.TestDispatcherProvider
 import jo.codeide.preview.compose.EtatPreviewCompose
 import jo.codeide.preview.compose.EvenementTactileCompose
 import jo.codeide.preview.compose.GenreNoeudCompose
@@ -21,6 +23,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
@@ -68,6 +71,10 @@ class HostApercuComposeTest {
         val etatInterne = MutableStateFlow<EtatPreviewCompose>(EtatPreviewCompose.Inactif)
         override val etat: StateFlow<EtatPreviewCompose> = etatInterne.asStateFlow()
         val branchements = mutableListOf<String>()
+
+        /** C4 — fournisseurs capturés : le test invoque la découverte. */
+        val fournisseurs = mutableListOf<() -> List<PreviewKotlin>>()
+
         val projets = mutableListOf<Triple<String?, String?, String?>>()
         var soumissions = 0
             private set
@@ -76,6 +83,7 @@ class HostApercuComposeTest {
 
         override fun brancher(uri: String, fournisseur: () -> List<PreviewKotlin>) {
             branchements += uri
+            fournisseurs += fournisseur
         }
 
         override fun soumettre() {
@@ -130,6 +138,19 @@ class HostApercuComposeTest {
         noeuds = noeuds,
     )
 
+    /** Un rendu VALIDE de fixture PORTANT SA ligne d'annotation (C4). */
+    private fun renduLigne(nom: String, ligneAnnotation: Int, index: Int = 0): RenduPreviewCompose =
+        RenduPreviewCompose(
+            nom = nom,
+            index = index,
+            bitmap = carre(4, Color.WHITE),
+            metriques = MetriquesRenduCompose(dureeMs = 1, nombreNoeuds = 1, largeur = 4, hauteur = 4),
+            erreurs = emptyList(),
+            messageErreur = null,
+            noeuds = emptyList(),
+            ligneAnnotation = ligneAnnotation,
+        )
+
     /** Un bitmap CARRÉ plein de la couleur donnée (vrais pixels NATIVE). */
     private fun carre(cote: Int, couleur: Int): Bitmap =
         Bitmap.createBitmap(cote, cote, Bitmap.Config.ARGB_8888).also { it.eraseColor(couleur) }
@@ -143,18 +164,20 @@ class HostApercuComposeTest {
         moteur: FauxMoteur,
         etatEditeur: MutableStateFlow<EtatEditor> = MutableStateFlow(EtatEditor()),
         scope: CoroutineScope,
-        fournisseurProjet: suspend (String) -> ProjetApercuCompose? = { null },
+        ports: PortsDocumentApercuCompose = PortsDocumentApercuCompose(),
+        dispatcheurs: DispatcherProvider = TestDispatcherProvider(UnconfinedTestDispatcher()),
     ): HostApercuCompose = HostApercuCompose(
         contexte = contexte,
         etat = etatEditeur,
         sessionKotlin = MutableStateFlow(null),
         scope = scope,
+        dispatcheurs = dispatcheurs,
         moteur = moteur,
-        fournisseurProjet = fournisseurProjet,
+        ports = ports,
     )
 
     @Test
-    fun `canPreview - Kotlin SEULEMENT (garde de régression - l'XML garde son écran dédié)`() {
+    fun `canPreview - Kotlin SEULEMENT (garde de régression - l'XML garde son écran dédié)`() = runTest {
         val hote = hote(FauxMoteur(), scope = CoroutineScope(UnconfinedTestDispatcher()))
         assertTrue("onglet .kt", hote.canPreview("EcranPrincipal.kt"))
         assertTrue("onglet .kts", hote.canPreview("build.gradle.kts"))
@@ -320,9 +343,16 @@ class HostApercuComposeTest {
                 moteur,
                 etatEditeur,
                 CoroutineScope(UnconfinedTestDispatcher(testScheduler)),
-                fournisseurProjet = { uri ->
-                    if (uri == "file:///a.kt") ProjetApercuCompose("/proj/app/src/main/res", "Theme.MonApp") else null
-                },
+                ports =
+                PortsDocumentApercuCompose(
+                    fournisseurProjet = { uri ->
+                        if (uri == "file:///a.kt") {
+                            ProjetApercuCompose("/proj/app/src/main/res", "Theme.MonApp")
+                        } else {
+                            null
+                        }
+                    },
+                ),
             )
         assertEquals(
             "le projet de l'onglet actif est poussé au branchement",
@@ -431,7 +461,7 @@ class HostApercuComposeTest {
     // ── C3 : le corps interactif, l'horloge et l'inspection ─────────
 
     @Test
-    fun `C3 wantsInteractive - le corps de la carte est INTERACTIF`() {
+    fun `C3 wantsInteractive - le corps de la carte est INTERACTIF`() = runTest {
         val hote = hote(FauxMoteur(), scope = CoroutineScope(UnconfinedTestDispatcher()))
         assertTrue("le mini-téléphone reçoit les touches (B27-C3)", hote.wantsInteractiveDropPreview())
     }
@@ -540,5 +570,190 @@ class HostApercuComposeTest {
         // le TEXTE (ligne 3 1-indexée) gagne → caret à SA ligne (offset 20).
         hote.onPreviewDropLongPress(20f, 30f)
         assertEquals("caret à la ligne source du nœud TOUCHÉ", 20, vue.session!!.getSelection().start)
+    }
+
+    // ── C4 : la découverte parle l'URI LSP, les yeux vivent aux lignes ─
+
+    /** Un document Kotlin de fixture avec DEUX @Preview (lignes 1-indexées 1 et 4). */
+    private val texteDeuxPreviews = "@Preview\nfun A() {}\n\n@Preview\nfun B() {}"
+
+    /** Une vue éditeur réelle (Robolectric) posée sur le document de fixture. */
+    private fun vueEditeurFixee(): EditorView = EditorView(contexte).also { vue ->
+        vue.setSession(EditorSession(EditorDocument.of(texteDeuxPreviews)))
+    }
+
+    /** Pose le hôte PUIS le nom — l'œil exige le hôte installé AVANT canPreview. */
+    private fun installer(hote: HostApercuCompose, vue: EditorView) {
+        hote.installerSur(vue)
+        vue.setFileName("apercu.kt")
+    }
+
+    /** Une @Preview de fixture de la découverte (modèle NEUTRE). */
+    private fun previewKotlin(nom: String, ligneAnnotation: Int): PreviewKotlin = PreviewKotlin(
+        nom = nom,
+        paquet = null,
+        debutNom = 0,
+        finNom = 0,
+        parametres = emptyList(),
+        corps = emptyList(),
+        ligneAnnotation = ligneAnnotation,
+    )
+
+    @Test
+    fun `C4 decouverte - l'URI LSP du didOpen REMPLACE l'uri SAF de l'onglet`() = runTest {
+        val moteur = FauxMoteur()
+        val etatEditeur =
+            MutableStateFlow(etatAvecOnglet("content://saf/apercu.kt", "apercu.kt"))
+        val clesDemandees = mutableListOf<Pair<String?, String>>()
+        val hote = hote(
+            moteur,
+            etatEditeur,
+            CoroutineScope(UnconfinedTestDispatcher(testScheduler)),
+            ports =
+            PortsDocumentApercuCompose(
+                resolveurUriLsp = { uri ->
+                    assertEquals("le résolveur reçoit l'uri SAF de l'onglet", "content://saf/apercu.kt", uri)
+                    "file:///fuse/apercu.kt"
+                },
+                decouvreur =
+                PortDecouvertePreviews { uriLsp, uriOnglet ->
+                    clesDemandees += uriLsp to uriOnglet
+                    emptyList()
+                },
+            ),
+        )
+
+        // La découverte du FIL DU MOTEUR (le fournisseur capturé au
+        // branchement) parle la CLÉ TRADUITE — c'est le correctif du bug
+        // v0.176.0 : la carte documents du moteur Kotlin est indexée par
+        // l'URI du didOpen (file://FUSE), jamais par l'uri SAF. Le tirage
+        // direct du collect parlait déjà LA MÊME clé (DEUX passes : la
+        // pose des yeux au changement d'onglet + le fournisseur du
+        // moteur).
+        moteur.fournisseurs.single()()
+        assertEquals(
+            "l'URI LSP d'abord, l'uri SAF en repli — à CHAQUE passe",
+            List(2) { "file:///fuse/apercu.kt" to "content://saf/apercu.kt" },
+            clesDemandees,
+        )
+    }
+
+    @Test
+    fun `C4 decouverte - FUSE sans reponse - repli honnete sur l'uri d'onglet`() = runTest {
+        val moteur = FauxMoteur()
+        val etatEditeur =
+            MutableStateFlow(etatAvecOnglet("content://saf/apercu.kt", "apercu.kt"))
+        val clesDemandees = mutableListOf<Pair<String?, String>>()
+        val hote = hote(
+            moteur,
+            etatEditeur,
+            CoroutineScope(UnconfinedTestDispatcher(testScheduler)),
+            ports =
+            PortsDocumentApercuCompose(
+                resolveurUriLsp = { null },
+                decouvreur =
+                PortDecouvertePreviews { uriLsp, uriOnglet ->
+                    clesDemandees += uriLsp to uriOnglet
+                    emptyList()
+                },
+            ),
+        )
+        moteur.fournisseurs.single()()
+        assertEquals(
+            "résolution échouée : le repli porte l'uri d'onglet — à CHAQUE passe",
+            List(2) { null to "content://saf/apercu.kt" },
+            clesDemandees,
+        )
+    }
+
+    @Test
+    fun `C4 ancres - les rendus posent les yeux aux lignes de leurs annotations`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        val vue = vueEditeurFixee()
+        installer(hote, vue)
+
+        assertArrayEquals("aucun rendu : AUCUN œil (parité AS)", intArrayOf(), vue.getPreviewAnchors())
+
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(
+                listOf(
+                    renduLigne("A", ligneAnnotation = 1),
+                    renduLigne("B", ligneAnnotation = 4, index = 1),
+                ),
+            )
+
+        assertArrayEquals(
+            "un œil par @Preview, à SA ligne 0-indexée (celle de l'annotation)",
+            intArrayOf(0, 3),
+            vue.getPreviewAnchors(),
+        )
+    }
+
+    @Test
+    fun `C4 ancres - le tirage direct du changement d'onglet pose les yeux SANS rendu`() = runTest {
+        val moteur = FauxMoteur()
+        val etatEditeur =
+            MutableStateFlow(etatAvecOnglet("content://saf/apercu.kt", "apercu.kt"))
+        val hote = hote(
+            moteur,
+            etatEditeur,
+            CoroutineScope(UnconfinedTestDispatcher(testScheduler)),
+            ports =
+            PortsDocumentApercuCompose(
+                resolveurUriLsp = { "file:///fuse/apercu.kt" },
+                decouvreur =
+                PortDecouvertePreviews { _, _ ->
+                    listOf(
+                        previewKotlin("A", ligneAnnotation = 1),
+                        previewKotlin("B", ligneAnnotation = 4),
+                    )
+                },
+            ),
+        )
+        val vue = vueEditeurFixee()
+        installer(hote, vue)
+
+        // Le collect (changement d'onglet) a déjà tiré la découverte :
+        // les yeux existent AVANT TOUT bitmap (la machine du :preview
+        // peut être froide — l'œil doit être là avant).
+        assertArrayEquals(intArrayOf(0, 3), vue.getPreviewAnchors())
+    }
+
+    @Test
+    fun `C4 tap oeil - la ligne tapee selectionne l'onglet de SA preview`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        val vue = vueEditeurFixee()
+        installer(hote, vue)
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(
+                listOf(
+                    renduLigne("A", ligneAnnotation = 1),
+                    renduLigne("B", ligneAnnotation = 4, index = 1),
+                ),
+            )
+
+        // La carte ouverte ancrée ligne 3 (l'annotation de B) — la carte
+        // mesure ses onglets depuis previewDropTabs du hôte.
+        vue.openPreviewDropAt(3)
+
+        // L'œil de la ligne 3 est tapé : le hôte sélectionne l'onglet de
+        // LA preview de la ligne (B, onglet 1) — l'onglet affiché suit
+        // (observable par le pompier du faux moteur).
+        hote.onPreviewAnchorTapped(3)
+        assertEquals(
+            "l'onglet de la preview de la ligne tapée est SÉLECTIONNÉ",
+            1,
+            moteur.interactifs.last().second,
+        )
+
+        // Ligne inconnue (ancres périmées) : no-op honnête.
+        hote.onPreviewAnchorTapped(99)
+        assertEquals(
+            "une ligne introuvable ne change RIEN",
+            1,
+            moteur.interactifs.last().second,
+        )
     }
 }

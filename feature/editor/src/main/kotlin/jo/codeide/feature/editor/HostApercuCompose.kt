@@ -9,6 +9,7 @@ import android.view.MotionEvent
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.preview.EditorPreviewHost
+import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.lsp.host.SessionLspKotlin
 import jo.codeide.preview.compose.EtatPreviewCompose
 import jo.codeide.preview.compose.EvenementTactileCompose
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Port étroit du moteur de preview Compose consommé par l'hôte (C1) —
@@ -90,6 +92,40 @@ private class MoteurComposeSurPort(private val moteur: MoteurPreviewCompose) : P
 internal fun MoteurPreviewCompose.enPort(): PortMoteurPreviewCompose = MoteurComposeSurPort(this)
 
 /**
+ * C2/C4 — les RÉSOLVEURS DE DOCUMENT de l'hôte (défauts = comportement
+ * C1 pur — chaque champ est indépendamment optionnel) : le PROJET de
+ * l'onglet (dossier `res/` + thème du manifeste), l'URI LSP du didOpen
+ * (`"file://" + FUSE` — miroir du `createEditor` du CoordonnateurLsp)
+ * et le DOUBLAGE de la découverte (tests : `SessionLspKotlin` est une
+ * classe FINALE ; null = la session LSP vivante, repli uri d'onglet).
+ */
+internal class PortsDocumentApercuCompose(
+    val fournisseurProjet: suspend (String) -> ProjetApercuCompose? = { null },
+    val resolveurUriLsp: suspend (String) -> String? = { null },
+    val decouvreur: PortDecouvertePreviews? = null,
+)
+
+/**
+ * C4 — la découverte des `@Preview` côté session Kotlin (port INJECTABLE :
+ * les tests doublent la CLÉ interrogée — [SessionLspKotlin] est une
+ * classe FINALE, invraisemblable à doubler honnêtement). Le DÉFAUT vit
+ * au constructeur de [HostApercuCompose] : session vivante relue à
+ * chaque passe, URI LSP du didOpen d'abord puis repli best-effort sur
+ * l'uri d'onglet.
+ */
+internal fun interface PortDecouvertePreviews {
+    /**
+     * Les `@Preview` du document actif, dans l'ordre du document.
+     *
+     * @param uriLsp     l'URI LSP du didOpen ("file://" + FUSE — clé de
+     *                   la carte `documents` du moteur Kotlin), ou null
+     *                   si la résolution FUSE a échoué.
+     * @param uriOnglet  l'uri SAF de l'onglet (repli best-effort).
+     */
+    fun decouvrir(uriLsp: String?, uriOnglet: String): List<PreviewKotlin>
+}
+
+/**
  * Le PROJET de l'aperçu Compose d'un document (C2) — résolu par
  * [HostApercuCompose.fournisseurProjet] côté [EditorViewModel] :
  * dossier `res/` (ressources + thème de la composition) et thème
@@ -143,23 +179,61 @@ internal data class ProjetApercuCompose(
  * Exemption detekt ciblée (règle 16) : TooManyFunctions — le contrat
  * [EditorPreviewHost] de cel-ui EXIGE ses dix méthodes (cinq sans
  * défaut), chacune a SA responsabilité ; il n'y a rien à regrouper
- * sans casser l'interface.
+ * sans casser l'interface. LongParameterList — SEPT frontières
+ * DISTINCTES et irréductibles (le contexte des ressources, les DEUX
+ * flux d'état — espace et session LSP, la portée, les dispatcheurs,
+ * le port du moteur, les résolveurs de document) : chaque paramètre
+ * est une frontière consommée — le regroupement supplémentaire serait
+ * FORCÉ (miroir CoordonnateurLsp.brancher).
  */
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 internal class HostApercuCompose(
     private val contexte: Context,
     etat: StateFlow<EtatEditor>,
     private val sessionKotlin: StateFlow<SessionLspKotlin?>,
     scope: CoroutineScope,
+    dispatcheurs: DispatcherProvider,
     private val moteur: PortMoteurPreviewCompose,
     /**
-     * C2 — le PROJET de l'onglet actif (dossier res/ + thème du
-     * manifeste), résolu au changement d'onglet (suspend : résolution
-     * FUSE en IO) ; null = défauts runtime.
+     * C2/C4 — les résolveurs DE DOCUMENT : projet (dossier `res/` + thème
+     * du manifeste), URI LSP du didOpen ("file://" + FUSE — la clé de la
+     * carte `documents` du moteur Kotlin, jamais l'uri SAF de l'onglet)
+     * et doublage de la découverte (null = session vivante).
      */
-    private val fournisseurProjet: suspend (String) -> ProjetApercuCompose? = { null },
+    ports: PortsDocumentApercuCompose = PortsDocumentApercuCompose(),
 ) : EditorPreviewHost,
     AutoCloseable {
+    /** La portée des tirages d'ancres hors collect (débounces de frappe). */
+    private val portee: CoroutineScope = scope
+
+    /** C4 — la marche de découverte vit HORS fil d'UI (miroir moteur). */
+    private val dispatcheurs = dispatcheurs
+
+    /** C2 — résolution suspend FUSE du projet de l'onglet (défauts runtime). */
+    private val fournisseurProjet = ports.fournisseurProjet
+
+    /** C4 — l'URI LSP du didOpen ("file://" + FUSE — clé du moteur Kotlin). */
+    private val resolveurUriLsp = ports.resolveurUriLsp
+
+    /**
+     * C4 — la découverte : doublée par les tests (clé traduite), sinon la
+     * SESSION VIVANTE (relue à chaque passe — jamais une session morte
+     * capturée) : URI LSP d'abord, repli best-effort sur l'uri d'onglet.
+     */
+    private val decouvreur: PortDecouvertePreviews =
+        ports.decouvreur
+            ?: PortDecouvertePreviews { uriLsp, uriOnglet ->
+                val session = sessionKotlin.value
+                    ?: return@PortDecouvertePreviews emptyList()
+                if (uriLsp != null && uriLsp != uriOnglet) {
+                    val trouvees = session.previews(uriLsp)
+                    if (trouvees.isNotEmpty()) {
+                        return@PortDecouvertePreviews trouvees
+                    }
+                }
+                session.previews(uriOnglet)
+            }
+
     /** Dernier rendu VALIDE (contrat « jamais de carte vide » — survit aux signaux discrets). */
     @Volatile
     private var dernierValide: EtatPreviewCompose.RenduValide? = null
@@ -200,6 +274,38 @@ internal class HostApercuCompose(
     @Volatile
     private var downTimeGeste: Long = 0L
 
+    /** C4 — l'URI LSP du document ACTIF ("file://" + FUSE — clé du didOpen). */
+    @Volatile
+    private var uriLspDocument: String? = null
+
+    /**
+     * C4 — les ANCRES des yeux : (ligne 0-indexée de l'annotation, indice
+     * de la preview) — l'ordre EST le mapping tap → onglet (B28 cel-ui
+     * 4.2.0 : un œil par @Preview, à SA ligne, zéro sans).
+     */
+    @Volatile
+    private var ancres: List<Pair<Int, Int>> = emptyList()
+
+    /** C4 — la session écoutée pour le rafraîchissement des yeux à la frappe. */
+    @Volatile
+    private var sessionEcoutee: EditorSession? = null
+
+    /** C4 — le débouncer des yeux (400 ms — miroir du debounce moteur). */
+    private val debounceAncres = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** C4 — le tirage débouncé de la découverte (les yeux vivent carte FERMÉE). */
+    private val tirageAncres = Runnable {
+        portee.launch {
+            rafraichirAncres()
+        }
+    }
+
+    /** C4 — l'écoute de frappe : une ligne bougée = les yeux se recalculent. */
+    private val ecouteurTexte = EditorSession.OnTextEditListener { _, _, _ ->
+        debounceAncres.removeCallbacks(tirageAncres)
+        debounceAncres.postDelayed(tirageAncres, DEBOUNCE_ANCRES_MS)
+    }
+
     /** Peinture du bitmap (filtrage bilinéaire du FIT). */
     private val peintureBitmap = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
@@ -238,10 +344,27 @@ internal class HostApercuCompose(
                     }
                     moteur.definirProjet(projet?.dossierRes, null, projet?.themeName)
                     val uri = actif?.first ?: return@collect
+                    // C4 — l'URI LSP du didOpen ("file://" + FUSE) : la
+                    // carte `documents` du moteur Kotlin est indexée par
+                    // CETTE clé — l'uri SAF de l'onglet n'y figure JAMAIS
+                    // (la découverte de C1-C3 rendait donc TOUJOURS vide
+                    // sur les fichiers projet : le bug « pas de preview »
+                    // des tests manuels v0.176.0).
+                    uriLspDocument = resolveurUriLsp(uri)
+                    // C4 — les yeux du document précédent partent : la
+                    // découverte du NOUVEAU document les repose (vidage
+                    // honnête d'abord — zéro œil périmé).
+                    publierAncres(emptyList())
+                    ecouterSessionVue()
                     // Le fournisseur vit sur le FIL DU MOTEUR (après le
-                    // debounce) : la session est relue À CHAQUE passe —
-                    // jamais une session morte capturée.
-                    moteur.brancher(uri) { sessionKotlin.value?.previews(uri) ?: emptyList() }
+                    // debounce) : la session et l'URI traduit sont relus à
+                    // CHAQUE passe — jamais une session morte capturée.
+                    moteur.brancher(uri) { decouvrirPreviews(uri) }
+                    // Yeux immédiats : la découverte directe (débarrassée
+                    // du rendu) pose les ancres SANS attendre le premier
+                    // bitmap (la machine à froid du :preview peut prendre
+                    // des secondes — l'œil doit être là AVANT).
+                    rafraichirAncres()
                 }
         }
         scope.launch {
@@ -252,6 +375,14 @@ internal class HostApercuCompose(
                         dernierValide = etat
                         messageDocument = null
                         rafraichirOngletsSiCarteOuverte(etat)
+                        // C4 — chaque rendu RAFRAÎCHIT les yeux : les lignes
+                        // des @Preview voyagent avec le rendu (le moteur
+                        // enrichit chaque onglet depuis SA découverte).
+                        publierAncres(
+                            etat.rendus.mapIndexed { indice, rendu ->
+                                rendu.ligneAnnotation to indice
+                            },
+                        )
                         // C3 — la carte ouverte suit les frames : le pompier
                         // interactif publie un bitmap AVANCÉ toutes les ~33 ms,
                         // l'éditeur REDESSINE (sinon la carte afficherait le
@@ -277,10 +408,19 @@ internal class HostApercuCompose(
     fun installerSur(vue: EditorView) {
         vueEditeur = vue
         vue.setPreviewHost(this)
+        ecouterSessionVue()
+        // C4 — les ancres calculées AVANT la pose (onglet actif restauré
+        // avant brancherEditeur) rejoignent la vue maintenant : les yeux
+        // ne restent JAMAIS en attente d'un hypothétique changement
+        // d'onglet.
+        vue.setPreviewAnchors(ancres.map { it.first })
     }
 
     /** Coupe le moteur (déliaison :preview — le processus meurt seul). Idempotent par délégation. */
     override fun close() {
+        debounceAncres.removeCallbacks(tirageAncres)
+        sessionEcoutee?.removeOnTextEditListener(ecouteurTexte)
+        sessionEcoutee = null
         moteur.close()
     }
 
@@ -344,6 +484,15 @@ internal class HostApercuCompose(
         // PC1) et drawDropPreview reçoit l'onglet à chaque frame.
         ongletAffiche = index
         armerInteractif()
+    }
+
+    override fun onPreviewAnchorTapped(line: Int) {
+        // C4 (B28 cel-ui 4.2.0) — l'œil d'UNE @Preview vient d'être tapé :
+        // la carte s'ouvre sur SA ligne, on sélectionne SON onglet (la
+        // ligne introuvable = ancres périmées entre deux rendus : no-op
+        // honnête, l'onglet 0 reste).
+        val indice = ancres.firstOrNull { it.first == line }?.second ?: return
+        vueEditeur?.selectPreviewDropTab(indice)
     }
 
     override fun drawDropPreview(canvas: Canvas, x: Float, y: Float, w: Float, h: Float, tab: Int) {
@@ -648,7 +797,63 @@ internal class HostApercuCompose(
         canvas.drawText(texte, ecran.centerX(), ecran.centerY(), peintureTexte)
     }
 
+    // ── C4 : la découverte parle l'URI LSP, les yeux suivent ───────
+
+    /**
+     * C4 — la découverte du document actif : par l'URI LSP ("file://" +
+     * FUSE — la clé du didOpen, le correctif du bug v0.176.0) puis, à
+     * vide, par l'uri d'onglet (repli best-effort : échantillons, tests
+     * à la même clé). Le port double la CLÉ en tests — la politique de
+     * repli vit dans son DÉFAUT (ci-dessus), jamais cachée au moteur.
+     */
+    private fun decouvrirPreviews(uriOnglet: String): List<PreviewKotlin> =
+        decouvreur.decouvrir(uriLspDocument, uriOnglet)
+
+    /**
+     * C4 — tirage HORS rendu des yeux : la découverte directe (arbre
+     * VIVANT de la session) pose les ancres sans attendre un bitmap
+     * (changement d'onglet, frappe débouncée). Hors fil principal : la
+     * marche est bornée (budget 500 nœuds) mais le fil d'UI ne la paie
+     * pas.
+     */
+    private suspend fun rafraichirAncres() {
+        val uri = document?.first ?: return
+        val previews = withContext(dispatcheurs.default) {
+            decouvrirPreviews(uri)
+        }
+        publierAncres(previews.mapIndexed { indice, preview -> preview.ligneAnnotation to indice })
+    }
+
+    /**
+     * C4 — POSE les yeux : (ligne 1-indexée de l'annotation, indice de la
+     * preview) → ancres 0-indexées triées par ligne, poussées à la vue
+     * (B28 cel-ui : un œil par @Preview, VIDE = aucun — parité AS).
+     */
+    private fun publierAncres(paires: List<Pair<Int, Int>>) {
+        val valides = paires.filter { it.first > 0 }.sortedBy { it.first }
+        ancres = valides.map { it.first - 1 to it.second }
+        vueEditeur?.setPreviewAnchors(ancres.map { it.first })
+    }
+
+    /**
+     * C4 — écoute la SESSION de la vue (chaque onglet possède la sienne)
+     * pour le rafraîchissement débouncé des yeux ; le réécoute d'un
+     * changement d'onglet RETIRE l'écouteur de l'ancienne (jamais de
+     * doublon).
+     */
+    private fun ecouterSessionVue() {
+        val session = vueEditeur?.session ?: return
+        val courante = sessionEcoutee
+        if (courante === session) return
+        courante?.removeOnTextEditListener(ecouteurTexte)
+        sessionEcoutee = session
+        session.addOnTextEditListener(ecouteurTexte)
+    }
+
     private companion object {
+        /** C4 — débounce du tirage d'ancres à la frappe (miroir du 400 ms moteur). */
+        internal const val DEBOUNCE_ANCRES_MS: Long = 400L
+
         /** Longueur maximale d'un libellé d'onglet (l'en-tête partage la place avec le titre et ✕). */
         internal const val LONGUEUR_ONGLET: Int = 14
 

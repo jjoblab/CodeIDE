@@ -122,6 +122,28 @@ class MoteurPreviewComposeTest {
     }
 
     @Test
+    fun `C4 lignes - les rendus portent la ligne de leur annotation arobase Preview`() = runTest {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        val transport = FauxTransport()
+        val moteur = moteur(dispatcher, transport)
+        moteur.brancher("file:///a.kt") {
+            listOf(
+                previewTexte("ApercuUn", "Un").copy(ligneAnnotation = 4),
+                previewTexte("ApercuDeux", "Deux").copy(ligneAnnotation = 9),
+            )
+        }
+        advanceUntilIdle()
+
+        val etat = moteur.etat.value as EtatPreviewCompose.RenduValide
+        assertEquals(
+            "l'onglet porte la ligne 1-indexée de SON @Preview (les yeux vivent là)",
+            listOf(4, 9),
+            etat.rendus.map { it.ligneAnnotation },
+        )
+        moteur.close()
+    }
+
+    @Test
     fun `frappes - debounce 400 ms, fournisseur tiré APRÈS`() = runTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val transport = FauxTransport()

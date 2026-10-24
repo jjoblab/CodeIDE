@@ -114,8 +114,15 @@ androidx-viewpager2 = "1.1.0"
 # (wantsInteractiveDropPreview/onPreviewDropTouch/onPreviewDropLongPress,
 # méthodes à défaut — les hôtes non interactifs au bit près) ; build
 # JitPack v4.1.0 « ok » (l'API B27-C3 compile côté CodeIDE — la chaîne
-# locale de v0.176.0 a résolu et testé l'artefact).
-code-editor = "v4.1.0"
+# locale de v0.176.0 a résolu et testé l'artefact). MONTÉE 4.2.0
+# (C4 — ADR 0143, bump-frère) : le contrat B28 des YEUX ANCRÉS — un
+# œil par `@Preview` À SA LIGNE, façon Android Studio
+# (setPreviewAnchors — null = comportement B27 au bit près, VIDE =
+# aucun œil ; hitTestGutterPreviewAnchor ; onPreviewAnchorTapped à
+# défaut ; selectPreviewDropTab — miroir d'un tap d'onglet) ; build
+# JitPack v4.2.0 « ok » (la chaîne locale de v0.177.0 a résolu et
+# testé l'artefact).
+code-editor = "v4.2.0"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"
@@ -197,7 +204,12 @@ layoutlib = "3.7.0"
 # composite, de la publication en binaire ; la substitution ignore la
 # version déclarée — la mise à jour = bump ici + ref du clonage CI.
 codeide-tooling = "1.0.0"
-codeide-lsp = "1.4.0"
+# MONTÉE 1.5.0 (C4 — ADR 0143) : la découverte previews remonte la
+# LIGNE de l'annotation `@Preview` (PreviewKotlin.ligneAnnotation,
+# 1-indexée, 0 = inconnu — champ additif en queue) : l'œil de gouttière
+# vit à cette ligne (parité AS). Publication GitHub Packages du tag
+# v1.5.0 vérifiée (la CI CodeIDE consomme la 1.5.0 binaire).
+codeide-lsp = "1.5.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
