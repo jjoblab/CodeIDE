@@ -505,13 +505,18 @@ constructor(
         sessionLspXmlInterne.asStateFlow()
 
     /**
-     * Fenêtre de nourrissage du moteur Kotlin (v0.178.0, ADR 0145) —
-     * SYNTHÈSE honnête tant que le dépôt frère n'expose pas de flux
-     * d'indexation réel (docs/DEMANDES_CODEIDE_LSP.md D3) : le moteur
-     * ne publie NI sa progression NI son bilan ; l'hôte sait seulement
-     * QUAND l'application du classpath tourne (CONSTRUCTION, durée
-     * inconnue → barre indéterminée) et quand elle aboutit (PRET).
-     * Aucun PARTIEL jamais inventé (impossible à savoir ici).
+     * Fenêtre de nourrissage du moteur Kotlin (v0.178.0, ADR 0145 →
+     * v0.180.0, ADR 0146 : D3 LIVRÉE côté frère v1.8.0). En face
+     * normale, l'agrégat lit désormais le flux RÉEL
+     * `SessionLspKotlin.etatIndexation` (phases, compteurs, liste de
+     * travail, bilan) ; la fenêtre survit pour DEUX rôles honnêtes :
+     * (a) TÉMOIN D'ÉCHEC hôte — une exception de nourrissage CÔTÉ
+     * CodeIDE (I/O FUSE du modèle, conversion) n'est JAMAIS vue par le
+     * flux moteur : seul l'ERREUR de la fenêtre la rend visible
+     * (v0.178.0 : « le silence devient un état visible ») ; (b) repli
+     * CONSTRUCTION→PRET pour un pack frère ANCIEN sans observateur —
+     * la fusion par pire phase ne peut que SURÉLEVER la rangée, jamais
+     * masquer l'état réel.
      */
     private val fenetreIndexationKotlinInterne = MutableStateFlow(PhaseIndexation.INITIAL)
 
@@ -519,12 +524,15 @@ constructor(
     private val fenetreIndexationXmlInterne = MutableStateFlow(PhaseIndexation.INITIAL)
 
     /**
-     * Agrégat multi-moteurs de l'indexation (v0.178.0, ADR 0145) —
-     * consommé par la pastille de toolbar et le panneau de détail.
-     * UN moteur par session VIVANTE : Java porte son état RICHE
-     * (`SessionLsp.etatIndexation`), Kotlin/XML leurs fenêtres
-     * synthétisées ; une session refermée retire sa rangée. L'état
-     * global de la pastille est la PIRE phase des moteurs présents.
+     * Agrégat multi-moteurs de l'indexation (v0.178.0, ADR 0145 →
+     * v0.180.0, ADR 0146 : D3 branchée) — consommé par la pastille de
+     * toolbar et le panneau de détail. UN moteur par session VIVANTE,
+     * chacun portant son état RICHE `etatIndexation` (v1.8.0 : les
+     * TROIS langues publient le même type public) ; une session
+     * refermée retire sa rangée. Kotlin/XML fusionnent leur flux réel
+     * avec la fenêtre de nourrissage par PIRE phase (la fenêtre ne peut
+     * que surélever : ERREUR hôte ou repli pack ancien). L'état global
+     * de la pastille est la PIRE phase des moteurs présents.
      */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private val etatsMoteursIndexationInterne =
@@ -537,9 +545,25 @@ constructor(
             sessionLsp.flatMapLatest { session ->
                 session?.etatIndexation ?: kotlinx.coroutines.flow.flowOf(EtatIndexation.INITIAL)
             },
-            fenetreIndexationKotlinInterne,
-            fenetreIndexationXmlInterne,
-        ) { (sessionJava, sessionKotlin, sessionXml), etatJava, fenetreKotlin, fenetreXml ->
+            // D3 (ADR 0146) : les flux RÉELS Kotlin/XML remplacent les
+            // fenêtres synthétisées v0.178.0 — flatMapLatest par session
+            // vivante, INITIAL honnête quand la session n'existe pas
+            // (miroir EXACT du moteur Java ci-dessus).
+            sessionLspKotlin.flatMapLatest { session ->
+                session?.etatIndexation ?: kotlinx.coroutines.flow.flowOf(EtatIndexation.INITIAL)
+            },
+            sessionLspXml.flatMapLatest { session ->
+                session?.etatIndexation ?: kotlinx.coroutines.flow.flowOf(EtatIndexation.INITIAL)
+            },
+            // Les fenêtres de nourrissage restent SOURCES (pas une
+            // lecture .value qui ne re-déclencherait JAMAIS la combine
+            // quand SEULE la fenêtre change — l'ERREUR hôte doit être
+            // vue immédiatement).
+            kotlinx.coroutines.flow.combine(
+                fenetreIndexationKotlinInterne,
+                fenetreIndexationXmlInterne,
+            ) { fenetreKotlin, fenetreXml -> fenetreKotlin to fenetreXml },
+        ) { (sessionJava, sessionKotlin, sessionXml), etatJava, etatKotlin, etatXml, (fenetreKotlin, fenetreXml) ->
             EtatsMoteursIndexation(
                 moteurs =
                 buildList {
@@ -547,10 +571,22 @@ constructor(
                         add(MoteurIndexationPresent(MoteurIndexation.JAVA, etatJava.phase, etatJava))
                     }
                     sessionKotlin?.let {
-                        add(MoteurIndexationPresent(MoteurIndexation.KOTLIN, fenetreKotlin, null))
+                        add(
+                            MoteurIndexationPresent(
+                                MoteurIndexation.KOTLIN,
+                                EtatsMoteursIndexation.pirePhaseDe(etatKotlin.phase, fenetreKotlin),
+                                etatKotlin,
+                            ),
+                        )
                     }
                     sessionXml?.let {
-                        add(MoteurIndexationPresent(MoteurIndexation.XML, fenetreXml, null))
+                        add(
+                            MoteurIndexationPresent(
+                                MoteurIndexation.XML,
+                                EtatsMoteursIndexation.pirePhaseDe(etatXml.phase, fenetreXml),
+                                etatXml,
+                            ),
+                        )
                     }
                 },
             )
@@ -2072,10 +2108,13 @@ constructor(
      * collecte). Sans session (projet/racine inconnue) : journal seul.
      *
      * V0.178.0 (ADR 0145) : `internal` — le panneau de détail de
-     * l'indexation y branche ses boutons (« Réindexer » et « Réessayer
-     * les entrées échouées » — toutes deux mappées sur la
-     * revalidation+auto-guérison tant que le dépôt frère n'expose pas
-     * de réessai CIBLÉ, docs/DEMANDES_CODEIDE_LSP.md D4).
+     * l'indexation y branche ses boutons. V0.180.0 (ADR 0146) : les
+     * DEUX boutons ne mappent PLUS sur la même action — « Réessayer
+     * les entrées échouées » a sa reprise CIBLÉE [reesayerEchecsLsp]
+     * (D4 livrée côté frère v1.8.0), seule l'action LOURDE Java reste
+     * ici (le moteur Java est le seul à exposer un `reindexer()`
+     * public — les moteurs Kotlin/XML retentent leurs échecs par la
+     * voie douce).
      */
     internal fun reindexerLsp() {
         val session = sessionLspInterne.value
@@ -2085,6 +2124,63 @@ constructor(
         }
         session.reindexer()
         journal.i(TAG) { "réindexation LSP demandée (projet ${identifiantSuivi()})" }
+    }
+
+    /**
+     * Dispatch des actions du panneau d'indexation (v0.180.0, ADR 0146
+     * — D4/D5 livrées côté frère v1.8.0) : chaque bouton a ENFIN son
+     * comportement propre. Le fragment reste MUET (règle §5.11 — il
+     * transmet l'intention, jamais l'appel).
+     */
+    internal fun actionerIndexation(action: ActionDetailIndexation) {
+        when (action) {
+            ActionDetailIndexation.REINDEXER -> reindexerLsp()
+            ActionDetailIndexation.REESSAYER_ECHECS -> reesayerEchecsLsp()
+            ActionDetailIndexation.ANNULER -> annulerPassageLsp()
+        }
+    }
+
+    /**
+     * « Annuler le passage » (D5 ENFIN branchée — ADR 0214 côté frère,
+     * v1.8.0) : point d'annulation COOPÉRATIF sollicité sur les TROIS
+     * sessions vivantes ; `false` pour un moteur = rien en vol (ou pack
+     * ancien) — les autres moteurs n'en sont pas affectés. Le passage
+     * annulé publie son ACQUIS et se marque PARTIEL « annulé par
+     * l'utilisateur » (visible à l'écran au tick suivant du flux).
+     */
+    internal fun annulerPassageLsp() {
+        var moteursAnnules = 0
+        sessionLspInterne.value?.let { if (it.annulerPassage()) moteursAnnules++ }
+        sessionLspKotlinInterne.value?.let { if (it.annulerPassage()) moteursAnnules++ }
+        sessionLspXmlInterne.value?.let { if (it.annulerPassage()) moteursAnnules++ }
+        if (moteursAnnules > 0) {
+            journal.i(TAG) {
+                "annulation de passage demandée sur $moteursAnnules moteur(s) (projet ${identifiantSuivi()})"
+            }
+        } else {
+            journal.w(TAG) { "annulation demandée mais aucun passage en vol (projet ${identifiantSuivi()})" }
+        }
+    }
+
+    /**
+     * « Réessayer les entrées échouées » (D4 ENFIN branchée — ADR 0214
+     * côté frère, v1.8.0) : reprise CIBLÉE sollicitée sur les TROIS
+     * sessions vivantes — chaque moteur ne retente QUE ses échecs (les
+     * entrées saines vivent en cache, REPRIS massifs visibles à
+     * l'écran) ; `false` = rien à retenter pour CE moteur.
+     */
+    internal fun reesayerEchecsLsp() {
+        var moteursRelances = 0
+        sessionLspInterne.value?.let { if (it.reesayerEchecs()) moteursRelances++ }
+        sessionLspKotlinInterne.value?.let { if (it.reesayerEchecs()) moteursRelances++ }
+        sessionLspXmlInterne.value?.let { if (it.reesayerEchecs()) moteursRelances++ }
+        if (moteursRelances > 0) {
+            journal.i(TAG) {
+                "reprise des échecs demandée sur $moteursRelances moteur(s) (projet ${identifiantSuivi()})"
+            }
+        } else {
+            journal.w(TAG) { "reprise demandée mais aucun échec à retenter (projet ${identifiantSuivi()})" }
+        }
     }
 
     // ------------------------------------------------------------------

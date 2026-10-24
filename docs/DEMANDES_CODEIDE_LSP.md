@@ -7,8 +7,19 @@
 > preuves (fichiers, lignes, journaux). Le statut de chaque demande
 > est à tenir à jour ici (⏳ demandé / 🔄 en cours / ✅ livré — avec
 > la version codeide-lsp et le lien ADR).
+>
+> **Réponse de l'agent du dépôt frère** (24/10/2026) : les CINQ
+> demandes sont LIVRÉES dans **codeide-lsp 1.8.0** (ADR 0211–0214,
+> 1 237 tests verts dont 71 scénarios E2E transport réel — le nouveau
+> flux `etatIndexation` y est éprouvé de BOUT EN BOUT). Toutes les
+> APIs sont ADDITIVES (tolérance dans les DEUX sens : un pack 1.7.0
+> face à un hôte 1.8.0 se comporte comme avant). CodeIDE branche le
+> tout en v0.180.0 (ADR 0146) : montée 1.7.0 → 1.8.0, agrégat
+> multi-moteurs sur les flux RÉELS (D3), boutons « Annuler le
+> passage » (D5) et « Réessayer les entrées échouées » (D4) enfin
+> DISTINCTS et branchés sur `annulerPassage()`/`reesayerEchecs()`.
 
-## D1 — ANR `.kt`/`.kts` : le supplier de connexion paie le nourrissage moteur sur le fil appelant ⏳
+## D1 — ANR `.kt`/`.kts` : le supplier de connexion paie le nourrissage moteur sur le fil appelant ✅
 
 **Preuve** : `InProcessStreamConnectionProvider.start()` (cel-lsp,
 ligne 85 : `server = serverFactory.get()`) tourne sur le thread qui
@@ -54,7 +65,7 @@ XE3 + catalogue AAR P3).
 > couvert, mais la LATENCE d'ouverture `.kt` restera tant que D1-a/b
 > n'est pas livré.
 
-## D2 — Verrou unique du moteur : le filet de scan synchrone sous verrou ⏳
+## D2 — Verrou unique du moteur : le filet de scan synchrone sous verrou ✅
 
 **Preuve** : `SessionLangageKotlinParse` sérialise TOUT
 (`diagnostics`, `completion`, `survol`, `previews`, didOpen/didChange)
@@ -74,7 +85,7 @@ LSP Kotlin attend, y compris didOpen.
   complétion, previews) sont majoritaires et parallélisables ; seules
   `definirClasspath`/didChange écrivent.
 
-## D3 — Contrat de progression d'indexation Kotlin + XML (écran multi-moteurs) ⏳
+## D3 — Contrat de progression d'indexation Kotlin + XML (écran multi-moteurs) ✅
 
 CodeIDE v0.178.0 livre un écran d'indexation MULTI-MOTEURS (Java +
 Kotlin + XML — ADR 0145). Java expose déjà `SessionLsp.etatIndexation`
@@ -92,7 +103,7 @@ tion>` (le même type public que Java) alimenté par le moteur :
 L'agrégat CodeIDE accepte DÉJÀ un moteur « riche » — brancher le flux
 remplacera la synthèse sans autre changement côté hôte.
 
-## D4 — API « réessayer les échecs SEULEMENT » ⏳
+## D4 — API « réessayer les échecs SEULEMENT » ✅
 
 L'écran propose « Réessayer les entrées échouées » (maquette) ;
 `SessionLsp.reindexer()` fait revalidation + auto-guérison de TOUT.
@@ -102,7 +113,7 @@ Les deux boutons mappent donc aujourd'hui sur le même appel
 réponse officielle « non distinguable », et l'écran retirera le
 second bouton.
 
-## D5 — Point d'annulation coopératif d'un passage ⏳
+## D5 — Point d'annulation coopératif d'un passage ✅
 
 La maquette de l'écran (docs/mockups/indexation/) a un bouton
 « Annuler le passage » pendant la construction ; aucun point
@@ -115,8 +126,8 @@ l'écran retire l'offre (décision déjà prise en phase B, ADR 0117 Q3).
 
 | # | Demande | Statut | Livré dans |
 |---|---------|--------|-----------|
-| D1 | Supplier de connexion sans nourrissage lourd (Kotlin + XML) | ⏳ demandé (24/10/2026) | — |
-| D2 | Pas de scan synchrone sous verrou ; lectures parallélisables | ⏳ demandé (24/10/2026) | — |
-| D3 | `etatIndexation` Kotlin + XML (flux réel de progression) | ⏳ demandé (24/10/2026) | — |
-| D4 | `reesayerEchecs()` ciblé | ⏳ demandé (24/10/2026) | — |
-| D5 | `annulerPassage()` coopératif | ⏳ demandé (24/10/2026) | — |
+| D1 | Supplier de connexion sans nourrissage lourd (Kotlin + XML) | ✅ livré (24/10/2026) | codeide-lsp **1.8.0**, ADR **0211** — sans changement CodeIDE (l'hôte n'a plus d'E/S à payer) |
+| D2 | Pas de scan synchrone sous verrou ; lectures parallélisables | ✅ livré (24/10/2026) | codeide-lsp **1.8.0**, ADR **0212** — sans changement CodeIDE |
+| D3 | `etatIndexation` Kotlin + XML (flux réel de progression) | ✅ livré (24/10/2026) | codeide-lsp **1.8.0**, ADR **0213** — agrégat CodeIDE sur les flux RÉELS depuis v0.180.0 (ADR 0146) |
+| D4 | `reesayerEchecs()` ciblé | ✅ livré (24/10/2026) | codeide-lsp **1.8.0**, ADR **0214** — bouton « Réessayer les entrées échouées » branché (ADR 0146) |
+| D5 | `annulerPassage()` coopératif | ✅ livré (24/10/2026) | codeide-lsp **1.8.0**, ADR **0214** — bouton « Annuler le passage » ENFIN émis en construction (ADR 0146) |

@@ -41,11 +41,13 @@ import jo.codeide.core.ui.R as RUi
  * des coûts, notes d'impact par niveau. Le fragment ne contient AUCUNE
  * logique — il ne fait que lier le modèle aux vues (règle §5.11).
  *
- * Les boutons d'action (lot B7, v0.178.0 : enfin branchés) appellent
- * [EditorViewModel.reindexerLsp] : « Réindexer » et « Réessayer les
- * entrées échouées » mappent tous deux sur la revalidation +
- * auto-guérison tant que le dépôt frère n'expose pas de réessai ciblé
- * (docs/DEMANDES_CODEIDE_LSP.md D4).
+ * Les boutons d'action (lot B7, v0.178.0 ; v0.180.0, ADR 0146 : ENFIN
+ * DISTINCTS) transmettent l'intention au ViewModel par
+ * [EditorViewModel.actionerIndexation] : « Réindexer » (action lourde
+ * Java), « Réessayer les entrées échouées » (reprise ciblée sur les
+ * TROIS moteurs, DEMANDES D4) et « Annuler le passage » (annulation
+ * coopérative, DEMANDES D5) — les deux dernières livrées côté frère
+ * codeide-lsp v1.8.0.
  *
  * Le fragment survit à la rotation (il observe via `activityViewModels()`
  * — l'ACTIVITÉ collecte l'agrégat et rappelle [rendre]).
@@ -317,16 +319,16 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
      * recommandée — maquette : « Réessayer les 3 entrées » en partiel),
      * les suivants sont cernés ; les STYLES vivent dans les gabarits XML
      * (bouton_action_indexation_primaire/secondaire — jamais de style
-     * par code). [ActionDetailIndexation.ANNULER] n'est PLUS émis par
-     * le présentateur (aucun point d'annulation — docs/DEMANDES-
-     * _CODEIDE_LSP.md D5) ; la branche reste défensive.
+     * par code). V0.180.0 (ADR 0146) : [ActionDetailIndexation.ANNULER]
+     * est de NOUVEAU émis pendant la construction (D5 livrée côté frère
+     * v1.8.0) et chaque bouton route vers SA propre action — le fragment
+     * reste MUET (règle §5.11).
      */
     private fun rendreActions(actions: List<ActionDetailIndexation>) {
         val conteneur = liaison.conteneurActions
         conteneur.removeAllViews()
         var premierEmis = false
         for (action in actions) {
-            if (action == ActionDetailIndexation.ANNULER) continue
             val gabarit =
                 if (!premierEmis) {
                     R.layout.bouton_action_indexation_primaire
@@ -334,10 +336,21 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
                     R.layout.bouton_action_indexation_secondaire
                 }
             premierEmis = true
+            // RAPPORT 2ff0dee0 (v0.179.0, moto g06 / Android 15) :
+            // inflate(gabarit, conteneur, true) RETOURNE LE CONTENEUR —
+            // contrat LayoutInflater avec attachToRoot=true — pas la vue
+            // gonflée : le cast en MaterialButton explosait en
+            // ClassCastException (android.widget.LinearLayout ne peut pas
+            // être casté) dès qu'une action vivait (PRET → « Réindexer »
+            // seul, puis CHAQUE émission du flux avec le panneau ouvert).
+            // Correctif : gonfler SANS attacher (la vue retournée EST le
+            // bouton, ses LayoutParams restent ceux du gabarit) puis
+            // l'ajouter au conteneur explicitement.
             val bouton =
-                layoutInflater.inflate(gabarit, conteneur, true) as MaterialButton
+                layoutInflater.inflate(gabarit, conteneur, false) as MaterialButton
             bouton.text = libelleAction(action)
-            bouton.setOnClickListener { viewModel.reindexerLsp() }
+            bouton.setOnClickListener { viewModel.actionerIndexation(action) }
+            conteneur.addView(bouton)
         }
     }
 

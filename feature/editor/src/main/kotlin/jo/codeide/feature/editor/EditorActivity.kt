@@ -2390,9 +2390,10 @@ class EditorActivity :
     }
 
     /**
-     * Agrégat d'indexation MULTI-MOTEURS (v0.178.0, ADR 0145) — Java
-     * (état riche `SessionLsp.etatIndexation`) + Kotlin + XML (fenêtres
-     * de nourrissage synthétisées, DEMANDES_CODEIDE_LSP.md D3). La
+     * Agrégat d'indexation MULTI-MOTEURS (v0.178.0, ADR 0145 → v0.180.0,
+     * ADR 0146) — les TROIS langues portent leur état RICHE
+     * `etatIndexation` (frère v1.8.0, DEMANDES D3 ; Kotlin/XML
+     * fusionnent avec leur fenêtre de nourrissage par pire phase). La
      * collecte vit dans le ViewModel (`WhileSubscribed`) : les rangées
      * des sessions fermées disparaissent d'elles-mêmes, aucune collecte
      * imbriquée ne fuite vers une ancienne session.

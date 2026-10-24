@@ -1,5 +1,85 @@
 # Journal des modifications
 
+## [0.180.0] – 2026-10-24
+
+### L'écran d'indexation branché sur les flux RÉELS des trois moteurs (DEMANDES D1–D5 livrées côté frère, ADR 0146) + correctif plantage `rendreActions` (rapport 2ff0dee0)
+
+#### Corrigé
+
+- **PLANTAGE du panneau d'indexation dès qu'une action vivait** —
+  rapport propriétaire 2ff0dee0 (v0.179.0, motorola moto g06,
+  Android 15) : `java.lang.ClassCastException:
+  android.widget.LinearLayout cannot be cast to
+  com.google.android.material.button.MaterialButton` dans
+  `FragmentDetailIndexation.rendreActions` (l.338) via
+  `rendre` ← `EditorActivity.rendreEtatIndexationLsp` ← la collecte
+  de `etatsMoteursIndexation`. CAUSE RACINE : contrat du
+  `LayoutInflater` — `inflate(gabarit, conteneur, true)` avec
+  `attachToRoot=true` RETOURNE LE CONTENEUR, pas la vue gonflée ;
+  le cast `as MaterialButton` explosait donc dès le PRET
+  (« Réindexer ») au toucher de la pastille, puis à CHAQUE émission
+  du flux avec le panneau ouvert. CORRECTIF : gonfler SANS attacher
+  (`inflate(gabarit, conteneur, false) as MaterialButton` — la vue
+  retournée EST le bouton, LayoutParams du gabarit préservés) puis
+  `conteneur.addView(bouton)`. Plantage déterministe passé inaperçu
+  en revue : les tests du présentateur sont purs (aucun gonflage) et
+  les parcours manuels de v0.179.0 visaient le rapport 032311ee.
+
+#### Montée (bump-frère — les 5 demandes du chantier indexation LIVRÉES)
+
+- **codeide-lsp 1.7.0 → 1.8.0** (dépôt frère publié sur GitHub
+  Packages — 1.8.0 visible dans le `maven-metadata.xml` de
+  `codeide-lsp/host`) : les CINQ demandes de
+  `docs/DEMANDES_CODEIDE_LSP.md` sont livrées (ADR 0211–0214 —
+  D1 supplier de connexion sans E/S + cache mémoire des segments,
+  D2 filet de scan synchrone supprimé + verrou lecture-écriture,
+  D3 `etatIndexation` Kotlin/XML RICHE, D4 `reesayerEchecs()` ciblé,
+  D5 `annulerPassage()` coopératif). Toutes ADDITIVES — la surface
+  hôte consommée n'en est que RICHE, et le garde-fou composite
+  nocturne valide les sources épinglées 1.8.0.
+- **LayoutLib 3.7.0, codeide-tooling 1.0.0, code-editor v4.2.0** :
+  déjà les dernières versions publiées de leurs dépôts — aucune
+  montée requise.
+
+#### Ajouté
+
+- **D3 branchée (ADR 0146)** : l'agrégat multi-moteurs lit les flux
+  RÉELS `SessionLspKotlin/Xml.etatIndexation` (miroir exact du
+  moteur Java) — les fenêtres de nourrissage v0.178.0 ne
+  disparaissent pas : elles fusionnent par PIRE phase (témoin
+  d'échec hôte + repli pack ancien, jamais un masque de l'état
+  réel). Le présentateur devient réellement MULTI-MOTEURS :
+  compteurs de barre/en-tête SOMMÉS, reprises SOMMÉES, liste de
+  travail FUSIONNÉE, entrées écartées/erreurs bloquantes de
+  N'IMPORTE QUEL moteur, histogramme toutes langues, bilan du
+  passage le PLUS RÉCENT, compteurs riches dans chaque rangée.
+- **D4+D5 branchées (ADR 0146)** : « Annuler le passage » est
+  ENFIN émis pendant la construction (point d'annulation coopératif
+  livré côté frère — le « bouton mort » de la maquette devient
+  réel) et « Réessayer les entrées échouées » appelle la reprise
+  CIBLÉE — chaque bouton a son propre comportement via
+  `EditorViewModel.actionerIndexation` (le fragment reste muet) ;
+  les moteurs sans pass en vol répondent `false` sans affecter les
+  autres.
+
+#### Docs
+
+- `docs/DEMANDES_CODEIDE_LSP.md` : journal D1–D5 passé ⏳ → ✅ livré
+  (codeide-lsp 1.8.0, ADR 0211–0214) + note de réponse de l'agent
+  du dépôt frère.
+- ADR 0146 : `docs/adr/0146-indexation-flux-reels-boutons-d45-
+  correctif-rendreactions.md`.
+
+#### Tests
+
+- `PresentationIndexationTest` : 18 → 23 tests — test D5 INVERSÉ
+  (« Annuler » enfin émis en construction), +« construction Kotlin
+  riche » (compteurs, reprises, liste, annuler), +« compteurs
+  SOMMÉS toutes langues » (120/200 = 60 %, fenêtre XML sans
+  compteurs exclue), +« partiel Kotlin » (écarts visibles,
+  reessayer échecs, rangée « Partiel »), +« bilan du PLUS RÉCENT
+  passage », +« bloquantes FUSIONNÉES toutes langues ».
+
 ## [0.179.0] – 2026-10-24
 
 ### Correctif plantage du panneau d'indexation (rapport 032311ee — `IllegalFormatConversionException`) + montée codeide-lsp 1.5.0 → 1.7.0 (bump-frère)
