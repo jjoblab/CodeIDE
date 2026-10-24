@@ -297,6 +297,15 @@ data class EditorTabState(
      *  compatibilité avec les onglets persisted sans source (migration
      *  au rechargement, bug A). */
     val source: SourceArbre = SourceArbre.PROJET,
+    /**
+     * v0.182.0 : onglet VIRTUEL lecture seule — le buffer décompilé
+     * d'un type binaire du go-to (URI `jdt://decompiled/…`). Jamais
+     * sali (pas de listener de modification), jamais enregistré
+     * (enregistrer court-circuite), jamais persisté (persisterOnglets
+     * filtre) — il vit le temps de la session d'édition et se referme
+     * sans confirmation.
+     */
+    val virtuelle: Boolean = false,
 ) {
     /**
      * Fichier Java (mission « LSP Java » h2, §16.2) : l'onglet actif est
@@ -370,6 +379,27 @@ sealed interface ActionEditor {
 
     /** Ouvre le fichier [uri] en onglet (les binaires sont détournés). */
     data class OuvrirFichier(val uri: String) : ActionEditor
+
+    /**
+     * Ouvre la cible d'un go-to cross-fichier (v0.182.0) : le serveur
+     * LSP a rendu une Location dans UN AUTRE fichier du projet
+     * (`file:///…/app/src/main/java/…/Greeter.java`, offset de la
+     * déclaration). Le ViewModel traduit le chemin FUSE en URI de
+     * l'arbre (racine de session + chemin relatif), ouvre l'onglet et
+     * déclenche le défilement vers l'offset via
+     * [EffetEditor.DefilementVersOffset].
+     */
+    data class OuvrirCibleDefinition(val cheminCible: String, val offset: Int, val nomAffiche: String) : ActionEditor
+
+    /**
+     * Ouvre (ou sélectionne) un onglet VIRTUEL lecture seule (v0.182.0)
+     * — le buffer décompilé d'un type binaire du go-to
+     * (`AppCompatActivity`, `HashMap`…) : le texte est servi par la
+     * requête personnalisée `textDocument/decompiledSource` du serveur
+     * LSP Java, l'URI est le `jdt://decompiled/<fqcn>.java` rendu par
+     * `definition`. Jamais enregistré, jamais sali, jamais persisté.
+     */
+    data class OuvrirBufferLectureSeule(val uri: String, val nom: String, val texte: String) : ActionEditor
 
     /**
      * Saute vers un emplacement de pile cliquable de l'onglet Logcat
@@ -729,6 +759,15 @@ sealed interface EffetEditor {
      * le re-branchement de la vue, comme [sauterAuProbleme]).
      */
     data class DefilementVersLigne(val uri: String, val ligne: Int) : EffetEditor
+
+    /**
+     * v0.182.0 : l'éditeur doit défiler et poser le curseur à l'OFFSET
+     * exact du fichier cible (go-to cross-fichier — l'offset pointe la
+     * DÉCLARATION dans le document CIBLE, pas dans le document courant).
+     * Même discipline que [DefilementVersLigne] : suit l'ouverture/la
+     * sélection de l'onglet cible.
+     */
+    data class DefilementVersOffset(val uri: String, val offset: Int) : EffetEditor
 
     /** La lecture d'un fichier a échoué. */
     data object ErreurOuverture : EffetEditor

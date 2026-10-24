@@ -686,6 +686,14 @@ constructor(
      *  par [sauterVersLigneSource], consommé par [ajouterOnglet]. */
     private var sautEnAttente: Pair<String, Int>? = null
 
+    /**
+     * Saut de go-to cross-fichier en attente d'ouverture (v0.182.0) :
+     * uri → OFFSET de la déclaration dans le document CIBLE — posé par
+     * [ouvrirCibleDefinition], consommé par [ajouterOnglet] (l'effet
+     * [EffetEditor.DefilementVersOffset] part dès que la session existe).
+     */
+    private var sautOffsetEnAttente: Pair<String, Int>? = null
+
     /** Arbre affiché selon la source courante. */
     private val arbre: EtatArbre
         get() = if (source == SourceArbre.PRIVE) arbrePrive else arbreProjet
@@ -1448,6 +1456,8 @@ constructor(
             is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
             ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
             is ActionEditor.SauterVersLigneSource -> sauterVersLigneSource(action)
+            is ActionEditor.OuvrirCibleDefinition -> ouvrirCibleDefinition(action)
+            is ActionEditor.OuvrirBufferLectureSeule -> ouvrirBufferLectureSeule(action)
             else -> Unit // Routage exhaustif par les trois branches.
         }
     }
@@ -1505,6 +1515,71 @@ constructor(
             sautEnAttente = uri to action.ligne
             ouvrir(uri)
         }
+    }
+
+    /**
+     * Ouvre la cible d'un go-to cross-fichier (v0.182.0) : le serveur LSP
+     * a rendu une Location dans un AUTRE fichier du projet
+     * (`file:///…/Greeter.java`, offset de la déclaration). Le chemin
+     * FUSE est traduit en URI de l'arbre par RELATIVISATION contre la
+     * racine de la session LSP (`SessionLsp.racine` — le File FUSE du
+     * projet) puis reconstruction sous la racine SAF de l'arbre
+     * (`uriRacineDe`, même convention que [sauterVersLigneSource]).
+     *
+     * Onglet déjà ouvert → sélection + saut immédiat ; sinon ouverture
+     * puis saut à l'ajout ([sautOffsetEnAttente], l'offset pointe la
+     * déclaration dans le document CIBLE).
+     */
+    private fun ouvrirCibleDefinition(action: ActionEditor.OuvrirCibleDefinition) {
+        val cheminFuse =
+            action.cheminCible.removePrefix("file://").removePrefix("file:")
+        val racineFuse = sessionLspInterne.value?.racine
+        val racineSaf = uriRacineDe(arbre)
+        if (racineFuse == null || racineSaf == null) {
+            journal.w(TAG) { "go-to cross-fichier sans racine : $cheminFuse" }
+            return
+        }
+        val relatif = runCatching {
+            java.nio.file.Paths.get(racineFuse.path)
+                .relativize(java.nio.file.Paths.get(cheminFuse))
+                .toString()
+        }.getOrNull()
+        if (relatif.isNullOrBlank() || relatif.startsWith("..")) {
+            journal.w(TAG) { "go-to hors racine projet : $cheminFuse" }
+            return
+        }
+        val uriCible = racineSaf.trimEnd('/') + "/" + relatif.replace('\\', '/')
+        viewModelScope.launch {
+            // Onglet déjà ouvert : sélection + saut immédiat.
+            val onglets = etatInterne.value.onglets
+            onglets.firstOrNull { it.uri == uriCible }?.let { onglet ->
+                selectionner(onglets.indexOf(onglet))
+                canalEffets.trySend(EffetEditor.DefilementVersOffset(uriCible, action.offset))
+                return@launch
+            }
+            if (!systemePour(SourceArbre.PROJET).exists(uriCible)) {
+                journal.w(TAG) { "cible de go-to introuvable dans l'arbre : $relatif" }
+                return@launch
+            }
+            sautOffsetEnAttente = uriCible to action.offset
+            ouvrir(uriCible)
+        }
+    }
+
+    /**
+     * Ouvre (ou sélectionne) l'onglet VIRTUEL lecture seule d'un type
+     * binaire (v0.182.0) — le buffer décompilé servi par le serveur LSP
+     * Java (`textDocument/decompiledSource`). L'URI `jdt://decompiled/…`
+     * est la clé de l'onglet : un second go-to sur le MÊME type
+     * sélectionne l'onglet existant.
+     */
+    private fun ouvrirBufferLectureSeule(action: ActionEditor.OuvrirBufferLectureSeule) {
+        val onglets = etatInterne.value.onglets
+        onglets.firstOrNull { it.uri == action.uri }?.let { onglet ->
+            selectionner(onglets.indexOf(onglet))
+            return
+        }
+        ajouterOngletVirtuel(action.uri, action.nom, action.texte)
     }
 
     /**
@@ -3979,6 +4054,62 @@ constructor(
                 sautEnAttente = null
                 canalEffets.trySend(EffetEditor.DefilementVersLigne(uriSaut, ligne))
             }
+        // v0.182.0 : idem pour le saut OFFSET d'un go-to cross-fichier
+        // ([ouvrirCibleDefinition]) — l'offset pointe la déclaration dans
+        // le document CIBLE, il part dès que la session existe.
+        sautOffsetEnAttente
+            ?.takeIf { it.first == uri }
+            ?.let { (uriSaut, offset) ->
+                sautOffsetEnAttente = null
+                canalEffets.trySend(EffetEditor.DefilementVersOffset(uriSaut, offset))
+            }
+    }
+
+    /**
+     * Crée la session et l'onglet d'un buffer VIRTUEL lecture seule
+     * (v0.182.0 — buffer décompilé d'un go-to binaire).
+     *
+     * Différences délibérées avec [ajouterOnglet] :
+     * <ul>
+     *   <li>AUCUN listener de salissure — l'onglet ne peut pas devenir
+     *       dirty (pas de confirmation à la fermeture, pas
+     *       d'enregistrement) ;</li>
+     *   <li>AUCUNE persistance — l'onglet ne survit PAS à la session
+     *       ([persisterOnglets] filtre de toute façon les virtuels) ;</li>
+     *   <li>chemin affiché préfixé « décompilé/ » — l'explorateur n'a
+     *       pas ce fichier, le chemin sert uniquement à l'affichage
+     *       de l'onglet.</li>
+     * </ul>
+     */
+    private fun ajouterOngletVirtuel(uri: String, nom: String, texte: String) {
+        if (sessions.containsKey(uri)) return
+        val session =
+            SessionSuivie(
+                EditorSession(EditorDocument.of(texte)),
+                uri = uri,
+                cheminRelatif = "décompilé/$nom",
+                registre = registreSourcesApercu,
+                uriProjet = uriDocumentSuivie,
+            )
+        FichiersOuverture.langage(nom)?.let { session.session.setLanguage(it) }
+        sessions[uri] = session
+        etatInterne.update { etat ->
+            etat.copy(
+                onglets =
+                etat.onglets +
+                    EditorTabState(
+                        uri = uri,
+                        cheminRelatif = "décompilé/$nom",
+                        nom = nom,
+                        langage = FichiersOuverture.langage(nom),
+                        source = source,
+                        virtuelle = true,
+                    ),
+                indexOngletActif = etat.onglets.size,
+            )
+        }
+        // PAS de persisterOnglets() — l'onglet virtuel ne survit pas.
+        reconstruireNoeuds()
     }
 
     /**
@@ -4191,6 +4322,13 @@ constructor(
      * silencieusement car `fichiers` ne contient pas `prive:///…`).
      */
     private suspend fun enregistrer(uri: String): Boolean {
+        // v0.182.0 : onglet VIRTUEL (buffer décompilé) — rien à
+        // enregistrer, le contenu n'a pas de fichier sous-jacent. Vrai
+        // honnête (pas d'erreur : l'action est un no-op, l'onglet est
+        // déjà propre).
+        if (etatInterne.value.onglets.any { it.uri == uri && it.virtuelle }) {
+            return true
+        }
         val verrou = verrousEcriture.getOrPut(uri) { Mutex() }
         return verrou.withLock {
             val session = sessions[uri] ?: return@withLock false
@@ -4254,8 +4392,15 @@ constructor(
      */
     private fun persisterOnglets() {
         val etat = etatInterne.value
+        // v0.182.0 : les onglets VIRTUELS (buffers décompilés) ne sont
+        // JAMAIS persistés — ils n'existent que le temps de la session
+        // d'édition (aucun fichier sous-jacent à rouvrir).
         sauvetage[ClesEditor.CLE_ONGLETS] =
-            ArrayList(etat.onglets.map { "${it.uri}\n${it.cheminRelatif}\n${it.source.name}" })
+            ArrayList(
+                etat.onglets.filterNot {
+                    it.virtuelle
+                }.map { "${it.uri}\n${it.cheminRelatif}\n${it.source.name}" },
+            )
         sauvetage[ClesEditor.CLE_INDEX_ACTIF] = etat.indexOngletActif
         persisterEtatEspace()
     }
@@ -4274,7 +4419,10 @@ constructor(
             when (
                 enregistrerEtatEspace(
                     racine,
-                    etat.onglets.map { OngletEspace(uri = it.uri, chemin = it.cheminRelatif) },
+                    // v0.182.0 : les onglets VIRTUELS (buffers décompilés)
+                    // ne sont pas non plus persistés dans l'état d'espace.
+                    etat.onglets.filterNot { it.virtuelle }
+                        .map { OngletEspace(uri = it.uri, chemin = it.cheminRelatif) },
                     etat.indexOngletActif,
                 )
             ) {

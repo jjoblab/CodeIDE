@@ -1,5 +1,85 @@
 # Journal des modifications
 
+## [0.182.0] – 2026-10-25
+
+### Le go-to cross-fichier ouvre ENFIN un onglet (fichier projet avec saut à la déclaration, ou buffer DÉCOMPILÉ lecture seule pour les types binaires — `AppCompatActivity` comme dans Android Studio) + montée codeide-lsp 1.9.0 → 1.9.1 (complétion Java rapide et honnête)
+
+#### Corrigé (côté frère codeide-lsp v1.9.1 — consommé tel quel par CodeIDE)
+
+- **Lenteur des suggestions de complétion Java** — chaque résolution
+  ecj sondait le disque AVANT TOUT (`Files.isRegularFile` par racine
+  source pour CHAQUE type, y compris les types du classpath : des
+  centaines d'appels par passe, jusqu'à plusieurs secondes sur
+  stockage FUSE) : cache négatif de présence source (borné 8 192,
+  TTL 30 s, invalidé par `didChangeWatchedFiles`), positifs toujours
+  relus.
+- **Suggestions `R$style` / `R$id` / `R$string`** — c'étaient les
+  classes INTERNES brutes du `R` qui fuyaient dans les complétions
+  d'import et de types (noms binaires impossibles à écrire en source)
+  : filtre `$` posé sur les trois chemins disque + le chemin jrt. Les
+  imbriquées restent proposées en accès membre `R.` (forme
+  `R.style`) — elles sont LÉGITIMES, seules les formes `R$…`
+  l'étaient pas.
+- **Popup de complétion spontané** (juste après une déclaration de
+  variable ou un simple retour à la ligne) — l'ESPACE était déclencheur
+  de complétion : triggerCharacters resserrés de `[".", " ", "(", ","]`
+  à `[".", "@"]` (les `(` et `,` restent déclencheurs de signature
+  help ; miroir des serveurs Kotlin `.`/`:` et XML).
+
+#### Ajouté — le go-to cross-fichier ouvre un onglet (ADR 0147)
+
+- **Cause racine** : le branchement v0.181.0 était sain (le frère v1.9.0
+  rend des cibles JUSTES — fichier projet `file:///…` ou type binaire
+  `jdt://decompiled/<fqcn>.java`), la bibliothèque appelait
+  `onDefinitionRequested` pour toute cible HORS du document courant…
+  et PERSONNE n'était abonné côté CodeIDE : le go-to cross-fichier
+  était un no-op silencieux (« cliquer AppCompatActivity ne fait
+  rien »). Le destinataire est désormais posé par l'activité
+  (`installerDestinataireDefinition`, après l'inflation du binding —
+  même contrainte que le fantôme de complétion).
+- **Fichier projet** (`file://…`) : le chemin FUSE est RELATIVISÉ contre
+  la racine de session puis reconstruit sous la racine SAF de l'arbre
+  (même convention que le saut de pile Logcat) ; onglet ouvert →
+  sélection + saut immédiat, sinon ouverture puis saut — l'offset
+  pointe la DÉCLARATION dans le document CIBLE (effet
+  `DefilementVersOffset` dès que la session existe). Chemin hors
+  racine refusé honnêtement (journal).
+- **Type binaire** (`jdt://decompiled/…` — `AppCompatActivity`,
+  `HashMap`…) : la source DÉCOMPILÉE est demandée au serveur
+  (`textDocument/decompiledSource` via `LspProject.decompiledSource`)
+  et ouverte en onglet VIRTUEL lecture seule — chemin affiché
+  `décompilé/<Nom>.java`, jamais sali (fermeture sans confirmation),
+  jamais enregistré (no-op honnête), jamais persisté (il survit le
+  temps de la session), jamais branché au LSP (coloration seule). Un
+  second go-to sur le MÊME type SÉLECTIONNE l'onglet existant
+  (l'URI `jdt://` est la clé, pas de doublon). Indisponible → toast
+  honnête « Source introuvable pour cette définition. ».
+- **Toutes les cibles du menu GO TO en profitent** : le menu de
+  navigation de la bibliothèque (définition, type, implémentations,
+  usages, super) route TOUTE cible cross-fichier par le même
+  destinataire — aucun code supplémentaire par go-to.
+
+#### Montée (bump-frère)
+
+- **codeide-lsp 1.9.0 → 1.9.1** (dépôt frère publié sur GitHub
+  Packages — tag `v1.9.1`) : montée SANS changement de surface
+  consommée (la surface 1.9.0 est intacte), les correctifs de
+  complétion vivent à l'intérieur du frère.
+- Aucune retouche requise côté code-editor (v4.2.0 consommée fournit
+  déjà `setOnDefinitionRequestedListener`, `DefinitionLocation` et
+  `decompiledSource`).
+
+#### Tests
+
+- `GoToDefinitionEditorViewModelTest` (3 scénarios : ouverture +
+  saut offset ; onglet virtuel + anti-doublon ; jamais sali /
+  enregistré / persisté + fermeture sans confirmation).
+- `BaseEditorViewModelTest` : surcharge `viewModel(id, resolveurFUSE)`
+  partagée (les deux duplicatas privés identiques de
+  `CycleVieEditorViewModelTest` et `LspEditorViewModelTest` retirés).
+- Suite :feature:editor intégralement repassée : **444 tests verts,
+  0 échec** ; spotless + detekt verts.
+
 ## [0.181.0] – 2026-10-24
 
 ### Retour propriétaire E2E sur projets Android réels : le LSP Java réparé de bout en bout (routage fichier → module) et le `kt.unresolved` sans faux positifs (bump-frère codeide-lsp 1.8.0 → 1.9.0, ADR 0215/0216 côté frère)

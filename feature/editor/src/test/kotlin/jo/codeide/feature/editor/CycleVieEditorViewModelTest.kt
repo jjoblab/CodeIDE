@@ -1,6 +1,5 @@
 package jo.codeide.feature.editor
 
-import androidx.lifecycle.SavedStateHandle
 import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.model.ProjectId
@@ -53,13 +52,6 @@ class CycleVieEditorViewModelTest : BaseEditorViewModelTest() {
                 ?: error("méthode clear introuvable sur ViewModel (lifecycle inconnu)")
         methode.invoke(this)
     }
-
-    /** Construit le ViewModel sur un résolveur FUSE résolvant (comme h2). */
-    private fun viewModel(id: ProjectId, resolveurFUSE: ResolveurCheminFuse): EditorViewModel = viewModel(
-        id,
-        SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-        resolveurFUSE,
-    )
 
     @Test
     fun `l ouverture de l espace ouvre la session de projet`() = runTest {

@@ -480,6 +480,7 @@
     <string name="editor_suppression_dossier_message">The folder and all its content will be deleted from storage — permanent.</string>
     <string name="editor_suppression_confirmer">Delete</string>
     <string name="editor_action_fichier_echouee">The operation failed — retry or refresh.</string>
+    <string name="editor_definition_introuvable">Source not found for this definition.</string>
     <string name="editor_erreur_nom_longueur">The name must be 1 to 64 characters long.</string>
     <string name="editor_erreur_nom_caractere">The character “%1$s” is not allowed.</string>
     <string name="editor_erreur_nom_points">“.” and “..” are not valid names.</string>

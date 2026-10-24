@@ -365,6 +365,11 @@ class EditorActivity :
         // lancement (EditorActivity.onCreate → installerFantomeCompletion).
         installerFantomeCompletion()
 
+        // v0.182.0 : destinataire des go-to cross-fichiers de la
+        // bibliothèque (définitions binaire décompilée + fichier projet)
+        // — même contrainte : après l'inflation du binding.
+        installerDestinataireDefinition()
+
         brancherInsets()
         brancherTiroir()
         brancherFragmentsTiroir()
@@ -811,6 +816,81 @@ class EditorActivity :
                 portee = lifecycleScope,
             )
         fantomeCompletion?.installer()
+    }
+
+    /**
+     * Installe le destinataire des go-to CROSS-FICHIERS de la
+     * bibliothèque (v0.182.0) — une seule fois : la bibliothèque appelle
+     * `onDefinitionRequested` quand la cible d'un go-to (menu GO TO,
+     * pill) vit dans UN AUTRE fichier ; SANS ce destinataire, la
+     * navigation cross-fichier était un no-op silencieux (la cible
+     * intra-fichier saute en interne, les autres partent ici).
+     *
+     * Deux familles de cibles :
+     * <ul>
+     *   <li>{@code jdt://decompiled/<fqcn>.java} — type BINAIRE du
+     *       classpath (AppCompatActivity, HashMap…) : le texte est servi
+     *       par la requête personnalisée du serveur LSP Java puis ouvert
+     *       en onglet VIRTUEL lecture seule ;</li>
+     *   <li>{@code file://…} — un fichier SOURCE du projet : le
+     *       ViewModel traduit le chemin FUSE en URI de l'arbre, ouvre
+     *       l'onglet et défile à l'offset de la déclaration.</li>
+     * </ul>
+     */
+    private fun installerDestinataireDefinition() {
+        liaison.vueEditeur.setOnDefinitionRequestedListener { cibles ->
+            traiterCiblesDefinition(cibles)
+        }
+    }
+
+    /** Aiguille les cibles d'un go-to cross-fichier (première cible). */
+    private fun traiterCiblesDefinition(cibles: List<jo.codeeditor.lang.model.DefinitionLocation>) {
+        val cible = cibles.firstOrNull() ?: return
+        val uri = cible.path.orEmpty()
+        when {
+            uri.startsWith("jdt://decompiled/") -> {
+                val fqcn = uri
+                    .removePrefix("jdt://decompiled/")
+                    .removeSuffix(".java")
+                    .replace('/', '.')
+                lifecycleScope.launch {
+                    val texte = coordonnateurLsp.sourceDecompilee(fqcn)
+                    if (texte.isNullOrBlank()) {
+                        journalLsp.w(TAG_LSP) { "source décompilée indisponible : $fqcn" }
+                        Snackbar
+                            .make(
+                                liaison.racineEditeur,
+                                getString(R.string.editor_definition_introuvable),
+                                Snackbar.LENGTH_SHORT,
+                            ).show()
+                        return@launch
+                    }
+                    viewModel.onAction(
+                        ActionEditor.OuvrirBufferLectureSeule(
+                            uri = uri,
+                            nom = fqcn.substringAfterLast('.') + ".java",
+                            texte = texte,
+                        ),
+                    )
+                }
+            }
+
+            uri.startsWith("file:") -> {
+                viewModel.onAction(
+                    ActionEditor.OuvrirCibleDefinition(
+                        cheminCible = uri,
+                        offset = cible.offset,
+                        nomAffiche = cible.displayName.ifBlank { uri.substringAfterLast('/') },
+                    ),
+                )
+            }
+
+            else -> {
+                // URI non gérée (ni binaire décompilé, ni fichier projet)
+                // — journal honnête, pas d'écran fantôme.
+                journalLsp.w(TAG_LSP) { "cible de go-to non gérée : $uri" }
+            }
+        }
     }
 
     /** Session d'édition de l'onglet actif (miroir de PortEditeurVue). */
@@ -2098,6 +2178,12 @@ class EditorActivity :
      * vue répond du formateur, la session n'est plus un proxy.)
      */
     private fun serveurPretDe(onglet: EditorTabState?): Boolean {
+        // v0.182.0 : un onglet VIRTUEL (buffer décompilé d'un go-to) ne
+        // se branche JAMAIS — son URI jdt:// n'a pas de chemin FUSE dans
+        // l'arbre du projet ; la coloration TextMate suffit (langage posé
+        // à l'ajout de l'onglet), le silence vaut mieux qu'un WARN de
+        // résolution à chaque sélection.
+        if (onglet?.virtuelle == true) return false
         val session = viewModel.sessionLsp.value
         val sessionKotlin = viewModel.sessionLspKotlin.value
         val sessionXml = viewModel.sessionLspXml.value
@@ -2900,6 +2986,24 @@ class EditorActivity :
         }
     }
 
+    /**
+     * Saute à l'OFFSET exact d'une cible de go-to cross-fichier
+     * (v0.182.0) — l'offset vit dans le document CIBLE (celui de
+     * l'onglet [uri]), borné à sa longueur. Même discipline de post-rendu
+     * que [sauterVersLigne] : le défilement suit la sélection.
+     */
+    private fun sauterVersOffset(uri: String, offset: Int) {
+        liaison.racineEditeur.post {
+            val session = viewModel.sessionSuivieDe(uri)?.session ?: return@post
+            val document = session.document
+            val offsetBorne = offset.coerceIn(0, document.length())
+            session.setSelection(Selection.cursor(offsetBorne))
+            liaison.vueEditeur.scrollToLine(
+                document.lineForOffset(offsetBorne).coerceIn(0, document.lineCount() - 1),
+            )
+        }
+    }
+
     /** Application des effets ponctuels. */
     @Suppress("LongMethod") // when exhaustif sur EffetEditor — une branche par effet, pas de factorisation naturelle.
     private fun appliquer(effet: EffetEditor) {
@@ -3020,6 +3124,13 @@ class EditorActivity :
                 // ouvert) ; le défilement et le curseur suivent APRÈS le
                 // re-rendu (même discipline que [sauterAuProbleme]).
                 sauterVersLigne(effet.uri, effet.ligne)
+            }
+
+            is EffetEditor.DefilementVersOffset -> {
+                // v0.182.0 : saut de go-to cross-fichier — l'offset pointe
+                // la DÉCLARATION dans le document CIBLE (ouvert/sélectionné
+                // juste avant) ; même discipline de post-rendu.
+                sauterVersOffset(effet.uri, effet.offset)
             }
         }
     }

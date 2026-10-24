@@ -521,6 +521,8 @@
     <string name="editor_suppression_dossier_message">Le dossier et tout son contenu seront supprimés du stockage — action définitive.</string>
     <string name="editor_suppression_confirmer">Supprimer</string>
     <string name="editor_action_fichier_echouee">L\'opération a échoué — réessayez ou actualisez.</string>
+    <!-- v0.182.0 : go-to sur un type binaire dont la source décompilée est indisponible. -->
+    <string name="editor_definition_introuvable">Source introuvable pour cette définition.</string>
     <string name="editor_erreur_nom_longueur">Le nom doit contenir de 1 à 64 caractères.</string>
     <string name="editor_erreur_nom_caractere">Le caractère « %1$s » est interdit.</string>
     <string name="editor_erreur_nom_points">« . » et « .. » ne sont pas des noms valides.</string>
