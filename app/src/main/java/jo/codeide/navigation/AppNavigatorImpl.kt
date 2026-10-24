@@ -21,6 +21,7 @@ import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.SectionParametres
 import jo.codeide.feature.editor.ClesEditor
 import jo.codeide.feature.editor.EditorActivity
+import jo.codeide.feature.editor.instanceEditeurPour
 import jo.codeide.feature.preview.PreviewActivity
 import jo.codeide.feature.preview.PreviewViewModel
 import jo.codeide.feature.terminal.ClesTerminal
@@ -66,8 +67,11 @@ import javax.inject.Inject
 @Suppress("TooManyFunctions")
 internal class AppNavigatorImpl
 @Inject
-constructor(private val activity: Activity, private val logger: AppLogger) :
-    AppNavigator {
+constructor(
+    private val activity: Activity,
+    private val logger: AppLogger,
+    private val provenanceEditeur: ProvenanceEditeur,
+) : AppNavigator {
     /**
      * Contrôleur de navigation de l'activité hôte, ou `null` quand
      * l'hôte est une activité plein écran sans graphe (terminal,
@@ -376,6 +380,15 @@ constructor(private val activity: Activity, private val logger: AppLogger) :
     }
 
     override fun openEditor(projectId: String) {
+        // v0.183.0 (retour propriétaire) : un espace VIVANT pour CE projet
+        // est REMONTÉ tel quel — jamais empilé en doublon (un espace neuf
+        // relançait sync et tooling pour rien). Repli honnête : ouverture
+        // standard par-dessus la pile.
+        if (instanceEditeurPour(projectId) != null) {
+            logger.d(TAG) { "espace vivant remontré pour le projet demandé" }
+            revenirALEditeur(projectId)
+            return
+        }
         // Espace de travail (étape 13) : activité séparée par-dessus la
         // pile — l'accueil survit en dessous, y revenir ne recharge rien.
         logger.d(TAG) { "ouverture de l'espace de travail du projet" }
@@ -401,6 +414,20 @@ constructor(private val activity: Activity, private val logger: AppLogger) :
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         activity.startActivity(intention)
+    }
+
+    override fun noterProvenanceEditeur(projectId: String?) {
+        // v0.183.0 (retour propriétaire) : provenance partagée avec l'hôte
+        // du graphe via le singleton — le retour des paramètres remonte
+        // l'espace d'origine au lieu de retomber sur l'accueil.
+        provenanceEditeur.projet = projectId
+        logger.d(TAG) {
+            if (projectId != null) {
+                "provenance éditeur notée ($projectId) — le retour des paramètres remontera l'espace"
+            } else {
+                "provenance éditeur effacée"
+            }
+        }
     }
 
     override fun openBootstrapInstall() {

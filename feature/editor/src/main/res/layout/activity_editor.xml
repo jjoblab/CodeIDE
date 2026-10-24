@@ -47,12 +47,20 @@
                     app:navigationIcon="@drawable/ic_menu_tiroir"
                     app:title="@string/editor_title" />
 
-                <!-- Onglets de fichiers ouverts : remplis à l'étape 15. -->
+                <!-- Onglets de fichiers ouverts : remplis à l'étape 15.
+                     v0.183.0 (retour propriétaire) : l'onglet ACTIF gagne
+                     une pilule de fond (state_selected du sélecteur
+                     fond_onglet_editeur — surface surélevée, suivie en
+                     jour/nuit/couleurs dynamiques) et l'indicateur de
+                     soulignement est RETIRÉ (pilule + trait = double
+                     signal ; Android Studio : fond net, pas de trait). -->
                 <com.google.android.material.tabs.TabLayout
                     android:id="@+id/onglets_fichiers"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:visibility="gone"
+                    app:tabBackground="@drawable/fond_onglet_editeur"
+                    app:tabIndicatorHeight="0dp"
                     app:tabMode="scrollable" />
 
                 <!-- (v0.32.5) Plus de fil d'Ariane ici : retiré sur retour

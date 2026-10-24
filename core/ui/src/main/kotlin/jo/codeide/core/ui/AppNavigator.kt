@@ -223,6 +223,24 @@ public interface AppNavigator {
     public fun revenirALEditeur(projectId: String): Unit
 
     /**
+     * Note la PROVENANCE d'une navigation vers un écran du graphe de
+     * l'accueil (v0.183.0, retour propriétaire) : quand l'espace de
+     * travail ouvre les paramètres, le RETOUR depuis l'écran maître
+     * remonte CET espace vivant au lieu de retomber sur l'accueil (le
+     * tap suivant sur le projet empilait un espace NEUF — tooling
+     * resynchronisé pour rien).
+     *
+     * `null` efface la provenance (retour au comportement standard :
+     * le retour referme l'écran du graphe vers l'accueil). Implémentation
+     * par DÉFAUT no-op : seuls les hôtes qui portent le graphe en
+     * font quelque chose.
+     *
+     * @param projectId identifiant du projet de l'espace d'origine,
+     *        ou `null` pour effacer.
+     */
+    public fun noterProvenanceEditeur(projectId: String?) {}
+
+    /**
      * Ouvre l'écran d'installation du bootstrap natif (Terminal T3,
      * prompt Terminal-1, sections 3.4 et 6).
      *

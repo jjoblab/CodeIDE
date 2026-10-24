@@ -1,7 +1,5 @@
 package jo.codeide.feature.editor
 
-import android.view.View
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -21,6 +19,18 @@ import jo.codeide.feature.editor.databinding.ActivityEditorBinding
  *   transparente, mais son contenu reste AU-DESSUS de la barre) ;
  * - la marge basse du tiroir (déjà gérée par `applySystemBarsInsetsMargins`,
  *   non touchée ici).
+ *
+ * v0.183.0 (retour propriétaire) : le gestionnaire ne pose PLUS son
+ * propre listener sur la racine — il était posé AVANT celui du clavier
+ * (`observerClavier` court dans `brancherBarreSymboles`, APRÈS
+ * `brancherPanneauInferieur`) et le second `setOnApplyWindowInsetsListener`
+ * ÉCRASAIT silencieusement le premier : plus AUCUN inset de barre de
+ * navigation n'arrivait, la réserve sous l'éditeur n'était posée qu'aux
+ * changements de peek — au premier rendu, l'éditeur passait SOUS le
+ * panneau replié (retour : « en collapse il masque une partie de la
+ * section éditeur »). Désormais le listener UNIQUE de l'activité
+ * ([brancher] pour les barres applicatives, l'IME reste à l'activité)
+ * nourrit le gestionnaire via [surInsetsBarres].
  *
  * Le calcul de la réserve est une fonction pure
  * ([calculerReserveEditeur]) couverte par des tests unitaires : entrées
@@ -61,13 +71,31 @@ internal class GestionnaireInsetsEditeur(
     private var insetNavigationDroite: Int = 0
 
     /**
-     * Branche l'écouteur d'insets sur la racine de l'espace de travail.
-     * À appeler une seule fois dans `onCreate` après `setContentView`.
+     * Padding IME du PANNEAU (v0.183.0, retour propriétaire : « les
+     * fragments du bottomsheet requièrent parfois le clavier ») :
+     * hauteur du clavier quand la saisie appartient au panneau (champ
+     * console, filtre logcat), 0 sinon. Le panneau ne se masque PAS
+     * pendant ces saisies — son contenu remonte au-dessus de l'IME.
+     * Mis à jour par [surClavierPanneau], relu par TOUTES les
+     * applications de padding (changements d'état, de peek, d'insets).
+     */
+    private var paddingImePanneau: Int = 0
+
+    /**
+     * Branche les consommateurs applicatifs des insets (toolbar,
+     * tiroir) et pose la réserve AU PREMIER RENDU. À appeler une seule
+     * fois dans `onCreate` après `setContentView`.
      *
-     * Contrairement à l'ancien `brancherInsets` qui n'appliquait les
-     * insets qu'à la toolbar et au tiroir, ce gestionnaire consomme
-     * `systemBars().bottom` (et gauche/droite en paysage) pour la
-     * colonne centrale et pour le sheet.
+     * v0.183.0 : PLUS de listener propre sur la racine (il était
+     * écrasé par celui du clavier — cf. KDoc de la classe) ; les insets
+     * de barres système arrivent par [surInsetsBarres], appelé par le
+     * listener UNIQUE de l'activité.
+     *
+     * La réserve est posée IMMÉDIATEMENT (avant le premier dispatch
+     * d'insets, avec l'inset de navigation inconnu = 0) : au premier
+     * rendu, l'éditeur s'arrête déjà au-dessus du panneau replié —
+     * l'ancien code attendait le premier changement de peek et
+     * l'éditeur naissait SOUS le panneau.
      */
     fun brancher() {
         // Toolbar : barre d'état en haut (inchangé — comportement
@@ -75,28 +103,32 @@ internal class GestionnaireInsetsEditeur(
         liaison.toolbarEditeur.applySystemBarsInsets(top = true, bottom = false)
         // Tiroir : marges barres système (inchangé).
         liaison.tiroir.applySystemBarsInsetsMargins()
+        // Réserve immédiate (peek du XML, inset inconnu) — corrigée au
+        // premier dispatch d'insets via [surInsetsBarres].
+        appliquerReserveEtPaddingSheet()
+    }
 
-        // Racine : capture des insets de barre de navigation pour le
-        // pilote de la colonne centrale et du sheet. On ne consomme PAS
-        // l'inset (on le laisse passer aux enfants) — on le capte juste
-        // pour recalculer la réserve à chaque changement.
-        ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
-            val barres =
-                insets.getInsets(
-                    WindowInsetsCompat.Type.systemBars() or
-                        WindowInsetsCompat.Type.displayCutout(),
-                )
-            val changement =
-                insetNavigationBas != barres.bottom ||
-                    insetNavigationGauche != barres.left ||
-                    insetNavigationDroite != barres.right
-            insetNavigationBas = barres.bottom
-            insetNavigationGauche = barres.left
-            insetNavigationDroite = barres.right
-            if (changement) {
-                appliquerReserveEtPaddingSheet()
-            }
-            insets
+    /**
+     * Ingestion des insets de barres système — appelée par le listener
+     * UNIQUE de la racine (v0.183.0). On ne consomme PAS l'inset (on le
+     * laisse passer aux enfants) — on le capte pour recalculer la
+     * réserve à chaque changement.
+     */
+    fun surInsetsBarres(insets: WindowInsetsCompat) {
+        val barres =
+            insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout(),
+            )
+        val changement =
+            insetNavigationBas != barres.bottom ||
+                insetNavigationGauche != barres.left ||
+                insetNavigationDroite != barres.right
+        insetNavigationBas = barres.bottom
+        insetNavigationGauche = barres.left
+        insetNavigationDroite = barres.right
+        if (changement) {
+            appliquerReserveEtPaddingSheet()
         }
     }
 
@@ -128,17 +160,37 @@ internal class GestionnaireInsetsEditeur(
             right = insetNavigationDroite,
             bottom = reserve,
         )
-        // Sheet : padding interne bas = inset de navigation. Le fond
-        // opaque descend jusqu'au bord bas de l'écran (le drawable
-        // `fond_panneau_inferieur` couvre toute la vue, y compris la
-        // barre transparente), mais le contenu (en-tête, onglets,
-        // fragments) reste AU-DESSUS de la barre — peekHeight inchangé,
-        // seul le padding interne change.
+        // Sheet : padding interne bas = inset de navigation + IME du
+        // PANNEAU (v0.183.0). Le fond opaque descend jusqu'au bord bas
+        // de l'écran (le drawable `fond_panneau_inferieur` couvre toute
+        // la vue, y compris la barre transparente), mais le contenu
+        // (en-tête, onglets, fragments) reste AU-DESSUS de la barre —
+        // peekHeight inchangé, seul le padding interne change. Quand la
+        // saisie appartient au panneau (console, filtre logcat), le
+        // contenu remonte en PLUS au-dessus du clavier.
         liaison.panneauInferieur.updatePadding(
             left = insetNavigationGauche,
             right = insetNavigationDroite,
-            bottom = insetNavigationBas,
+            bottom = insetNavigationBas + paddingImePanneau,
         )
+    }
+
+    /**
+     * Pose le padding IME du PANNEAU (v0.183.0, retour propriétaire :
+     * « les fragments du bottomsheet requièrent parfois le clavier »)
+     * puis réapplique paddings et réserve — appelé par l'activité à
+     * chaque trame de l'animation du clavier ([hauteurIme] courant).
+     *
+     * `ime = 0` libère le mode (saisie de l'ÉDITEUR, clavier fermé) —
+     * idempotent : ne réapplique rien si la valeur ne change pas.
+     *
+     * @param ime hauteur courante de l'IME en pixels (0 = panneau
+     *        déboutonné du clavier).
+     */
+    fun surClavierPanneau(ime: Int) {
+        if (paddingImePanneau == ime) return
+        paddingImePanneau = ime
+        appliquerReserveEtPaddingSheet()
     }
 
     /** B3 (v0.80.2) : réserve en bas de la colonne centrale pour que

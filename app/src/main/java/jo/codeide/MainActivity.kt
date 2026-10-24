@@ -2,6 +2,7 @@ package jo.codeide
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -21,6 +22,7 @@ import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.ThemeMode
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.AppliquerApparence
+import jo.codeide.navigation.ProvenanceEditeur
 import jo.codeide.navigation.RoutageEcran
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -92,8 +94,37 @@ class MainActivity : AppCompatActivity() {
     @Inject
     lateinit var orchestrateurInstallation: jo.codeide.core.domain.EnvironmentSetupOrchestrator
 
+    /**
+     * Provenance éditeur process-wide (v0.183.0, retour propriétaire) :
+     * l'espace qui a ouvert les paramètres — le retour depuis l'écran
+     * maître le remonte au lieu de retomber sur l'accueil.
+     */
+    @Inject
+    lateinit var provenanceEditeur: ProvenanceEditeur
+
     /** Vrai dès la première émission des paramètres (libère le splash). */
     private var demarragePret = false
+
+    /**
+     * v0.183.0 : retour depuis l'écran MAÎTRE des paramètres — remonte
+     * l'espace vivant qui avait ouvert le graphe ([ProvenanceEditeur]).
+     * Activé dynamiquement par l'écouteur de destination (uniquement sur
+     * `R.id.settings` AVEC provenance) : les sections internes se
+     * dépilent normalement, seul l'écran maître rend l'espace.
+     */
+    private val retourParametreVersEditeur =
+        object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                val projet = provenanceEditeur.consommer()
+                if (projet == null) {
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                    return
+                }
+                logger.d(TAG) { "retour des paramètres -> espace vivant du projet $projet" }
+                navigator.revenirALEditeur(projet)
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { !demarragePret }
@@ -141,7 +172,20 @@ class MainActivity : AppCompatActivity() {
         val navHost = supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
         navHost.navController.addOnDestinationChangedListener { _, destination, _ ->
             (application as? CodeIdeApplication)?.ecranAffiche(destination.label?.toString().orEmpty())
+            // v0.183.0 (retour propriétaire) : sur l'écran MAÎTRE des
+            // paramètres, le retour remonte l'ESPACE VIVANT d'origine s'il
+            // avait ouvert ce graphe — sinon comportement standard.
+            retourParametreVersEditeur.isEnabled =
+                destination.id == R.id.settings && provenanceEditeur.projet != null
         }
+
+        // v0.183.0 : retour depuis l'écran maître des paramètres — remonte
+        // l'espace vivant noté par [ProvenanceEditeur] (REORDER_TO_FRONT,
+        // session et tooling intacts) au lieu de retomber sur l'accueil
+        // (le tap suivant sur le projet empilait un espace NEUF, tooling
+        // resynchronisé pour rien). La provenance est CONSOMMÉE : un seul
+        // retour remonte, le suivant se comporte normalement.
+        onBackPressedDispatcher.addCallback(this, retourParametreVersEditeur)
 
         // Menu debug : déplacé dans l'écran Diagnostic à l'étape 12 —
         // plus aucune trace des outils de développement sur l'accueil.

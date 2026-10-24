@@ -39,12 +39,17 @@
         android:visibility="gone"
         tools:visibility="visible" />
 
+    <!-- Fermeture (v0.183.0, retour propriétaire : « le bouton close
+         plus petit ») : zone tactile 36 dp au lieu de la cible
+         standard de 48 (dims dédiés, icône 18) — une commande de
+         SECOND rang dans l'onglet n'a pas besoin de la cote des
+         commandes de premier rang. -->
     <ImageView
         android:id="@+id/bouton_fermer_onglet"
-        android:layout_width="@dimen/touch_target_min"
-        android:layout_height="@dimen/touch_target_min"
+        android:layout_width="@dimen/editor_onglet_fermer_taille"
+        android:layout_height="@dimen/editor_onglet_fermer_taille"
         android:contentDescription="@string/editor_onglet_fermer_cd"
-        android:padding="@dimen/editor_bouton_icone_padding"
+        android:padding="@dimen/editor_onglet_fermer_padding"
         android:src="@drawable/ic_fermer_onglet"
         app:tint="?attr/colorOnSurfaceVariant"
         tools:visibility="gone" />

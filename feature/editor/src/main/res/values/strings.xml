@@ -113,6 +113,15 @@
     <string name="editor_fermeture_enregistrer_tout">Enregistrer tout</string>
     <string name="editor_fermeture_ne_pas_enregistrer">Ne pas enregistrer</string>
     <string name="editor_fermeture_annuler">Annuler</string>
+    <!-- Dialogue de sortie honnête (v0.183.0, retour propriétaire) :
+         sans onglet sale, le retour ou le menu « Fermer le projet » ne
+         referment PLUS l'espace silencieusement — ce dialogue énonce ce
+         qui va se refermer. ATTENTION : ne pas confondre avec les
+         chaînes editor_sortie_build_* (la « sortie » du BUILD). -->
+    <string name="editor_sortie_titre">Fermer le projet ?</string>
+    <string name="editor_sortie_message">Les onglets ouverts seront refermés : la réouverture du projet repartira sans eux, et les moteurs (session, tooling Gradle) seront arrêtés. Les modifications non enregistrées ont déjà été traitées.</string>
+    <string name="editor_sortie_confirmer">Fermer le projet</string>
+    <string name="editor_sortie_annuler">Rester</string>
     <!-- Cycle de vie étape C (§2.1c) : le build continue en arrière-plan
          à la sortie de l'éditeur (toast — survit à la fermeture de
          l'écran ; la notification ToolingService reste le détail). -->

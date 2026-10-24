@@ -4,6 +4,8 @@ import jo.codeide.core.model.AppResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Port du tooling Gradle (prompt compagnon Tooling, section 5.3).
@@ -638,4 +640,55 @@ public enum class EtatConnexion {
 
     /** Échec définitif après épuisement des tentatives (§5.4). */
     ECHOUEE,
+}
+
+/**
+ * Port du CYCLE DE VIE du daemon tooling — le PROCESSUS orchestrateur
+ * lui-même (v0.183.0, retour propriétaire : « pas seulement les LSP
+ * doivent être fermés, le tooling aussi doit être fermé »).
+ *
+ * [GradleToolingRepository.fermerProjet] ne libère que la CONNEXION du
+ * projet (protocole v9) — le démon applicatif continuait de vivre avec
+ * le processus de l'app. Ce port pilote le process : `demarrer` le
+ * relance (idempotent), `arreter` le tue proprement avec anti-relance
+ * (la surveillance health-check ne le ressuscite PAS).
+ *
+ * Titulaire [RegistreCycleDaemonTooling] : la couche la plus haute
+ * (`app`) pose l'implémentation réelle au démarrage du processus ;
+ * sans elle (tests JVM purs, Robolectric sans app), le port reste
+ * INERTE — jamais d'échec d'injection, jamais de process parasite.
+ */
+public interface CycleDaemonTooling {
+    /** (Re)lance le daemon s'il ne tourne pas — idempotent. */
+    public fun demarrer()
+
+    /** Tue le daemon (anti-relance) — idempotent, jamais bloquant. */
+    public fun arreter()
+}
+
+/**
+ * Port process-wide du cycle du daemon tooling : registre posé par la
+ * couche `app` (l'unique qui voit `tooling:daemon`), lu par l'espace de
+ * travail au moment d'ouvrir un projet (le tooling démarre AVEC le
+ * projet) et à la fermeture du DERNIER espace vivant (le tooling meurt
+ * avec la fermeture du projet — retour propriétaire v0.183.0).
+ *
+ * Singleton Hilt construit (même patron que
+ * [RegistreDossierProjetIa]) : injecté AVANT la pose du port, l'objet
+ * tient l'implémentation INERTE tant que l'app n'a pas posé la vraie —
+ * les tests JVM purs l'injectent sans échec et sans effet.
+ */
+@Singleton
+public class RegistreCycleDaemonTooling
+@Inject
+constructor() {
+    /** Implémentation inerte par défaut (tests, avant pose de l'app). */
+    private object Inerte : CycleDaemonTooling {
+        override fun demarrer() = Unit
+
+        override fun arreter() = Unit
+    }
+
+    @Volatile
+    public var port: CycleDaemonTooling = Inerte
 }

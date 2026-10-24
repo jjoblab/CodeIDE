@@ -7,10 +7,12 @@ import androidx.test.core.app.ActivityScenario
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import jo.codeide.core.domain.SettingsRepository
+import jo.codeide.navigation.ProvenanceEditeur
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -45,6 +47,10 @@ class MainActivityTest {
     /** Dépôt des paramètres : terminer l'installation avant de lancer. */
     @Inject
     lateinit var depotParametres: SettingsRepository
+
+    /** Provenance éditeur process-wide (v0.183.0). */
+    @Inject
+    lateinit var provenance: ProvenanceEditeur
 
     @Before
     fun preparer() {
@@ -175,6 +181,54 @@ class MainActivityTest {
             )
         } finally {
             controleur.destroy()
+        }
+    }
+
+    /**
+     * v0.183.0 (retour propriétaire) : le RETOUR depuis l'écran maître
+     * des paramètres remonte l'ESPACE VIVANT qui avait ouvert le graphe
+     * (provenance notée au départ par le navigateur de l'espace) au
+     * lieu de retomber sur l'accueil — l'ancien comportement empilait
+     * un espace NEUF à la réouverture du projet (tooling resynchronisé
+     * pour rien). La provenance est CONSOMMÉE : un seul retour remonte.
+     */
+    @Test
+    fun `le retour depuis les paramètres remonte l espace vivant de la provenance`() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            scenario.onActivity { activite ->
+                // L'espace note sa provenance AVANT d'ouvrir les
+                // paramètres (ordre réel : noterProvenanceEditeur puis
+                // openSettings, cf. EditorActivity).
+                provenance.projet = "Alpha"
+                activite.findViewById<View>(RAccueil.id.button_settings).performClick()
+            }
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            scenario.onActivity { activite ->
+                activite.onBackPressedDispatcher.onBackPressed()
+            }
+            shadowOf(android.os.Looper.getMainLooper()).idle()
+
+            scenario.onActivity { activite ->
+                val intention = shadowOf(activite).nextStartedActivity
+                assertNotNull(
+                    "le retour a remonté l'espace vivant (intention éditée)",
+                    intention,
+                )
+                assertEquals(
+                    jo.codeide.feature.editor.EditorActivity::class.java.name,
+                    intention.component?.className,
+                )
+                assertEquals(
+                    "l'espace remonté est celui du projet noté",
+                    "Alpha",
+                    intention.getStringExtra(jo.codeide.feature.editor.ClesEditor.EXTRA_PROJECT_ID),
+                )
+                assertNull(
+                    "la provenance est consommée : le retour suivant est standard",
+                    provenance.projet,
+                )
+            }
         }
     }
 

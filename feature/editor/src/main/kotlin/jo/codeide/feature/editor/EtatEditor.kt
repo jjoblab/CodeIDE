@@ -446,6 +446,15 @@ sealed interface ActionEditor {
     data object Quitter : ActionEditor
 
     /**
+     * Réponse « Fermer le projet » au dialogue de sortie honnête
+     * (retour propriétaire v0.183.0) : la sortie est EXPLICITE — la
+     * réouverture du projet ne restaurera AUCUN onglet (ni sauvetage
+     * de processus, ni état d'espace), contrairement à la mort du
+     * processus qui RESTAURE les onglets ouverts.
+     */
+    data object SortieConfirmee : ActionEditor
+
+    /**
      * Libère les caches RECONSTRUCTIBLES (mission « Cycle de vie » étape
      * C, E16) : demandée par `EditorActivity.onTrimMemory` sous pression
      * mémoire (niveau RUNNING_CRITICAL ou plus — y compris l'arrière-plan
@@ -730,6 +739,15 @@ sealed interface EffetEditor {
 
     /** Onglets modifiés : demander Enregistrer / Ne pas enregistrer / Annuler. */
     data class ConfirmerFermeture(val uris: List<String>, val quitter: Boolean) : EffetEditor
+
+    /**
+     * Sortie SANS onglet sale demandée (retour système, menu « Fermer
+     * le projet ») : le dialogue « Fermer le projet ? » doit s'afficher
+     * — plus JAMAIS de fermeture silencieuse de l'espace (retour
+     * propriétaire v0.183.0 : la sortie doit être EXPLICITE, le geste
+     * seul ne suffit pas).
+     */
+    data object ConfirmerSortie : EffetEditor
 
     /** Chemin d'un onglet copié dans le presse-papiers. */
     data class CopierChemin(val chemin: String) : EffetEditor

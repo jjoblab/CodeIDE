@@ -10,6 +10,7 @@ import jo.codeide.core.testing.FakeFileSystem
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -300,5 +301,158 @@ class CycleVieEditorViewModelTest : BaseEditorViewModelTest() {
             EtatConnexion.CONNECTEE,
             serviceGradleTest.etat.value.connexion,
         )
+    }
+
+    // ================================================================
+    // v0.183.0 (retour propriétaire) : la sortie est EXPLICITE — le
+    // dialogue honnête « Fermer le projet ? » remplace la fermeture
+    // silencieuse, et la sortie confirmée efface TOUTE reprise
+    // d'onglets (sauvetage de processus ET workspace-state).
+    // ================================================================
+
+    @Test
+    fun `la sortie sans onglet sale demande le dialogue honnete — jamais de fermeture silencieuse`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/Main.kt",
+            FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "fun main()".toByteArray()),
+        )
+        val effets = mutableListOf<EffetEditor>()
+        val viewModel = viewModel(alpha)
+        avancer()
+        collecterEffets(viewModel, effets)
+        viewModel.onAction(
+            ActionEditor.OuvrirFichier(
+                viewModel.etat.value.noeuds.first { it.nom == "Main.kt" }.uri,
+            ),
+        )
+        avancer()
+
+        // Le geste de sortie, sans onglet sale.
+        viewModel.onAction(ActionEditor.Quitter)
+        avancer()
+
+        // v0.183.0 : le geste NE REFERME RIEN — le dialogue « Fermer le
+        // projet ? » s'affiche (ConfirmerSortie), jamais Quitter direct.
+        assertTrue(
+            "le dialogue honnête s'affiche",
+            effets.filterIsInstance<EffetEditor.ConfirmerSortie>().isNotEmpty(),
+        )
+        assertTrue(
+            "aucune fermeture silencieuse : pas d'effet Quitter",
+            effets.none { it is EffetEditor.Quitter },
+        )
+        // L'espace VIT encore : l'onglet est toujours ouvert.
+        assertEquals(1, viewModel.etat.value.onglets.size)
+    }
+
+    @Test
+    fun `la sortie confirmee efface toute reprise — la reouverture ne rouvre AUCUN onglet`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/Main.kt",
+            FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "un".toByteArray()),
+        )
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/Autre.kt",
+            FakeFileSystem.Document(name = "Autre.kt", isDirectory = false, bytes = "deux".toByteArray()),
+        )
+        val effets = mutableListOf<EffetEditor>()
+        val sauvetage =
+            androidx.lifecycle.SavedStateHandle(
+                mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
+            )
+        val viewModel = viewModel(alpha, sauvetage)
+        avancer()
+        collecterEffets(viewModel, effets)
+        viewModel.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Main.kt"))
+        viewModel.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Autre.kt"))
+        avancer()
+        assertTrue("pré-condition : deux onglets ouverts", viewModel.etat.value.onglets.size == 2)
+
+        // Geste → dialogue honnête → réponse « Fermer le projet ».
+        viewModel.onAction(ActionEditor.Quitter)
+        avancer()
+        viewModel.onAction(ActionEditor.SortieConfirmee)
+        avancer()
+
+        assertTrue("la sortie confirmée part", effets.last() is EffetEditor.Quitter)
+        // Le sauvetage de processus ne ressuscitera RIEN (la mort du
+        // processus restaure, la sortie EXPLICITE n'existe plus).
+        assertFalse(
+            "clef d'onglets retirée du sauvetage",
+            sauvetage.contains(ClesEditor.CLE_ONGLETS),
+        )
+        assertFalse(
+            "clef d'index retirée du sauvetage",
+            sauvetage.contains(ClesEditor.CLE_INDEX_ACTIF),
+        )
+
+        // Destruction réelle : l'état d'espace FINAL part VIDE.
+        viewModel.detruire()
+        avancer()
+        val etatEcrit =
+            kotlinx.serialization.json.Json.decodeFromString<jo.codeide.core.domain.EtatEspace>(
+                fichiers
+                    .readText("$URI_DOCUMENT_PROJET/.codeide/local/workspace-state.json")
+                    .getOrNull()!!,
+            )
+        assertTrue("workspace-state vide : aucun onglet persisté", etatEcrit.onglets.isEmpty())
+        assertEquals("workspace-state vide : aucun index actif", -1, etatEcrit.indexActif)
+
+        // Réouverture : AUCUN onglet ne ressuscite (retour propriétaire
+        // v0.183.0 : « les onglets doivent être fermés à la fermeture
+        // du projet »).
+        val seconde = viewModel(alpha)
+        avancer()
+        assertTrue("la réouverture repart à blanc", seconde.etat.value.onglets.isEmpty())
+    }
+
+    @Test
+    fun `la sortie confirmee apres sauvegarde des onglets sales efface AUSSI la reprise`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        fichiers.seedDocument(
+            "$URI_DOCUMENT_PROJET/Main.kt",
+            FakeFileSystem.Document(name = "Main.kt", isDirectory = false, bytes = "fun main()".toByteArray()),
+        )
+        val effets = mutableListOf<EffetEditor>()
+        val sauvetage =
+            androidx.lifecycle.SavedStateHandle(
+                mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value),
+            )
+        val viewModel = viewModel(alpha, sauvetage)
+        avancer()
+        collecterEffets(viewModel, effets)
+        viewModel.onAction(ActionEditor.OuvrirFichier("$URI_DOCUMENT_PROJET/Main.kt"))
+        avancer()
+        viewModel.sessionDe("$URI_DOCUMENT_PROJET/Main.kt")!!.replaceRange(0, 0, "// note\n")
+        assertTrue("pré-condition : l'onglet est sale", viewModel.etat.value.onglets.single().isDirty)
+
+        // Sortie avec onglet sale : confirmation agrégée (Enregistrer /
+        // Ne pas enregistrer / Annuler), puis « Enregistrer ».
+        viewModel.onAction(ActionEditor.Quitter)
+        avancer()
+        val confirmation = effets.filterIsInstance<EffetEditor.ConfirmerFermeture>().single()
+        assertTrue("la confirmation agrégée demande la sortie", confirmation.quitter)
+        viewModel.onAction(ActionEditor.EnregistrerPuisFermer(confirmation.uris, quitter = true))
+        avancer()
+
+        // La sauvegarde a eu lieu (contrat inchangé)…
+        assertEquals("// note\nfun main()", fichiers.readText("$URI_DOCUMENT_PROJET/Main.kt").getOrNull())
+        assertTrue("…et la sortie part", effets.last() is EffetEditor.Quitter)
+        // …mais la reprise est AUSSI effacée : cette sortie-là est
+        // EXPLICITE, pas une mort de processus.
+        assertFalse(sauvetage.contains(ClesEditor.CLE_ONGLETS))
+        assertFalse(sauvetage.contains(ClesEditor.CLE_INDEX_ACTIF))
+
+        viewModel.detruire()
+        avancer()
+        val etatEcrit =
+            kotlinx.serialization.json.Json.decodeFromString<jo.codeide.core.domain.EtatEspace>(
+                fichiers
+                    .readText("$URI_DOCUMENT_PROJET/.codeide/local/workspace-state.json")
+                    .getOrNull()!!,
+            )
+        assertTrue("la sortie sauvegardée ne laisse AUCUN onglet derrière", etatEcrit.onglets.isEmpty())
     }
 }

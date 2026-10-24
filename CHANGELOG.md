@@ -1,5 +1,88 @@
 # Journal des modifications
 
+## [0.183.0] – 2026-10-25
+
+### Le projet se ferme HONNÊTEMENT — onglets, tooling, retour et panneau (retour propriétaire : six corrections)
+
+#### Corrigé
+
+- **Les onglets ne ressuscitent plus après une fermeture explicite du
+  projet** (retour propriétaire : « réouvrir un projet rouvre les
+  onglets ouverts à la fermeture précédente — ils doivent être fermés
+  à la fermeture du projet ») : la sortie est désormais EXPLICITE et
+  efface les DEUX mécanismes de reprise — le sauvetage de processus
+  (`SavedStateHandle`, clefs `onglets_ouverts`/`index_onglet_actif`
+  retirées par `quitterEspace`) ET l'état d'espace
+  (`workspace-state.json` part VIDE à la fermeture confirmée) — la
+  réouverture repart à blanc. La MORT du processus (kill, rotation,
+  panne mémoire) reste l'exception qui RESTAURE : elle ne passe jamais
+  par le nouveau chemin `SortieConfirmee`.
+- **Plus de fermeture silencieuse au retour ou au menu** : sans onglet
+  sale, le retour système et « Fermer le projet » affichent le dialogue
+  honnête « Fermer le projet ? » (`ConfirmerSortie`) qui énonce les
+  conséquences — onglets refermés, réouverture à blanc, session ET
+  tooling arrêtés ; avec onglets sales, la confirmation agrégée
+  (Enregistrer / Ne pas enregistrer / Annuler) subsiste, et ses DEUX
+  issues de sortie passent elles aussi par l'effacement de reprise.
+  Le retour système est TOUJOURS actif : plus d'état où le geste
+  n'était simplement pas branché.
+- **« Fermer le projet » réagit au PREMIER geste — LSP ET tooling**
+  (retour propriétaire : « plusieurs appuis nécessaires, la fermeture
+  doit toucher les LSP et le tooling, pas seulement les LSP ») : le
+  `LspProject.shutdown()` peut attendre l'extinction des processus de
+  langue pendant des secondes — il ne fige PLUS le fil principal
+  pendant le `finish()` (extinction déportée dans la portée des
+  fermetures de session, le débranchement reste synchrone) ; et le
+  daemon orchestrateur du tooling Gradle suit désormais le CYCLE de
+  l'ESPACE : il démarre avec l'ouverture du projet
+  (`RegistreCycleDaemonTooling` posé par l'app) et s'éteint à la
+  fermeture du DERNIER espace vivant (anti-relance, garde-fous :
+  rotation sans `isFinishing`, autre espace vivant, build en vol).
+- **Éditeur → Paramètres → retour : l'espace vivant est REMONTÉ**
+  (retour propriétaire : « le retour ramenait à l'accueil et la
+  réouverture redémarrant le tooling ») : l'espace note sa PROVENANCE
+  au départ vers le graphe (`noterProvenanceEditeur`) ; le RETOUR
+  depuis l'écran maître des paramètres intercepte et remonte CET
+  espace vivant (REORDER_TO_FRONT — session et tooling intacts) au
+  lieu de retomber sur l'accueil. Et l'accueil qui ré-ouvre un projet
+  DÉJÀ OUVERT remonte son instance vivante (`instanceEditeurPour`,
+  références faibles) au lieu d'en empiler une neuve — plus de
+  resynchronisation tooling parasite.
+- **Le panneau inférieur (BottomSheet) ne masque plus l'éditeur replié
+  et ne torpille plus la frappe de ses propres champs** (retour
+  propriétaire : « en collapse il masque une partie de la section
+  éditeur + conflit avec le clavier, les fragments du bottomsheet
+  requièrent parfois le clavier ») — DEUX causes racines :
+  - `setOnApplyWindowInsetsListener` ne garde qu'UN listener par vue :
+    celui des barres système (posé par `brancherPanneauInferieur`)
+    était silencieusement ÉCRASÉ par celui du clavier (posé après dans
+    `brancherBarreSymboles`) — plus AUCUN inset de navigation
+    n'arrivait et la réserve sous l'éditeur n'était posée qu'aux
+    changements de peek : au PREMIER rendu, l'éditeur naissait SOUS le
+    panneau replié. Désormais le listener UNIQUE de l'activité nourrit
+    les DEUX consommateurs (`surInsetsBarres`), et la réserve est
+    posée DÈS le branchement (avant même le premier dispatch) ;
+  - le clavier du PANNEAU (saisie console, filtre logcat) masquait le
+    panneau entier — la frappe se faisait À L'AVEUGLE. Désormais le
+    FOCUS dit qui possède le clavier : la saisie du panneau le garde
+    VISIBLE, l'étend pour la frappe (une seule écriture, à la
+    transition) et son contenu remonte au-dessus de l'IME
+    (`surClavierPanneau`, réappliqué à chaque trame de l'animation) ;
+    la saisie de l'ÉDITEUR garde le comportement historique (panneau
+    masqué, barre de symboles au clavier — jamais les deux).
+
+#### Modifié
+
+- **Design des onglets de fichiers** (retour propriétaire : « le
+  background sur l'onglet actif et le bouton close plus petit ») :
+  l'onglet SÉLECTIONNÉ porte une pilule de fond `colorSurfaceContainerHigh`
+  (rôle Material3 — jour, nuit et couleurs dynamiques suivies,
+  sélecteur `state_selected`), l'indicateur de soulignement est
+  retiré (pilule + trait = double signal) ; la fermeture incrustée
+  passe à 36 dp de zone tactile (padding composé pour une icône de
+  18 dp) — une commande de second rang dans l'onglet n'a pas besoin
+  de la cote de premier rang.
+
 ## [0.182.1] – 2026-10-25
 
 ### Le flaky CI de l'arrêt forcé réglé À LA RACINE — la fenêtre de course du démontage du JDK (suite directe d'ADR 0063)
