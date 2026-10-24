@@ -111,8 +111,17 @@ internal data class EnteteDetailIndexation(
  * Texte localisable produit par le présentateur (patron [TexteTooling]).
  */
 internal sealed interface TexteIndexation {
-    /** Libellé d'une ressource de chaîne (identifiant + arguments). */
-    data class Ressource(val id: Int, val args: List<String> = emptyList()) : TexteIndexation
+    /**
+     * Libellé d'une ressource de chaîne (identifiant + arguments).
+     *
+     * Les arguments doivent CONFORMER aux substituants de la ressource :
+     * un `%1$d` exige un [Int] — v0.178.1 plantait à l'ouverture du
+     * panneau (rapport 032311ee, `IllegalFormatConversionException :
+     * d != java.lang.String`) parce que les décomptes de reprises
+     * arrivaient interpolés en `String`. Ne JAMAIS interpoler un nombre
+     * destiné à un `%d` — passer l'entier tel quel.
+     */
+    data class Ressource(val id: Int, val args: List<Any> = emptyList()) : TexteIndexation
 
     /** Libellé brut (message technique déjà formulé). */
     data class Brut(val texte: String) : TexteIndexation
@@ -499,12 +508,15 @@ internal object PresentationIndexation {
      * ne comptent pas leurs reprises). Libellé v0.178.1 : chaque décompte
      * précède son nombre — un substituant suivi d'un mot déclenche le
      * heuristique lint PluralsCandidate (correctif CI de v0.178.0).
+     * v0.178.2 : les décomptes passent en [Int] — la ressource dit
+     * `%1$d`/`%2$d` et des `String` interpolées levaient
+     * `IllegalFormatConversionException` (rapport 032311ee).
      */
     private fun resumeReprisesDe(phase: PhaseIndexation, java: EtatIndexation?): TexteIndexation? =
         if (phase == PhaseIndexation.CONSTRUCTION && java != null && java.faits > 0) {
             TexteIndexation.Ressource(
                 R.string.editor_indexation_reprises,
-                listOf("${java.reprises}", "${java.faits - java.reprises}"),
+                listOf(java.reprises, java.faits - java.reprises),
             )
         } else {
             null
