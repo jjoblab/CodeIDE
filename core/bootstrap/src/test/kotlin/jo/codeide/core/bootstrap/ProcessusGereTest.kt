@@ -23,10 +23,14 @@ import java.util.concurrent.TimeUnit
  * Sur Android (libcore), la mort du process referme les descripteurs
  * depuis un AUTRE fil et RÉVEILLE la lecture bloquée par
  * [InterruptedIOException] — notre supervision a DÉCIDÉ de fermer : la fin
- * du flux est NORMALE. Sur JVM bureau, la fermeture par un autre fil ne
- * réveille PAS la lecture (constaté empiriquement) : le mécanisme est
- * rejoué sur un process factice au flux scripté, et le kill réel couvre
- * le chemin EOF de la JVM des tests.
+ * du flux est NORMALE. Sur JVM bureau, la faucheuse du JDK
+ * (`ProcessPipeInputStream.processExited`) referme le tuyau dès le
+ * décès du process, parfois AVANT que la mort soit visible dans
+ * `isAlive` — la lecture prend « Stream closed » au lieu d'un EOF
+ * (course relevée en CI le 2026-10-24, run v0.182.0) : le mécanisme
+ * est rejoué sur un process factice au flux scripté (interruption ET
+ * fenêtre de course), et le kill réel couvre le chemin EOF de la JVM
+ * des tests.
  */
 class ProcessusGereTest {
     /** Process factice : flux d'entrée scripté, vie contrôlée par le test. */
@@ -116,6 +120,32 @@ class ProcessusGereTest {
     }
 
     @Test
+    fun `un stream closed pendant la fenetre de demontage termine le flux sans exception`() = runBlocking {
+        // Régression CI du 2026-10-24 (run v0.182.0) : la faucheuse du JDK
+        // referme le tuyau dès le décès du process, parfois AVANT que le
+        // drapeau de mort soit visible — isAlive() répond encore VRAI à
+        // l'instant de l'IOException et la lecture prend « Stream closed »
+        // au lieu d'un EOF. La grâce bornée de ProcessusGere doit
+        // trancher « mort » : fin NORMALE, sans exception au collecteur.
+        var consultations = 0
+        val process =
+            ProcessFactice(
+                FluxDemonte(ByteArray(0)) {
+                    throw IOException("Stream closed")
+                },
+                // Fenêtre de course : 2 sondes « vivant » (le drapeau du
+                // JDK ment encore), puis le drapeau se stabilise sur mort.
+                vivant = { consultations++ < 2 },
+            )
+        val gere = ProcessusGere(process, Dispatchers.IO)
+
+        val lignes = mutableListOf<String>()
+        withTimeout(5_000) { gere.stdoutLines().toList(lignes) }
+
+        assertTrue(lignes.isEmpty())
+    }
+
+    @Test
     fun `un flux ferme sur un process mort termine le flux normalement`() = runBlocking {
         val process =
             ProcessFactice(
@@ -150,7 +180,9 @@ class ProcessusGereTest {
             }.exceptionOrNull()
 
         // Une erreur de lecture sur un process VIVANT est une vraie
-        // erreur : elle remonte au consommateur.
+        // erreur : elle remonte au consommateur — mais seulement APRÈS la
+        // grâce bornée de démontage (250 ms ici) : le drapeau ne bouge
+        // pas, le process vit vraiment.
         assertTrue("IOException attendue, reçue : $levee", levee is IOException)
     }
 

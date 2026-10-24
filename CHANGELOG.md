@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.182.1] – 2026-10-25
+
+### Le flaky CI de l'arrêt forcé réglé À LA RACINE — la fenêtre de course du démontage du JDK (suite directe d'ADR 0063)
+
+#### Corrigé
+
+- **`IOException: Stream closed` au lieu d'un EOF sur l'arrêt forcé d'un
+  process** (relevé en CI le 2026-10-24, run v0.182.0 —
+  `ProcessusGereTest > l'arrêt forcé pendant la lecture bloquée termine
+  le flux sans exception`, 1 échec sur 210) : quand le process meurt,
+  la faucheuse du JDK (`ProcessPipeInputStream.processExited`) referme
+  le tuyau DEPUIS UN AUTRE FIL, parfois AVANT que la mort du process
+  soit visible dans `isAlive()` — la lecture bloquée prend alors
+  « Stream closed » au lieu d'un EOF, et le garde
+  « erreur sur process vivant » laisse fuir l'exception puisque le
+  drapeau ment encore pendant la fenêtre. Même famille exacte que le
+  `InterruptedIOException` du journal de terrain v0.35.2 (ADR 0063,
+  plantage d'EditorActivity 56 ms après « orchestrateur muet — arrêt
+  forcé ») : la supervision a DÉCIDÉ de fermer, la fin du flux est
+  NORMALE.
+- **Grâce bornée de démontage** dans `ProcessusGere.lignes` : avant de
+  trancher une erreur de lecture sur process « vivant », re-sonde de
+  `isAlive()` pendant 250 ms par paliers de 25 ms — si le drapeau se
+  stabilise sur mort (le cas de la course, quelques millisecondes),
+  fin NORMALE du flux ; au-delà de la grâce, le process vit
+  RÉELLEMENT et l'erreur remonte au collecteur comme avant — le
+  contrat « erreur de lecture sur process vivant = vraie erreur » est
+  INTACT (seul son verdict est retardé de la grâce, uniquement sur le
+  chemin d'erreur).
+- **Test de régression déterministe** de la fenêtre de course : faux
+  process dont `isAlive()` ment pendant 2 sondes puis se stabilise
+  sur mort — le flux doit se terminer SANS exception (échouait
+  systématiquement avant le correctif, aléatoirement en CI après) ;
+  l'en-tête du test corrige au passage une affirmation empiriquement
+  fausse (« la fermeture par un autre fil ne réveille pas la lecture
+  sur JVM bureau » — la faucheuse du JDK fait exactement cela, d'où
+  la course).
+
 ## [0.182.0] – 2026-10-25
 
 ### Le go-to cross-fichier ouvre ENFIN un onglet (fichier projet avec saut à la déclaration, ou buffer DÉCOMPILÉ lecture seule pour les types binaires — `AppCompatActivity` comme dans Android Studio) + montée codeide-lsp 1.9.0 → 1.9.1 (complétion Java rapide et honnête)
