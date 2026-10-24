@@ -66,6 +66,15 @@ internal class ProcessusGere(private val processus: Process, private val io: Cor
      * démontage) ; pendant qu'il vit, elle reste une VRAIE erreur de
      * lecture et remonte telle quelle.
      *
+     * La JVM bureau a sa PROPRE manifestation du même démontage (relevée
+     * en CI le 2026-10-24, run v0.182.0) : la faucheuse du JDK
+     * (`ProcessPipeInputStream.processExited`) referme le tuyau dès le
+     * décès, parfois AVANT que la mort soit visible dans [isAlive] — la
+     * lecture bloquée prend « Stream closed » au lieu d'un EOF et le
+     * drapeau ment encore à l'instant du diagnostic.
+     * [estToujoursVivantApresGrace] borne cette fenêtre : quelques
+     * dizaines de millisecondes de re-sonde, puis le vrai verdict.
+     *
      * Exemption ciblée (SwallowedException) : la fermeture interrompue EST
      * l'information de fin (démontage délibéré du superviseur) — la fin
      * silencieuse du flux est le comportement documenté au port, même
@@ -87,13 +96,42 @@ internal class ProcessusGere(private val processus: Process, private val io: Cor
         } catch (fermee: IOException) {
             // Process déjà mort : bruit de démontage du tuyau, fin
             // normale — vivant, c'est une vraie erreur de lecture.
-            if (processus.isAlive) throw fermee
+            if (estToujoursVivantApresGrace()) throw fermee
         }
     }.flowOn(io)
+
+    /**
+     * Grâce bornée avant de juger une erreur de lecture sur process
+     * « vivant » : la faucheuse du JDK referme le tuyau AVANT que la
+     * mort du process soit visible dans [isAlive] (course connue de
+     * `ProcessPipeInputStream.processExited` — relevée en CI le
+     * 2026-10-24 : « Stream closed » au lieu d'un EOF, drapeau pas
+     * encore retourné). Quelques dizaines de millisecondes suffisent
+     * au drapeau pour se stabiliser sur mort ; au-delà de la grâce,
+     * le process vit RÉELLEMENT et l'erreur remonte au collecteur
+     * (contrat inchangé).
+     */
+    private suspend fun estToujoursVivantApresGrace(): Boolean {
+        var attente = GRACE_DEMONTAGE_MS
+        while (attente > 0) {
+            if (!processus.isAlive) return false
+            val palier = minOf(PAS_GRACE_MS, attente)
+            delay(palier)
+            attente -= palier
+        }
+        return processus.isAlive
+    }
 
     private companion object {
         /** Période de sonde de [awaitExit] (millisecondes). */
         private const val PERIODE_SONDE = 100L
+
+        /** Grâce totale avant de trancher une IOException de démontage
+         *  (la fenêtre de course du JDK se referme en quelques ms). */
+        private const val GRACE_DEMONTAGE_MS = 250L
+
+        /** Pas de re-sonde de la grâce de démontage (millisecondes). */
+        private const val PAS_GRACE_MS = 25L
     }
 
     // Exemption ciblée (SwallowedException) : la réflexion peut échouer
