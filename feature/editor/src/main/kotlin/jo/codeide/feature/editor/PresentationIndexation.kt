@@ -1,16 +1,18 @@
 package jo.codeide.feature.editor
 
 import jo.codeide.lsp.host.BilanDernierPassageIndexation
+import jo.codeide.lsp.host.BreakdownIndexeurIndexation
 import jo.codeide.lsp.host.EtatIndexation
-import jo.codeide.lsp.host.PhaseDetailleeIndexation
 import jo.codeide.lsp.host.PhaseIndexation
 
 /**
  * Modèle d'affichage de l'indexation (Phase B prompt 2, ADR 0117 §4.4 —
- * lot B4). Produit par [PresentationIndexation] à partir de
- * [EtatIndexation] (lsp:host). Le présentateur est PUR — il ne touche
- * ni `Context` ni vue ; la résolution des libellés localisés a lieu au
- * dernier moment par l'appelant (patron [PresentationTooling]).
+ * lot B4 ; v0.178.0, ADR 0145 : MULTI-MOTEURS). Produit par
+ * [PresentationIndexation] à partir de [EtatsMoteursIndexation]
+ * (l'agrégat Java + Kotlin + XML de `EditorViewModel`). Le présentateur
+ * est PUR — il ne touche ni `Context` ni vue ; la résolution des
+ * libellés localisés a lieu au dernier moment par l'appelant (patron
+ * [PresentationTooling]).
  *
  * Le modèle transporte des ÉNUMÉRATIONS (jamais de chaînes comparables —
  * règle §5.11 du prompt 2) et des données brutes (nombres, durées en ms).
@@ -60,16 +62,27 @@ internal enum class EtatPastilleIndexation {
 
 /**
  * Panneau de détail (bottom sheet) — affiché au toucher de la pastille.
+ * V0.178.0 (ADR 0145) : sections de la maquette ENFIN complètes —
+ * vue par moteur MULTI-MOTEURS, entrées écartées, erreurs bloquantes,
+ * résumé des reprises, histogramme des coûts.
  */
 internal data class PanneauDetailIndexation(
-    /** En-tête du panneau (icône + titre + sous-titre). */
+    /** En-tête du panneau (icône + titre + sous-titre + pourcentage). */
     val entete: EnteteDetailIndexation,
     /** Barre de progression (déterminée ou indéterminée). */
     val progression: ProgressionDetailIndexation,
+    /** Résumé des reprises pendant la construction. `null` sinon. */
+    val resumeReprises: TexteIndexation?,
     /** Liste de travail (entrées en cours), triée. `null` si non applicable. */
     val listeTravail: List<EntreeDetailIndexation>?,
-    /** Vue par moteur (Java, Kotlin, etc.). `null` si non applicable. */
+    /** Vue par moteur (Java, Kotlin, XML). `null` si non applicable. */
     val moteurs: List<MoteurDetailIndexation>?,
+    /** Entrées écartées (index PARTIEL — jar illisible, AAR sans jar…). */
+    val entreesEcartees: List<EntreeEcarteeDetail>,
+    /** Erreurs bloquantes (index ERREUR — stockage illisible…). */
+    val erreursBloquantes: List<EntreeEcarteeDetail>,
+    /** Histogramme « ce qui a coûté le plus de temps » (au repos). */
+    val couts: List<CoutDetailIndexation>,
     /** Bilan du dernier passage. `null` si aucun passage. */
     val bilan: BilanDetailIndexation?,
     /** Action(s) proposée(s) à l'utilisateur. */
@@ -89,6 +102,9 @@ internal data class EnteteDetailIndexation(
     val titre: Int,
     /** Sous-titre localisé (identifiant de ressource + arguments). */
     val sousTitre: TexteIndexation,
+    /** Pourcentage affiché à droite de l'en-tête pendant la construction,
+     *  `null` sinon (maquette §2 : « 62 % »). */
+    val pourcentageDroite: Int?,
 )
 
 /**
@@ -103,7 +119,8 @@ internal sealed interface TexteIndexation {
 }
 
 /**
- * Barre de progression du panneau de détail.
+ * Barre de progression du panneau de détail. VISIBLE seulement pendant
+ * la construction (maquette : pas de barre au repos ni en erreur).
  */
 internal data class ProgressionDetailIndexation(
     /** `true` pour une barre indéterminée (total inconnu), `false` pour
@@ -115,7 +132,21 @@ internal data class ProgressionDetailIndexation(
     val compteur: TexteIndexation?,
     /** Estimation du temps restant (ms). `null` si non fiable. */
     val tempsRestantMs: Long?,
-)
+    /** La barre est-elle VISIBLE ? (construction seule — v0.178.0). */
+    val visible: Boolean,
+) {
+    public companion object {
+        /** Barre cachée (repos, partiel, erreur). */
+        public val MASQUEE: ProgressionDetailIndexation =
+            ProgressionDetailIndexation(
+                indeterminee = false,
+                fraction = 1f,
+                compteur = null,
+                tempsRestantMs = null,
+                visible = false,
+            )
+    }
+}
 
 /**
  * Entrée de la liste de travail dans le panneau de détail.
@@ -148,16 +179,28 @@ internal enum class EtatEntreeDetail {
 }
 
 /**
- * Vue par moteur dans le panneau de détail.
+ * Entrée ÉCARTÉE ou ERREUR BLOQUANTE du panneau — message technique déjà
+ * formulé par le moteur (brut par nature, jamais un libellé comparable).
+ */
+internal data class EntreeEcarteeDetail(
+    /** Message (ex. `legacy-utils.jar : jar illisible`). */
+    val texte: String,
+)
+
+/**
+ * Vue par moteur dans le panneau de détail (v0.178.0, ADR 0145 : la
+ * liste itère l'agrégat, AUCUN moteur nommé — Java/Kotlin/XML vivent
+ * dans [MoteurIndexation], un moteur absent de l'agrégat n'a pas de
+ * rangée).
  */
 internal data class MoteurDetailIndexation(
-    /** Nom du moteur (Java, Kotlin, etc.). */
+    /** Nom du moteur (Java, Kotlin, XML — ressource). */
     val nom: Int,
-    /** Couleur d'accent du moteur (token de couleur). */
+    /** Couleur d'accent du moteur (token de langage, ADR 0059). */
     val couleurAccent: Int,
     /** État du moteur. */
     val etat: EtatMoteurDetail,
-    /** Détail localisé (ex. « 118/191 », « Prêt », « Partiel »). */
+    /** Détail localisé (ex. « 118/191 », « Prêt », « En construction »). */
     val detail: TexteIndexation?,
 )
 
@@ -176,7 +219,23 @@ internal enum class EtatMoteurDetail {
 
     /** Erreur. */
     ERREUR,
+
+    /** En attente de synchronisation. */
+    INITIAL,
 }
+
+/**
+ * Barre de l'histogramme « ce qui a coûté le plus de temps » (au repos,
+ * maquette §4 : 3 indexeurs les plus coûteux, largeur relative au max).
+ */
+internal data class CoutDetailIndexation(
+    /** Libellé de l'indexeur (ex. « Noms de classes Java »). */
+    val libelle: String,
+    /** Durée cumulée (ms). */
+    val millisecondes: Long,
+    /** Largeur relative (0.0-1.0, 1.0 = indexeur le plus coûteux). */
+    val fraction: Float,
+)
 
 /**
  * Bilan du dernier passage dans le panneau de détail.
@@ -201,16 +260,22 @@ internal data class BilanDetailIndexation(
 )
 
 /**
- * Action proposée à l'utilisateur dans le panneau de détail.
+ * Action proposée à l'utilisateur dans le panneau de détail. V0.178.0
+ * (ADR 0145) : [ANNULER] n'est plus ÉMIS — aucun point d'annulation
+ * n'existe (docs/DEMANDES_CODEIDE_LSP.md D5) et un bouton mort était
+ * pire qu'une absence (retour propriétaire « réparé le design »).
  */
 internal enum class ActionDetailIndexation {
     /** Réindexer tout. */
     REINDEXER,
 
-    /** Réessayer les entrées échouées seulement. */
+    /** Réessayer les entrées échouées seulement — mappées sur la
+     *  revalidation+auto-guérison tant que le dépôt frère n'expose pas
+     *  de réessai ciblé (docs/DEMANDES_CODEIDE_LSP.md D4). */
     REESSAYER_ECHECS,
 
-    /** Annuler le passage en cours. */
+    /** Annuler le passage en cours (RÉSERVÉ — émis quand le dépôt frère
+     *  livrera [D5] ; jamais émis aujourd'hui). */
     ANNULER,
 }
 
@@ -240,36 +305,39 @@ internal enum class NiveauNoteImpact {
 
 /**
  * Présentateur PUR de l'écran d'indexation (Phase B prompt 2, ADR 0117
- * §4.4 — lot B4). Transforme [EtatIndexation] (lsp:host) en
- * [ModeleAffichageIndexation] (modèle d'affichage immutable, sans
- * aucune référence Android). Testé unitairement — tous les états, y
- * compris partiel avec avertissements, erreur, passage vide, total
- * inconnu, estimation non fiable.
+ * §4.4 — lot B4 ; v0.178.0, ADR 0145 : MULTI-MOTEURS). Transforme
+ * [EtatsMoteursIndexation] (agrégat des moteurs Java + Kotlin + XML,
+ * état global = PIRE phase) en [ModeleAffichageIndexation] (modèle
+ * d'affichage immutable, sans aucune référence Android). Testé
+ * unitairement — tous les états, y compris multi-moteurs divergents
+ * (Java en construction pendant que Kotlin est prêt), partiel avec
+ * écarts, erreur bloquante, barre indéterminée, histogramme des coûts.
  *
  * Patron : [PresentationTooling] — le présentateur ne touche ni
  * `Context` ni vue ; la résolution des libellés localisés a lieu au
  * dernier moment par l'appelant.
  *
- * Exemption detekt ciblée (règle 16) : `TooManyFunctions` — 15
- * fonctions, seuil à 11. Chaque fonction traduit un CHAMP distinct de
- * `EtatIndexation` ; les regrouper masquerait la structure du
- * présentateur. Même précédent que `PresentationTooling` (v4, §3.2).
+ * Exemption detekt ciblée (règle 16) : `TooManyFunctions` — chaque
+ * fonction traduit une SECTION DISTINCTE du panneau (miroir des
+ * champs de [PanneauDetailIndexation]) ; les regrouper masquerait la
+ * structure du présentateur. Même précédent que `PresentationTooling`
+ * (v4, §3.2).
  */
 @Suppress("TooManyFunctions")
 internal object PresentationIndexation {
     /**
-     * Produit le modèle d'affichage à partir de l'état d'indexation.
+     * Produit le modèle d'affichage à partir de l'agrégat des moteurs.
      *
-     * @param etat état d'indexation (Java, transmis par l'activité).
+     * @param etats agrégat multi-moteurs (Java + Kotlin + XML).
      * @return modèle d'affichage (pastille + panneau de détail).
      */
-    fun afficher(etat: EtatIndexation): ModeleAffichageIndexation = ModeleAffichageIndexation(
-        pastille = pastilleDe(etat),
-        panneau = panneauDe(etat),
+    fun afficher(etats: EtatsMoteursIndexation): ModeleAffichageIndexation = ModeleAffichageIndexation(
+        pastille = pastilleDe(etats),
+        panneau = panneauDe(etats),
     )
 
-    /** Pastille de toolbar selon l'état. */
-    private fun pastilleDe(etat: EtatIndexation): PastilleIndexation = when (etat.phase) {
+    /** Pastille de toolbar — l'état global est la PIRE phase (ADR 0145). */
+    private fun pastilleDe(etats: EtatsMoteursIndexation): PastilleIndexation = when (val phase = etats.pirePhase) {
         PhaseIndexation.INITIAL -> {
             PastilleIndexation(
                 etat = EtatPastilleIndexation.INITIAL,
@@ -279,10 +347,9 @@ internal object PresentationIndexation {
         }
 
         PhaseIndexation.CONSTRUCTION -> {
-            val pct = pourcentageDe(etat.faits, etat.total)
             PastilleIndexation(
                 etat = EtatPastilleIndexation.CONSTRUCTION,
-                pourcentage = pct,
+                pourcentage = pourcentageDe(etats.etatJava),
                 masqueeEtroit = false,
             )
         }
@@ -312,25 +379,33 @@ internal object PresentationIndexation {
         }
     }
 
-    /** Panneau de détail selon l'état. */
-    @Suppress("LongMethod") // traduction exhaustive de tous les états
-    private fun panneauDe(etat: EtatIndexation): PanneauDetailIndexation =
-        PanneauDetailIndexation(
-            entete = enteteDe(etat),
-            progression = progressionDe(etat),
-            listeTravail = listeTravailDe(etat),
-            moteurs = moteursDe(etat),
-            bilan = bilanDe(etat),
-            actions = actionsDe(etat),
-            noteImpact = noteImpactDe(etat),
+    /** Panneau de détail selon l'agrégat. */
+    @Suppress("LongMethod") // traduction exhaustive de toutes les sections
+    private fun panneauDe(etats: EtatsMoteursIndexation): PanneauDetailIndexation {
+        val java = etats.etatJava
+        return PanneauDetailIndexation(
+            entete = enteteDe(etats.pirePhase, java),
+            progression = progressionDe(etats.pirePhase, java),
+            resumeReprises = resumeReprisesDe(etats.pirePhase, java),
+            listeTravail = listeTravailDe(java),
+            moteurs = moteursDe(etats),
+            entreesEcartees = entreesEcarteesDe(java),
+            erreursBloquantes = erreursBloquantesDe(java),
+            couts = coutsDe(java),
+            bilan = bilanDe(java),
+            actions = actionsDe(etats.pirePhase, java),
+            noteImpact = noteImpactDe(etats.pirePhase, java),
         )
+    }
 
-    private fun enteteDe(etat: EtatIndexation): EnteteDetailIndexation = when (etat.phase) {
+    /** En-tête — titre + sous-titre de la phase GLOBALE (pire phase). */
+    private fun enteteDe(phase: PhaseIndexation, java: EtatIndexation?): EnteteDetailIndexation = when (phase) {
         PhaseIndexation.INITIAL -> {
             EnteteDetailIndexation(
                 etat = EtatPastilleIndexation.INITIAL,
                 titre = R.string.editor_indexation_initial_titre,
                 sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_initial_soustitre),
+                pourcentageDroite = null,
             )
         }
 
@@ -339,14 +414,15 @@ internal object PresentationIndexation {
                 etat = EtatPastilleIndexation.CONSTRUCTION,
                 titre = R.string.editor_indexation_construction_titre,
                 sousTitre =
-                if (etat.total > 0) {
+                if (java != null && java.total > 0) {
                     TexteIndexation.Ressource(
                         R.string.editor_indexation_construction_soustitre_n,
-                        listOf("${etat.faits}", "${etat.total}"),
+                        listOf("${java.faits}", "${java.total}"),
                     )
                 } else {
                     TexteIndexation.Ressource(R.string.editor_indexation_construction_soustitre)
                 },
+                pourcentageDroite = pourcentageDe(java),
             )
         }
 
@@ -355,6 +431,7 @@ internal object PresentationIndexation {
                 etat = EtatPastilleIndexation.PRET,
                 titre = R.string.editor_indexation_pret_titre,
                 sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_pret_soustitre),
+                pourcentageDroite = null,
             )
         }
 
@@ -363,10 +440,15 @@ internal object PresentationIndexation {
                 etat = EtatPastilleIndexation.PARTIEL,
                 titre = R.string.editor_indexation_partiel_titre,
                 sousTitre =
-                TexteIndexation.Ressource(
-                    R.string.editor_indexation_partiel_soustitre,
-                    listOf("${etat.faits}", "${etat.total}"),
-                ),
+                if (java != null && java.total > 0) {
+                    TexteIndexation.Ressource(
+                        R.string.editor_indexation_partiel_soustitre,
+                        listOf("${java.faits}", "${java.total}"),
+                    )
+                } else {
+                    TexteIndexation.Ressource(R.string.editor_indexation_partiel_soustitre_sans_n)
+                },
+                pourcentageDroite = null,
             )
         }
 
@@ -375,44 +457,61 @@ internal object PresentationIndexation {
                 etat = EtatPastilleIndexation.ERREUR,
                 titre = R.string.editor_indexation_erreur_titre,
                 sousTitre = TexteIndexation.Ressource(R.string.editor_indexation_erreur_soustitre),
+                pourcentageDroite = null,
             )
         }
     }
 
-    private fun progressionDe(etat: EtatIndexation): ProgressionDetailIndexation = when (etat.phase) {
-        PhaseIndexation.CONSTRUCTION -> {
-            val indeterminee = etat.total <= 0
-            val fraction = if (etat.total > 0) etat.faits.toFloat() / etat.total else 0f
-            val compteur =
-                if (etat.total > 0) {
-                    TexteIndexation.Ressource(
-                        R.string.editor_indexation_compteur_n_sur_n,
-                        listOf("${etat.faits}", "${etat.total}"),
-                    )
-                } else {
-                    null
-                }
-            ProgressionDetailIndexation(
-                indeterminee = indeterminee,
-                fraction = fraction,
-                compteur = compteur,
-                tempsRestantMs = null, // pas d'estimation fiable dans B4
-            )
-        }
-
-        else -> {
+    /**
+     * Progression — VISIBLE pendant la construction SEULE (maquette :
+     * pas de barre au repos ni en erreur). Java absent ou total inconnu
+     * → barre INDÉTERMINÉE (les moteurs synthétisés ne publient pas de
+     * compteurs — docs/DEMANDES_CODEIDE_LSP.md D3).
+     */
+    private fun progressionDe(phase: PhaseIndexation, java: EtatIndexation?): ProgressionDetailIndexation =
+        if (phase != PhaseIndexation.CONSTRUCTION) {
+            ProgressionDetailIndexation.MASQUEE
+        } else if (java != null && java.total > 0) {
             ProgressionDetailIndexation(
                 indeterminee = false,
-                fraction = 1f,
+                fraction = (java.faits.toFloat() / java.total).coerceIn(0f, 1f),
+                compteur =
+                TexteIndexation.Ressource(
+                    R.string.editor_indexation_compteur_n_sur_n,
+                    listOf("${java.faits}", "${java.total}"),
+                ),
+                tempsRestantMs = null, // pas d'estimation fiable (ADR 0117 Q2)
+                visible = true,
+            )
+        } else {
+            ProgressionDetailIndexation(
+                indeterminee = true,
+                fraction = 0f,
                 compteur = null,
                 tempsRestantMs = null,
+                visible = true,
             )
         }
-    }
 
-    private fun listeTravailDe(etat: EtatIndexation): List<EntreeDetailIndexation>? =
-        if (etat.phase == PhaseIndexation.CONSTRUCTION && etat.listeTravail.isNotEmpty()) {
-            etat.listeTravail.map {
+    /**
+     * Résumé des reprises pendant la construction (maquette §2 : « 96
+     * reprises, 22 reconstruites ») — Java seul (les moteurs synthétisés
+     * ne comptent pas leurs reprises).
+     */
+    private fun resumeReprisesDe(phase: PhaseIndexation, java: EtatIndexation?): TexteIndexation? =
+        if (phase == PhaseIndexation.CONSTRUCTION && java != null && java.faits > 0) {
+            TexteIndexation.Ressource(
+                R.string.editor_indexation_reprises,
+                listOf("${java.reprises}", "${java.faits - java.reprises}"),
+            )
+        } else {
+            null
+        }
+
+    /** Liste de travail — Java seul (état riche). */
+    private fun listeTravailDe(java: EtatIndexation?): List<EntreeDetailIndexation>? =
+        if (java != null && java.phase == PhaseIndexation.CONSTRUCTION && java.listeTravail.isNotEmpty()) {
+            java.listeTravail.map {
                 EntreeDetailIndexation(
                     nom = it.nom,
                     etat = traduireEtatEntree(it.etat),
@@ -431,60 +530,116 @@ internal object PresentationIndexation {
             jo.codeide.lsp.host.EtatEntreeTravailIndexation.ECARTE -> EtatEntreeDetail.ECARTE
         }
 
-    /** Vue par moteur — pour l'instant seul Java est géré (B3 note :
-     *  SessionLspKotlin.etatIndexation est reporté). */
-    private fun moteursDe(etat: EtatIndexation): List<MoteurDetailIndexation>? =
-        if (etat.phase != PhaseIndexation.INITIAL) {
-            listOf(
-                MoteurDetailIndexation(
-                    nom = R.string.editor_indexation_moteur_java,
-                    couleurAccent = jo.codeide.core.ui.R.color.codeide_langage_java,
-                    etat = traduireEtatMoteur(etat.phase),
-                    detail = detailMoteurJava(etat),
-                ),
+    /**
+     * Vue par moteur — UNE rangée par moteur PRÉSENT de l'agrégat
+     * (ADR 0145 : la boucle ignore les moteurs absents, aucun Java
+     * codé en dur).
+     */
+    private fun moteursDe(etats: EtatsMoteursIndexation): List<MoteurDetailIndexation>? = if (etats.moteurs.isEmpty()) {
+        null
+    } else {
+        etats.moteurs.map { present ->
+            MoteurDetailIndexation(
+                nom = present.moteur.nomRes,
+                couleurAccent = present.moteur.couleurAccentRes,
+                etat = traduireEtatMoteur(present.phase),
+                detail = detailMoteur(present.moteur, present.phase, present.etat),
             )
-        } else {
-            null
         }
+    }
 
     private fun traduireEtatMoteur(phase: PhaseIndexation): EtatMoteurDetail = when (phase) {
-        PhaseIndexation.INITIAL -> EtatMoteurDetail.CONSTRUCTION
+        PhaseIndexation.INITIAL -> EtatMoteurDetail.INITIAL
         PhaseIndexation.CONSTRUCTION -> EtatMoteurDetail.CONSTRUCTION
         PhaseIndexation.PRET -> EtatMoteurDetail.PRET
         PhaseIndexation.PARTIEL -> EtatMoteurDetail.PARTIEL
         PhaseIndexation.ERREUR -> EtatMoteurDetail.ERREUR
     }
 
-    private fun detailMoteurJava(etat: EtatIndexation): TexteIndexation? = when (etat.phase) {
-        PhaseIndexation.CONSTRUCTION -> {
-            if (etat.total > 0) {
-                TexteIndexation.Ressource(
-                    R.string.editor_indexation_compteur_n_sur_n,
-                    listOf("${etat.faits}", "${etat.total}"),
-                )
-            } else {
-                null
-            }
-        }
+    /** Détail d'UNE rangée moteur : compteur Java riche ou verbe synthétique. */
+    private fun detailMoteur(
+        moteur: MoteurIndexation,
+        phase: PhaseIndexation,
+        etat: EtatIndexation?,
+    ): TexteIndexation? = if (moteur == MoteurIndexation.JAVA && etat != null) {
+        when (phase) {
+            PhaseIndexation.CONSTRUCTION ->
+                if (etat.total > 0) {
+                    TexteIndexation.Ressource(
+                        R.string.editor_indexation_compteur_n_sur_n,
+                        listOf("${etat.faits}", "${etat.total}"),
+                    )
+                } else {
+                    null
+                }
 
-        PhaseIndexation.PRET -> {
-            TexteIndexation.Ressource(R.string.editor_indexation_moteur_pret)
-        }
+            PhaseIndexation.PRET -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_pret)
 
-        PhaseIndexation.PARTIEL -> {
-            TexteIndexation.Ressource(R.string.editor_indexation_moteur_partiel)
-        }
+            PhaseIndexation.PARTIEL -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_partiel)
 
-        PhaseIndexation.ERREUR -> {
-            TexteIndexation.Ressource(R.string.editor_indexation_moteur_erreur)
-        }
+            PhaseIndexation.ERREUR -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_erreur)
 
-        PhaseIndexation.INITIAL -> {
-            null
+            PhaseIndexation.INITIAL -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_en_attente)
+        }
+    } else {
+        when (phase) {
+            // Moteur synthétisé : la construction est INDÉTERMINÉE
+            // (aucun compteur publié, DEMANDES_CODEIDE_LSP.md D3).
+            PhaseIndexation.CONSTRUCTION ->
+                TexteIndexation.Ressource(R.string.editor_indexation_moteur_en_construction)
+
+            PhaseIndexation.PRET -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_pret)
+
+            PhaseIndexation.ERREUR -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_erreur)
+
+            PhaseIndexation.INITIAL -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_en_attente)
+
+            // Un moteur synthétisé ne SAIT JAMAIS être partiel.
+            PhaseIndexation.PARTIEL -> TexteIndexation.Ressource(R.string.editor_indexation_moteur_pret)
         }
     }
 
-    private fun bilanDe(etat: EtatIndexation): BilanDetailIndexation? = etat.bilanDernierPassage?.let(::traduireBilan)
+    /** Entrées écartées au dernier passage (index PARTIEL, Java seul). */
+    private fun entreesEcarteesDe(java: EtatIndexation?): List<EntreeEcarteeDetail> =
+        if (java != null && java.phase == PhaseIndexation.PARTIEL) {
+            java.avertissements.map(::EntreeEcarteeDetail)
+        } else {
+            emptyList()
+        }
+
+    /** Erreurs bloquantes (index ERREUR, Java seul). */
+    private fun erreursBloquantesDe(java: EtatIndexation?): List<EntreeEcarteeDetail> =
+        if (java != null && java.phase == PhaseIndexation.ERREUR) {
+            java.erreurs.map(::EntreeEcarteeDetail)
+        } else {
+            emptyList()
+        }
+
+    /**
+     * Histogramme « ce qui a coûté le plus de temps » (au repos —
+     * maquette §4) : les 3 indexeurs les plus coûteux du breakdown,
+     * largeur relative au premier. Java seul (breakdown riche).
+     */
+    private fun coutsDe(java: EtatIndexation?): List<CoutDetailIndexation> {
+        val plusChers =
+            java?.breakdownIndexeurs
+                ?.sortedByDescending(BreakdownIndexeurIndexation::millisecondesCumulees)
+                ?.take(NOMBRE_COUTS)
+                .orEmpty()
+        val max = plusChers.firstOrNull()?.millisecondesCumulees ?: 0L
+        return plusChers
+            .takeIf { max > 0 }
+            ?.map { b ->
+                CoutDetailIndexation(
+                    libelle = b.libelle,
+                    millisecondes = b.millisecondesCumulees,
+                    fraction = (b.millisecondesCumulees.toFloat() / max).coerceIn(0f, 1f),
+                )
+            }
+            .orEmpty()
+    }
+
+    private fun bilanDe(java: EtatIndexation?): BilanDetailIndexation? = java?.bilanDernierPassage?.let(::traduireBilan)
 
     private fun traduireBilan(b: BilanDernierPassageIndexation): BilanDetailIndexation = BilanDetailIndexation(
         dureeMs = b.dureeMs,
@@ -497,33 +652,31 @@ internal object PresentationIndexation {
         horodatageMs = b.horodatageMs,
     )
 
-    private fun actionsDe(etat: EtatIndexation): List<ActionDetailIndexation> = when (etat.phase) {
-        PhaseIndexation.CONSTRUCTION -> {
-            listOf(ActionDetailIndexation.ANNULER)
-        }
+    /**
+     * Actions — v0.178.0 (ADR 0145) : PLUS de « Annuler » (aucun point
+     * d'annulation, DEMANDES D5 — un bouton mort était un mensonge) ;
+     * « Réessayer les échecs » exposé au PARTIEL avec avertissements
+     * (mappé sur la revalidation+auto-guérison, DEMANDES D4).
+     */
+    private fun actionsDe(phase: PhaseIndexation, java: EtatIndexation?): List<ActionDetailIndexation> = when (phase) {
+        PhaseIndexation.CONSTRUCTION -> emptyList()
 
         PhaseIndexation.PARTIEL -> {
-            if (etat.avertissements.isNotEmpty()) {
+            if (java != null && java.avertissements.isNotEmpty()) {
                 listOf(ActionDetailIndexation.REESSAYER_ECHECS, ActionDetailIndexation.REINDEXER)
             } else {
                 listOf(ActionDetailIndexation.REINDEXER)
             }
         }
 
-        PhaseIndexation.ERREUR -> {
-            listOf(ActionDetailIndexation.REINDEXER)
-        }
+        PhaseIndexation.ERREUR -> listOf(ActionDetailIndexation.REINDEXER)
 
-        PhaseIndexation.PRET -> {
-            listOf(ActionDetailIndexation.REINDEXER)
-        }
+        PhaseIndexation.PRET -> listOf(ActionDetailIndexation.REINDEXER)
 
-        PhaseIndexation.INITIAL -> {
-            emptyList()
-        }
+        PhaseIndexation.INITIAL -> emptyList()
     }
 
-    private fun noteImpactDe(etat: EtatIndexation): NoteImpactIndexation? = when (etat.phase) {
+    private fun noteImpactDe(phase: PhaseIndexation, java: EtatIndexation?): NoteImpactIndexation? = when (phase) {
         PhaseIndexation.CONSTRUCTION -> {
             NoteImpactIndexation(
                 niveau = NiveauNoteImpact.INFO,
@@ -532,7 +685,7 @@ internal object PresentationIndexation {
         }
 
         PhaseIndexation.PARTIEL -> {
-            if (etat.avertissements.isNotEmpty()) {
+            if (java != null && java.avertissements.isNotEmpty()) {
                 NoteImpactIndexation(
                     niveau = NiveauNoteImpact.AVERTISSEMENT,
                     texte = TexteIndexation.Ressource(R.string.editor_indexation_note_partiel),
@@ -549,22 +702,24 @@ internal object PresentationIndexation {
             )
         }
 
-        PhaseIndexation.PRET -> {
-            null
-        }
+        PhaseIndexation.PRET -> null
 
-        PhaseIndexation.INITIAL -> {
-            null
-        }
+        PhaseIndexation.INITIAL -> null
     }
 
-    /** Calcule le pourcentage de progression (0-100), `null` si indéterminé. */
-    private fun pourcentageDe(faits: Int, total: Int): Int? = if (total > 0) {
-        ((faits.toFloat() / total) * POURCENTAGE_MAX).toInt().coerceIn(0, POURCENTAGE_MAX)
+    /**
+     * Pourcentage de progression (0-100) — Java seul (les moteurs
+     * synthétisés n'ont pas de compteurs) ; `null` si indéterminé.
+     */
+    private fun pourcentageDe(java: EtatIndexation?): Int? = if (java != null && java.total > 0) {
+        ((java.faits.toFloat() / java.total) * POURCENTAGE_MAX).toInt().coerceIn(0, POURCENTAGE_MAX)
     } else {
         null
     }
 
     /** Plafond du pourcentage de progression (0-100). */
     private const val POURCENTAGE_MAX: Int = 100
+
+    /** Nombre de barres de l'histogramme des coûts (maquette : 3). */
+    private const val NOMBRE_COUTS: Int = 3
 }

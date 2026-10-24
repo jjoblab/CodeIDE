@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bouton d'action SECONDAIRE du panneau d'indexation (v0.178.0, ADR
+     0145) : les boutons suivants sont cernés (maquette §3 « Tout
+     réindexer »). Gonflé par le code (FragmentDetailIndexation.
+     rendreActions), texte et écouteur posés ensuite. -->
+<com.google.android.material.button.MaterialButton
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.CodeIDE.Button.Outlined"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_xs"
+    android:minHeight="48dp" />

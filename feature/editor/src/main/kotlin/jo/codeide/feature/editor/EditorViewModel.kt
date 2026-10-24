@@ -78,6 +78,8 @@ import jo.codeide.core.session.GestionnaireSessionProjet
 import jo.codeide.core.session.RaisonFermeture
 import jo.codeide.feature.editor.di.PorteeFermetureSession
 import jo.codeide.lsp.host.DossierIndexLsp
+import jo.codeide.lsp.host.EtatIndexation
+import jo.codeide.lsp.host.PhaseIndexation
 import jo.codeide.lsp.host.SessionLsp
 import jo.codeide.lsp.host.SessionLspKotlin
 import jo.codeide.lsp.host.SessionLspXml
@@ -92,15 +94,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.isActive
@@ -497,6 +503,88 @@ constructor(
     /** Session LSP XML observable (branchement éditeur, XE1). */
     val sessionLspXml: StateFlow<SessionLspXml?> =
         sessionLspXmlInterne.asStateFlow()
+
+    /**
+     * Fenêtre de nourrissage du moteur Kotlin (v0.178.0, ADR 0145) —
+     * SYNTHÈSE honnête tant que le dépôt frère n'expose pas de flux
+     * d'indexation réel (docs/DEMANDES_CODEIDE_LSP.md D3) : le moteur
+     * ne publie NI sa progression NI son bilan ; l'hôte sait seulement
+     * QUAND l'application du classpath tourne (CONSTRUCTION, durée
+     * inconnue → barre indéterminée) et quand elle aboutit (PRET).
+     * Aucun PARTIEL jamais inventé (impossible à savoir ici).
+     */
+    private val fenetreIndexationKotlinInterne = MutableStateFlow(PhaseIndexation.INITIAL)
+
+    /** Fenêtre de nourrissage du moteur XML (même contrat que Kotlin). */
+    private val fenetreIndexationXmlInterne = MutableStateFlow(PhaseIndexation.INITIAL)
+
+    /**
+     * Agrégat multi-moteurs de l'indexation (v0.178.0, ADR 0145) —
+     * consommé par la pastille de toolbar et le panneau de détail.
+     * UN moteur par session VIVANTE : Java porte son état RICHE
+     * (`SessionLsp.etatIndexation`), Kotlin/XML leurs fenêtres
+     * synthétisées ; une session refermée retire sa rangée. L'état
+     * global de la pastille est la PIRE phase des moteurs présents.
+     */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val etatsMoteursIndexationInterne =
+        kotlinx.coroutines.flow.combine(
+            kotlinx.coroutines.flow.combine(
+                sessionLsp,
+                sessionLspKotlin,
+                sessionLspXml,
+            ) { java, kotlin, xml -> Triple(java, kotlin, xml) },
+            sessionLsp.flatMapLatest { session ->
+                session?.etatIndexation ?: kotlinx.coroutines.flow.flowOf(EtatIndexation.INITIAL)
+            },
+            fenetreIndexationKotlinInterne,
+            fenetreIndexationXmlInterne,
+        ) { (sessionJava, sessionKotlin, sessionXml), etatJava, fenetreKotlin, fenetreXml ->
+            EtatsMoteursIndexation(
+                moteurs =
+                buildList {
+                    sessionJava?.let {
+                        add(MoteurIndexationPresent(MoteurIndexation.JAVA, etatJava.phase, etatJava))
+                    }
+                    sessionKotlin?.let {
+                        add(MoteurIndexationPresent(MoteurIndexation.KOTLIN, fenetreKotlin, null))
+                    }
+                    sessionXml?.let {
+                        add(MoteurIndexationPresent(MoteurIndexation.XML, fenetreXml, null))
+                    }
+                },
+            )
+        }
+
+    /** Agrégat observable — VIDE = aucun moteur = pas de pastille. */
+    internal val etatsMoteursIndexation: StateFlow<EtatsMoteursIndexation> =
+        etatsMoteursIndexationInterne
+            .stateIn(
+                viewModelScope,
+                SharingStarted.WhileSubscribed(DELAI_ABONNEMENT_INDEXATION_MS),
+                EtatsMoteursIndexation(),
+            )
+
+    /**
+     * Fenêtre de nourrissage d'un moteur SANS flux réel (Kotlin, XML —
+     * ADR 0145) : CONSTRUCTION pendant l'application, PRET après,
+     * ERREUR sur exception — qui est RELANCÉE : les cascades
+     * historiques gardent leur sémantique d'échec, seul l'ÉTAT change
+     * (le silence devient un état visible).
+     */
+    private suspend fun fenetrerNourrissage(
+        fenetre: MutableStateFlow<PhaseIndexation>,
+        nourrissage: suspend () -> Unit,
+    ) {
+        fenetre.value = PhaseIndexation.CONSTRUCTION
+        try {
+            nourrissage()
+            fenetre.value = PhaseIndexation.PRET
+        } catch (t: Throwable) {
+            fenetre.value = PhaseIndexation.ERREUR
+            throw t
+        }
+    }
 
     /** État observable du tooling Gradle (G5, §6 ; étape 32 : le
      *  détenteur process-wide y publie, l'activité ET le service de
@@ -1033,20 +1121,29 @@ constructor(
             // — nourrie en cascade, elle retrouve ses appelables et
             // racines sources QUASI INSTANTANÉMENT, la sync fraîche
             // remplacera si l'empreinte a changé.
-            withContext(dispatcheurs.io) {
-                val sessionKotlin = sessionLspKotlinInterne.value
-                val modele = session.modele.value
-                if (sessionKotlin != null && modele != null) {
-                    sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+            // v0.178.0 (ADR 0145) : les fenêtres Kotlin/XML rendent le
+            // nourrissage VISIBLE (construction → prêt, erreur sinon).
+            fenetrerNourrissage(fenetreIndexationKotlinInterne) {
+                withContext(dispatcheurs.io) {
+                    val sessionKotlin = sessionLspKotlinInterne.value
+                    val modele = session.modele.value
+                    if (sessionKotlin != null && modele != null) {
+                        sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+                    }
                 }
-                // XE1 (LSP_XML.md §5) : la session XML partage le MÊME
-                // modèle — nourrie en cascade (XE1 le STOCKE, XE2/XE3
-                // le consommeront : catalogue plateforme + index
-                // ressources), la sync fraîche remplacera si
-                // l'empreinte a changé.
-                val sessionXml = sessionLspXmlInterne.value
-                if (sessionXml != null && modele != null) {
-                    sessionXml.appliquerModele(modele, session.vueNomsXml())
+            }
+            // XE1 (LSP_XML.md §5) : la session XML partage le MÊME
+            // modèle — nourrie en cascade (XE1 le STOCKE, XE2/XE3
+            // le consommeront : catalogue plateforme + index
+            // ressources), la sync fraîche remplacera si
+            // l'empreinte a changé.
+            fenetrerNourrissage(fenetreIndexationXmlInterne) {
+                withContext(dispatcheurs.io) {
+                    val sessionXml = sessionLspXmlInterne.value
+                    val modele = session.modele.value
+                    if (sessionXml != null && modele != null) {
+                        sessionXml.appliquerModele(modele, session.vueNomsXml())
+                    }
                 }
             }
         } else {
@@ -1802,6 +1899,10 @@ constructor(
         enregistrementLspKotlin?.desenregistrer()
         enregistrementLspKotlin = null
         sessionLspKotlinInterne.value = null
+        // v0.178.0 (ADR 0145) : la rangée quitte l'agrégat (session
+        // fermée) et la fenêtre synthétique REPART à zéro — le prochain
+        // projet repart d'un état honnête.
+        fenetreIndexationKotlinInterne.value = PhaseIndexation.INITIAL
         session.close()
         journal.i(TAG) { "session LSP Kotlin refermée (projet ${identifiantSuivi()})" }
     }
@@ -1812,6 +1913,8 @@ constructor(
         enregistrementLspXml?.desenregistrer()
         enregistrementLspXml = null
         sessionLspXmlInterne.value = null
+        // v0.178.0 (ADR 0145) : miroir Kotlin — fenêtre repartie à zéro.
+        fenetreIndexationXmlInterne.value = PhaseIndexation.INITIAL
         session.close()
         journal.i(TAG) { "session LSP XML refermée (projet ${identifiantSuivi()})" }
     }
@@ -1865,12 +1968,19 @@ constructor(
         // budget de cache, D4), la session Kotlin consomme la même
         // par la couture neutre ; l'index des APPELABLES Kotlin
         // décode ses propres jars (segments par empreinte).
-        withContext(dispatcheurs.io) {
-            sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
-            // XE1 : la même cascade côté XML — la vue de NOMS vit
-            // dans la session Java (un seul budget de cache, D4),
-            // la session XML la consomme par la couture neutre.
-            sessionLspXmlInterne.value?.appliquerClasspath(brut, session.vueNomsXml())
+        // v0.178.0 (ADR 0145) : fenêtres Kotlin/XML visibles.
+        fenetrerNourrissage(fenetreIndexationKotlinInterne) {
+            withContext(dispatcheurs.io) {
+                sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
+            }
+        }
+        // XE1 : la même cascade côté XML — la vue de NOMS vit
+        // dans la session Java (un seul budget de cache, D4),
+        // la session XML la consomme par la couture neutre.
+        fenetrerNourrissage(fenetreIndexationXmlInterne) {
+            withContext(dispatcheurs.io) {
+                sessionLspXmlInterne.value?.appliquerClasspath(brut, session.vueNomsXml())
+            }
         }
     }
 
@@ -1896,8 +2006,12 @@ constructor(
         brut: jo.codeide.tooling.protocol.ClasspathResult,
     ) {
         if (sessionKotlin == null) return
-        withContext(dispatcheurs.io) {
-            sessionKotlin.appliquerClasspath(brut, vue = null)
+        // v0.178.0 (ADR 0145) : la fenêtre Kotlin rend le nourrissage
+        // VISIBLE même en régime projet seul (miroir des cascades).
+        fenetrerNourrissage(fenetreIndexationKotlinInterne) {
+            withContext(dispatcheurs.io) {
+                sessionKotlin.appliquerClasspath(brut, vue = null)
+            }
         }
         journal.i(TAG) {
             "Kotlin en régime projet seul : session Java absente — " +
@@ -1920,8 +2034,11 @@ constructor(
         val fichier = racine.resolve(".codeide/local/lsp-modele.json")
         val persiste =
             PersistanceModeleLsp().lire(fichier, LecteurStatistiquesSysteme()) ?: return
-        withContext(dispatcheurs.io) {
-            sessionKotlin.appliquerModele(persiste.projet, vue = null)
+        // v0.178.0 (ADR 0145) : fenêtre Kotlin visible (miroir).
+        fenetrerNourrissage(fenetreIndexationKotlinInterne) {
+            withContext(dispatcheurs.io) {
+                sessionKotlin.appliquerModele(persiste.projet, vue = null)
+            }
         }
         journal.i(TAG) {
             "Kotlin en régime projet seul : session Java absente — " +
@@ -1953,8 +2070,14 @@ constructor(
      * persistés + auto-guérison des corrompus — la progression suit
      * sur `session.etatIndexation` (la barre d'état de l'éditeur y
      * collecte). Sans session (projet/racine inconnue) : journal seul.
+     *
+     * V0.178.0 (ADR 0145) : `internal` — le panneau de détail de
+     * l'indexation y branche ses boutons (« Réindexer » et « Réessayer
+     * les entrées échouées » — toutes deux mappées sur la
+     * revalidation+auto-guérison tant que le dépôt frère n'expose pas
+     * de réessai CIBLÉ, docs/DEMANDES_CODEIDE_LSP.md D4).
      */
-    private fun reindexerLsp() {
+    internal fun reindexerLsp() {
         val session = sessionLspInterne.value
         if (session == null) {
             journal.w(TAG) { "réindexation demandée sans session LSP (projet ${identifiantSuivi()})" }
@@ -5075,6 +5198,11 @@ constructor(
 
         /** Durée d'affichage du snackbar maison (§ 15 : 4 600 ms). */
         const val DELAI_NOTIFICATION_MS = 4_600L
+
+        /** Délai de grâce de l'abonnement à l'agrégat d'indexation
+         *  (v0.178.0, ADR 0145) : la pastille survit à un bref écran
+         *  éteint (rotation, retour arrière) sans re-souscrire. */
+        const val DELAI_ABONNEMENT_INDEXATION_MS = 5_000L
 
         /** Durée du flash de ligne mutée (§ 6.1 : 1,1 s). */
         const val DELAI_FLASH_MS = 1_100L

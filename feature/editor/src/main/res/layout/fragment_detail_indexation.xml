@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Panneau de détail de l'indexation (Phase B prompt 2, ADR 0117 §4.4 —
-  lot B6). BottomSheetDialogFragment affiché au toucher de la pastille de
-  toolbar (lot B5).
+  lot B6 ; v0.178.0, ADR 0145 : MULTI-MOTEURS). BottomSheetDialogFragment
+  affiché au toucher de la pastille de toolbar (lot B5).
 
-  Structure (miroir de la maquette HTML docs/mockups/indexation/) :
-  - en-tête (icône d'état + titre + sous-titre)
-  - barre de progression (déterminée ou indéterminée)
+  Structure (miroir de la maquette HTML docs/mockups/indexation/ — toutes
+  les sections de la maquette sont désormais rendues) :
+  - en-tête (icône d'état + titre + sous-titre + pourcentage à droite
+    pendant la construction — maquette §2)
+  - barre de progression (déterminée ou indéterminée, construction seule)
   - compteur « n / N »
-  - liste de travail (RecyclerView, hauteur bornée)
-  - vue par moteur (section Java + Kotlin à venir)
-  - bilan du dernier passage (au repos)
-  - note d'impact utilisateur
-  - boutons d'action (Réindexer / Réessayer les échecs / Annuler)
+  - résumé des reprises (« 96 reprises, 22 reconstruites » — §2)
+  - note d'impact utilisateur (info / avertissement / erreur)
+  - liste de travail (« EN COURS », RecyclerView, hauteur bornée)
+  - vue par moteur (UNE rangée par moteur de l'agrégat, accent ADR 0059)
+  - entrées écartées (index PARTIEL — maquette §3)
+  - erreurs bloquantes (index ERREUR — maquette §5)
+  - bilan du dernier passage (au repos — maquette §4)
+  - histogramme « ce qui a coûté le plus de temps » (3 barres — §4)
+  - boutons d'action (Réindexer / Réessayer les échecs ; « Annuler »
+    n'est plus émis — aucun point d'annulation, DEMANDES_CODEIDE_LSP.md D5)
 
   Couleurs : toutes par tokens (?attr/color*, @color/codeide_*), aucune
   couleur en dur (règle 3 du prompt maître).
@@ -35,7 +42,20 @@
         android:layout_marginBottom="@dimen/spacing_md"
         android:background="?attr/colorOutlineVariant" />
 
-    <!-- En-tête : icône d'état + titre + sous-titre. -->
+    <!-- Contenu défilant (maquette : le panneau partiel/erreur défile —
+        sh.scroll). -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="never">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+    <!-- En-tête : icône d'état + titre + sous-titre + pourcentage (droite,
+         construction seule — maquette §2 « 62 % »). -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -69,9 +89,20 @@
                 android:textColor="?attr/colorOnSurfaceVariant"
                 tools:text="Bibliothèques et SDK · 118 sur 191" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/pourcentage_droite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_md_compact"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:visibility="gone"
+            tools:text="62 %"
+            tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- Barre de progression. -->
+    <!-- Barre de progression (construction seule — masquée au repos et
+         en erreur, maquette : « pas de barre au repos ni en erreur »). -->
     <com.google.android.material.progressindicator.LinearProgressIndicator
         android:id="@+id/progression_detail"
         android:layout_width="match_parent"
@@ -92,69 +123,22 @@
         tools:text="118 sur 191"
         tools:visibility="visible" />
 
-    <!-- Liste de travail (RecyclerView, hauteur bornée). -->
+    <!-- Résumé des reprises (maquette §2 : « 96 reprises, 22
+         reconstruites »). -->
     <TextView
-        android:id="@+id/label_liste_travail"
+        android:id="@+id/resume_reprises"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:text="@string/editor_indexation_bilan_dernier_passage"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:textAppearance="?attr/textAppearanceBodySmall"
         android:textColor="?attr/colorOnSurfaceVariant"
         android:visibility="gone"
-        tools:text="@string/editor_indexation_bilan_dernier_passage"
+        tools:text="Les entrées déjà indexées sont reprises sans reconstruction : 96 reprises, 22 reconstruites."
         tools:visibility="visible" />
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/liste_travail_detail"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:maxHeight="240dp"
-        android:overScrollMode="never"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <!-- Vue par moteur. -->
-    <TextView
-        android:id="@+id/label_moteurs"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:text="@string/editor_indexation_moteur_java"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <LinearLayout
-        android:id="@+id/conteneur_moteurs"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <!-- Bilan du dernier passage. -->
-    <TextView
-        android:id="@+id/label_bilan"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_md"
-        android:text="@string/editor_indexation_bilan_dernier_passage"
-        android:textAppearance="?attr/textAppearanceLabelSmall"
-        android:textColor="?attr/colorOnSurfaceVariant"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <LinearLayout
-        android:id="@+id/conteneur_bilan"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone"
-        tools:visibility="visible" />
-
-    <!-- Note d'impact utilisateur. -->
+    <!-- Note d'impact utilisateur (fond et couleur du texte par niveau —
+         portés par le code : info surfaceVariant, avertissement warn,
+         erreur error). -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/note_impact"
         style="@style/Widget.CodeIDE.Card"
@@ -174,6 +158,129 @@
             tools:text="Pendant l'indexation, la complétion des bibliothèques est limitée." />
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- Liste de travail (RecyclerView, hauteur bornée). -->
+    <TextView
+        android:id="@+id/label_liste_travail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/editor_indexation_liste_travail"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/liste_travail_detail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxHeight="240dp"
+        android:overScrollMode="never"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Vue par moteur — UNE rangée par moteur PRÉSENT (v0.178.0,
+         ADR 0145 : plus aucun moteur codé en dur). -->
+    <TextView
+        android:id="@+id/label_moteurs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/editor_indexation_moteurs"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_moteurs"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Entrées écartées (index PARTIEL — maquette §3). -->
+    <TextView
+        android:id="@+id/label_entrees_ecartees"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/editor_indexation_entrees_ecartees"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_entrees_ecartees"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Erreurs bloquantes (index ERREUR — maquette §5). -->
+    <TextView
+        android:id="@+id/label_erreurs_bloquantes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/editor_indexation_erreurs_bloquantes"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_erreurs_bloquantes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Bilan du dernier passage (au repos — maquette §4). -->
+    <TextView
+        android:id="@+id/label_bilan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/editor_indexation_bilan_dernier_passage"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_bilan"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Histogramme « ce qui a coûté le plus de temps » (3 barres —
+        maquette §4, v0.178.0). -->
+    <TextView
+        android:id="@+id/label_couts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:text="@string/editor_indexation_bilan_indexeur_couteux"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/conteneur_couts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
     <!-- Boutons d'action (ajoutés dynamiquement par code). -->
     <LinearLayout
         android:id="@+id/conteneur_actions"
@@ -181,5 +288,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_sm"
         android:orientation="vertical" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 
 </LinearLayout>

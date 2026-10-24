@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Point d'accent d'une rangée moteur du panneau d'indexation (v0.178.0,
+     ADR 0145 — accent de langage ADR 0059 appliqué par TEINTE dans le
+     code : la couleur solide est neutre, seule la teinte varie). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <size
+        android:width="10dp"
+        android:height="10dp" />
+    <solid android:color="?attr/colorPrimary" />
+</shape>

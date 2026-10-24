@@ -1,6 +1,7 @@
 package jo.codeide.feature.editor
 
 import jo.codeide.lsp.host.BilanDernierPassageIndexation
+import jo.codeide.lsp.host.BreakdownIndexeurIndexation
 import jo.codeide.lsp.host.EntreeTravailIndexation
 import jo.codeide.lsp.host.EtatEntreeTravailIndexation
 import jo.codeide.lsp.host.EtatIndexation
@@ -14,114 +15,166 @@ import org.junit.Test
 
 /**
  * Tests purs du présentateur [PresentationIndexation] (Phase B prompt 2,
- * ADR 0117 §4.4 — lot B4). Valide tous les états de l'indexation ×
- * pastille + panneau de détail. Convention : noms en français entre
- * accents graves (ADR 0007).
+ * ADR 0117 §4.4 — lot B4 ; v0.178.0, ADR 0145 : MULTI-MOTEURS).
+ * Valide l'agrégat Java + Kotlin + XML : pastille (pire phase), panneau
+ * de détail TOUTES sections (en-tête + pourcentage, progression
+ * construction seule, reprises, moteurs avec dégradation honnête des
+ * moteurs synthétisés, écartées, bloquantes, bilan, histogramme des
+ * coûts, actions — PLUS JAMAIS « Annuler »). Convention : noms en
+ * français entre accents graves (ADR 0007).
  */
 class PresentationIndexationTest {
     // ============================================================
-    // État INITIAL
+    // Agrégat [EtatsMoteursIndexation] — pire phase + état Java
     // ============================================================
 
     @Test
-    fun `etat INITIAL — pastille masquee etroit, pas de pourcentage`() {
-        val modele = PresentationIndexation.afficher(EtatIndexation.INITIAL)
-        assertEquals(EtatPastilleIndexation.INITIAL, modele.pastille.etat)
-        assertNull(modele.pastille.pourcentage)
-        assertTrue(modele.pastille.masqueeEtroit)
+    fun `agregat vide — pire phase INITIAL`() {
+        assertEquals(PhaseIndexation.INITIAL, EtatsMoteursIndexation().pirePhase)
     }
 
     @Test
-    fun `etat INITIAL — panneau sans liste de travail, sans moteurs, sans bilan`() {
-        val modele = PresentationIndexation.afficher(EtatIndexation.INITIAL)
+    fun `agregat — la pire phase des moteurs present l emporte`() {
+        // PRET (1) < CONSTRUCTION (2) < PARTIEL (3) < ERREUR (4).
+        val pretPlusConstruction =
+            EtatsMoteursIndexation(
+                listOf(
+                    MoteurIndexationPresent(MoteurIndexation.JAVA, PhaseIndexation.PRET, null),
+                    MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.CONSTRUCTION, null),
+                ),
+            )
+        assertEquals(PhaseIndexation.CONSTRUCTION, pretPlusConstruction.pirePhase)
+
+        val pretPlusPartiel =
+            EtatsMoteursIndexation(
+                listOf(
+                    MoteurIndexationPresent(MoteurIndexation.JAVA, PhaseIndexation.PARTIEL, null),
+                    MoteurIndexationPresent(MoteurIndexation.XML, PhaseIndexation.PRET, null),
+                ),
+            )
+        assertEquals(PhaseIndexation.PARTIEL, pretPlusPartiel.pirePhase)
+
+        val constructionPlusErreur =
+            EtatsMoteursIndexation(
+                listOf(
+                    MoteurIndexationPresent(MoteurIndexation.JAVA, PhaseIndexation.CONSTRUCTION, null),
+                    MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.ERREUR, null),
+                ),
+            )
+        assertEquals(PhaseIndexation.ERREUR, constructionPlusErreur.pirePhase)
+    }
+
+    @Test
+    fun `agregat — etat riche Java expose seulement pour Java`() {
+        val riche = etatJava(PhaseIndexation.PRET)
+        val avec =
+            EtatsMoteursIndexation(
+                listOf(
+                    MoteurIndexationPresent(MoteurIndexation.JAVA, PhaseIndexation.PRET, riche),
+                    MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.PRET, null),
+                ),
+            )
+        assertEquals(riche, avec.etatJava)
+
+        val sansJava =
+            EtatsMoteursIndexation(
+                listOf(MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.PRET, null)),
+            )
+        assertNull(sansJava.etatJava)
+    }
+
+    // ============================================================
+    // Agrégat VIDE (aucun moteur vivant)
+    // ============================================================
+
+    @Test
+    fun `agregat vide — pastille masquee etroit, panneau vide`() {
+        val modele = PresentationIndexation.afficher(EtatsMoteursIndexation())
+        assertEquals(EtatPastilleIndexation.INITIAL, modele.pastille.etat)
+        assertNull(modele.pastille.pourcentage)
+        assertTrue(modele.pastille.masqueeEtroit)
         assertNull(modele.panneau.listeTravail)
         assertNull(modele.panneau.moteurs)
         assertNull(modele.panneau.bilan)
         assertTrue(modele.panneau.actions.isEmpty())
         assertNull(modele.panneau.noteImpact)
+        assertNull(modele.panneau.resumeReprises)
+        assertTrue(modele.panneau.entreesEcartees.isEmpty())
+        assertTrue(modele.panneau.erreursBloquantes.isEmpty())
+        assertTrue(modele.panneau.couts.isEmpty())
     }
 
     // ============================================================
-    // État CONSTRUCTION
+    // CONSTRUCTION — moteur Java riche
     // ============================================================
 
     @Test
-    fun `etat CONSTRUCTION avec total — pastille avec pourcentage`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 119,
-                total = 191,
-                entreeCourante = "material 1.14.0",
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+    fun `construction Java riche — pastille avec pourcentage et reprises`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(
+                    etatJava(
+                        PhaseIndexation.CONSTRUCTION,
+                        faits = 119,
+                        total = 191,
+                        reprises = 96,
+                    ),
+                ),
             )
-        val modele = PresentationIndexation.afficher(etat)
         assertEquals(EtatPastilleIndexation.CONSTRUCTION, modele.pastille.etat)
-        // 119/191 = 62.3% → arrondi à 62
+        // 119/191 = 62,3 % → 62.
         assertEquals(62, modele.pastille.pourcentage)
         assertFalse(modele.pastille.masqueeEtroit)
+        assertEquals(62, modele.panneau.entete.pourcentageDroite)
+        assertNotNull(modele.panneau.resumeReprises)
     }
 
     @Test
-    fun `etat CONSTRUCTION total inconnu — pastille sans pourcentage`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 0,
-                total = 0,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+    fun `construction Java riche — progression determinee visible avec compteur`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(
+                    etatJava(PhaseIndexation.CONSTRUCTION, faits = 118, total = 191),
+                ),
             )
-        val modele = PresentationIndexation.afficher(etat)
-        assertEquals(EtatPastilleIndexation.CONSTRUCTION, modele.pastille.etat)
-        assertNull(modele.pastille.pourcentage)
-    }
-
-    @Test
-    fun `etat CONSTRUCTION — progression determinee avec compteur`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 118,
-                total = 191,
-                entreeCourante = "material 1.14.0",
-                avertissements = emptyList(),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
+        assertTrue(modele.panneau.progression.visible)
         assertFalse(modele.panneau.progression.indeterminee)
         assertEquals(118f / 191f, modele.panneau.progression.fraction, 0.001f)
         assertNotNull(modele.panneau.progression.compteur)
     }
 
     @Test
-    fun `etat CONSTRUCTION total inconnu — progression indeterminee`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 0,
-                total = 0,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+    fun `construction Java total inconnu — barre indeterminee, pas de pourcentage`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(etatJava(PhaseIndexation.CONSTRUCTION, faits = 0, total = 0)),
             )
-        val modele = PresentationIndexation.afficher(etat)
+        assertEquals(EtatPastilleIndexation.CONSTRUCTION, modele.pastille.etat)
+        assertNull(modele.pastille.pourcentage)
+        assertNull(modele.panneau.entete.pourcentageDroite)
+        assertTrue(modele.panneau.progression.visible)
         assertTrue(modele.panneau.progression.indeterminee)
         assertNull(modele.panneau.progression.compteur)
     }
 
     @Test
-    fun `etat CONSTRUCTION avec liste de travail — panneau affiche la liste`() {
+    fun `construction — note info, PAS d action annuler (DEMANDES D5)`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(etatJava(PhaseIndexation.CONSTRUCTION, faits = 0, total = 100)),
+            )
+        assertNotNull(modele.panneau.noteImpact)
+        assertEquals(NiveauNoteImpact.INFO, modele.panneau.noteImpact!!.niveau)
+        // La maquette avait « Annuler le passage » : PLUS JAMAIS émis —
+        // aucun point d'annulation n'existe (docs/DEMANDES_CODEIDE_LSP.md
+        // D5) ; un bouton mort était un mensonge.
+        assertTrue(modele.panneau.actions.isEmpty())
+    }
+
+    @Test
+    fun `construction avec liste de travail Java — entrees traduites`() {
         val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 2,
-                total = 3,
-                entreeCourante = "material 1.14.0",
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+            etatJava(PhaseIndexation.CONSTRUCTION, faits = 2, total = 3).copy(
                 listeTravail =
                 listOf(
                     EntreeTravailIndexation("androidx.core 1.19.0", EtatEntreeTravailIndexation.REPRIS),
@@ -129,7 +182,7 @@ class PresentationIndexationTest {
                     EntreeTravailIndexation("okio 3.9.0", EtatEntreeTravailIndexation.EN_ATTENTE),
                 ),
             )
-        val modele = PresentationIndexation.afficher(etat)
+        val modele = PresentationIndexation.afficher(agregatJava(etat))
         assertNotNull(modele.panneau.listeTravail)
         assertEquals(3, modele.panneau.listeTravail!!.size)
         assertEquals(EtatEntreeDetail.REPRIS, modele.panneau.listeTravail!![0].etat)
@@ -137,75 +190,93 @@ class PresentationIndexationTest {
         assertEquals(EtatEntreeDetail.EN_ATTENTE, modele.panneau.listeTravail!![2].etat)
     }
 
+    // ============================================================
+    // CONSTRUCTION — moteurs DIVERGENTS (multi-moteurs)
+    // ============================================================
+
     @Test
-    fun `etat CONSTRUCTION — note d impact info affichee`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 0,
-                total = 100,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+    fun `construction divergente — trois rangees moteurs, degradees honnetement`() {
+        val etats =
+            EtatsMoteursIndexation(
+                listOf(
+                    MoteurIndexationPresent(
+                        MoteurIndexation.JAVA,
+                        PhaseIndexation.CONSTRUCTION,
+                        etatJava(PhaseIndexation.CONSTRUCTION, faits = 118, total = 191),
+                    ),
+                    MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.PRET, null),
+                    MoteurIndexationPresent(MoteurIndexation.XML, PhaseIndexation.INITIAL, null),
+                ),
             )
-        val modele = PresentationIndexation.afficher(etat)
+        val modele = PresentationIndexation.afficher(etats)
+        // Java construit → la pastille globale est CONSTRUCTION.
+        assertEquals(EtatPastilleIndexation.CONSTRUCTION, modele.pastille.etat)
+        val moteurs = modele.panneau.moteurs!!
+        assertEquals(3, moteurs.size)
+        assertEquals(MoteurIndexation.JAVA.nomRes, moteurs[0].nom)
+        assertEquals(EtatMoteurDetail.CONSTRUCTION, moteurs[0].etat)
+        assertEquals(MoteurIndexation.KOTLIN.nomRes, moteurs[1].nom)
+        assertEquals(EtatMoteurDetail.PRET, moteurs[1].etat)
+        assertEquals(MoteurIndexation.XML.nomRes, moteurs[2].nom)
+        assertEquals(EtatMoteurDetail.INITIAL, moteurs[2].etat)
+    }
+
+    @Test
+    fun `moteur synthetise SEUL en construction — indetermine, sans compteurs Java`() {
+        val etats =
+            EtatsMoteursIndexation(
+                listOf(MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.CONSTRUCTION, null)),
+            )
+        val modele = PresentationIndexation.afficher(etats)
+        assertEquals(EtatPastilleIndexation.CONSTRUCTION, modele.pastille.etat)
+        assertNull(modele.pastille.pourcentage)
+        // Barre indéterminée (aucun compteur publié — DEMANDES D3).
+        assertTrue(modele.panneau.progression.visible)
+        assertTrue(modele.panneau.progression.indeterminee)
+        // Une rangée UNIQUE (plus de Java codé en dur).
+        val moteurs = modele.panneau.moteurs!!
+        assertEquals(1, moteurs.size)
+        assertEquals(MoteurIndexation.KOTLIN.nomRes, moteurs[0].nom)
+        assertEquals(EtatMoteurDetail.CONSTRUCTION, moteurs[0].etat)
+        // Pas d'état riche : pas de liste de travail ni de reprises.
+        assertNull(modele.panneau.listeTravail)
+        assertNull(modele.panneau.resumeReprises)
         assertNotNull(modele.panneau.noteImpact)
-        assertEquals(NiveauNoteImpact.INFO, modele.panneau.noteImpact!!.niveau)
-    }
-
-    @Test
-    fun `etat CONSTRUCTION — action annuler proposee`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 0,
-                total = 100,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
-        assertEquals(listOf(ActionDetailIndexation.ANNULER), modele.panneau.actions)
     }
 
     // ============================================================
-    // État PRET
+    // PRET — tous les moteurs
     // ============================================================
 
     @Test
-    fun `etat PRET — pastille coche masquee etroit`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PRET,
-                faits = 191,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+    fun `pret global — pastille coche, action reindexer, barre masquee`() {
+        val modele =
+            PresentationIndexation.afficher(
+                EtatsMoteursIndexation(
+                    listOf(
+                        MoteurIndexationPresent(
+                            MoteurIndexation.JAVA,
+                            PhaseIndexation.PRET,
+                            etatJava(PhaseIndexation.PRET),
+                        ),
+                        MoteurIndexationPresent(MoteurIndexation.KOTLIN, PhaseIndexation.PRET, null),
+                        MoteurIndexationPresent(MoteurIndexation.XML, PhaseIndexation.PRET, null),
+                    ),
+                ),
             )
-        val modele = PresentationIndexation.afficher(etat)
         assertEquals(EtatPastilleIndexation.PRET, modele.pastille.etat)
         assertNull(modele.pastille.pourcentage)
         assertTrue(modele.pastille.masqueeEtroit)
-    }
-
-    @Test
-    fun `etat PRET — action reindexer proposee`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PRET,
-                faits = 191,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
         assertEquals(listOf(ActionDetailIndexation.REINDEXER), modele.panneau.actions)
+        // Maquette : pas de barre au repos.
+        assertFalse(modele.panneau.progression.visible)
+        assertNull(modele.panneau.entete.pourcentageDroite)
+        assertNull(modele.panneau.noteImpact)
+        assertNull(modele.panneau.resumeReprises)
     }
 
     @Test
-    fun `etat PRET avec bilan — panneau affiche le bilan`() {
+    fun `pret avec bilan — panneau affiche le bilan et l histogramme des couts`() {
         val bilan =
             BilanDernierPassageIndexation(
                 dureeMs = 4_200,
@@ -217,75 +288,65 @@ class PresentationIndexationTest {
                 indexeurPlusCouteux = "noms-classes-java",
                 horodatageMs = 1_726_000_000_000,
             )
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PRET,
-                faits = 191,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
-                bilanDernierPassage = bilan,
-                settled = true,
+        val breakdown =
+            listOf(
+                BreakdownIndexeurIndexation("ressources", "Ressources Android", 600, 8),
+                BreakdownIndexeurIndexation("noms", "Noms de classes Java", 1_800, 120),
+                BreakdownIndexeurIndexation("appelables", "Appelables Kotlin", 1_100, 71),
             )
-        val modele = PresentationIndexation.afficher(etat)
-        assertNotNull(modele.panneau.bilan)
-        assertEquals(4_200, modele.panneau.bilan!!.dureeMs)
-        assertEquals(191, modele.panneau.bilan!!.artefactsTotal)
-        assertEquals(188, modele.panneau.bilan!!.artefactsRepris)
-        assertEquals(3, modele.panneau.bilan!!.artefactsReconstruits)
-        assertEquals(214, modele.panneau.bilan!!.fichiersParcourus)
-        assertEquals(12, modele.panneau.bilan!!.fichiersReanalyses)
-        assertEquals("noms-classes-java", modele.panneau.bilan!!.indexeurPlusCouteux)
+        val etat =
+            etatJava(PhaseIndexation.PRET, faits = 191, total = 191)
+                .copy(bilanDernierPassage = bilan, breakdownIndexeurs = breakdown, settled = true)
+        val modele = PresentationIndexation.afficher(agregatJava(etat))
+        val rendu = modele.panneau.bilan!!
+        assertEquals(4_200, rendu.dureeMs)
+        assertEquals(191, rendu.artefactsTotal)
+        assertEquals(188, rendu.artefactsRepris)
+        assertEquals(3, rendu.artefactsReconstruits)
+        assertEquals(214, rendu.fichiersParcourus)
+        assertEquals(12, rendu.fichiersReanalyses)
+        assertEquals("noms-classes-java", rendu.indexeurPlusCouteux)
+        // Histogramme : 3 indexeurs triés par coût décroissant, largeur
+        // RELATIVE au plus cher (maquette §4).
+        val couts = modele.panneau.couts
+        assertEquals(3, couts.size)
+        assertEquals("Noms de classes Java", couts[0].libelle)
+        assertEquals(1.0f, couts[0].fraction, 0.001f)
+        assertEquals("Appelables Kotlin", couts[1].libelle)
+        assertEquals(1_100f / 1_800f, couts[1].fraction, 0.001f)
+        assertEquals("Ressources Android", couts[2].libelle)
+        assertEquals(600f / 1_800f, couts[2].fraction, 0.001f)
     }
 
     @Test
-    fun `etat PRET — pas de note d impact`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PRET,
-                faits = 191,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
+    fun `pret sans breakdown — pas d histogramme`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(etatJava(PhaseIndexation.PRET, faits = 191, total = 191)),
             )
-        val modele = PresentationIndexation.afficher(etat)
-        assertNull(modele.panneau.noteImpact)
+        assertTrue(modele.panneau.couts.isEmpty())
     }
 
     // ============================================================
-    // État PARTIEL
+    // PARTIEL — entrées écartées
     // ============================================================
 
     @Test
-    fun `etat PARTIEL — pastille avertissement visible`() {
+    fun `partiel Java avec avertissements — ecartees, note warn, actions`() {
         val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PARTIEL,
-                faits = 188,
-                total = 191,
-                entreeCourante = null,
-                avertissements = listOf("legacy-utils.jar : jar illisible"),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
+            etatJava(PhaseIndexation.PARTIEL, faits = 188, total = 191)
+                .copy(
+                    avertissements =
+                    listOf("legacy-utils.jar : jar illisible", "play-core.aar : AAR sans jar interne"),
+                )
+        val modele = PresentationIndexation.afficher(agregatJava(etat))
         assertEquals(EtatPastilleIndexation.PARTIEL, modele.pastille.etat)
         assertFalse(modele.pastille.masqueeEtroit)
-    }
-
-    @Test
-    fun `etat PARTIEL avec avertissements — actions reessayer + reindexer`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PARTIEL,
-                faits = 188,
-                total = 191,
-                entreeCourante = null,
-                avertissements = listOf("legacy-utils.jar : jar illisible"),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
+        assertEquals(2, modele.panneau.entreesEcartees.size)
+        assertEquals("legacy-utils.jar : jar illisible", modele.panneau.entreesEcartees[0].texte)
+        assertTrue(modele.panneau.erreursBloquantes.isEmpty())
+        assertNotNull(modele.panneau.noteImpact)
+        assertEquals(NiveauNoteImpact.AVERTISSEMENT, modele.panneau.noteImpact!!.niveau)
         assertEquals(
             listOf(ActionDetailIndexation.REESSAYER_ECHECS, ActionDetailIndexation.REINDEXER),
             modele.panneau.actions,
@@ -293,139 +354,61 @@ class PresentationIndexationTest {
     }
 
     @Test
-    fun `etat PARTIEL avec avertissements — note d impact avertissement`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.PARTIEL,
-                faits = 188,
-                total = 191,
-                entreeCourante = null,
-                avertissements = listOf("legacy-utils.jar : jar illisible"),
-                erreurs = emptyList(),
+    fun `partiel sans avertissements — action reindexer seule, pas de note`() {
+        val modele =
+            PresentationIndexation.afficher(
+                agregatJava(etatJava(PhaseIndexation.PARTIEL, faits = 191, total = 191)),
             )
-        val modele = PresentationIndexation.afficher(etat)
-        assertNotNull(modele.panneau.noteImpact)
-        assertEquals(NiveauNoteImpact.AVERTISSEMENT, modele.panneau.noteImpact!!.niveau)
+        assertEquals(listOf(ActionDetailIndexation.REINDEXER), modele.panneau.actions)
+        assertNull(modele.panneau.noteImpact)
     }
 
     // ============================================================
-    // État ERREUR
+    // ERREUR — erreurs bloquantes
     // ============================================================
 
     @Test
-    fun `etat ERREUR — pastille erreur visible`() {
+    fun `erreur Java — bloquantes, note erreur, action reindexer`() {
         val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.ERREUR,
-                faits = 0,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = listOf("Segment n°3 corrompu"),
-            )
-        val modele = PresentationIndexation.afficher(etat)
+            etatJava(PhaseIndexation.ERREUR)
+                .copy(
+                    erreurs =
+                    listOf(
+                        "Segment n°3 corrompu (checksum invalide)",
+                        "Échec écriture /index/.lock (Permission denied)",
+                    ),
+                )
+        val modele = PresentationIndexation.afficher(agregatJava(etat))
         assertEquals(EtatPastilleIndexation.ERREUR, modele.pastille.etat)
         assertFalse(modele.pastille.masqueeEtroit)
-    }
-
-    @Test
-    fun `etat ERREUR — action reindexer proposee`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.ERREUR,
-                faits = 0,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = listOf("Segment n°3 corrompu"),
-            )
-        val modele = PresentationIndexation.afficher(etat)
-        assertEquals(listOf(ActionDetailIndexation.REINDEXER), modele.panneau.actions)
-    }
-
-    @Test
-    fun `etat ERREUR — note d impact erreur`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.ERREUR,
-                faits = 0,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = listOf("Segment n°3 corrompu"),
-            )
-        val modele = PresentationIndexation.afficher(etat)
+        assertEquals(2, modele.panneau.erreursBloquantes.size)
+        assertEquals("Segment n°3 corrompu (checksum invalide)", modele.panneau.erreursBloquantes[0].texte)
+        assertTrue(modele.panneau.entreesEcartees.isEmpty())
         assertNotNull(modele.panneau.noteImpact)
         assertEquals(NiveauNoteImpact.ERREUR, modele.panneau.noteImpact!!.niveau)
+        assertEquals(listOf(ActionDetailIndexation.REINDEXER), modele.panneau.actions)
+        // Maquette : pas de barre en erreur.
+        assertFalse(modele.panneau.progression.visible)
     }
 
     // ============================================================
-    // Vue par moteur
+    // Fabriques (lisibilité des scénarios)
     // ============================================================
 
-    @Test
-    fun `vue par moteur — Java present dans tous les etats sauf INITIAL`() {
-        val etats =
-            listOf(
-                PhaseIndexation.CONSTRUCTION,
-                PhaseIndexation.PRET,
-                PhaseIndexation.PARTIEL,
-                PhaseIndexation.ERREUR,
-            )
-        for (phase in etats) {
-            val etat =
-                EtatIndexation(
-                    phase = phase,
-                    faits = 0,
-                    total = 0,
-                    entreeCourante = null,
-                    avertissements = emptyList(),
-                    erreurs = emptyList(),
-                )
-            val modele = PresentationIndexation.afficher(etat)
-            assertNotNull("moteur Java doit etre present en phase $phase", modele.panneau.moteurs)
-            assertEquals(1, modele.panneau.moteurs!!.size)
-            assertEquals(R.string.editor_indexation_moteur_java, modele.panneau.moteurs!![0].nom)
-        }
-    }
+    /** État riche Java — moteurs synthétisés absents. */
+    private fun agregatJava(etat: EtatIndexation): EtatsMoteursIndexation = EtatsMoteursIndexation(
+        listOf(MoteurIndexationPresent(MoteurIndexation.JAVA, etat.phase, etat)),
+    )
 
-    @Test
-    fun `vue par moteur — Java absent en INITIAL`() {
-        val modele = PresentationIndexation.afficher(EtatIndexation.INITIAL)
-        assertNull(modele.panneau.moteurs)
-    }
-
-    // ============================================================
-    // Cas dégénérés
-    // ============================================================
-
-    @Test
-    fun `pourcentage borne a 0-100 — faits superieur a total`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 250,
-                total = 191,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
-        assertEquals(100, modele.pastille.pourcentage)
-    }
-
-    @Test
-    fun `pourcentage nul si total inconnu`() {
-        val etat =
-            EtatIndexation(
-                phase = PhaseIndexation.CONSTRUCTION,
-                faits = 5,
-                total = 0,
-                entreeCourante = null,
-                avertissements = emptyList(),
-                erreurs = emptyList(),
-            )
-        val modele = PresentationIndexation.afficher(etat)
-        assertNull(modele.pastille.pourcentage)
-    }
+    /** État riche Java standard (les avertissements/erreurs vides). */
+    private fun etatJava(phase: PhaseIndexation, faits: Int = 0, total: Int = 0, reprises: Int = 0): EtatIndexation =
+        EtatIndexation(
+            phase = phase,
+            faits = faits,
+            total = total,
+            entreeCourante = null,
+            avertissements = emptyList(),
+            erreurs = emptyList(),
+            reprises = reprises,
+        )
 }
