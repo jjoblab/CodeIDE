@@ -56,6 +56,13 @@ public class RenduPreviewCompose(
      * échec local (aucun bitmap, aucun overlay).
      */
     public val noeuds: List<InfoNoeudCompose> = emptyList(),
+    /**
+     * C4 — ligne 1-INDEXÉE de l'annotation `@Preview` DANS LE DOCUMENT
+     * (0 = inconnu) : l'œil de gouttière vit à cette ligne (miroir AS —
+     * enrichi par le moteur depuis SA découverte, l'indice du rendu EST
+     * l'indice de la preview ; l'AIDL reste INCHANGÉ).
+     */
+    public val ligneAnnotation: Int = 0,
 )
 
 /**
