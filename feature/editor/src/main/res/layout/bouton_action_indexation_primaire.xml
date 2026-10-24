@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bouton d'action PRIMAIRE du panneau d'indexation (v0.178.0, ADR
+     0145) : le PREMIER bouton de la liste est plein (action recommandée —
+     maquette §3 « Réessayer les 3 entrées »). Gonflé par le code
+     (FragmentDetailIndexation.rendreActions), texte et écouteur posés
+     ensuite. -->
+<com.google.android.material.button.MaterialButton
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.CodeIDE.Button"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_xs"
+    android:minHeight="48dp" />

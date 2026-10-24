@@ -1,5 +1,121 @@
 # Journal des modifications
 
+## [0.178.0] – 2026-10-24
+
+### L'écran d'indexation devient MULTI-MOTEURS (Java + Kotlin + XML), rejoint ENFIN sa maquette, et le branchement LSP quitte le fil principal — correctif ANR `.kt`/`.kts` (chantier « Indexation », ADR 0145)
+
+#### Corrigé
+
+- **BUG STRUCTUREL — ANR à l'ouverture des `.kt`/`.kts`** (retour
+  propriétaire : « l'ouverture d'un fichier .kt cause toujours des
+  anr et aussi les fichiers .kts, problème lié a l'indexation du lsp
+  kotlin ») : `CoordonnateurLsp.brancher` appelait `LspEditor.connect()`
+  sur le FIL PRINCIPAL ; or la section SYNCHRONE de `connect()` —
+  `LanguageServerWrapper.start()` → `InProcessStreamConnectionProvider
+  .start()` → le supplier `serveur()` des définitions — tourne sur le
+  fil APPELANT : création de session moteur + `definirClasspath`
+  (lecture des segments `kotlin-appelables/*.kidx` du classpath, ou
+  DÉCODAGE À FROID kotlin-metadata du jar entier — ≥ 10 s mesuré sur
+  appareil d'entrée de gamme, cf. v0.116.0) + racines du scan WARM.
+  Premier `.kt` post-sync = ANR garanti, RE-PAYÉ à chaque changement
+  d'onglet. CORRECTIF : `connect()` vit sur un exécuteur INJECTÉ
+  (`executeurConnect`, `Dispatchers.IO` par défaut — portée fermée dans
+  `fermer`, un connect en vol à la destruction est coupé) ; le câblage
+  de la vue (`setHost`, `setCurrentFilePath`) reste sur le fil appelant,
+  les rappels restent asynchrones (file FIFO de la vue). La chaîne
+  complète des preuves et les demandes au dépôt frère (nourrissage
+  partagé par MOTEUR, paresseux/asynchrone) vivent dans le NOUVEAU
+  `docs/DEMANDES_CODEIDE_LSP.md` D1/D2 — l'ANR UI est couvert, la
+  latence restante attend D1-a/b côté codeide-lsp.
+- **Le label de la liste de travail disait « Dernier passage »** : le
+  câblage B6 pointait sur la mauvaise chaîne — il dit « En cours »
+  (maquette §2).
+- **Les boutons d'action du panneau étaient MORTS** (TODO B7 ouvert
+  depuis la phase B) : « Réindexer » et « Réessayer les entrées échouées »
+  sont BRANCHÉS (`EditorViewModel.reindexerLsp` — revalidation +
+  auto-guérison ; les deux mappent le même appel tant que le dépôt frère
+  n'expose pas de réessai ciblé, DEMANDES D4). « Annuler le passage »
+  N'EST PLUS ÉMIS : aucun point d'annulation n'existe côté orchestrateur
+  (DEMANDES D5) et un bouton mort était un mensonge — l'enum reste
+  RÉSERVÉ, la maquette est documentée comme non implémentable sans le
+  frère.
+
+#### Ajouté
+
+- **Agrégat MULTI-MOTEURS (fin du « Java seul » — ADR 0117 lot B3
+  ENFIN levé)** : nouveau `MoteurIndexation` (une entrée par langue
+  LSP — `JAVA`, `KOTLIN`, `XML` — libellé + accent de langage ADR
+  0059 ; ajouter une langue = UNE entrée + UNE source d'état, le
+  présentateur itère la LISTE, jamais un moteur nommé) et
+  `EtatsMoteursIndexation` (une rangée par session VIVANTE — fermée =
+  rangée retirée ; VIDE = pas de pastille ; l'état global de la
+  pastille = la PIRE phase des moteurs présents). `EditorViewModel
+  .etatsMoteursIndexation` combine les trois sessions + l'état riche
+  Java (`SessionLsp.etatIndexation`) + les fenêtres Kotlin/XML,
+  `stateIn(WhileSubscribed(5 s))` — survit au bref écran éteint,
+  aucune collecte ne fuite vers une ancienne session.
+- **Fenêtres de nourrissage SYNTHÉTISÉES Kotlin/XML (dégradation
+  HONNÊTE)** : le dépôt frère n'expose ni progression ni bilan pour
+  ces moteurs (demande D3 transmise) — l'hôte ne cherche PAS à
+  inventer des compteurs : `fenetrerNourrissage` cadre les CINQ points
+  de nourrissage (cascade modèle Kotlin/XML, cascade classpath
+  Kotlin/XML, régime projet seul) : CONSTRUCTION pendant l'application,
+  PRET après, ERREUR sur exception (RELANCÉE — les cascades gardent
+  leur sémantique, seul l'état devient VISIBLE). Ré-ouverture projet =
+  fenêtres reparties à INITIAL. L'écran dégrade franchement : « En
+  construction » (barre indéterminée), « Prêt », « Erreur », « En
+  attente de synchronisation » — JAMAIS un PARTIEL inventé.
+- **Le panneau de détail rejoint ENFIN la maquette
+  `docs/mockups/indexation/`** : pourcentage à DROITE de l'en-tête
+  pendant la construction (§2 « 62 % ») ; barre de progression
+  construction SEULE (masquée au repos/partiel/erreur — champ
+  `visible` du modèle) ; RÉSUMÉ DES REPRISES (« 96 reprises, 22
+  reconstruites ») ; vue par moteur avec point OVAL TEINTÉ à
+  l'accent de langage + couleur d'état ; sections « ENTRÉES ÉCARTÉES »
+  (PARTIEL) et « ERREURS BLOQUANTES » (ERREUR) ; HISTOGRAMME des 3
+  indexeurs les plus coûteux (largeur relative au max, §4) ; notes
+  d'impact par NIVEAU (neutre / ambre / rouge plein — fin des TODO
+  B6+) ; contenu DÉFILANT (`NestedScrollView` — l'ancien CLIPPAIT le
+  panneau partiel) ; premier bouton PLEIN (action recommandée),
+  suivants cernés, styles en GABARITS XML (`bouton_action_indexation_
+  primaire/secondaire`) jamais posés par code.
+- **ADR 0145** (décisions multi-moteurs + ANR) et **ADR 0144**
+  (documentation SEULE — preview Compose « page blanche » : faits des
+  journaux du 23/10 figés, hypothèses H1-H4 rangées, plan
+  d'investigation ; correction DIFFÉRÉE par décision du
+  propriétaire, le chantier indexation prime).
+- **`docs/DEMANDES_CODEIDE_LSP.md`** : la voie OFFICIELLE de
+  transmission vers l'agent du dépôt frère `codeide-lsp` (D1 :
+  supplier de connexion sans nourrissage lourd ; D2 : jamais de scan
+  sous verrou ; D3 : `etatIndexation` Kotlin + XML réels ; D4 :
+  `reesayerEchecs()` ciblé ; D5 : `annulerPassage()` coopératif) —
+  chaque demande cite ses preuves (fichiers, lignes, journaux).
+
+#### Modifié
+
+- `PresentationIndexation.afficher` prend l'AGRÉGAT (interne au
+  module) ; `EditorViewModel.reindexerLsp` devient `internal` (les
+  boutons du panneau y passent) ; `EditorActivity` collecte l'agrégat
+  du ViewModel (plus de chaînage `flatMapLatest` côté activité — la
+  collecte vit dans le ViewModel) ; pastille inchangée
+  (`VuePointIndexation`).
+- Sous-titre PRÊT honnête : « Tous les moteurs sont prêts » (l'état
+  global PRÊT signifie que tous les moteurs présents le sont — plus
+  de « Java prêt » Java-centré).
+
+#### Docs
+
+- ADR 0144 + ADR 0145 + `DEMANDES_CODEIDE_LSP.md` ; CHANGELOG ;
+  ROADMAP (entrée « Indexation v0.178.0 ») ; TESTS_MANUELS (§ indexation
+  multi-moteurs, 8 scénarios appareil) ; maquette inchangée.
+
+#### Tests
+
+- `PresentationIndexationTest` RÉÉCRIT multi-moteurs : 17 tests
+  (pire phase, moteurs divergents, synthétisé seul, écartées,
+  bloquantes, histogramme tri/fractions, PLUS D'ANNULER,
+  dégradation sans-n) — 435 tests `:feature:editor` verts.
+
 ## [0.177.0] – 2026-10-24
 
 ### Les yeux d'aperçu vivent AUX LIGNES des `@Preview` (façon Android Studio) et la découverte parle l'URI LSP du didOpen — correctif « pas de preview » des tests manuels (mission « Previews » C4, ADR 0143)

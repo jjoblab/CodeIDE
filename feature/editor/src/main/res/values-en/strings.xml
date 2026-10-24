@@ -253,16 +253,35 @@
     <string name="editor_indexation_construction_soustitre">Libraries and SDK</string>
     <string name="editor_indexation_construction_soustitre_n">%1$s of %2$s entries</string>
     <string name="editor_indexation_pret_titre">Index up to date</string>
-    <string name="editor_indexation_pret_soustitre">Java ready</string>
+    <!-- v0.178.0 (ADR 0145): the global READY state means ALL engines
+         present in the aggregate are ready — the subtitle is no longer
+         Java-centric. -->
+    <string name="editor_indexation_pret_soustitre">All engines are ready</string>
     <string name="editor_indexation_partiel_titre">Partial index</string>
     <string name="editor_indexation_partiel_soustitre">%1$s of %2$s entries indexed</string>
+    <!-- v0.178.0 (ADR 0145): multi-engine aggregate — global PARTIAL
+         without a rich Java state (synthesized engine alone) has no counters. -->
+    <string name="editor_indexation_partiel_soustitre_sans_n">Some entries could not be indexed</string>
     <string name="editor_indexation_erreur_titre">Index error</string>
     <string name="editor_indexation_erreur_soustitre">Construction failed</string>
     <string name="editor_indexation_compteur_n_sur_n">%1$s of %2$s</string>
+
+    <!-- Percentage at the right of the header during construction
+         (mockup §2 — v0.178.0, ADR 0145). -->
+    <string name="editor_indexation_pourcentage">%1$d%%</string>
+
+    <!-- Reuse summary during construction (mockup §2 — v0.178.0, ADR 0145). -->
+    <string name="editor_indexation_reprises">Already-indexed entries are reused without rebuilding: %1$d reused, %2$d rebuilt.</string>
     <string name="editor_indexation_moteur_java">Java</string>
+    <string name="editor_indexation_moteur_kotlin">Kotlin</string>
+    <string name="editor_indexation_moteur_xml">XML</string>
     <string name="editor_indexation_moteur_pret">Ready</string>
     <string name="editor_indexation_moteur_partiel">Partial</string>
     <string name="editor_indexation_moteur_erreur">Error</string>
+    <!-- Synthesized engine (feeding window — DEMANDES D3): no counters,
+         construction is indeterminate. -->
+    <string name="editor_indexation_moteur_en_construction">Building</string>
+    <string name="editor_indexation_moteur_en_attente">Waiting for sync</string>
     <string name="editor_indexation_note_construction">During indexing, library completion is limited. Editing is not blocked.</string>
     <string name="editor_indexation_note_partiel">Completion and imports for these entries may be incomplete. The editor remains usable.</string>
     <string name="editor_indexation_note_erreur">The index could not be built. The editor runs in degraded mode: completion, diagnostics and symbol search are slower.</string>
@@ -283,6 +302,10 @@
     <string name="editor_indexation_pastille_cd_erreur">Index error</string>
 
     <!-- Entry states in the work list (lot B6). -->
+    <string name="editor_indexation_entrees_ecartees">Skipped entries</string>
+    <string name="editor_indexation_erreurs_bloquantes">Blocking errors</string>
+    <string name="editor_indexation_liste_travail">In progress</string>
+    <string name="editor_indexation_moteurs">Engines</string>
     <string name="editor_indexation_entree_attente">pending</string>
     <string name="editor_indexation_entree_actif">in progress</string>
     <string name="editor_indexation_entree_termine">done</string>

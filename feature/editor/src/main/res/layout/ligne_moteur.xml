@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Ligne de moteur dans le panneau de détail d'indexation. -->
+<!-- Ligne de moteur dans le panneau de détail d'indexation (v0.178.0,
+     ADR 0145 : UNE rangée par moteur PRÉSENT de l'agrégat). Le point
+     d'accent porte la couleur de langage (teinte appliquée par le code,
+     ADR 0059), l'état à droite aussi. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -14,7 +17,8 @@
         android:layout_width="10dp"
         android:layout_height="10dp"
         android:layout_marginEnd="@dimen/spacing_md_compact"
-        android:background="?attr/colorPrimary" />
+        android:background="@drawable/point_moteur_indexation"
+        tools:backgroundTint="@color/codeide_langage_java" />
 
     <TextView
         android:id="@+id/nom_moteur"

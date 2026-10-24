@@ -2,42 +2,59 @@
 
 package jo.codeide.feature.editor
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
+import jo.codeide.core.ui.couleurRole
+import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.FragmentDetailIndexationBinding
 import jo.codeide.feature.editor.databinding.LigneBilanBinding
+import jo.codeide.feature.editor.databinding.LigneCoutBinding
+import jo.codeide.feature.editor.databinding.LigneEcarteeBinding
 import jo.codeide.feature.editor.databinding.LigneMoteurBinding
 import jo.codeide.feature.editor.databinding.LigneTravailIndexationBinding
+import jo.codeide.core.ui.R as RUi
 
 /**
  * Panneau de détail de l'indexation (Phase B prompt 2, ADR 0117 §4.4 —
- * lot B6). `BottomSheetDialogFragment` affiché au toucher de la pastille
- * de toolbar (lot B5).
+ * lot B6 ; v0.178.0, ADR 0145 : MULTI-MOTEURS). `BottomSheetDialogFragment`
+ * affiché au toucher de la pastille de toolbar (lot B5).
  *
- * Le fragment observe `viewModel.sessionLsp.etatIndexation` via
- * `PresentationIndexation.afficher()` (lot B4) et rend le modèle
- * d'affichage. Le fragment ne contient AUCUNE logique — il ne fait que
- * lier le modèle aux vues (règle §5.11 du prompt 2).
+ * Le fragment rend [ModeleAffichageIndexation] (produit par
+ * [PresentationIndexation.afficher] depuis l'agrégat Java + Kotlin + XML
+ * de `EditorViewModel.etatsMoteursIndexation`) — TOUTES les sections de
+ * la maquette `docs/mockups/indexation/` : en-tête avec pourcentage,
+ * barre de progression (construction seule), résumé des reprises, vue
+ * par moteur (accent de langage ADR 0059), liste de travail, entrées
+ * écartées, erreurs bloquantes, bilan du dernier passage, histogramme
+ * des coûts, notes d'impact par niveau. Le fragment ne contient AUCUNE
+ * logique — il ne fait que lier le modèle aux vues (règle §5.11).
  *
- * Le fragment survit à la rotation (il observe le ViewModel de l'activité
- * via `activityViewModels()`) et se ferme proprement quand la session LSP
- * se ferme (ADR 0114 — l'état `INITIAL` déclenche `dismiss()`).
+ * Les boutons d'action (lot B7, v0.178.0 : enfin branchés) appellent
+ * [EditorViewModel.reindexerLsp] : « Réindexer » et « Réessayer les
+ * entrées échouées » mappent tous deux sur la revalidation +
+ * auto-guérison tant que le dépôt frère n'expose pas de réessai ciblé
+ * (docs/DEMANDES_CODEIDE_LSP.md D4).
  *
- * Patron : [FeuilleTachesFragment] — `BottomSheetDialogFragment` Material 3.
+ * Le fragment survit à la rotation (il observe via `activityViewModels()`
+ * — l'ACTIVITÉ collecte l'agrégat et rappelle [rendre]).
  */
 internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
     private var liaisonAmorce: FragmentDetailIndexationBinding? = null
     private val liaison get() = checkNotNull(liaisonAmorce) { "liaison détail indexation indisponible" }
+
+    private val viewModel: EditorViewModel by activityViewModels()
 
     private lateinit var adaptateur: AdaptateurListeTravail
 
@@ -60,15 +77,19 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
 
     /**
      * Rend le modèle d'affichage dans les vues. Appelé par l'activité
-     * (qui observe `etatIndexation`) à chaque changement d'état.
+     * (qui observe l'agrégat multi-moteurs) à chaque changement d'état.
      */
     internal fun rendre(modele: ModeleAffichageIndexation) {
         if (liaisonAmorce == null) return
         rendreEntete(modele.panneau.entete)
         rendreProgression(modele.panneau.progression)
+        rendreResumeReprises(modele.panneau.resumeReprises)
         rendreListeTravail(modele.panneau.listeTravail)
         rendreMoteurs(modele.panneau.moteurs)
+        rendreEntreesEcartees(modele.panneau.entreesEcartees)
+        rendreErreursBloquantes(modele.panneau.erreursBloquantes)
         rendreBilan(modele.panneau.bilan)
+        rendreCouts(modele.panneau.couts)
         rendreNoteImpact(modele.panneau.noteImpact)
         rendreActions(modele.panneau.actions)
     }
@@ -77,6 +98,13 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
         liaison.iconeEtatDetail.programmer(traduireEtatPastille(entete.etat))
         liaison.titreDetail.text = getString(entete.titre)
         liaison.sousTitreDetail.text = resoudreTexte(entete.sousTitre)
+        val pourcentage = entete.pourcentageDroite
+        if (pourcentage != null) {
+            liaison.pourcentageDroite.text = getString(R.string.editor_indexation_pourcentage, pourcentage)
+            liaison.pourcentageDroite.isVisible = true
+        } else {
+            liaison.pourcentageDroite.isVisible = false
+        }
     }
 
     private fun traduireEtatPastille(etat: EtatPastilleIndexation): VuePointIndexation.Etat = when (etat) {
@@ -89,21 +117,21 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
 
     private fun rendreProgression(progression: ProgressionDetailIndexation) {
         val barre = liaison.progressionDetail
+        barre.isVisible = progression.visible
         if (progression.indeterminee) {
             barre.isIndeterminate = true
-            barre.isVisible = true
         } else {
             barre.isIndeterminate = false
             barre.setProgressCompat((progression.fraction * 100).toInt().coerceIn(0, 100), true)
-            barre.isVisible = true
         }
-        val compteur = liaison.compteurDetail
-        if (progression.compteur != null) {
-            compteur.text = resoudreTexte(progression.compteur)
-            compteur.isVisible = true
-        } else {
-            compteur.isVisible = false
-        }
+        val compteur = progression.compteur
+        liaison.compteurDetail.isVisible = compteur != null
+        compteur?.let { liaison.compteurDetail.text = resoudreTexte(it) }
+    }
+
+    private fun rendreResumeReprises(resume: TexteIndexation?) {
+        liaison.resumeReprises.isVisible = resume != null
+        resume?.let { liaison.resumeReprises.text = resoudreTexte(it) }
     }
 
     private fun rendreListeTravail(entrees: List<EntreeDetailIndexation>?) {
@@ -133,7 +161,54 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
                 val ligne = LigneMoteurBinding.inflate(layoutInflater, conteneur, true)
                 ligne.nomMoteur.text = getString(moteur.nom)
                 ligne.etatMoteur.text = moteur.detail?.let(::resoudreTexte) ?: ""
-                // TODO B6+ : icône couleur d'accent du moteur.
+                ligne.etatMoteur.setTextColor(couleurEtatMoteur(moteur.etat))
+                ligne.pointMoteur.backgroundTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), moteur.couleurAccent),
+                )
+            }
+        }
+    }
+
+    /** Couleur du texte d'état d'une rangée moteur (tokens de statut). */
+    private fun couleurEtatMoteur(etat: EtatMoteurDetail): Int = when (etat) {
+        EtatMoteurDetail.INITIAL -> requireContext().couleurSurSurfaceDiscret()
+        EtatMoteurDetail.CONSTRUCTION -> requireContext().couleurRole(androidx.appcompat.R.attr.colorPrimary)
+        EtatMoteurDetail.PRET -> ContextCompat.getColor(requireContext(), RUi.color.codeide_succes)
+        EtatMoteurDetail.PARTIEL -> ContextCompat.getColor(requireContext(), RUi.color.codeide_journal_warn)
+        EtatMoteurDetail.ERREUR -> ContextCompat.getColor(requireContext(), RUi.color.codeide_error)
+    }
+
+    private fun rendreEntreesEcartees(entrees: List<EntreeEcarteeDetail>) {
+        rendreSectionMessages(
+            label = liaison.labelEntreesEcartees,
+            conteneur = liaison.conteneurEntreesEcartees,
+            entrees = entrees,
+        )
+    }
+
+    private fun rendreErreursBloquantes(entrees: List<EntreeEcarteeDetail>) {
+        rendreSectionMessages(
+            label = liaison.labelErreursBloquantes,
+            conteneur = liaison.conteneurErreursBloquantes,
+            entrees = entrees,
+        )
+    }
+
+    private fun rendreSectionMessages(
+        label: android.widget.TextView,
+        conteneur: ViewGroup,
+        entrees: List<EntreeEcarteeDetail>,
+    ) {
+        if (entrees.isEmpty()) {
+            label.isVisible = false
+            conteneur.isVisible = false
+        } else {
+            label.isVisible = true
+            conteneur.isVisible = true
+            conteneur.removeAllViews()
+            for (entree in entrees) {
+                LigneEcarteeBinding.inflate(layoutInflater, conteneur, true)
+                    .texteEntreeEcartee.text = entree.texte
             }
         }
     }
@@ -177,6 +252,30 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
         ligne.valeurBilan.text = valeur
     }
 
+    /**
+     * Histogramme « ce qui a coûté le plus de temps » (maquette §4) :
+     * une rangée par indexeur, barre de largeur relative au plus coûteux.
+     */
+    private fun rendreCouts(couts: List<CoutDetailIndexation>) {
+        val label = liaison.labelCouts
+        val conteneur = liaison.conteneurCouts
+        if (couts.isEmpty()) {
+            label.isVisible = false
+            conteneur.isVisible = false
+        } else {
+            label.isVisible = true
+            conteneur.isVisible = true
+            conteneur.removeAllViews()
+            for (cout in couts) {
+                val ligne = LigneCoutBinding.inflate(layoutInflater, conteneur, true)
+                ligne.libelleCout.text = cout.libelle
+                ligne.dureeCout.text = formatDuree(cout.millisecondes)
+                ligne.barreCout.isIndeterminate = false
+                ligne.barreCout.setProgress((cout.fraction * 100).toInt().coerceIn(1, 100))
+            }
+        }
+    }
+
     private fun rendreNoteImpact(note: NoteImpactIndexation?) {
         val card = liaison.noteImpact
         val texte = liaison.texteNoteImpact
@@ -185,26 +284,60 @@ internal class FragmentDetailIndexation : BottomSheetDialogFragment() {
         } else {
             card.isVisible = true
             texte.text = resoudreTexte(note.texte)
-            // TODO B6+ : couleur de fond selon le niveau (info/avertissement/erreur).
+            val (fond, texteCouleur) = couleursNote(note.niveau)
+            card.setCardBackgroundColor(fond)
+            texte.setTextColor(texteCouleur)
         }
     }
 
+    /** Fond + couleur de texte de la note par niveau (tokens de statut). */
+    private fun couleursNote(niveau: NiveauNoteImpact): Pair<Int, Int> = when (niveau) {
+        NiveauNoteImpact.INFO ->
+            Pair(
+                requireContext().couleurRole(com.google.android.material.R.attr.colorSurfaceVariant),
+                requireContext().couleurRole(com.google.android.material.R.attr.colorOnSurfaceVariant),
+            )
+
+        NiveauNoteImpact.AVERTISSEMENT ->
+            Pair(
+                ContextCompat.getColor(requireContext(), RUi.color.codeide_avertissement_container),
+                ContextCompat.getColor(requireContext(), RUi.color.codeide_journal_warn),
+            )
+
+        NiveauNoteImpact.ERREUR ->
+            Pair(
+                ContextCompat.getColor(requireContext(), RUi.color.codeide_error),
+                ContextCompat.getColor(requireContext(), RUi.color.codeide_on_error),
+            )
+    }
+
+    /**
+     * Boutons d'action — v0.178.0 (ADR 0145) : branchés au ViewModel
+     * (fin du TODO B7). Le PREMIER bouton de la liste est plein (action
+     * recommandée — maquette : « Réessayer les 3 entrées » en partiel),
+     * les suivants sont cernés ; les STYLES vivent dans les gabarits XML
+     * (bouton_action_indexation_primaire/secondaire — jamais de style
+     * par code). [ActionDetailIndexation.ANNULER] n'est PLUS émis par
+     * le présentateur (aucun point d'annulation — docs/DEMANDES-
+     * _CODEIDE_LSP.md D5) ; la branche reste défensive.
+     */
     private fun rendreActions(actions: List<ActionDetailIndexation>) {
         val conteneur = liaison.conteneurActions
         conteneur.removeAllViews()
+        var premierEmis = false
         for (action in actions) {
-            val bouton =
-                MaterialButton(requireContext()).apply {
-                    text = libelleAction(action)
-                    cornerRadius = 22
-                    layoutParams =
-                        ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            (44 * resources.displayMetrics.density).toInt(),
-                        )
-                    setOnClickListener { /* TODO B7 : brancher les actions au ViewModel */ }
+            if (action == ActionDetailIndexation.ANNULER) continue
+            val gabarit =
+                if (!premierEmis) {
+                    R.layout.bouton_action_indexation_primaire
+                } else {
+                    R.layout.bouton_action_indexation_secondaire
                 }
-            conteneur.addView(bouton)
+            premierEmis = true
+            val bouton =
+                layoutInflater.inflate(gabarit, conteneur, true) as MaterialButton
+            bouton.text = libelleAction(action)
+            bouton.setOnClickListener { viewModel.reindexerLsp() }
         }
     }
 

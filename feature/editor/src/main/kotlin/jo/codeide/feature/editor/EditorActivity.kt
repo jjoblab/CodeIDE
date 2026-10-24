@@ -77,13 +77,9 @@ import jo.codeide.core.ui.couleurSurSurface
 import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
-import jo.codeide.lsp.host.EtatIndexation
-import jo.codeide.lsp.host.PhaseIndexation
 import jo.codeide.preview.xml.ClassificateurPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -2394,19 +2390,19 @@ class EditorActivity :
     }
 
     /**
-     * État d'indexation de la session courante — chaîné par
-     * flatMapLatest (expérimental : opt-in ciblé) pour que la collecte
-     * MEURE avec sa session (une collecte imbriquée fuiterait vers
-     * l'ancienne).
+     * Agrégat d'indexation MULTI-MOTEURS (v0.178.0, ADR 0145) — Java
+     * (état riche `SessionLsp.etatIndexation`) + Kotlin + XML (fenêtres
+     * de nourrissage synthétisées, DEMANDES_CODEIDE_LSP.md D3). La
+     * collecte vit dans le ViewModel (`WhileSubscribed`) : les rangées
+     * des sessions fermées disparaissent d'elles-mêmes, aucune collecte
+     * imbriquée ne fuite vers une ancienne session.
      */
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     private fun observerEtatIndexationLsp() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.sessionLsp
-                    .flatMapLatest { session ->
-                        session?.etatIndexation ?: flowOf(null)
-                    }.collect { etat -> rendreEtatIndexationLsp(etat) }
+                viewModel.etatsMoteursIndexation.collect { etats ->
+                    rendreEtatIndexationLsp(etats)
+                }
             }
         }
     }
@@ -2467,19 +2463,21 @@ class EditorActivity :
     }
 
     /**
-     * Rend l'état d'indexation LSP sur la pastille de toolbar (Phase B
-     * prompt 2, ADR 0117 §4.4 — lot B5+B7). Remplace l'ancienne ligne
+     * Rend l'agrégat d'indexation multi-moteurs sur la pastille de
+     * toolbar (Phase B prompt 2, ADR 0117 §4.4 — lot B5+B7 ; v0.178.0,
+     * ADR 0145 : PLUS un seul Java). Remplace l'ancienne ligne
      * `barre_etat_lsp` (qui consommait de la hauteur dans la colonne
      * centrale).
      *
      * La pastille [VuePointIndexation] vit dans la toolbar (menu
      * `menu_indexation`). Le panneau de détail (bottom sheet, lot B6)
      * s'ouvre au toucher de la pastille et reçoit le même modèle
-     * d'affichage.
+     * d'affichage. AGRÉGAT VIDE = aucun moteur vivant = pas de pastille
+     * (et le panneau se referme — session fermée).
      */
-    private fun rendreEtatIndexationLsp(etat: EtatIndexation?) {
+    private fun rendreEtatIndexationLsp(etats: EtatsMoteursIndexation) {
         val pastille = vuePointIndexation ?: return
-        if (etat == null || etat.phase == PhaseIndexation.INITIAL) {
+        if (etats.moteurs.isEmpty()) {
             pastille.programmer(VuePointIndexation.Etat.INITIAL)
             dernierModeleIndexation = null
             // Ferme le panneau s'il était ouvert (session LSP fermée).
@@ -2487,7 +2485,7 @@ class EditorActivity :
                 ?.dismissAllowingStateLoss()
             return
         }
-        val modele = PresentationIndexation.afficher(etat)
+        val modele = PresentationIndexation.afficher(etats)
         dernierModeleIndexation = modele
         pastille.programmer(
             etat = traduireEtatPastille(modele.pastille.etat),

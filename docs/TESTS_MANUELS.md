@@ -1561,3 +1561,57 @@ cas qui échouait en v0.176.0 (clé SAF ≠ clé FUSE du didOpen).
 7. **Échantillon sans LSP** — ouvrir un échantillon Kotlin (si
    disponible) : repli best-effort sur la clé d'onglet — les yeux
    peuvent être absents (honnête), mais AUCUN crash de la carte.
+
+## Indexation multi-moteurs + correctif ANR `.kt`/`.kts` (chantier « Indexation » → v0.178.0, ADR 0145)
+
+Contexte appareil : projet Mixte (fichiers `.java`, `.kt`, `.xml`)
+OUVERT depuis l'explorateur, sync Gradle terminée au moins une fois.
+La maquette de référence : `docs/mockups/indexation/indexation.html`.
+
+1. **L'ouverture d'un `.kt` NE FIGE PLUS l'UI (LE correctif ANR)** —
+   juste APRÈS une sync (indexation fraîche), ouvrir un fichier
+   `.kt` puis basculer entre onglets `.kt`/`.kts`/`.java` : l'UI
+   répond PENDANT le branchement (scroll fluide, menu, bascule
+   d'onglets), AUCUNE boîte « L'application ne répond pas » ; le
+   logcat finit par montrer `LSP Kotlin connecté` APRÈS le
+   branchement. En v0.177.0 ce même geste figeait l'UI plusieurs
+   secondes (ANR) — la LATENCE moteur peut rester (nourrissage
+   re-payé par connexion tant que DEMANDES D1-a/b côté codeide-lsp
+   n'est pas livré), mais JAMAIS plus le fil principal.
+2. **Pastille = état GLOBAL (pire phase)** — pendant l'ouverture du
+   projet : anneau animé + pourcentage pendant que Java publie ses
+   compteurs ; tous moteurs prêts : coche verte discrète ; un
+   problème (partiel/erreur) : triangle ambre / croix rouge.
+3. **Panneau — vue par moteur, UNE rangée par langue de session** —
+   toucher la pastille : section « Moteurs » avec Java (compteur
+   `n/N` ou « Prêt », orange), Kotlin (violet) et XML (ocre) :
+   « En construction » (construction), « Prêt », « En attente de
+   synchronisation » (avant sync) ou « Erreur » ; point OVAL à la
+   couleur de langage, texte d'état COLORÉ (vert/ambre/rouge).
+4. **Panneau — construction (maquette §2)** — pourcentage à DROITE
+   de l'en-tête ; barre de progression visible SEULEMENT pendant
+   la construction ; ligne « Les entrées déjà indexées sont
+   reprises… : n reprises, n reconstruites » ; liste de travail
+   labelée « En cours » (plus « Dernier passage ») ; note neutre
+   « complétion limitée, édition non bloquée » ; AUCUN bouton
+   « Annuler le passage » (retiré — aucun point d'annulation,
+   DEMANDES D5).
+5. **Panneau — partiel (maquette §3)** — avec des entrées écartées
+   (p. ex. jar illisible dans le classpath) : bandeau AMBRE,
+   section « Entrées écartées » UNE ligne par message, boutons
+   « Réessayer les entrées échouées » (PLEIN) puis « Tout
+   réindexer » (cerné) — les DEUX déclenchent la revalidation
+   (logcat : réindexation) et la pastille repasse en construction.
+6. **Panneau — repos (maquette §4)** — après un passage complet :
+   « Dernier passage » (durée, bibliothèques reprises/reconstruites,
+   fichiers ré-analysés) + « Ce qui a coûté le plus de temps » (3
+   barres, la plus large = le plus cher) + « Réindexer » cerné.
+   Rotation pendant le panneau ouvert : contenu ré-affiché identique
+   (5 s de grâce de l'abonnement).
+7. **Agrégat honnête** — refermer le projet (retour accueil) : la
+   pastille disparaît (aucun moteur vivant) et le panneau ouvert se
+   REFERME ; rouvrir le projet : les rangées repartent à « En
+   attente de synchronisation » puis suivent les nourrissages.
+8. **Erreur (maquette §5)** — avec un index en erreur (stockage
+   corrompu) : bandeau ROUGE, section « Erreurs bloquantes », un
+   seul bouton « Réindexer » PLEIN ; PAS de barre de progression.
