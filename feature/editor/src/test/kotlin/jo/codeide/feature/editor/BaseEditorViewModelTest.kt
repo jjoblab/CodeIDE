@@ -386,6 +386,23 @@ abstract class BaseEditorViewModelTest {
         savedStateHandle = sauvetage,
     )
 
+    /**
+     * Raccourci (v0.182.0 — go-to cross-fichier) : construit le
+     * ViewModel avec un résolveur FUSE alternatif SANS sauvetage
+     * préexistant — les tests de go-to sèment la racine FUSE que la
+     * traduction chemin-cible → URI de l'arbre relativise CONTRE elle.
+     */
+    protected fun viewModel(
+        id: ProjectId,
+        resolveurFUSE: jo.codeide.core.domain.ResolveurCheminFuse,
+    ): EditorViewModel = viewModel(
+        id,
+        SavedStateHandle(
+            mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value),
+        ),
+        resolveurFUSE,
+    )
+
     /** Collecte les effets du ViewModel dans une liste observable. */
     protected fun kotlinx.coroutines.test.TestScope.collecterEffets(
         viewModel: EditorViewModel,

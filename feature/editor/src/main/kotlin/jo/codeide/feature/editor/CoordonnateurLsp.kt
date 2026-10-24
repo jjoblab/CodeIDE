@@ -247,6 +247,31 @@ internal class CoordonnateurLsp(
         }
     }
 
+    /**
+     * La source (attachée ou stub décompilé) d'un type BINAIRE du
+     * classpath (v0.182.0) — le texte du buffer lecture seule ouvert par
+     * un go-to sur `AppCompatActivity`, `HashMap`… Délègue à la façade
+     * `decompiledSource` de cel-lsp (requête personnalisée
+     * `textDocument/decompiledSource` du serveur LSP Java, annoncée par
+     * la capability `decompiledSourceProvider`).
+     *
+     * @param fqcn nom pleinement qualifié (ex. `androidx.appcompat.app.AppCompatActivity`)
+     * @return la source, ou `null` (serveur absent, FQCN introuvable,
+     *         timeout) — l'appelant renonce honnêtement
+     */
+    internal fun sourceDecompilee(fqcn: String): String? {
+        val projet = projetLsp ?: run {
+            journal.w(TAG) { "source décompilée impossible : pas de projet LSP" }
+            return null
+        }
+        return try {
+            projet.decompiledSource("java", fqcn)
+        } catch (t: Throwable) {
+            journal.w(TAG, t) { "source décompilée en échec : $fqcn" }
+            null
+        }
+    }
+
     private companion object {
         private const val TAG = "LspEditeur"
     }

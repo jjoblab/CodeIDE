@@ -345,13 +345,6 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
         }
     }
 
-    /** Construit le ViewModel sur un résolveur FUSE résolvant (h2). */
-    private fun viewModel(id: ProjectId, resolveurFUSE: ResolveurCheminFuse): EditorViewModel = viewModel(
-        id,
-        SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to id.value)),
-        resolveurFUSE,
-    )
-
     // ------------------------------------------------------------------
     // v0.102.0 — lot h4, les deux écarts réels (§16.5).
     // ------------------------------------------------------------------
