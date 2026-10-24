@@ -4,12 +4,17 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
+import android.os.SystemClock
+import android.view.MotionEvent
+import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.preview.EditorPreviewHost
 import jo.codeide.lsp.host.SessionLspKotlin
 import jo.codeide.preview.compose.EtatPreviewCompose
+import jo.codeide.preview.compose.EvenementTactileCompose
 import jo.codeide.preview.compose.MoteurPreviewCompose
 import jo.codeide.preview.compose.RenduPreviewCompose
+import jo.codeide.preview.compose.RequeteRenduCompose
 import jo.lspkotlin.api.PreviewKotlin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
@@ -42,9 +47,26 @@ internal interface PortMoteurPreviewCompose : AutoCloseable {
      * changement relance un rendu complet.
      */
     fun definirProjet(dossierRes: String?, langue: String?, themeName: String?)
+
+    /**
+     * C3 — HORLOGE INTERACTIVE : arme (ou éteint) le pompier de
+     * l'onglet AFFICHÉ de la carte (`identiteDe(uri, nom, onglet)` —
+     * `null` = carte fermée : les animations se figent).
+     */
+    fun definirInteractif(identite: String?, onglet: Int)
+
+    /**
+     * C3 — FORWARDING : pousse UNE touche du premier doigt à la session
+     * interactive courante (no-op honnête si aucune). Le CONTRAT
+     * [EvenementTactileCompose] voyage ENTIER (action, point en px
+     * bitmap — l'hôte a inversé son FIT, horodatages, pression) : le
+     * port ne déroule jamais les six champs (detekt LongParameterList
+     * tué par RESTRUCTURE — l'objet EST la donnée).
+     */
+    fun transmettreTouch(evenement: EvenementTactileCompose)
 }
 
-/** Adaptateur 1:1 du moteur réel sur le port (cinq délégations pures). */
+/** Adaptateur 1:1 du moteur réel sur le port (sept délégations pures). */
 private class MoteurComposeSurPort(private val moteur: MoteurPreviewCompose) : PortMoteurPreviewCompose {
     override val etat: StateFlow<EtatPreviewCompose> = moteur.etat
 
@@ -56,6 +78,10 @@ private class MoteurComposeSurPort(private val moteur: MoteurPreviewCompose) : P
 
     override fun definirProjet(dossierRes: String?, langue: String?, themeName: String?) =
         moteur.definirProjet(dossierRes, langue, themeName)
+
+    override fun definirInteractif(identite: String?, onglet: Int) = moteur.definirInteractif(identite, onglet)
+
+    override fun transmettreTouch(evenement: EvenementTactileCompose) = moteur.transmettreTouch(evenement)
 
     override fun close() = moteur.close()
 }
@@ -162,6 +188,18 @@ internal class HostApercuCompose(
     @Volatile
     private var vueEditeur: EditorView? = null
 
+    /** C3 — l'onglet AFFICHÉ de la carte (miroir du selectedTab cel-ui, vérité au frame). */
+    @Volatile
+    private var ongletAffiche: Int = 0
+
+    /** C3 — le FIT du DERNIER dessin (la carte touche ce qu'elle dessine — repère partagé). */
+    @Volatile
+    private var fitDernier: AjustementEcran? = null
+
+    /** C3 — l'uptimeMillis du DOWN du geste en cours (les clics de la composition se règlent sur le temps du doigt). */
+    @Volatile
+    private var downTimeGeste: Long = 0L
+
     /** Peinture du bitmap (filtrage bilinéaire du FIT). */
     private val peintureBitmap = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
@@ -214,6 +252,12 @@ internal class HostApercuCompose(
                         dernierValide = etat
                         messageDocument = null
                         rafraichirOngletsSiCarteOuverte(etat)
+                        // C3 — la carte ouverte suit les frames : le pompier
+                        // interactif publie un bitmap AVANCÉ toutes les ~33 ms,
+                        // l'éditeur REDESSINE (sinon la carte afficherait le
+                        // bitmap figé du frame précédent).
+                        armerInteractif()
+                        if (carteOuverte) vueEditeur?.invalidate()
                     }
 
                     is EtatPreviewCompose.ErreurRendu -> {
@@ -257,6 +301,19 @@ internal class HostApercuCompose(
             // tentative du processus :preview (miroir « Réessayer ») ;
             // moteur sain → no-op (digeste inchangé, zéro Binder).
             moteur.reactiverIsolation()
+            // Miroir d'openAt (cel-ui) : toute ouverture repart à
+            // l'onglet 0 — le branchement interactif suit la vérité.
+            ongletAffiche = 0
+            // C3 — l'ouverture ARME l'horloge sur l'onglet affiché s'il
+            // porte déjà un rendu (le collecteur d'état re-branche à
+            // chaque RenduValide, l'ouverture qui suit un rendu déjà
+            // publié arme ici — jamais d'attente de la prochaine frame).
+            armerInteractif()
+        } else {
+            // C3 — carte fermée : l'horloge interactive S'ARRÊTE (les
+            // animations se figent, le processus redevient inactif à
+            // l'idle — jamais d'animation en arrière-fond).
+            moteur.definirInteractif(null, 0)
         }
     }
 
@@ -280,12 +337,17 @@ internal class HostApercuCompose(
     override fun previewDropTabs(): List<String> = nomsCourants().also { ongletsMesures = it }
 
     override fun onPreviewDropTabSelected(index: Int) {
-        // Aucun état à maintenir : drawDropPreview reçoit l'onglet à
-        // chaque frame (miroir DemoPreviewHost) et le moteur re-rend
-        // TOUT le document par passe (diff d'identité, PC1).
+        // C3 — l'onglet affiché change : le pompier interactif suit
+        // (l'onglet VISIBLE s'anime, les autres attendent — jamais de
+        // re-rendu des onglets cachés). Le reste ne bouge pas : le
+        // moteur re-rend TOUT le document par passe (diff d'identité,
+        // PC1) et drawDropPreview reçoit l'onglet à chaque frame.
+        ongletAffiche = index
+        armerInteractif()
     }
 
     override fun drawDropPreview(canvas: Canvas, x: Float, y: Float, w: Float, h: Float, tab: Int) {
+        ongletAffiche = tab
         val rendu = dernierValide?.rendus?.getOrNull(tab)
         val bitmap = rendu?.bitmap
         if (bitmap != null) {
@@ -294,6 +356,10 @@ internal class HostApercuCompose(
             val echelle = minOf(w / bitmap.width, h / bitmap.height)
             val gauche = x + (w - bitmap.width * echelle) / 2f
             val haut = y + (h - bitmap.height * echelle) / 2f
+            // C3 — le FIT du dessin devient le REPÈRE des touches : la
+            // carte touche au pixel près ce qu'elle dessine (l'inverse
+            // du FIT rejoue le doigt en px bitmap).
+            fitDernier = AjustementEcran(echelle, gauche, haut, bitmap.width, bitmap.height)
             canvas.drawBitmap(
                 bitmap,
                 null,
@@ -303,9 +369,9 @@ internal class HostApercuCompose(
             // C2 — SURLIGNAGE du nœud du caret : les géométries extraites
             // (rendu.noeuds — bounds bitmap + ligne source, écho
             // ComposeViewInfoParser) désignent le nœud de la LIGNE du
-            // caret de l'éditeur ; le sens inverse (tap sur un nœud →
-            // saut source) exige une évolution cel-ui (le corps de la
-            // carte engloutit les taps) et vit au chantier C3.
+            // caret de l'éditeur ; le sens inverse (APPUIS LONG sur un
+            // nœud → saut source) vit en C3
+            // ([onPreviewDropLongPress]).
             dessinerSurlignage(canvas, rendu, echelle, gauche, haut)
             return
         }
@@ -324,7 +390,139 @@ internal class HostApercuCompose(
         // :feature:settings) — chantier ultérieur documenté au CHANGELOG.
     }
 
+    // ── C3 : le CORPS interactif (B27-C3 de cel-ui 4.1.0) ───────────
+
+    /** C3 — le corps de la carte est INTERACTIF : touches et appui long transférés. */
+    override fun wantsInteractiveDropPreview(): Boolean = true
+
+    /**
+     * C3 — FORWARDING : le doigt de l'écran du mini-téléphone rejoint la
+     * composition vivante du processus :preview (écho
+     * `triggerTouchEvent`). L'inverse du FIT rejoue le contact en PX
+     * BITMAP (le repère du canevas) ; le DOWN mémorise son HORODATAGE
+     * (les clics/long-clics de la composition se règlent sur le TEMPS
+     * RÉEL du doigt). Sans dessin récent (aucun FIT), sans bitmap : le
+     * DOWN est DÉCLINÉ — cel-ui retombe sur le corps inerte.
+     */
+    override fun onPreviewDropTouch(action: Int, sx: Float, sy: Float): Boolean {
+        if (action == MotionEvent.ACTION_DOWN) {
+            downTimeGeste = SystemClock.uptimeMillis()
+        }
+        val point = bitmapDe(sx, sy) ?: return false
+        moteur.transmettreTouch(
+            EvenementTactileCompose(
+                action = action,
+                xPx = point[0],
+                yPx = point[1],
+                downTimeMs = downTimeGeste,
+                eventTimeMs = SystemClock.uptimeMillis(),
+                pression = PRESSION_DOIGT,
+            ),
+        )
+        return true
+    }
+
+    /**
+     * C3 — INSPECTION (appui long, le « Ctrl+clic » mobile) : le nœud le
+     * plus PETIT contenant le point rejoint son code — le caret SAUTE à
+     * la ligne source et l'éditeur la REVELE (la carte esquive le bloc
+     * de frappe au frame suivant, elle reste ouverte). Sans nœud sous le
+     * doigt, sans vue : RIEN (aucun faux saut).
+     */
+    override fun onPreviewDropLongPress(sx: Float, sy: Float) {
+        // UNE SEULE cible calculée en expression : chaque absence (vue,
+        // session, document, FIT, nœud sous le doigt) se court-circuite
+        // SANS empiler les retours (patron maison rectangleDuCaret —
+        // detekt ReturnCount tué par RESTRUCTURE, pas de desserrage).
+        val cible = cibleInspection(sx, sy) ?: return
+        cible.session.setSelection(cible.debutLigne)
+        cible.vue.scrollToLine(cible.ligne)
+    }
+
+    /**
+     * La cible d'INSPECTION d'un appui long : la vue, sa session et la
+     * ligne 0-indexée VISÉE (le nœud le plus PETIT contenant le doigt —
+     * le plus profond —, jamais la colonne qui englobe tout) avec
+     * l'offset de début de cette ligne.
+     */
+    private class CibleInspection(val vue: EditorView, val session: EditorSession, val ligne: Int, val debutLigne: Int)
+
+    /** Calcule la cible d'inspection en UNE expression nullable. */
+    private fun cibleInspection(sx: Float, sy: Float): CibleInspection? = vueEditeur
+        ?.let { vue ->
+            vue.session
+                ?.let { session -> session.getDocument()?.let { Triple(vue, session, it) } }
+        }?.let { (vue, session, document) ->
+            ligneSourceSousLeDoigt(document, sx, sy)
+                ?.let { ligne -> CibleInspection(vue, session, ligne, document.lineStart(ligne)) }
+        }
+
+    /**
+     * La LIGNE source 0-indexée du nœud sous le doigt (null sans FIT,
+     * sans nœud contenant le point) — le nœud de plus PETITE aire gagne
+     * : c'est le plus PROCHE du doigt (l'enfant battant le conteneur).
+     */
+    private fun ligneSourceSousLeDoigt(document: jo.codeeditor.document.EditorDocument, sx: Float, sy: Float): Int? =
+        bitmapDe(sx, sy)
+            ?.let { point ->
+                dernierValide
+                    ?.rendus
+                    ?.getOrNull(ongletAffiche)
+                    ?.noeuds
+                    ?.filter {
+                        it.gauche <= point[0] && point[0] <= it.droite &&
+                            it.haut <= point[1] && point[1] <= it.bas
+                    }?.minByOrNull { (it.droite - it.gauche) * (it.bas - it.haut) }
+                    ?.let { noeud -> (noeud.ligne - 1).coerceIn(0, document.lineCount() - 1) }
+            }
+
     // ── Internes ────────────────────────────────────────────────────
+
+    /**
+     * C3 — branche l'HORLOGE INTERACTIVE sur l'onglet AFFICHÉ : la carte
+     * est ouverte ET cet onglet porte un bitmap → le pompier du moteur
+     * tourne sur SON identité (`uri#nom#index`) ; sinon (carte fermée,
+     * onglet sans rendu, document absent) il s'arrête — les animations
+     * ne vivent que sur ce qui est VISIBLE. Idempotent côté moteur (le
+     * re-branchement d'une identité déjà pompée est un no-op).
+     */
+    private fun armerInteractif() {
+        val actif = document
+            ?.let { (uri, _) -> uri }
+            ?.let { uri ->
+                dernierValide?.rendus?.getOrNull(ongletAffiche)
+                    ?.takeIf { it.bitmap != null }
+                    ?.let { rendu -> RequeteRenduCompose.identiteDe(uri, rendu.nom, ongletAffiche) }
+            }
+        moteur.definirInteractif(if (carteOuverte) actif else null, ongletAffiche)
+    }
+
+    /**
+     * C3 — rejoue un point ÉCRAN en PX BITMAP : l'inverse du FIT du
+     * DERNIER dessin ([drawDropPreview] pose le repère), clampé aux
+     * bornes du bitmap (un contact au bord reste honnête). `null` sans
+     * dessin récent ou échelle dégénérée — le DOWN est décliné.
+     */
+    internal fun bitmapDe(sx: Float, sy: Float): FloatArray? = fitDernier
+        ?.takeIf { it.echelle > 0f && it.largeur > 0 && it.hauteur > 0 }
+        ?.let { fit ->
+            floatArrayOf(
+                ((sx - fit.gauche) / fit.echelle).coerceIn(0f, fit.largeur - 1f),
+                ((sy - fit.haut) / fit.echelle).coerceIn(0f, fit.hauteur - 1f),
+            )
+        }
+
+    /**
+     * C3 — le FIT du dernier dessin de la carte : le REPÈRE partagé du
+     * dessin ([drawDropPreview]) et des touches ([bitmapDe] l'inverse).
+     */
+    private class AjustementEcran(
+        val echelle: Float,
+        val gauche: Float,
+        val haut: Float,
+        val largeur: Int,
+        val hauteur: Int,
+    )
 
     /**
      * Le message honnête d'un onglet sans bitmap : l'échec LOCAL de cet
@@ -476,5 +674,8 @@ internal class HostApercuCompose(
 
         /** Épaisseur du contour de surlignage (dp — coordonnées carte). */
         internal const val EPAISSEUR_SURLIGNAGE_DP: Float = 2f
+
+        /** C3 — pression du doigt transférée (normalisée — 1 est le défaut honnête). */
+        internal const val PRESSION_DOIGT: Float = 1f
     }
 }

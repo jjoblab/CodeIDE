@@ -9,6 +9,7 @@ import jo.codeeditor.document.EditorDocument
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
 import jo.codeide.preview.compose.EtatPreviewCompose
+import jo.codeide.preview.compose.EvenementTactileCompose
 import jo.codeide.preview.compose.GenreNoeudCompose
 import jo.codeide.preview.compose.InfoNoeudCompose
 import jo.codeide.preview.compose.MetriquesRenduCompose
@@ -87,6 +88,20 @@ class HostApercuComposeTest {
 
         override fun definirProjet(dossierRes: String?, langue: String?, themeName: String?) {
             projets += Triple(dossierRes, langue, themeName)
+        }
+
+        /** C3 — (identité, onglet) de chaque branchement interactif. */
+        val interactifs = mutableListOf<Pair<String?, Int>>()
+
+        /** C3 — événements relayés ENTIERS (le contrat EST la donnée). */
+        val touches = mutableListOf<EvenementTactileCompose>()
+
+        override fun definirInteractif(identite: String?, onglet: Int) {
+            interactifs += identite to onglet
+        }
+
+        override fun transmettreTouch(evenement: EvenementTactileCompose) {
+            touches += evenement
         }
 
         override fun close() = Unit
@@ -411,5 +426,119 @@ class HostApercuComposeTest {
         hote.drawDropPreview(Canvas(cible), 0f, 0f, 40f, 60f, 0)
         assertEquals("sans vue : bitmap nu", Color.WHITE, cible.getPixel(10, 20))
         assertEquals(Color.WHITE, cible.getPixel(20, 30))
+    }
+
+    // ── C3 : le corps interactif, l'horloge et l'inspection ─────────
+
+    @Test
+    fun `C3 wantsInteractive - le corps de la carte est INTERACTIF`() {
+        val hote = hote(FauxMoteur(), scope = CoroutineScope(UnconfinedTestDispatcher()))
+        assertTrue("le mini-téléphone reçoit les touches (B27-C3)", hote.wantsInteractiveDropPreview())
+    }
+
+    @Test
+    fun `C3 touch - le FIT du dessin rejoue le doigt en px bitmap`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(listOf(rendu("A", bitmap = carre(8, Color.WHITE))))
+
+        // FIT ×5 : bitmap 8×8 posé dans 40×60 → zone carte [0,40]×[10,50]
+        // (letterbox vertical centré) ; un doigt au CENTRE écran de la
+        // carte (20, 30) tombe au CENTRE bitmap (4, 4).
+        hote.drawDropPreview(Canvas(Bitmap.createBitmap(40, 60, Bitmap.Config.ARGB_8888)), 0f, 0f, 40f, 60f, 0)
+        assertTrue("le DOWN part au moteur", hote.onPreviewDropTouch(android.view.MotionEvent.ACTION_DOWN, 20f, 30f))
+        assertTrue("le MOVE suit", hote.onPreviewDropTouch(android.view.MotionEvent.ACTION_MOVE, 25f, 30f))
+        assertEquals(2, moteur.touches.size)
+        assertEquals("l'action voyage ENTIÈRE", android.view.MotionEvent.ACTION_DOWN, moteur.touches[0].action)
+        assertEquals(4f, moteur.touches[0].xPx, 0.5f)
+        assertEquals(4f, moteur.touches[0].yPx, 0.5f)
+        assertEquals(5f, moteur.touches[1].xPx, 0.5f)
+
+        // Doigt HORS bitmap (letterbox) : CLAMPÉ au bord honnête.
+        hote.onPreviewDropTouch(android.view.MotionEvent.ACTION_UP, 20f, 5f)
+        assertEquals(3, moteur.touches.size)
+        assertEquals("clampé au haut du bitmap", 0f, moteur.touches[2].yPx, 0.5f)
+    }
+
+    @Test
+    fun `C3 touch sans dessin - le DOWN est DECLINE (corps inerte)`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(listOf(rendu("A", bitmap = carre(8, Color.WHITE))))
+
+        // AUCUN drawDropPreview préalable : aucun FIT → le hôte DÉCLINE,
+        // cel-ui retombe sur le corps inerte (jamais un transfert aveugle).
+        assertFalse(hote.onPreviewDropTouch(android.view.MotionEvent.ACTION_DOWN, 20f, 30f))
+        assertTrue(moteur.touches.isEmpty())
+    }
+
+    @Test
+    fun `C3 horloge - carte ouverte ARME l'onglet rendu, refermée L'ÉTEINT`() = runTest {
+        val moteur = FauxMoteur()
+        val uri = "file:///a.kt"
+        val etatEditeur = MutableStateFlow(etatAvecOnglet(uri, "a.kt"))
+        val hote = hote(moteur, etatEditeur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+
+        // Rendu valable (DEUX onglets) : le collecteur branche — carte
+        // FERMÉE, l'identité reste NULL (l'horloge ne tourne jamais
+        // cachée).
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(
+                listOf(
+                    rendu("ApercuUn", bitmap = carre(4, Color.WHITE)),
+                    rendu("ApercuDeux", index = 1, bitmap = carre(4, Color.WHITE)),
+                ),
+            )
+        assertEquals(null, moteur.interactifs.last().first)
+
+        // Carte OUVERTE : l'identité de l'onglet 0 rendu est branchée.
+        hote.onPreviewModeChanged(EditorView.PreviewMode.DROP, 0, 100)
+        assertEquals("file:///a.kt#ApercuUn#0", moteur.interactifs.last().first)
+        assertEquals(0, moteur.interactifs.last().second)
+
+        // Onglet 1 : la pompe suit l'onglet AFFICHÉ.
+        hote.onPreviewDropTabSelected(1)
+        assertEquals("file:///a.kt#ApercuDeux#1", moteur.interactifs.last().first)
+        assertEquals(1, moteur.interactifs.last().second)
+
+        // Carte refermée : l'horloge s'éteint (jamais d'animation cachée).
+        hote.onPreviewModeChanged(EditorView.PreviewMode.NONE, 0, 0)
+        assertEquals(null, moteur.interactifs.last().first)
+    }
+
+    @Test
+    fun `C3 appui long - le nœud SOUS le doigt rejoint sa ligne source (caret + scroll)`() = runTest {
+        val moteur = FauxMoteur()
+        val hote = hote(moteur, scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler)))
+        val vue = EditorView(contexte)
+        vue.setSession(EditorSession(EditorDocument.of("Text(\"a\")\nText(\"b\")\nText(\"c\")\n")))
+        hote.installerSur(vue)
+        vue.session!!.setSelection(0) // caret ligne 0 — PAS la cible
+
+        // Bitmap 8×8 FIT ×5 dans 40×60 ; DEUX nœuds imbriqués couvrent le
+        // centre : la COLONNE (grand) et le TEXTE (petit, ligne 1) — le
+        // plus PETIT gagne (le nœud le plus PROCHE du doigt).
+        moteur.etatInterne.value =
+            EtatPreviewCompose.RenduValide(
+                listOf(
+                    rendu(
+                        "A",
+                        bitmap = carre(8, Color.WHITE),
+                        noeuds =
+                        listOf(
+                            InfoNoeudCompose(1, GenreNoeudCompose.COLONNE, 0, 0, 8, 8),
+                            InfoNoeudCompose(3, GenreNoeudCompose.TEXTE, 2, 2, 6, 6),
+                        ),
+                    ),
+                ),
+            )
+        hote.drawDropPreview(Canvas(Bitmap.createBitmap(40, 60, Bitmap.Config.ARGB_8888)), 0f, 0f, 40f, 60f, 0)
+
+        // Appui long au centre écran (20, 30) = centre bitmap (4, 4) :
+        // le TEXTE (ligne 3 1-indexée) gagne → caret à SA ligne (offset 20).
+        hote.onPreviewDropLongPress(20f, 30f)
+        assertEquals("caret à la ligne source du nœud TOUCHÉ", 20, vue.session!!.getSelection().start)
     }
 }

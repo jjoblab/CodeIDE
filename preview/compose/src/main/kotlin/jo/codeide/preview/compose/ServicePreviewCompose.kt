@@ -44,6 +44,16 @@ public class ServicePreviewCompose : Service() {
     override fun onBind(intention: Intent?): IBinder = object : IRenduCompose.Stub() {
         override fun rendre(requete: RequeteRenduCompose): ResultatRenduCompose =
             synchronized(verrou) { rendu.rendre(requete) }
+
+        // C3 — forwarding des entrées : la session vivante reçoit le
+        // doigt de la carte (false = session inconnue, honnête). HORS
+        // verrou du stub — un rendu en vol TIENT ce verrou jusqu'à 9 s
+        // (budget chaud) : une touche n'attend JAMAIS un rendu, elle est
+        // POSTÉE au fil de composition qui les sérialise NATURELLEMENT
+        // avec les rendus (même fil, l'un après l'autre — jamais
+        // concurrents), et le transport borne l'appel de son côté.
+        override fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean =
+            rendu.transmettre(identite, evenement)
     }
 
     override fun onDestroy() {

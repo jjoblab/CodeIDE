@@ -43,6 +43,21 @@ public interface TransportCompose : AutoCloseable {
      * d'isolation, jamais par le moteur.
      */
     public suspend fun rendre(requete: RequeteRenduCompose): ResultatTransportCompose
+
+    /**
+     * C3 — FORWARDING DES ENTRÉES : pousse UNE touche du premier doigt
+     * dans la composition vivante de la session [identite]. Les
+     * coordonnées voyagent en px bitmap (repère du canevas) ; l'appel
+     * est BORNE côté transport (une touche n'attend jamais un rendu
+     * en vol). Une touche PERDUE est une donnée : [ProcessusIndisponibleCompose]
+     * remonte à la POLITIQUE qui la journalise et répond `false` —
+     * JAMAIS de compteur de panne, JAMAIS de reprise pour un doigt
+     * (le pompier interactif porte la panne réelle, lui).
+     *
+     * @return faux = session inconnue ou transport muet (la touche est
+     *         perdue, honnêtement).
+     */
+    public suspend fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean
 }
 
 /**
@@ -151,6 +166,24 @@ internal class TransportComposeProcess(private val liaison: LiaisonServiceCompos
         )
     }
 
+    // C3 — une touche n'attend jamais : appel BORNÉ court, la panne remonte
+    // à la politique (journal + faux, aucun compteur).
+    @Suppress("SwallowedException") // la panne devient une donnée honnête (touche perdue)
+    override suspend fun transmettre(
+        identite: String,
+        evenement: EvenementTactileCompose,
+    ): Boolean =
+        try {
+            val service = binder()
+            service != null &&
+                withTimeout(DELAI_TRANSMETTRE_MS) {
+                    runInterruptible(Dispatchers.IO) { service.transmettre(identite, evenement) }
+                }
+        } catch (t: Throwable) {
+            binder = null
+            false
+        }
+
     /**
      * Binder courant, liaison relancée si besoin — l'attente de
      * connexion est bornée ([DELAI_LIAISON_MS]).
@@ -205,6 +238,9 @@ internal class TransportComposeProcess(private val liaison: LiaisonServiceCompos
 
         /** Délai de (re)liaison — naissance du processus `:preview`. */
         private const val DELAI_LIAISON_MS: Long = 15_000L
+
+        /** C3 — délai d'UNE touche : courte, elle n'attend jamais un rendu en vol. */
+        private const val DELAI_TRANSMETTRE_MS: Long = 2_000L
     }
 }
 
@@ -360,6 +396,22 @@ public class IsolationCompose(
         planifierVeille()
         return resultat
     }
+
+    // C3 — une touche perdue est une DONNÉE : ni reprise, ni compteur de
+    // panne (le pompier interactif porte la panne réelle — un doigt ne
+    // relance JAMAIS un processus seul).
+    @Suppress("SwallowedException") // la panne est journalisée et devient un faux honnête
+    override suspend fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean =
+        if (desactive.get()) {
+            false
+        } else {
+            try {
+                process.transmettre(identite, evenement)
+            } catch (indisponible: ProcessusIndisponibleCompose) {
+                journal?.d(TAG) { "touche perdue (processus muet : ${indisponible.message})" }
+                false
+            }
+        }
 
     /** Rendu par le processus (UNE reprise), état typé sinon — PAS de repli. */
     private suspend fun rendreAvecReprise(requete: RequeteRenduCompose): ResultatTransportCompose {

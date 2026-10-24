@@ -7,6 +7,7 @@ import jo.lspkotlin.api.PreviewKotlin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -41,13 +42,29 @@ import kotlinx.coroutines.withContext
  * les paramètres (profil, nuit) sont INCHANGÉS réutilise le rendu
  * précédent — zéro appel Binder, zéro recomposition.
  *
+ * C3 — HORLOGE INTERACTIVE ([definirInteractif] + [transmettreTouch],
+ * écho `RealTimeSessionClock` + `triggerTouchEvent` de la référence,
+ * PREVIEW.md §4.4) : tant que la carte est OUVERTE sur un onglet
+ * rendu, un POMPIER appelle le rendu à cadence ADAPTATIVE (cible
+ * 30 i/s, paliers de dégradation honnêtes quand la frame déborde, écho
+ * `DefaultRenderQualityPolicy`) — chaque appel RE-POUSSE le même
+ * programme (zéro recomposition : seule l'HORLOGE de la session
+ * avance — [BroadcastFrameClock] reçoit une frame au TIMESTAMP RÉEL)
+ * et rapporte le bitmap AVANCÉ. Le modèle est PULL (l'app tire ses
+ * frames) : la backpressure est NATURELLE (le prochain appel attend
+ * le retour du précédent), l'arrêt est GRATUIT (carte fermée = plus
+ * d'appels, les animations se figent), et un rendu d'ÉDITION passe
+ * TOUJOURS d'abord (le pompier cède le verrou par tryLock — le
+ * live-edit ne se laisse jamais doubler par l'animation).
+ *
  * Orchestration (miroir du frère) : debounce 400 ms, single-flight
  * par mutex, états publiés ([etat]), regime publié ([regime] —
  * AUCUN repli local : l'indisponibilité du processus est un ÉTAT
  * TYPIQUE, voir [IsolationCompose]).
  *
- * Cycle de vie : [close] coupe debounce, worker ET transport
- * (déliaison → le processus :preview meurt seul — idle-shutdown).
+ * Cycle de vie : [close] coupe debounce, worker, pompier interactif
+ * ET transport (déliaison → le processus :preview meurt seul —
+ * idle-shutdown).
  */
 @Suppress("TooManyFunctions") // Contrat miroir du frère XML : un setter par paramètre de rendu
 @OptIn(kotlinx.coroutines.FlowPreview::class)
@@ -123,6 +140,19 @@ public class MoteurPreviewCompose(
 
     /** Anti-boucle : derniers digestes par identité. */
     private val derniersDigestes = HashMap<String, String>()
+
+    /**
+     * C3 — dernières REQUÊTES par identité : le pompier interactif
+     * re-rend le MÊME programme (l'horloge avance, les frames suivent)
+     * sans repasser par la conversion ni le diff de digeste.
+     */
+    private val dernieresRequetes = HashMap<String, RequeteRenduCompose>()
+
+    /** C3 — la session interactive courante (null = carte fermée). */
+    private var identiteInteractive: String? = null
+
+    /** C3 — le pompier interactif (frames à cadence adaptative). */
+    private var pompeInteractive: Job? = null
 
     /** v0.133.5 du frère — flag de re-rendu complet (paramètres changés). */
     private var parametresChanges = false
@@ -217,13 +247,65 @@ public class MoteurPreviewCompose(
         relancerSiPreviews()
     }
 
-    /** Coupe debounce, worker et transport (déliaison :preview). Idempotent. */
+    /** Coupe debounce, worker, pompier interactif et transport (déliaison :preview). Idempotent. */
     public override fun close() {
         if (ferme) return
         ferme = true
+        identiteInteractive = null
+        pompeInteractive?.cancel()
+        pompeInteractive = null
         travailleur?.cancel()
         travailleur = null
         transport.close()
+    }
+
+    /**
+     * C3 — HORLOGE INTERACTIVE : arme (ou éteint) le pompier de
+     * l'ONGLET affiché de la carte. `identite` non nulle = la carte est
+     * OUVERTE sur cet onglet RENDU → frames à cadence adaptative (la
+     * requête du DERNIER rendu est rejouée : l'horloge de la session
+     * avance, les animations tournent) ; `null` = carte fermée → le
+     * pompier s'arrête, les animations se FIGENT (jamais d'arrière-fond).
+     *
+     * Idempotent : re-brancher la MÊME identité alors que le pompier
+     * vit est un NO-OP (le pompier suit les requêtes à la volée via
+     * [dernieresRequetes]) ; re-brancher une identité dont le pompier
+     * est MORT (arrêt sur erreurs, « Réessayer ») le REPART.
+     */
+    public fun definirInteractif(identite: String?, onglet: Int) {
+        when {
+            ferme -> {}
+
+            identite == null -> {
+                // Carte fermée : le pompier s'arrête, les animations se
+                // FIGENT (jamais d'arrière-fond).
+                identiteInteractive = null
+                pompeInteractive?.cancel()
+                pompeInteractive = null
+            }
+
+            identite == identiteInteractive && pompeInteractive?.isActive == true -> {}
+
+            else -> {
+                identiteInteractive = identite
+                pompeInteractive?.cancel()
+                pompeInteractive = scope.launch { pomper(identite, onglet) }
+            }
+        }
+    }
+
+    /**
+     * C3 — FORWARDING DES ENTRÉES : pousse UNE touche du premier doigt
+     * à la session interactive courante (no-op honnête sans session —
+     * la carte ne transmet que ce qu'elle a armé). Le CONTRAT voyage
+     * ENTIER (action, point en px bitmap, horodatages, pression) ; le
+     * relais est ASYNCHRONE (le doigt n'attend jamais Binder — la frame
+     * suivante du pompier montre l'effet, ≤ 33 ms plus tard).
+     */
+    public fun transmettreTouch(evenement: EvenementTactileCompose) {
+        if (ferme) return
+        val identite = identiteInteractive ?: return
+        scope.launch { transport.transmettre(identite, evenement) }
     }
 
     /** Relance un rendu immédiat si un document est branché (changement de paramètre). */
@@ -311,6 +393,7 @@ public class MoteurPreviewCompose(
                 langue = langueCourante,
                 themeName = themeCourant,
             )
+        dernieresRequetes[identite] = requete
         val rendu: RenduPreviewCompose =
             when (val resultat = withContext(dispatchers.default) { transport.rendre(requete) }) {
                 is ResultatTransportCompose.Succes -> {
@@ -341,8 +424,147 @@ public class MoteurPreviewCompose(
         return rendu
     }
 
+    /**
+     * C3 — LE POMPIER INTERACTIF : rejoue la requête du DERNIER rendu de
+     * l'identité à cadence ADAPTATIVE. Chaque itération CÈDE d'abord le
+     * pas aux rendus d'ÉDITION (tryLock : le live-edit passe toujours
+     * en premier, l'animation attend) puis re-pousse le programme — la
+     * session :preview fait avancer son horloge (frame au timestamp
+     * RÉEL), l'animation tourne, le bitmap AVANCÉ remplace celui de
+     * l'onglet dans l'état. TROIS frames échouées de suite éteignent le
+     * pompier honnêtement (le dernier rendu VALIDE reste — jamais de
+     * carte vide) ; la carte fermée ([definirInteractif] null) l'annule.
+     */
+    private suspend fun pomper(identite: String, onglet: Int) {
+        var cadence = CADENCE_INTERACTIVE_MS
+        var echecsConsecutifs = 0
+        while (identiteInteractive == identite && !ferme) {
+            delay(cadence)
+            val issue = frameInteractive(identite, onglet, cadence, echecsConsecutifs)
+            if (issue.arret) return
+            cadence = issue.cadenceSuivante
+            echecsConsecutifs = issue.echecsConsecutifs
+        }
+    }
+
+    /**
+     * Le verdict d'UNE frame du pompier : la cadence SUIVANTE (adaptée à
+     * la durée MESURÉE de la frame — écho `DefaultRenderQualityPolicy`),
+     * le compteur d'échecs CONSECUTIFS et l'arrêt honnête (trois frames
+     * échouées de suite : le dernier rendu VALIDE reste, jamais de
+     * carte vide).
+     */
+    private class IssueFrame(val cadenceSuivante: Long, val echecsConsecutifs: Int, val arret: Boolean)
+
+    /**
+     * UNE frame du pompier, en UNE expression : requête absente ou verrou
+     * tenu par une ÉDITION → frame SAUTÉE (l'animation cède la place au
+     * live-edit, jamais l'inverse) ; succès → publication + cadence
+     * adaptée ; échec → compteur et, au seuil, l'arrêt.
+     */
+    private suspend fun frameInteractive(identite: String, onglet: Int, cadence: Long, echecs: Int): IssueFrame {
+        val requete = dernieresRequetes[identite]
+        return if (requete == null || !verrouRendu.tryLock()) {
+            IssueFrame(cadence, echecs, false)
+        } else {
+            try {
+                issueDuResultat(identite, onglet, cadence, echecs, transport.rendre(requete))
+            } finally {
+                verrouRendu.unlock()
+            }
+        }
+    }
+
+    /**
+     * Le verdict d'un résultat de frame : succès → publication + cadence
+     * ADAPTÉE à la durée mesurée (écho `DefaultRenderQualityPolicy`) ;
+     * échec → compteur CONSECUTIF et arrêt honnête au seuil (le dernier
+     * rendu VALIDE reste, jamais de carte vide).
+     */
+    private fun issueDuResultat(
+        identite: String,
+        onglet: Int,
+        cadence: Long,
+        echecs: Int,
+        resultat: ResultatTransportCompose,
+    ): IssueFrame = when (resultat) {
+        is ResultatTransportCompose.Succes -> {
+            publierFrame(identite, onglet, resultat)
+            IssueFrame(cadenceAdaptee(cadence, resultat.metriques.dureeMs), 0, false)
+        }
+
+        is ResultatTransportCompose.Erreur -> {
+            val consecutifs = echecs + 1
+            val arret = consecutifs >= SEUL_ERREURS_FRAMES
+            if (arret) {
+                journal?.w(TAG) {
+                    "pompier interactif éteint : $SEUL_ERREURS_FRAMES frames " +
+                        "échouées de suite (${resultat.message}) — le dernier rendu reste"
+                }
+            }
+            IssueFrame(cadence, consecutifs, arret)
+        }
+    }
+
+    /**
+     * C3 — publie UNE frame interactive : le bitmap AVANCÉ (et ses
+     * géométries ré-extraites) remplace l'onglet dans l'état RenduValide
+     * COURANT ; les autres onglets gardent leurs rendus (jamais de
+     * carte vide, jamais de re-rendu des onglets invisibles).
+     */
+    private fun publierFrame(identite: String, onglet: Int, resultat: ResultatTransportCompose.Succes) {
+        val actuel = etatInterne.value as? EtatPreviewCompose.RenduValide ?: return
+        val ancien = actuel.rendus.getOrNull(onglet) ?: return
+        val rendu =
+            RenduPreviewCompose(
+                nom = ancien.nom,
+                index = onglet,
+                bitmap = resultat.bitmap,
+                metriques = resultat.metriques,
+                erreurs = resultat.erreurs,
+                messageErreur = null,
+                noeuds = resultat.noeuds,
+            )
+        val rendus = actuel.rendus.toMutableList()
+        rendus[onglet] = rendu
+        derniersRendus[identite] = rendu
+        etatInterne.value = EtatPreviewCompose.RenduValide(rendus)
+    }
+
+    /**
+     * C3 — cadence ADAPTATIVE (écho `DefaultRenderQualityPolicy` de la
+     * référence) : une frame qui déborde son budget DOUBLE la cadence
+     * (30 → 15 → 8 → 4 i/s, plancher honnête — le device de référence
+     * tient la cible, un device chargé ralentit au lieu de sauter) ;
+     * une frame à l'AISE la DIVISE en retour (jamais plus vite que la
+     * cible).
+     */
+    private fun cadenceAdaptee(cadence: Long, dureeMs: Long): Long = when {
+        dureeMs > cadence -> (cadence * FACTEUR_DEGRADATION).coerceAtMost(CADENCE_PLANCHER_MS)
+
+        dureeMs * AISE_FRAME < cadence && cadence > CADENCE_INTERACTIVE_MS ->
+            (cadence / FACTEUR_DEGRADATION).coerceAtLeast(CADENCE_INTERACTIVE_MS)
+
+        else -> cadence
+    }
+
     private companion object {
         private const val DEBOUNCE_MS = 400L
         private const val TAG = "MoteurPreviewCompose"
+
+        /** C3 — cadence CIBLE du pompier interactif : 33 ms ≈ 30 i/s (PREVIEW.md §6). */
+        internal const val CADENCE_INTERACTIVE_MS: Long = 33L
+
+        /** C3 — plancher de dégradation : ≈ 4 i/s (une frame lente ne gèle jamais, elle ralentit). */
+        internal const val CADENCE_PLANCHER_MS: Long = 250L
+
+        /** C3 — chaque palier DOUBLE la cadence (30 → 15 → 8 → 4 i/s). */
+        internal const val FACTEUR_DEGRADATION: Long = 2L
+
+        /** C3 — une frame est À L'AISE en dessous de la MOITIÉ de sa cadence. */
+        internal const val AISE_FRAME: Long = 2L
+
+        /** C3 — trois frames échouées de suite éteignent le pompier (le dernier rendu reste). */
+        internal const val SEUL_ERREURS_FRAMES: Int = 3
     }
 }

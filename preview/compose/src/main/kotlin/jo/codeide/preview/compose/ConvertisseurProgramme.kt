@@ -22,7 +22,13 @@ internal object ConvertisseurProgramme {
     /** Budget TOTAL de nœuds du programme (défense en profondeur, miroir moteur). */
     internal const val BUDGET_NOEUDS: Int = 500
 
-    /** Le registre des composables que le moteur sait EXÉCUTER (C1). */
+    /**
+     * Le registre des composables que le moteur sait EXÉCUTER (C1) —
+     * C3 y ajoute les INDICATEURS DE PROGRESSION M3 : indéterminés par
+     * défaut, ils portent l'ANIMATION INFINIE du registre (l'horloge
+     * interactive les fait tourner — la démo vivante de la frame clock
+     * réelle, PREVIEW.md §4.4 C3 « animations »).
+     */
     private val REGISTRE: Map<String, GenreNoeudCompose> =
         mapOf(
             "Text" to GenreNoeudCompose.TEXTE,
@@ -31,6 +37,8 @@ internal object ConvertisseurProgramme {
             "Box" to GenreNoeudCompose.BOITE,
             "Spacer" to GenreNoeudCompose.ESPACE,
             "Button" to GenreNoeudCompose.BOUTON,
+            "CircularProgressIndicator" to GenreNoeudCompose.PROGRES_CIRCULAIRE,
+            "LinearProgressIndicator" to GenreNoeudCompose.PROGRES_LINEAIRE,
         )
 
     /**

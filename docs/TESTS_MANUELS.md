@@ -1480,3 +1480,43 @@ corps référence les ressources du projet : `Text(R.string.…)` et
    fichier (plusieurs dizaines de milliers de lignes) : l'ouverture reste
    fluide (plus de coupure sèche à 800 lignes), la coloration suit le
    scroll (remplissage arrière-plan), l'édition ne ralentit pas la vue.
+
+## Preview Compose — interactif : touches, animations et appui long → saut source (mission « Previews » C3 → v0.176.0, ADR 0142, code-editor 4.1.0)
+
+Écran : éditeur, un fichier Kotlin avec une `@Preview` dont le corps
+contient un `Button { Text("Compter") }`, un
+`CircularProgressIndicator()` et un `LinearProgressIndicator()` (les
+deux nouveaux genres du registre) ; carte « goutte d'eau » ouverte.
+Le ressenti (fluidité, réactivité du doigt) est LE critère — les
+mécaniques sont prouvées par les 18 tests automatisés.
+
+1. **La RIPPLE du bouton suit le doigt** — appuyer le bouton dans la
+   carte (tap COURT maintenu) : l'état PRESSED + la ripple M3 apparaissent
+   SOUS le doigt puis s'animent au relâchement ; le `onClick` du SOURCE
+   ne s'exécute pas (no-op honnête — frontière de l'interpréteur, ADR
+   0142 D8) : c'est le POINTER qui est réel, pas la sémantique.
+2. **Les indicateurs de progression TOURNENT** — carte ouverte : le
+   `CircularProgressIndicator` tourne et la barre indéterminée ondule à
+   ~30 i/s sur le device de référence ; REFERMER la carte (✕ ou œil) :
+   l'animation se FIGE immédiatement (jamais d'animation en
+   arrière-fond) ; RÉOUVRIR : elle reprend.
+3. **APPUI LONG sur un nœud = SAUT SOURCE** — appuyer LONGUEMENT sur le
+   `Text("Compter")` dans la carte : l'éditeur SAUTE le caret à la ligne
+   source du nœud touché et la révèle (la carte glisse hors du bloc de
+   frappe, elle reste ouverte) ; l'appui long sur un point SANS nœud ne
+   fait RIEN (aucun faux saut).
+4. **L'édition garde la priorité** — pendant que l'indicateur tourne,
+   TAPER dans l'éditeur : la composition re-rend (live-edit C1) et
+   l'animation ne fait JAMAIS attendre la frappe (le pompier cède le
+   verrou aux rendus d'édition).
+5. **Onglets multiples** — deux `@Preview` (une par onglet) avec
+   chacune un indicateur : seul l'onglet AFFICHÉ s'anime ; basculer
+   d'onglet : la nouvelle identité prend le relais, l'ancienne se fige.
+6. **Dégradation honnête sur device chargé** — ouvrir la carte sur un
+   document lourd (ou pendant une installation) : la cadence ralentit
+   par paliers (30 → 15 → 8 → 4 i/s) au lieu de SAUTER des frames ou de
+   geler — le bitmap reste fluide à sa cadence effective, jamais figé.
+7. **Un doigt dehors reste honnête** — appuyer près du bord de l'écran
+   de la carte puis glisser HORS de l'écran (sur le bezel/l'en-tête) :
+   le contact reste CLAMPÉ au bord (la ripple suit le bord, jamais un
+   point hors cadre) ; relâcher dehors : le clic se résout proprement.

@@ -1,5 +1,85 @@
 # Journal des modifications
 
+## [0.176.0] – 2026-10-24
+
+### La preview Compose devient interactive : forwarding du pointeur, horloge vivante, watchdog KILL et appui long → saut source (mission « Previews » C3, ADR 0142)
+
+#### Ajouté
+
+- **Le CORPS de la carte « goutte d'eau » devient TACTILE** (montée
+  code-editor 4.0.0 → **4.1.0**, bump-frère de l'instruction
+  propriétaire — contrat cel-ui B27-C3, opt-in par
+  `wantsInteractiveDropPreview()`) : l'écran du mini-téléphone
+  transfère ses touches au hôte (DOWN/MOVE/UP/CANCEL du premier doigt,
+  coordonnées dans le REPÈRE exact de `drawDropPreview` — la carte
+  touche au pixel près ce qu'elle dessine, indépendant du facteur de
+  taille), le doigt sorti reste CLAMPÉ au bord, un DOWN décliné par le
+  hôte retombe sur le corps inerte POUR CE GESTE, et les hôtes non
+  interactifs (Markdown/HTML, démo) gardent le comportement historique
+  au bit près ; les onglets, le ✕ et la barre de taille gardent leurs
+  gestes propres.
+- **FORWARDING DES ENTRÉES** (PREVIEW.md §4.4, écho `triggerTouchEvent`
+  de la référence) : le contrat `EvenementTactileCompose` (action, point
+  en px bitmap, horodatages `uptimeMillis` du geste, pression) traverse
+  la MÉTHODE AIDL additive `IRenduCompose.transmettre` ; le processus
+  `:preview` RECONSTRUIT un vrai `MotionEvent` et le dispatch sur le fil
+  de composition — **la RIPPLE du bouton M3 réagit au doigt**, l'état
+  pressed suit le contact ; session inconnue = `false` en donnée (une
+  touche perdue n'est ni exception ni panne), transport borné 2 s (une
+  touche n'attend jamais un rendu en vol), aucun compteur de panne
+  pour un doigt (le pompier interactif porte la panne réelle).
+- **ANIMATIONS — HORLOGE INTERACTIVE** (écho `RealTimeSessionClock`) :
+  carte ouverte sur un onglet rendu → un POMPIR app-side re-rend
+  l'identité à cadence CIBLE 33 ms (≈ 30 i/s, PREVIEW.md §6) ADAPTATIVE
+  par paliers (une frame qui déborde DOUBLE la cadence, 30 → 15 → 8 →
+  4 i/s, plancher 250 ms ; une frame à l'aise la divise — écho
+  `DefaultRenderQualityPolicy`) ; chaque frame REJOUE la requête du
+  dernier rendu (ZÉRO recomposition — seule l'horloge `BroadcastFrameClock`
+  de la session avance, au TIMESTAMP RÉEL : les animations suivent le
+  temps mur) ; le pompier CÈDE le verrou aux rendus d'ÉDITION par
+  tryLock (le live-edit passe toujours en premier) ; carte fermée =
+  horloge ÉTEINTE (jamais d'animation en arrière-fond) ; trois frames
+  échouées de suite = extinction honnête, le dernier rendu VALIDE
+  reste.
+- **REGISTRE += INDICATEURS DE PROGRESSION M3**
+  (`CircularProgressIndicator`/`LinearProgressIndicator`, indéterminés
+  par défaut — genres EN QUEUE de l'énumération, ordinals
+  rétrocompatibles) : l'ANIMATION INFINIE du registre — l'horloge
+  interactive les fait tourner, le rendu statique les fige à leur pose
+  (jamais un faux mouvement) ; le registre quitte le fichier de
+  l'exécuteur pour le sien (`RegistreCompose.kt`).
+- **WATCHDOG DE GEL avec KILL du processus (PC4 complet)** : deux
+  zombies consécutifs (rendus dont le tryLock échoue : le fil de
+  composition est OTAGE) → journal + `Process.killProcess(myPid())`
+  (tueur injecté — les tests prouvent la DÉCISION), l'app voit la mort
+  par DeathRecipient et la politique existante reprend (une reprise,
+  puis INDISPONIBLE) ; un rendu mené à bien purge le compteur.
+
+#### Modifié
+
+- **TAP COURT = interagir, APPUI LONG = sauter source** (l'arbitrage
+  mobile de l'ADR 0142 D2 — tout nœud rendu porte une ligne, le tap ne
+  peut pas être à la fois le clic et la navigation) : le tap part à la
+  composition ; l'appui long ANNULE le geste par un CANCEL puis
+  hit-teste les géométries C2 au point (le nœud de plus PETITE aire
+  gagne : l'enfant bat son conteneur) et SAUTE le caret à la ligne
+  source (`setSelection(lineStart)` + `scrollToLine`) — la carte
+  esquivant le bloc de frappe au frame suivant, elle reste ouverte ;
+  sans nœud sous le doigt : RIEN.
+- **Catalogue** : `code-editor = "v4.1.0"` (la coordonnée JitPack du tag
+  préfixé — l'alias sans préfixe n'est pas résolu à la date de livraison).
+
+#### Docs
+
+- **ADR 0142** (C3 interactif — contrat cel-ui 4.1.0, forwarding par
+  contrat + AIDL, pompier PULL à cadence adaptative, watchdog KILL,
+  registre animé, options rejetées dont le push par callback AIDL et
+  les widgets d'état factices), PREVIEW.md §4.4 (C3 ✅), ROADMAP
+  (entrée C3, restent : erreurs surlignées dans le code source,
+  sélecteurs de la carte, interprétation élargie), TESTS_MANUELS
+  (scénarios appareil C3). +18 tests CodeIDE (13 `:preview:compose`,
+  5 feature:editor) et +8 tests cel-ui (4.1.0).
+
 ## [0.175.3] – 2026-10-24
 
 ### Correctif CI : le bitmap du rendu naît par createBitmap KTX

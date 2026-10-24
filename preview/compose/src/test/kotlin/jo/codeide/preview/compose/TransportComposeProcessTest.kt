@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,8 +27,14 @@ import org.robolectric.annotation.Config
 @Config(sdk = [26])
 class TransportComposeProcessTest {
     /** Stub canné : répond ce qu'on lui dit (jamais d'exception). */
-    private class StubRendu(private val reponse: () -> ResultatRenduCompose) : IRenduCompose.Stub() {
+    private class StubRendu(
+        private val reponse: () -> ResultatRenduCompose,
+        private val sessionsConnues: () -> Boolean = { true },
+    ) : IRenduCompose.Stub() {
         override fun rendre(requete: RequeteRenduCompose): ResultatRenduCompose = reponse()
+
+        // C3 — le stub répond comme le vrai :preview (session vivante = vrai).
+        override fun transmettre(identite: String, evenement: EvenementTactileCompose): Boolean = sessionsConnues()
     }
 
     /** Liaison factice : livre le stub, compte, meurt à la demande. */
@@ -124,6 +131,41 @@ class TransportComposeProcessTest {
         assertEquals("deux liaisons (relance)", 2, liaison.liaisons)
         transport.close()
     }
+
+    // ── C3 : le forwarding des touches ────────────────────────────────
+
+    @Test
+    fun `transmettre - liaison paresseuse puis session touchée`() = runBlocking {
+        val liaison = LiaisonFausse { succes() }
+        val transport = TransportComposeProcess(liaison)
+        assertEquals("aucune liaison avant demande", 0, liaison.liaisons)
+        val ok = transport.transmettre("file:///a.kt#Apercu#0", evenement())
+        assertTrue("la session vivante répond vrai", ok)
+        assertEquals(1, liaison.liaisons)
+        transport.close()
+    }
+
+    @Test
+    fun `transmettre - liaison IMPOSSIBLE = faux (touche perdue, pas de relance folle)`() = runBlocking {
+        val liaison = LiaisonMorte()
+        val transport = TransportComposeProcess(liaison)
+        assertFalse("processus mort : la touche est perdue honnêtement", transport.transmettre("x", evenement()))
+    }
+
+    /** Liaison qui ne peut PAS être demandée (bindService refusé — processus mort). */
+    private class LiaisonMorte : LiaisonServiceCompose {
+        override fun lier(onConnecte: (android.os.IBinder) -> Unit, onMort: () -> Unit): Boolean = false
+
+        override fun delier() = Unit
+    }
+
+    private fun evenement(): EvenementTactileCompose = EvenementTactileCompose(
+        action = android.view.MotionEvent.ACTION_DOWN,
+        xPx = 10f,
+        yPx = 20f,
+        downTimeMs = 1L,
+        eventTimeMs = 1L,
+    )
 
     @Test
     fun `close - déliaison (le processus meurt seul)`() = runBlocking {
