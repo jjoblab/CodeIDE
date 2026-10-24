@@ -496,7 +496,9 @@ internal object PresentationIndexation {
     /**
      * Résumé des reprises pendant la construction (maquette §2 : « 96
      * reprises, 22 reconstruites ») — Java seul (les moteurs synthétisés
-     * ne comptent pas leurs reprises).
+     * ne comptent pas leurs reprises). Libellé v0.178.1 : chaque décompte
+     * précède son nombre — un substituant suivi d'un mot déclenche le
+     * heuristique lint PluralsCandidate (correctif CI de v0.178.0).
      */
     private fun resumeReprisesDe(phase: PhaseIndexation, java: EtatIndexation?): TexteIndexation? =
         if (phase == PhaseIndexation.CONSTRUCTION && java != null && java.faits > 0) {

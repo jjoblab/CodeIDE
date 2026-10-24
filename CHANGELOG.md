@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.178.1] – 2026-10-24
+
+### Correctif CI : les chaînes « reprises » deviennent label-nombre (heuristique lint PluralsCandidate)
+
+#### Corrigé
+
+- **La CI de v0.178.0 échouait sur `:feature:editor:lintDebug`** — règle
+  lint `PluralsCandidate` (« Formatting %d followed by words ("reused"):
+  This should probably be a plural rather than a string ») : les DEUX
+  chaînes `editor_indexation_reprises` — `values/strings.xml` (FR) et
+  `values-en/strings.xml` (EN) — étaient les SEULES erreurs du rapport
+  SARIF ; les jobs Statique (spotless/detekt/frontières/littéraux) et
+  Tests+kover sont restés VERTS. Elles collaient au libellé de la
+  maquette §2 (« … sans reconstruction : 96 reprises, 22
+  reconstruites. ») : un substituant d'ENTIER immédiatement suivi d'un
+  MOT fait soupçonner un pluriel. La ressource ne PEUT PAS devenir un
+  `<plurals>` : elle porte DEUX décomptes disjoints (reprises vs
+  entrées reconstruites) sur UNE ligne du bilan, et un `<plurals>`
+  n'exprime qu'un seul cardinal. CORRECTIF : chaque décompte passe
+  DEVANT son nombre — « Les entrées déjà indexées sont reprises sans
+  reconstruction : reprises %1$d, reconstruites %2$d. » (FR) /
+  « Already-indexed entries are reused without rebuilding: reused
+  %1$d, rebuilt %2$d. » (EN) : chaque substituant est désormais suivi
+  d'une PONCTUATION et le heuristique ne s'allume plus (note
+  anti-régression dans les commentaires des ressources et le KDoc de
+  `resumeReprisesDe`). Aucun changement de comportement : mêmes
+  arguments (%1$d = reprises, %2$d = faits - reprises), même API
+  `TexteIndexation.Ressource`, aucun appel ni test touché.
+
 ## [0.178.0] – 2026-10-24
 
 ### L'écran d'indexation devient MULTI-MOTEURS (Java + Kotlin + XML), rejoint ENFIN sa maquette, et le branchement LSP quitte le fil principal — correctif ANR `.kt`/`.kts` (chantier « Indexation », ADR 0145)

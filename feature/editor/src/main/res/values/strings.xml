@@ -287,8 +287,11 @@
     <string name="editor_indexation_pourcentage">%1$d %%</string>
 
     <!-- Résumé des reprises pendant la construction (maquette §2 :
-         « 96 reprises, 22 reconstruites » — v0.178.0, ADR 0145). -->
-    <string name="editor_indexation_reprises">Les entrées déjà indexées sont reprises sans reconstruction : %1$d reprises, %2$d reconstruites.</string>
+         « 96 reprises, 22 reconstruites » — v0.178.0, ADR 0145).
+         v0.178.1 : chaque décompte PRÉCÈDE son nombre — un substituant
+         d'entier suivi d'un mot déclenche le heuristique lint
+         PluralsCandidate (correctif CI de v0.178.0). -->
+    <string name="editor_indexation_reprises">Les entrées déjà indexées sont reprises sans reconstruction : reprises %1$d, reconstruites %2$d.</string>
 
     <!-- Vue par moteur — UN libellé par moteur de l\'agrégat (v0.178.0,
          ADR 0145 : l\'écran n\'est plus codé en dur sur Java). -->
