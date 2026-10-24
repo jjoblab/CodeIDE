@@ -105,6 +105,14 @@
     <string name="editor_fermeture_enregistrer_tout">Save all</string>
     <string name="editor_fermeture_ne_pas_enregistrer">Don\'t save</string>
     <string name="editor_fermeture_annuler">Cancel</string>
+    <!-- Honest exit dialog (v0.183.0): with no dirty tab, back or the
+         "Close project" menu no longer closes the workspace silently —
+         this dialog spells out what closing means. Note: distinct from
+         the editor_sortie_build_* strings (the BUILD "output"). -->
+    <string name="editor_sortie_titre">Close project?</string>
+    <string name="editor_sortie_message">The open tabs will be closed: reopening the project starts fresh without them, and the engines (session, Gradle tooling) will be stopped. Unsaved changes were already handled.</string>
+    <string name="editor_sortie_confirmer">Close project</string>
+    <string name="editor_sortie_annuler">Stay</string>
     <!-- Lifecycle step C (§2.1c): the build keeps running in the
          background when the editor closes (toast — survives the screen;
          the ToolingService notification carries the detail). -->

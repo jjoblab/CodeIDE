@@ -194,18 +194,38 @@ internal class CoordonnateurLsp(
      * Ferme TOUT : éditeur débranché + `LspProject.shutdown()` — appelé
      * à la destruction de l'activité ; la SESSION LSP (moteurs, index,
      * modèle) refermée par le ViewModel (son propre cycle, §16.2).
+     *
+     * v0.183.0 (retour propriétaire « la fermeture paraissait morte,
+     * il fallait plusieurs appuis ») : le `LspProject.shutdown()` peut
+     * attendre l'extinction des processus de langue (secondes) — il ne
+     * doit PLUS bloquer le fil principal pendant le `finish()` (l'écran
+     * restait figé sans aucun signe de fermeture). L'extinction part
+     * dans [portee] quand fournie (portée applicative qui survit à
+     * l'écran — même contrat que les fermetures de session) ; sans
+     * portée (tests JVM purs), comportement historique SYNCHRONE.
+     * L'ordre contractuel est préservé : débranchement et annulation
+     * restent SYNCHRONES (aucun usage post-close de l'éditeur), seule
+     * l'extinction du projet change de fil.
      */
-    internal fun fermer() {
+    internal fun fermer(portee: CoroutineScope? = null) {
         debrancher()
         porteeConnect.cancel()
         val projet = projetLsp
         projetLsp = null
         if (projet != null) {
-            try {
-                projet.shutdown()
-            } catch (t: Throwable) {
-                journal.w(TAG, t) { "shutdown LspProject en échec (ignoré)" }
+            when (portee) {
+                null -> eteindreProjet(projet)
+                else -> portee.launch { eteindreProjet(projet) }
             }
+        }
+    }
+
+    /** Extinction tolérante du LspProject (journalisée, jamais lancée). */
+    private fun eteindreProjet(projet: LspProject) {
+        try {
+            projet.shutdown()
+        } catch (t: Throwable) {
+            journal.w(TAG, t) { "shutdown LspProject en échec (ignoré)" }
         }
     }
 

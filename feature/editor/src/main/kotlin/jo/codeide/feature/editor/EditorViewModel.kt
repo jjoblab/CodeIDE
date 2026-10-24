@@ -320,6 +320,15 @@ constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val sauvetage = savedStateHandle
+
+    /**
+     * Sortie EXPLICITE confirmée (retour propriétaire v0.183.0) : la
+     * réouverture du projet ne restaurera AUCUN onglet — ni du
+     * sauvetage de processus (clés retirées), ni de l'état d'espace
+     * (écriture finale VIDE). Reste faux pour la mort du processus
+     * (kill, rotation, panne mémoire) qui RESTAURE les onglets.
+     */
+    private var sortieExplicite = false
     private val etatInterne =
         MutableStateFlow(
             EtatEditor(
@@ -1351,6 +1360,13 @@ constructor(
 
             ActionEditor.Quitter -> {
                 demanderSortie()
+            }
+
+            ActionEditor.SortieConfirmee -> {
+                // Réponse « Fermer le projet » du dialogue honnête : la
+                // sortie devient EXPLICITE (plus AUCUNE reprise d'onglets
+                // à la réouverture) et l'effet Quitter part.
+                quitterEspace()
             }
 
             ActionEditor.LibererMemoire -> {
@@ -4244,7 +4260,9 @@ constructor(
         }
     }
 
-    /** Sortie demandée : confirmation agrégée si des onglets sont sales. */
+    /** Sortie demandée : confirmation agrégée si des onglets sont sales,
+     *  dialogue de sortie honnête sinon (v0.183.0 — plus JAMAIS de
+     *  fermeture silencieuse). */
     private fun demanderSortie() {
         val sales =
             etatInterne.value.onglets
@@ -4256,8 +4274,30 @@ constructor(
             sales.forEach { uri -> sauvegardesAuto.remove(uri)?.cancel() }
             canalEffets.trySend(EffetEditor.ConfirmerFermeture(uris = sales, quitter = true))
         } else {
-            canalEffets.trySend(EffetEditor.Quitter)
+            // Retour propriétaire v0.183.0 : sans onglet sale, la sortie
+            // reste EXPLICITE — le dialogue « Fermer le projet ? » énonce
+            // ce qui va se refermer (onglets, session, tooling), le geste
+            // seul ne referme plus RIEN.
+            canalEffets.trySend(EffetEditor.ConfirmerSortie)
         }
+    }
+
+    /**
+     * Sortie CONFIRMÉE (dialogue honnête ou fermeture des onglets sales
+     * avec sortie) : la sortie est EXPLICITE — plus AUCUN onglet ne
+     * sera restauré à la réouverture du projet. Les DEUX mécanismes de
+     * reprise tombent : le sauvetage de processus (clés retirées) et
+     * l'état d'espace ([sortieExplicite] => écriture FINALE vide). La
+     * mort du processus (kill, mémoire) reste l'exception qui
+     * RESTAURE — elle ne passe JAMAIS par ici.
+     */
+    private fun quitterEspace() {
+        sortieExplicite = true
+        // `remove` a besoin du type EXPLICITE (valeur ignorée, aucune
+        // inférence possible) — mêmes types que les écritures.
+        sauvetage.remove<ArrayList<String>>(ClesEditor.CLE_ONGLETS)
+        sauvetage.remove<Int>(ClesEditor.CLE_INDEX_ACTIF)
+        canalEffets.trySend(EffetEditor.Quitter)
     }
 
     /** Réponse « Enregistrer » : écrit puis ferme (puis quitte si demandé). */
@@ -4301,7 +4341,9 @@ constructor(
         persisterOnglets()
         // Point d'état : les onglets fermés perdent leur point (§ 7).
         reconstruireNoeuds()
-        if (quitter) canalEffets.trySend(EffetEditor.Quitter)
+        // v0.183.0 : la sortie CONFIRMÉE passe par [quitterEspace] —
+        // elle efface la reprise (aucun onglet restauré à la réouverture).
+        if (quitter) quitterEspace()
     }
 
     /** Sauvegarde manuelle : l'onglet actif. */
@@ -4708,17 +4750,27 @@ constructor(
     /**
      * Dernière persistance de l'état d'espace (étape C) : écrite dans
      * la portée de fermeture (le viewModelScope est mort) —
-     * `workspace-state.json` reflète la sortie, la réouverture
-     * retrouve les derniers onglets.
+     * `workspace-state.json` reflète la sortie. Sortie EXPLICITE
+     * (v0.183.0) : l'état part VIDE — la réouverture du projet ne
+     * restaure AUCUN onglet (retour propriétaire : les onglets
+     * ouverts à la fermeture ne doivent pas ressusciter) ; la mort
+     * du processus garde l'historique (elle passe avec les onglets
+     * OUVERTS, [sortieExplicite] faux).
      */
     private suspend fun persisterEtatEspaceFinal() {
         val racine = uriDocumentSuivie ?: return
         val etat = etatInterne.value
+        val onglets =
+            if (sortieExplicite) {
+                emptyList()
+            } else {
+                etat.onglets.map { OngletEspace(uri = it.uri, chemin = it.cheminRelatif) }
+            }
         when (
             enregistrerEtatEspace(
                 racine,
-                etat.onglets.map { OngletEspace(uri = it.uri, chemin = it.cheminRelatif) },
-                etat.indexOngletActif,
+                onglets,
+                if (sortieExplicite) -1 else etat.indexOngletActif,
             )
         ) {
             is AppResult.Success -> {

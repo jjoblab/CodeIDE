@@ -67,6 +67,14 @@
          afficher icon_size_sm dans une zone tactile standard. -->
     <dimen name="editor_bouton_icone_padding">14dp</dimen>
 
+    <!-- Fermeture d'onglet INCRUSTÉE (v0.183.0, retour propriétaire :
+         « le bouton close plus petit ») : plus compact que le bouton
+         icône maison — 36 dp de zone tactile (confortable, sous la
+         cible standard des commandes de premier rang) et padding
+         composé (36 − 18) / 2 = 9 dp pour une icône de 18 dp. -->
+    <dimen name="editor_onglet_fermer_taille">36dp</dimen>
+    <dimen name="editor_onglet_fermer_padding">9dp</dimen>
+
     <!-- Snackbar du tiroir (§ 15, lot UI-5) : position flottante au-dessus
          du rail — COTE COMPOSÉE (editor_rail_hauteur 66 + spacing_sm 8),
          irréductible à l'échelle ADR 0127 §2 sans casser le placement. -->

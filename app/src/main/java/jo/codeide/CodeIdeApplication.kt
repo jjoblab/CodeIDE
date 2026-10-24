@@ -15,6 +15,7 @@ import jo.codeide.core.domain.EnvironmentSetupOrchestrator
 import jo.codeide.core.domain.EnvironmentSetupState
 import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.RecordPendingExitInfosUseCase
+import jo.codeide.core.domain.RegistreCycleDaemonTooling
 import jo.codeide.core.domain.SettingsRepository
 import jo.codeide.core.domain.ToolchainLocator
 import jo.codeide.core.logging.CodeIdeAppLogger
@@ -75,6 +76,17 @@ class CodeIdeApplication : Application() {
     /** Daemon du tooling Gradle (G4) — processus principal uniquement. */
     @Inject
     lateinit var daemonTooling: DaemonManager
+
+    /**
+     * Registre du cycle du daemon tooling (v0.183.0) : l'app est la
+     * SEULE couche qui voit `tooling:daemon` — elle pose ici l'implémentation
+     * RÉELLE du port pour l'espace de travail (l'ouverture d'un projet
+     * démarre le tooling, la fermeture du DERNIER espace vivant l'éteint,
+     * retour propriétaire : « pas seulement les LSP, le tooling aussi
+     * doit être fermé »).
+     */
+    @Inject
+    lateinit var registreCycleDaemon: RegistreCycleDaemonTooling
 
     /** Orchestrateur du parcours d'installation (E2-E4, ADR 0087/0089) —
      *  seule source de vérité sur l'environnement depuis E6 (ADR 0091). */
@@ -218,6 +230,13 @@ class CodeIdeApplication : Application() {
         // socket par la mort de l'app termine proprement l'orchestrateur
         // (EOF = fin de boucle, code de sortie 0). JDK absent au démarrage :
         // aucun lancement, l'état reste DECONNECTEE.
+        //
+        // v0.183.0 : le port de cycle est posé AVANT le premier démarrage —
+        // l'espace de travail pourra l'éteindre à la fermeture du projet
+        // (le tooling suit l'ESPACE, pas seulement le processus) puis le
+        // relancer à l'ouverture suivante (le préchauffage ci-dessous ne
+        // rejoue JAMAIS : Application.onCreate ne tourne qu'une fois).
+        registreCycleDaemon.port = CycleDaemonToolingApp(daemonTooling, porteeDemarrage)
         daemonTooling.demarrer(porteeDemarrage)
 
         // E4 (§ 6, ADR 0089) : le daemon Gradle est RELANCÉ quand

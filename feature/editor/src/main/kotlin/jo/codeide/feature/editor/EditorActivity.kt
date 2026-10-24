@@ -45,6 +45,7 @@ import jo.codeide.core.domain.DiagnosticEditeur
 import jo.codeide.core.domain.GraviteDiagnostic
 import jo.codeide.core.domain.InfoTache
 import jo.codeide.core.domain.PortEditeurActif
+import jo.codeide.core.domain.RegistreCycleDaemonTooling
 import jo.codeide.core.domain.RegistreDossierProjetIa
 import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.SelectionEditeur
@@ -77,11 +78,15 @@ import jo.codeide.core.ui.couleurSurSurface
 import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
+import jo.codeide.feature.editor.di.PorteeFermetureSession
 import jo.codeide.preview.xml.ClassificateurPreview
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import java.lang.ref.WeakReference
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import kotlin.math.abs
 import jo.codeide.core.ui.R as RUi
@@ -219,6 +224,31 @@ class EditorActivity :
     @Inject
     lateinit var journalLsp: AppLogger
 
+    /**
+     * Registre du cycle du daemon tooling (v0.183.0, retour
+     * propriétaire : « pas seulement les LSP doivent être fermés, le
+     * tooling aussi doit être fermé ») — l'ouverture d'un projet le
+     * DÉMARRE, la fermeture du DERNIER espace vivant l'ÉTEINT. Le
+     * registre reste inerte dans les tests sans app.
+     */
+    @Inject
+    lateinit var registreDaemon: RegistreCycleDaemonTooling
+
+    /**
+     * Portée des fermetures de session (ADR 0114) — v0.183.0 : l'extinction
+     * du LspProject y part à la fermeture de l'écran (des secondes
+     * d'attente bloquaient le fil principal, l'écran restait figé « sans
+     * rien qui se passe », retour propriétaire).
+     */
+    @Inject
+    @PorteeFermetureSession
+    lateinit var porteeFermeture: CoroutineScope
+
+    /** Identifiant du projet suivi par cet espace (extras de l'intent). */
+    private val identifiantProjet: String? by lazy {
+        intent?.getStringExtra(ClesEditor.EXTRA_PROJECT_ID)
+    }
+
     private lateinit var liaison: ActivityEditorBinding
 
     /** Coordonnateur LSP Java (mission « LSP Java » h2) : LspProject +
@@ -305,18 +335,21 @@ class EditorActivity :
     /** Plus grande hauteur du root vue (détection IME API < 30). */
     private var hauteurRacineMax = 0
 
+    /** Le clavier était-il possédé par le PANNEAU au dernier appel
+     *  d'[appliquerClavier] (v0.183.0) ? Détecte la TRANSITION fermé →
+     *  ouvert panneau pour n'écrire l'expansion de saisie qu'UNE fois
+     *  (jamais en pleine animation — leçon v0.124.4). */
+    private var clavierEtaitDuPanneau = false
+
     /** La ligne tooling de l'en-tête est-elle active (un canal a quelque
      *  chose à montrer) — combinée au fondu de l'en-tête pour la
      *  visibilité effective (v0.32.5). */
     private var controleurTooling: PanneauToolingController? = null
 
-    /** Des onglets sont-ils sales (pilote le retour système) ? */
-    private var ongletsSales = false
-
     /** Retour système : réduit le panneau étendu, ferme le tiroir ouvert,
      * confirme les onglets sales, sinon quitte. */
     private val retourEspace =
-        object : OnBackPressedCallback(false) {
+        object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
                     panneauEtendu -> {
@@ -357,6 +390,13 @@ class EditorActivity :
         }
         liaison = ActivityEditorBinding.inflate(layoutInflater)
         setContentView(liaison.root)
+
+        // v0.183.0 : le tooling démarre AVEC le projet (retour propriétaire
+        // : fermer le projet doit AUSSI éteindre le tooling — l'ouverture
+        // suivante le relance). Idempotent : rotation et retour des
+        // paramètres ne relancent RIEN, seul un daemon ÉTEINT repart.
+        registreDaemon.port.demarrer()
+        enregistrerInstanceVivante()
 
         // IA-8b : l'installation lit `liaison.vueEditeur` — elle DOIT suivre
         // l'inflation du binding. Plantage v0.145.2 : appelée AVANT
@@ -1474,6 +1514,13 @@ class EditorActivity :
                     // l'espace dessous : la session survit (I3), les
                     // réglages se propagent par leurs trois canaux au
                     // retour (thème/langue, palette, OptionsEditeur).
+                    //
+                    // v0.183.0 (retour propriétaire) : la PROVENANCE est
+                    // notée au départ — le RETOUR depuis les paramètres
+                    // remonte CET espace vivant au lieu de retomber sur
+                    // l'accueil (le tap suivant sur le projet empilait un
+                    // espace NEUF et le tooling resynchronisait pour rien).
+                    navigateur.noterProvenanceEditeur(identifiantProjet)
                     navigateur.openSettings()
                     true
                 }
@@ -1559,7 +1606,16 @@ class EditorActivity :
      *  s'efface le temps de la frappe (patron ADR 0056 décision 2 :
      *  le dock disparaît quand le clavier monte, l'éditeur prime). */
     private fun observerClavier() {
+        // v0.183.0 (retour propriétaire) : listener UNIQUE de la racine —
+        // il nourrit les DEUX consommateurs : l'IME (ci-dessous) ET les
+        // barres système du gestionnaire des insets. L'ancien doublon
+        // posé par `GestionnaireInsetsEditeur.brancher` était posé AVANT
+        // celui-ci et `setOnApplyWindowInsetsListener` ne garde qu'UN
+        // listener : il était silencieusement ÉCRASÉ — plus AUCUN inset
+        // de navigation n'arrivait (réserve jamais posée au premier
+        // rendu, l'éditeur naissait SOUS le panneau replié).
         ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
+            gestionnaireInsets?.surInsetsBarres(insets)
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             clavierParInsets = ime > 0
             if (ime != hauteurIme) {
@@ -1612,35 +1668,69 @@ class EditorActivity :
      *  l'état du ViewModel (v0.32.5). La barre n'apparaît que si l'IME
      *  est ouvert ET qu'un fichier est édité.
      *
-     *  v0.124.4 (E5 Phase B prompt 1, ADR 0118 brouillon) : le sheet
-     *  n'est plus masqué via `isVisible = false/true` (saut brutal à la
-     *  dernière trame de fermeture, car `clavierParInsets = ime > 0`
-     *  restait vrai jusqu'à la dernière trame). Désormais, le sheet est
-     *  TRANSLATÉ verticalement via `translationY` : clavier ouvert, le
-     *  sheet glisse vers le bas de la hauteur de l'IME (il reste
-     *  « posé » sous le clavier, invisible mais pas GONE) ; clavier
-     *  fermé, `translationY` revient à 0 (animation continue via
-     *  `onProgress` du `WindowInsetsAnimationCompat.Callback`). Aucune
-     *  écriture de `comportementPanneau.state` pendant l'animation
-     *  (l'ancien `restaurerEtatPanneau` était appelé en plein relayout
-     *  et causait des sauts). L'état du sheet (replié/mi-hauteur/
-     *  étendu) est préservé à l'identique après un cycle clavier. */
+     *  v0.183.0 (retour propriétaire : « les fragments du bottomsheet
+     *  requièrent parfois le clavier ») : le masquage ne vaut plus pour
+     *  TOUT clavier — il reste la règle quand l'ÉDITEUR frappe (patron
+     *  ADR 0056 décision 2). Quand la saisie appartient au PANNEAU
+     *  (champ console, filtre logcat), le panneau RESTE : il s'étend
+     *  pour la saisie et son contenu remonte au-dessus de l'IME
+     *  (padding dédié [GestionnaireInsetsEditeur.surClavierPanneau],
+     *  réappliqué à chaque trame de l'animation) — l'ancien code
+     *  masquait le panneau DÈS le premier inset IME : la frappe dans la
+     *  console se faisait À L'AVEUGLE.
+     *
+     *  L'expansion est écrite SEULEMENT à la TRANSITION fermé → ouvert
+     *  panneau ([clavierEtaitDuPanneau]) : réécrire `state` à chaque
+     *  trame de l'animation interromprait le settling (leçon du
+     *  v0.124.4). À la fermeture du clavier, [restaurerEtatPanneau]
+     *  reprend l'état du ViewModel — l'expansion de saisie y a été
+     *  enregistrée par `onStateChanged` : le panneau RESTE étendu après
+     *  une saisie console (l'utilisateur voit la sortie de sa
+     *  commande), il le replie quand il veut. */
     private fun appliquerClavier() {
         val clavier = clavierVisible
         val edition = sessionActive() != null
+        val duPanneau = clavier && clavierDuPanneau()
         if (clavier) {
-            // Clavier ouvert : la barre de symboles se colle au clavier
-            // via le padding IME — le sheet est masqué (patron ADR 0056).
-            liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
-            liaison.panneauInferieur.isVisible = false
+            if (duPanneau) {
+                // Clavier du PANNEAU : il reste VISIBLE, son contenu
+                // remonte au-dessus de l'IME, il s'étend pour la
+                // saisie (une seule écriture, à la transition).
+                liaison.panneauInferieur.isVisible = true
+                gestionnaireInsets?.surClavierPanneau(hauteurIme)
+                if (!clavierEtaitDuPanneau && comportementPanneau.state != BottomSheetBehavior.STATE_EXPANDED) {
+                    comportementPanneau.state = BottomSheetBehavior.STATE_EXPANDED
+                }
+            } else {
+                // Clavier de l'ÉDITEUR : la barre de symboles se colle
+                // au clavier via le padding IME — le sheet est masqué
+                // (patron ADR 0056).
+                gestionnaireInsets?.surClavierPanneau(0)
+                liaison.zoneCentrale.updatePadding(bottom = hauteurIme)
+                liaison.panneauInferieur.isVisible = false
+            }
         } else {
             // Clavier fermé : la réserve du panneau reprend le bas.
+            gestionnaireInsets?.surClavierPanneau(0)
             appliquerReservePanneau()
             liaison.panneauInferieur.isVisible = true
             restaurerEtatPanneau()
         }
-        liaison.barreSymboles.isVisible = clavier && edition
+        // La barre de symboles ne suit que la frappe de l'ÉDITEUR —
+        // jamais celle du panneau (l'éditeur n'est pas la cible).
+        liaison.barreSymboles.isVisible = clavier && edition && !duPanneau
+        clavierEtaitDuPanneau = duPanneau
     }
+
+    /**
+     * La saisie courante appartient-elle au PANNEAU (v0.183.0) ? Le
+     * FOCUS dit la vérité : l'IME s'ouvre APRÈS que le champ du panneau
+     * a pris le focus, jamais l'inverse — au moment où l'inset arrive,
+     * le propriétaire du clavier est le descendant du panneau qui le
+     * tient (champ console, filtre logcat). Aucun focus dans le panneau
+     * = clavier de l'éditeur (comportement historique).
+     */
+    private fun clavierDuPanneau(): Boolean = liaison.panneauInferieur.findFocus() != null
 
     /**
      * B3 : réserve en bas de la colonne centrale la hauteur de peek du
@@ -1938,7 +2028,9 @@ class EditorActivity :
         rendrePanneau(etat)
         rendreBoutonRun(etat)
         rendreSnackbarArbre(etat.notification)
-        majRetourSysteme(ongletsSales = etat.onglets.any { it.isDirty })
+        // v0.183.0 : plus de mise à jour « onglets sales » du retour — le
+        // retour est TOUJOURS actif, le ViewModel décide (dialogue honnête
+        // ou confirmation agrégée) selon la saleté AU MOMENT du geste.
     }
 
     /**
@@ -2617,8 +2709,52 @@ class EditorActivity :
         // verra « port absent » et les insertions seront refusées, sans
         // effet silencieux.
         registreEditeur.enregistrer(null)
-        coordonnateurLsp.fermer()
+        // v0.183.0 (retour propriétaire « rien ne se passe, il faut
+        // plusieurs appuis ») : l'extinction du LspProject peut attendre
+        // l'extinction des processus de langue (secondes) — elle part
+        // dans la portée des fermetures, le fil principal ne fige PLUS
+        // l'écran pendant le finish() ; le débranchement reste SYNCHRONE.
+        coordonnateurLsp.fermer(porteeFermeture)
+        retirerInstanceVivante()
+        arreterDaemonSiDernierEspace()
         super.onDestroy()
+    }
+
+    /** Enregistre CET espace comme vivant pour son projet (registre process-wide). */
+    private fun enregistrerInstanceVivante() {
+        val id = identifiantProjet ?: return
+        instancesEditeur[id] = WeakReference(this)
+    }
+
+    /** Retire CET espace du registre si c'est encore lui qui le tient. */
+    private fun retirerInstanceVivante() {
+        val id = identifiantProjet ?: return
+        if (instancesEditeur[id]?.get() === this) instancesEditeur.remove(id)
+    }
+
+    /**
+     * Le tooling suit l'ESPACE (v0.183.0, retour propriétaire : « pas
+     * seulement les LSP doivent être fermés, le tooling aussi doit être
+     * fermé ») : quand le DERNIER espace vivant se referme, le daemon
+     * orchestrateur s'éteint — le process est tué avec anti-relance,
+     * la connexion retombe à DECONNECTEE, l'ouverture suivante du projet
+     * le relancera ([RegistreCycleDaemonTooling.port] posé par l'app).
+     *
+     * Garde-fous honnêtes :
+     * - recréation d'écran (rotation) : `isFinishing` faux, rien ne
+     *   s'éteint — le projet continue de vivre ;
+     * - un AUTRE espace vit encore (basculé P4) : le registre contient
+     *   une instance vivante, le daemon lui appartient ;
+     * - un BUILD en vol (§2.1c, toast « le build continue en
+     *   arrière-plan ») : tuer le daemon tuerait le build — renoncement
+     *   journalisé par l'absence d'action, le daemon mourra avec le
+     *   processus comme avant.
+     */
+    private fun arreterDaemonSiDernierEspace() {
+        if (!isFinishing) return
+        if (instancesEditeur.values.any { it.get() != null }) return
+        if (viewModel.etatGradle.value.statutBuild == StatutBuild.EN_COURS) return
+        registreDaemon.port.arreter()
     }
 
     /**
@@ -3027,6 +3163,13 @@ class EditorActivity :
                 dialogueFermeture(effet)
             }
 
+            EffetEditor.ConfirmerSortie -> {
+                // v0.183.0 (retour propriétaire) : sortie sans onglet sale
+                // — le dialogue honnête énonce ce qui va se refermer, le
+                // geste seul ne referme plus RIEN.
+                dialogueSortie()
+            }
+
             is EffetEditor.CopierChemin -> {
                 val pressePapiers = getSystemService(android.content.ClipboardManager::class.java) ?: return
                 pressePapiers.setPrimaryClip(
@@ -3206,16 +3349,33 @@ class EditorActivity :
             .show()
     }
 
+    /**
+     * « Fermer le projet ? » — dialogue de sortie HONNÊTE (retour
+     * propriétaire v0.183.0) : sans onglet sale, le retour ou le menu ne
+     * referment PLUS l'espace silencieusement. Le message énonce les
+     * conséquences : onglets refermés, réouverture à blanc (v0.183.0 :
+     * la sortie EXPLICITE efface la reprise), session et tooling arrêtés.
+     */
+    private fun dialogueSortie() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.editor_sortie_titre)
+            .setMessage(R.string.editor_sortie_message)
+            .setPositiveButton(R.string.editor_sortie_confirmer) { _, _ ->
+                viewModel.onAction(ActionEditor.SortieConfirmee)
+            }.setNegativeButton(R.string.editor_sortie_annuler, null)
+            .show()
+    }
+
     /** Réactive le retour système selon panneau étendu, tiroir ouvert et onglets sales. */
-    private fun majRetourSysteme(
-        tiroirOuvert: Boolean? = null,
-        ongletsSales: Boolean? = null,
-        tiroirBloque: Boolean = false,
-    ) {
+    private fun majRetourSysteme(tiroirOuvert: Boolean? = null, tiroirBloque: Boolean = false) {
         // Sur grand écran le tiroir est permanent : il ne se « ferme » pas.
         if (tiroirOuvert != null) this.tiroirOuvert = tiroirOuvert && !tiroirBloque
-        if (ongletsSales != null) this.ongletsSales = ongletsSales
-        retourEspace.isEnabled = panneauEtendu || this.tiroirOuvert || this.ongletsSales
+        // v0.183.0 (retour propriétaire) : le retour est TOUJOURS actif —
+        // le geste réduit d'abord le panneau étendu, referme le tiroir,
+        // puis demande la sortie HONNÊTE (dialogue « Fermer le projet ? »
+        // si rien n'est sale, confirmation agrégée sinon). Plus AUCUNE
+        // fermeture silencieuse par le retour.
+        retourEspace.isEnabled = true
     }
 
     override fun onSaveInstanceState(etat: Bundle) {
@@ -3355,4 +3515,32 @@ class EditorActivity :
         const val ID_DEPLACER_DROITE = 5
         const val ID_COPIER_CHEMIN = 6
     }
+}
+
+/**
+ * Instances VIVANTES des espaces ouverts, par identifiant de projet
+ * (v0.183.0, retour propriétaire) : l'accueil qui ré-ouvre un projet
+ * DÉJÀ OUVERT remonte l'instance vivante (REORDER_TO_FRONT) au lieu
+ * d'en empiler une NEUVE — l'espace existant garde sa session, son
+ * tooling et son état (plus de resynchronisation parasites au retour
+ * des paramètres).
+ *
+ * Références FAIBLES : un espace détruit sans passer par son
+ * `onDestroy` (kill du processus) ne fuit JAMAIS l'activité — la
+ * référence mourra seule au prochain passage du ramasse-miettes.
+ */
+private val instancesEditeur = ConcurrentHashMap<String, WeakReference<EditorActivity>>()
+
+/**
+ * L'espace VIVANT du projet [identifiant], ou `null` (aucun espace
+ * ouvert, ou l'instance tenue est morte). Purge les entrées mortes au
+ * passage.
+ */
+fun instanceEditeurPour(identifiant: String): EditorActivity? {
+    val tenue = instancesEditeur[identifiant] ?: return null
+    val vivante = tenue.get()
+    if (vivante == null) {
+        instancesEditeur.remove(identifiant)
+    }
+    return vivante
 }
