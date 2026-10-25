@@ -75,6 +75,17 @@
     <dimen name="editor_onglet_fermer_taille">36dp</dimen>
     <dimen name="editor_onglet_fermer_padding">9dp</dimen>
 
+    <!-- Onglet RECTANGULAIRE compact (v0.184.0, retour propriétaire :
+         « le design de l'onglet est trop gros — une forme
+         rectangulaire au lieu de la pilule ») : coins à peine adoucis
+         (4 dp — un RECTANGLE net, pas un stade gonflé), cellule
+         resserrée (hauteur 44 dp, padding horizontal 8 dp au lieu du
+         12 dp par défaut de Material) — l'onglet actif lit comme un
+         bloc plat d'IDE, pas comme une pastille. -->
+    <dimen name="editor_onglet_coins">4dp</dimen>
+    <dimen name="editor_onglets_hauteur">44dp</dimen>
+    <dimen name="editor_onglets_padding_horizontal">8dp</dimen>
+
     <!-- Snackbar du tiroir (§ 15, lot UI-5) : position flottante au-dessus
          du rail — COTE COMPOSÉE (editor_rail_hauteur 66 + spacing_sm 8),
          irréductible à l'échelle ADR 0127 §2 sans casser le placement. -->

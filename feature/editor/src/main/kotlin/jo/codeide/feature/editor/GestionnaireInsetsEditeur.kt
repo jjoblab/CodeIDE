@@ -243,5 +243,31 @@ internal class GestionnaireInsetsEditeur(
         } else {
             peek + insetNavigation
         }
+
+        /**
+         * Hauteur du sheet AJUSTÉE à l'ancre étendue (v0.184.0, retour
+         * propriétaire : « quand le bottomsheet est expand il n'est pas
+         * fit à l'écran, la partie bottom n'est pas visible, cachée par
+         * la nav bar ») : le sheet `match_parent` déborde de l'écran
+         * d'exactement `ancrageEtendu` à l'état étendu (le comportement
+         * pose son HAUT sur l'ancre) — son padding nav-bar vivait hors
+         * écran et le bas du contenu se cachait derrière la barre.
+         *
+         * La hauteur ajustée fait tomber le BAS du sheet sur le bas de
+         * l'écran à l'état étendu : le padding interne
+         * (`insetNavigationBas`) protège alors la dernière ligne du
+         * contenu. Replié, la bande visible (le HAUT du sheet) ne
+         * change pas — le surplus pend hors écran, invisible.
+         *
+         * @param hauteurParent hauteur du conteneur du sheet (pixels).
+         * @param ancrageEtendu offset d'expansion ([BottomSheetBehavior.expandedOffset],
+         *        pixels) — hauteur toolbar + onglets.
+         * @return hauteur du sheet en pixels, JAMAIS négative (ancre
+         *         aberrante au-delà du parent → 0, la vue disparaît
+         *         sans crash).
+         */
+        @JvmStatic
+        public fun calculerHauteurSheetAjustee(hauteurParent: Int, ancrageEtendu: Int): Int =
+            (hauteurParent - ancrageEtendu).coerceAtLeast(0)
     }
 }

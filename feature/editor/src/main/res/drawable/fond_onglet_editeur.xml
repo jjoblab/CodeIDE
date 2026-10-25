@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fond d'un onglet de fichier (v0.183.0, retour propriétaire : le
-     tab title gagne un arrière-plan net) : l'onglet SÉLECTIONNÉ reçoit
-     une pilule de couleur de surface surélevée (rôle de thème — jour,
-     nuit et couleurs dynamiques suivies) ; les autres restent
-     transparents. Le TabLayout pose ce drawable sur chaque vue d'onglet,
-     le sélecteur suit l'état. -->
+<!-- Fond d'un onglet de fichier (v0.183.0 : fond net sur l'onglet
+     actif ; v0.184.0, retour propriétaire : « le design de l'onglet
+     est trop gros — une forme RECTANGULAIRE au lieu de la pilule ») :
+     l'onglet SÉLECTIONNÉ reçoit un RECTANGLE de couleur de surface
+     surélevée (rôle de thème — jour, nuit et couleurs dynamiques
+     suivies) aux coins à peine adoucis (4 dp) — la pilule pleine
+     hauteur paraissait gonflée ; les autres restent transparents. Le
+     TabLayout pose ce drawable sur chaque vue d'onglet, le sélecteur
+     suit l'état. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_selected="true">
         <shape android:shape="rectangle">
-            <corners android:radius="999dp" />
+            <corners android:radius="@dimen/editor_onglet_coins" />
             <solid android:color="?attr/colorSurfaceContainerHigh" />
         </shape>
     </item>
     <item>
         <shape android:shape="rectangle">
-            <corners android:radius="999dp" />
+            <corners android:radius="@dimen/editor_onglet_coins" />
             <solid android:color="@android:color/transparent" />
         </shape>
     </item>

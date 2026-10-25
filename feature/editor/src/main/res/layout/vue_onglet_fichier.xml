@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Vue personnalisée d'un onglet : icône, nom, point de modification / fermeture. -->
+<!-- Vue personnalisée d'un onglet : icône, nom, point de modification / fermeture.
+     v0.184.0 (retour propriétaire : « le design de l'onglet est trop
+     gros ») : padding resserré (12 dp au lieu de 16) — le RECTANGLE
+     actif colle au contenu, la cellule ne boursoufle plus. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,7 +10,7 @@
     android:layout_height="match_parent"
     android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingStart="@dimen/spacing_md"
+    android:paddingStart="@dimen/spacing_md_compact"
     android:paddingEnd="@dimen/spacing_xs">
 
     <ImageView

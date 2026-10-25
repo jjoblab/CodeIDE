@@ -233,4 +233,35 @@ class GestionnaireInsetsEditeurTest {
             )
         assertEquals(reserveConsole, reserveProblemes)
     }
+
+    // ============================================================
+    // v0.184.0 (retour propriétaire : « quand le bottomsheet est
+    // expand il n'est pas fit à l'écran, la partie bottom n'est pas
+    // visible, cachée par la nav bar ») : hauteur du sheet AJUSTÉE à
+    // l'ancre — le bas étendu TOMBE sur le bas de l'écran, le padding
+    // nav-bar (posé au bas du sheet) redevient VISIBLE et protège la
+    // dernière ligne du contenu.
+    // ============================================================
+
+    @Test
+    fun `hauteur ajustee — parent moins ancre`() {
+        // Écran 2400 px, ancre (toolbar + onglets) 300 px : le sheet
+        // étendu occupe [300 ; 2400] — PLUS de débord sous l'écran.
+        assertEquals(2100, GestionnaireInsetsEditeur.calculerHauteurSheetAjustee(2400, 300))
+    }
+
+    @Test
+    fun `hauteur ajustee — ancre nulle conserve la hauteur du parent`() {
+        assertEquals(2400, GestionnaireInsetsEditeur.calculerHauteurSheetAjustee(2400, 0))
+    }
+
+    @Test
+    fun `hauteur ajustee — ancre aberrante au dela du parent retombe a zero sans crash`() {
+        assertEquals(0, GestionnaireInsetsEditeur.calculerHauteurSheetAjustee(2400, 3000))
+    }
+
+    @Test
+    fun `hauteur ajustee — ancre egale au parent retombe a zero`() {
+        assertEquals(0, GestionnaireInsetsEditeur.calculerHauteurSheetAjustee(2400, 2400))
+    }
 }
