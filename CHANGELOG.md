@@ -39,7 +39,7 @@
   et l'historique** : l'en-tête du chat montre le cumul entrée/sortie
   de la conversation (« Entrée 123 · Sortie 45 ») dès qu'un flux a
   rapporté un usage ; la ligne d'historique ajoute le total
-  (« il y a 3 min · claude-test · 168 jetons »). Les nombres sont
+  (« il y a 3 min · claude-test · jetons : 168 »). Les nombres sont
   TOUJOURS ceux que le fournisseur rapporte (`AiEvent.Usage`, lu par
   les DEUX fournisseurs) — jamais une estimation locale ; le compteur
   reste masqué tant que rien n'a été rapporté.

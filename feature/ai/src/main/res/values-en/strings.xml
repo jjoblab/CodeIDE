@@ -181,7 +181,7 @@
     <string name="ia_historique_recherche_hint">Search a conversation</string>
     <string name="ia_historique_vide">No conversation</string>
     <string name="ia_historique_meta">%1$s · %2$s</string>
-    <string name="ia_historique_usage_suffixe"> · %1$d tokens</string>
+    <string name="ia_historique_usage_suffixe"> · tokens: %1$d</string>
     <string name="ia_historique_menu_renommer">Rename</string>
     <string name="ia_historique_menu_supprimer">Delete</string>
     <string name="ia_historique_menu_cd">Conversation actions</string>
