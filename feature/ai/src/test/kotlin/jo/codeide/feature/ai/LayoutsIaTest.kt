@@ -132,11 +132,31 @@ class LayoutsIaTest {
         assertNotNull(racine.findViewById<View>(R.id.etat_titre))
         assertNotNull(racine.findViewById<View>(R.id.etat_texte))
         assertNotNull(racine.findViewById<View>(R.id.bouton_consentement))
-        assertNotNull(racine.findViewById<View>(R.id.zone_chat))
+        assertNotNull(racine.findViewById<View>(R.id.zone_messages))
+        assertNotNull(racine.findViewById<View>(R.id.composeur_ia))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_ajouter_cle))
         // Critère IA-3 : au repos, c'est « Envoyer » qui est visible ;
         // « Arrêter » n'apparaît que pendant la génération.
         assertEquals(View.VISIBLE, racine.findViewById<View>(R.id.bouton_envoyer).visibility)
         assertEquals(View.GONE, racine.findViewById<View>(R.id.bouton_arreter).visibility)
+
+        // Régression v0.188.0 (rapport IA §5 Lot 3, B1b) : le calque
+        // d'état vit DANS la zone des messages — AVANT il était un frère
+        // FULL-SCREEN du compositeur, déclaré APRÈS lui : il le
+        // recouvrait quand l'IA était active et la conversation vide.
+        val zoneMessages = racine.findViewById<View>(R.id.zone_messages)
+        val calque = racine.findViewById<View>(R.id.etat_transverse)
+        assertEquals(
+            "B1b : le calque est ENFANT de la zone des messages",
+            (calque.parent as? android.view.ViewGroup)?.id,
+            zoneMessages.id,
+        )
+        val composeur = racine.findViewById<View>(R.id.composeur_ia)
+        assertEquals(
+            "B1b : le compositeur est un ENFANT DIRECT de la racine — plus JAMAIS recouvert par le calque",
+            (composeur.parent as? android.view.ViewGroup)?.id,
+            racine.id,
+        )
     }
 
     @Test

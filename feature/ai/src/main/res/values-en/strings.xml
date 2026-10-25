@@ -91,6 +91,13 @@
     <string name="ia_onglet_recherche">Search</string>
     <string name="ia_ia_inactive_titre">Assistant not activated</string>
     <string name="ia_ia_inactive_texte">Review the consent to activate the AI assistant.</string>
+
+    <!-- "No key" state (v0.188.0, IA report S3): the assistant is active
+         but NO key is stored for the chosen provider — input stays closed,
+         adding the key is one tap away. -->
+    <string name="ia_cle_absente_titre">No key stored</string>
+    <string name="ia_cle_absente_texte">Add the key of the chosen provider to start chatting.</string>
+    <string name="ia_cle_absente_bouton">Add a key</string>
     <string name="ia_ia_inactive_bouton">Review the consent</string>
     <string name="ia_chat_vide_titre">No message</string>
     <string name="ia_chat_vide_texte">Ask a question about your project.</string>

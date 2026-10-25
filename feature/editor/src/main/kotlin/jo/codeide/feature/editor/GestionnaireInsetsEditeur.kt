@@ -1,10 +1,12 @@
 package jo.codeide.feature.editor
 
+import android.view.ViewGroup
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import jo.codeide.core.ui.applySystemBarsInsets
-import jo.codeide.core.ui.applySystemBarsInsetsMargins
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 
 /**
@@ -17,8 +19,9 @@ import jo.codeide.feature.editor.databinding.ActivityEditorBinding
  * - le padding interne du `panneau_inferieur` (le fond opaque descend
  *   jusqu'au bord bas de l'écran derrière la barre de navigation
  *   transparente, mais son contenu reste AU-DESSUS de la barre) ;
- * - la marge basse du tiroir (déjà gérée par `applySystemBarsInsetsMargins`,
- *   non touchée ici).
+ * - les marges du tiroir : v0.188.0 (ADR 0149), le tiroir est traité
+ *   ICI AUSSI au niveau de l'hôte — barres système + IME + rail
+ *   ([surInsetsTiroir]), plus d'écouteur propre au tiroir.
  *
  * v0.183.0 (retour propriétaire) : le gestionnaire ne pose PLUS son
  * propre listener sur la racine — il était posé AVANT celui du clavier
@@ -57,6 +60,18 @@ import jo.codeide.feature.editor.databinding.ActivityEditorBinding
  * (les champs sont en lecture-écriture pour permettre à l'activité de
  * propager les changements du sheet et du clavier).
  *
+ * v0.188.0 (rapport IA §5 Lot 3, B1c — ADR 0149) : le TIROIR est
+ * traité AU NIVEAU DE L'HÔTE — il ne reçoit plus QUE les marges de
+ * barres système (`applySystemBarsInsetsMargins`, aucun IME) : le
+ * clavier recouvrait la saisie du chat (le tiroir se termine par un
+ * rail de 66 dp). Le listener unique de l'activité nourrit
+ * [surInsetsTiroir] avec le bas de l'IME à CHAQUE distribution
+ * (trames d'animation comprises) : marges de barres inchangées +
+ * padding bas `max(0, ime − barres)` ([calculerPaddingBasTiroir], pure)
+ * + le RAIL de fragments masqué tant que le clavier est visible — TOUS
+ * les fragments du tiroir en profitent, aucun n'a d'utilitaire d'insets
+ * à appeler.
+ *
  * @param liaison liaison de l'espace de travail.
  * @param comportementPanneau comportement du sheet (peek TOTAL possédé ici).
  * @param clavierVisible fournisseur « le clavier virtuel est-il
@@ -75,6 +90,10 @@ internal class GestionnaireInsetsEditeur(
      *  aucun (mode plein écran sans barre). Mis à jour à chaque
      *  distribution d'insets. */
     private var insetNavigationBas: Int = 0
+
+    /** Inset HAUT de barre d'état — marge du tiroir (v0.188.0, ADR 0149 :
+     *  le tiroir ne passe jamais derrière la barre de statut). */
+    private var insetHautBarres: Int = 0
 
     /** Inset gauche de la barre de navigation (paysage, barre sur le
      *  côté). Mis à jour à chaque distribution d'insets. */
@@ -132,8 +151,12 @@ internal class GestionnaireInsetsEditeur(
         // Toolbar : barre d'état en haut (inchangé — comportement
         // historique préservé, la toolbar gère elle-même son inset haut).
         liaison.toolbarEditeur.applySystemBarsInsets(top = true, bottom = false)
-        // Tiroir : marges barres système (inchangé).
-        liaison.tiroir.applySystemBarsInsetsMargins()
+        // Tiroir : traité au NIVEAU DE L'HÔTE (v0.188.0, B1c/ADR 0149) —
+        // marges de barres + padding IME + rail masqué clavier ouvert,
+        // posés par [surInsetsTiroir] sur chaque distribution d'insets
+        // (l'ancien `applySystemBarsInsetsMargins` ne connaissait PAS
+        // l'IME : le clavier recouvrait la saisie du chat).
+        surInsetsTiroir(insetIme = 0)
         // Réserve immédiate (peek du XML, inset inconnu) — corrigée au
         // premier dispatch d'insets via [surInsetsBarres].
         appliquerReserveEtPaddingSheet()
@@ -159,6 +182,7 @@ internal class GestionnaireInsetsEditeur(
             insetNavigationBas != barres.bottom ||
                 insetNavigationGauche != barres.left ||
                 insetNavigationDroite != barres.right
+        insetHautBarres = barres.top
         insetNavigationBas = barres.bottom
         insetNavigationGauche = barres.left
         insetNavigationDroite = barres.right
@@ -191,6 +215,34 @@ internal class GestionnaireInsetsEditeur(
     /** Inset bas de navigation courant (0 si aucun) — l'activité étire
      *  les hauteurs de repos des rangées d'en-tête avec (v0.185.0). */
     fun insetBasNavigation(): Int = insetNavigationBas
+
+    /**
+     * Insets du TIROIR au niveau de l'HÔTE (v0.188.0, rapport IA §5 Lot 3,
+     * B1c — ADR 0149) : marges de barres système (statut en haut,
+     * navigation en bas — le tiroir ne passe jamais DERRIÈRE elles) +
+     * padding bas supplémentaire `max(0, ime − barres)` : le contenu du
+     * tiroir (et SA SAISIE) reste au-dessus du CLAVIER. Le RAIL de
+     * fragments (66 dp) est masqué tant que le clavier est visible — la
+     * surface de frappe prime, il revient au repli du clavier.
+     *
+     * Appelée par le listener UNIQUE de l'activité à CHAQUE distribution
+     * d'insets — barres comme IME, trames d'animation comprises.
+     *
+     * @param insetIme bas de l'IME courant (0 = clavier fermé).
+     */
+    fun surInsetsTiroir(insetIme: Int) {
+        val tiroir = liaison.tiroir
+        tiroir.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+            topMargin = insetHautBarres
+            bottomMargin = insetNavigationBas
+        }
+        tiroir.updatePadding(
+            left = insetNavigationGauche,
+            right = insetNavigationDroite,
+            bottom = calculerPaddingBasTiroir(insetIme, insetNavigationBas),
+        )
+        liaison.railFragments.isVisible = insetIme <= 0
+    }
 
     /** Pose le peek TOTAL du comportement : contenu + inset bas. */
     private fun poserPeekTotal() {
@@ -313,6 +365,23 @@ internal class GestionnaireInsetsEditeur(
         } else {
             peek
         }
+
+        /**
+         * Padding bas SUPPLÉMENTAIRE du tiroir quand le clavier monte
+         * (v0.188.0, rapport IA §5 Lot 3, B1c — ADR 0149) : le tiroir
+         * est déjà MARGÉ de la barre de navigation (bottomMargin) — la
+         * part de l'IME recouverte par cette marge n'est PAS comptée
+         * deux fois, seule la HAUTEUR du clavier AU-DESSUS de la barre
+         * pousse le contenu.
+         *
+         * @param insetIme bas de l'IME (pixels, 0 = clavier fermé).
+         * @param insetBarres bas de la barre de navigation (pixels).
+         * @return `max(0, insetIme − insetBarres)` — 0 clavier fermé
+         *         (comportement inchangé), jamais négatif.
+         */
+        @JvmStatic
+        public fun calculerPaddingBasTiroir(insetIme: Int, insetBarres: Int): Int =
+            (insetIme - insetBarres).coerceAtLeast(0)
 
         /**
          * Hauteur du sheet AJUSTÉE à l'ancre étendue (v0.184.0, retour

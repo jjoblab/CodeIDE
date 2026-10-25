@@ -18,7 +18,9 @@ import jo.codeide.core.ai.PieceContexte
 import jo.codeide.core.ai.SendMessageUseCase
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
+import jo.codeide.core.domain.CoffreClesIa
 import jo.codeide.core.domain.ConversationStore
+import jo.codeide.core.domain.FournisseursIa
 import jo.codeide.core.domain.MessageConversationIa
 import jo.codeide.core.domain.PortEditeurActif
 import jo.codeide.core.domain.RegistrePortEditeurActif
@@ -76,6 +78,15 @@ public data class EtatChatIa(
     public val alerteSecret: List<AlerteSecret> = emptyList(),
     /** Chemins du projet disponibles au sélecteur `@` (bornés). */
     public val cheminsDisponibles: List<String> = emptyList(),
+
+    /**
+     * AUCUNE clé enregistrée pour le fournisseur ACTIF (v0.188.0,
+     * rapport IA §5 Lot 3, S3 : [CoffreClesIa.contient] sur le
+     * fournisseur des réglages) — l'écran le rend par l'état
+     * « Ajoutez une clé » AVANT la première frappe, plus d'erreur
+     * d'authentification au premier envoi.
+     */
+    public val cleAbsente: Boolean = false,
 )
 
 /** Actions du chat (UDF). */
@@ -129,6 +140,20 @@ public sealed interface ActionChatIa {
     /** Ouvre le consentement (IA non activée). */
     public data object OuvrirConsentement : ActionChatIa
 
+    /**
+     * Ouvre le DÉTAIL du fournisseur ACTIF (v0.188.0, rapport IA S3 —
+     * état « Ajoutez une clé » du chat).
+     */
+    public data object OuvrirFournisseurCle : ActionChatIa
+
+    /**
+     * Re-vérifie la clé du fournisseur actif (v0.188.0) : envoyé par le
+     * fragment à CHAQUE retour au premier plan — la clé a pu être
+     * ajoutée ou supprimée pendant que le chat était arrêté (aller au
+     * fournisseur et retour), sans que les RÉGLAGES n'aient changé.
+     */
+    public data object RafraichirCle : ActionChatIa
+
     /** Ajoute un fichier `@mentionné` (sélecteur `@` — chemin relatif). */
     public data class AjouterMention(public val cheminRelatif: String) : ActionChatIa
 
@@ -169,6 +194,12 @@ public sealed interface EffetChatIa {
     /** Ouvre l'écran de consentement (IA non activée). */
     public data object OuvrirConsentement : EffetChatIa
 
+    /**
+     * Ouvre le DÉTAIL du fournisseur [identifiant] (v0.188.0, rapport IA
+     * S3 — bouton « Ajouter une clé » de l'état CLE_ABSENTE).
+     */
+    public data class OuvrirFournisseur(public val identifiant: String) : EffetChatIa
+
     /** Ouvre le sélecteur `@` (chemins déjà chargés dans l'état). */
     public data object OuvrirSelecteurFichiers : EffetChatIa
 
@@ -201,6 +232,7 @@ public class ChatViewModel
 constructor(
     private val envoyer: SendMessageUseCase,
     private val reglages: ReglagesIaRepository,
+    private val coffre: CoffreClesIa,
     private val registreEditeur: RegistrePortEditeurActif,
     private val fournisseurContexte: FournisseurContexteProjet,
     private val signauxExternes: CanalSignauxIa,
@@ -252,8 +284,16 @@ constructor(
     init {
         viewModelScope.launch {
             reglages.observeAiSettings().collect { courant ->
+                // v0.188.0 (rapport IA S3) : la présence de la clé du
+                // fournisseur ACTIF fait partie de l'état d'écran — le
+                // coffre est consulté à CHAQUE émission (I/O suspendue,
+                // jamais sur le fil principal).
+                val cleAbsente = !coffre.contient(courant.fournisseurActif)
                 etatInterne.value =
-                    etatInterne.value.copy(active = courant.assistantActive && courant.consentementDonne)
+                    etatInterne.value.copy(
+                        active = courant.assistantActive && courant.consentementDonne,
+                        cleAbsente = cleAbsente,
+                    )
             }
         }
         // Purge de rétention a l'ouverture (lot IA-6, critere IA-6) :
@@ -289,6 +329,19 @@ constructor(
                     }
                 }
             }
+        }
+    }
+
+    /**
+     * Re-vérifie la clé du fournisseur actif dans le coffre (v0.188.0,
+     * rapport IA S3 — action [ActionChatIa.RafraichirCle], envoyée par
+     * le fragment à chaque retour au premier plan : la clé a pu changer
+     * pendant l'arrêt SANS que les réglages n'émettent de nouveau).
+     */
+    private fun rafraichirCle() {
+        viewModelScope.launch {
+            val fournisseur = reglages.courant().getOrNull()?.fournisseurActif ?: FournisseursIa.ANTHROPIC
+            etatInterne.value = etatInterne.value.copy(cleAbsente = !coffre.contient(fournisseur))
         }
     }
 
@@ -348,6 +401,20 @@ constructor(
 
             ActionChatIa.OuvrirConsentement -> {
                 emettre(EffetChatIa.OuvrirConsentement)
+            }
+
+            ActionChatIa.OuvrirFournisseurCle -> {
+                // v0.188.0 (S3) : le fournisseur visé est TOUJOURS l'actif —
+                // c'est SA clé qui manque. La lecture est suspendue : la
+                // branche part dans le ViewModel, l'effet suit.
+                viewModelScope.launch {
+                    val fournisseur = reglages.courant().getOrNull()?.fournisseurActif ?: FournisseursIa.ANTHROPIC
+                    emettre(EffetChatIa.OuvrirFournisseur(fournisseur))
+                }
+            }
+
+            ActionChatIa.RafraichirCle -> {
+                rafraichirCle()
             }
 
             is ActionChatIa.AjouterMention -> {
