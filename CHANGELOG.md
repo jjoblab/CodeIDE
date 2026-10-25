@@ -1,5 +1,43 @@
 # Journal des modifications
 
+## [0.186.0] – 2026-10-25
+
+### Le consentement IA atteignable depuis l'éditeur : le repli de navigation de B2a (rapport IA, Lot 1)
+
+#### Corrigé
+
+- **B2a (rapport IA §2, « Vérifié ») : « le bouton Activer l'assistant du
+  chat ne fait rien dans l'éditeur »** : `AppNavigatorImpl.openAiConsentement`
+  (et `openAiFournisseur`) exigeaient un contrôleur de navigation —
+  `null` dans `EditorActivity`, l'hôte du tiroir IA (aucun conteneur de
+  graphe) : l'appui se terminait par un simple `logger.w`, l'écran ne
+  s'ouvrait JAMAIS et, avec la boucle de consentement (B2b, Lot 2), l'IA
+  restait inactivable. Le repli du patron v0.31.4 est étendu aux deux
+  destinations : depuis un hôte sans graphe, l'instance vivante de
+  `MainActivity` est remontée (`REORDER_TO_FRONT | SINGLE_TOP`) avec le
+  routage `ECRAN_CONSENTEMENT_IA` / `ECRAN_FOURNISSEUR_IA` (+ extra
+  `EXTRA_FOURNISSEUR_IA` pour l'identifiant) — l'éditeur SURVIT dessous,
+  le retour système y revient intact.
+- **S2 (suggestion du rapport) : le consentement ne s'empile plus sur
+  lui-même** : la destination courante déjà `settings_ia_consentement`
+  (ou `settings_ia_fournisseur`) → l'ouverture est refusée silencieusement
+  (double toucher sur « Activer ») ; le routage de l'hôte
+  (`ouvrirEcranRoutage`) gagne un paramètre `arguments` (le fournisseur
+  routé porte son identifiant, recopié dans l'argument de destination) et
+  n'empile rien quand la destination demandée est déjà en place.
+- **Source unique** : la clé d'argument `identifiant_fournisseur` vit
+  désormais dans `RoutageEcran.CLE_FOURNISSEUR_IA` (la constante privée
+  doublonnée d'`AppNavigatorImpl` est retirée).
+
+#### Technique
+
+- ADR 0148 (repli de navigation IA vers l'hôte du graphe).
+- Test de non-régression `AppNavigationRepliIaTest` (Robolectric + Hilt) :
+  hôte sans graphe → intent routé avec les bons drapeaux et extras ;
+  routage à froid consommé par `MainActivity` → destination
+  `settings_ia_consentement` dans le VRAI graphe.
+- Scénarios IAN1–IAN4 ajoutés à `docs/TESTS_MANUELS.md`.
+
 ## [0.185.0] – 2026-10-25
 
 ### L'en-tête suit la progression du glissement, l'onglet rectangulaire maigrit encore, le replié ne montre plus que l'en-tête (retour propriétaire : trois corrections)

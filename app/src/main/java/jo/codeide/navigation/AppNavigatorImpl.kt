@@ -208,23 +208,59 @@ constructor(
     }
 
     override fun openAiFournisseur(identifiantFournisseur: String) {
-        val controleur = navControllerDHote
-        if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_IA) {
-            logger.w(TAG) { "ouverture du détail fournisseur IA hors des écrans IA : ignorée" }
-            return
+        // v0.186.0 (rapport IA §5 Lot 1, bug B2a) : le repli de navigation
+        // IA vit dans [ouvrirEcranIa] — l'ancien `return` silencieux
+        // rendait le bouton « Ajoutez une clé » DU CHAT sans effet
+        // depuis l'éditeur (hôte sans graphe).
+        ouvrirEcranIa(
+            ecranRoutage = RoutageEcran.ECRAN_FOURNISSEUR_IA,
+            destination = R.id.settings_ia_fournisseur,
+            extras = { putExtra(RoutageEcran.EXTRA_FOURNISSEUR_IA, identifiantFournisseur) },
+        ) { controleur ->
+            val arguments = Bundle()
+            arguments.putString(RoutageEcran.CLE_FOURNISSEUR_IA, identifiantFournisseur)
+            controleur.navigate(R.id.settings_ia_fournisseur, arguments)
         }
-        val arguments = Bundle()
-        arguments.putString(CLE_FOURNISSEUR_IA, identifiantFournisseur)
-        controleur.navigate(R.id.settings_ia_fournisseur, arguments)
     }
 
     override fun openAiConsentement() {
+        // v0.186.0 (rapport IA §5 Lot 1, bug B2a) : le bouton
+        // « Activer l'assistant » du chat vit dans l'éditeur — le repli
+        // lui ouvre enfin le consentement (l'éditeur survit dessous).
+        ouvrirEcranIa(
+            ecranRoutage = RoutageEcran.ECRAN_CONSENTEMENT_IA,
+            destination = R.id.settings_ia_consentement,
+        ) { controleur -> controleur.navigate(R.id.settings_ia_consentement) }
+    }
+
+    /**
+     * Garde commune des écrans IA (v0.186.0, ADR 0148) : depuis un hôte
+     * SANS graphe (l'éditeur), l'instance de l'hôte du graphe est
+     * remontée avec le routage [ecranRoutage] (extras optionnels du
+     * fournisseur) — l'activité appelante survit dessous. Depuis un
+     * hôte AVEC graphe : la destination courante doit être un écran IA
+     * (garde symétrique du maître des paramètres) et NE PAS être déjà
+     * la destination visée (S2 du rapport IA : un double toucher
+     * n'empile pas l'écran sur lui-même).
+     */
+    private fun ouvrirEcranIa(
+        ecranRoutage: String,
+        destination: Int,
+        extras: (Intent.() -> Unit)? = null,
+        navigation: (NavController) -> Unit,
+    ) {
         val controleur = navControllerDHote
-        if (controleur == null || controleur.currentDestination?.id !in DESTINATIONS_IA) {
-            logger.w(TAG) { "ouverture du consentement IA hors des écrans IA : ignorée" }
-            return
+        val courant = controleur?.currentDestination?.id
+        when {
+            controleur == null -> relancerMainActivity(ecranRoutage, extras)
+
+            courant == null || courant !in DESTINATIONS_IA ->
+                logger.w(TAG) { "ouverture d'un écran IA hors des écrans IA : ignorée" }
+
+            courant == destination -> Unit
+
+            else -> navigation(controleur)
         }
-        controleur.navigate(R.id.settings_ia_consentement)
     }
 
     override fun goBack() {
@@ -512,14 +548,18 @@ constructor(
      * Remonte l'instance existante de `MainActivity` (jamais
      * recréée, jamais doublée) avec un routage d'écran : l'activité
      * appelante reste en dessous, un retour système y revient.
+     *
+     * v0.186.0 : la surcharge [extras] munit l'intent d'arguments
+     * supplémentaires (le fournisseur IA routé porte son identifiant).
      */
-    private fun relancerMainActivity(ecran: String) {
+    private fun relancerMainActivity(ecran: String, extras: (Intent.() -> Unit)? = null) {
         logger.d(TAG) { "routage via l'accueil hôte -> $ecran" }
         val intention =
             Intent(activity, MainActivity::class.java)
                 .putExtra(RoutageEcran.EXTRA_ECRAN_CIBLE, ecran)
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        extras?.invoke(intention)
         activity.startActivity(intention)
     }
 }
@@ -542,9 +582,6 @@ private const val CLE_PROJET_CREE = "accueil.projet_cree"
 
 /** Clé de la section « bientôt disponible » (ADR 0059). */
 private const val CLE_SECTION_BIENTOT = "section"
-
-/** Clé de l'argument « identifiant de fournisseur » (mission IA, lot IA-2). */
-private const val CLE_FOURNISSEUR_IA = "identifiant_fournisseur"
 
 /** Clé de l'argument « langage LSP » (lot LSP-3 — identifiant de LangageLsp). */
 private const val CLE_LANGAGE_LSP = "langage"
