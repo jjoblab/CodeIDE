@@ -1623,6 +1623,12 @@ class EditorActivity :
                 appliquerFonduEntete(fractionPanneauCourante())
             }
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            // v0.188.0 (rapport IA §5 Lot 3, B1c — ADR 0149) : insets du
+            // TIROIR au niveau de l'hôte — chaque distribution (trames
+            // d'animation du clavier comprises) re-pose marges, padding
+            // IME et visibilité du rail : TOUS les fragments du tiroir
+            // restent au-dessus du clavier, la saisie du chat comprise.
+            gestionnaireInsets?.surInsetsTiroir(ime)
             clavierParInsets = ime > 0
             if (ime != hauteurIme) {
                 hauteurIme = ime

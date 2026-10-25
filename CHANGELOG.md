@@ -1,5 +1,64 @@
 # Journal des modifications
 
+## [0.188.0] – 2026-10-25
+
+### La zone de saisie du chat libérée : modèle d'écran pur, calque dans la zone des messages, insets du tiroir à l'hôte (rapport IA, Lot 3 — B1a/B1b/B1c confirmés, S3)
+
+#### Corrigé
+
+- **B1a+B1b (rapport IA §2, « Vérifiés ») : le compositeur n'est plus
+  JAMAIS recouvert** : (1) l'état INACTIF masquait la zone de chat
+  ENTIÈRE (`zone_chat.isVisible = false`) — avec la chaîne B2a/B2b,
+  l'utilisateur restait bloqué ; (2) `etat_transverse` était un frère
+  FULL-SCREEN du compositeur déclaré APRÈS lui : quand l'IA était
+  active et la conversation vide, le calque opaque recouvrait la
+  saisie et Envoyer — exactement au moment de taper le premier message.
+  Le layout place désormais le calque DANS la zone des messages
+  (FrameLayout à poids 1 : liste + calque) et le compositeur est
+  IDENTIFIÉ (`composeur_ia`) : le calque couvre les messages, jamais
+  la saisie.
+- **Modèle d'écran pur et testé** :
+  `PresentationChatIa.decrireEcranChat(active, cleAbsente, nbMessages)`
+  → INACTIF (calque + « Activer l'assistant », saisie fermée),
+  CLE_ABSENTE (calque + « Ajouter une clé », saisie fermée), VIDE
+  (accueil + saisie LIBRE), CONVERSATION (liste + saisie) — priorité
+  inactif > clé absente > vide > conversation ; le fragment ne fait
+  plus que poser les visibilités.
+- **S3 (suggestion du rapport) : plus d'erreur d'authentification au
+  premier envoi** : `EtatChatIa.cleAbsente` est exposé par le
+  `ChatViewModel` (injection du coffre `CoffreClesIa`, consultation à
+  chaque émission des réglages ET à chaque retour au premier plan —
+  action `RafraichirCle`, la clé peut changer pendant l'arrêt) ;
+  l'état « Ajoutez une clé » mène au DÉTAIL du fournisseur ACTIF
+  (effet `OuvrirFournisseur`, bouton « Ajouter une clé ») — rendu
+  effectif depuis l'éditeur grâce au repli du Lot 1.
+- **B1c (« Probable » — confirmé par lecture) : les insets du tiroir
+  traités au NIVEAU DE L'HÔTE (ADR 0149)** : le tiroir ne recevait que
+  les marges de barres système (`applySystemBarsInsetsMargins`, aucun
+  IME) — le clavier recouvrait la saisie. Le listener unique de
+  l'activité nourrit désormais `GestionnaireInsetsEditeur.
+  surInsetsTiroir(ime)` à CHAQUE distribution (trames d'animation
+  comprises) : marges de barres inchangées + padding bas
+  `max(0, ime − barres)` (fonction pure `calculerPaddingBasTiroir`,
+  la part déjà margée n'est pas comptée deux fois) + le RAIL de
+  fragments (66 dp) masqué tant que le clavier est visible. TOUS les
+  fragments du tiroir en profitent (chat, agent, historique, fichiers,
+  recherche, git, terminal), aucun n'appelle d'utilitaire d'insets.
+
+#### Technique
+
+- ADR 0149 (insets du tiroir au niveau de l'hôte) ; ADR 0148 (Lot 1)
+  sous-tend l'effet `OuvrirFournisseur` depuis l'éditeur.
+- Tests : `PresentationChatIaTest` (7 purs — les quatre visages et
+  leurs priorités), `ChatViewModelTest` +4 (cleAbsente depuis les
+  réglages et le coffre, `RafraichirCle` au retour au premier plan,
+  `OuvrirFournisseurCle` vers l'ACTIF), `LayoutsIaTest` (le calque est
+  ENFANT de la zone des messages, le compositeur ENFANT DIRECT de la
+  racine — B1b structurel), `GestionnaireInsetsEditeurTest` +4 (le
+  calcul pur du padding tiroir).
+- Chaînes `ia_cle_absente_*` ajoutées en FR et EN ; scénarios IA5–IA10
+  dans `docs/TESTS_MANUELS.md`.
+
 ## [0.187.0] – 2026-10-25
 
 ### La boucle du consentement refermée : les interrupteurs ne réagissent plus qu'au clic (rapport IA, Lot 2 — B2b confirmé, S1)

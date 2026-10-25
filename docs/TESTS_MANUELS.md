@@ -1632,3 +1632,14 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IA2 | Paramètres → IA : activer l'interrupteur maître → « Pas maintenant » | Retour aux réglages SANS réouverture ; l'interrupteur est DÉCOCHÉ (état réel) |
 | IA3 | Même parcours, puis « Activer » | Retour sans réouverture ; interrupteur ACTIVÉ ; le consentement est daté (ligne « Ce qui est envoyé ») |
 | IA4 | Depuis Paramètres → IA, pivoter l'écran / arrière-plan puis revenir | Aucune ouverture parasite du consentement ; l'interrupteur suit l'état réel à chaque retour au premier plan |
+
+## Assistant IA — la zone de saisie du chat libérée (rapport IA Lot 3 → v0.188.0, ADR 0149)
+
+| # | Procédure | Résultat attendu |
+|---|-----------|------------------|
+| IA5 | Tiroir IA → Chat (IA ACTIVE, conversation vide) | Accueil visible **ET** champ de saisie + Envoyer visibles — plus de calque recouvrant la saisie (B1a/B1b) |
+| IA6 | Ouvrir le clavier dans le chat | Le champ reste visible AU-DESSUS du clavier ; le rail de fragments disparaît le temps de la frappe et revient au repli (B1c, ADR 0149) |
+| IA7 | Sans clé enregistrée, ouvrir le chat (IA active) | État « Aucune clé enregistrée » avec bouton « Ajouter une clé » vers le fournisseur ACTIF ; la saisie reste fermée (S3) |
+| IA8 | Ajouter la clé depuis cet état puis revenir au chat | Le chat repasse à l'accueil vide avec la saisie LIBRE (la clé est re-vérifiée au retour au premier plan) |
+| IA9 | Tiroir IA → Chat (IA INACTIVE) | Calque « Assistant non activé » + bouton « Consulter le consentement » ; saisie masquée (B1a) |
+| IA10 | Pivoter l'écran, clavier flottant, mode fenêtré, pendant la saisie du chat | La saisie reste visible et fonctionnelle (B1c « à valider sur appareil » — ADR 0149) |

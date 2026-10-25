@@ -222,4 +222,32 @@ class GestionnaireInsetsEditeurTest {
     fun `hauteur ajustee — ancre egale au parent retombe a zero`() {
         assertEquals(0, GestionnaireInsetsEditeur.calculerHauteurSheetAjustee(2400, 2400))
     }
+
+    // ============================================================
+    // v0.188.0 (rapport IA §5 Lot 3, B1c — ADR 0149) : padding IME
+    // du TIROIR au niveau de l'hôte — la part de l'IME déjà margée
+    // (barre de navigation) n'est PAS comptée deux fois.
+    // ============================================================
+
+    @Test
+    fun `padding tiroir — clavier ferme, zero (comportement inchange)`() {
+        assertEquals(0, GestionnaireInsetsEditeur.calculerPaddingBasTiroir(0, 144))
+    }
+
+    @Test
+    fun `padding tiroir — clavier au dessus de la barre, seule la part visible pousse`() {
+        // IME 780 px, barre 144 px : le tiroir est déjà margé de la barre,
+        // le contenu monte de 780 − 144 = 636 px supplémentaires.
+        assertEquals(636, GestionnaireInsetsEditeur.calculerPaddingBasTiroir(780, 144))
+    }
+
+    @Test
+    fun `padding tiroir — clavier plus petit que la barre, zero (jamais negatif)`() {
+        assertEquals(0, GestionnaireInsetsEditeur.calculerPaddingBasTiroir(100, 144))
+    }
+
+    @Test
+    fun `padding tiroir — ni barre ni clavier, zero`() {
+        assertEquals(0, GestionnaireInsetsEditeur.calculerPaddingBasTiroir(0, 0))
+    }
 }

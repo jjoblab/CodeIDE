@@ -93,6 +93,13 @@
     <string name="ia_onglet_recherche">Recherche</string>
     <string name="ia_ia_inactive_titre">Assistant non activé</string>
     <string name="ia_ia_inactive_texte">Lisez le consentement pour activer l\'assistant IA.</string>
+
+    <!-- État « clé absente » (v0.188.0, rapport IA S3) : l'assistant est actif
+         mais AUCUNE clé n'est enregistrée pour le fournisseur choisi — la
+         saisie reste fermée et l'ajout de clé est à un appui. -->
+    <string name="ia_cle_absente_titre">Aucune clé enregistrée</string>
+    <string name="ia_cle_absente_texte">Ajoutez la clé du fournisseur choisi pour commencer à discuter.</string>
+    <string name="ia_cle_absente_bouton">Ajouter une clé</string>
     <string name="ia_ia_inactive_bouton">Consulter le consentement</string>
     <string name="ia_chat_vide_titre">Aucun message</string>
     <string name="ia_chat_vide_texte">Posez une question sur votre projet.</string>

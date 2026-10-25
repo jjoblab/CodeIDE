@@ -85,6 +85,9 @@ public class ChatFragment : Fragment() {
         liaisonLocale.boutonEnvoyer.setOnClickListener { viewModel.onAction(ActionChatIa.Envoyer) }
         liaisonLocale.boutonArreter.setOnClickListener { viewModel.onAction(ActionChatIa.Arreter) }
         liaisonLocale.boutonConsentement.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirConsentement) }
+        // v0.188.0 (rapport IA S3) : l'état « Ajoutez une clé » mène au
+        // DÉTAIL du fournisseur ACTIF (c'est sa clé qui manque).
+        liaisonLocale.boutonAjouterCle.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirFournisseurCle) }
         // Le brouillon vit dans le ViewModel (survit à la rotation) : la
         // frappe y est répercutée, l'écriture programmatique (effacement
         // après envoi, restauration) est gardée par le drapeau anti-écho.
@@ -100,6 +103,11 @@ public class ChatFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // v0.188.0 (rapport IA S3) : la clé a pu être ajoutée ou
+                // supprimée pendant l'arrêt (aller au fournisseur et
+                // retour) SANS que les réglages n'émettent — re-vérifiée
+                // à CHAQUE retour au premier plan.
+                viewModel.onAction(ActionChatIa.RafraichirCle)
                 launch {
                     viewModel.etat.collect { etat -> rendre(etat, liaisonLocale, adaptateurLocal) }
                 }
@@ -158,21 +166,51 @@ public class ChatFragment : Fragment() {
             liaisonLocale.listeMessages.scrollToPosition(etat.messages.lastIndex)
         }
 
-        // États transverses : IA non activée > vide > contenu.
-        val etatTransverseVisible = !etat.active || etat.messages.isEmpty()
-        liaisonLocale.etatTransverse.isVisible = etatTransverseVisible
-        if (!etat.active) {
-            liaisonLocale.etatTitre.setText(R.string.ia_ia_inactive_titre)
-            liaisonLocale.etatTexte.setText(R.string.ia_ia_inactive_texte)
-            liaisonLocale.boutonConsentement.isVisible = true
-            liaisonLocale.zoneChat.isVisible = false
-        } else if (etat.messages.isEmpty()) {
-            liaisonLocale.etatTitre.setText(R.string.ia_chat_vide_titre)
-            liaisonLocale.etatTexte.setText(R.string.ia_chat_vide_texte)
-            liaisonLocale.boutonConsentement.isVisible = false
-            liaisonLocale.zoneChat.isVisible = true
-        } else {
-            liaisonLocale.zoneChat.isVisible = true
+        // États d'écran (v0.188.0, rapport IA §5 Lot 3 — B1a/B1b) : le
+        // modèle PUR décrit l'écran ; le calque vit DANS la zone des
+        // messages, le compositeur n'est plus JAMAIS recouvert — il est
+        // MASQUÉ dans les états fermés (inactif, clé absente) et LIBRE
+        // dès l'accueil vide (le premier message doit pouvoir être tapé).
+        when (
+            PresentationChatIa.decrireEcranChat(
+                active = etat.active,
+                cleAbsente = etat.cleAbsente,
+                nbMessages = etat.messages.size,
+            )
+        ) {
+            EcranChat.INACTIF -> {
+                liaisonLocale.etatTransverse.isVisible = true
+                liaisonLocale.etatTitre.setText(R.string.ia_ia_inactive_titre)
+                liaisonLocale.etatTexte.setText(R.string.ia_ia_inactive_texte)
+                liaisonLocale.boutonConsentement.isVisible = true
+                liaisonLocale.boutonAjouterCle.isVisible = false
+                liaisonLocale.composeurIa.isVisible = false
+            }
+
+            EcranChat.CLE_ABSENTE -> {
+                // S3 : la clé du fournisseur ACTIF manque — saisie fermée,
+                // l'ajout de clé à UN appui.
+                liaisonLocale.etatTransverse.isVisible = true
+                liaisonLocale.etatTitre.setText(R.string.ia_cle_absente_titre)
+                liaisonLocale.etatTexte.setText(R.string.ia_cle_absente_texte)
+                liaisonLocale.boutonConsentement.isVisible = false
+                liaisonLocale.boutonAjouterCle.isVisible = true
+                liaisonLocale.composeurIa.isVisible = false
+            }
+
+            EcranChat.VIDE -> {
+                liaisonLocale.etatTransverse.isVisible = true
+                liaisonLocale.etatTitre.setText(R.string.ia_chat_vide_titre)
+                liaisonLocale.etatTexte.setText(R.string.ia_chat_vide_texte)
+                liaisonLocale.boutonConsentement.isVisible = false
+                liaisonLocale.boutonAjouterCle.isVisible = false
+                liaisonLocale.composeurIa.isVisible = true
+            }
+
+            EcranChat.CONVERSATION -> {
+                liaisonLocale.etatTransverse.isVisible = false
+                liaisonLocale.composeurIa.isVisible = true
+            }
         }
     }
 
@@ -299,6 +337,13 @@ public class ChatFragment : Fragment() {
 
             EffetChatIa.OuvrirConsentement -> {
                 navigator.openAiConsentement()
+            }
+
+            is EffetChatIa.OuvrirFournisseur -> {
+                // v0.188.0 (rapport IA S3) : « Ajouter une clé » — le
+                // repli de navigation du Lot 1 rend cet appel effectif
+                // DEPUIS l'éditeur aussi.
+                navigator.openAiFournisseur(effet.identifiant)
             }
 
             EffetChatIa.OuvrirSelecteurFichiers -> {

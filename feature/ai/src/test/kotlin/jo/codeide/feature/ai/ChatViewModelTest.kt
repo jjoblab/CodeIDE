@@ -10,6 +10,7 @@ import jo.codeide.core.ai.SendMessageUseCase
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.DiagnosticEditeur
+import jo.codeide.core.domain.FournisseursIa
 import jo.codeide.core.domain.PortEditeurActif
 import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.RetentionIa
@@ -55,6 +56,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 FakeReglagesIa(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -82,6 +84,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -127,6 +130,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -180,6 +184,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -216,6 +221,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -257,6 +263,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -305,6 +312,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 registre,
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -327,6 +335,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -347,6 +356,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(FauxFournisseurFlux()),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -376,6 +386,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseurFlux),
                 reglagesActifs(),
+                FakeCoffre(),
                 registre,
                 contexte,
                 CanalSignauxIa(),
@@ -422,6 +433,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseurFlux),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 contexte,
                 CanalSignauxIa(),
@@ -461,6 +473,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseurFlux),
                 reglagesActifs(),
+                FakeCoffre(),
                 registre,
                 contexte,
                 CanalSignauxIa(),
@@ -512,6 +525,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseurFlux),
                 reglagesActifs(),
+                FakeCoffre(),
                 registre,
                 contexte,
                 CanalSignauxIa(),
@@ -550,6 +564,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseurFlux),
                 reglagesActifs(),
+                FakeCoffre(),
                 registre,
                 contexte,
                 CanalSignauxIa(),
@@ -590,6 +605,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 canal,
@@ -614,6 +630,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseur),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 canal,
@@ -639,6 +656,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(FauxFournisseurFlux()),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 canal,
@@ -659,6 +677,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(FauxFournisseurFlux()),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -682,6 +701,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(fournisseurFlux),
                 reglagesActifs(),
+                FakeCoffre(),
                 RegistrePortEditeurActif(),
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -709,6 +729,7 @@ class ChatViewModelTest {
         ChatViewModel(
             SendMessageUseCase(FauxFournisseurFlux()),
             reglagesActifs(),
+            FakeCoffre(),
             RegistrePortEditeurActif(),
             FauxFournisseurContexte(),
             CanalSignauxIa(),
@@ -730,6 +751,7 @@ class ChatViewModelTest {
             ChatViewModel(
                 SendMessageUseCase(FauxFournisseurFlux()),
                 reglagesActifs(),
+                FakeCoffre(),
                 registre,
                 FauxFournisseurContexte(),
                 CanalSignauxIa(),
@@ -750,6 +772,116 @@ class ChatViewModelTest {
         assertEquals("abc", proposition.texteActuel)
         assertEquals("nouveau texte", proposition.textePropose)
         assertEquals("src/main/java/MainActivity.kt", proposition.cheminRelatif)
+    }
+
+    // ============================================================
+    // v0.188.0 (rapport IA §5 Lot 3 — S3) : la clé absente fait partie
+    // de l'état d'écran (elle mène à « Ajoutez une clé »).
+    // ============================================================
+
+    @Test
+    fun `cle absente — sans clé pour le fournisseur actif, l'état l'expose`() = runTest {
+        val coffre = FakeCoffre()
+        val reglages = reglagesActifs()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglages,
+                coffre,
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+            )
+        advanceUntilIdle()
+
+        assertTrue(
+            "S3 : aucune clé enregistrée pour le fournisseur actif → cleAbsente",
+            modele.etat.value.cleAbsente,
+        )
+    }
+
+    @Test
+    fun `cle presente — l'état n'expose pas cleAbsente`() = runTest {
+        val coffre = FakeCoffre()
+        coffre.enregistrer(FournisseursIa.ANTHROPIC, "sk-test-1234".toCharArray())
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                coffre,
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+            )
+        advanceUntilIdle()
+
+        assertFalse("clé enregistrée pour le fournisseur actif → PAS cleAbsente", modele.etat.value.cleAbsente)
+    }
+
+    @Test
+    fun `rafraichirCle — re-vérifie le coffre au retour au premier plan`() = runTest {
+        val coffre = FakeCoffre()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                coffre,
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+            )
+        advanceUntilIdle()
+        assertTrue("avant : aucune clé", modele.etat.value.cleAbsente)
+
+        // La clé est ajoutée PENDANT l'arrêt (aller au fournisseur et
+        // retour) — sans que les réglages n'émettent de nouveau.
+        coffre.enregistrer(FournisseursIa.ANTHROPIC, "sk-test-1234".toCharArray())
+
+        // Le fragment re-vérifie à chaque retour au premier plan.
+        modele.onAction(ActionChatIa.RafraichirCle)
+        advanceUntilIdle()
+        assertFalse("après ajout + RafraichirCle : la clé est vue", modele.etat.value.cleAbsente)
+    }
+
+    @Test
+    fun `ouvrirFournisseurCle — mène au fournisseur ACTIF`() = runTest {
+        val reglages = FakeReglagesIa(
+            AiSettings(
+                assistantActive = true,
+                consentementDonne = true,
+                fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE,
+                urlBaseOpenAiCompatible = "https://openrouter.ai/api/v1",
+            ),
+        )
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglages,
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.OuvrirFournisseurCle)
+        advanceUntilIdle()
+
+        val effet = modele.effets.first()
+        assertTrue(effet is EffetChatIa.OuvrirFournisseur)
+        assertEquals(
+            "le fournisseur visé est l'ACTIF (c'est SA clé qui manque)",
+            FournisseursIa.OPENAI_COMPATIBLE,
+            (effet as EffetChatIa.OuvrirFournisseur).identifiant,
+        )
     }
 }
 
