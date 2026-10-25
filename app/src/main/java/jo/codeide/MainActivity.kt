@@ -312,18 +312,73 @@ class MainActivity : AppCompatActivity() {
                 logger.d(TAG) { "routage externe -> terminal" }
                 navigator.openTerminal(null)
             }
+
+            RoutageEcran.ECRAN_CONSENTEMENT_IA ->
+                // v0.186.0 (rapport IA §5 Lot 1, bug B2a) : le bouton
+                // « Activer l'assistant » du tiroir IA vit dans l'ÉDITEUR —
+                // une activité sans graphe. Le routage ramène la demande
+                // ici : le consentement s'ouvre dans le graphe, l'éditeur
+                // survit dessous (retour système intact).
+                routerConsentementIa(controleur)
+
+            RoutageEcran.ECRAN_FOURNISSEUR_IA ->
+                // v0.186.0 (même lot) : l'état « Ajoutez une clé » du chat
+                // ouvre le DÉTAIL du fournisseur, même depuis l'éditeur.
+                routerFournisseurIa(intent, controleur)
         }
+    }
+
+    /**
+     * Routage du consentement IA (v0.186.0, ADR 0148) : action dédiée
+     * depuis les réglages IA, destination directe ailleurs, RIEN si
+     * déjà en place (S2 du rapport IA — pas d'empilement).
+     */
+    private fun routerConsentementIa(controleur: NavController) {
+        logger.d(TAG) { "routage externe -> consentement IA" }
+        ouvrirEcranRoutage(
+            controleur,
+            destination = R.id.settings_ia_consentement,
+            actions = mapOf(R.id.settings_ia to R.id.settings_ia_consentement),
+        )
+    }
+
+    /**
+     * Routage du détail fournisseur IA (v0.186.0, même ADR) : l'identifiant
+     * voyage dans l'extra du routage et rejoint l'argument de la
+     * destination ; absent, la valeur par défaut du graphe s'applique.
+     */
+    private fun routerFournisseurIa(intent: Intent, controleur: NavController) {
+        logger.d(TAG) { "routage externe -> fournisseur IA" }
+        val arguments =
+            intent.getStringExtra(RoutageEcran.EXTRA_FOURNISSEUR_IA)?.let { identifiant ->
+                Bundle().apply { putString(RoutageEcran.CLE_FOURNISSEUR_IA, identifiant) }
+            }
+        ouvrirEcranRoutage(
+            controleur,
+            destination = R.id.settings_ia_fournisseur,
+            arguments = arguments,
+        )
     }
 
     /**
      * Navigation routée : action dédiée depuis l'origine indiquée,
      * destination directe ailleurs, rien si déjà en place.
+     *
+     * v0.186.0 : [arguments] accompagne la navigation (le fournisseur
+     * IA routé porte son identifiant) — quand la destination courante
+     * est DÉJÀ celle demandée, l'écran reste tel quel (un double
+     * routage n'empile rien, S2 du rapport IA).
      */
-    private fun ouvrirEcranRoutage(controleur: NavController, destination: Int, actions: Map<Int, Int>) {
+    private fun ouvrirEcranRoutage(
+        controleur: NavController,
+        destination: Int,
+        actions: Map<Int, Int> = emptyMap(),
+        arguments: Bundle? = null,
+    ) {
         val origine = controleur.currentDestination?.id
         when (origine) {
             destination -> Unit
-            else -> controleur.navigate(actions[origine] ?: destination)
+            else -> controleur.navigate(actions[origine] ?: destination, arguments)
         }
     }
 

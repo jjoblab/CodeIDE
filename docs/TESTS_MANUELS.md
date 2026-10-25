@@ -1615,3 +1615,12 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 8. **Erreur (maquette §5)** — avec un index en erreur (stockage
    corrompu) : bandeau ROUGE, section « Erreurs bloquantes », un
    seul bouton « Réindexer » PLEIN ; PAS de barre de progression.
+
+## Assistant IA — navigation de repli (rapport IA Lot 1 → v0.186.0, ADR 0148)
+
+| # | Procédure | Résultat attendu |
+|---|-----------|------------------|
+| IAN1 | Éditeur ouvert, tiroir IA → onglet Chat → (assistant inactif) → bouton « Activer l'assistant » | L'écran de consentement IA s'ouvre (logcat : `Navigation` : `routage via l'accueil hôte -> consentement_ia`) — plus de silence |
+| IAN2 | Sur l'écran de consentement, toucher « Activer » | Le consentement daté est enregistré ; retour sur le graphe de l'hôte ; retour système → l'ESPACE de travail est intact (onglets, session, tooling) |
+| IAN3 | Double appui rapide sur « Activer l'assistant » depuis le chat | Un SEUL écran de consentement (SINGLE_TOP + garde anti-empilement) |
+| IAN4 | Chat avec état « Ajoutez une clé » → bouton d'ajout de clé | Le DÉTAIL du fournisseur visé s'ouvre avec le BON identifiant (extra `fournisseur_ia_identifiant`) |
