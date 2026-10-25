@@ -2955,9 +2955,21 @@ class EditorActivity :
      * ligne tooling suit la même règle via le contrôleur. Au repli, la
      * place est conservée (INVISIBLE sous le seuil du fondu) — jamais de
      * GONE en plein glissement.
+     *
+     * v0.184.0 (retour propriétaire : « le header qui disparaît
+     * donne un mauvais rendu, n'est pas fluide ») : le reflow des deux
+     * sections part dans une transition ChangeBounds COURTE — les
+     * onglets GLISSENT au sommet du sheet à l'extension (et
+     * redescendent au repli) au lieu de SAUTER d'un coup une fois
+     * l'état stabilisé. La transition ne joue QU'aux bascules d'état
+     * stable (jamais pendant les trames du glissement).
      */
     private fun marquerSheetEtendu(etendu: Boolean) {
         if (etendu == sheetEtenduStable) return
+        android.transition.TransitionManager.beginDelayedTransition(
+            liaison.panneauInferieur as android.view.ViewGroup,
+            android.transition.ChangeBounds().setDuration(DUREE_TRANSITION_ENTETE_MS),
+        )
         sheetEtenduStable = etendu
         controleurTooling?.definirSheetEtendu(etendu)
         majVisibiliteEntetePanneau()
@@ -2994,8 +3006,12 @@ class EditorActivity :
      *        stabilisé.
      */
     private fun appliquerFonduEntete(glissement: Float) {
-        val alpha =
-            (1f - (glissement - FRACTION_MI_HAUTEUR) / (1f - FRACTION_MI_HAUTEUR)).coerceIn(0f, 1f)
+        // v0.184.0 : courbe COULÉE (cosinus, [CalculsFonduEntete]) — le
+        // « coin » du départ de fondu à mi-hauteur ne se voit plus,
+        // l'extinction lit continue sur toute la seconde moitié du
+        // glissement (retour propriétaire : « n'est pas fluide en
+        // disparaissant »).
+        val alpha = CalculsFonduEntete.alpha(glissement, FRACTION_MI_HAUTEUR)
         alphaEnteteCourant = alpha
         liaison.entetePanneau.alpha = alpha
         liaison.ligneTooling.alpha = alpha
@@ -3011,11 +3027,37 @@ class EditorActivity :
      * `EditorBottomSheet.setOffsetAnchor(editorAppBarLayout)` côté
      * AndroidIDE). Reposé à chaque layout : rotation, insets, onglets de
      * fichiers qui apparaissent ou disparaissent.
+     *
+     * v0.184.0 (retour propriétaire : « quand le bottomsheet est
+     * expand il n'est pas fit à l'écran, la partie bottom n'est pas
+     * visible, cachée par la nav bar ») : le sheet mesurait
+     * `match_parent` (hauteur PLEIN ÉCRAN) — à l'état étendu, l'ancre
+     * le décalait vers le bas et SON BAS DÉBORDAIT de l'écran
+     * d'exactement la hauteur de l'ancre : le padding nav-bar du sheet
+     * vivait HORS écran, le dernier bon de contenu se cachait derrière
+     * la barre. Désormais la HAUTEUR du sheet est AJUSTÉE à
+     * parentHeight − ancrage ([GestionnaireInsetsEditeur.calculerHauteurSheetAjustee])
+     * : étendu, son bas TOMBE sur le bas de l'écran, le padding
+     * nav-bar protège la dernière ligne. Replié et mi-hauteur : la
+     * bande visible (le haut du sheet) est inchangée — le reste pend
+     * hors écran comme toujours, invisible.
      */
     private fun poserAncragePanneau() {
         val ancrage = liaison.conteneurEditeur.top
-        if (ancrage > 0 && comportementPanneau.expandedOffset != ancrage) {
-            comportementPanneau.expandedOffset = ancrage
+        if (ancrage > 0) {
+            val parent = liaison.panneauInferieur.parent as? android.view.ViewGroup
+            if (parent != null) {
+                val hauteur =
+                    GestionnaireInsetsEditeur.calculerHauteurSheetAjustee(parent.height, ancrage)
+                val params = liaison.panneauInferieur.layoutParams
+                if (hauteur > 0 && params.height != hauteur) {
+                    params.height = hauteur
+                    liaison.panneauInferieur.layoutParams = params
+                }
+            }
+            if (comportementPanneau.expandedOffset != ancrage) {
+                comportementPanneau.expandedOffset = ancrage
+            }
         }
     }
 
@@ -3497,6 +3539,11 @@ class EditorActivity :
         /** Alpha sous lequel l'en-tête fondu passe INVISIBLE (les appuis
          *  fantômes cessent sans saut de hauteur). */
         const val SEUIL_FONDU_VISIBLE = 0.02f
+
+        /** Durée du reflow des sections d'en-tête à la bascule d'état
+         *  stable du sheet (v0.184.0 : les onglets glissent au sommet à
+         *  l'extension au lieu de sauter — ChangeBounds). */
+        const val DUREE_TRANSITION_ENTETE_MS = 250L
 
         /** Actions des touches épinglées de la barre de symboles. */
         const val ACTION_TAB = "tab"

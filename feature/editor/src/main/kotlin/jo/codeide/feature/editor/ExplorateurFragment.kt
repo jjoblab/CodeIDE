@@ -142,17 +142,22 @@ class ExplorateurFragment : Fragment() {
         brancherBascule()
         brancherPressePapiers()
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
-        // C2c : Scroll from Source — défile vers l'URI émise par le
-        // ViewModel après dépliage des parents.
-        viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
-            if (effet is EffetEditor.DefilementVersSource) {
-                val position =
-                    adaptateur.currentList.indexOfFirst {
-                        it is ExplorateurAdapter.Element.Noeud && it.noeud.uri == effet.uri
-                    }
-                if (position >= 0) {
-                    liaisonAmorce?.listeExplorateur?.smoothScrollToPosition(position)
+        // C2c : Scroll from Source — défile vers l'URI diffusée par le
+        // ViewModel après dépliage des parents. v0.184.0 : le tiroir
+        // écoute le flux DIFFUSÉ dédié (`defilementsVersSource`) — il ne
+        // collecte PLUS `effets` : un canal `receiveAsFlow()` DISTRIBUE
+        // ses éléments entre collecteurs concurrents, et chaque effet
+        // avalé ici était PERDU pour l'activité (cause racine du « bouton
+        // Fermer le projet qui ne refermait rien » : le dialogue
+        // apparaissait une fois sur deux, son effet `Quitter` moitié du
+        // temps mangé par CE collecteur-ci).
+        viewModel.defilementsVersSource.collectWithLifecycle(viewLifecycleOwner) { uri ->
+            val position =
+                adaptateur.currentList.indexOfFirst {
+                    it is ExplorateurAdapter.Element.Noeud && it.noeud.uri == uri
                 }
+            if (position >= 0) {
+                liaisonAmorce?.listeExplorateur?.smoothScrollToPosition(position)
             }
         }
     }

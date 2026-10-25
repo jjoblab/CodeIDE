@@ -343,14 +343,39 @@ constructor(
             ),
         )
 
-    /** Effets ponctuels (dialogue de fermeture, « Ouvrir avec », sortie). */
+    /** Effets ponctuels (dialogue de fermeture, « Ouvrir avec », sortie).
+     *
+     * v0.184.0 (retour propriétaire « le bouton Fermer le projet ne
+     * refermait RIEN ») : CONTRAT MONO-CONSOMMATEUR — ce canal n'est
+     * collecté QUE par [EditorActivity]. Un `receiveAsFlow()` DISTRIBUE
+     * chaque élément à UN SEUL des collecteurs concurrents : quand
+     * [ExplorateurFragment] y prélevait aussi `DefilementVersSource`,
+     * chaque effet atterrissait ALÉATOIREMENT sur l'activité OU sur le
+     * fragment (qui l'ignorait) — le dialogue « Fermer le projet ? »
+     * n'apparaissait qu'une fois sur deux et son bouton ne faisait
+     * RIEN la moitié du temps (l'effet `Quitter` avalé par le tiroir).
+     * Les fragments écoutent désormais des flux DIFFUSÉS dédiés
+     * ([defilementsVersSource]) — le canal redevient fiable. */
     private val canalEffets = Channel<EffetEditor>(Channel.BUFFERED)
 
     /** État observable de l'espace de travail. */
     val etat: StateFlow<EtatEditor> = etatInterne.asStateFlow()
 
-    /** Effets ponctuels (dialogue de fermeture, « Ouvrir avec », sortie). */
+    /** Effets ponctuels — [EditorActivity] SEULE (contrat v0.184.0,
+     * voir [canalEffets]). */
     val effets: Flow<EffetEditor> = canalEffets.receiveAsFlow()
+
+    /** Défilements « Scroll from Source » (C2c) — flux DIFFUSÉ dédié
+     * à [ExplorateurFragment] : contrairement au canal d'effets, un
+     * `SharedFlow` livre TOUS les éléments à TOUS les abonnés — le
+     * tiroir ne peut plus avaler les effets de l'activité (v0.184.0,
+     * cause racine du « bouton qui ne fait rien »). */
+    private val diffusionDefilements =
+        kotlinx.coroutines.flow.MutableSharedFlow<String>(extraBufferCapacity = 8)
+
+    /** URI vers laquelle l'explorateur doit défiler (C2c) — abonnement
+     * public du tiroir, indépendant du canal d'effets de l'activité. */
+    val defilementsVersSource: Flow<String> = diffusionDefilements
 
     /** Cœur de l'état de la carte terminal (T6). */
     private val etatTerminalInterne = MutableStateFlow(EtatTerminalTiroir())
@@ -3492,7 +3517,12 @@ constructor(
             deplierParentsVers(onglet.uri)
             etatInterne.update { it.copy(uriSelection = onglet.uri) }
             reconstruireNoeuds()
+            // v0.184.0 : le canal reste l'historique testable (l'activité
+            // y fait un no-op documenté) MAIS le défilement réel part sur
+            // le flux DIFFUSÉ — le tiroir ne concurrence PLUS la file
+            // d'effets de l'activité.
             canalEffets.trySend(EffetEditor.DefilementVersSource(onglet.uri))
+            diffusionDefilements.tryEmit(onglet.uri)
         }
     }
 

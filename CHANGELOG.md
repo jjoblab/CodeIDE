@@ -1,5 +1,80 @@
 # Journal des modifications
 
+## [0.184.0] – 2026-10-25
+
+### Le bouton « Fermer le projet » referme ENFIN le projet, l'onglet devient rectangulaire, l'en-tête coule et le sheet tient dans l'écran (retour propriétaire : quatre corrections)
+
+#### Corrigé
+
+- **« J'appuie sur Fermer le projet du dialogue, rien ne se passe, ça
+  ne ferme rien du tout » — la course aux effets, cause racine
+  TROUVÉE** : le canal des effets ponctuels (`Channel.BUFFERED` +
+  `receiveAsFlow()`) était collecté en CONCURRENCE par DEUX abonnés —
+  l'activité ET le fragment Explorateur du tiroir (qui n'y prélevait
+  que `DefilementVersSource` et IGNORAIT silencieusement tout le
+  reste). Un canal `receiveAsFlow()` ne DIFFUSE pas : il DISTRIBUE
+  chaque élément à UN SEUL des collecteurs suspendus — le dialogue
+  « Fermer le projet ? » n'apparaissait qu'une fois sur deux, et le
+  bouton perdait son effet `Quitter` la moitié du temps, avalé par le
+  tiroir. C'est la MÊME course qui historiquement rendait la
+  fermeture « peu réactive » (v0.183.0 avait réglé le gel du fil
+  principal, mais la course subsistait). Le contrat est désormais
+  MONO-CONSOMMATEUR : le canal n'est collecté QUE par l'activité, et
+  l'explorateur écoute un flux DIFFUSÉ dédié
+  (`EditorViewModel.defilementsVersSource`, `SharedFlow` — tous les
+  abonnés reçoivent tout). Régression couverte de bout en bout sur
+  l'activité vivante (retour système → dialogue → clic sur « Fermer
+  le projet » → `finish()`) : `FermetureProjetEspaceTest`, Robolectric
+  + le vrai graphe Hilt.
+- **« Le design de l'onglet est trop gros — une forme RECTANGULAIRE
+  au lieu de la pilule »** : l'onglet actif troque sa pilule pleine
+  hauteur (rayon 999 dp) contre un RECTANGLE net aux coins 4 dp
+  (`fond_onglet_editeur`, même rôle de surface surélevée suivi en
+  jour/nuit/couleurs dynamiques), la bande se resserre (hauteur
+  EXPLICITE 44 dp au lieu du `wrap_content` ~48 dp de Material,
+  padding horizontal de cellule 8 dp au lieu du 12 dp par défaut,
+  padding de contenu 12 dp au lieu de 16) — l'onglet actif lit comme
+  un bloc plat d'IDE, pas comme une pastille gonflée.
+- **« Le header qui disparaît quand le bottomsheet expand n'est pas
+  fluide » — DEUX causes corrigées** : (1) la rampe de fondu ne
+  démarrait QU'à mi-hauteur avec une pente constante — un « coin »
+  perceptible au départ puis une extinction raide ; la courbe devient
+  une COULÉE cosinus (`CalculsFonduEntete`, fonction pure : dérivée
+  NULLE aux deux bornes, même plage [0,5 ; 1], même valeur à mi-chemin
+  — seuls les bords sont lissés) ; (2) une fois l'extension STABILISÉE,
+  la bascule GONE des sections d'en-tête faisait SAUTER les onglets au
+  sommet du sheet d'un coup — le reflow part désormais dans une
+  transition `ChangeBounds` de 250 ms (aux bascules d'état stable
+  seulement, jamais pendant les trames du glissement) : les onglets
+  GLISSENT au sommet à l'extension et redescendent au repli.
+- **« Le bottomsheet expand n'est pas fit à l'écran — la partie bottom
+  n'est pas visible, cachée par la nav bar »** : le sheet mesurait
+  `match_parent` (hauteur PLEIN ÉCRAN) — à l'état étendu, l'ancre
+  (toolbar + onglets) le décalait vers le bas et SON BAS DÉBORDAIT de
+  l'écran d'exactement la hauteur de l'ancre : le padding nav-bar du
+  sheet vivait HORS écran et le bas du contenu (console, saisie) se
+  cachait derrière la barre. La hauteur est désormais AJUSTÉE à chaque
+  layout (`GestionnaireInsetsEditeur.calculerHauteurSheetAjustee`,
+  parent − ancre, fonction pure testée) : étendu, le bas du sheet
+  TOMBE sur le bas de l'écran et le padding nav-bar protège la
+  dernière ligne. Replié et mi-hauteur, la bande visible (le HAUT du
+  sheet) est strictement inchangée.
+
+#### Notes techniques
+
+- Le contrat du canal d'effets (`EditorViewModel.effets`) est
+  désormais documenté MONO-CONSOMMATEUR : un `receiveAsFlow()`
+  collecté deux fois DISTRIBUE ses éléments entre collecteurs (il
+  n'envoie pas une copie à chacun) — tout consommateur secondaire
+  (fragments du tiroir, panneaux) doit écouter un flux `SharedFlow`
+  DÉDIÉ, pas prélever sur le canal de l'activité. Cette seule course
+  expliquait une famille de symptômes flaky de longue date : dialogues,
+  snackbars, sauts et annonces perdus aléatoirement — tous stabilisés
+  d'un coup.
+- `DefilementVersSource` reste émis sur le canal (contrat des tests
+  inchangé, l'activité y fait un no-op documenté) ET diffusé sur le
+  flux dédié de l'explorateur.
+
 ## [0.183.0] – 2026-10-25
 
 ### Le projet se ferme HONNÊTEMENT — onglets, tooling, retour et panneau (retour propriétaire : six corrections)
