@@ -1675,7 +1675,7 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | # | Scénario | Résultat attendu |
 |---|----------|------------------|
 | IA22 | Discuter (fournisseur Anthropic ou compatible OpenAI rapportant l'usage), puis regarder l'en-tête du chat | Le compteur « Entrée X · Sortie Y » apparaît dès la première réponse terminée et CUMULE à chaque échange ; il reste masqué si le serveur ne rapporte rien |
-| IA23 | Ouvrir Historique → une conversation ayant rapporté de l'usage | La méta se termine par « · N jetons » (total entrée+sortie) ; les conversations sans usage restent inchangées |
+| IA23 | Ouvrir Historique → une conversation ayant rapporté de l'usage | La méta se termine par « · jetons : N » (total entrée+sortie) ; les conversations sans usage restent inchangées |
 | IA24 | Rouvrir une conversation depuis l'historique | Le compteur du chat REPREND les cumuls de la conversation (pas remis à zéro) ; « Nouvelle conversation » le remet à zéro |
 | IA25 | Couper le réseau pendant une génération (échec) puis régénérer avec succès | L'échec n'a cumulé AUCUN jeton ; la régénération réussie cumule les jetons de SON flux |
 
