@@ -34,9 +34,6 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
 
     private val viewModel: ReglagesIaViewModel by viewModels()
 
-    /** Garde de rendu : coupe les listeners pendant l'écriture programmatique. */
-    private var renduEnCours = false
-
     override fun createBinding(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -62,12 +59,29 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
             }
         }
 
-        binding.interrupteurIaActive.setOnCheckedChangeListener { interrupteur, active ->
-            if (!renduEnCours) viewModel.onAction(ActionReglagesIa.ChangerActivation(active))
-            if (!active) interrupteur.isChecked = false
+        // v0.187.0 (rapport IA §5 Lot 2, B2b — boucle du consentement) :
+        // les interrupteurs qui REFLETTENT un état persisté ne réagissent
+        // plus au changement d'état (`setOnCheckedChangeListener`) mais au
+        // CLIC SEUL — un clic utilisateur. Le listener d'état se
+        // déclenchait AUSSI sur la restauration de vue (Android restaure
+        // `isChecked` APRÈS `onViewCreated`, à `onViewStateRestored`) et
+        // sur tout `setChecked()` programmatique : au retour du
+        // consentement, l'interrupteur restauré à « coché » réarmait
+        // `ChangerActivation(true)` → `OuvrirConsentement` → l'écran se
+        // rouvrait EN BOUCLE. `saveEnabled=false` (layout) retire en
+        // PLUS la restauration ; le clic reste la seule porte d'entrée.
+        binding.interrupteurIaActive.setOnClickListener {
+            viewModel.onAction(ActionReglagesIa.ChangerActivation(binding.interrupteurIaActive.isChecked))
+            // « Activer » ne persiste RIEN (c'est l'écran de consentement
+            // qui active) : on rend à l'interrupteur l'état RÉÉL — « Pas
+            // maintenant » le laisse donc désactivé, `rendre()` ne le
+            // repassera à vrai qu'après le consentement daté.
+            binding.interrupteurIaActive.isChecked = viewModel.etat.value.active
         }
-        binding.interrupteurCompletionFantome.setOnCheckedChangeListener { _, active ->
-            if (!renduEnCours) viewModel.onAction(ActionReglagesIa.ChangerCompletionFantome(active))
+        binding.interrupteurCompletionFantome.setOnClickListener {
+            viewModel.onAction(
+                ActionReglagesIa.ChangerCompletionFantome(binding.interrupteurCompletionFantome.isChecked),
+            )
         }
         binding.ligneConsentement.setOnClickListener { viewModel.onAction(ActionReglagesIa.OuvrirConsentement) }
 
@@ -144,14 +158,19 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         }
     }
 
+    /** Interrupteur d'aspect de confidentialité (v0.187.0 : clic seul,
+     *  plus de listener d'état — cf. [brancher]). */
     private fun brancherInterrupteur(interrupteur: MaterialSwitch, aspect: AspectConfidentialite) {
-        interrupteur.setOnCheckedChangeListener { _, valeur ->
-            if (!renduEnCours) viewModel.onAction(ActionReglagesIa.ChangerConfidentialite(aspect, valeur))
+        interrupteur.setOnClickListener {
+            viewModel.onAction(ActionReglagesIa.ChangerConfidentialite(aspect, interrupteur.isChecked))
         }
     }
 
     private fun rendre(etat: EtatReglagesIa) {
-        renduEnCours = true
+        // v0.187.0 : plus de garde `renduEnCours` — les interrupteurs ne
+        // réagissent qu'au CLIC, `setChecked()` programmatique ne
+        // ré-arme plus aucune action (la boucle B2b naissait de cette
+        // double entrée : rendre × restauration d'état).
         binding.interrupteurIaActive.isChecked = etat.active
         binding.interrupteurCompletionFantome.isChecked = etat.completionFantomeActive
         binding.radioFournisseurAnthropic.isChecked = etat.fournisseurActif == FournisseursIa.ANTHROPIC
@@ -188,7 +207,6 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         binding.champDelai.setText(
             String.format(java.util.Locale.getDefault(), "%d", etat.delaiSecondes),
         )
-        renduEnCours = false
     }
 
     private fun rendreSousTitreFournisseur(

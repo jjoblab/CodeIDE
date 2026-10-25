@@ -89,11 +89,18 @@
                                 android:textColor="?attr/colorOnSurfaceVariant" />
                         </LinearLayout>
 
+                        <!-- saveEnabled=false (rapport IA §5 Lot 2, B2b) :
+                             l'état vient du DataStore, JAMAIS de la
+                             restauration de vue — l'écouteur de clic ne
+                             se déclenche NI sur setChecked() programmatique
+                             NI sur la restauration d'état : la boucle du
+                             consentement ne peut plus se rouvrir seule. -->
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/interrupteur_ia_active"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_sm" />
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:saveEnabled="false" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -128,7 +135,8 @@
                             android:id="@+id/interrupteur_completion_fantome"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="@dimen/spacing_sm" />
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:saveEnabled="false" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -386,7 +394,8 @@
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/interrupteur_conf_fichier"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:saveEnabled="false" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -419,7 +428,8 @@
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/interrupteur_conf_chemins"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:saveEnabled="false" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -452,7 +462,8 @@
                         <com.google.android.material.materialswitch.MaterialSwitch
                             android:id="@+id/interrupteur_conf_diagnostics"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" />
+                            android:layout_height="wrap_content"
+                            android:saveEnabled="false" />
                     </LinearLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

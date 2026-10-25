@@ -55,6 +55,36 @@ class LayoutsIaTest {
         assertTrue((completion as com.google.android.material.materialswitch.MaterialSwitch).isChecked.not())
     }
 
+    /**
+     * Régression v0.187.0 (rapport IA §5 Lot 2, B2b — boucle du
+     * consentement) : les interrupteurs qui REFLETTENT un état persisté
+     * (maître, complétion fantôme, confidentialité ×3) ne sont JAMAIS
+     * sauvés dans l'état de la vue — Android les restaurant à
+     * `onViewStateRestored`, APRÈS le rendu, l'ancien écouteur d'état se
+     * réarmait tout seul et rouvrait le consentement en boucle au retour
+     * de « Pas maintenant ».
+     */
+    @Test
+    fun `les interrupteurs refletant un etat persiste ne sont jamais sauves`() {
+        val racine = gonfler(R.layout.fragment_reglages_ia)
+        listOf(
+            R.id.interrupteur_ia_active,
+            R.id.interrupteur_completion_fantome,
+            R.id.interrupteur_conf_fichier,
+            R.id.interrupteur_conf_chemins,
+            R.id.interrupteur_conf_diagnostics,
+        ).forEach { identifiant ->
+            val interrupteur = racine.findViewById<View>(identifiant)
+            assertNotNull("l'interrupteur $identifiant doit exister", interrupteur)
+            assertEquals(
+                "B2b : saveEnabled=false — l'état vient du DataStore, jamais " +
+                    "de la restauration de vue ($identifiant)",
+                false,
+                interrupteur?.isSaveEnabled,
+            )
+        }
+    }
+
     @Test
     fun `le détail fournisseur se gonflle — champ de clé masqué et non restauré`() {
         val racine = gonfler(R.layout.fragment_fournisseur_ia)

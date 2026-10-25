@@ -1,5 +1,49 @@
 # Journal des modifications
 
+## [0.187.0] – 2026-10-25
+
+### La boucle du consentement refermée : les interrupteurs ne réagissent plus qu'au clic (rapport IA, Lot 2 — B2b confirmé, S1)
+
+#### Corrigé
+
+- **B2b (rapport IA §2, « Probable — forte confiance ») CONFIRMÉ par le
+  mécanisme** : `interrupteur_ia_active` portait un
+  `setOnCheckedChangeListener` — Android restaure l'état coché de la vue
+  APRÈS `onViewCreated` (`onViewStateRestored`) : cocher l'interrupteur
+  ouvrait le consentement, « Pas maintenant » refermait l'écran, la vue
+  des réglages ressuscitait RESTAURÉE à « coché » et l'écouteur
+  réarmait `ChangerActivation(true)` → `OuvrirConsentement` → l'écran
+  se rouvrait EN BOUCLE. Les cinq interrupteurs qui reflètent un état
+  persisté (maître, complétion fantôme, confidentialité ×3) ne
+  réagissent désormais qu'au CLIC UTILISATEUR (`setOnClickListener` ne
+  se déclenche NI sur `setChecked()` programmatique NI sur la
+  restauration d'état) ET ne sont plus jamais sauvés dans l'état de la
+  vue (`android:saveEnabled="false"` — l'état vient du DataStore). La
+  garde `renduEnCours` devient inutile et disparaît.
+- **S1 (suggestion du rapport) : l'interrupteur maître reprend l'état
+  RÉÉL après le clic** : « Activer » ne persiste RIEN (c'est l'écran de
+  consentement qui active) — le clic rend immédiatement à
+  l'interrupteur `etat.active` ; « Pas maintenant » le laisse donc
+  DÉCOCHÉ (l'ancien `if (!active) isChecked = false` était un no-op).
+  Au retour au premier plan, la re-collecte du `StateFlow`
+  (`repeatOnLifecycle(STARTED)`) redonne l'état réel à chaque START —
+  exigence « forcer un rendre() » satisfaite par l'architecture UDF
+  existante.
+- **La porte n'est pas condamnée** : un second clic EXPLICITE rouvre
+  bien le consentement — seule la boucle parasite l'était.
+
+#### Technique
+
+- Test de non-régression `BoucleConsentementIaTest` (app, Robolectric +
+  Hilt, VRAI graphe) : cocher l'interrupteur → l'écran s'ouvre UNE fois ;
+  « Pas maintenant » (retour arrière, la vue est détruite puis recréée,
+  la restauration d'état joue) → les réglages RESTENT affichés,
+  l'interrupteur DÉCOCHÉ ; second clic → réouverture. Plus proche du
+  parcours réel que `recreate()`.
+- `LayoutsIaTest` (+1) : les cinq interrupteurs persistés portent
+  `saveEnabled=false`.
+- Scénarios IA2–IA4 ajoutés à `docs/TESTS_MANUELS.md`.
+
 ## [0.186.0] – 2026-10-25
 
 ### Le consentement IA atteignable depuis l'éditeur : le repli de navigation de B2a (rapport IA, Lot 1)
