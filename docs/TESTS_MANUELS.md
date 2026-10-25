@@ -1624,3 +1624,11 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IAN2 | Sur l'écran de consentement, toucher « Activer » | Le consentement daté est enregistré ; retour sur le graphe de l'hôte ; retour système → l'ESPACE de travail est intact (onglets, session, tooling) |
 | IAN3 | Double appui rapide sur « Activer l'assistant » depuis le chat | Un SEUL écran de consentement (SINGLE_TOP + garde anti-empilement) |
 | IAN4 | Chat avec état « Ajoutez une clé » → bouton d'ajout de clé | Le DÉTAIL du fournisseur visé s'ouvre avec le BON identifiant (extra `fournisseur_ia_identifiant`) |
+
+## Assistant IA — la boucle du consentement refermée (rapport IA Lot 2 → v0.187.0)
+
+| # | Procédure | Résultat attendu |
+|---|-----------|------------------|
+| IA2 | Paramètres → IA : activer l'interrupteur maître → « Pas maintenant » | Retour aux réglages SANS réouverture ; l'interrupteur est DÉCOCHÉ (état réel) |
+| IA3 | Même parcours, puis « Activer » | Retour sans réouverture ; interrupteur ACTIVÉ ; le consentement est daté (ligne « Ce qui est envoyé ») |
+| IA4 | Depuis Paramètres → IA, pivoter l'écran / arrière-plan puis revenir | Aucune ouverture parasite du consentement ; l'interrupteur suit l'état réel à chaque retour au premier plan |
