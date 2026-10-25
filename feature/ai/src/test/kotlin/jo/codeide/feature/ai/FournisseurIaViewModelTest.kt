@@ -3,6 +3,7 @@ package jo.codeide.feature.ai
 import androidx.lifecycle.SavedStateHandle
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.FournisseursIa
+import jo.codeide.core.domain.ValidationUrlIa
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -147,5 +148,60 @@ class FournisseurIaViewModelTest {
         advanceUntilIdle()
 
         assertEquals(FournisseursIa.ANTHROPIC, modele.etat.value.identifiant)
+    }
+
+    // ------------------------------------------------------------------
+    // Préréglages d'URL (rapport IA, Lot 5, point 1).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `le catalogue du compatible openai propose openrouter et serveur local — URLs valides`() = runTest {
+        val modele =
+            modele(
+                reglages = FakeReglagesIa(AiSettings(fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE)),
+                identifiant = FournisseursIa.OPENAI_COMPATIBLE,
+            )
+        advanceUntilIdle()
+
+        val prereglages = modele.etat.value.prereglages
+        assertEquals(2, prereglages.size)
+        assertEquals("https://openrouter.ai/api/v1", prereglages[0].url)
+        assertEquals("http://localhost:11434/v1", prereglages[1].url)
+        // Contrat du catalogue : chaque URL passe la validation (jamais
+        // de préréglage qui remplirait le champ d'une erreur).
+        prereglages.forEach { prereglage ->
+            assertEquals(null, ValidationUrlIa.erreur(prereglage.url))
+        }
+    }
+
+    @Test
+    fun `le catalogue d'anthropic propose l'URL officielle`() = runTest {
+        val modele = modele(identifiant = FournisseursIa.ANTHROPIC)
+        advanceUntilIdle()
+
+        val prereglages = modele.etat.value.prereglages
+        assertEquals(1, prereglages.size)
+        assertEquals("https://api.anthropic.com", prereglages[0].url)
+    }
+
+    @Test
+    fun `appliquer un préréglage préremplit l'URL et la persiste`() = runTest {
+        val reglages = FakeReglagesIa(AiSettings(fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE))
+        val modele =
+            modele(
+                reglages = reglages,
+                identifiant = FournisseursIa.OPENAI_COMPATIBLE,
+            )
+        advanceUntilIdle()
+
+        val openrouter = modele.etat.value.prereglages.first()
+        modele.onAction(ActionFournisseurIa.AppliquerPrereglage(openrouter))
+        advanceUntilIdle()
+
+        // Le champ est prérempli, marqué valide, PERSISTÉ dans le
+        // réglage du fournisseur édité (compatible OpenAI).
+        assertEquals(openrouter.url, modele.etat.value.urlBase)
+        assertTrue(modele.etat.value.urlValide)
+        assertEquals(openrouter.url, reglages.flux.value.urlBaseOpenAiCompatible)
     }
 }

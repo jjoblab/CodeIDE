@@ -61,6 +61,14 @@
     <string name="ia_cle_supprimee">Key deleted</string>
     <string name="ia_erreur_cle_vide">Enter a key before saving</string>
     <string name="ia_fournisseur_active">Active provider: %1$s</string>
+    <!-- URL presets (AI report, Lot 5, point 1): ready-made rows that
+         prefill the base URL; the key is always entered by the user. -->
+    <string name="ia_prereglages_titre">URL presets</string>
+    <string name="ia_prereglage_anthropic">Anthropic (official)</string>
+    <string name="ia_prereglage_openrouter">OpenRouter</string>
+    <string name="ia_prereglage_serveur_local">Local server (port 11434)</string>
+    <string name="ia_prereglage_cd">Prefill the base URL with %1$s</string>
+
 
     <!-- Consent -->
     <string name="ia_consentement_intro">The AI sends excerpts of your code to the provider you chose. CodeIDE has no server and collects nothing.</string>

@@ -1,5 +1,41 @@
 # Journal des modifications
 
+## [0.190.0] – 2026-10-25
+
+### Préréglages d'URL du fournisseur : des lignes prêtes à l'emploi (rapport IA, Lot 5, point 1)
+
+#### Ajouté
+
+- **Le détail fournisseur propose des PRÉRÉGLAGES d'URL de base** :
+  des lignes prêtes à l'emploi qui préremplissent le champ d'URL —
+  l'utilisateur n'a plus à connaître l'URL par cœur. Anthropic
+  propose « Anthropic (officiel) » (`https://api.anthropic.com`) ;
+  le fournisseur compatible OpenAI propose « OpenRouter »
+  (`https://openrouter.ai/api/v1`) et « Serveur local (port 11434) »
+  (`http://localhost:11434/v1`). La clé d'API n'est JAMAIS concernée :
+  elle reste saisie par l'utilisateur (aucun préréglage n'approche
+  le coffre).
+- L'appui sur une ligne suit le MÊME chemin que la saisie manuelle
+  (`ChangerUrl`) : préremplissage du champ, validation
+  (`ValidationUrlIa`), persistance si valide — le contrat est testé :
+  chaque URL du catalogue passe la validation, aucune écriture ne
+  peut partir d'un préréglage invalide.
+
+#### Technique
+
+- `PrereglageIa` (libellé localisé + URL) dans l'état du détail
+  fournisseur ; action `AppliquerPrereglage` ; catalogue fermé par
+  fournisseur dans le ViewModel.
+- Nouveau layout `ligne_prereglage_ia.xml` (nom + URL, cible tactile
+  48 dp) ; carte « Préréglages d'URL » au-dessus de la carte
+  Connexion, lignes posées par le fragment depuis l'état (carte
+  masquée si catalogue vide).
+- Tests : catalogues par fournisseur (2 pour le compatible OpenAI,
+  1 pour Anthropic), validité de chaque URL, application d'un
+  préréglage (état + persistance) ; structure des layouts
+  (`LayoutsIaTest`).
+- Scénarios manuels dans `docs/TESTS_MANUELS.md`.
+
 ## [0.189.0] – 2026-10-25
 
 ### Plus de bridage silencieux : un réglage vidé reprend sa valeur (rapport IA, Lot 4 — B3, S6 confirmé déjà en place)

@@ -21,6 +21,18 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Préréglage d'URL de base (rapport IA, Lot 5, point 1) : une ligne
+ * prête à l'emploi qui PRÉREMPLIT l'URL de base du fournisseur — la
+ * clé d'API, elle, reste toujours saisie par l'utilisateur (aucun
+ * préréglage n'approche le coffre).
+ *
+ * @property nomRes libellé localisé du préréglage (nom de service).
+ * @property url URL de base VALIDÉE par [ValidationUrlIa] (contrat
+ *        testé : chaque préréglage du catalogue passe la validation).
+ */
+public data class PrereglageIa(@param:androidx.annotation.StringRes public val nomRes: Int, public val url: String)
+
 /** Résultat d'un test de connexion — l'erreur typée, jamais le réseau brut. */
 public sealed interface ResultatTestIa {
     /** La clé est acceptée. */
@@ -45,6 +57,8 @@ public data class EtatFournisseurIaDetail(
     public val estActif: Boolean = false,
     public val testEnCours: Boolean = false,
     public val resultatTest: ResultatTestIa? = null,
+    /** Préréglages d'URL proposés pour CE fournisseur (Lot 5, point 1). */
+    public val prereglages: List<PrereglageIa> = emptyList(),
 )
 
 /** Actions du détail fournisseur (UDF). */
@@ -66,6 +80,14 @@ public sealed interface ActionFournisseurIa {
 
     /** Fait de ce fournisseur le fournisseur actif. */
     public data object UtiliserCeFournisseur : ActionFournisseurIa
+
+    /**
+     * Applique un préréglage d'URL (rapport IA, Lot 5, point 1) :
+     * préremplit le champ, le valide et le persiste — même chemin que
+     * [ChangerUrl], aucune écriture si l'URL du catalogue deviendrait
+     * invalide (contrat testé).
+     */
+    public data class AppliquerPrereglage(public val prereglage: PrereglageIa) : ActionFournisseurIa
 }
 
 /** Effets du détail fournisseur. */
@@ -109,6 +131,7 @@ constructor(
     public val effets: Flow<EffetFournisseurIa> = effetsInternes.receiveAsFlow()
 
     init {
+        etatInterne.value = etatInterne.value.copy(prereglages = prereglagesDe(identifiant))
         viewModelScope.launch {
             reglages.observeAiSettings().collect { courant ->
                 val urlAffichee =
@@ -154,6 +177,12 @@ constructor(
 
             ActionFournisseurIa.UtiliserCeFournisseur -> {
                 utiliserCeFournisseur()
+            }
+
+            is ActionFournisseurIa.AppliquerPrereglage -> {
+                // Lot 5, point 1 : même chemin que la saisie manuelle —
+                // préremplissage, validation, persistance si valide.
+                changerUrl(action.prereglage.url)
             }
         }
     }
@@ -280,10 +309,30 @@ constructor(
         viewModelScope.launch { effetsInternes.send(effet) }
     }
 
-    /** Message d'erreur du domaine → effet de CET écran (UDF). */
-
     private companion object {
         val FOURNISSEURS_CONNUS = listOf(FournisseursIa.ANTHROPIC, FournisseursIa.OPENAI_COMPATIBLE)
         const val CLE_FOURNISSEUR = "identifiant_fournisseur"
     }
+}
+
+/**
+ * Catalogues de préréglages (rapport IA §8.2) — chaque URL est VALIDÉE
+ * par [ValidationUrlIa] (contrat testé) : le serveur local en HTTP est
+ * admis car boucle locale, tout le reste en HTTPS. La clé d'API n'y
+ * figure JAMAIS (saisie utilisateur). Constantes de FICHIER : elles ne
+ * dépendent d'aucun état du ViewModel.
+ */
+private val PREREGLAGES_ANTHROPIC =
+    listOf(PrereglageIa(R.string.ia_prereglage_anthropic, "https://api.anthropic.com"))
+
+private val PREREGLAGES_OPENAI_COMPATIBLE =
+    listOf(
+        PrereglageIa(R.string.ia_prereglage_openrouter, "https://openrouter.ai/api/v1"),
+        PrereglageIa(R.string.ia_prereglage_serveur_local, "http://localhost:11434/v1"),
+    )
+
+/** Catalogue des préréglages pour ce fournisseur (Lot 5, point 1). */
+private fun prereglagesDe(identifiant: String): List<PrereglageIa> = when (identifiant) {
+    FournisseursIa.OPENAI_COMPATIBLE -> PREREGLAGES_OPENAI_COMPATIBLE
+    else -> PREREGLAGES_ANTHROPIC
 }

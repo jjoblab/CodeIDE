@@ -1651,3 +1651,12 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IA11 | Paramètres → IA : vider « jetons max », quitter le champ (retour/arrière-plan), revenir | Le champ REPREND la valeur précédente (4096 par défaut) — jamais 128 ; le réglage persisté est intact |
 | IA12 | Saisir du texte non numérique dans « délai », quitter le champ | Idem pour le délai ; aucune écriture n'a lieu |
 | IA13 | URL de base du fournisseur compatible OpenAI : `http://` distant, puis `http://localhost:11434/v1` | Message d'erreur explicite pour le premier, accepté pour la boucle locale (mécanisme ValidationUrlIa existant, confirmé par le rapport IA S6) |
+
+## Assistant IA — préréglages d'URL du fournisseur (rapport IA Lot 5, point 1 → v0.190.0)
+
+| # | Scénario | Résultat attendu |
+|---|----------|------------------|
+| IA14 | Paramètres → IA → fournisseur « Compatible OpenAI » | Une carte « Préréglages d'URL » en tête propose « OpenRouter » (`https://openrouter.ai/api/v1`) et « Serveur local (port 11434) » (`http://localhost:11434/v1`) |
+| IA15 | Toucher le préréglage « OpenRouter » | Le champ URL de base est PRÉREMPLI avec l'URL du préréglage, sans erreur de validation, et l'URL est persistée (rouvrir l'écran : elle y est) |
+| IA16 | Paramètres → IA → fournisseur « Anthropic » | La carte propose « Anthropic (officiel) » (`https://api.anthropic.com`) ; l'appui préremplit pareillement |
+| IA17 | Toucher un préréglage puis « Tester la connexion » | Le test utilise l'URL PRÉREMPLIE (le ping part vers l'URL affichée, pas vers l'ancienne) |

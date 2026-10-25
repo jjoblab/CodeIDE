@@ -97,6 +97,18 @@ class LayoutsIaTest {
         assertEquals(false, (champCle as android.widget.EditText).isSaveEnabled)
         // Bouton « supprimer » masqué tant qu'aucune clé (gestion du fragment).
         assertEquals(View.GONE, racine.findViewById<View>(R.id.bouton_supprimer_cle).visibility)
+        // Lot 5, point 1 : la carte des préréglages d'URL et son
+        // conteneur existent (les lignes sont posées par le fragment).
+        assertNotNull(racine.findViewById<View>(R.id.carte_prereglages))
+        assertNotNull(racine.findViewById<View>(R.id.conteneur_prereglages))
+    }
+
+    @Test
+    fun `la ligne de préréglage se gonflle avec nom et url`() {
+        val racine = gonfler(R.layout.ligne_prereglage_ia)
+
+        assertNotNull(racine.findViewById<View>(R.id.nom_prereglage))
+        assertNotNull(racine.findViewById<View>(R.id.url_prereglage))
     }
 
     @Test
