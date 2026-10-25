@@ -182,15 +182,15 @@ private class TitulaireConversation(private val liaison: LigneConversationBindin
             )
         // Lot 5, point 4 : l'usage RAPPORTÉ par le fournisseur complète
         // la méta quand la conversation en a un (jamais d'estimation).
+        // Une chaîne à substituants par cas — jamais de concaténation
+        // affichée (lint SetTextI18n).
         val totalJetons = conversation.jetonsEntree + conversation.jetonsSortie
-        val suffixe =
-            if (totalJetons > 0) {
-                contexte.getString(R.string.ia_historique_usage_suffixe, totalJetons)
-            } else {
-                ""
-            }
         liaison.metaConversation.text =
-            contexte.getString(R.string.ia_historique_meta, relatif, conversation.modele) + suffixe
+            if (totalJetons > 0) {
+                contexte.getString(R.string.ia_historique_meta_usage, relatif, conversation.modele, totalJetons)
+            } else {
+                contexte.getString(R.string.ia_historique_meta, relatif, conversation.modele)
+            }
         liaison.root.contentDescription =
             contexte.getString(R.string.ia_historique_ligne_cd, conversation.titre)
         liaison.root.setOnClickListener { surOuvrir(conversation.identifiant) }
