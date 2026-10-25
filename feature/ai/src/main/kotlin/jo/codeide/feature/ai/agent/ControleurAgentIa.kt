@@ -28,6 +28,7 @@ import jo.codeide.core.domain.RegistreDossierProjetIa
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.model.AppResult
+import jo.codeide.feature.ai.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -76,6 +77,16 @@ public data class DemandeApprobationIa(
     public val raison: String,
 )
 
+/**
+ * Message localisé de l'écran Agent (v0.195.0) : ressource + argument
+ * de formatage — l'état ne porte PLUS de chaîne brute française
+ * forgée par le contrôleur (l'écran la rendait telle quelle).
+ */
+public data class MessageAgentIa(
+    @param:androidx.annotation.StringRes public val ressource: Int,
+    public val argument: String? = null,
+)
+
 /** État complet de l'écran Agent (UDF — observé par le fragment ET le service premier plan). */
 public data class EtatAgentIa(
     public val statut: StatutAgentIa = StatutAgentIa.INACTIF,
@@ -86,7 +97,10 @@ public data class EtatAgentIa(
     public val demande: DemandeApprobationIa? = null,
     public val revue: RevueChangeSetIa? = null,
     public val execution: ExecChangeSetIa? = null,
-    public val message: String? = null,
+    /** Message localisé de l'écran (v0.195.0 — ressource, jamais du brut). */
+    public val message: MessageAgentIa? = null,
+    /** Réponse FINALE de l'agent quand l'objectif est couvert (contenu). */
+    public val reponse: String? = null,
     public val enApplication: Boolean = false,
 )
 
@@ -162,7 +176,7 @@ constructor(
         if (_etat.value.statut == StatutAgentIa.EN_COURS) return
         val objectif = _etat.value.objectif.trim()
         if (objectif.isEmpty()) {
-            _etat.update { it.copy(message = "objectif vide") }
+            _etat.update { it.copy(message = MessageAgentIa(R.string.agent_objectif_vide)) }
             return
         }
         travail =
@@ -170,13 +184,16 @@ constructor(
                 try {
                     executer(objectif)
                 } catch (annulation: CancellationException) {
-                    _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, "exécution annulée") }
+                    _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, MessageAgentIa(R.string.agent_annule)) }
                     throw annulation // règle 6 : toujours relancée
                 } catch (incident: Exception) {
                     // l'issue est modélisée (état ECHOUE lisible) — jamais de crash silencieux.
                     @Suppress("SwallowedException")
                     _etat.update { etat ->
-                        etat.reprise(StatutAgentIa.ECHOUE, "incident : ${incident.javaClass.simpleName}")
+                        etat.reprise(
+                            StatutAgentIa.ECHOUE,
+                            MessageAgentIa(R.string.agent_incident, incident.javaClass.simpleName),
+                        )
                     }
                 } finally {
                     demarreurService.arreter()
@@ -228,7 +245,10 @@ constructor(
                     }
 
                     is ResultatApplicationIa.Echec -> {
-                        courant.copy(enApplication = false, message = resultat.motif)
+                        courant.copy(
+                            enApplication = false,
+                            message = MessageAgentIa(R.string.agent_application_echouee, resultat.motif),
+                        )
                     }
                 }
             }
@@ -247,7 +267,7 @@ constructor(
                     }
 
                     is ResultatApplicationIa.Echec -> {
-                        courant.copy(message = resultat.motif)
+                        courant.copy(message = MessageAgentIa(R.string.agent_application_echouee, resultat.motif))
                     }
                 }
             }
@@ -268,14 +288,16 @@ constructor(
                 }
 
                 is AppResult.Failure -> {
-                    _etat.update { it.reprise(StatutAgentIa.ECHOUE, "réglages IA illisibles") }
+                    _etat.update {
+                        it.reprise(StatutAgentIa.ECHOUE, MessageAgentIa(R.string.agent_reglages_illisibles))
+                    }
                     return
                 }
             }
         val modele = reglagesCourants.modeleActif.ifBlank { "modele-a-configurer" }
         val dossier = dossierProjet.dossier()
         if (dossier == null) {
-            _etat.update { it.reprise(StatutAgentIa.ECHOUE, "aucun projet ouvert") }
+            _etat.update { it.reprise(StatutAgentIa.ECHOUE, MessageAgentIa(R.string.agent_aucun_projet)) }
             return
         }
 
@@ -313,8 +335,32 @@ constructor(
                     )
                 }
             }
+        rendreIssue(issue, texte)
+    }
+
+    /**
+     * Traduction de l'issue du runner (v0.195.0) : la réponse FINALE
+     * est du CONTENU (carte dédiée), les autres issues portent un
+     * message localisé — jamais de chaîne brute.
+     */
+    private fun rendreIssue(issue: IssueAgentIa, texte: String) {
         _etat.update { courant ->
-            courant.copy(statut = statutDe(issue), message = texte.ifBlank { null })
+            when (issue) {
+                IssueAgentIa.TERMINE ->
+                    courant.copy(statut = StatutAgentIa.TERMINE, reponse = texte.ifBlank { null })
+
+                IssueAgentIa.INTERROMPU ->
+                    courant.copy(statut = StatutAgentIa.INTERROMPU)
+
+                IssueAgentIa.ECHOUE ->
+                    courant.copy(
+                        statut = StatutAgentIa.ECHOUE,
+                        message = MessageAgentIa(R.string.agent_statut_echoue, texte.ifBlank { null }),
+                    )
+
+                IssueAgentIa.ANNULE ->
+                    courant.copy(statut = StatutAgentIa.ANNULE, message = MessageAgentIa(R.string.agent_annule))
+            }
         }
     }
 
@@ -329,15 +375,7 @@ constructor(
         AiMessage.user(objectif),
     )
 
-    /** Traduction de l'issue du runner en statut d'écran (lisibilité). */
-    private fun statutDe(issue: IssueAgentIa): StatutAgentIa = when (issue) {
-        IssueAgentIa.TERMINE -> StatutAgentIa.TERMINE
-        IssueAgentIa.INTERROMPU -> StatutAgentIa.INTERROMPU
-        IssueAgentIa.ECHOUE -> StatutAgentIa.ECHOUE
-        IssueAgentIa.ANNULE -> StatutAgentIa.ANNULE
-    }
-
-    private fun EtatAgentIa.reprise(statut: StatutAgentIa, message: String?): EtatAgentIa =
+    private fun EtatAgentIa.reprise(statut: StatutAgentIa, message: MessageAgentIa?): EtatAgentIa =
         copy(statut = statut, message = message, demande = null)
 
     private companion object {

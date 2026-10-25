@@ -27,8 +27,10 @@
     <string name="ia_modele_hint">Model identifier</string>
     <string name="ia_bouton_actualiser">Refresh list</string>
     <string name="ia_actualiser_cd">Fetch the model list of the active provider</string>
-    <string name="ia_modeles_recenses">Models fetched: %1$d</string>
+    <string name="ia_modeles_recenses">Models fetched: %1$s</string>
     <string name="ia_modele_enregistre">Model saved</string>
+    <string name="ia_bouton_terminer_modele">Done</string>
+    <string name="ia_bouton_terminer_modele_cd">Save the model and dismiss the keyboard</string>
 
     <!-- "Privacy" card -->
     <string name="ia_carte_confidentialite_titre">Privacy</string>
@@ -103,6 +105,14 @@
          tokens REPORTED by the provider, never estimated locally. -->
     <string name="ia_chat_usage">In %1$d · Out %2$d</string>
 
+    <!-- Model reasoning (owner feedback v0.195.0) — collapsible section
+         of the assistant message, shown when the provider streams a
+         reasoning delta before the answer. -->
+    <string name="ia_raisonnement_titre">Reasoning</string>
+    <string name="ia_raisonnement_en_cours">Thinking…</string>
+    <string name="ia_raisonnement_cd">Show or hide the model\'s reasoning</string>
+    <string name="ia_reponse_tronquee">Answer stopped by the token limit — raise the cap in settings</string>
+
     <string name="ia_tiroir_titre">AI assistant</string>
     <string name="ia_onglet_chat">Chat</string>
     <string name="ia_onglet_agent">Agent</string>
@@ -153,7 +163,7 @@
 
     <!-- Errors (mapped from AppError.Ai / Storage) -->
     <string name="ia_erreur_authentication">Key missing or rejected by the provider</string>
-    <string name="ia_erreur_quota">Rate limit reached — try again in %1$d s</string>
+    <string name="ia_erreur_quota">Rate limit reached — try again in %1$s s</string>
     <string name="ia_erreur_quota_simple">Rate limit reached — try again shortly</string>
     <string name="ia_erreur_service">Provider temporarily unavailable</string>
     <string name="ia_erreur_hors_ligne">Offline — check the connection</string>
@@ -215,6 +225,17 @@
     <string name="agent_continuer">Continue</string>
     <string name="agent_en_cours">Agent running</string>
     <string name="agent_limites">Steps: %1$d / %2$d · model %3$s</string>
+    <string name="agent_statut_en_cours">The agent is working…</string>
+    <string name="agent_statut_interrompu">Step limit reached — press “Continue” to go on</string>
+    <string name="agent_statut_termine">Goal covered — final answer received</string>
+    <string name="agent_statut_echoue">Provider failed</string>
+    <string name="agent_statut_annule">Run cancelled</string>
+    <string name="agent_objectif_vide">Describe the agent\'s goal first</string>
+    <string name="agent_annule">Run cancelled</string>
+    <string name="agent_incident">Incident: %1$s</string>
+    <string name="agent_application_echouee">Apply failed: %1$s</string>
+    <string name="agent_reglages_illisibles">AI settings unreadable</string>
+    <string name="agent_aucun_projet">No project open</string>
     <string name="agent_approbation_titre">Execution requested</string>
     <string name="agent_approbation_refuser">Deny</string>
     <string name="agent_approbation_autoriser">Allow once</string>

@@ -1,9 +1,11 @@
 package jo.codeide.feature.ai
 
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -120,15 +122,26 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
 
     /**
      * Champ Modèle (v0.190.0, retour propriétaire OpenRouter) : la saisie
-     * se persiste au clic dans la liste, à la touche « Terminé » ET à la
-     * PERTE DE FOCUS — l'ancien code ne comptait que sur les deux
-     * premières portes : taper l'identifiant puis quitter le champ
-     * PERDAIT la valeur sans prévenir, et le chat répondait « fournisseur
-     * incomplet » alors que le modèle semblait saisi. Vide → reprise du
-     * PERSISTÉ (discipline v0.189.0 des champs numériques, jamais
-     * d'effacement silencieux).
+     * se persiste au clic dans la liste, à la touche « Terminé », à la
+     * PERTE DE FOCUS et au BOUTON « Terminer » (v0.195.0, retour
+     * propriétaire : la touche clavier n'est pas assez découverte — un
+     * bouton visible committe ET referme le clavier sans attendre la
+     * perte de focus). Vide → reprise du PERSISTÉ (discipline v0.189.0
+     * des champs numériques, jamais d'effacement silencieux).
      */
     private fun brancherChampModele() {
+        // Commits la saisie : VALIDE → action, VIDE → valeur persistée
+        // (discipline v0.189.0 — jamais d'effacement silencieux). La
+        // perte de focus ET le bouton « Terminer » passent par ici.
+        val validerChampModele: () -> Unit = {
+            val texte = binding.champModeleIa.text?.toString()?.trim().orEmpty()
+            when {
+                texte.isEmpty() -> binding.champModeleIa.setText(viewModel.etat.value.modeleActif)
+
+                texte != viewModel.etat.value.modeleActif ->
+                    viewModel.onAction(ActionReglagesIa.ChangerModele(texte))
+            }
+        }
         binding.champModeleIa.setOnItemClickListener { _, _, position, _ ->
             val choisi =
                 binding.champModeleIa.adapter
@@ -142,16 +155,17 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         }
         binding.champModeleIa.setOnFocusChangeListener { _, aLeFocus ->
             if (!aLeFocus) {
-                val texte = binding.champModeleIa.text?.toString()?.trim().orEmpty()
-                when {
-                    texte.isEmpty() -> binding.champModeleIa.setText(viewModel.etat.value.modeleActif)
-
-                    texte != viewModel.etat.value.modeleActif ->
-                        viewModel.onAction(ActionReglagesIa.ChangerModele(texte))
-                }
+                validerChampModele()
             }
         }
         binding.boutonActualiserModeles.setOnClickListener { viewModel.onAction(ActionReglagesIa.ActualiserModeles) }
+        binding.boutonTerminerModele.setOnClickListener {
+            validerChampModele()
+            binding.champModeleIa.clearFocus()
+            val clavier =
+                requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            clavier?.hideSoftInputFromWindow(binding.champModeleIa.windowToken, 0)
+        }
     }
 
     /**

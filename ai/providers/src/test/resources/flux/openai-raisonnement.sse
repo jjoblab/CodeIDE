@@ -1,0 +1,11 @@
+data: {"id":"c1","choices":[{"index":0,"delta":{"role":"assistant","reasoning":""},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{"reasoning":"Je dois d'abord "},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{"reasoning":"examiner la demande."},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{"content":"Voici la réponse"},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":41,"completion_tokens":12}}
+
+data: [DONE]

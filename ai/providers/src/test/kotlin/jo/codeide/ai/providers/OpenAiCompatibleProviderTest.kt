@@ -81,6 +81,51 @@ class OpenAiCompatibleProviderTest {
     }
 
     @Test
+    fun `les fragments reasoning OpenRouter deviennent des ReasoningDelta puis la réponse`() = runBlocking {
+        FauxServeurIa().use { serveur ->
+            serveur.demarrer()
+            serveur.enregistrer { echange ->
+                serveur.repondreSse(echange, 200, ressource("openai-raisonnement.sse"))
+            }
+
+            val evenements = provider(serveur).stream(requete).toList()
+
+            assertEquals(
+                listOf(
+                    AiEvent.ReasoningDelta("Je dois d'abord "),
+                    AiEvent.ReasoningDelta("examiner la demande."),
+                    AiEvent.TextDelta("Voici la réponse"),
+                    AiEvent.Usage(41L, 12L),
+                    AiEvent.Done(AiStopReason.EndTurn),
+                ),
+                evenements,
+            )
+        }
+    }
+
+    @Test
+    fun `les fragments reasoning_content DeepSeek sont acceptés aussi`() = runBlocking {
+        FauxServeurIa().use { serveur ->
+            serveur.demarrer()
+            serveur.enregistrer { echange ->
+                serveur.repondreSse(echange, 200, ressource("openai-raisonnement-content.sse"))
+            }
+
+            val evenements = provider(serveur).stream(requete).toList()
+
+            assertEquals(
+                listOf(
+                    AiEvent.ReasoningDelta("Réflexion profonde "),
+                    AiEvent.ReasoningDelta("en deux fragments."),
+                    AiEvent.TextDelta("Réponse finale"),
+                    AiEvent.Done(AiStopReason.EndTurn),
+                ),
+                evenements,
+            )
+        }
+    }
+
+    @Test
     fun `les tool_calls fragmentés sont reconstitués et terminés au Done`() = runBlocking {
         FauxServeurIa().use { serveur ->
             serveur.demarrer()

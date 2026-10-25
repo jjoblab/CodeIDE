@@ -35,4 +35,12 @@ public data class MessageIaEntity(
     public val texte: String,
     /** Création (epoch ms). */
     @ColumnInfo(name = "cree_a") public val creeA: Long,
+    /**
+     * Raisonnement du modèle (v0.195.0, migration 3→4) — flux de
+     * pensée rapporté AVANT la réponse par les modèles qui
+     * « réfléchissent » ; vide pour les messages sans raisonnement
+     * (les messages utilisateur notamment). LOCAL uniquement, même
+     * discipline que [texte] ; jamais renvoyé au fournisseur.
+     */
+    @ColumnInfo(name = "raisonnement", defaultValue = "") public val raisonnement: String = "",
 )

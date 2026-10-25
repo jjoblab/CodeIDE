@@ -35,6 +35,10 @@ public data class ConversationIa(
  * réponse de l'assistant.
  * @property texte contenu complet (local uniquement — ADR 0124 §3).
  * @property creeA epoch ms.
+ * @property raisonnement flux de pensée du modèle rapporté AVANT la
+ * réponse (v0.195.0 — modèles « qui réfléchissent ») ; vide quand le
+ * modèle n'en émet pas. Local uniquement, jamais renvoyé au
+ * fournisseur — présentation pure.
  */
 public data class MessageConversationIa(
     public val identifiant: String,
@@ -42,4 +46,5 @@ public data class MessageConversationIa(
     public val utilisateur: Boolean,
     public val texte: String,
     public val creeA: Long,
+    public val raisonnement: String = "",
 )

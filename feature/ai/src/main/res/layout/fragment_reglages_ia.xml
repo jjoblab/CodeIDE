@@ -305,32 +305,53 @@
                         android:text="@string/ia_carte_modele_titre"
                         android:textAppearance="?attr/textAppearanceTitleSmall" />
 
+                    <!-- Champ plein pot (v0.195.0) : la saisie du modèle
+                         occupe TOUTE la largeur ; Terminer + Actualiser
+                         forment la rangée d'actions en dessous. -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:hint="@string/ia_modele_hint">
+
+                        <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                            android:id="@+id/champ_modele_ia"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:imeOptions="actionDone"
+                            android:inputType="text"
+                            tools:ignore="TextFields" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
                         android:gravity="center_vertical"
                         android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:layout_width="0dp"
+                        <!-- Bouton « Terminer » (retour propriétaire v0.195.0) :
+                             persister la saisie du modèle ET refermer le
+                             clavier — sans attendre la perte de focus. -->
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/bouton_terminer_modele"
+                            style="@style/Widget.CodeIDE.Button.Text"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="@string/ia_modele_hint">
+                            android:contentDescription="@string/ia_bouton_terminer_modele_cd"
+                            android:minWidth="64dp"
+                            android:minHeight="40dp"
+                            android:text="@string/ia_bouton_terminer_modele" />
 
-                            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                                android:id="@+id/champ_modele_ia"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:imeOptions="actionDone"
-                                android:inputType="text"
-                                tools:ignore="TextFields" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                        <Space
+                            android:layout_width="0dp"
+                            android:layout_height="1dp"
+                            android:layout_weight="1" />
 
                         <ImageButton
                             android:id="@+id/bouton_actualiser_modeles"
                             android:layout_width="48dp"
                             android:layout_height="48dp"
-                            android:layout_marginStart="@dimen/spacing_sm"
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/ia_actualiser_cd"
                             android:src="@drawable/ic_synchronisation"

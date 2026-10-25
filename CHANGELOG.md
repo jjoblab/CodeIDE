@@ -1,5 +1,93 @@
 # Journal des modifications
 
+## [0.195.0] – 2026-10-25
+
+### Le chat coule, l'agent part, plus de crash (retour propriétaire : rapport de plantage + design)
+
+#### Corrigé
+
+- **Crash `IllegalFormatConversionException` aux Réglages IA** (rapport
+  de plantage `e37e6443`) : la ressource `ia_modeles_recenses`
+  (« Modèles récupérés : %1$d ») recevait le compte en `String`
+  (`modeles.size.toString()`) — `Resources.getString` plantait à
+  l'affichage du message de confirmation du recensement. La ressource
+  passe à `%1$s`, cohérente avec la convention de TOUS les messages à
+  argument du codebase (`MessageIa.argument: String?`). Même mine
+  latent déamorcée sur `ia_erreur_quota` (limite de débit avec délai :
+  `%1$d` recevait aussi un `String` — crash assuré dès un 429 avec
+  `retryAfterSeconds`).
+- **Agent : « objectif vide » avec un champ plein** : le champ
+  Objectif ne commettait sa valeur qu'à la PERTE DE FOCUS — or en mode
+  tactile, appuyer sur « Lancer l'agent » ne retire PAS le focus du
+  champ : l'objectif tapé ne partait jamais au contrôleur, qui
+  répondait « objectif vide ». Le bouton Lancer committe maintenant le
+  champ AVANT de lancer, la frappe committe en CONTINU
+  (`doAfterTextChanged`, drapeau anti-écho pour la restauration
+  programmatique) et la touche « Terminé » du clavier referme le
+  clavier en commitant. Le champ se verrouille pendant l'exécution
+  (l'objectif en cours ne change plus à mi-parcours).
+
+#### Ajouté
+
+- **Bouton « Terminer » dans la carte Modèle des Réglages IA**
+  (retour propriétaire) : persister la saisie ET refermer le clavier
+  sans attendre la perte de focus ni chercher la touche clavier — la
+  rangée d'actions sous le champ plein pot (Terminer + Actualiser).
+  Vide → reprise de la valeur persistée (discipline v0.189.0).
+- **Section Raisonnement du modèle** (chat) : les modèles « qui
+  réfléchissent » émettent un flux de pensée AVANT la réponse —
+  `delta.reasoning` (OpenRouter) et `delta.reasoning_content`
+  (DeepSeek et dérivés) côté compatible OpenAI, `thinking_delta` côté
+  Anthropic, tous deux normalisés en un événement `ReasoningDelta`.
+  Affichage en section REPLIABLE du message assistant (jamais une
+  deuxième bulle, style Claude) : « Raisonnement en cours… » pendant
+  la phase de pensée, « Raisonnement » ensuite, chevron qui pivote.
+  Le raisonnement est PERSISTÉ avec la réponse (migration Room 3 → 4,
+  colonne `ai_messages.raisonnement`, jamais renvoyé au fournisseur) —
+  il revient à la réouverture de la conversation.
+- **Curseur de flux** (chat) : barre clignotante sous le dernier bloc
+  pendant la génération — signe VISIBLE que la réponse progresse.
+- **Indice honnête de troncature** (chat) : quand le fournisseur
+  arrête la réponse sur le plafond de jetons (`stop_reason` =
+  `max_tokens`), le message porte « Réponse arrêtée par la limite de
+  jetons — augmentez le plafond dans les réglages ».
+- **Bandeau de statut de l'agent** : phase LISIBLE de l'exécution
+  (travaille / limite atteinte / terminé / échec / annulé) + barre de
+  progression pendant le travail, carte réponse finale distincte des
+  messages d'état, messages de l'agent TOUS localisés en ressources
+  (fini les chaînes brutes françaises forgées par le contrôleur).
+
+#### Modifié
+
+- **Affichage fluide du flux** (retour propriétaire : « design plus
+  professionnel, réponses fluides en suivant la progression du flux ») :
+  le message en génération n'est plus détruit/regonflé à CHAQUE
+  fragment reçu (l'ancien `removeAllViews` + regonflement de tous les
+  blocs clignotait et saccadait). Le rendu Markdown devient INCRÉMENTAL
+  — les vues des blocs déjà affichés sont RÉUTILISÉES (leur texte seul
+  est remplacé), les blocs nouveaux sont ajoutés, ceux en trop
+  retirés — piloté par des PAIEMENTS DiffUtil (`getChangePayload` :
+  texte / raisonnement / erreur / fin) qui ne re-rendent QUE ce qui a
+  changé. Le défilement automatique ne « yank » plus la liste quand
+  l'utilisateur a remonté pour relire (il ne suit le bas que s'il y
+  était).
+- **Redesign de l'écran Agent** : étapes NUMÉROTÉES avec coche de
+  complétion (l'ordre du parcours se lit d'un coup d'œil), bannière de
+  message teintée d'erreur quand le statut est ÉCHOUÉ, champ objectif
+  multi-ligne jusqu'à 6 lignes.
+
+#### Interne
+
+- Migration Room 3 → 4 (`Migration3a4`, testée sur le schéma v3 exporté
+  — `Migration3a4Test`) ; base `CodeIdeDatabase` en version 4.
+- Tests : `OpenAiCompatibleProviderTest` +2 (fragments `reasoning` et
+  `reasoning_content` sur serveur JDK local, fichiers dorés), 
+  `AnthropicProviderTest` +1 (`thinking_delta`), `ChatViewModelTest` +3
+  (accumulation + persistance du raisonnement, troncature sur
+  plafond, restauration à la réouverture), `LayoutsIaTest` +4
+  (structure raisonnement/curseur/troncature, bouton Terminer, bandeau
+  statut + carte réponse, étape numérotée).
+
 ## [0.194.0] – 2026-10-25
 
 ### Premier paramétrage du fournisseur compatible OpenAI débloqué (retour propriétaire OpenRouter) + montée du frère codeide-lsp en 1.12.0

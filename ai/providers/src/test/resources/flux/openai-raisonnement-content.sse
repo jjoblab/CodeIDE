@@ -1,0 +1,11 @@
+data: {"id":"c1","choices":[{"index":0,"delta":{"role":"assistant","reasoning_content":""},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{"reasoning_content":"Réflexion profonde "},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{"reasoning_content":"en deux fragments."},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{"content":"Réponse finale"},"finish_reason":null}]}
+
+data: {"id":"c1","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
+
+data: [DONE]

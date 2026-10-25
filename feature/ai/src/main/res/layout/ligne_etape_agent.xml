@@ -1,18 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Une étape de l'agent (spec E2) : pastille d'état + libellé. -->
+<!-- Une étape de l'agent (spec E2 ; v0.195.0 — redesign) : pastille
+     NUMÉROTÉE sur surface variante + libellé + coche de complétion —
+     l'ordre du parcours se lit d'un coup d'œil. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:gravity="center_vertical"
-    android:minHeight="48dp"
+    android:minHeight="44dp"
     android:orientation="horizontal"
-    android:paddingHorizontal="@dimen/spacing_sm">
+    android:paddingHorizontal="@dimen/spacing_xs">
 
-    <View
-        android:layout_width="8dp"
-        android:layout_height="8dp"
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/numero_etape"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
         android:background="@drawable/pastille_etape_agent"
-        android:contentDescription="@null" />
+        android:gravity="center"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="1" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/texte_etape"
@@ -21,4 +29,13 @@
         android:layout_marginStart="@dimen/spacing_sm"
         android:layout_weight="1"
         android:textAppearance="?attr/textAppearanceBodySmall" />
+
+    <ImageView
+        android:id="@+id/coche_etape"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_fait"
+        app:tint="?attr/colorPrimary" />
 </LinearLayout>

@@ -7,6 +7,7 @@ import jo.codeide.core.ai.AiEvent
 import jo.codeide.core.ai.AiMessage
 import jo.codeide.core.ai.AiRequest
 import jo.codeide.core.ai.AiRole
+import jo.codeide.core.ai.AiStopReason
 import jo.codeide.core.ai.AlerteSecret
 import jo.codeide.core.ai.AssemblerContexte
 import jo.codeide.core.ai.ContexteIa
@@ -50,6 +51,18 @@ public data class MessageChatUi(
     public val generationEnCours: Boolean = false,
     /** Erreur typée de la génération (carte inline) — sinon `null`. */
     public val erreur: AppError? = null,
+    /**
+     * Raisonnement du modèle (v0.195.0) : flux de pensée concaténé au
+     * fil des [AiEvent.ReasoningDelta] — section repliable du message,
+     * jamais une deuxième bulle ; vide quand le modèle n'en émet pas.
+     */
+    public val raisonnement: String = "",
+    /**
+     * `true` quand le fournisseur a arrêté la réponse sur le plafond
+     * de jetons (v0.195.0) : le message porte l'indice honnête
+     * « réponse tronquée — augmentez le plafond ».
+     */
+    public val tronque: Boolean = false,
 )
 
 /** Écran Chat du tiroir IA (état) — mission IA, lots IA-3 et IA-4. */
@@ -657,6 +670,7 @@ constructor(
                 dernierModele = courant.modeleActif.ifBlank { "modele-a-configurer" }
                 val requete = construireRequete(courant, etatInterne.value.messages, texteContexte)
                 var texte = ""
+                var raisonnement = ""
                 jetonsEntreeFlux = 0
                 jetonsSortieFlux = 0
                 // Le contrat du flux (IA-1) : terminaison PAR Done ou
@@ -670,6 +684,11 @@ constructor(
                             majDernierAssistant(texte = texte)
                         }
 
+                        is AiEvent.ReasoningDelta -> {
+                            raisonnement += evenement.text
+                            majDernierAssistant(raisonnement = raisonnement)
+                        }
+
                         is AiEvent.Usage -> {
                             // Lot 5, point 4 : le DERNIER rapport de chaque
                             // jeton gagne (sortie cumulative d'Anthropic,
@@ -679,10 +698,7 @@ constructor(
                         }
 
                         is AiEvent.Done -> {
-                            majDernierAssistant(texte = texte, generationEnCours = false)
-                            etatInterne.value = etatInterne.value.copy(generationEnCours = false)
-                            persister(utilisateur = false, texte = texte)
-                            comptabiliserUsage()
+                            finaliserFlux(texte, raisonnement, evenement.stopReason)
                         }
 
                         is AiEvent.Failure -> {
@@ -707,6 +723,24 @@ constructor(
         generation = null
         majDernierAssistant(generationEnCours = false)
         etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+    }
+
+    /**
+     * Clôture du flux MENÉ À TERME (v0.195.0) : le message final porte
+     * sa réponse ET son raisonnement, l'indice honnête si le plafond de
+     * jetons a coupé la génération, puis la persistance et le cumul
+     * d'usage suivent.
+     */
+    private fun finaliserFlux(texte: String, raisonnement: String, stopReason: AiStopReason) {
+        majDernierAssistant(
+            texte = texte,
+            raisonnement = raisonnement,
+            generationEnCours = false,
+            tronque = stopReason == AiStopReason.MaxTokens,
+        )
+        etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+        persister(utilisateur = false, texte = texte, raisonnement = raisonnement)
+        comptabiliserUsage()
     }
 
     /** Régénère : retire la dernière réponse assistant et relance l'envoi. */
@@ -775,9 +809,11 @@ constructor(
      * poursuivie ensuite ; le streaming en cours et les réponses
      * échouées ne sont JAMAIS persistés. Aucune journalisation du
      * contenu — l'écriture est silencieuse en cas d'échec de
-     * stockage (l'historique ne doit jamais gêner le chat).
+     * stockage (l'historique ne doit jamais gêner le chat). Le
+     * RAISONNEMENT du modèle suit la réponse (v0.195.0, migration
+     * 3→4) : il revient à la réouverture de la conversation.
      */
-    private fun persister(utilisateur: Boolean, texte: String) {
+    private fun persister(utilisateur: Boolean, texte: String, raisonnement: String = "") {
         if (texte.isBlank()) {
             return
         }
@@ -801,6 +837,7 @@ constructor(
                     utilisateur = utilisateur,
                     texte = texte,
                     creeA = horloge.nowMillis(),
+                    raisonnement = if (utilisateur) "" else raisonnement,
                 ),
             )
         }
@@ -854,6 +891,7 @@ constructor(
                             identifiant = "ia-h-${sequence++}",
                             utilisateur = message.utilisateur,
                             texte = message.texte,
+                            raisonnement = message.raisonnement,
                         )
                     },
                     saisie = "",
@@ -886,8 +924,10 @@ constructor(
     /** Met à jour le dernier message assistant (streaming, erreur, fin). */
     private fun majDernierAssistant(
         texte: String? = null,
+        raisonnement: String? = null,
         erreur: AppError? = null,
         generationEnCours: Boolean? = null,
+        tronque: Boolean? = null,
     ) {
         val messages = etatInterne.value.messages.toMutableList()
         val index = messages.indexOfLast { !it.utilisateur }
@@ -898,8 +938,10 @@ constructor(
         messages[index] =
             courant.copy(
                 texte = texte ?: courant.texte,
+                raisonnement = raisonnement ?: courant.raisonnement,
                 erreur = erreur ?: courant.erreur,
                 generationEnCours = generationEnCours ?: courant.generationEnCours,
+                tronque = tronque ?: courant.tronque,
             )
         etatInterne.value = etatInterne.value.copy(messages = messages)
     }

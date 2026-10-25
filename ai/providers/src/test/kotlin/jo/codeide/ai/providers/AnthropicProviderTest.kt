@@ -86,6 +86,30 @@ class AnthropicProviderTest {
     }
 
     @Test
+    fun `le thinking_delta d extended thinking devient ReasoningDelta avant le texte`() = runBlocking {
+        FauxServeurIa().use { serveur ->
+            serveur.demarrer()
+            serveur.enregistrer { echange ->
+                serveur.repondreSse(echange, 200, ressource("anthropic-raisonnement.sse"))
+            }
+
+            val evenements = provider(serveur).stream(requete).toList()
+
+            assertEquals(
+                listOf(
+                    AiEvent.Usage(25L, null),
+                    AiEvent.ReasoningDelta("Je réfléchis "),
+                    AiEvent.ReasoningDelta("à la question."),
+                    AiEvent.TextDelta("Bonjour le monde !"),
+                    AiEvent.Usage(null, 14L),
+                    AiEvent.Done(AiStopReason.EndTurn),
+                ),
+                evenements,
+            )
+        }
+    }
+
+    @Test
     fun `l'appel d'outil fragmenté est reconstitué`() = runBlocking {
         FauxServeurIa().use { serveur ->
             serveur.demarrer()

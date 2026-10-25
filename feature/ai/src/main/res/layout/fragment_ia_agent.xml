@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Écran Agent (mission IA, lot IA-7b — spec E2) : carte objectif,
-  bandeau limites, étapes, carte d'approbation EXÉCUTION, carte des
-  changements proposés, bandeau « Annuler cette exécution ».
+  Écran Agent (mission IA, lot IA-7b — spec E2 ; retour propriétaire
+  v0.195.0 — redesign) : carte STATUT (phase lisible + progression),
+  carte objectif (champ multi-ligne, touche « Terminé » qui committe),
+  rangée d'actions, étapes numérotées, carte d'approbation EXÉCUTION,
+  carte des changements proposés, carte réponse finale et bandeau
+  « Annuler cette exécution ».
   Garde-fou visible : « L'agent ne modifie rien sans votre validation ».
 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true">
@@ -16,6 +20,44 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="@dimen/spacing_md">
+
+        <!-- Bandeau de statut (v0.195.0) : phase LISIBLE de l'exécution
+             (inactif caché) + barre de progression pendant le travail —
+             l'écran ne reste plus muet pendant que l'agent réfléchit. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/carte_statut"
+            style="?attr/materialCardViewFilledStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_sm"
+            android:visibility="gone"
+            app:cardBackgroundColor="?attr/colorSecondaryContainer"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_statut"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?attr/textAppearanceTitleSmall"
+                    android:textColor="?attr/colorOnSecondaryContainer"
+                    tools:text="L'agent travaille…" />
+
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progression_statut"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:indeterminate="true"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
@@ -27,9 +69,10 @@
                 android:id="@+id/champ_objectif"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
                 android:importantForAutofill="no"
                 android:inputType="textMultiLine|textCapSentences"
-                android:maxLines="4" />
+                android:maxLines="6" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
@@ -88,8 +131,39 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_sm"
-            tools:listitem="@layout/ligne_etape_agent"
-            xmlns:tools="http://schemas.android.com/tools" />
+            tools:itemCount="3"
+            tools:listitem="@layout/ligne_etape_agent" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/carte_reponse"
+            style="?attr/materialCardViewOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/agent_statut_termine"
+                    android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_reponse"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    tools:text="Voici ce que j'ai fait…" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/carte_approbation"
@@ -245,12 +319,18 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Bannière de message (v0.195.0) : ressource localisée ; teinte
+             d'ERREUR quand le statut est ÉCHOUÉ — jamais un texte brut
+             perdu au milieu de la colonne. -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/texte_message"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_sm"
+            android:padding="@dimen/spacing_sm"
             android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:visibility="gone" />
+            android:visibility="gone"
+            tools:text="Décrivez d'abord l'objectif de l'agent"
+            tools:visibility="visible" />
     </LinearLayout>
 </ScrollView>
