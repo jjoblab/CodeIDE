@@ -30,6 +30,7 @@
     <string name="ia_bouton_actualiser">Actualiser la liste</string>
     <string name="ia_actualiser_cd">Récupérer la liste des modèles du fournisseur actif</string>
     <string name="ia_modeles_recenses">Modèles récupérés : %1$d</string>
+    <string name="ia_modele_enregistre">Modèle enregistré</string>
 
     <!-- Carte « Confidentialité » -->
     <string name="ia_carte_confidentialite_titre">Confidentialité</string>

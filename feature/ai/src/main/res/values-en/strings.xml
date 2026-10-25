@@ -28,6 +28,7 @@
     <string name="ia_bouton_actualiser">Refresh list</string>
     <string name="ia_actualiser_cd">Fetch the model list of the active provider</string>
     <string name="ia_modeles_recenses">Models fetched: %1$d</string>
+    <string name="ia_modele_enregistre">Model saved</string>
 
     <!-- "Privacy" card -->
     <string name="ia_carte_confidentialite_titre">Privacy</string>

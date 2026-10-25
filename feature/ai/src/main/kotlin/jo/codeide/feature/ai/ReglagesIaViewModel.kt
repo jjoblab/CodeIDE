@@ -236,11 +236,35 @@ constructor(
         }
     }
 
-    private fun changerModele(valeur: String) = ecrire { courant ->
-        if (courant.fournisseurActif == FournisseursIa.OPENAI_COMPATIBLE) {
-            courant.copy(modeleOpenAiCompatible = valeur.trim())
-        } else {
-            courant.copy(modeleAnthropic = valeur.trim())
+    /**
+     * Modèle (v0.190.0, retour propriétaire OpenRouter) : seule une valeur
+     * NON VIDE et DIFFÉRENTE du modèle persisté s'écrit — et un message
+     * confirme l'enregistrement. Auparavant, la saisie ne revenait ni du
+     * clavier enterré ni du champ quitté, et AUCUN retour ne disait si
+     * l'identifiant était retenu : le propriétaire croyait le modèle
+     * configuré alors que rien n'était persisté. Une valeur VIDE ne fait
+     * RIEN (le champ reprend la valeur persistée, discipline v0.189.0) ;
+     * une valeur IDENTIQUE n'écrit pas (pas de toast parasite).
+     */
+    private fun changerModele(valeur: String) {
+        viewModelScope.launch {
+            var enregistre = false
+            reglages.update { courant ->
+                val propre = valeur.trim()
+                if (propre.isNotEmpty() && propre != courant.modeleActif) {
+                    enregistre = true
+                    if (courant.fournisseurActif == FournisseursIa.OPENAI_COMPATIBLE) {
+                        courant.copy(modeleOpenAiCompatible = propre)
+                    } else {
+                        courant.copy(modeleAnthropic = propre)
+                    }
+                } else {
+                    courant
+                }
+            }
+            if (enregistre) {
+                emettre(EffetReglagesIa.Message(R.string.ia_modele_enregistre))
+            }
         }
     }
 

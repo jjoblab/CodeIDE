@@ -98,6 +98,37 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
             viewModel.onAction(ActionReglagesIa.ChoisirFournisseur(FournisseursIa.OPENAI_COMPATIBLE))
         }
 
+        brancherChampModele()
+
+        // Interrupteurs de confidentialité (v0.187.0 : clic seul, plus de
+        // listener d'état — cf. le commentaire de l'interrupteur maître
+        // ci-dessus). Assistant LOCAL : trois câblages identiques sans
+        // alourdir le compte de fonctions de la classe.
+        val brancherInterrupteur: (MaterialSwitch, AspectConfidentialite) -> Unit = { interrupteur, aspect ->
+            interrupteur.setOnClickListener {
+                viewModel.onAction(ActionReglagesIa.ChangerConfidentialite(aspect, interrupteur.isChecked))
+            }
+        }
+        brancherInterrupteur(binding.interrupteurConfFichier, AspectConfidentialite.FICHIER_ACTIF)
+        brancherInterrupteur(binding.interrupteurConfChemins, AspectConfidentialite.LISTE_CHEMINS)
+        brancherInterrupteur(binding.interrupteurConfDiagnostics, AspectConfidentialite.DIAGNOSTICS)
+
+        brancherHistorique()
+
+        brancherChampsNumeriques()
+    }
+
+    /**
+     * Champ Modèle (v0.190.0, retour propriétaire OpenRouter) : la saisie
+     * se persiste au clic dans la liste, à la touche « Terminé » ET à la
+     * PERTE DE FOCUS — l'ancien code ne comptait que sur les deux
+     * premières portes : taper l'identifiant puis quitter le champ
+     * PERDAIT la valeur sans prévenir, et le chat répondait « fournisseur
+     * incomplet » alors que le modèle semblait saisi. Vide → reprise du
+     * PERSISTÉ (discipline v0.189.0 des champs numériques, jamais
+     * d'effacement silencieux).
+     */
+    private fun brancherChampModele() {
         binding.champModeleIa.setOnItemClickListener { _, _, position, _ ->
             val choisi =
                 binding.champModeleIa.adapter
@@ -109,15 +140,18 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
             viewModel.onAction(ActionReglagesIa.ChangerModele(texte.text.toString()))
             false
         }
+        binding.champModeleIa.setOnFocusChangeListener { _, aLeFocus ->
+            if (!aLeFocus) {
+                val texte = binding.champModeleIa.text?.toString()?.trim().orEmpty()
+                when {
+                    texte.isEmpty() -> binding.champModeleIa.setText(viewModel.etat.value.modeleActif)
+
+                    texte != viewModel.etat.value.modeleActif ->
+                        viewModel.onAction(ActionReglagesIa.ChangerModele(texte))
+                }
+            }
+        }
         binding.boutonActualiserModeles.setOnClickListener { viewModel.onAction(ActionReglagesIa.ActualiserModeles) }
-
-        brancherInterrupteur(binding.interrupteurConfFichier, AspectConfidentialite.FICHIER_ACTIF)
-        brancherInterrupteur(binding.interrupteurConfChemins, AspectConfidentialite.LISTE_CHEMINS)
-        brancherInterrupteur(binding.interrupteurConfDiagnostics, AspectConfidentialite.DIAGNOSTICS)
-
-        brancherHistorique()
-
-        brancherChampsNumeriques()
     }
 
     /**
@@ -177,14 +211,6 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         }
     }
 
-    /** Interrupteur d'aspect de confidentialité (v0.187.0 : clic seul,
-     *  plus de listener d'état — cf. [brancher]). */
-    private fun brancherInterrupteur(interrupteur: MaterialSwitch, aspect: AspectConfidentialite) {
-        interrupteur.setOnClickListener {
-            viewModel.onAction(ActionReglagesIa.ChangerConfidentialite(aspect, interrupteur.isChecked))
-        }
-    }
-
     private fun rendre(etat: EtatReglagesIa) {
         // v0.187.0 : plus de garde `renduEnCours` — les interrupteurs ne
         // réagissent qu'au CLIC, `setChecked()` programmatique ne
@@ -205,7 +231,12 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
             parIdentifiant[FournisseursIa.OPENAI_COMPATIBLE],
         )
 
-        binding.champModeleIa.setText(etat.modeleActif)
+        // La saisie EN COURS n'est jamais écrasée par un rendu (le flux des
+        // réglages re-émet après chaque écriture, v0.190.0) : le champ n'est
+        // re-synchronisé qu'en l'absence de focus.
+        if (!binding.champModeleIa.hasFocus()) {
+            binding.champModeleIa.setText(etat.modeleActif)
+        }
         binding.champModeleIa.setSimpleItems(etat.modelesRecenses.toTypedArray())
         binding.boutonActualiserModeles.isEnabled = !etat.actualisationEnCours
 

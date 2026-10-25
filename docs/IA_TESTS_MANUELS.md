@@ -2,23 +2,22 @@
 
 > Issu de la section 8 du rapport `docs/IA_REVUE_ET_PROMPT.md` (revue du
 > 2026-10-23), mis à jour après la livraison des lots 1 à 4
-> (CodeIDE v0.186.0 → v0.189.0). Les liens ont été re-vérifiés contre le
-> dépôt ; les scénarios marqués « à valider sur appareil » ne peuvent
-> PAS être déroulés dans l'environnement de build (pas de KVM).
+> (CodeIDE v0.186.0 → v0.189.0) puis des lots 5 et du
+> correctif du premier usage OpenRouter (v0.191.0–v0.194.0). Les liens ont été re-vérifiés contre le dépôt ;
+> les scénarios marqués « à valider sur appareil » ne peuvent pas être
+> déroulés dans l'environnement de build (pas de KVM).
 >
-> **État CI** : la chaîne locale (spotless, detekt, frontières, jetons
-> UI, compilation et tests des modules touchés) est VERTE pour chaque
-> lot ; les commits/tags v0.185.0 → v0.189.0 sont prêts mais **pas
-> encore poussés** — le jeton d'accès du dépôt a expiré, la CI GitHub
-> n'a donc pas encore rejoué ces versions. Ouvrir la dernière
-> exécution VERTE pour l'APK de test, ou pousser dès le jeton renouvelé.
+> **État CI** : les lots 1 à 5 (v0.186.0 → v0.193.0) ont été poussés et
+> validés par la CI ; v0.194.0 ajoute le déblocage du premier
+> paramétrage du fournisseur compatible OpenAI (voir T8/T13). Ouvrir la
+> dernière exécution VERTE pour l'APK de test.
 
 ## 1. Application
 
 | Quoi | Lien / nom | Note |
 |------|-----------|------|
 | Exécutions CI | https://github.com/jjoblab/CodeIDE/actions/workflows/ci.yml | Ouvrir la dernière exécution verte sur `main` (après push des lots 1 à 4) |
-| Artefact APK | `CodeIDE-v<version>-debug` | Produit par le job de construction (`ci.yml`, `upload-artifact`) ; version lue dans `version.properties` — v0.189.0 pour la présente recette |
+| Artefact APK | `CodeIDE-v<version>-debug` | Produit par le job de construction (`ci.yml`, `upload-artifact`) ; version lue dans `version.properties` — v0.194.0 pour la présente recette |
 
 ## 2. Fournisseurs pour tester (clé personnelle, jamais committée)
 
@@ -42,11 +41,12 @@ version : le code ajoute `/chat/completions` et `/models`.
 | T5 | Chat vide, IA active, clé enregistrée | Accueil visible **ET** champ de saisie + Envoyer visibles (B1a/B1b, v0.188.0 : le calque vit dans la zone des messages) | Structure couverte par `LayoutsIaTest` + `PresentationChatIaTest` (JVM) ; recette visuelle recommandée |
 | T6 | Ouvrir le clavier dans le chat | Le champ reste visible au-dessus du clavier ; le rail de fragments disparaît pendant la frappe (B1c, ADR 0149) | **À valider sur appareil** (rotation, clavier flottant, mode fenêtré) — le calcul est pur et testé, le rendu ne se prouve qu'à l'écran |
 | T7 | Sans clé enregistrée, ouvrir le chat (IA active) | État « Aucune clé enregistrée » avec bouton « Ajouter une clé » vers le fournisseur ACTIF (S3) | Couvert par `ChatViewModelTest` + `PresentationChatIaTest` (JVM) ; recette visuelle recommandée |
-| T8 | Saisir une clé, « Tester la connexion », actualiser les modèles | Succès avec nombre de modèles ; clé erronée → message clair | Mécanisme `TesterConnexion` préexistant ; à valider sur appareil avec de vraies clés |
+| T8 | Saisir une clé, « Tester la connexion », actualiser les modèles — AVANT même de choisir un modèle | Succès avec nombre de modèles ; clé erronée → message clair. Depuis v0.194.0, l'actualisation ne requiert PLUS de modèle déjà configuré (l'ancien refus « Fournisseur incomplet » fermait le premier usage) | Mécanisme `TesterConnexion` préexistant ; garde assouplie couverte par `FournisseurIaActifTest` (JVM) ; à valider sur appareil avec de vraies clés |
 | T9 | Envoyer un message, arrêter pendant le flux, régénérer | Flux progressif ; Arrêter coupe ; Régénérer relance | À valider sur appareil (déjà recette IA-3, inchangé par les lots 1 à 4) |
 | T10 | Coller une chaîne factice de forme `sk-` suivie de 20 caractères dans le message | Dialogue bloquant « Envoyer sans / Annuler » (aucun envoi avant le choix) | À valider sur appareil (préexistant, ADR 0124 §4) |
 | T11 | Agent : demander une modification d'un fichier ouvert | Une proposition à relire ; RIEN n'est écrit avant acceptation ; annulation via l'historique local | À valider sur appareil (préexistant, ADR 0125) |
 | T12 | Réglages : vider « jetons max », quitter le champ ; désactiver l'assistant | La valeur précédente est conservée (pas 128) ; après désactivation, toute requête est refusée sans réseau (v0.189.0, B3) | Régression couverte par `BridageSilencieuxIaTest` (JVM) ; recette visuelle recommandée |
+| T13 | Taper l'identifiant d'un modèle (ex. `google/gemma-4-26b-a4b-it:free`), quitter le champ SANS touche « Terminé », envoyer un message au chat | Toast « Modèle enregistré » à la sortie du champ ; le chat envoie VRAIMENT (plus de « Fournisseur incomplet : URL de base ou modèle à définir » alors que le modèle semblait saisi) | Régression couverte par `ReglagesIaViewModelTest` + `FournisseurIaActifTest` (JVM) ; recette visuelle recommandée (retour propriétaire OpenRouter, v0.194.0) |
 
 ## 4. Constats « Probable » du rapport — vérification
 

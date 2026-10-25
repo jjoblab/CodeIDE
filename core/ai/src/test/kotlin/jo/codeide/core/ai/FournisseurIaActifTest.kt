@@ -151,6 +151,26 @@ class FournisseurIaActifTest {
     }
 
     @Test
+    fun `sans modèle configuré listModels et ping passent quand même`() = runTest {
+        // v0.190.0 (retour propriétaire OpenRouter) : au PREMIER paramétrage,
+        // lister les modèles et tester la connexion précèdent le CHOIX du
+        // modèle — exiger un modèle déjà configuré fermait la porte du
+        // premier usage (œuf et poule : impossible de lister pour choisir).
+        val reglages = FauxReglages(reglagesPrets().copy(modeleAnthropic = ""))
+        val fabrique = FauxFabrique()
+        val routeur = FournisseurIaActif(reglages, fabrique)
+
+        val ping = routeur.ping()
+        val modeles = routeur.listModels()
+
+        assertTrue(ping is AppResult.Success)
+        assertEquals(1, fabrique.fournisseur.appelsPing)
+        assertEquals(1, fabrique.fournisseur.appelsListModels)
+        assertEquals("modele-a", (modeles as AppResult.Success).value.single().id)
+        assertEquals(0, fabrique.fournisseur.appelsStream)
+    }
+
+    @Test
     fun `une URL de base invalide est refusée avant la fabrique`() = runTest {
         val reglages = FauxReglages(reglagesPrets().copy(urlBaseAnthropic = "http://serveur.example"))
         val fabrique = FauxFabrique()
