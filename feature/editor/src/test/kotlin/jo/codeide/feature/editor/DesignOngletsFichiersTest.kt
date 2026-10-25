@@ -18,17 +18,18 @@ import jo.codeide.core.ui.R as RUi
  * propriétaire : « le background sur l'onglet actif et le bouton
  * close plus petit » ; v0.184.0, retour propriétaire : « le design
  * de l'onglet est trop gros — une forme RECTANGULAIRE au lieu de la
- * pilule ») :
+ * pilule » ; v0.185.0, retour propriétaire : « réduit un peu la
+ * taille de l'onglet rectangulaire ») :
  *
  * - l'onglet SÉLECTIONNÉ porte un RECTANGLE de fond
  *   (`fond_onglet_editeur`, rôle Material3 `colorSurfaceContainerHigh`
  *   — jour, nuit et couleurs dynamiques suivies) aux coins à peine
  *   adoucis (4 dp), l'indicateur de soulignement reste retiré
  *   (fond + trait = double signal) ;
- * - la CELLULE est resserrée : hauteur 44 dp, padding horizontal
- *   8 dp au lieu du 12 dp Material, padding de contenu 12 dp —
+ * - la CELLULE est resserrée DAVANTAGE : hauteur 40 dp, padding
+ *   horizontal 6 dp, marge de début de contenu 8 dp (spacing_sm) —
  *   l'onglet actif lit comme un bloc plat d'IDE ;
- * - la fermeture incrustée est COMPACTE : 36 dp de zone tactile (padding
+ * - la fermeture incrustée est COMPACTE : 32 dp de zone tactile (padding
  *   composé pour une icône de 18 dp) — une commande de SECOND rang
  *   dans l'onglet n'a pas besoin de la cote de premier rang.
  *
@@ -86,11 +87,12 @@ class DesignOngletsFichiersTest {
             champ.get(barre),
         )
 
-        // La CELLULE est resserrée (v0.184.0 : « trop gros ») : hauteur
-        // EXPLICITE 44 dp (layout, plus déterministe que le wrap_content
-        // ~48 dp de Material), padding horizontal 8 dp — les paddings
-        // de TabLayout sont package-private (aucun getter public) :
-        // même approche réflexive que `tabBackgroundResId` ci-dessus.
+        // La CELLULE est resserrée (v0.185.0 : « réduit un peu ») :
+        // hauteur EXPLICITE 40 dp (layout, plus déterministe que le
+        // wrap_content ~48 dp de Material), padding horizontal 6 dp —
+        // les paddings de TabLayout sont package-private (aucun getter
+        // public) : même approche réflexive que `tabBackgroundResId`
+        // ci-dessus.
         assertEquals(
             "cellule compacte : hauteur de bande",
             contexte.resources.getDimensionPixelSize(R.dimen.editor_onglets_hauteur),
@@ -123,7 +125,7 @@ class DesignOngletsFichiersTest {
         val contexte = onglet.context
 
         assertEquals(
-            "fermeture compacte : la zone tactile mesure 36 dp",
+            "fermeture compacte : la zone tactile mesure 32 dp",
             contexte.resources.getDimensionPixelSize(R.dimen.editor_onglet_fermer_taille),
             fermeture.layoutParams.width,
         )

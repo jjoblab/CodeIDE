@@ -3,6 +3,7 @@ package jo.codeide.feature.editor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.roundToInt
 
 /**
  * Tests purs de la courbe de fondu de l'en-tête du panneau (v0.184.0,
@@ -99,5 +100,50 @@ class CalculsFonduEnteteTest {
         assertEquals(1f, CalculsFonduEntete.alpha(0.2f, fractionDepart = 0.25f), 0f)
         assertTrue(CalculsFonduEntete.alpha(0.3f, fractionDepart = 0.25f) < 1f)
         assertEquals(0f, CalculsFonduEntete.alpha(1f, fractionDepart = 0.25f), 0f)
+    }
+
+    // ============================================================
+    // v0.185.0 — la HAUTEUR suit la même coulée que l'alpha (retour
+    // propriétaire : « le header doit suivre la progression du slide
+    // pour disparaître et réapparaître ») : plus de reflow ChangeBounds
+    // post-settle, la hauteur est posée PAR TRAME par onSlide.
+    // ============================================================
+
+    @Test
+    fun `hauteur — pleine tant que l en tete est opaque`() {
+        // 48 dp + inset 48 dp = 288 px de repos : la section garde sa
+        // hauteur TOTALE sur toute la première moitié du glissement.
+        assertEquals(288, CalculsFonduEntete.hauteurPx(288, CalculsFonduEntete.alpha(0f)))
+        assertEquals(288, CalculsFonduEntete.hauteurPx(288, CalculsFonduEntete.alpha(0.25f)))
+        assertEquals(288, CalculsFonduEntete.hauteurPx(288, CalculsFonduEntete.alpha(0.5f)))
+    }
+
+    @Test
+    fun `hauteur — nulle a l extension complete`() {
+        assertEquals(0, CalculsFonduEntete.hauteurPx(288, CalculsFonduEntete.alpha(1f)))
+    }
+
+    @Test
+    fun `hauteur — suit l alpha au doigt pres sur toute la coulee`() {
+        // La hauteur vaut repos × alpha à CHAQUE échantillon : la section
+        // se réduit À MESURE que la feuille monte — elle suit la
+        // progression du glissement, frame pour frame.
+        var glissement = 0.5f
+        while (glissement < 1f) {
+            val alpha = CalculsFonduEntete.alpha(glissement)
+            assertEquals(
+                "hauteur = repos × alpha à $glissement",
+                (288 * alpha).roundToInt(),
+                CalculsFonduEntete.hauteurPx(288, alpha),
+            )
+            glissement += 0.05f
+        }
+    }
+
+    @Test
+    fun `hauteur — jamais negative ni au dela du repos (bornes robustes)`() {
+        assertEquals(0, CalculsFonduEntete.hauteurPx(288, -0.5f))
+        assertEquals(288, CalculsFonduEntete.hauteurPx(288, 1.5f))
+        assertEquals(0, CalculsFonduEntete.hauteurPx(0, 1f))
     }
 }

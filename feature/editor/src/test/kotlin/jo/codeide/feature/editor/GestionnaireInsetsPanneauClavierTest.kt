@@ -38,6 +38,13 @@ import jo.codeide.core.ui.R as RUi
  *   faisait à l'aveugle ;
  * - **le clavier de l'éditeur** ne touche PAS le padding IME du
  *   panneau (la remontée n'appartient qu'aux saisies du panneau).
+ *
+ * v0.185.0 (retour propriétaire : « en collapse la barre de navigation
+ * est transparente, je vois une partie du sheet alors que seul
+ * l'en-tête devrait être visible ») : le peek TOTAL vaut
+ * `contenu + inset de navigation` — replié, l'en-tête vit ENTIÈREMENT
+ * au-dessus de la barre et SEUL l'espace rembourré des rangées
+ * (paddingBottom = inset) pend derrière elle.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
@@ -80,9 +87,14 @@ class GestionnaireInsetsPanneauClavierTest {
         .setInsets(WindowInsetsCompat.Type.systemBars(), Insets.of(0, 0, 0, insetBas))
         .build()
 
+    /** Contenu replié par défaut du XML (48 dp de première section). */
+    private fun contenuReplieXml(trio: Trio): Int =
+        trio.liaison.root.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
+
     @Test
     fun `la reserve sous l editeur est posee des le branchement — jamais sous le panneau replie`() {
-        val (liaison, comportement, gestionnaire) = construire()
+        val trio = construire()
+        val (liaison, comportement, gestionnaire) = trio
 
         gestionnaire.brancher()
 
@@ -96,15 +108,22 @@ class GestionnaireInsetsPanneauClavierTest {
     }
 
     @Test
-    fun `les insets de navigation nourrissent la reserve et le padding du panneau`() {
-        val (liaison, comportement, gestionnaire) = construire()
+    fun `les insets de navigation nourrissent le peek TOTAL et la reserve`() {
+        val trio = construire()
+        val (liaison, comportement, gestionnaire) = trio
         gestionnaire.brancher()
 
         gestionnaire.surInsetsBarres(insetsBarres(insetNav))
 
         assertEquals(
-            "l'éditeur réserve peek + inset de navigation",
-            comportement.peekHeight + insetNav,
+            "v0.185.0 : le peek TOTAL inclut l'inset — l'en-tête replié vit " +
+                "ENTIÈREMENT au-dessus de la barre transparente",
+            contenuReplieXml(trio) + insetNav,
+            comportement.peekHeight,
+        )
+        assertEquals(
+            "l'éditeur réserve EXACTEMENT le peek total (pas de double compte)",
+            comportement.peekHeight,
             liaison.zoneCentrale.paddingBottom,
         )
         assertEquals(
@@ -115,8 +134,48 @@ class GestionnaireInsetsPanneauClavierTest {
     }
 
     @Test
+    fun `replie — seul l espace remboure des rangees pend derriere la barre`() {
+        val trio = construire()
+        val (liaison, _, gestionnaire) = trio
+        gestionnaire.brancher()
+
+        gestionnaire.surInsetsBarres(insetsBarres(insetNav))
+
+        assertEquals(
+            "la rangée d'en-tête porte l'inset en paddingBottom " +
+                "(contenu confiné aux 48 dp du haut)",
+            insetNav,
+            liaison.entetePanneau.paddingBottom,
+        )
+        assertEquals(
+            "la rangée d'onglets porte aussi l'inset (elle ferme la bande " +
+                "repliée de l'onglet Console)",
+            insetNav,
+            liaison.ongletsPanneau.paddingBottom,
+        )
+    }
+
+    @Test
+    fun `definirPeekContenu repose le peek TOTAL contenu plus inset`() {
+        val trio = construire()
+        val (_, comportement, gestionnaire) = trio
+        gestionnaire.brancher()
+        gestionnaire.surInsetsBarres(insetsBarres(insetNav))
+
+        // Console avec ligne tooling : 104 dp de contenu.
+        gestionnaire.definirPeekContenu(312)
+
+        assertEquals(
+            "le gestionnaire POSE le peek total : contenu neuf + inset courant",
+            312 + insetNav,
+            comportement.peekHeight,
+        )
+    }
+
+    @Test
     fun `le clavier du panneau remonte son contenu au dessus de l IME`() {
-        val (liaison, comportement, gestionnaire) = construire()
+        val trio = construire()
+        val (liaison, comportement, gestionnaire) = trio
         gestionnaire.brancher()
         gestionnaire.surInsetsBarres(insetsBarres(insetNav))
 
@@ -130,14 +189,15 @@ class GestionnaireInsetsPanneauClavierTest {
         assertEquals(
             "la colonne de l'éditeur n'est PAS concernée par le clavier du panneau " +
                 "(dans ce montage le clavier n'est pas « visible » pour la réserve)",
-            comportement.peekHeight + insetNav,
+            comportement.peekHeight,
             liaison.zoneCentrale.paddingBottom,
         )
     }
 
     @Test
     fun `surClavierPanneau zero libere le padding IME du panneau`() {
-        val (liaison, _, gestionnaire) = construire()
+        val trio = construire()
+        val (liaison, _, gestionnaire) = trio
         gestionnaire.brancher()
         gestionnaire.surInsetsBarres(insetsBarres(insetNav))
         gestionnaire.surClavierPanneau(insetIme)
@@ -153,10 +213,11 @@ class GestionnaireInsetsPanneauClavierTest {
 
     @Test
     fun `le clavier de l editeur ne pose JAMAIS le padding IME du panneau`() {
-        val (liaison, _, gestionnaire) = construire(
+        val trio = construire(
             clavierVisible = { true },
             hauteurIme = { insetIme },
         )
+        val (liaison, _, gestionnaire) = trio
         gestionnaire.brancher()
         gestionnaire.surInsetsBarres(insetsBarres(insetNav))
 
