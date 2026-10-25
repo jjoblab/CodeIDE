@@ -1660,3 +1660,12 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IA15 | Toucher le préréglage « OpenRouter » | Le champ URL de base est PRÉREMPLI avec l'URL du préréglage, sans erreur de validation, et l'URL est persistée (rouvrir l'écran : elle y est) |
 | IA16 | Paramètres → IA → fournisseur « Anthropic » | La carte propose « Anthropic (officiel) » (`https://api.anthropic.com`) ; l'appui préremplit pareillement |
 | IA17 | Toucher un préréglage puis « Tester la connexion » | Le test utilise l'URL PRÉREMPLIE (le ping part vers l'URL affichée, pas vers l'ancienne) |
+
+## Assistant IA — sélecteur de modèle dans l'en-tête du chat (rapport IA Lot 5, point 3 → v0.191.0)
+
+| # | Scénario | Résultat attendu |
+|---|----------|------------------|
+| IA18 | Tiroir IA → onglet Chat (assistant actif, clé présente) | Un EN-TÊTE affiche le modèle actif (ou « Choisir un modèle » si vide) au-dessus des messages |
+| IA19 | Toucher le modèle dans l'en-tête | Un sélecteur propose le modèle actif + les modèles recensés du fournisseur actif ; en choisir un → l'en-tête affiche le NOUVEAU modèle et l'envoi suivant l'utilise (sans repasser par Paramètres) |
+| IA20 | Dans le sélecteur, toucher « Actualiser la liste » | Snackbar « Modèles récupérés : N » ; rouvrir le sélecteur montre la nouvelle liste (recensement fait SANS quitter le chat) |
+| IA21 | Assistant inactif (ou clé absente) | L'en-tête est MASQUÉ — aucun sélecteur ne s'offre dans les états fermés |

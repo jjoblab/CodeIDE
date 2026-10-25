@@ -6,6 +6,7 @@ import jo.codeide.core.ai.AiProvider
 import jo.codeide.core.ai.AiRequest
 import jo.codeide.core.ai.AiRole
 import jo.codeide.core.ai.AiStopReason
+import jo.codeide.core.ai.ListerModelesIaUseCase
 import jo.codeide.core.ai.SendMessageUseCase
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
@@ -62,6 +63,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -90,6 +92,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -136,6 +139,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -190,6 +194,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -227,6 +232,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -269,6 +275,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -318,6 +325,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -341,6 +349,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -362,6 +371,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -392,6 +402,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseurFlux),
             )
         advanceUntilIdle()
 
@@ -439,6 +450,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseurFlux),
             )
         advanceUntilIdle()
 
@@ -479,6 +491,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseurFlux),
             )
         advanceUntilIdle()
 
@@ -531,6 +544,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseurFlux),
             )
         advanceUntilIdle()
 
@@ -570,6 +584,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseurFlux),
             )
         advanceUntilIdle()
 
@@ -611,6 +626,7 @@ class ChatViewModelTest {
                 canal,
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -636,6 +652,7 @@ class ChatViewModelTest {
                 canal,
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
             )
         advanceUntilIdle()
 
@@ -662,6 +679,7 @@ class ChatViewModelTest {
                 canal,
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -683,6 +701,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -707,6 +726,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 historique,
                 HorlogeFixe,
+                ListerModelesIaUseCase(fournisseurFlux),
             )
         advanceUntilIdle()
 
@@ -735,6 +755,7 @@ class ChatViewModelTest {
             CanalSignauxIa(),
             historique,
             HorlogeFixe,
+            ListerModelesIaUseCase(FauxFournisseurFlux()),
         )
         advanceUntilIdle()
 
@@ -757,6 +778,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -793,6 +815,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -816,6 +839,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -835,6 +859,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
         assertTrue("avant : aucune clé", modele.etat.value.cleAbsente)
@@ -869,6 +894,7 @@ class ChatViewModelTest {
                 CanalSignauxIa(),
                 FauxConversationStore(),
                 HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
             )
         advanceUntilIdle()
 
@@ -883,12 +909,168 @@ class ChatViewModelTest {
             (effet as EffetChatIa.OuvrirFournisseur).identifiant,
         )
     }
+
+    // ------------------------------------------------------------------
+    // Sélecteur de modèle de l'en-tête (rapport IA, Lot 5, point 3).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `l etat expose le modele actif et les modeles recenses`() = runTest {
+        val reglages =
+            FakeReglagesIa(
+                AiSettings(
+                    assistantActive = true,
+                    consentementDonne = true,
+                    modeleAnthropic = "claude-test",
+                    modelesRecensesAnthropic = listOf("m1", "m2"),
+                ),
+            )
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglages,
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+            )
+        advanceUntilIdle()
+
+        assertEquals("claude-test", modele.etat.value.modeleActif)
+        assertEquals(listOf("m1", "m2"), modele.etat.value.modelesRecenses)
+    }
+
+    @Test
+    fun `choisir un modele persiste le champ du fournisseur actif`() = runTest {
+        val reglages = reglagesActifs()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglages,
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChoisirModele("claude-neuf"))
+        advanceUntilIdle()
+
+        assertEquals("claude-neuf", reglages.flux.value.modeleAnthropic)
+        assertEquals("claude-neuf", modele.etat.value.modeleActif)
+    }
+
+    @Test
+    fun `choisir un modele ecrit le champ du compatible openai quand il est actif`() = runTest {
+        val reglages =
+            FakeReglagesIa(
+                AiSettings(
+                    assistantActive = true,
+                    consentementDonne = true,
+                    fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE,
+                    urlBaseOpenAiCompatible = "https://openrouter.ai/api/v1",
+                    modeleOpenAiCompatible = "ancien",
+                ),
+            )
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglages,
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChoisirModele("  modele-libre  "))
+        advanceUntilIdle()
+
+        // Le champ du fournisseur ACTIF est écrit, avec trim ; le champ
+        // d'Anthropic reste INTACT.
+        assertEquals("modele-libre", reglages.flux.value.modeleOpenAiCompatible)
+        assertEquals("", reglages.flux.value.modeleAnthropic)
+    }
+
+    @Test
+    fun `actualiser les modeles persiste le recensement et annonce le compte`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        fournisseur.modeles = listOf(AiModelInfo("m1"), AiModelInfo("m2"))
+        val reglages = reglagesActifs()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglages,
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ActualiserModeles)
+        advanceUntilIdle()
+
+        assertEquals(1, fournisseur.appelsListModels)
+        assertEquals(listOf("m1", "m2"), reglages.flux.value.modelesRecensesAnthropic)
+        assertEquals(listOf("m1", "m2"), modele.etat.value.modelesRecenses)
+        val effet = modele.effets.first()
+        assertTrue(effet is EffetChatIa.Message)
+        assertEquals(R.string.ia_modeles_recenses, (effet as EffetChatIa.Message).ressource)
+        assertEquals("2", effet.argument)
+    }
+
+    @Test
+    fun `actualiser les modeles est refuse sans consentement`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                FakeReglagesIa(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ActualiserModeles)
+        advanceUntilIdle()
+
+        // AUCUNE requête ne part sans consentement (critère IA-2).
+        assertEquals(0, fournisseur.appelsListModels)
+        val effet = modele.effets.first()
+        assertTrue(effet is EffetChatIa.Message)
+        assertEquals(R.string.ia_erreur_consentement, (effet as EffetChatIa.Message).ressource)
+    }
 }
 
 /** Fournisseur à flux CONTRÔLÉ : le test émet les événements un à un
  * (streaming observé delta par delta) et conserve les requêtes reçues. */
 internal class FauxFournisseurFlux : AiProvider {
     var appels = 0
+
+    /** Recensement configurable (Lot 5, point 3) — vide par défaut. */
+    var modeles = emptyList<AiModelInfo>()
+
+    /** Compteur d'appels listModels (garde de consentement testée). */
+    var appelsListModels = 0
 
     val requetes = mutableListOf<AiRequest>()
 
@@ -905,7 +1087,10 @@ internal class FauxFournisseurFlux : AiProvider {
         return canal
     }
 
-    override suspend fun listModels(): AppResult<List<AiModelInfo>> = AppResult.Success(emptyList())
+    override suspend fun listModels(): AppResult<List<AiModelInfo>> {
+        appelsListModels++
+        return AppResult.Success(modeles)
+    }
 
     override suspend fun ping(): AppResult<Unit> = AppResult.Success(Unit)
 }

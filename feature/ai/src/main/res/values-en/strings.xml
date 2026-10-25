@@ -92,6 +92,12 @@
     <string name="ia_envoyer_cd">Send the message to the assistant</string>
     <string name="ia_arreter">Stop</string>
     <string name="ia_arreter_cd">Stop the running generation</string>
+    <!-- Chat header model selector (AI report, Lot 5, point 3) — the
+         model is chosen without going back to Settings. -->
+    <string name="ia_chat_modele_cd">Change the assistant model</string>
+    <string name="ia_chat_modele_vide">Choose a model</string>
+    <string name="ia_chat_modele_aucun">No models listed yet — tap \"Refresh list\"</string>
+
     <string name="ia_tiroir_titre">AI assistant</string>
     <string name="ia_onglet_chat">Chat</string>
     <string name="ia_onglet_agent">Agent</string>
