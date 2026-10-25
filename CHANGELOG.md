@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.189.0] – 2026-10-25
+
+### Plus de bridage silencieux : un réglage vidé reprend sa valeur (rapport IA, Lot 4 — B3, S6 confirmé déjà en place)
+
+#### Corrigé
+
+- **B3 (rapport IA §2, « Vérifié ») : « vider jetons max puis quitter
+  le focus bride la réponse à 128 jetons »** : `texteVersEntier`
+  rendait `-1` pour un champ vide ou invalide →
+  `ChangerMaxJetons(-1)`/`ChangerDelai(-1)` que le `coerceIn` du
+  ViewModel ramenait SILENCIEUSEMENT à la borne basse (128 jetons,
+  5 s) — les réponses se faisaient découper sans prévenir. La
+  fonction rend désormais `Int?` : une valeur absente ou invalide
+  est IGNORÉE (`apurerChampNumerique`) et le champ REPREND la
+  valeur PERSISTÉE ; seule une valeur VALIDE part au ViewModel (le
+  domaine garde ses bornes pour les valeurs hors plage).
+- **S6 (suggestion du rapport) : CONFIRMÉ DÉJÀ EN PLACE** — la
+  validation d'URL de base à la saisie existe et est câblée :
+  `ValidationUrlIa.erreur` (domaine, HTTPS obligatoire, HTTP toléré
+  uniquement pour `localhost`/`127.0.0.1`), appelée par
+  `FournisseurIaViewModel.changerUrl` — une URL invalide affiche
+  `ia_url_erreur` dans le champ et n'est JAMAIS persistée. Le rapport
+  demandait la vérification : elle est faite, aucun correctif requis
+  (le message reste technique côté chaîne, l'URL elle-même n'est
+  jamais journalisée).
+
+#### Technique
+
+- Test de non-régression `BridageSilencieuxIaTest` (app, Robolectric +
+  Hilt, VRAI graphe) : vider « jetons max » → le champ reprend la
+  valeur persistée ET le réglage reste intact (aucune écriture) ;
+  saisie non numérique dans « délai » → idem.
+- Scénarios IA11–IA13 dans `docs/TESTS_MANUELS.md`.
+
 ## [0.188.0] – 2026-10-25
 
 ### La zone de saisie du chat libérée : modèle d'écran pur, calque dans la zone des messages, insets du tiroir à l'hôte (rapport IA, Lot 3 — B1a/B1b/B1c confirmés, S3)

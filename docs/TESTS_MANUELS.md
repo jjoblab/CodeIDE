@@ -1643,3 +1643,11 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IA8 | Ajouter la clé depuis cet état puis revenir au chat | Le chat repasse à l'accueil vide avec la saisie LIBRE (la clé est re-vérifiée au retour au premier plan) |
 | IA9 | Tiroir IA → Chat (IA INACTIVE) | Calque « Assistant non activé » + bouton « Consulter le consentement » ; saisie masquée (B1a) |
 | IA10 | Pivoter l'écran, clavier flottant, mode fenêtré, pendant la saisie du chat | La saisie reste visible et fonctionnelle (B1c « à valider sur appareil » — ADR 0149) |
+
+## Assistant IA — plus de bridage silencieux des réglages (rapport IA Lot 4 → v0.189.0)
+
+| # | Procédure | Résultat attendu |
+|---|-----------|------------------|
+| IA11 | Paramètres → IA : vider « jetons max », quitter le champ (retour/arrière-plan), revenir | Le champ REPREND la valeur précédente (4096 par défaut) — jamais 128 ; le réglage persisté est intact |
+| IA12 | Saisir du texte non numérique dans « délai », quitter le champ | Idem pour le délai ; aucune écriture n'a lieu |
+| IA13 | URL de base du fournisseur compatible OpenAI : `http://` distant, puis `http://localhost:11434/v1` | Message d'erreur explicite pour le premier, accepté pour la boucle locale (mécanisme ValidationUrlIa existant, confirmé par le rapport IA S6) |

@@ -117,13 +117,32 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
 
         brancherHistorique()
 
+        brancherChampsNumeriques()
+    }
+
+    /**
+     * Champs numériques (v0.189.0, rapport IA §5 Lot 4, B3) : à la
+     * sortie du focus, une valeur VALIDE part au ViewModel, une valeur
+     * ABSENTE ou INVALIDE est ignorée et le champ REPREND la valeur
+     * persistée. L'ancien `texteVersEntier = … ?: -1` amenait
+     * `ChangerMaxJetons(-1)`/`ChangerDelai(-1)` que le `coerceIn` du
+     * ViewModel bridait SILENCIEUSEMENT à 128 jetons et 5 s : vider un
+     * champ puis quitter le focus décuplait les réponses sans prévenir.
+     */
+    private fun brancherChampsNumeriques() {
         binding.champMaxJetons.setOnFocusChangeListener { _, aLeFocus ->
-            if (aLeFocus) return@setOnFocusChangeListener
-            viewModel.onAction(ActionReglagesIa.ChangerMaxJetons(texteVersEntier(binding.champMaxJetons.text)))
+            if (!aLeFocus) {
+                apurerChampNumerique(binding.champMaxJetons, viewModel.etat.value.maxJetonsReponse) { valeur ->
+                    viewModel.onAction(ActionReglagesIa.ChangerMaxJetons(valeur))
+                }
+            }
         }
         binding.champDelai.setOnFocusChangeListener { _, aLeFocus ->
-            if (aLeFocus) return@setOnFocusChangeListener
-            viewModel.onAction(ActionReglagesIa.ChangerDelai(texteVersEntier(binding.champDelai.text)))
+            if (!aLeFocus) {
+                apurerChampNumerique(binding.champDelai, viewModel.etat.value.delaiSecondes) { valeur ->
+                    viewModel.onAction(ActionReglagesIa.ChangerDelai(valeur))
+                }
+            }
         }
     }
 
@@ -252,5 +271,25 @@ public class ReglagesIaFragment : BaseFragment<FragmentReglagesIaBinding>() {
         }
     }
 
-    private fun texteVersEntier(texte: android.text.Editable?): Int = texte?.toString()?.trim()?.toIntOrNull() ?: -1
+    /**
+     * Apure un champ numérique à la sortie du focus (v0.189.0, B3) :
+     * une valeur VALIDE part au ViewModel (le domaine la borne), une
+     * valeur ABSENTE ou INVALIDE est ignorée et le champ reprend la
+     * valeur PERSISTÉE — jamais de bridage silencieux du domaine par
+     * un `-1` forgé.
+     */
+    private fun apurerChampNumerique(
+        champ: com.google.android.material.textfield.TextInputEditText,
+        valeurPersistee: Int,
+        envoyer: (Int) -> Unit,
+    ) {
+        val valeur = champ.text?.toString()?.trim()?.toIntOrNull()
+        if (valeur == null) {
+            champ.setText(
+                String.format(java.util.Locale.getDefault(), "%d", valeurPersistee),
+            )
+        } else {
+            envoyer(valeur)
+        }
+    }
 }
