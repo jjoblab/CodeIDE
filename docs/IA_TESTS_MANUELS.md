@@ -2,15 +2,18 @@
 
 > Issu de la section 8 du rapport `docs/IA_REVUE_ET_PROMPT.md` (revue du
 > 2026-10-23), mis à jour après la livraison des lots 1 à 4
-> (CodeIDE v0.186.0 → v0.189.0) puis des lots 5 et du
-> correctif du premier usage OpenRouter (v0.191.0–v0.194.0). Les liens ont été re-vérifiés contre le dépôt ;
+> (CodeIDE v0.186.0 → v0.189.0), des lots 5 et du correctif OpenRouter
+> (v0.191.0–v0.194.0), puis du retour propriétaire « chat fluide +
+> raisonnement + agent » (v0.195.0). Les liens ont été re-vérifiés contre le dépôt ;
 > les scénarios marqués « à valider sur appareil » ne peuvent pas être
 > déroulés dans l'environnement de build (pas de KVM).
 >
 > **État CI** : les lots 1 à 5 (v0.186.0 → v0.193.0) ont été poussés et
 > validés par la CI ; v0.194.0 ajoute le déblocage du premier
-> paramétrage du fournisseur compatible OpenAI (voir T8/T13). Ouvrir la
-> dernière exécution VERTE pour l'APK de test.
+> paramétrage du fournisseur compatible OpenAI (voir T8/T13) ;
+> v0.195.0 ajoute le crash des réglages corrigé, le bouton « Terminer »,
+> le flux coulant + raisonnement du chat et le départ de l'agent (T14–T19).
+> Ouvrir la dernière exécution VERTE pour l'APK de test.
 
 ## 1. Application
 
@@ -47,6 +50,12 @@ version : le code ajoute `/chat/completions` et `/models`.
 | T11 | Agent : demander une modification d'un fichier ouvert | Une proposition à relire ; RIEN n'est écrit avant acceptation ; annulation via l'historique local | À valider sur appareil (préexistant, ADR 0125) |
 | T12 | Réglages : vider « jetons max », quitter le champ ; désactiver l'assistant | La valeur précédente est conservée (pas 128) ; après désactivation, toute requête est refusée sans réseau (v0.189.0, B3) | Régression couverte par `BridageSilencieuxIaTest` (JVM) ; recette visuelle recommandée |
 | T13 | Taper l'identifiant d'un modèle (ex. `google/gemma-4-26b-a4b-it:free`), quitter le champ SANS touche « Terminé », envoyer un message au chat | Toast « Modèle enregistré » à la sortie du champ ; le chat envoie VRAIMENT (plus de « Fournisseur incomplet : URL de base ou modèle à définir » alors que le modèle semblait saisi) | Régression couverte par `ReglagesIaViewModelTest` + `FournisseurIaActifTest` (JVM) ; recette visuelle recommandée (retour propriétaire OpenRouter, v0.194.0) |
+| T14 | Paramètres → IA → carte Modèle : taper le modèle puis appuyer sur « Terminer » | Le modèle est enregistré (toast) ET le clavier se referme sans attendre la perte de focus ; champ vidé → le bouton restaure la valeur persistée | Structure couverte par `LayoutsIaTest` (JVM, v0.195.0) ; recette visuelle recommandée |
+| T15 | Paramètres → IA : « Actualiser la liste » de modèles (IA active, clé valide) | Le message « Modèles récupérés : N » s'affiche SANS crash (régression `IllegalFormatConversionException` du rapport e37e6443, v0.195.0) | Cause corrigée (%1$d recevant un String) ; recette visuelle recommandée |
+| T16 | Chat : poser une question et observer la réponse arriver | Le texte COULE par fragments — plus de rechargement clignotant de toute la carte à chaque fragment ; curseur clignotant pendant la génération ; si l'utilisateur remonte pendant le flux, la liste NE SAUTE PAS au bas (elle suit seulement s'il y était) | Rendu incrémental + paiements DiffUtil (v0.195.0) ; recette visuelle recommandée |
+| T17 | Chat avec un modèle qui réfléchit (ex. `deepseek/deepseek-r1` sur OpenRouter, ou tout modèle `:thinking`) | Section « Raisonnement en cours… » pendant la pensée, repliable en « Raisonnement » dès que la réponse démarre ; la réponse suit en dessous ; à la réouverture de la conversation depuis l'historique, le raisonnement est TOUJOURS là | Fragments `reasoning`/`reasoning_content`/`thinking_delta` couverts par `OpenAiCompatibleProviderTest`/`AnthropicProviderTest` + `ChatViewModelTest` (JVM) ; recette visuelle à valider avec un vrai modèle qui réfléchit |
+| T18 | Chat : plafond de jetons bas (ex. 128) + question longue | La réponse s'arrête au plafond avec l'indice « Réponse arrêtée par la limite de jetons — augmentez le plafond dans les réglages » sous le message | Couvert par `ChatViewModelTest` (JVM) ; recette visuelle recommandée |
+| T19 | Agent : taper l'objectif puis appuyer DIRECTEMENT sur « Lancer l'agent » (sans quitter le champ) | L'agent démarre — plus de « objectif vide » alors que le champ est plein (le bouton committe avant de lancer, v0.195.0) ; bandeau de statut « L'agent travaille… » + barre de progression visibles ; étapes numérotées avec coche ; à la fin, carte « réponse finale » distincte | Correctif du retour propriétaire (v0.195.0) ; recette visuelle recommandée |
 
 ## 4. Constats « Probable » du rapport — vérification
 

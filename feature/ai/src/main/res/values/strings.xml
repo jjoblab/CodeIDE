@@ -29,8 +29,13 @@
     <string name="ia_modele_hint">Identifiant du modèle</string>
     <string name="ia_bouton_actualiser">Actualiser la liste</string>
     <string name="ia_actualiser_cd">Récupérer la liste des modèles du fournisseur actif</string>
-    <string name="ia_modeles_recenses">Modèles récupérés : %1$d</string>
+    <string name="ia_modeles_recenses">Modèles récupérés : %1$s</string>
     <string name="ia_modele_enregistre">Modèle enregistré</string>
+    <!-- Bouton « Terminer » de la carte Modèle (retour propriétaire
+         v0.195.0) : persister la saisie ET refermer le clavier sans
+         attendre la perte de focus du champ. -->
+    <string name="ia_bouton_terminer_modele">Terminer</string>
+    <string name="ia_bouton_terminer_modele_cd">Enregistrer le modèle et refermer le clavier</string>
 
     <!-- Carte « Confidentialité » -->
     <string name="ia_carte_confidentialite_titre">Confidentialité</string>
@@ -105,6 +110,16 @@
          jetons RAPPORTÉS par le fournisseur, jamais estimés localement. -->
     <string name="ia_chat_usage">Entrée %1$d · Sortie %2$d</string>
 
+    <!-- Raisonnement du modèle (retour propriétaire v0.195.0) : les
+         modèles qui "réfléchissent" émettent un flux de raisonnement
+         AVANT leur réponse (delta.reasoning côté compatible OpenAI,
+         thinking_delta côté Anthropic). Section repliable du message
+         assistant — jamais une deuxième bulle. -->
+    <string name="ia_raisonnement_titre">Raisonnement</string>
+    <string name="ia_raisonnement_en_cours">Raisonnement en cours…</string>
+    <string name="ia_raisonnement_cd">Afficher ou masquer le raisonnement du modèle</string>
+    <string name="ia_reponse_tronquee">Réponse arrêtée par la limite de jetons — augmentez le plafond dans les réglages</string>
+
 
     <string name="ia_tiroir_titre">Assistant IA</string>
     <string name="ia_onglet_chat">Chat</string>
@@ -156,7 +171,7 @@
 
     <!-- Erreurs (mappées depuis AppError.Ai / Storage) -->
     <string name="ia_erreur_authentication">Clé absente ou refusée par le fournisseur</string>
-    <string name="ia_erreur_quota">Limite de débit atteinte — réessayez dans %1$d s</string>
+    <string name="ia_erreur_quota">Limite de débit atteinte — réessayez dans %1$s s</string>
     <string name="ia_erreur_quota_simple">Limite de débit atteinte — réessayez un peu plus tard</string>
     <string name="ia_erreur_service">Fournisseur momentanément indisponible</string>
     <string name="ia_erreur_hors_ligne">Hors-ligne — vérifiez la connexion</string>
@@ -218,6 +233,23 @@
     <string name="agent_continuer">Continuer</string>
     <string name="agent_en_cours">Agent en cours</string>
     <string name="agent_limites">Étapes : %1$d / %2$d · modèle %3$s</string>
+    <!-- Bandeau de statut + messages localisés (retour propriétaire
+         v0.195.0) : l'objectif tapé puis « Lancer » partait AVANT la
+         perte de focus du champ — l'écran répondait « objectif vide »
+         pendant que la saisie était pleine. Le bouton committe
+         MAINTENANT le champ ; tous les messages de l'état passent par
+         des ressources localisées. -->
+    <string name="agent_statut_en_cours">L\'agent travaille…</string>
+    <string name="agent_statut_interrompu">Limite d\'étapes atteinte — « Continuer » pour poursuivre</string>
+    <string name="agent_statut_termine">Objectif couvert — réponse finale reçue</string>
+    <string name="agent_statut_echoue">Fournisseur en échec</string>
+    <string name="agent_statut_annule">Exécution annulée</string>
+    <string name="agent_objectif_vide">Décrivez d\'abord l\'objectif de l\'agent</string>
+    <string name="agent_annule">Exécution annulée</string>
+    <string name="agent_incident">Incident : %1$s</string>
+    <string name="agent_application_echouee">Application échouée : %1$s</string>
+    <string name="agent_reglages_illisibles">Réglages IA illisibles</string>
+    <string name="agent_aucun_projet">Aucun projet ouvert</string>
     <string name="agent_approbation_titre">Exécution demandée</string>
     <string name="agent_approbation_refuser">Refuser</string>
     <string name="agent_approbation_autoriser">Autoriser une fois</string>

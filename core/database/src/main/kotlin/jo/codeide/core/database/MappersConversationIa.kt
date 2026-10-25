@@ -32,6 +32,7 @@ public fun MessageIaEntity.toModel(): MessageConversationIa = MessageConversatio
     utilisateur = utilisateur,
     texte = texte,
     creeA = creeA,
+    raisonnement = raisonnement,
 )
 
 public fun MessageConversationIa.toEntity(): MessageIaEntity = MessageIaEntity(
@@ -40,4 +41,5 @@ public fun MessageConversationIa.toEntity(): MessageIaEntity = MessageIaEntity(
     utilisateur = utilisateur,
     texte = texte,
     creeA = creeA,
+    raisonnement = raisonnement,
 )

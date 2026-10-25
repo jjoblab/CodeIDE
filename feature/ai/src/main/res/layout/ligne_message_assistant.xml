@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Message assistant : pleine largeur, blocs Markdown rendus à la volée
-  (titres, paragraphes spannés, listes, blocs de code — ligne_bloc_code),
-  carte d'erreur inline (clé/réseau/quota) + annonce TalkBack.
+  Message assistant (retour propriétaire v0.195.0) : section RAISONNEMENT
+  repliable au-dessus des blocs (modèles « qui réfléchissent » — pensée
+  en cours pendant le flux, résumé repliable ensuite), blocs Markdown
+  rendus à la volée (titres, paragraphes spannés, listes, blocs de code —
+  ligne_bloc_code) avec CURSEUR DE FLUX clignotant pendant la génération,
+  indice honnête « réponse tronquée » quand le plafond de jetons a coupé
+  la réponse, carte d'erreur inline + annonce TalkBack.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -13,12 +17,96 @@
     android:paddingHorizontal="@dimen/spacing_sm"
     android:paddingVertical="@dimen/spacing_xs">
 
+    <!-- Section RAISONNEMENT (v0.195.0) : visible SEULEMENT quand le
+         modèle en a émis un. Ligne d'en-tête repliable — « Raisonnement
+         en cours… » pendant le flux, « Raisonnement » ensuite ; le
+         corps est masqué/repliable au clic, style Claude : jamais une
+         deuxième bulle, une couleur discrète (surface variante). -->
+    <LinearLayout
+        android:id="@+id/ligne_raisonnement"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackground"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_xs"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <ImageView
+            android:id="@+id/icone_raisonnement"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_auto_awesome"
+            app:tint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/titre_raisonnement"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="Raisonnement en cours…" />
+
+        <ImageView
+            android:id="@+id/chevron_raisonnement"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:contentDescription="@string/ia_raisonnement_cd"
+            android:src="@drawable/ic_chevron_droite"
+            app:tint="?attr/colorOnSurfaceVariant" />
+    </LinearLayout>
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_raisonnement"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_xs"
+        android:layout_marginBottom="@dimen/spacing_xs"
+        android:ellipsize="end"
+        android:fontFamily="sans-serif-italic"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="Le modèle réfléchit…"
+        tools:visibility="visible" />
+
     <LinearLayout
         android:id="@+id/conteneur_blocs"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:accessibilityLiveRegion="polite" />
+
+    <!-- Curseur de flux (v0.195.0) : barre verticale clignotante à la
+         position d'écriture — signe VISIBLE que la réponse progresse ;
+         masqué dès la fin de la génération. -->
+    <View
+        android:id="@+id/vue_curseur_flux"
+        android:layout_width="2dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:background="?attr/colorPrimary"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Indice honnête (v0.195.0) : la réponse a été coupée par le
+         plafond de jetons — l'utilisateur sait POURQUOI elle s'arrête. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_tronque"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:text="@string/ia_reponse_tronquee"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:visibility="visible" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/erreur_message"

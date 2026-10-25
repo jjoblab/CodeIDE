@@ -4,8 +4,10 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 /**
- * Base Room de CodeIDE — version 3 (rapport IA, Lot 5, point 4 :
- * compteurs d'usage par conversation — `jetons_entree` +
+ * Base Room de CodeIDE — version 4 (retour propriétaire v0.195.0 :
+ * raisonnement du modèle sur `ai_messages` — les modèles « qui
+ * réfléchissent » voient leur flux de pensée persisté avec la réponse ;
+ * version 3 : compteurs d'usage par conversation — `jetons_entree` +
  * `jetons_sortie` sur `ai_conversations` ; version 2 : historique des
  * conversations IA — `ai_conversations` + `ai_messages`, cascade).
  *
@@ -25,7 +27,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [ProjectEntity::class, ConversationIaEntity::class, MessageIaEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 public abstract class CodeIdeDatabase : RoomDatabase() {

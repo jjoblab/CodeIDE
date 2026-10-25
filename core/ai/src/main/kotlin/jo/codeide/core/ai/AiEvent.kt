@@ -8,14 +8,25 @@ import jo.codeide.core.model.AppError
  * L'UI et l'agent ne voient **jamais** le format natif du fournisseur.
  *
  * Ordre attendu d'un flux nominal : zéro ou plusieurs [TextDelta] /
- * [ToolCallStarted] / [ToolCallArguments] / [ToolCallCompleted] /
- * [Usage], puis exactement un [Done] ; en cas d'échec, un unique
- * [Failure] termine le flux — jamais de reprise silencieuse d'un flux
- * commencé (ADR 0123 point 5).
+ * [ReasoningDelta] / [ToolCallStarted] / [ToolCallArguments] /
+ * [ToolCallCompleted] / [Usage], puis exactement un [Done] ; en cas
+ * d'échec, un unique [Failure] termine le flux — jamais de reprise
+ * silencieuse d'un flux commencé (ADR 0123 point 5).
  */
 public sealed interface AiEvent {
     /** Fragment de texte à afficher au fil de l'eau (concaténation = réponse). */
     public data class TextDelta(public val text: String) : AiEvent
+
+    /**
+     * Fragment de RAISONNEMENT du modèle (v0.195.0) : les modèles qui
+     * « réfléchissent » avant de répondre émettent ce flux avant (ou
+     * autour) du texte final — `delta.reasoning` /
+     * `delta.reasoning_content` côté compatible OpenAI, `thinking_delta`
+     * côté Anthropic. La concaténation des fragments donne le
+     * raisonnement complet ; ce contenu est PRÉSENTATION pure : il
+     * n'entre JAMAIS dans l'historique renvoyé au fournisseur.
+     */
+    public data class ReasoningDelta(public val text: String) : AiEvent
 
     /**
      * Le modèle commence un appel d'outil.

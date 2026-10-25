@@ -165,9 +165,16 @@ public class ChatFragment : Fragment() {
             dialogueSecretAffiche = false
         }
 
-        // Défilement automatique vers le bas pendant la génération.
+        // Défilement automatique pendant la génération (v0.195.0) :
+        // UNIQUEMENT si l'utilisateur est au bas de la conversation —
+        // jamais de yank de la liste quand il a remonté pour relire
+        // (discipline des clients de chat adultes).
         if (etat.generationEnCours && etat.messages.isNotEmpty()) {
-            liaisonLocale.listeMessages.scrollToPosition(etat.messages.lastIndex)
+            val gestionnaire = liaisonLocale.listeMessages.layoutManager as? LinearLayoutManager
+            val dernierVisible = gestionnaire?.findLastCompletelyVisibleItemPosition() ?: -1
+            if (dernierVisible >= etat.messages.lastIndex - 1) {
+                liaisonLocale.listeMessages.scrollToPosition(etat.messages.lastIndex)
+            }
         }
 
         // En-tête (Lot 5, point 3) : le sélecteur de modèle n'est offert

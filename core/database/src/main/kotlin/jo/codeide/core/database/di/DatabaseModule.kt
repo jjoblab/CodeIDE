@@ -12,6 +12,7 @@ import jo.codeide.core.database.CodeIdeDatabase
 import jo.codeide.core.database.ConversationStoreRoom
 import jo.codeide.core.database.Migration1a2
 import jo.codeide.core.database.Migration2a3
+import jo.codeide.core.database.Migration3a4
 import jo.codeide.core.database.ProjectDao
 import jo.codeide.core.domain.ConversationStore
 import javax.inject.Singleton
@@ -39,7 +40,7 @@ internal object DatabaseModule {
         .databaseBuilder(context, CodeIdeDatabase::class.java, NOM_BASE)
         // Pas de fallback destructif : les migrations sont écrites et
         // testées à partir des schémas exportés (section 6, lot IA-6).
-        .addMigrations(Migration1a2, Migration2a3)
+        .addMigrations(Migration1a2, Migration2a3, Migration3a4)
         .build()
 
     @Provides

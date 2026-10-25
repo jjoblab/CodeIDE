@@ -297,7 +297,7 @@ internal class OpenAiEventMapper : SseEventMapper {
             ?.let { raisonFin = AiStopReason.fromRaw(it) }
     }
 
-    /** Fragments `delta.content` et `delta.tool_calls`. */
+    /** Fragments `delta.content`, `delta.reasoning` et `delta.tool_calls`. */
     private suspend fun traiterDelta(choix: JsonObject, emit: suspend (AiEvent) -> Unit) {
         val delta = choix["delta"] as? JsonObject ?: return
 
@@ -306,6 +306,22 @@ internal class OpenAiEventMapper : SseEventMapper {
                 ?.takeIf { it !is kotlinx.serialization.json.JsonNull }
                 ?.content
         if (!texte.isNullOrEmpty()) emit(AiEvent.TextDelta(texte))
+
+        // Raisonnement (v0.195.0) : les serveurs compatibles OpenAI qui
+        // hébergent des modèles « qui réfléchissent » émettent le flux
+        // de pensée dans `reasoning` (OpenRouter) ou `reasoning_content`
+        // (DeepSeek et dérivés) — les DEUX sont acceptés, un serveur
+        // qui n'en émet aucun reste inchangé.
+        val raisonnement =
+            (delta["reasoning"] as? kotlinx.serialization.json.JsonPrimitive)
+                ?.takeIf { it !is kotlinx.serialization.json.JsonNull }
+                ?.content
+                ?: (
+                    (delta["reasoning_content"] as? kotlinx.serialization.json.JsonPrimitive)
+                        ?.takeIf { it !is kotlinx.serialization.json.JsonNull }
+                        ?.content
+                    )
+        if (!raisonnement.isNullOrEmpty()) emit(AiEvent.ReasoningDelta(raisonnement))
 
         val appels = delta["tool_calls"] as? JsonArray ?: return
         for (element in appels) {

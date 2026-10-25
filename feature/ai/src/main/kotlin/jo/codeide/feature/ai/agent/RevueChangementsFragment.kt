@@ -65,8 +65,13 @@ public class RevueChangementsFragment : Fragment() {
                         }
                     }
                     liaison.indicateurApplication.isVisible = etat.enApplication
-                    liaison.texteMessage.isVisible = etat.message != null
-                    liaison.texteMessage.text = etat.message.orEmpty()
+                    val message = etat.message
+                    liaison.texteMessage.isVisible = message != null
+                    liaison.texteMessage.text =
+                        message?.let {
+                            it.argument?.let { argument -> getString(it.ressource, argument) }
+                                ?: getString(it.ressource)
+                        }.orEmpty()
                     liaison.bandeauAnnulation.isVisible = etat.execution != null
                     majBoutons(liaison)
                 }

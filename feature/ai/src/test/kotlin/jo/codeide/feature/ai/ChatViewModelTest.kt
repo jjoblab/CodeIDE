@@ -183,6 +183,132 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun `les ReasoningDelta s'accumulent dans la section raisonnement et se persistent`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val historique = FauxConversationStore()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        // Phase de pensée : le raisonnement coule AVANT la réponse.
+        fournisseur.emettre(AiEvent.ReasoningDelta("Je pense que "))
+        advanceUntilIdle()
+        assertEquals(
+            "Je pense que ",
+            modele.etat.value.messages.last().raisonnement,
+        )
+        assertTrue(
+            modele.etat.value.messages.last().generationEnCours,
+        )
+
+        fournisseur.emettre(AiEvent.ReasoningDelta("la réponse est 4."))
+        fournisseur.emettre(AiEvent.TextDelta("La réponse est 4."))
+        advanceUntilIdle()
+        val message = modele.etat.value.messages.last()
+        assertEquals("Je pense que la réponse est 4.", message.raisonnement)
+        assertEquals("La réponse est 4.", message.texte)
+
+        fournisseur.emettre(AiEvent.Done(AiStopReason.EndTurn))
+        advanceUntilIdle()
+        // Fin naturelle : PAS d'indice de troncature.
+        assertFalse(modele.etat.value.messages.last().tronque)
+
+        // Le raisonnement est PERSISTÉ avec la réponse (migration 3→4).
+        val identifiant = historique.conversations.keys.single()
+        val reponse =
+            historique.messagesParConversation.getValue(identifiant)
+                .last { !it.utilisateur }
+        assertEquals("Je pense que la réponse est 4.", reponse.raisonnement)
+    }
+
+    @Test
+    fun `un Done sur plafond de jetons marque la reponse tronquee`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        fournisseur.emettre(AiEvent.TextDelta("Réponse coupée"))
+        fournisseur.emettre(AiEvent.Done(AiStopReason.MaxTokens))
+        advanceUntilIdle()
+
+        // L'indice honnête suit le message : l'utilisateur sait POURQUOI
+        // la réponse s'arrête.
+        assertTrue(modele.etat.value.messages.last().tronque)
+        assertFalse(modele.etat.value.messages.last().generationEnCours)
+    }
+
+    @Test
+    fun `la reouverture restaure le raisonnement persiste du message`() = runTest {
+        val historique = FauxConversationStore()
+        historique.ajouterMessage(
+            "conv-r",
+            "claude-test",
+            MessageConversationIa("m1", "conv-r", true, "Bonjour", System.currentTimeMillis()),
+        )
+        historique.ajouterMessage(
+            "conv-r",
+            "claude-test",
+            MessageConversationIa(
+                "m2",
+                "conv-r",
+                false,
+                "Réponse",
+                System.currentTimeMillis(),
+                raisonnement = "J'ai réfléchi longuement.",
+            ),
+        )
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.OuvrirConversation("conv-r"))
+        advanceUntilIdle()
+
+        val reponse = modele.etat.value.messages.last()
+        assertEquals("Réponse", reponse.texte)
+        assertEquals("J'ai réfléchi longuement.", reponse.raisonnement)
+    }
+
+    @Test
     fun `Failure affiche l'erreur inline et clôt la génération`() = runTest {
         val fournisseur = FauxFournisseurFlux()
         val modele =

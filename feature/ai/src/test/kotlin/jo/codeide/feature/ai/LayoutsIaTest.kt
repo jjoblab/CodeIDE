@@ -274,4 +274,62 @@ class LayoutsIaTest {
 
         assertNotNull(racine.findViewById<View>(R.id.texte_etape))
     }
+
+    /** v0.195.0 : la ligne d'étape numérotée porte pastille, libellé, coche. */
+    @Test
+    fun `la ligne d'étape redessinee porte numero, libelle et coche`() {
+        val racine = gonfler(R.layout.ligne_etape_agent)
+
+        assertNotNull(racine.findViewById<View>(R.id.numero_etape))
+        assertNotNull(racine.findViewById<View>(R.id.coche_etape))
+    }
+
+    /** v0.195.0 : la carte Modèle offre un bouton « Terminer » visible. */
+    @Test
+    fun `la carte modele offre le bouton Terminer a cote du champ`() {
+        val racine = gonfler(R.layout.fragment_reglages_ia)
+
+        val terminer = racine.findViewById<View>(R.id.bouton_terminer_modele)
+        assertNotNull("v0.195.0 : bouton « Terminer » de la section Modèle", terminer)
+        assertEquals(View.VISIBLE, terminer.visibility)
+        assertNotNull(racine.findViewById<View>(R.id.champ_modele_ia))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_actualiser_modeles))
+    }
+
+    /**
+     * v0.195.0 : le message assistant porte sa section RAISONNEMENT
+     * repliable, son curseur de flux et son indice de troncature —
+     * tous MASQUÉS au repos (jamais de section vide affichée).
+     */
+    @Test
+    fun `la ligne assistant porte raisonnement, curseur de flux et indice tronque`() {
+        val racine = gonfler(R.layout.ligne_message_assistant)
+
+        assertNotNull(racine.findViewById<View>(R.id.ligne_raisonnement))
+        assertNotNull(racine.findViewById<View>(R.id.titre_raisonnement))
+        assertNotNull(racine.findViewById<View>(R.id.texte_raisonnement))
+        assertNotNull(racine.findViewById<View>(R.id.chevron_raisonnement))
+        assertNotNull(racine.findViewById<View>(R.id.vue_curseur_flux))
+        assertNotNull(racine.findViewById<View>(R.id.texte_tronque))
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.ligne_raisonnement).visibility)
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.vue_curseur_flux).visibility)
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.texte_tronque).visibility)
+        assertNotNull(racine.findViewById<View>(R.id.conteneur_blocs))
+    }
+
+    /** v0.195.0 : l'écran Agent porte son bandeau de statut et sa carte réponse. */
+    @Test
+    fun `l'ecran agent porte statut, reponse et champ objectif committant`() {
+        val racine = gonfler(R.layout.fragment_ia_agent)
+
+        assertNotNull(racine.findViewById<View>(R.id.carte_statut))
+        assertNotNull(racine.findViewById<View>(R.id.texte_statut))
+        assertNotNull(racine.findViewById<View>(R.id.progression_statut))
+        assertNotNull(racine.findViewById<View>(R.id.carte_reponse))
+        assertNotNull(racine.findViewById<View>(R.id.texte_reponse))
+        assertNotNull(racine.findViewById<View>(R.id.champ_objectif))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_lancer))
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.carte_statut).visibility)
+        assertEquals(View.GONE, racine.findViewById<View>(R.id.carte_reponse).visibility)
+    }
 }

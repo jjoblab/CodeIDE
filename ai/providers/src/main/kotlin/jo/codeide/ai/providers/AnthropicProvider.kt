@@ -311,6 +311,15 @@ internal class AnthropicEventMapper : SseEventMapper {
                 if (!texte.isNullOrEmpty()) emit(AiEvent.TextDelta(texte))
             }
 
+            // Raisonnement (v0.195.0) : extended thinking d'Anthropic —
+            // `thinking_delta` porte le flux de pensée (la signature
+            // cryptographique `signature_delta`, elle, est ignorée :
+            // pure donnée de vérification serveur).
+            "thinking_delta" -> {
+                val pensee = JsonIa.chaine(json, "delta", "thinking")
+                if (!pensee.isNullOrEmpty()) emit(AiEvent.ReasoningDelta(pensee))
+            }
+
             "input_json_delta" -> {
                 traiterFragmentArguments(index, json, emit)
             }
