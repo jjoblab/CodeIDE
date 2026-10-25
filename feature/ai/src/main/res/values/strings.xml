@@ -167,6 +167,12 @@
     <string name="ia_erreur_stockage">Accès au stockage impossible</string>
     <string name="ia_erreur_inconnue">Erreur inattendue</string>
 
+    <!-- Actions de remédiation des cartes d'erreur (rapport IA,
+         Lot 5, point 5) : chaque erreur typée propose SON action. -->
+    <string name="ia_erreur_action_reessayer">Réessayer</string>
+    <string name="ia_erreur_action_reglages">Ouvrir les réglages</string>
+    <string name="ia_erreur_action_modele">Changer de modèle</string>
+
     <!-- Lot IA-5 : intégration éditeur (pont, carte de diff). -->
     <string name="ia_appliquer">Appliquer</string>
     <string name="ia_appliquer_cd">Proposer ce bloc dans la carte de diff de l\'éditeur</string>

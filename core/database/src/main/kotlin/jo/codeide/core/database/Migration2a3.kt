@@ -3,6 +3,12 @@ package jo.codeide.core.database
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
+/** Version source de cette migration (schéma de l'historique IA). */
+private const val VERSION_AVANT = 2
+
+/** Version cible : historique IA + compteurs d'usage. */
+private const val VERSION_APRES = 3
+
 /**
  * Migration 2 → 3 (rapport IA, Lot 5, point 4) : compteurs d'usage par
  * conversation — `jetons_entree` + `jetons_sortie` sur
@@ -13,13 +19,6 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  *
  * Testée sur le schéma v2 exporté ([Migration2a3Test]).
  */
-
-/** Version source de cette migration (schéma de l'historique IA). */
-private const val VERSION_AVANT = 2
-
-/** Version cible : historique IA + compteurs d'usage. */
-private const val VERSION_APRES = 3
-
 public object Migration2a3 : Migration(VERSION_AVANT, VERSION_APRES) {
     override fun migrate(db: SupportSQLiteDatabase) {
         db.execSQL(

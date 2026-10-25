@@ -1678,3 +1678,11 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IA23 | Ouvrir Historique → une conversation ayant rapporté de l'usage | La méta se termine par « · N jetons » (total entrée+sortie) ; les conversations sans usage restent inchangées |
 | IA24 | Rouvrir une conversation depuis l'historique | Le compteur du chat REPREND les cumuls de la conversation (pas remis à zéro) ; « Nouvelle conversation » le remet à zéro |
 | IA25 | Couper le réseau pendant une génération (échec) puis régénérer avec succès | L'échec n'a cumulé AUCUN jeton ; la régénération réussie cumule les jetons de SON flux |
+
+## Assistant IA — actions de remédiation par carte d'erreur (rapport IA Lot 5, point 5 → v0.193.0)
+
+| # | Scénario | Résultat attendu |
+|---|----------|------------------|
+| IA26 | Couper le réseau, envoyer un message (échec hors-ligne/délai) | La carte d'erreur propose « Réessayer » ; rétablir le réseau puis toucher → le dernier échange REPART |
+| IA27 | Fournisseur mal configuré (clé refusée ou consentement révoqué) puis envoi | La carte propose « Ouvrir les réglages » → mène à Paramètres → IA ; une clé illisible (Keystore réinitialisé) propose la même action |
+| IA28 | Serveur non standard qui renvoie une réponse illisible | La carte propose « Changer de modèle » → ouvre le SÉLECTEUR de l'en-tête du chat (changer puis réessayer sans quitter le chat) |

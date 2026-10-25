@@ -6,6 +6,7 @@
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -29,6 +30,18 @@
         android:textAppearance="?attr/textAppearanceBodySmall"
         android:textColor="?attr/colorOnErrorContainer"
         android:visibility="gone" />
+
+    <!-- Action de remédiation de l'erreur (rapport IA, Lot 5, point 5) :
+         chaque erreur normalisée propose SON action — Réessayer, Ouvrir
+         les réglages ou Changer de modèle. Masqué sans erreur. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_action_erreur"
+        style="@style/Widget.CodeIDE.Button.Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="40dp"
+        android:visibility="gone"
+        tools:text="Réessayer" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/bouton_copier_message"
