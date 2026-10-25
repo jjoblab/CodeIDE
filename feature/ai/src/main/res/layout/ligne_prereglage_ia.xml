@@ -3,43 +3,36 @@
   Ligne de préréglage d'URL (rapport IA, Lot 5, point 1) : nom du
   service + URL de base qu'il préremplit. Appui = préremplir le champ
   URL (validé puis persisté par le ViewModel) — la clé d'API n'est
-  JAMAIS concernée par un préréglage.
+  JAMAIS concernée par un préréglage. Racine verticale DIRECTE (pas
+  d'enrobage horizontal inutile — lint UselessParent) : la cible
+  tactile est portée par la racine elle-même.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
-    android:baselineAligned="false"
-    android:gravity="center_vertical"
     android:minHeight="@dimen/touch_target_min"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:paddingVertical="@dimen/spacing_xs">
 
-    <LinearLayout
-        android:layout_width="0dp"
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/nom_prereglage"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="OpenRouter" />
 
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/nom_prereglage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textColor="?attr/colorOnSurface"
-            tools:text="OpenRouter" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/url_prereglage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="https://openrouter.ai/api/v1" />
-    </LinearLayout>
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/url_prereglage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="https://openrouter.ai/api/v1" />
 </LinearLayout>
