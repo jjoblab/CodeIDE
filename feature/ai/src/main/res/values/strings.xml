@@ -100,6 +100,10 @@
     <string name="ia_chat_modele_cd">Changer le modèle de l\'assistant</string>
     <string name="ia_chat_modele_vide">Choisir un modèle</string>
     <string name="ia_chat_modele_aucun">Aucun modèle recensé — appuyez sur « Actualiser la liste »</string>
+    <!-- Compteur d'usage de la conversation (rapport IA, Lot 5, point 4) :
+         jetons RAPPORTÉS par le fournisseur, jamais estimés localement. -->
+    <string name="ia_chat_usage">Entrée %1$d · Sortie %2$d</string>
+
 
     <string name="ia_tiroir_titre">Assistant IA</string>
     <string name="ia_onglet_chat">Chat</string>
@@ -174,6 +178,7 @@
     <string name="ia_historique_recherche_hint">Rechercher une conversation</string>
     <string name="ia_historique_vide">Aucune conversation</string>
     <string name="ia_historique_meta">%1$s · %2$s</string>
+    <string name="ia_historique_usage_suffixe"> · %1$d jetons</string>
     <string name="ia_historique_menu_renommer">Renommer</string>
     <string name="ia_historique_menu_supprimer">Supprimer</string>
     <string name="ia_historique_menu_cd">Actions de la conversation</string>

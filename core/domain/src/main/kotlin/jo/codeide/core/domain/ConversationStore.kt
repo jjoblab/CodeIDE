@@ -60,6 +60,24 @@ public interface ConversationStore {
      */
     public suspend fun ajouterMessage(conversationId: String, modele: String, message: MessageConversationIa)
 
+    /**
+     * Incrémente les compteurs d'usage d'une conversation (rapport IA,
+     * Lot 5, point 4) : cumul atomique côté stockage, AUCUN effet sur
+     * une conversation inconnue (le chat ne compte que ce qui est
+     * persisté — un flux interrompu avant le premier message persisté
+     * ne s'accumule nulle part).
+     *
+     * @param jetonsEntree jetons d'entrée rapportés par le flux terminé.
+     * @param jetonsSortie jetons de sortie rapportés par le flux terminé.
+     */
+    public suspend fun ajouterUsage(conversationId: String, jetonsEntree: Long, jetonsSortie: Long)
+
+    /**
+     * Conversation par identifiant (compteurs d'usage à la réouverture
+     * du chat — Lot 5, point 4) ; `null` si inconnue.
+     */
+    public suspend fun conversationParId(conversationId: String): ConversationIa?
+
     /** Renomme une conversation ; renvoie le nombre de lignes modifiées. */
     public suspend fun renommer(conversationId: String, titre: String): Int
 

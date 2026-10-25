@@ -149,6 +149,32 @@ class ConversationStoreRoomTest {
         assertTrue(titre.endsWith("…"))
     }
 
+    // ------------------------------------------------------------------
+    // Compteurs d'usage (rapport IA, Lot 5, point 4).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `l usage s accumule par increments et se relit`() = runTest {
+        store.ajouterMessage("c1", "m", message("m1", "Bonjour", true))
+        store.ajouterUsage("c1", jetonsEntree = 10, jetonsSortie = 5)
+        store.ajouterUsage("c1", jetonsEntree = 3, jetonsSortie = 2)
+
+        val conversation = store.conversations().first().single()
+        assertEquals(13L, conversation.jetonsEntree)
+        assertEquals(7L, conversation.jetonsSortie)
+        // Lecture directe (réouverture du chat).
+        assertEquals(13L, store.conversationParId("c1")?.jetonsEntree)
+        assertEquals(7L, store.conversationParId("c1")?.jetonsSortie)
+    }
+
+    @Test
+    fun `ajouterUsage sur une conversation inconnue n a aucun effet`() = runTest {
+        store.ajouterUsage("inexistante", jetonsEntree = 10, jetonsSortie = 5)
+
+        assertTrue(store.conversations().first().isEmpty())
+        assertEquals(null, store.conversationParId("inexistante"))
+    }
+
     private fun message(
         id: String,
         texte: String,

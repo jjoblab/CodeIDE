@@ -98,6 +98,10 @@
     <string name="ia_chat_modele_vide">Choose a model</string>
     <string name="ia_chat_modele_aucun">No models listed yet — tap \"Refresh list\"</string>
 
+    <!-- Conversation usage counter (AI report, Lot 5, point 4):
+         tokens REPORTED by the provider, never estimated locally. -->
+    <string name="ia_chat_usage">In %1$d · Out %2$d</string>
+
     <string name="ia_tiroir_titre">AI assistant</string>
     <string name="ia_onglet_chat">Chat</string>
     <string name="ia_onglet_agent">Agent</string>
@@ -171,6 +175,7 @@
     <string name="ia_historique_recherche_hint">Search a conversation</string>
     <string name="ia_historique_vide">No conversation</string>
     <string name="ia_historique_meta">%1$s · %2$s</string>
+    <string name="ia_historique_usage_suffixe"> · %1$d tokens</string>
     <string name="ia_historique_menu_renommer">Rename</string>
     <string name="ia_historique_menu_supprimer">Delete</string>
     <string name="ia_historique_menu_cd">Conversation actions</string>

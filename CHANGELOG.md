@@ -1,5 +1,42 @@
 # Journal des modifications
 
+## [0.192.0] – 2026-10-25
+
+### Compteur d'usage par conversation (rapport IA, Lot 5, point 4)
+
+#### Ajouté
+
+- **Les jetons rapportés par le fournisseur s'affichent dans le chat
+  et l'historique** : l'en-tête du chat montre le cumul entrée/sortie
+  de la conversation (« Entrée 123 · Sortie 45 ») dès qu'un flux a
+  rapporté un usage ; la ligne d'historique ajoute le total
+  (« il y a 3 min · claude-test · 168 jetons »). Les nombres sont
+  TOUJOURS ceux que le fournisseur rapporte (`AiEvent.Usage`, lu par
+  les DEUX fournisseurs) — jamais une estimation locale ; le compteur
+  reste masqué tant que rien n'a été rapporté.
+- Sémantique de cumul honnête : le DERNIER rapport de chaque jeton
+  gagne (la sortie d'Anthropic est cumulative par delta, le
+  compatible OpenAI fait un rapport final) ; seules les générations
+  MENÉES À TERME comptent (échec, arrêt, flux interrompu : aucun
+  jeton cumulé) ; réouverture d'une conversation → les compteurs
+  reprennent là où ils étaient ; nouvelle conversation → zéro.
+
+#### Technique
+
+- Room v3 : `ai_conversations` gagne `jetons_entree` +
+  `jetons_sortie` (`NOT NULL DEFAULT 0`) — [Migration2a3] testée sur
+  le schéma v2 exporté (données préservées, compteurs à zéro,
+  enchaînement 1→2→3 couvert) ; DAO `ajouterUsage` (cumul atomique
+  en SQL) + port `ConversationStore.ajouterUsage` /
+  `conversationParId` ; `ConversationIa` porte les cumuls.
+- `ChatViewModel` consomme `AiEvent.Usage` au fil du flux et
+  comptabilise à `Done` (état + conversation persistée, APRÈS le
+  message assistant — la conversation existe déjà).
+- Tests : migration (2 scénarios), store (cumul incrémental,
+  conversation inconnue ignorée), chat (cumul au Done, dernier
+  rapport gagne, échec sans cumul, réouverture, remise à zéro).
+- Scénarios IA22-IA25 dans `docs/TESTS_MANUELS.md`.
+
 ## [0.191.0] – 2026-10-25
 
 ### Sélecteur de modèle dans l'en-tête du chat (rapport IA, Lot 5, point 3)

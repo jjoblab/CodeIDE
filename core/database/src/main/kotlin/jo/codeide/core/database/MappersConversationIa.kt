@@ -3,7 +3,8 @@ package jo.codeide.core.database
 import jo.codeide.core.domain.ConversationIa
 import jo.codeide.core.domain.MessageConversationIa
 
-/** Entité ↔ domaine — conversations IA (mission IA, lot IA-6). */
+/** Entité ↔ domaine — conversations IA (mission IA, lot IA-6 ;
+ *  compteurs d'usage — rapport IA, Lot 5, point 4). */
 
 public fun ConversationIaEntity.toModel(): ConversationIa = ConversationIa(
     identifiant = id,
@@ -11,6 +12,8 @@ public fun ConversationIaEntity.toModel(): ConversationIa = ConversationIa(
     modele = modele,
     creeA = creeA,
     modifieA = modifieA,
+    jetonsEntree = jetonsEntree,
+    jetonsSortie = jetonsSortie,
 )
 
 public fun ConversationIa.toEntity(): ConversationIaEntity = ConversationIaEntity(
@@ -19,6 +22,8 @@ public fun ConversationIa.toEntity(): ConversationIaEntity = ConversationIaEntit
     modele = modele,
     creeA = creeA,
     modifieA = modifieA,
+    jetonsEntree = jetonsEntree,
+    jetonsSortie = jetonsSortie,
 )
 
 public fun MessageIaEntity.toModel(): MessageConversationIa = MessageConversationIa(

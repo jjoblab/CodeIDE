@@ -25,4 +25,12 @@ public data class ConversationIaEntity(
     @ColumnInfo(name = "cree_a") public val creeA: Long,
     /** Dernier message (epoch ms) — tri de la liste + purge rétention. */
     @ColumnInfo(name = "modifie_a") public val modifieA: Long,
+    /**
+     * Jetons d'entrée cumulés de la conversation (rapport IA, Lot 5,
+     * point 4 — rapportés par les deux fournisseurs, jamais estimés
+     * localement). 0 tant qu'aucun flux n'a rapporté d'usage.
+     */
+    @ColumnInfo(name = "jetons_entree", defaultValue = "0") public val jetonsEntree: Long = 0,
+    /** Jetons de sortie cumulés de la conversation (même contrat). */
+    @ColumnInfo(name = "jetons_sortie", defaultValue = "0") public val jetonsSortie: Long = 0,
 )

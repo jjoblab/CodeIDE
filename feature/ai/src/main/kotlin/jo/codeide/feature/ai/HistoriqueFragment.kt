@@ -180,8 +180,17 @@ private class TitulaireConversation(private val liaison: LigneConversationBindin
                 System.currentTimeMillis(),
                 DateUtils.MINUTE_IN_MILLIS,
             )
+        // Lot 5, point 4 : l'usage RAPPORTÉ par le fournisseur complète
+        // la méta quand la conversation en a un (jamais d'estimation).
+        val totalJetons = conversation.jetonsEntree + conversation.jetonsSortie
+        val suffixe =
+            if (totalJetons > 0) {
+                contexte.getString(R.string.ia_historique_usage_suffixe, totalJetons)
+            } else {
+                ""
+            }
         liaison.metaConversation.text =
-            contexte.getString(R.string.ia_historique_meta, relatif, conversation.modele)
+            contexte.getString(R.string.ia_historique_meta, relatif, conversation.modele) + suffixe
         liaison.root.contentDescription =
             contexte.getString(R.string.ia_historique_ligne_cd, conversation.titre)
         liaison.root.setOnClickListener { surOuvrir(conversation.identifiant) }

@@ -4,7 +4,9 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 /**
- * Base Room de CodeIDE — version 2 (lot IA-6 : historique des
+ * Base Room de CodeIDE — version 3 (rapport IA, Lot 5, point 4 :
+ * compteurs d'usage par conversation — `jetons_entree` +
+ * `jetons_sortie` sur `ai_conversations` ; version 2 : historique des
  * conversations IA — `ai_conversations` + `ai_messages`, cascade).
  *
  * Le schéma est **exporté** dans `core/database/schemas/` (convention
@@ -23,7 +25,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [ProjectEntity::class, ConversationIaEntity::class, MessageIaEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
 )
 public abstract class CodeIdeDatabase : RoomDatabase() {
