@@ -225,6 +225,7 @@
     <string name="agent_continuer">Continue</string>
     <string name="agent_en_cours">Agent running</string>
     <string name="agent_limites">Steps: %1$d / %2$d · model %3$s</string>
+    <string name="agent_numero_etape">%1$d</string>
     <string name="agent_statut_en_cours">The agent is working…</string>
     <string name="agent_statut_interrompu">Step limit reached — press “Continue” to go on</string>
     <string name="agent_statut_termine">Goal covered — final answer received</string>
