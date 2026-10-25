@@ -12,7 +12,9 @@
 > validés par la CI ; v0.194.0 ajoute le déblocage du premier
 > paramétrage du fournisseur compatible OpenAI (voir T8/T13) ;
 > v0.195.0 ajoute le crash des réglages corrigé, le bouton « Terminer »,
-> le flux coulant + raisonnement du chat et le départ de l'agent (T14–T19).
+> le flux coulant + raisonnement du chat et le départ de l'agent (T14–T19) ;
+> v0.196.0 ajoute la cadence du flux (plus d'ANR), le punaisage pixel au
+> bas avec « Revenir en bas » et le fond de la réponse assistant (T20, ADR 0150).
 > Ouvrir la dernière exécution VERTE pour l'APK de test.
 
 ## 1. Application
@@ -56,6 +58,7 @@ version : le code ajoute `/chat/completions` et `/models`.
 | T17 | Chat avec un modèle qui réfléchit (ex. `deepseek/deepseek-r1` sur OpenRouter, ou tout modèle `:thinking`) | Section « Raisonnement en cours… » pendant la pensée, repliable en « Raisonnement » dès que la réponse démarre ; la réponse suit en dessous ; à la réouverture de la conversation depuis l'historique, le raisonnement est TOUJOURS là | Fragments `reasoning`/`reasoning_content`/`thinking_delta` couverts par `OpenAiCompatibleProviderTest`/`AnthropicProviderTest` + `ChatViewModelTest` (JVM) ; recette visuelle à valider avec un vrai modèle qui réfléchit |
 | T18 | Chat : plafond de jetons bas (ex. 128) + question longue | La réponse s'arrête au plafond avec l'indice « Réponse arrêtée par la limite de jetons — augmentez le plafond dans les réglages » sous le message | Couvert par `ChatViewModelTest` (JVM) ; recette visuelle recommandée |
 | T19 | Agent : taper l'objectif puis appuyer DIRECTEMENT sur « Lancer l'agent » (sans quitter le champ) | L'agent démarre — plus de « objectif vide » alors que le champ est plein (le bouton committe avant de lancer, v0.195.0) ; bandeau de statut « L'agent travaille… » + barre de progression visibles ; étapes numérotées avec coche ; à la fin, carte « réponse finale » distincte | Correctif du retour propriétaire (v0.195.0) ; recette visuelle recommandée |
+| T20 | Chat : demander une réponse LONGUE avec des blocs de code (ex. « écris trois classes Kotlin complètes ») et toucher PENDANT le flux | Aucun ANR : l'écran répond pendant toute la génération ; le bas de la réponse reste COLLÉ au bas pendant que le texte coule (pas de tremblement) ; remonte la lecture : la liste NE SAUTE PLUS (le bouton « Revenir en bas » apparaît), un appui dessus recolle et reprend le suivi ; la réponse se lit sur une CARTE teintée distincte du fond, les blocs de code contrastent dessus | Cadence + punaisage pixel + empreinte des puces + garde anti-rendu (v0.196.0, ADR 0150) ; maths pures couvertes par `PunaisageFluxChatTest`/`EmpreintePucesDeTest`, rafale par `ChatViewModelTest` ; recette visuelle recommandée |
 
 ## 4. Constats « Probable » du rapport — vérification
 

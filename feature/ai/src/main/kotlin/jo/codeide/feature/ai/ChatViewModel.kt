@@ -34,6 +34,7 @@ import jo.codeide.core.model.getOrNull
 import jo.codeide.core.ui.PropositionDiffIa
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -677,16 +678,32 @@ constructor(
                 // Failure — chaque branche de fin clôt aussi le drapeau
                 // écran (le compositeur repasse à « Envoyer ») ; l'arrêt
                 // utilisateur, lui, passe par [arreter].
+                //
+                // CADENCE DU FLUX (v0.196.0, ANR) : chaque fragment de
+                // texte/raisonnement appliqué est suivi d'une SIESTE
+                // bornée — l'état ne peut plus être émis plus vite que
+                // le rendu n'encaisse, QUEL QUE SOIT le débit des jetons
+                // (20–60 deltas/s chez certains fournisseurs). Les
+                // fragments arrivés pendant la sieste s'accumulent dans
+                // le canal (capacité 64, le lecteur SSE est mis en
+                // attente par contre-pression — aucun jeton perdu), et
+                // le rendu suivant montre le texte CONFLATÉ : c'est le
+                // rythme « le texte coule par mots » des clients de
+                // chat adultes. Done/Failure ne dorment JAMAIS : la fin
+                // est appliquée immédiatement, donc aucune latence
+                // perceptible sur la clôture.
                 envoyer(requete).collect { evenement ->
                     when (evenement) {
                         is AiEvent.TextDelta -> {
                             texte += evenement.text
                             majDernierAssistant(texte = texte)
+                            cadencer()
                         }
 
                         is AiEvent.ReasoningDelta -> {
                             raisonnement += evenement.text
                             majDernierAssistant(raisonnement = raisonnement)
+                            cadencer()
                         }
 
                         is AiEvent.Usage -> {
@@ -723,6 +740,17 @@ constructor(
         generation = null
         majDernierAssistant(generationEnCours = false)
         etatInterne.value = etatInterne.value.copy(generationEnCours = false)
+    }
+
+    /**
+     * Sieste de cadence du flux (v0.196.0, ANR) : borne le rythme des
+     * émissions d'état pendant le streaming. [delay] est annulable —
+     * « Arrêter » interrompt la sieste aussitôt ; sur un flux au compte
+     * gouttes (un jeton toutes les ~500 ms), la sieste est GRATUITE :
+     * le collecteur attendait le canal de toute façon.
+     */
+    private suspend fun cadencer() {
+        delay(CADENCE_FLUX_MS)
     }
 
     /**
@@ -948,6 +976,16 @@ constructor(
 
     private fun emettre(effet: EffetChatIa) {
         viewModelScope.launch { effetsInternes.send(effet) }
+    }
+
+    private companion object {
+        /**
+         * Cadence du flux (v0.196.0) : une émission d'état au PLUS toutes
+         * les 50 ms (20 rendus/s maximum) — le « le texte coule par
+         * mots » des clients de chat, au lieu d'un rendu PAR JETON qui
+         * saturait le fil principal (ANR rapporté par le propriétaire).
+         */
+        private const val CADENCE_FLUX_MS = 50L
     }
 }
 

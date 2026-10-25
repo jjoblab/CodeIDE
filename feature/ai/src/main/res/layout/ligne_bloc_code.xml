@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Bloc de code du chat (mission IA, lot IA-3 ; IA-5 ajoute Appliquer) :
-  barre langue · Copier · Insérer · Appliquer (diff) + contenu à chasse
-  fixe, défilant horizontalement. Les actions sont réelles : presse-
-  papiers, PortEditeurActif, carte de diff de l'éditeur (ADR 0126).
+  Bloc de code du chat (mission IA, lot IA-3 ; IA-5 ajoute Appliquer ;
+  v0.196.0 — contraste dans la carte assistant) : barre langue · Copier ·
+  Insérer · Appliquer (diff) + contenu à chasse fixe, défilant
+  horizontalement. Les actions sont réelles : presse-papiers,
+  PortEditeurActif, carte de diff de l'éditeur (ADR 0126).
+
+  v0.196.0 : la réponse assistant vit sur une carte teintée surface
+  variante (fond_reponse_assistant) — le bloc de code repasse au
+  SURFACE plein, lisible dans les DEUX thèmes, au lieu de se fondre
+  dans le nouveau fond de son parent.
 -->
 <com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,7 +17,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginVertical="@dimen/spacing_xs"
-    app:cardBackgroundColor="?attr/colorSurfaceVariant"
+    app:cardBackgroundColor="?attr/colorSurface"
     app:contentPadding="0dp"
     app:strokeColor="?attr/colorOutlineVariant"
     app:strokeWidth="1dp">

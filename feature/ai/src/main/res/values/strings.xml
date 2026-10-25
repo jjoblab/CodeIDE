@@ -101,6 +101,10 @@
     <string name="ia_envoyer_cd">Envoyer le message à l\'assistant</string>
     <string name="ia_arreter">Arrêter</string>
     <string name="ia_arreter_cd">Arrêter la génération en cours</string>
+    <!-- « Revenir en bas » du chat (v0.196.0) : punaisage de lecture
+         remontée — un appui recolle la conversation au bas et reprend
+         le suivi du flux. -->
+    <string name="ia_revenir_bas_cd">Revenir au bas de la conversation</string>
     <!-- Sélecteur de modèle de l'en-tête du chat (rapport IA, Lot 5,
          point 3) — le modèle se choisit sans repasser par Paramètres. -->
     <string name="ia_chat_modele_cd">Changer le modèle de l\'assistant</string>

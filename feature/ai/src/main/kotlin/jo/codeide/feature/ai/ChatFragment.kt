@@ -63,6 +63,21 @@ public class ChatFragment : Fragment() {
      * suspension de l'envoi (l'état vide réarme la garde). */
     private var dialogueSecretAffiche = false
 
+    /**
+     * Punaisage au bas (v0.196.0) : `true` tant que la lecture reste
+     * COLLÉE au bas de la conversation — le flux est suivi pixel par
+     * pixel ; un appui sur « Envoyer » ou « Revenir en bas » le
+     * réarme, une remontée de lecture l'annule (plus jamais de yank).
+     */
+    private var punaiserBas = true
+
+    /**
+     * Empreinte des puces DEJA posées (v0.196.0, ANR) : la rangée ne
+     * se regonfle QUE si les pièces ou le budget ont CHANGÉ — avant,
+     * chaque jeton du flux détruisait et regonflait la rangée entière.
+     */
+    private var empreintePuces: String? = null
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val liaisonLocale = FragmentIaChatBinding.inflate(inflater, container, false)
         liaison = liaisonLocale
@@ -83,10 +98,31 @@ public class ChatFragment : Fragment() {
         adaptateur = adaptateurLocal
         liaisonLocale.listeMessages.adapter = adaptateurLocal
         liaisonLocale.listeMessages.layoutManager = LinearLayoutManager(requireContext())
+        // Punaisage (v0.196.0) : chaque défilement réel (l'utilisateur)
+        // ou suivi (le flux) réévalue « suis-je au bas ? » — le bouton
+        // « Revenir en bas » apparaît dès que la lecture a remonté.
+        liaisonLocale.listeMessages.addOnScrollListener(
+            object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recycler: RecyclerView, dx: Int, dy: Int) {
+                    majPunaisage(recycler)
+                }
+            },
+        )
 
-        liaisonLocale.boutonEnvoyer.setOnClickListener { viewModel.onAction(ActionChatIa.Envoyer) }
+        liaisonLocale.boutonEnvoyer.setOnClickListener {
+            // Envoyer = l'attention revient à la conversation : le bas
+            // redevient la référence de lecture (v0.196.0).
+            punaiserBas = true
+            viewModel.onAction(ActionChatIa.Envoyer)
+        }
         liaisonLocale.boutonArreter.setOnClickListener { viewModel.onAction(ActionChatIa.Arreter) }
         liaisonLocale.boutonConsentement.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirConsentement) }
+        // « Revenir en bas » (v0.196.0) : recolle la conversation au bas
+        // et REPREND le suivi du flux — le geste standard des clients de chat.
+        liaisonLocale.boutonRevenirBas.setOnClickListener {
+            punaiserBas = true
+            suivreLeBas(liaisonLocale)
+        }
         // Lot 5, point 3 : le modèle se choisit depuis l'EN-TÊTE du chat.
         liaisonLocale.boutonModele.setOnClickListener { ouvrirSelecteurModele() }
         // v0.188.0 (rapport IA S3) : l'état « Ajoutez une clé » mène au
@@ -140,7 +176,20 @@ public class ChatFragment : Fragment() {
     }
 
     private fun rendre(etat: EtatChatIa, liaisonLocale: FragmentIaChatBinding, adaptateurLocal: AdapterMessages) {
-        adaptateurLocal.submitList(etat.messages)
+        // Suivi du bas (v0.196.0) : la soumission se fait AVEC RAPPEL DE
+        // COMMIT — le recollage pixel se joue APRÈS l'application du diff
+        // de la liste (position et hauteur réelles), pas avant. TANT QUE
+        // la lecture est punaisée au bas, la réponse qui grandit reste
+        // COLLÉE à l'écran : plus un saut `scrollToPosition` PAR JETON qui
+        // faisait trembler la liste — le défilement suit exactement les
+        // pixels ajoutés (recette des clients de chat).
+        adaptateurLocal.submitList(etat.messages) {
+            if (punaiserBas) {
+                suivreLeBas(liaisonLocale)
+            } else {
+                majPunaisage(liaisonLocale.listeMessages)
+            }
+        }
         // Le brouillon vit dans le ViewModel : effacement après envoi et
         // restauration post-rotation passent ICI (drapeau anti-écho — la
         // frappe utilisateur, elle, ne repasse jamais par ce chemin).
@@ -166,16 +215,11 @@ public class ChatFragment : Fragment() {
         }
 
         // Défilement automatique pendant la génération (v0.195.0) :
-        // UNIQUEMENT si l'utilisateur est au bas de la conversation —
-        // jamais de yank de la liste quand il a remonté pour relire
-        // (discipline des clients de chat adultes).
-        if (etat.generationEnCours && etat.messages.isNotEmpty()) {
-            val gestionnaire = liaisonLocale.listeMessages.layoutManager as? LinearLayoutManager
-            val dernierVisible = gestionnaire?.findLastCompletelyVisibleItemPosition() ?: -1
-            if (dernierVisible >= etat.messages.lastIndex - 1) {
-                liaisonLocale.listeMessages.scrollToPosition(etat.messages.lastIndex)
-            }
-        }
+        // REMPLACÉ (v0.196.0) par le punaisage pixel ci-dessus — l'ancienne
+        // condition (`findLastCompletelyVisibleItemPosition >= lastIndex - 1`)
+        // devenait FAUSSE dès que le message en génération dépassait la
+        // hauteur de l'écran : le suivi mourait en pleine réponse
+        // (« ça fige avant de s'afficher les résultats »).
 
         // En-tête (Lot 5, point 3) : le sélecteur de modèle n'est offert
         // que dans les états OUVERTS — jamais de contrôle sans effet.
@@ -187,6 +231,76 @@ public class ChatFragment : Fragment() {
             )
         rendreEnTete(etat, ecran, liaisonLocale)
         rendreEcran(ecran, liaisonLocale)
+    }
+
+    /**
+     * Réévalue le punaisage après un défilement (v0.196.0) : mesure
+     * PIXEL du dernier enfant posé — reste vraie même quand le message
+     * en génération dépasse l'écran (le talon d'Achille de l'ancienne
+     * condition par positions). Le bouton « Revenir en bas » suit : il
+     * n'apparaît QUE quand il y a une lecture remontée à reprendre.
+     */
+    @Suppress("ReturnCount") // la fonction EST la chaîne de gardes (liaison
+    // perdue, gestionnaire absent, enfant absent) — même motif que
+    // `FournisseurIaActif.acceder`.
+    private fun majPunaisage(recycler: RecyclerView) {
+        val liaisonLocale = liaison ?: return
+        val gestionnaire = recycler.layoutManager as? LinearLayoutManager ?: return
+        val dernierEnfant = gestionnaire.getChildAt(gestionnaire.childCount - 1) ?: return
+        punaiserBas =
+            PunaisageFluxChat.estPunaise(
+                basDernierEnfant = dernierEnfant.bottom,
+                hauteurZone = recycler.height,
+                paddingBas = recycler.paddingBottom,
+            )
+        liaisonLocale.boutonRevenirBas.isVisible = !punaiserBas && gestionnaire.itemCount > 1
+    }
+
+    /**
+     * RECOLLE la conversation au bas (v0.196.0) : saut FRANC quand le
+     * dernier message n'est pas encore posé (conversation rouverte,
+     * nouveau message hors zone) puis recollage PIXEL après le
+     * passage de disposition — même un dernier message plus HAUT que
+     * l'écran atterrît le bas à l'écran ; sinon simple ajustement du
+     * SURPLOMB par `scrollBy` : pas de tremblement, la réponse qui
+     * grandit reste collée au bas.
+     */
+    @Suppress("ReturnCount") // un retour par issue (liste vide, dernier
+    // hors zone, bas posé) — la lisibilité vise par les gardes.
+    private fun suivreLeBas(liaisonLocale: FragmentIaChatBinding) {
+        val recycler = liaisonLocale.listeMessages
+        val gestionnaire = recycler.layoutManager as? LinearLayoutManager ?: return
+        val dernier = gestionnaire.itemCount - 1
+        if (dernier < 0) {
+            return
+        }
+        if (gestionnaire.findLastVisibleItemPosition() < dernier) {
+            // Dernier item hors zone : saut direct, PUIS recollage du bas
+            // au passage de disposition suivant (scrollToPosition aligne le
+            // HAUT de l'item — un dernier message plus haut que l'écran
+            // laisserait sa moitié basse hors champs sans le recollage).
+            recycler.scrollToPosition(dernier)
+            recycler.post {
+                recollerLeBas(recycler, gestionnaire)
+            }
+            return
+        }
+        recollerLeBas(recycler, gestionnaire)
+        liaisonLocale.boutonRevenirBas.isVisible = false
+    }
+
+    /** Applique le SURPLOMB pixel (nul, positif ou négatif) du dernier enfant. */
+    private fun recollerLeBas(recycler: RecyclerView, gestionnaire: LinearLayoutManager) {
+        val dernierEnfant = gestionnaire.getChildAt(gestionnaire.childCount - 1) ?: return
+        val surplomb =
+            PunaisageFluxChat.surplomb(
+                basDernierEnfant = dernierEnfant.bottom,
+                hauteurZone = recycler.height,
+                paddingBas = recycler.paddingBottom,
+            )
+        if (surplomb != 0) {
+            recycler.scrollBy(0, surplomb)
+        }
     }
 
     /**
@@ -256,8 +370,19 @@ public class ChatFragment : Fragment() {
      * Rend la rangée de puces (mission IA, lot IA-4) : UNE puce par
      * pièce assemblée + puce budget + puce « @ Fichier ». La puce
      * affichée EST ce qui part — le retrait repart vers le ViewModel.
+     *
+     * GARDE D'EMPREINTE (v0.196.0, ANR) : la rangée n'est DÉTRUITE et
+     * regonflée QUE si les pièces, le budget ou les mentions ont
+     * CHANGÉ — pendant le flux, les ~20 rendus/seconde passaient
+     * chacun par `removeAllViews` + une inflation par puce pour un
+     * résultat STRICTEMENT identique.
      */
     private fun rendrePuces(etat: EtatChatIa, liaisonLocale: FragmentIaChatBinding) {
+        val empreinte = empreintePucesDe(etat)
+        if (empreinte == empreintePuces) {
+            return
+        }
+        empreintePuces = empreinte
         val conteneur = liaisonLocale.conteneurPuces
         conteneur.removeAllViews()
         for (piece in etat.pieces) {
@@ -514,3 +639,13 @@ private fun puce(
     vue.setOnClickListener { auClic(libelle) }
     return vue
 }
+
+/**
+ * EMPREINTE de la rangée de puces (v0.196.0, ANR) — pur, testé en JVM :
+ * la rangée ne se regonfle QUE si l'empreinte CHANGE. Contenu : types
+ * ET chemins des pièces, budget de jetons — TOUT ce que la rangée
+ * affiche (la puce « @ Fichier » est statique, hors empreinte).
+ */
+internal fun empreintePucesDe(etat: EtatChatIa): String = etat.pieces.joinToString(separator = "|") { piece ->
+    "${piece.type.name}:${piece.cheminRelatif.orEmpty()}"
+} + "#" + etat.jetonsContexte

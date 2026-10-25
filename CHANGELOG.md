@@ -1,5 +1,63 @@
 # Journal des modifications
 
+## [0.196.0] – 2026-10-26
+
+### Le chat respire : plus d'ANR, un bas qui suit sans trembler, une réponse qui se lit (retour propriétaire : ANR + fluidité + différenciation)
+
+#### Corrigé
+
+- **ANR et gel « avant l'affichage des résultats »** : le rendu était
+  déclenché PAR JETON (20–60 deltas/s chez certains fournisseurs), chaque
+  delta portant DESTRUCTION + regonflement de la rangée de puces,
+  re-parse Markdown et re-fabrication des spans de TOUS les blocs — le
+  fil principal saturait. **Cadence du flux** : chaque fragment appliqué
+  est suivi d'une sieste bornée (50 ms — au plus 20 rendus/s), les
+  fragments arrivés entre-temps sont CONFLATÉS (aucun jeton perdu : la
+  contre-pression tamponne dans le canal SSE, `Done`/`Failure` ne
+  dorment jamais, « Arrêter » interrompt aussitôt). La rangée de puces
+  ne se regonfle QUE si son EMPREINTE change (pièces, chemins, budget) ;
+  un bloc Markdown INCHANGÉ ne repasse plus par `setText` (garde
+  anti-rendu : seul le bloc qui coule coûte).
+- **Tremblements / saccades de l'écran pendant le flux** : le suivi bas
+  était un `scrollToPosition` — un SAUT franc — rejoué à chaque jeton.
+  **Punaisage pixel** (`PunaisageFluxChat`, pur et testé) : tant que la
+  lecture est punaisée, le bas du dernier message reste COLLÉ au bas —
+  le défilement suit EXACTEMENT les pixels ajoutés (`scrollBy` du
+  surplomb, dans le rappel de commit du diff, aux hauteurs réelles),
+  jamais un saut.
+- **Le suivi mourait en pleine réponse longue** : l'ancienne condition
+  (`findLastCompletelyVisibleItemPosition >= lastIndex − 1`) devenait
+  structurellement FAUSSE dès que le message en génération dépassait
+  l'écran — l'écran figeait sur une réponse qui continuait hors
+  champs. La mesure PIXEL reste vraie quelle que soit la hauteur du
+  message en génération.
+
+#### Ajouté
+
+- **Bouton flottant « Revenir en bas »** (le geste standard des clients
+  de chat) : visible SEULEMENT quand la lecture a remonté une
+  conversation qui déborde ; un appui recolle au bas et REPREND le
+  suivi du flux. Une remontée de lecture ne reçoit plus JAMAIS de
+  « yank » — « Envoyer » rearme le punaisage (l'attention revient à la
+  conversation).
+- **Fond propre de la réponse assistant** (`fond_reponse_assistant` :
+  coins larges, teinte `colorSurfaceVariant`) : la réponse se lit comme
+  une ZONE distincte, la bulle utilisateur gardant son
+  `colorPrimaryContainer` — même séparation visuelle que les clients
+  de chat. Les blocs de code passent à `colorSurface` : un bloc NEUTRE
+  sur une carte teintée, lisible dans les deux thèmes (avant, bloc et
+  message se fondaient l'un dans l'autre).
+
+#### Technique
+
+- ADR 0150 (cadence, punaisage, empreinte des puces, garde anti-rendu,
+  fond de réponse) ; `PunaisageFluxChatTest` (7 maths pures),
+  `EmpreintePucesDeTest` (4), `ChatViewModelTest` +1 (rafale de 24
+  fragments : premier fragment visible sans attendre, contenu
+  intégral, clôture immédiate), `LayoutsIaTest` étendu (FAB dans la
+  zone, fond de la réponse, bulle conservée) ; recette manuelle T20
+  (`docs/IA_TESTS_MANUELS.md`).
+
 ## [0.195.0] – 2026-10-25
 
 ### Le chat coule, l'agent part, plus de crash (retour propriétaire : rapport de plantage + design)

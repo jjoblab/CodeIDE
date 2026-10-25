@@ -84,6 +84,26 @@
             app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             tools:listitem="@layout/ligne_message_assistant" />
 
+        <!-- « Revenir en bas » (v0.196.0, retour propriétaire) : petit
+             bouton flottant du bas, comme les clients de chat — visible
+             SEULEMENT quand la conversation dépasse l'écran et que la
+             lecture a remonté ; un appui recolle au bas et reprend le
+             suivi du flux. -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/bouton_revenir_bas"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/spacing_sm"
+            android:contentDescription="@string/ia_revenir_bas_cd"
+            android:visibility="gone"
+            app:backgroundTint="?attr/colorSurface"
+            app:fabCustomSize="@dimen/touch_target_min"
+            app:maxImageSize="@dimen/icon_size_sm"
+            app:srcCompat="@drawable/ic_chevron_bas"
+            app:tint="?attr/colorOnSurfaceVariant"
+            tools:visibility="visible" />
+
         <!-- État transverse (v0.188.0 : DANS la zone des messages) :
              IA non activée (consentement), clé absente (S3 — bouton
              « Ajouter une clé » vers le fournisseur actif) ou

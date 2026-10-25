@@ -95,6 +95,9 @@
     <string name="ia_envoyer_cd">Send the message to the assistant</string>
     <string name="ia_arreter">Stop</string>
     <string name="ia_arreter_cd">Stop the running generation</string>
+    <!-- Chat « back to bottom » (v0.196.0): one tap re-glues the
+         conversation to the bottom and resumes following the stream. -->
+    <string name="ia_revenir_bas_cd">Back to the bottom of the conversation</string>
     <!-- Chat header model selector (AI report, Lot 5, point 3) — the
          model is chosen without going back to Settings. -->
     <string name="ia_chat_modele_cd">Change the assistant model</string>

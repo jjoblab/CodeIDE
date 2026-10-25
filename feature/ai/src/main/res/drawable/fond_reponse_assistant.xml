@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fond de la RÉPONSE assistant (v0.196.0, retour propriétaire : « il
+  devrait y avoir quelque chose qui différencie la réponse donnée ») :
+  carte pleine largeur teintée surface variante, coins larges — la
+  réponse se lit comme une ZONE, pas comme du texte perdu sur le fond
+  (même geste que les clients de chat : bulle utilisateur colorée,
+  réponse assistant en carte discrète).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="@dimen/corner_radius_large" />
+    <solid android:color="?attr/colorSurfaceVariant" />
+</shape>
