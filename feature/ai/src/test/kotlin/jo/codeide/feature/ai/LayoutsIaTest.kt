@@ -158,6 +158,17 @@ class LayoutsIaTest {
         assertNotNull(racine.findViewById<View>(R.id.zone_messages))
         assertNotNull(racine.findViewById<View>(R.id.composeur_ia))
         assertNotNull(racine.findViewById<View>(R.id.bouton_ajouter_cle))
+        // v0.196.0 : le bouton « Revenir en bas » vit DANS la zone des
+        // messages (au-dessus de la liste) et part MASQUÉ — il n'apparaît
+        // que quand la lecture a remonté une conversation qui déborde.
+        val revenirBas = racine.findViewById<View>(R.id.bouton_revenir_bas)
+        assertNotNull(revenirBas)
+        assertEquals(View.GONE, revenirBas.visibility)
+        assertEquals(
+            "v0.196.0 : « Revenir en bas » est ENFANT de la zone des messages",
+            (revenirBas.parent as? android.view.ViewGroup)?.id,
+            racine.findViewById<View>(R.id.zone_messages).id,
+        )
         // Lot 5, point 3 : l'en-tête du chat porte le sélecteur de
         // modèle (visible dans les états OUVERTS — géré par le fragment).
         assertNotNull(racine.findViewById<View>(R.id.en_tete_chat))
@@ -195,6 +206,21 @@ class LayoutsIaTest {
         assertNotNull(assistant.findViewById<View>(R.id.conteneur_blocs))
         assertNotNull(assistant.findViewById<View>(R.id.erreur_message))
         assertNotNull(assistant.findViewById<View>(R.id.bouton_copier_message))
+        // v0.196.0 (retour propriétaire : « il devrait y avoir quelque
+        // chose qui différencie la réponse ») : la réponse assistant porte
+        // un FOND propre (fond_reponse_assistant) — le message se lit
+        // comme une zone distincte, comme les clients de chat. (Le
+        // gonfleur attache à un parent : la racine RÉELLE est l'enfant.)
+        val racineAssistant = (assistant as android.view.ViewGroup).getChildAt(0)
+        assertNotNull(
+            "v0.196.0 : la réponse assistant porte un fond de carte",
+            racineAssistant.background,
+        )
+        // La bulle utilisateur garde le sien (fond_bulle_utilisateur).
+        assertNotNull(
+            "v0.196.0 : la bulle utilisateur garde son fond",
+            utilisateur.findViewById<View>(R.id.texte_message).background,
+        )
 
         val bloc = gonfler(R.layout.ligne_bloc_code)
         assertNotNull(bloc.findViewById<View>(R.id.langue_bloc))

@@ -1,18 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Message assistant (retour propriétaire v0.195.0) : section RAISONNEMENT
-  repliable au-dessus des blocs (modèles « qui réfléchissent » — pensée
-  en cours pendant le flux, résumé repliable ensuite), blocs Markdown
-  rendus à la volée (titres, paragraphes spannés, listes, blocs de code —
-  ligne_bloc_code) avec CURSEUR DE FLUX clignotant pendant la génération,
-  indice honnête « réponse tronquée » quand le plafond de jetons a coupé
-  la réponse, carte d'erreur inline + annonce TalkBack.
+  Message assistant (retour propriétaire v0.195.0 ; v0.196.0 — fond
+  propre) : carte pleine largeur teintée (fond_reponse_assistant) — la
+  réponse est une ZONE distincte du fond de l'écran, comme les clients
+  de chat : bulle utilisateur colorée à droite, réponse assistant en
+  carte discrète. Contient la section RAISONNEMENT repliable au-dessus
+  des blocs (modèles « qui réfléchissent » — pensée en cours pendant le
+  flux, résumé repliable ensuite), les blocs Markdown rendus à la volée
+  (titres, paragraphes spannés, listes, blocs de code — ligne_bloc_code)
+  avec CURSEUR DE FLUX clignotant pendant la génération, indice honnête
+  « réponse tronquée » quand le plafond de jetons a coupé la réponse,
+  carte d'erreur inline + annonce TalkBack.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginHorizontal="@dimen/spacing_xs"
+    android:layout_marginVertical="@dimen/spacing_xs"
+    android:background="@drawable/fond_reponse_assistant"
     android:orientation="vertical"
     android:paddingHorizontal="@dimen/spacing_sm"
     android:paddingVertical="@dimen/spacing_xs">

@@ -24,6 +24,14 @@ import jo.codeide.feature.ai.databinding.LigneMessageUtilisateurBinding
  * rend la réponse « coulante » — l'ancien `removeAllViews` + regonflement
  * de TOUT clignotait et saccadait.
  *
+ * GARDE ANTI-RENDU (v0.196.0, ANR) : à chaque passage le texte brut
+ * porté par la vue est comparé au texte brut du bloc — un bloc
+ * INCHANGÉ ne repasse NI par `setText` NI par la fabrication des spans
+ * (un `setText` identique invalide quand même mesure/disposition).
+ * Pendant le flux, seul le DERNIER bloc grandit : les autres deviennent
+ * des pures lectures O(1), ce qui borne le coût de chaque image au
+ * rendu du bloc qui coule.
+ *
  * Les rappels d'actions des blocs de code (Copier / Insérer / Appliquer)
  * sont capturés au bind complet de la ligne : un rebind partiel qui fait
  * apparaître un NOUVEAU bloc de code rebranche les mêmes rappels sans
@@ -60,7 +68,7 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
                 )
                 setPadding(0, espaceVerticalPx, 0, 0)
             }
-        }.text = SpansMarkdown.de(bloc.texte)
+        }.poserTexte(bloc.texte) { SpansMarkdown.de(bloc.texte) }
     }
 
     /** Paragraphe : vue textuelle réutilisée, liens cliquables. */
@@ -73,11 +81,12 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
                 movementMethod = LinkMovementMethod.getInstance()
                 setPadding(0, espaceVerticalPx, 0, 0)
             }
-        }.text = SpansMarkdown.de(bloc.texte)
+        }.poserTexte(bloc.texte) { SpansMarkdown.de(bloc.texte) }
     }
 
     /** Liste : vue textuelle réutilisée, puces préposées. */
     private fun rendreListe(bloc: BlocMarkdown.Liste, index: Int) {
+        val brut = bloc.elements.joinToString("\n") { "•  $it" }
         blocTexte(TYPE_BLOC_LISTE, index) {
             TextView(conteneur.context).apply {
                 setTextAppearance(
@@ -85,10 +94,7 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
                 )
                 setPadding(0, espaceVerticalPx, 0, 0)
             }
-        }.text =
-            SpansMarkdown.de(
-                bloc.elements.joinToString("\n") { "•  $it" },
-            )
+        }.poserTexte(brut) { SpansMarkdown.de(brut) }
     }
 
     /** Bloc de code : carte dédiée (langue · Copier · Insérer · Appliquer). */
@@ -107,6 +113,12 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
         val vueBloc = LigneBlocCodeBinding.bind(conteneur.getChildAt(index))
         vueBloc.langueBloc.text = bloc.langue ?: ""
         vueBloc.langueBloc.isVisible = !bloc.langue.isNullOrBlank()
+        // Garde anti-rendu (v0.196.0) : un bloc de code inchangé (tous
+        // sauf le dernier pendant le flux) ne repasse ni par setText ni
+        // par les écouteurs — mesure/disposition épargnées.
+        if (vueBloc.codeBloc.text.toString() == bloc.code) {
+            return
+        }
         vueBloc.codeBloc.text = bloc.code
         vueBloc.boutonCopierBloc.setOnClickListener { copierBloc(bloc.code) }
         vueBloc.boutonInsererBloc.setOnClickListener { insererBloc(bloc.code) }
@@ -132,6 +144,18 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
     }
 
     private fun vueAuRang(index: Int): View? = conteneur.getChildAt(index)
+
+    /**
+     * Pose le rendu [fabrication] SEULEMENT si le texte BRUT a changé
+     * (garde anti-rendu, v0.196.0) : la vue porte le brut courant, la
+     * comparaison est O(taille du bloc) en lecture pure — sans elle,
+     * chaque image du flux remesurait TOUS les blocs du message.
+     */
+    private inline fun TextView.poserTexte(brut: String, fabrication: () -> CharSequence) {
+        if (text.toString() != brut) {
+            text = fabrication()
+        }
+    }
 
     private companion object {
         const val TYPE_BLOC_TITRE = "titre"

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -180,6 +181,69 @@ class ChatViewModelTest {
         )
         // Le compositeur repasse à « Envoyer » (fin naturelle).
         assertFalse(modele.etat.value.generationEnCours)
+    }
+
+    @Test
+    fun `une rafale de deltas se conflate sans perte — le premier fragment s'affiche aussitot`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        // Le PREMIER fragment s'applique AVANT la sieste de cadence
+        // (v0.196.0) : la latence perçue du premier mot reste NULLE —
+        // `runCurrent` ne fait PAS avancer le temps virtuel.
+        fournisseur.emettre(AiEvent.TextDelta("Il "))
+        runCurrent()
+        assertEquals(
+            "Il ",
+            modele.etat.value.messages
+                .last()
+                .texte,
+        )
+        assertTrue(
+            modele.etat.value.messages
+                .last()
+                .generationEnCours,
+        )
+
+        // RAFLE (v0.196.0, ANR) : 24 fragments d'un coup — la cadence
+        // borne le rythme des RENDUS, jamais le contenu : chaque
+        // fragment vit dans le texte accumulé, RIEN n'est perdu.
+        val rafale = (1..24).joinToString(separator = "") { "m$it " }
+        for (mot in 1..24) {
+            fournisseur.emettre(AiEvent.TextDelta("m$mot "))
+        }
+        advanceUntilIdle()
+        assertEquals(
+            "Il " + rafale,
+            modele.etat.value.messages
+                .last()
+                .texte,
+        )
+
+        // La clôture ne dort jamais : Done est appliqué immédiatement.
+        fournisseur.emettre(AiEvent.Done(AiStopReason.EndTurn))
+        advanceUntilIdle()
+        assertFalse(
+            modele.etat.value.messages
+                .last()
+                .generationEnCours,
+        )
     }
 
     @Test
