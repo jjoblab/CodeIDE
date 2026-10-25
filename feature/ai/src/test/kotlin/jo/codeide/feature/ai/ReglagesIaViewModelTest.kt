@@ -6,6 +6,9 @@ import jo.codeide.core.domain.FournisseursIa
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -206,5 +209,81 @@ class ReglagesIaViewModelTest {
 
         assertEquals("modele-openai", reglages.flux.value.modeleOpenAiCompatible)
         assertEquals("existant", reglages.flux.value.modeleAnthropic)
+    }
+
+    @Test
+    fun `un modèle réellement changé est confirmé par un message`() = runTest {
+        // v0.190.0 (retour propriétaire OpenRouter) : sans confirmation, la
+        // saisie semblait ignorée — le propriétaire croyait le modèle
+        // configuré alors que rien n'était persisté.
+        val reglages =
+            FakeReglagesIa(AiSettings(fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE))
+        val modele =
+            ReglagesIaViewModel(
+                reglages,
+                FakeCoffre(),
+                ListerModelesIaUseCase(FauxFournisseur()),
+                FauxConversationStore(),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionReglagesIa.ChangerModele("google/exemple:free"))
+        advanceUntilIdle()
+
+        assertEquals("google/exemple:free", reglages.flux.value.modeleOpenAiCompatible)
+        assertEquals(R.string.ia_modele_enregistre, (modele.effets.first() as EffetReglagesIa.Message).ressource)
+    }
+
+    @Test
+    fun `un modèle vide ne change rien et n'émet rien`() = runTest {
+        val reglages =
+            FakeReglagesIa(
+                AiSettings(fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE, modeleOpenAiCompatible = "persiste"),
+            )
+        val modele =
+            ReglagesIaViewModel(
+                reglages,
+                FakeCoffre(),
+                ListerModelesIaUseCase(FauxFournisseur()),
+                FauxConversationStore(),
+            )
+        advanceUntilIdle()
+        val effets = mutableListOf<EffetReglagesIa>()
+        val collecte = launch { modele.effets.take(1).toList(effets) }
+
+        modele.onAction(ActionReglagesIa.ChangerModele("   "))
+        advanceUntilIdle()
+        collecte.cancel()
+
+        // Le modèle persisté est INTACT et AUCUN message n'est émis :
+        // le champ reprend la valeur persistée (discipline des champs
+        // numériques v0.189.0).
+        assertEquals("persiste", reglages.flux.value.modeleOpenAiCompatible)
+        assertTrue(effets.isEmpty())
+    }
+
+    @Test
+    fun `le même modèle ne change rien et n'émet pas de message parasite`() = runTest {
+        val reglages =
+            FakeReglagesIa(
+                AiSettings(fournisseurActif = FournisseursIa.OPENAI_COMPATIBLE, modeleOpenAiCompatible = "pareil"),
+            )
+        val modele =
+            ReglagesIaViewModel(
+                reglages,
+                FakeCoffre(),
+                ListerModelesIaUseCase(FauxFournisseur()),
+                FauxConversationStore(),
+            )
+        advanceUntilIdle()
+        val effets = mutableListOf<EffetReglagesIa>()
+        val collecte = launch { modele.effets.take(1).toList(effets) }
+
+        modele.onAction(ActionReglagesIa.ChangerModele("pareil"))
+        advanceUntilIdle()
+        collecte.cancel()
+
+        assertEquals("pareil", reglages.flux.value.modeleOpenAiCompatible)
+        assertTrue(effets.isEmpty())
     }
 }

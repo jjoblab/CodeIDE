@@ -1,5 +1,66 @@
 # Journal des modifications
 
+## [0.194.0] – 2026-10-25
+
+### Premier paramétrage du fournisseur compatible OpenAI débloqué (retour propriétaire OpenRouter) + montée du frère codeide-lsp en 1.12.0
+
+#### Corrigé
+
+- **Œuf et poule du premier usage** : le bouton « Actualiser » de la
+  carte Modèle passait par le routeur (`FournisseurIaActif.listModels`),
+  dont la garde exigeait un modèle DÉJÀ CONFIGURÉ — impossible de
+  lister les modèles du fournisseur pour en choisir un, donc message
+  « Fournisseur incomplet : URL de base ou modèle à définir » dès le
+  premier essai. La garde de modèle ne s'applique plus qu'au CHAT (le
+  flux exige sa cible) : `listModels` et `ping` passent avec les seules
+  gardes de consentement et d'URL (le « Tester la connexion » du détail
+  fournisseur, qui contourne déjà le routeur, reste inchangé). Le
+  sélecteur de modèle de l'en-tête du chat (v0.191.0), qui appelle le
+  MÊME cas d'usage, est débloqué d'un coup au premier paramétrage.
+- **Saisie du modèle perdue sans prévenir** : le champ Modèle ne
+  persistait qu'au clic dans la liste déroulante ou à la touche
+  « Terminé » du clavier — taper l'identifiant (ex.
+  `google/gemma-4-26b-a4b-it:free`, vérifié valide côté OpenRouter)
+  puis quitter le champ PERDAIT la valeur, et le chat répondait
+  « Fournisseur incomplet » alors que le modèle semblait saisi. La
+  persistance se fait aussi à la PERTE DE FOCUS
+  (discipline des champs numériques v0.189.0 : vide → reprise de la
+  valeur persistée, jamais d'effacement silencieux) et le rendu
+  n'écrase PLUS une saisie en cours (re-synchronisation du champ
+  seulement hors focus).
+- **Aucun retour d'enregistrement** : `ChangerModele` écrit uniquement
+  une valeur NON VIDE et DIFFÉRENTE du modèle persisté, et confirme par
+  un toast « Modèle enregistré » (`ia_modele_enregistre`) — plus de
+  doute sur la prise en compte ; une valeur identique n'écrit pas (pas
+  de toast parasite), une valeur vide ne fait rien.
+
+#### Modifié
+
+- **Frère `codeide-lsp` : 1.9.1 → 1.12.0** (parité LSP Kotlin Android
+  Studio — ADR 0217–0223 côté frère : zéro faux positif sur le template
+  Compose canonique, monde Views au niveau AS, membres d'objets KMP,
+  nus muets dans les `.gradle.kts`, companions sans nom, sélection
+  d'appelé par types complets). SANS rupture de la surface consommée
+  (tables par langage côté frère uniquement, méthodes de session
+  ajoutées avec défauts honnêtes — cf. `docs/MISE-A-JOUR-CODEIDE.md`
+  du dépôt frère) ; trois nouvelles lignes d'interrupteur effectives
+  apparaissent dans « Intelligence du code » (références XML, formatage
+  et indices Kotlin) car la liste est dérivée des capacités réelles.
+  code-editor (v4.2.0), codeide-tooling (1.0.0) et LayoutLib (3.7.0)
+  sont déjà aux dernières versions publiées.
+
+#### Technique
+
+- `FournisseurIaActifTest` : sans modèle configuré, `listModels` et
+  `ping` délèguent quand même (garde du chat verrouillée par le test
+  « un modèle vide est refusé comme erreur de configuration »).
+- `ReglagesIaViewModelTest` : modèle réellement changé → écriture +
+  toast ; valeur vide → rien ne change, aucun message ; valeur
+  identique → aucun message parasite.
+- Recette manuelle `docs/IA_TESTS_MANUELS.md` : T8 précisé (l'actualisation
+  précède le choix du modèle) + T13 nouveau (saisie quittée sans touche
+  « Terminé » → toast + envoi réel).
+
 ## [0.193.0] – 2026-10-25
 
 ### Actions d'erreur : chaque carte propose sa remédiation (rapport IA, Lot 5, point 5)
@@ -135,7 +196,6 @@
   préréglage (état + persistance) ; structure des layouts
   (`LayoutsIaTest`).
 - Scénarios manuels dans `docs/TESTS_MANUELS.md`.
-
 ## [0.189.0] – 2026-10-25
 
 ### Plus de bridage silencieux : un réglage vidé reprend sa valeur (rapport IA, Lot 4 — B3, S6 confirmé déjà en place)

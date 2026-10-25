@@ -17,11 +17,20 @@ import javax.inject.Inject
  *
  * 1. **garde d'accès** — assistant désactivé ou consentement absent ⇒
  *    `AppError.Ai(ConsentRequired)` AVANT toute construction de fournisseur ;
- * 2. **garde de configuration** — fournisseur inconnu, URL invalide ou
- *    modèle vide ⇒ `AppError.Ai(Configuration)` ;
- * 3. **délégation** — le fournisseur concret (fabrique) émet le flux réel ;
+ * 2. **garde de configuration** — fournisseur inconnu ou URL invalide ⇒
+ *    `AppError.Ai(Configuration)` ;
+ * 3. **garde de modèle** (chat seulement) — modèle vide ⇒
+ *    `AppError.Ai(Configuration)` ;
+ * 4. **délégation** — le fournisseur concret (fabrique) émet le flux réel ;
  *    le modèle des réglages fait autorité (jamais un nom codé en dur,
  *    ADR 0123 point 6).
+ *
+ * La garde de modèle ne s'applique PAS à [listModels] ni à [ping]
+ * (v0.190.0, retour propriétaire OpenRouter) : exiger un modèle DÉJÀ
+ * configuré pour lister les modèles rendait le PREMIER paramétrage
+ * impossible — on ne peut pas choisir un modèle sans savoir ce que le
+ * fournisseur propose. Lister et tester la connexion ne visent aucun
+ * modèle ; seul le chat (le flux) exige sa cible.
  *
  * Testé en JVM pur (fabrique et réglages factices) — critère IA-2 :
  * sans consentement, la fabrique n'est **jamais** sollicitée.
@@ -33,18 +42,18 @@ constructor(
     private val fabrique: FabriqueFournisseurIa,
 ) : AiProvider {
     override fun stream(request: AiRequest): Flow<AiEvent> = flow {
-        when (val acces = acceder()) {
+        when (val acces = acceder(exigeModele = true)) {
             is AccesIa.Refuse -> emit(AiEvent.Failure(acces.erreur))
             is AccesIa.Accorde -> emitAll(acces.fournisseur.stream(request.copy(model = acces.modele)))
         }
     }
 
-    override suspend fun listModels(): AppResult<List<AiModelInfo>> = when (val acces = acceder()) {
+    override suspend fun listModels(): AppResult<List<AiModelInfo>> = when (val acces = acceder(exigeModele = false)) {
         is AccesIa.Refuse -> AppResult.Failure(acces.erreur)
         is AccesIa.Accorde -> acces.fournisseur.listModels()
     }
 
-    override suspend fun ping(): AppResult<Unit> = when (val acces = acceder()) {
+    override suspend fun ping(): AppResult<Unit> = when (val acces = acceder(exigeModele = false)) {
         is AccesIa.Refuse -> AppResult.Failure(acces.erreur)
         is AccesIa.Accorde -> acces.fournisseur.ping()
     }
@@ -53,13 +62,16 @@ constructor(
      * Garde d'accès + garde de configuration, dans cet ordre — le refus
      * court-circuite toute construction de fournisseur et toute requête.
      *
+     * [exigeModele] ne vaut faux que pour lister et tester : ces deux
+     * opérations précèdent le CHOIX du modèle au premier paramétrage.
+     *
      * `@Suppress("ReturnCount")` justifiée : la fonction EST la chaîne
      * de gardes — un retour par refus (consentement, URL, modèle,
      * fournisseur) est la lisibilité visée (même motif que les tables
      * d'incidents du dépôt).
      */
     @Suppress("ReturnCount")
-    private suspend fun acceder(): AccesIa {
+    private suspend fun acceder(exigeModele: Boolean = true): AccesIa {
         val courant = lireReglages()
         val refusAcces = refuserAcces(courant)
         if (refusAcces != null) {
@@ -69,9 +81,11 @@ constructor(
         if (refusConfiguration != null) {
             return AccesIa.Refuse(refusConfiguration)
         }
-        val refusModele = refuserModele(courant)
-        if (refusModele != null) {
-            return AccesIa.Refuse(refusModele)
+        if (exigeModele) {
+            val refusModele = refuserModele(courant)
+            if (refusModele != null) {
+                return AccesIa.Refuse(refusModele)
+            }
         }
         val adaptateur = fabrique.creer(courant)
         if (adaptateur == null) {
@@ -108,7 +122,7 @@ constructor(
         )
     }
 
-    /** Garde 3 : modèle configuré (jamais codé en dur — ADR 0123 §6). */
+    /** Garde 3 : modèle configuré (chat seulement, ADR 0123 §6). */
     private fun refuserModele(reglages: AiSettings): AppError? {
         if (reglages.modeleActif.isNotBlank()) {
             return null
