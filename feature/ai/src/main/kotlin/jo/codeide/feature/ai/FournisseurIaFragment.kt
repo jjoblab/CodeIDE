@@ -16,6 +16,7 @@ import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.applySystemBarsAndImeInsets
 import jo.codeide.feature.ai.databinding.FragmentFournisseurIaBinding
+import jo.codeide.feature.ai.databinding.LignePrereglageIaBinding
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -93,6 +94,8 @@ public class FournisseurIaFragment : BaseFragment<FragmentFournisseurIaBinding>(
         }
         binding.saisieUrlFournisseur.error = if (etat.urlValide) null else getString(R.string.ia_url_erreur)
 
+        rendrePrereglages(etat)
+
         binding.etatCle.text =
             when (etat.etatCle) {
                 EtatCleFournisseur.ENREGISTREE -> {
@@ -141,6 +144,30 @@ public class FournisseurIaFragment : BaseFragment<FragmentFournisseurIaBinding>(
             }
         binding.boutonUtiliser.isVisible = !etat.estActif
         renduEnCours = false
+    }
+
+    /**
+     * Carte des préréglages d'URL (rapport IA, Lot 5, point 1) : une
+     * ligne par préréglage du fournisseur ÉDITÉ — l'appui préremplit
+     * le champ (action [ActionFournisseurIa.AppliquerPrereglage]). La
+     * carte est masquée si le catalogue est vide (jamais de carte
+     * creuse).
+     */
+    private fun rendrePrereglages(etat: EtatFournisseurIaDetail) {
+        binding.cartePrereglages.isVisible = etat.prereglages.isNotEmpty()
+        val conteneur = binding.conteneurPrereglages
+        conteneur.removeAllViews()
+        for (prereglage in etat.prereglages) {
+            val ligne = LignePrereglageIaBinding.inflate(layoutInflater, conteneur, false)
+            ligne.nomPrereglage.setText(prereglage.nomRes)
+            ligne.urlPrereglage.text = prereglage.url
+            ligne.root.contentDescription =
+                getString(R.string.ia_prereglage_cd, getString(prereglage.nomRes))
+            ligne.root.setOnClickListener {
+                viewModel.onAction(ActionFournisseurIa.AppliquerPrereglage(prereglage))
+            }
+            conteneur.addView(ligne.root)
+        }
     }
 
     private fun rendreEffet(effet: EffetFournisseurIa) {

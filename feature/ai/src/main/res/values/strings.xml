@@ -63,6 +63,15 @@
     <string name="ia_cle_supprimee">Clé supprimée</string>
     <string name="ia_erreur_cle_vide">Saisissez une clé avant de l\'enregistrer</string>
     <string name="ia_fournisseur_active">Fournisseur actif : %1$s</string>
+    <!-- Préréglages d'URL (rapport IA, Lot 5, point 1) : lignes prêtes
+         à l'emploi qui préremplissent l'URL de base ; la clé reste
+         toujours saisie par l'utilisateur. -->
+    <string name="ia_prereglages_titre">Préréglages d\'URL</string>
+    <string name="ia_prereglage_anthropic">Anthropic (officiel)</string>
+    <string name="ia_prereglage_openrouter">OpenRouter</string>
+    <string name="ia_prereglage_serveur_local">Serveur local (port 11434)</string>
+    <string name="ia_prereglage_cd">Préremplir l\'URL de base avec %1$s</string>
+
 
     <!-- Consentement -->
     <string name="ia_consentement_intro">L\'IA envoie des extraits de votre code au fournisseur que vous avez choisi. CodeIDE n\'a aucun serveur et ne collecte rien.</string>
