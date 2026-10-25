@@ -112,6 +112,17 @@ class LayoutsIaTest {
     }
 
     @Test
+    fun `la ligne de message assistant porte son bouton d action d erreur`() {
+        val racine = gonfler(R.layout.ligne_message_assistant)
+
+        // Lot 5, point 5 : la carte d'erreur propose SON action — le
+        // bouton existe et part MASQUÉ (visible seulement si erreur).
+        val bouton = racine.findViewById<View>(R.id.bouton_action_erreur)
+        assertNotNull(bouton)
+        assertEquals(View.GONE, bouton.visibility)
+    }
+
+    @Test
     fun `le consentement se gonflle avec ses deux actions`() {
         val racine = gonfler(R.layout.fragment_consentement_ia)
 

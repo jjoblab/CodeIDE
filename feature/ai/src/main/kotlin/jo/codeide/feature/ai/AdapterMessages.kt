@@ -18,14 +18,16 @@ import jo.codeide.feature.ai.databinding.LigneMessageUtilisateurBinding
  * blocs Markdown), DiffUtil sur l'identifiant — seul le message en
  * cours de génération est re-rendu pendant le flux (rendu incrémental).
  *
- * Les actions des blocs de code (Copier / Insérer au curseur) et la
- * copie d'un message remontent aux actions du ViewModel.
+ * Les actions des blocs de code (Copier / Insérer au curseur), la
+ * copie d'un message et l'ACTION DE REMÉDIATION d'une carte d'erreur
+ * (rapport IA, Lot 5, point 5) remontent aux actions du ViewModel.
  */
 public class AdapterMessages(
     private val onCopierMessage: (String) -> Unit,
     private val onCopierBloc: (String) -> Unit,
     private val onInsererBloc: (String) -> Unit,
     private val onAppliquerBloc: (String) -> Unit,
+    private val onActionErreur: (MessageChatUi, ActionErreurIa) -> Unit,
 ) : ListAdapter<MessageChatUi, RecyclerView.ViewHolder>(ComparateurMessages) {
     public override fun getItemViewType(position: Int): Int =
         if (getItem(position).utilisateur) TYPE_UTILISATEUR else TYPE_ASSISTANT
@@ -44,7 +46,7 @@ public class AdapterMessages(
         if (titulaire is TitulaireUtilisateur) {
             titulaire.lier(message)
         } else if (titulaire is TitulaireAssistant) {
-            titulaire.lier(message, onCopierMessage, onCopierBloc, onInsererBloc, onAppliquerBloc)
+            titulaire.lier(message, onCopierMessage, onCopierBloc, onInsererBloc, onAppliquerBloc, onActionErreur)
         }
     }
 
@@ -62,12 +64,14 @@ public class AdapterMessages(
     /** Titulaire du message assistant (blocs Markdown + erreur inline). */
     public class TitulaireAssistant(private val liaison: LigneMessageAssistantBinding) :
         RecyclerView.ViewHolder(liaison.root) {
+        @Suppress("LongParameterList") // un rappel par action de la ligne, miroir de l'adaptateur.
         public fun lier(
             message: MessageChatUi,
             onCopierMessage: (String) -> Unit,
             onCopierBloc: (String) -> Unit,
             onInsererBloc: (String) -> Unit,
             onAppliquerBloc: (String) -> Unit,
+            onActionErreur: (MessageChatUi, ActionErreurIa) -> Unit,
         ) {
             liaison.conteneurBlocs.removeAllViews()
             for (bloc in MarkdownIa.parser(message.texte)) {
@@ -119,6 +123,16 @@ public class AdapterMessages(
                 val presentation = PresentationErreursIa.message(message.erreur)
                 liaison.erreurMessage.text =
                     contexte.getString(presentation.ressource, presentation.argument ?: "")
+                // Lot 5, point 5 : la carte d'erreur propose SON action —
+                // jamais une carte muette.
+                val actionErreur = PresentationErreursIa.action(message.erreur)
+                liaison.boutonActionErreur.isVisible = true
+                liaison.boutonActionErreur.setText(actionErreur.libelleRes)
+                liaison.boutonActionErreur.setOnClickListener {
+                    onActionErreur(message, actionErreur)
+                }
+            } else {
+                liaison.boutonActionErreur.isVisible = false
             }
 
             liaison.boutonCopierMessage.isVisible = message.texte.isNotBlank()

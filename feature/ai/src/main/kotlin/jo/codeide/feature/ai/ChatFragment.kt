@@ -26,6 +26,7 @@ import jo.codeide.core.ai.PieceContexte
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.Retour
+import jo.codeide.core.ui.SectionParametres
 import jo.codeide.feature.ai.databinding.FragmentIaChatBinding
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -77,6 +78,7 @@ public class ChatFragment : Fragment() {
                 onCopierBloc = { code -> viewModel.onAction(ActionChatIa.CopierBlocCode(code)) },
                 onInsererBloc = { code -> viewModel.onAction(ActionChatIa.InsererBlocCode(code)) },
                 onAppliquerBloc = { code -> viewModel.onAction(ActionChatIa.AppliquerBlocCode(code)) },
+                onActionErreur = { _, action -> appliquerActionErreur(action) },
             )
         adaptateur = adaptateurLocal
         liaisonLocale.listeMessages.adapter = adaptateurLocal
@@ -288,6 +290,20 @@ public class ChatFragment : Fragment() {
             },
         )
         liaisonLocale.rangeePuces.isVisible = true
+    }
+
+    /**
+     * Action de remédiation d'une carte d'erreur (rapport IA, Lot 5,
+     * point 5) : chaque erreur normalisée mène à SON geste — relancer
+     * le dernier échange, réparer la configuration (Paramètres → IA)
+     * ou changer de modèle (sélecteur de l'en-tête, point 3).
+     */
+    private fun appliquerActionErreur(action: ActionErreurIa) {
+        when (action) {
+            ActionErreurIa.REESSAYER -> viewModel.onAction(ActionChatIa.Regenerer)
+            ActionErreurIa.OUVRIR_REGLAGES -> navigator.openSettingsSection(SectionParametres.IA)
+            ActionErreurIa.CHANGER_MODELE -> ouvrirSelecteurModele()
+        }
     }
 
     /**

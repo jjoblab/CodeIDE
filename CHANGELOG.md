@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.193.0] – 2026-10-25
+
+### Actions d'erreur : chaque carte propose sa remédiation (rapport IA, Lot 5, point 5)
+
+#### Ajouté
+
+- **Chaque erreur normalisée affiche son ACTION** sous la carte
+  d'erreur inline du message assistant — plus jamais une carte muette :
+  - transient (quota, service indisponible, hors-ligne, délai) →
+    **Réessayer** : relance le dernier échange (Régénérer) ;
+  - configuration (authentification/refus de clé, consentement requis,
+    fournisseur incomplet, clé chiffrée illisible) → **Ouvrir les
+    réglages** : mène à Paramètres → IA ;
+  - réponse illisible du serveur → **Changer de modèle** : ouvre le
+    sélecteur de l'en-tête du chat (Lot 5, point 3).
+- Table FERMÉE dans `PresentationErreursIa.action` : exhaustive par
+  construction — toute nouvelle raison d'`AppError.AiReason` fait
+  échouer la compilation, miroir garanti par test.
+
+#### Technique
+
+- `ActionErreurIa` (enum + libellé localisé FR/EN) ; 5ᵉ rappel de
+  `AdapterMessages` (`onActionErreur`) ; câblage `ChatFragment`
+  (Régénérer / Paramètres → IA / sélecteur de modèle).
+- Tests : `PresentationErreursIaTest` (mapping exhaustif des 8 raisons
+  + stockage/inconnue, 3 libellés distincts) ; bouton d'action présent
+  et masqué au repos dans `LayoutsIaTest`.
+- Scénarios IA26-IA28 dans `docs/TESTS_MANUELS.md`.
+
 ## [0.192.0] – 2026-10-25
 
 ### Compteur d'usage par conversation (rapport IA, Lot 5, point 4)
