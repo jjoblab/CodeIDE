@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.191.0] – 2026-10-25
+
+### Sélecteur de modèle dans l'en-tête du chat (rapport IA, Lot 5, point 3)
+
+#### Ajouté
+
+- **Le modèle actif se lit et se choisit dans l'EN-TÊTE du chat** :
+  plus besoin de repasser par Paramètres pour changer de modèle en
+  pleine conversation. Le bouton affiche le modèle actif (ou
+  « Choisir un modèle » s'il est vide) ; l'appui ouvre un sélecteur
+  qui propose le modèle actif + les modèles récemment recensés du
+  fournisseur actif, avec « Actualiser la liste » sur place
+  (recensement `listModels` SANS quitter le chat, garde de
+  consentement : aucune requête sans assistant actif).
+- L'en-tête n'est offert que dans les états OUVERTS (accueil vide,
+  conversation) — masqué si l'assistant est inactif ou la clé
+  absente (jamais de contrôle sans effet).
+
+#### Technique
+
+- `EtatChatIa` expose `modeleActif` + `modelesRecenses` (projection
+  des réglages) ; actions `ChoisirModele` (persiste le champ du
+  fournisseur ACTIF, trim, vide ignoré) et `ActualiserModeles`
+  (recensement persisté par fournisseur, compte annoncé en
+  Snackbar, erreur traduite par `PresentationErreursIa`).
+- `ListerModelesIaUseCase` injecté dans `ChatViewModel` (même
+  contrat que l'écran Paramètres) ; dialogue à choix unique dans
+  `ChatFragment` avec message honnête si le recensement est vide.
+- Tests : projection d'état, persistance par fournisseur (champ
+  Anthropic intact quand le compatible OpenAI est actif),
+  recensement + annonce du compte, refus sans consentement (AUCUN
+  appel `listModels`) ; structure du layout (`en_tete_chat`,
+  `bouton_modele`).
+
 ## [0.190.0] – 2026-10-25
 
 ### Préréglages d'URL du fournisseur : des lignes prêtes à l'emploi (rapport IA, Lot 5, point 1)

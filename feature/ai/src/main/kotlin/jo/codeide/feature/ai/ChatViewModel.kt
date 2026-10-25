@@ -13,6 +13,7 @@ import jo.codeide.core.ai.ContexteIa
 import jo.codeide.core.ai.DonneesContexte
 import jo.codeide.core.ai.ExclusionsIa
 import jo.codeide.core.ai.FournisseurContexteProjet
+import jo.codeide.core.ai.ListerModelesIaUseCase
 import jo.codeide.core.ai.MentionFichier
 import jo.codeide.core.ai.PieceContexte
 import jo.codeide.core.ai.SendMessageUseCase
@@ -87,6 +88,16 @@ public data class EtatChatIa(
      * d'authentification au premier envoi.
      */
     public val cleAbsente: Boolean = false,
+
+    /**
+     * Modèle actif du fournisseur (rapport IA, Lot 5, point 3) —
+     * affiché dans l'en-tête du chat, choisisable SANS repasser par
+     * Paramètres (chaîne vide = « Choisir un modèle »).
+     */
+    public val modeleActif: String = "",
+
+    /** Modèles récemment recensés du fournisseur actif (sélecteur). */
+    public val modelesRecenses: List<String> = emptyList(),
 )
 
 /** Actions du chat (UDF). */
@@ -153,6 +164,20 @@ public sealed interface ActionChatIa {
      * fournisseur et retour), sans que les RÉGLAGES n'aient changé.
      */
     public data object RafraichirCle : ActionChatIa
+
+    /**
+     * Sélectionne le modèle actif depuis l'en-tête du chat (rapport IA,
+     * Lot 5, point 3) — persiste le champ du fournisseur actif,
+     * AUCUN détour par l'écran Paramètres.
+     */
+    public data class ChoisirModele(public val valeur: String) : ActionChatIa
+
+    /**
+     * Actualise le recensement des modèles depuis le chat (Lot 5,
+     * point 3 — bouton « Actualiser la liste » du sélecteur) ; garde de
+     * consentement : aucune requête sans assistant actif.
+     */
+    public data object ActualiserModeles : ActionChatIa
 
     /** Ajoute un fichier `@mentionné` (sélecteur `@` — chemin relatif). */
     public data class AjouterMention(public val cheminRelatif: String) : ActionChatIa
@@ -238,6 +263,7 @@ constructor(
     private val signauxExternes: CanalSignauxIa,
     private val historique: ConversationStore,
     private val horloge: TimeProvider,
+    private val listerModeles: ListerModelesIaUseCase,
 ) : ViewModel() {
     private val etatInterne = MutableStateFlow(EtatChatIa())
 
@@ -293,6 +319,8 @@ constructor(
                     etatInterne.value.copy(
                         active = courant.assistantActive && courant.consentementDonne,
                         cleAbsente = cleAbsente,
+                        modeleActif = courant.modeleActif,
+                        modelesRecenses = courant.modelesRecensesActifs,
                     )
             }
         }
@@ -327,6 +355,58 @@ constructor(
                         signauxExternes.consommer()
                         regenerer()
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * Sélection du modèle depuis le chat (rapport IA, Lot 5, point 3) :
+     * écrit le champ du FOURNISSEUR ACTIF (jamais codé en dur — ADR
+     * 0123 §6) ; l'état suit au retour du flux de réglages.
+     */
+    private fun choisirModele(valeur: String) {
+        val propre = valeur.trim()
+        if (propre.isEmpty()) {
+            return
+        }
+        viewModelScope.launch {
+            reglages.update { courant ->
+                if (courant.fournisseurActif == FournisseursIa.OPENAI_COMPATIBLE) {
+                    courant.copy(modeleOpenAiCompatible = propre)
+                } else {
+                    courant.copy(modeleAnthropic = propre)
+                }
+            }
+        }
+    }
+
+    /**
+     * Recensement des modèles depuis le chat (Lot 5, point 3) — même
+     * contrat que l'écran Paramètres : garde de consentement,
+     * persistance du recensement du fournisseur actif, compte annoncé.
+     */
+    private fun actualiserModeles() {
+        if (!etatInterne.value.active) {
+            emettre(EffetChatIa.Message(R.string.ia_erreur_consentement))
+            return
+        }
+        viewModelScope.launch {
+            when (val resultat = listerModeles()) {
+                is AppResult.Success -> {
+                    val modeles = resultat.value.map { it.id }.filter { it.isNotBlank() }
+                    reglages.update { preferences ->
+                        if (preferences.fournisseurActif == FournisseursIa.OPENAI_COMPATIBLE) {
+                            preferences.copy(modelesRecensesOpenAiCompatible = modeles)
+                        } else {
+                            preferences.copy(modelesRecensesAnthropic = modeles)
+                        }
+                    }
+                    emettre(EffetChatIa.Message(R.string.ia_modeles_recenses, modeles.size.toString()))
+                }
+
+                is AppResult.Failure -> {
+                    emettre(PresentationErreursIa.message(resultat.error).enEffetChat())
                 }
             }
         }
@@ -415,6 +495,14 @@ constructor(
 
             ActionChatIa.RafraichirCle -> {
                 rafraichirCle()
+            }
+
+            is ActionChatIa.ChoisirModele -> {
+                choisirModele(action.valeur)
+            }
+
+            ActionChatIa.ActualiserModeles -> {
+                actualiserModeles()
             }
 
             is ActionChatIa.AjouterMention -> {

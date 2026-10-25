@@ -147,6 +147,10 @@ class LayoutsIaTest {
         assertNotNull(racine.findViewById<View>(R.id.zone_messages))
         assertNotNull(racine.findViewById<View>(R.id.composeur_ia))
         assertNotNull(racine.findViewById<View>(R.id.bouton_ajouter_cle))
+        // Lot 5, point 3 : l'en-tête du chat porte le sélecteur de
+        // modèle (visible dans les états OUVERTS — géré par le fragment).
+        assertNotNull(racine.findViewById<View>(R.id.en_tete_chat))
+        assertNotNull(racine.findViewById<View>(R.id.bouton_modele))
         // Critère IA-3 : au repos, c'est « Envoyer » qui est visible ;
         // « Arrêter » n'apparaît que pendant la génération.
         assertEquals(View.VISIBLE, racine.findViewById<View>(R.id.bouton_envoyer).visibility)

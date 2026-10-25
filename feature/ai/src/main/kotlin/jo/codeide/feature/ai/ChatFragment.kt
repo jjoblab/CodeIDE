@@ -85,6 +85,8 @@ public class ChatFragment : Fragment() {
         liaisonLocale.boutonEnvoyer.setOnClickListener { viewModel.onAction(ActionChatIa.Envoyer) }
         liaisonLocale.boutonArreter.setOnClickListener { viewModel.onAction(ActionChatIa.Arreter) }
         liaisonLocale.boutonConsentement.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirConsentement) }
+        // Lot 5, point 3 : le modèle se choisit depuis l'EN-TÊTE du chat.
+        liaisonLocale.boutonModele.setOnClickListener { ouvrirSelecteurModele() }
         // v0.188.0 (rapport IA S3) : l'état « Ajoutez une clé » mène au
         // DÉTAIL du fournisseur ACTIF (c'est sa clé qui manque).
         liaisonLocale.boutonAjouterCle.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirFournisseurCle) }
@@ -166,18 +168,37 @@ public class ChatFragment : Fragment() {
             liaisonLocale.listeMessages.scrollToPosition(etat.messages.lastIndex)
         }
 
-        // États d'écran (v0.188.0, rapport IA §5 Lot 3 — B1a/B1b) : le
-        // modèle PUR décrit l'écran ; le calque vit DANS la zone des
-        // messages, le compositeur n'est plus JAMAIS recouvert — il est
-        // MASQUÉ dans les états fermés (inactif, clé absente) et LIBRE
-        // dès l'accueil vide (le premier message doit pouvoir être tapé).
-        when (
+        // En-tête (Lot 5, point 3) : le sélecteur de modèle n'est offert
+        // que dans les états OUVERTS — jamais de contrôle sans effet.
+        val ecran =
             PresentationChatIa.decrireEcranChat(
                 active = etat.active,
                 cleAbsente = etat.cleAbsente,
                 nbMessages = etat.messages.size,
             )
-        ) {
+        rendreEnTete(etat, ecran, liaisonLocale)
+        rendreEcran(ecran, liaisonLocale)
+    }
+
+    /**
+     * En-tête du chat (rapport IA, Lot 5, point 3) : modèle actif +
+     * sélecteur — offert uniquement dans les états OUVERTS.
+     */
+    private fun rendreEnTete(etat: EtatChatIa, ecran: EcranChat, liaisonLocale: FragmentIaChatBinding) {
+        liaisonLocale.enTeteChat.isVisible = ecran == EcranChat.VIDE || ecran == EcranChat.CONVERSATION
+        liaisonLocale.boutonModele.text =
+            etat.modeleActif.ifBlank { getString(R.string.ia_chat_modele_vide) }
+    }
+
+    /**
+     * États d'écran (v0.188.0, rapport IA §5 Lot 3 — B1a/B1b) : le
+     * modèle PUR décrit l'écran ; le calque vit DANS la zone des
+     * messages, le compositeur n'est plus JAMAIS recouvert — il est
+     * MASQUÉ dans les états fermés (inactif, clé absente) et LIBRE
+     * dès l'accueil vide (le premier message doit pouvoir être tapé).
+     */
+    private fun rendreEcran(ecran: EcranChat, liaisonLocale: FragmentIaChatBinding) {
+        when (ecran) {
             EcranChat.INACTIF -> {
                 liaisonLocale.etatTransverse.isVisible = true
                 liaisonLocale.etatTitre.setText(R.string.ia_ia_inactive_titre)
@@ -259,6 +280,37 @@ public class ChatFragment : Fragment() {
             },
         )
         liaisonLocale.rangeePuces.isVisible = true
+    }
+
+    /**
+     * Sélecteur de modèle de l'en-tête (rapport IA, Lot 5, point 3) :
+     * le modèle ACTIF (même absent du recensement) + les modèles
+     * recensés du fournisseur actif ; « Actualiser la liste » relance
+     * le recensement SANS quitter le chat. Liste vide : un message
+     * honnête, jamais un sélecteur muet.
+     */
+    private fun ouvrirSelecteurModele() {
+        val etat = viewModel.etat.value
+        val modeles =
+            (listOf(etat.modeleActif) + etat.modelesRecenses)
+                .filter { it.isNotBlank() }
+                .distinct()
+        val libelles =
+            if (modeles.isEmpty()) {
+                arrayOf(getString(R.string.ia_chat_modele_aucun))
+            } else {
+                modeles.toTypedArray()
+            }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.ia_carte_modele_titre)
+            .setItems(libelles) { _, position ->
+                if (modeles.isNotEmpty()) {
+                    viewModel.onAction(ActionChatIa.ChoisirModele(modeles[position]))
+                }
+            }.setNeutralButton(R.string.ia_bouton_actualiser) { _, _ ->
+                viewModel.onAction(ActionChatIa.ActualiserModeles)
+            }.setNegativeButton(R.string.ia_secret_annuler, null)
+            .show()
     }
 
     /** Dialogue bloquant « secret détecté » (ADR 0124 §4) — l'humain tranche. */

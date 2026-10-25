@@ -23,6 +23,33 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <!-- En-tête du chat (rapport IA, Lot 5, point 3) : le modèle actif
+         se lit et se choisit ICI, sans repasser par Paramètres. La
+         visibilité suit l'état d'écran (masqué si l'assistant est
+         inactif ou la clé absente — jamais de contrôle sans effet). -->
+    <LinearLayout
+        android:id="@+id/en_tete_chat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_xs">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_modele"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:contentDescription="@string/ia_chat_modele_cd"
+            android:ellipsize="end"
+            android:gravity="start|center_vertical"
+            android:maxLines="1"
+            tools:text="claude-sonnet-4" />
+    </LinearLayout>
+
     <!-- Zone des messages : la liste ET son calque d'état vivent
          ENSEMBLE ici — le calque couvre les messages, JAMAIS la saisie. -->
     <FrameLayout

@@ -95,6 +95,12 @@
     <string name="ia_envoyer_cd">Envoyer le message à l\'assistant</string>
     <string name="ia_arreter">Arrêter</string>
     <string name="ia_arreter_cd">Arrêter la génération en cours</string>
+    <!-- Sélecteur de modèle de l'en-tête du chat (rapport IA, Lot 5,
+         point 3) — le modèle se choisit sans repasser par Paramètres. -->
+    <string name="ia_chat_modele_cd">Changer le modèle de l\'assistant</string>
+    <string name="ia_chat_modele_vide">Choisir un modèle</string>
+    <string name="ia_chat_modele_aucun">Aucun modèle recensé — appuyez sur « Actualiser la liste »</string>
+
     <string name="ia_tiroir_titre">Assistant IA</string>
     <string name="ia_onglet_chat">Chat</string>
     <string name="ia_onglet_agent">Agent</string>
