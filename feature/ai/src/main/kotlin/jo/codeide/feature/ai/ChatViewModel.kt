@@ -98,6 +98,17 @@ public data class EtatChatIa(
 
     /** Modèles récemment recensés du fournisseur actif (sélecteur). */
     public val modelesRecenses: List<String> = emptyList(),
+
+    /**
+     * Jetons d'entrée CUMULÉS de la conversation (rapport IA, Lot 5,
+     * point 4) — rapportés par le fournisseur au fil des flux, JAMAIS
+     * estimés localement ; remis à zéro à la nouvelle conversation,
+     * restaurés à la réouverture.
+     */
+    public val jetonsEntree: Long = 0,
+
+    /** Jetons de sortie cumulés de la conversation (même contrat). */
+    public val jetonsSortie: Long = 0,
 )
 
 /** Actions du chat (UDF). */
@@ -296,6 +307,17 @@ constructor(
 
     /** Modèle du DERNIER envoi — étiquette de la conversation (IA-6). */
     private var dernierModele: String? = null
+
+    /**
+     * Usage du flux EN COURS (Lot 5, point 4) : dernier jeton
+     * d'entrée/sortie RAPPORTÉ (Anthropic émet l'entrée au démarrage
+     * puis la sortie cumulative par delta ; le compatible OpenAI un
+     * rapport final) — pris tel quel, jamais recalculé.
+     */
+    private var jetonsEntreeFlux: Long = 0
+
+    /** Contrepôle de sortie du flux en cours (même contrat). */
+    private var jetonsSortieFlux: Long = 0
 
     /** État observable de l'écran. */
     public val etat: StateFlow<EtatChatIa> = etatInterne.asStateFlow()
@@ -635,6 +657,8 @@ constructor(
                 dernierModele = courant.modeleActif.ifBlank { "modele-a-configurer" }
                 val requete = construireRequete(courant, etatInterne.value.messages, texteContexte)
                 var texte = ""
+                jetonsEntreeFlux = 0
+                jetonsSortieFlux = 0
                 // Le contrat du flux (IA-1) : terminaison PAR Done ou
                 // Failure — chaque branche de fin clôt aussi le drapeau
                 // écran (le compositeur repasse à « Envoyer ») ; l'arrêt
@@ -646,10 +670,19 @@ constructor(
                             majDernierAssistant(texte = texte)
                         }
 
+                        is AiEvent.Usage -> {
+                            // Lot 5, point 4 : le DERNIER rapport de chaque
+                            // jeton gagne (sortie cumulative d'Anthropic,
+                            // rapport final du compatible OpenAI).
+                            evenement.inputTokens?.let { jetonsEntreeFlux = it }
+                            evenement.outputTokens?.let { jetonsSortieFlux = it }
+                        }
+
                         is AiEvent.Done -> {
                             majDernierAssistant(texte = texte, generationEnCours = false)
                             etatInterne.value = etatInterne.value.copy(generationEnCours = false)
                             persister(utilisateur = false, texte = texte)
+                            comptabiliserUsage()
                         }
 
                         is AiEvent.Failure -> {
@@ -773,6 +806,30 @@ constructor(
         }
     }
 
+    /**
+     * Cumule l'usage du flux QUI VIENT DE FINIR (rapport IA, Lot 5,
+     * point 4) dans l'état d'écran ET dans la conversation persistée
+     * (après [persister] — la conversation existe donc déjà). Un
+     * échec ou un arrêt ne cumule RIEN : seules les générations
+     * menées à terme consomment des jetons comptables.
+     */
+    private fun comptabiliserUsage() {
+        val entree = jetonsEntreeFlux
+        val sortie = jetonsSortieFlux
+        if (entree <= 0 && sortie <= 0) {
+            return
+        }
+        etatInterne.value =
+            etatInterne.value.copy(
+                jetonsEntree = etatInterne.value.jetonsEntree + entree,
+                jetonsSortie = etatInterne.value.jetonsSortie + sortie,
+            )
+        val identifiant = conversationId ?: return
+        viewModelScope.launch {
+            historique.ajouterUsage(identifiant, entree, sortie)
+        }
+    }
+
     /** Rouvre une conversation de l'historique (lot IA-6, spec E6). */
     private fun ouvrirConversation(id: String) {
         arreter()
@@ -785,6 +842,10 @@ constructor(
             sequence = 0L
             dernierMessageUtilisateur =
                 messagesPersistes.lastOrNull { it.utilisateur }?.texte
+            // Lot 5, point 4 : les compteurs d'usage de la conversation
+            // rouvertes reprennent là où elles étaient (jamais remises
+            // à zéro par une réouverture).
+            val conversation = historique.conversationParId(id)
             etatInterne.value =
                 etatInterne.value.copy(
                     messages =
@@ -799,6 +860,8 @@ constructor(
                     pieces = emptyList(),
                     jetonsContexte = 0,
                     generationEnCours = false,
+                    jetonsEntree = conversation?.jetonsEntree ?: 0,
+                    jetonsSortie = conversation?.jetonsSortie ?: 0,
                 )
         }
     }
@@ -815,6 +878,8 @@ constructor(
                 mentions = emptyList(),
                 piecesRetirees = emptySet(),
                 alerteSecret = emptyList(),
+                jetonsEntree = 0,
+                jetonsSortie = 0,
             )
     }
 

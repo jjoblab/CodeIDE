@@ -12,6 +12,7 @@ import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.DiagnosticEditeur
 import jo.codeide.core.domain.FournisseursIa
+import jo.codeide.core.domain.MessageConversationIa
 import jo.codeide.core.domain.PortEditeurActif
 import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.RetentionIa
@@ -1058,6 +1059,184 @@ class ChatViewModelTest {
         val effet = modele.effets.first()
         assertTrue(effet is EffetChatIa.Message)
         assertEquals(R.string.ia_erreur_consentement, (effet as EffetChatIa.Message).ressource)
+    }
+
+    // ------------------------------------------------------------------
+    // Compteur d'usage par conversation (rapport IA, Lot 5, point 4).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `l usage rapporte se cumule dans l etat et la conversation au Done`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val historique = FauxConversationStore()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        // Deux rapports (patron Anthropic : entrée au démarrage, sortie
+        // cumulative en delta) puis fin de flux.
+        fournisseur.emettre(AiEvent.Usage(10, null))
+        fournisseur.emettre(AiEvent.Usage(null, 5))
+        fournisseur.emettre(AiEvent.TextDelta("réponse"))
+        fournisseur.emettre(AiEvent.Done(AiStopReason.EndTurn))
+        advanceUntilIdle()
+
+        assertEquals(10L, modele.etat.value.jetonsEntree)
+        assertEquals(5L, modele.etat.value.jetonsSortie)
+        // Cumul persisté UNE fois, sur la conversation porteuse.
+        assertEquals(1, historique.usagesAccumules)
+        val conversation = historique.conversations.values.single()
+        assertEquals(10L, conversation.jetonsEntree)
+        assertEquals(5L, conversation.jetonsSortie)
+    }
+
+    @Test
+    fun `le dernier rapport de chaque jeton gagne`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val historique = FauxConversationStore()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        // Sortie CUMULATIVE (patron Anthropic) : seul le dernier
+        // rapport compte, jamais une somme qui doublerait le décompte.
+        fournisseur.emettre(AiEvent.Usage(8, null))
+        fournisseur.emettre(AiEvent.Usage(null, 3))
+        fournisseur.emettre(AiEvent.Usage(null, 6))
+        fournisseur.emettre(AiEvent.Done(AiStopReason.EndTurn))
+        advanceUntilIdle()
+
+        assertEquals(8L, modele.etat.value.jetonsEntree)
+        assertEquals(6L, modele.etat.value.jetonsSortie)
+        assertEquals(6L, historique.conversations.values.single().jetonsSortie)
+    }
+
+    @Test
+    fun `une generation echouee n accumule aucun jeton`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val historique = FauxConversationStore()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        fournisseur.emettre(AiEvent.Usage(10, null))
+        fournisseur.emettre(AiEvent.Failure(AppError.Ai(AppError.AiReason.Timeout)))
+        advanceUntilIdle()
+
+        // Seules les générations MENÉES À TERME comptent (un échec ne
+        // cumule RIEN — le message assistant échoué n'est de toute
+        // façon jamais persisté).
+        assertEquals(0L, modele.etat.value.jetonsEntree)
+        assertEquals(0L, modele.etat.value.jetonsSortie)
+        assertEquals(0, historique.usagesAccumules)
+    }
+
+    @Test
+    fun `la reouverture de conversation reprend les compteurs`() = runTest {
+        val historique = FauxConversationStore()
+        // Horodatage RÉCENT : la purge de rétention de l'init du
+        // ViewModel (30 jours par défaut) ne doit pas emporter la
+        // conversation avant la réouverture.
+        historique.ajouterMessage(
+            "conv-1",
+            "claude-test",
+            MessageConversationIa("m1", "conv-1", true, "Bonjour", System.currentTimeMillis()),
+        )
+        historique.ajouterUsage("conv-1", jetonsEntree = 10, jetonsSortie = 5)
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.OuvrirConversation("conv-1"))
+        advanceUntilIdle()
+
+        assertEquals(10L, modele.etat.value.jetonsEntree)
+        assertEquals(5L, modele.etat.value.jetonsSortie)
+    }
+
+    @Test
+    fun `une nouvelle conversation remet les compteurs a zero`() = runTest {
+        val fournisseur = FauxFournisseurFlux()
+        val historique = FauxConversationStore()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(fournisseur),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(fournisseur),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ChangerSaisie("Q"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+        fournisseur.emettre(AiEvent.Usage(10, 5))
+        fournisseur.emettre(AiEvent.Done(AiStopReason.EndTurn))
+        advanceUntilIdle()
+        assertEquals(10L, modele.etat.value.jetonsEntree)
+
+        modele.onAction(ActionChatIa.NouvelleConversation)
+        advanceUntilIdle()
+
+        assertEquals(0L, modele.etat.value.jetonsEntree)
+        assertEquals(0L, modele.etat.value.jetonsSortie)
     }
 }
 

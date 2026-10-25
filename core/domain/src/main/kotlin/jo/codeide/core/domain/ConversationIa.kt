@@ -10,6 +10,10 @@ package jo.codeide.core.domain
  * @property modele modèle du fournisseur actif à la création.
  * @property creeA epoch ms de création.
  * @property modifieA epoch ms du dernier message.
+ * @property jetonsEntree jetons d'entrée CUMULÉS rapportés par le
+ *        fournisseur (rapport IA, Lot 5, point 4 — jamais estimés
+ *        localement ; 0 tant qu'aucun flux n'a rapporté d'usage).
+ * @property jetonsSortie jetons de sortie cumulés (même contrat).
  */
 public data class ConversationIa(
     public val identifiant: String,
@@ -17,6 +21,8 @@ public data class ConversationIa(
     public val modele: String,
     public val creeA: Long,
     public val modifieA: Long,
+    public val jetonsEntree: Long = 0,
+    public val jetonsSortie: Long = 0,
 )
 
 /**

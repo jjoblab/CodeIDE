@@ -181,13 +181,21 @@ public class ChatFragment : Fragment() {
     }
 
     /**
-     * En-tête du chat (rapport IA, Lot 5, point 3) : modèle actif +
-     * sélecteur — offert uniquement dans les états OUVERTS.
+     * En-tête du chat (rapport IA, Lot 5, points 3 et 4) : modèle actif
+     * + sélecteur, et compteur d'usage cumulé de la conversation —
+     * offerts uniquement dans les états OUVERTS ; compteur masqué tant
+     * qu'aucun jeton n'a été rapporté (jamais d'estimation locale).
      */
     private fun rendreEnTete(etat: EtatChatIa, ecran: EcranChat, liaisonLocale: FragmentIaChatBinding) {
         liaisonLocale.enTeteChat.isVisible = ecran == EcranChat.VIDE || ecran == EcranChat.CONVERSATION
         liaisonLocale.boutonModele.text =
             etat.modeleActif.ifBlank { getString(R.string.ia_chat_modele_vide) }
+        val usageVisible = etat.jetonsEntree > 0 || etat.jetonsSortie > 0
+        liaisonLocale.texteUsage.isVisible = usageVisible
+        if (usageVisible) {
+            liaisonLocale.texteUsage.text =
+                getString(R.string.ia_chat_usage, etat.jetonsEntree, etat.jetonsSortie)
+        }
     }
 
     /**

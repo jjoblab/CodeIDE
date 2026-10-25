@@ -15,6 +15,7 @@ import javax.inject.Singleton
  * appel d'[AppLogger] ici — les textes ne sortent jamais du stockage) ;
  * suppression en CASCADE ; purge de rétention lue à chaque appel.
  */
+@Suppress("TooManyFunctions") // implémentation d'un port d'accès : une méthode par membre du contrat, miroir du DAO.
 @Singleton
 public class ConversationStoreRoom
 @Inject
@@ -43,6 +44,13 @@ constructor(private val base: CodeIdeDatabase) : ConversationStore {
             )
         dao.ajouterMessage(conversation, message.toEntity())
     }
+
+    override suspend fun ajouterUsage(conversationId: String, jetonsEntree: Long, jetonsSortie: Long) {
+        dao.ajouterUsage(conversationId, jetonsEntree, jetonsSortie)
+    }
+
+    override suspend fun conversationParId(conversationId: String): ConversationIa? =
+        dao.parId(conversationId)?.toModel()
 
     override suspend fun renommer(conversationId: String, titre: String): Int =
         dao.renommer(conversationId, titre.trim())

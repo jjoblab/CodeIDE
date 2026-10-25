@@ -151,6 +151,10 @@ internal class FauxConversationStore : ConversationStore {
     var purges = 0
     var retentionDerniere: RetentionIa? = null
 
+    /** Compteur d'appels ajouterUsage (Lot 5, point 4 — conversations
+     *  inconnues ignorées, tests du chat). */
+    var usagesAccumules = 0
+
     override fun conversations(recherche: String): Flow<List<ConversationIa>> = kotlinx.coroutines.flow.flow {
         val liste =
             conversations.values
@@ -181,6 +185,18 @@ internal class FauxConversationStore : ConversationStore {
         conversations[conversationId] =
             conversations.getValue(conversationId).copy(modifieA = message.creeA)
     }
+
+    override suspend fun ajouterUsage(conversationId: String, jetonsEntree: Long, jetonsSortie: Long) {
+        val existante = conversations[conversationId] ?: return
+        usagesAccumules += 1
+        conversations[conversationId] =
+            existante.copy(
+                jetonsEntree = existante.jetonsEntree + jetonsEntree,
+                jetonsSortie = existante.jetonsSortie + jetonsSortie,
+            )
+    }
+
+    override suspend fun conversationParId(conversationId: String): ConversationIa? = conversations[conversationId]
 
     override suspend fun renommer(conversationId: String, titre: String): Int {
         val existante = conversations[conversationId] ?: return 0

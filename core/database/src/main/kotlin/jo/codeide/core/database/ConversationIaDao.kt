@@ -85,4 +85,16 @@ public interface ConversationIaDao {
     /** Avance `modifie_a` (SQL direct — pas de lecture-modification-écriture). */
     @Query("UPDATE ai_conversations SET modifie_a = :modifieA WHERE id = :id")
     public suspend fun insererOuMajDate(id: String, modifieA: Long)
+
+    /**
+     * Incrémente les compteurs d'usage de la conversation (rapport IA,
+     * Lot 5, point 4) — cumul atomique en SQL, jamais de
+     * lecture-modification-écriture ; conversation inconnue = aucun
+     * effet (le chat ne compte que ce qui est persisté).
+     */
+    @Query(
+        "UPDATE ai_conversations SET jetons_entree = jetons_entree + :jetonsEntree, " +
+            "jetons_sortie = jetons_sortie + :jetonsSortie WHERE id = :id",
+    )
+    public suspend fun ajouterUsage(id: String, jetonsEntree: Long, jetonsSortie: Long)
 }

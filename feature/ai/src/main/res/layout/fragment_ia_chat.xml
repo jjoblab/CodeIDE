@@ -48,6 +48,23 @@
             android:gravity="start|center_vertical"
             android:maxLines="1"
             tools:text="claude-sonnet-4" />
+
+        <!-- Compteur d'usage de la conversation (rapport IA, Lot 5,
+             point 4) : jetons RAPPORTÉS par le fournisseur, cumulés
+             depuis le premier message — masqué tant que rien n'a été
+             rapporté (jamais d'estimation locale). -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_usage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="Entrée 123 · Sortie 45"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <!-- Zone des messages : la liste ET son calque d'état vivent
