@@ -1615,7 +1615,13 @@ class EditorActivity :
         // de navigation n'arrivait (réserve jamais posée au premier
         // rendu, l'éditeur naissait SOUS le panneau replié).
         ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
-            gestionnaireInsets?.surInsetsBarres(insets)
+            if (gestionnaireInsets?.surInsetsBarres(insets) == true) {
+                // v0.185.0 : les hauteurs de REPOS des rangées d'en-tête
+                // dépendent de l'inset bas (48 dp + inset) — on RE-POSE le
+                // fondu à la fraction courante pour les étirer au nouveau
+                // repos sans attendre le prochain rendu d'état.
+                appliquerFonduEntete(fractionPanneauCourante())
+            }
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             clavierParInsets = ime > 0
             if (ime != hauteurIme) {
@@ -1840,15 +1846,24 @@ class EditorActivity :
         // Contrôleur du rendu tooling (v4, correctif n°13) : le rendu de
         // l'en-tête quitte l'activité — horloge injectée, annulation
         // relayée au ViewModel, présentateur pur pour la décision.
+        // v0.185.0 : le contrôleur EXPOSE la hauteur de contenu replié
+        // (peekContenuPx) — c'est le GESTIONNAIRE d'insets qui pose le
+        // peek TOTAL (contenu + inset de barre : l'en-tête replié vit
+        // ENTIÈREMENT au-dessus de la barre transparente, seul l'espace
+        // rembourré pend derrière elle).
         controleurTooling =
             PanneauToolingController(
                 activite = this,
                 liaison = liaison,
-                comportementPanneau = comportementPanneau,
                 horloge = horloge,
                 surArret = { viewModel.onAction(ActionEditor.AnnulerBuild) },
-                surPeekChange = { appliquerReservePanneau() },
+                surPeekChange = {
+                    controleurTooling?.let { controleur ->
+                        gestionnaireInsets?.definirPeekContenu(controleur.peekContenuPx)
+                    }
+                },
             )
+        gestionnaireInsets?.definirPeekContenu(controleurTooling?.peekContenuPx ?: 0)
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
         // E2 (ADR 0093) : voile transparent — le tiroir pousse, ne recouvre pas.
         liaison.racineEditeur.setScrimColor(android.graphics.Color.TRANSPARENT)
@@ -2949,6 +2964,18 @@ class EditorActivity :
     }
 
     /**
+     * Fraction de glissement correspondant à l'état STABILISÉ courant du
+     * panneau (v0.185.0) : utilisée pour re-poser le fondu (et les
+     * hauteurs de repos des rangées d'en-tête) quand les insets changent
+     * — un changement d'inset ne passe JAMAIS par `onSlide`.
+     */
+    private fun fractionPanneauCourante(): Float = when (viewModel.etat.value.etatPanneau) {
+        EtatPanneau.REPLIE -> 0f
+        EtatPanneau.MI_HAUTEUR -> FRACTION_MI_HAUTEUR
+        EtatPanneau.ETENDU -> 1f
+    }
+
+    /**
      * Marque (ou démarque) le sheet comme ÉTENDU STABLE (v0.80.2) et
      * propage la conséquence aux deux sections : la première repasse GONE
      * une fois l'extension stabilisée (les onglets montent au sommet), la
@@ -2956,20 +2983,17 @@ class EditorActivity :
      * place est conservée (INVISIBLE sous le seuil du fondu) — jamais de
      * GONE en plein glissement.
      *
-     * v0.184.0 (retour propriétaire : « le header qui disparaît
-     * donne un mauvais rendu, n'est pas fluide ») : le reflow des deux
-     * sections part dans une transition ChangeBounds COURTE — les
-     * onglets GLISSENT au sommet du sheet à l'extension (et
-     * redescendent au repli) au lieu de SAUTER d'un coup une fois
-     * l'état stabilisé. La transition ne joue QU'aux bascules d'état
-     * stable (jamais pendant les trames du glissement).
+     * v0.185.0 (retour propriétaire : « le header doit SUIVRE la
+     * progression du slide pour disparaître et réapparaître ») : PLUS de
+     * reflow `ChangeBounds` aux bascules d'état stable — la HAUTEUR des
+     * deux sections est désormais posée PAR TRAME par `onSlide` sur la
+     * cosinus de [CalculsFonduEntete] (cf. [appliquerFonduEntete]) : à
+     * l'état stabilisé, elle est déjà à sa valeur finale (0 étendu,
+     * pleine repliée) et l'ancienne animation de 250 ms rejouait un
+     * mouvement APRÈS le doigt.
      */
     private fun marquerSheetEtendu(etendu: Boolean) {
         if (etendu == sheetEtenduStable) return
-        android.transition.TransitionManager.beginDelayedTransition(
-            liaison.panneauInferieur as android.view.ViewGroup,
-            android.transition.ChangeBounds().setDuration(DUREE_TRANSITION_ENTETE_MS),
-        )
         sheetEtenduStable = etendu
         controleurTooling?.definirSheetEtendu(etendu)
         majVisibiliteEntetePanneau()
@@ -2999,7 +3023,17 @@ class EditorActivity :
      * touches). Sur l'onglet Console (v0.80.1), la première section est
      * GONE — seule la ligne tooling (si active) partage le fondu ; une
      * fois l'extension STABILISÉE (v0.80.2) les deux sections passent
-     * GONE (les onglets montent au sommet du sheet, comme AndroidIDE).
+     * GONE (les onglets montent au sommet du sheet).
+     *
+     * v0.185.0 (retour propriétaire : « le header doit SUIVRE la
+     * progression du slide pour disparaître et réapparaître ») : la
+     * HAUTEUR des deux sections suit la MÊME cosinus que l'alpha, posée
+     * PAR TRAME — l'effondrement se joue PENDANT le glissement (et le
+     * ré-empilement pendant le glissement inverse), plus APRÈS : les
+     * onglets montent À MESURE que la feuille s'étend et redescendent à
+     * mesure qu'elle se referme. Le reflow `ChangeBounds` de v0.184.0
+     * rejouait son propre mouvement de 250 ms une fois le doigt levé —
+     * la disparition et la réapparition lisaient désynchronisées.
      *
      * @param glissement fraction de glissement du sheet (0 replié,
      *        1 étendu) — posée par trame par onSlide ou par l'état
@@ -3015,8 +3049,39 @@ class EditorActivity :
         alphaEnteteCourant = alpha
         liaison.entetePanneau.alpha = alpha
         liaison.ligneTooling.alpha = alpha
+        // v0.185.0 : hauteurs PAR TRAME sur la même cosinus — les onglets
+        // suivent la progression du glissement au lieu d'un reflow
+        // post-settle (la hauteur de REPOS inclut le rembourrage d'inset
+        // des rangées : repliée, seule la bande rembourrée pend derrière
+        // la barre de navigation transparente).
+        redimensionnerSectionFondu(liaison.entetePanneau, hauteurReposEntetePanneau(), alpha)
+        redimensionnerSectionFondu(liaison.ligneTooling, hauteurReposLigneTooling(), alpha)
         majVisibiliteEntetePanneau()
         controleurTooling?.appliquerFondu(alpha)
+    }
+
+    /** Hauteur de REPOS de la première section : 48 dp de contenu +
+     *  l'inset de barre de navigation (rembourrage posé par le
+     *  gestionnaire d'insets — v0.185.0). */
+    private fun hauteurReposEntetePanneau(): Int = resources.getDimensionPixelSize(R.dimen.editor_panneau_replie) +
+        (gestionnaireInsets?.insetBasNavigation() ?: 0)
+
+    /** Hauteur de REPOS de la ligne tooling (52 dp, sans inset — elle
+     *  vit AU SOMMET de la bande repliée de l'onglet Console, jamais
+     *  derrière la barre — v0.185.0). */
+    private fun hauteurReposLigneTooling(): Int = resources.getDimensionPixelSize(R.dimen.editor_entete_tooling_hauteur)
+
+    /** Pose la hauteur d'une section d'en-tête pour la frame courante du
+     *  fondu (v0.185.0) : `hauteur de repos × alpha`, cosinus de
+     *  [CalculsFonduEntete]. Une vue GONE reçoit aussi sa hauteur — au
+     *  retour (DRAGGING) elle reprend sa place SANS saut : sa hauteur
+     *  est déjà celle de la frame courante. */
+    private fun redimensionnerSectionFondu(vue: android.view.View, hauteurRepos: Int, alpha: Float) {
+        val hauteur = CalculsFonduEntete.hauteurPx(hauteurRepos, alpha)
+        if (vue.layoutParams.height != hauteur) {
+            vue.layoutParams.height = hauteur
+            vue.requestLayout()
+        }
     }
 
     /**
@@ -3539,11 +3604,6 @@ class EditorActivity :
         /** Alpha sous lequel l'en-tête fondu passe INVISIBLE (les appuis
          *  fantômes cessent sans saut de hauteur). */
         const val SEUIL_FONDU_VISIBLE = 0.02f
-
-        /** Durée du reflow des sections d'en-tête à la bascule d'état
-         *  stable du sheet (v0.184.0 : les onglets glissent au sommet à
-         *  l'extension au lieu de sauter — ChangeBounds). */
-        const val DUREE_TRANSITION_ENTETE_MS = 250L
 
         /** Actions des touches épinglées de la barre de symboles. */
         const val ACTION_TAB = "tab"

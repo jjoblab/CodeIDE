@@ -1,5 +1,69 @@
 # Journal des modifications
 
+## [0.185.0] – 2026-10-25
+
+### L'en-tête suit la progression du glissement, l'onglet rectangulaire maigrit encore, le replié ne montre plus que l'en-tête (retour propriétaire : trois corrections)
+
+#### Corrigé
+
+- **« Le header doit suivre la progression du slide du bottomsheet
+  behavior pour disparaître et réapparaître » — la HAUTEUR suit
+  désormais le glissement, plus le fondu seul** : v0.184.0 avait coulé
+  l'ALPHA sur une cosinus mais l'effondrement de la hauteur se jouait
+  en reflow `ChangeBounds` de 250 ms UNE FOIS l'état stabilisé — les
+  onglets continuaient de monter APRÈS le doigt, la disparition
+  lisait désynchronisée. La hauteur des deux sections (première
+  section + ligne tooling) est désormais posée PAR TRAME par
+  `onSlide` sur la MÊME cosinus que l'alpha
+  (`CalculsFonduEntete.hauteurPx`, pur et testé) : l'en-tête se
+  réduit À MESURE que la feuille s'étend et reprend sa hauteur À
+  MESURE qu'elle redescend — disparition ET réapparition suivent la
+  progression du glissement, le reflow post-settle est retiré. Les
+  hauteurs de repos s'étirent de l'inset de barre (48 dp + inset) et
+  se re-posent à chaque changement d'inset (rotation, pli).
+- **« Réduis un peu la taille de l'onglet rectangulaire »** : la
+  bande passe de 44 à 40 dp, le padding de cellule de 8 à 6 dp, la
+  marge de début de contenu de 12 à 8 dp (`spacing_sm`), la fermeture
+  incrustée de 36 à 32 dp (padding composé 7 dp pour l'icône de
+  18 dp) — l'onglet actif garde son rectangle net (coins 4 dp) en
+  plus compact.
+- **« En collapse la barre de navigation est transparente, je vois
+  une partie du bottomsheet alors que seul le header devrait être
+  visible » — le peek compte désormais l'inset de barre** : le
+  `peekHeight` du XML (48 dp) se mesurait depuis le BAS DE L'ÉCRAN —
+  l'inset de barre mordait le BAS de l'en-tête, la barre transparente
+  laissait voir son contenu coupé (« une partie du sheet »). Le
+  gestionnaire d'insets devient PROPRIÉTAIRE du peek TOTAL
+  (`contenu + inset`, posé par `definirPeekContenu`/`poserPeekTotal`)
+  : replié, l'en-tête vit ENTIÈREMENT au-dessus de la barre et SEUL
+  l'espace REMBOURRÉ des rangées pend derrière elle — la rangée
+  d'en-tête (Problèmes/Journal) et la rangée d'onglets (Console,
+  qui ferme la bande repliée) portent un `paddingBottom` égal à
+  l'inset, leur contenu reste confiné aux 48 dp du haut. La réserve
+  sous l'éditeur devient EXACTEMENT le peek total (`peek + inset` ne
+  double-compte plus : la fonction pure `calculerReserveEditeur`
+  perd son paramètre d'inset), l'éditeur s'arrête au HAUT du sheet
+  replié.
+
+#### Technique
+
+- `PanneauToolingController` ne pose plus le `peekHeight` : il expose
+  la hauteur de CONTENU replié (`peekContenuPx`, testée sur les
+  quatre compositions Journal/Console × avec/sans activité) et
+  l'activité la confie au gestionnaire d'insets qui AJOUTE l'inset —
+  un seul propriétaire pour le peek, plus de course silencieuse.
+- `GestionnaireInsetsEditeur.surInsetsBarres` re-pose le peek total
+  à chaque changement d'inset et signale le changement à l'appelant
+  (l'activité re-pose le fondu aux hauteurs de repos neuves, un
+  changement d'inset ne passe jamais par `onSlide`).
+- Tests : `CalculsFonduEnteteTest` (hauteur pleine tant qu'opaque,
+  nulle à l'extension, repos × alpha sur toute la coulée, bornes),
+  `GestionnaireInsetsEditeurTest` (réserve = peek total, signature
+  sans inset), `GestionnaireInsetsPanneauClavierTest` (peek total
+  contenu + inset, rembourrage des rangées, `definirPeekContenu`),
+  `PanneauToolingControllerTest` (quatre compositions du peek de
+  contenu), `DesignOngletsFichiersTest` (prose aux nouvelles cotes).
+
 ## [0.184.0] – 2026-10-25
 
 ### Le bouton « Fermer le projet » referme ENFIN le projet, l'onglet devient rectangulaire, l'en-tête coule et le sheet tient dans l'écran (retour propriétaire : quatre corrections)

@@ -7,7 +7,6 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.ui.ThemeHarmonizer
@@ -31,31 +30,40 @@ import kotlin.math.roundToInt
  * vol de sync, sous-titre = étape courante + détail (octets, compteur),
  * chrono monospace en vol ou durée figée, bouton Arrêter pendant un
  * build, progression DÉTERMINÉE quand les octets totaux sont connus
- * (indéterminée sinon, pleine au succès), peek élargi pour l'en-tête.
+ * (indéterminée sinon, pleine au succès).
  *
- * @param activite hôte (contexte de rendu + portée de cycle de vie).
- * @param liaison liaison de l'espace de travail (vues de l'en-tête).
- * @param comportementPanneau comportement du sheet (peek ajusté — seul
- *        `peekHeight` est piloté, la vue reste à l'activité).
- * @param horloge horloge injectée (correctif n°12 : jamais l'horloge directe).
- * @param surArret action d'annulation du build (l'activité relaie le
- *        ViewModel — le contrôleur ne connaît ni ViewModel ni actions).
+ * v0.185.0 (retour propriétaire : « en collapse la barre de navigation
+ * transparente laisse voir une partie du sheet, seul l'en-tête devrait
+ * être visible ») : le contrôleur ne POSE plus le `peekHeight` du
+ * comportement — il expose la hauteur de CONTENU replié
+ * ([peekContenuPx]) et l'activité la confie au
+ * [GestionnaireInsetsEditeur.definirPeekContenu] qui AJOUTE l'inset de
+ * barre de navigation : replié, l'en-tête vit ENTIÈREMENT au-dessus de
+ * la barre et SEUL l'espace rembourré pend derrière elle.
  *
  * Exemption detekt ciblée (règle 16, v0.80.1) : `TooManyFunctions` —
  * une fonction par SECTION de l'en-tête tooling (pastille, sous-titre,
  * progression, chrono, peek) ; les regrouper masquerait la structure
  * du §3.3 du prompt tooling.
+ *
+ * @param activite hôte (contexte de rendu + portée de cycle de vie).
+ * @param liaison liaison de l'espace de travail (vues de l'en-tête).
+ * @param horloge horloge injectée (correctif n°12 : jamais l'horloge directe).
+ * @param surArret action d'annulation du build (l'activité relaie le
+ *        ViewModel — le contrôleur ne connaît ni ViewModel ni actions).
+ * @param surPeekChange appelé après chaque changement de hauteur de
+ *        contenu replié (l'activité relaie au gestionnaire d'insets qui
+ *        re-pose le peek TOTAL et la réserve sous l'éditeur).
  */
 @Suppress("TooManyFunctions")
 internal class PanneauToolingController(
     private val activite: AppCompatActivity,
     private val liaison: ActivityEditorBinding,
-    private val comportementPanneau: BottomSheetBehavior<*>,
     private val horloge: TimeProvider,
     private val surArret: () -> Unit,
-    /** B3 : appelé après chaque changement de `peekHeight` (par ex.
-     *  quand la ligne de build apparaît) pour que l'activité recale la
-     *  réserve du panneau sous l'éditeur. */
+    /** B3 : appelé après chaque changement de hauteur de contenu replié
+     *  (v0.185.0 : le peek TOTAL est posé par le gestionnaire d'insets,
+     *  qui y AJOUTE l'inset de barre de navigation). */
     private val surPeekChange: () -> Unit = {},
 ) {
     /** L'en-tête tooling a-t-il quelque chose à montrer ? */
@@ -83,6 +91,20 @@ internal class PanneauToolingController(
 
     /** Ticker du chrono en vol (annulé au prochain rendre ou à la destruction). */
     private var travailMinuteur: Job? = null
+
+    /**
+     * Hauteur de CONTENU du sheet replié SANS l'inset de barre de
+     * navigation (v0.185.0) : première section sur Problèmes/Journal,
+     * ligne tooling + progression + onglets sur Console. Le peek TOTAL
+     * (`contenu + inset`) est posé par [GestionnaireInsetsEditeur] —
+     * replié, l'en-tête reste ENTIÈREMENT au-dessus de la barre de
+     * navigation transparente.
+     *
+     * Valeur initiale : la première section (onglet Journal par défaut,
+     * `editor_panneau_replie`) — recalculée par [majPeekPanneau].
+     */
+    var peekContenuPx: Int = activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_replie)
+        private set
 
     init {
         // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de
@@ -322,16 +344,17 @@ internal class PanneauToolingController(
         }
     }
 
-    /** Peek du panneau : en-tête seul, + en-tête tooling enrichi (et
-     *  progression) quand une activité s'y affiche — l'activité tooling
-     *  reste visible même replié (v0.32.5). v0.80.1 : sur l'onglet CONSOLE
-     *  la première section disparaît (la ligne tooling EST l'en-tête) et
-     *  les ONGLETS prennent la place de poignée repliée — sans activité
-     *  tooling, le sheet replié montre ses onglets au lieu de disparaître.
-     *  v0.80.2 : sur Problèmes/Journal la ligne tooling ne compte plus
-     *  dans le peek (seule la première section est repliée).
-     *  B3 : notifie l'activité pour qu'elle recale la réserve sous
-     *  l'éditeur. */
+    /** Peek de CONTENU du panneau (v0.185.0 : l'inset de barre est
+     *  AJOUTÉ par le gestionnaire d'insets, qui pose le peek TOTAL) :
+     *  en-tête seul sur Problèmes/Journal, + ligne tooling enrichie
+     *  (et progression) sur Console quand une activité s'y affiche,
+     *  + les ONGLETS qui deviennent la poignée repliée de l'onglet
+     *  Console — sans activité tooling, le sheet replié montre ses
+     *  onglets au lieu de disparaître. v0.80.2 : sur Problèmes/Journal
+     *  la ligne tooling ne compte plus dans le peek (seule la première
+     *  section est repliée).
+     *  B3 : notifie l'activité pour qu'elle relaye au gestionnaire
+     *  d'insets (peek total + réserve sous l'éditeur). */
     private fun majPeekPanneau() {
         var peek = 0
         if (ongletCourant != OngletPanneau.CONSOLE) {
@@ -346,8 +369,10 @@ internal class PanneauToolingController(
         if (ongletCourant == OngletPanneau.CONSOLE) {
             peek += activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_onglets_hauteur)
         }
-        comportementPanneau.peekHeight = peek
-        surPeekChange()
+        if (peek != peekContenuPx) {
+            peekContenuPx = peek
+            surPeekChange()
+        }
     }
 
     private companion object {

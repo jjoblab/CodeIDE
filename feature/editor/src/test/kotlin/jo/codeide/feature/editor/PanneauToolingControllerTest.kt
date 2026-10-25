@@ -4,7 +4,6 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -45,12 +44,10 @@ class PanneauToolingControllerTest {
         pilote.setup()
         val liaison =
             ActivityEditorBinding.inflate(LayoutInflater.from(activite))
-        val comportement = BottomSheetBehavior.from(liaison.panneauInferieur)
         val controleur =
             PanneauToolingController(
                 activite = activite,
                 liaison = liaison,
-                comportementPanneau = comportement,
                 horloge = { 0L },
                 surArret = {},
             )
@@ -179,6 +176,78 @@ class PanneauToolingControllerTest {
         assertFalse(
             "Aucune activité : pas de bande de progression",
             liaison.progressionTooling.isVisible,
+        )
+    }
+
+    // ============================================================
+    // v0.185.0 — peek de CONTENU exposé (l'inset de barre est AJOUTÉ
+    // par le gestionnaire d'insets, qui pose le peek TOTAL)
+    // ============================================================
+
+    /** Ressources d'un hôte gonflé une seule fois pour toute la classe. */
+    private val ressourcesTest: android.content.res.Resources by lazy {
+        val pilote = Robolectric.buildActivity(AppCompatActivity::class.java)
+        val activite = pilote.get()
+        activite.setTheme(RUi.style.Theme_CodeIDE)
+        pilote.setup()
+        activite.resources
+    }
+
+    /** Dimension du module en pixels de test. */
+    private fun dimenTest(dimen: Int): Int = ressourcesTest.getDimensionPixelSize(dimen)
+
+    /** Journal replié : le contenu = la première section SEULE. */
+    @Test
+    fun `peek de contenu sur journal — la premiere section seule`() {
+        val (_, controleur) = construire()
+        controleur.rendre(EtatGradle())
+        assertEquals(
+            "Journal : contenu replié = la première section (48 dp), SANS inset",
+            dimenTest(R.dimen.editor_panneau_replie),
+            controleur.peekContenuPx,
+        )
+    }
+
+    /** Console SANS activité : le contenu = les onglets seuls. */
+    @Test
+    fun `peek de contenu sur console sans activite — les onglets seuls`() {
+        val (_, controleur) = construire()
+        controleur.rendre(EtatGradle())
+        controleur.definirOnglet(OngletPanneau.CONSOLE)
+        assertEquals(
+            "Console sans activité : contenu replié = les onglets (48 dp)",
+            dimenTest(R.dimen.editor_panneau_onglets_hauteur),
+            controleur.peekContenuPx,
+        )
+    }
+
+    /** Console AVEC activité en vol : ligne tooling + progression +
+     *  onglets — l'activité reste visible même repliée (la progression
+     *  du sheet est une bande de 4 dp, épaisseur Material par défaut). */
+    @Test
+    fun `peek de contenu sur console avec activite — ligne plus progression plus onglets`() {
+        val (_, controleur) = construire()
+        controleur.rendre(EtatGradle(synchronisationEnCours = true))
+        controleur.definirOnglet(OngletPanneau.CONSOLE)
+        val progressionPx = (4 * ressourcesTest.displayMetrics.density).toInt()
+        assertEquals(
+            "Console en vol : contenu = ligne tooling + progression + onglets",
+            dimenTest(R.dimen.editor_entete_tooling_hauteur) + progressionPx +
+                dimenTest(R.dimen.editor_panneau_onglets_hauteur),
+            controleur.peekContenuPx,
+        )
+    }
+
+    /** Journal n'élargit JAMAIS son contenu replié pour la ligne tooling
+     *  (elle n'y vit pas — v0.80.2). */
+    @Test
+    fun `peek de contenu sur journal avec activite — la ligne ne compte pas`() {
+        val (_, controleur) = construire()
+        controleur.rendre(EtatGradle(synchronisationEnCours = true))
+        assertEquals(
+            "Journal en vol : la ligne tooling ne compte PAS dans le contenu replié",
+            dimenTest(R.dimen.editor_panneau_replie),
+            controleur.peekContenuPx,
         )
     }
 }

@@ -32,19 +32,33 @@ import jo.codeide.feature.editor.databinding.ActivityEditorBinding
  * ([brancher] pour les barres applicatives, l'IME reste à l'activité)
  * nourrit le gestionnaire via [surInsetsBarres].
  *
+ * v0.185.0 (retour propriétaire : « en collapse la barre de navigation
+ * est transparente, je vois une partie du sheet alors que seul
+ * l'en-tête devrait être visible ») : le gestionnaire devient le
+ * PROPRIÉTAIRE du `peekHeight` TOTAL — [definirPeekContenu] reçoit la
+ * hauteur de CONTENU replié (calculée par le `PanneauToolingController`)
+ * et pose `peek = contenu + inset de navigation`. Le peek du XML ne
+ * comptait QUE 48 dp depuis le BAS DE L'ÉCRAN : l'inset mordait le
+ * BAS de l'en-tête, la barre transparente laissait voir son contenu
+ * coupé — « une partie du sheet ». Désormais replié, l'en-tête vit
+ * ENTIÈREMENT au-dessus de la barre et SEUL l'espace REMBOURRÉ des
+ * rangées pend derrière elle : la rangée d'en-tête et la rangée
+ * d'onglets portent un `paddingBottom` égal à l'inset, leur CONTENU
+ * reste confiné aux 48 dp du haut.
+ *
  * Le calcul de la réserve est une fonction pure
  * ([calculerReserveEditeur]) couverte par des tests unitaires : entrées
- * peek, inset barre de navigation, inset IME, état du sheet, clavier
- * visible ; sortie : réserve basse en pixels.
+ * peek (total, inset INCLUS), inset IME, clavier visible ; sortie :
+ * réserve basse en pixels.
  *
  * Patron : `PanneauToolingController` — l'activité reste propriétaire du
- * cycle de vie et des vues, le contrôleur ne fait que réagir aux insets
+ * cycle de vie et des vues, le gestionnaire ne fait que réagir aux insets
  * et aux changements d'état. Aucune logique métier, aucun état propre
  * (les champs sont en lecture-écriture pour permettre à l'activité de
  * propager les changements du sheet et du clavier).
  *
  * @param liaison liaison de l'espace de travail.
- * @param comportementPanneau comportement du sheet (peek dynamique).
+ * @param comportementPanneau comportement du sheet (peek TOTAL possédé ici).
  * @param clavierVisible fournisseur « le clavier virtuel est-il
  *        visible ? » (l'activité a deux détecteurs, insets + hauteur —
  *        le gestionnaire ne connaît pas leur implémentation).
@@ -69,6 +83,15 @@ internal class GestionnaireInsetsEditeur(
     /** Inset droit de la barre de navigation (paysage, barre sur le
      *  côté). Mis à jour à chaque distribution d'insets. */
     private var insetNavigationDroite: Int = 0
+
+    /**
+     * Hauteur de CONTENU du sheet replié, SANS inset (v0.185.0) : posée
+     * par l'activité via [definirPeekContenu] (le `PanneauToolingController`
+     * la calcule selon l'onglet et la ligne tooling). Le `peekHeight` du
+     * comportement vaut `contenu + insetNavigationBas` — replié, seul
+     * l'en-tête vit au-dessus de la barre de navigation transparente.
+     */
+    private var peekContenuPx: Int = 0
 
     /**
      * Padding IME du PANNEAU (v0.183.0, retour propriétaire : « les
@@ -98,6 +121,14 @@ internal class GestionnaireInsetsEditeur(
      * l'éditeur naissait SOUS le panneau.
      */
     fun brancher() {
+        // v0.185.0 : le contenu replié démarre à la valeur du XML
+        // (`behavior_peekHeight` — 48 dp de CONTENU, l'inset n'est pas
+        // encore connu) ; l'activité le remplace par la valeur du
+        // contrôleur tooling dès sa création, puis à chaque changement
+        // d'onglet ou de ligne tooling.
+        if (peekContenuPx == 0) {
+            peekContenuPx = comportementPanneau.peekHeight
+        }
         // Toolbar : barre d'état en haut (inchangé — comportement
         // historique préservé, la toolbar gère elle-même son inset haut).
         liaison.toolbarEditeur.applySystemBarsInsets(top = true, bottom = false)
@@ -113,8 +144,12 @@ internal class GestionnaireInsetsEditeur(
      * UNIQUE de la racine (v0.183.0). On ne consomme PAS l'inset (on le
      * laisse passer aux enfants) — on le capte pour recalculer la
      * réserve à chaque changement.
+     *
+     * @return `true` si l'un des insets de barre de navigation a changé
+     *         (l'appelant re-percute les hauteurs qui en dépendent —
+     *         l'étirement des rangées d'en-tête à l'activité).
      */
-    fun surInsetsBarres(insets: WindowInsetsCompat) {
+    fun surInsetsBarres(insets: WindowInsetsCompat): Boolean {
         val barres =
             insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or
@@ -128,7 +163,40 @@ internal class GestionnaireInsetsEditeur(
         insetNavigationGauche = barres.left
         insetNavigationDroite = barres.right
         if (changement) {
+            // v0.185.0 : le peek TOTAL dépend de l'inset — on le RE-POSE
+            // (contenu inchangé, inset neuf) avant la réserve.
+            poserPeekTotal()
             appliquerReserveEtPaddingSheet()
+        }
+        return changement
+    }
+
+    /**
+     * Reçoit la hauteur de CONTENU du sheet replié (v0.185.0) et pose le
+     * `peekHeight` TOTAL = contenu + inset de barre de navigation.
+     * Appelé par l'activité à chaque changement de composition du peek
+     * (onglet du panneau, ligne tooling qui apparaît/disparaît).
+     *
+     * Replié, le HAUT du sheet vaut `bas écran − peek` : l'en-tête (48 dp)
+     * vit ENTIER au-dessus de la barre transparente, SEUL l'espace
+     * rembourré des rangées pend derrière elle — plus de « partie du
+     * sheet » visible sous l'en-tête.
+     */
+    fun definirPeekContenu(contenuPx: Int) {
+        peekContenuPx = contenuPx
+        poserPeekTotal()
+        appliquerReserveEtPaddingSheet()
+    }
+
+    /** Inset bas de navigation courant (0 si aucun) — l'activité étire
+     *  les hauteurs de repos des rangées d'en-tête avec (v0.185.0). */
+    fun insetBasNavigation(): Int = insetNavigationBas
+
+    /** Pose le peek TOTAL du comportement : contenu + inset bas. */
+    private fun poserPeekTotal() {
+        val total = peekContenuPx + insetNavigationBas
+        if (comportementPanneau.peekHeight != total) {
+            comportementPanneau.peekHeight = total
         }
     }
 
@@ -148,7 +216,6 @@ internal class GestionnaireInsetsEditeur(
         val reserve =
             calculerReserveEditeur(
                 peek = comportementPanneau.peekHeight,
-                insetNavigation = insetNavigationBas,
                 insetIme = if (clavierVisible()) hauteurIme() else 0,
                 clavierOuvert = clavierVisible(),
             )
@@ -173,6 +240,16 @@ internal class GestionnaireInsetsEditeur(
             right = insetNavigationDroite,
             bottom = insetNavigationBas + paddingImePanneau,
         )
+        // v0.185.0 : les RANGÉES VISIBLES REPLIÉES portent l'inset en
+        // paddingBottom — leur contenu reste confiné aux 48 dp du haut.
+        // La rangée d'en-tête est la SEULE bande visible sur
+        // Problèmes/Journal, la rangée d'onglets ferme la bande sur
+        // Console — derrière la barre transparente ne pend plus qu'un
+        // espace REMBOURRÉ (« plus de partie du sheet visible », retour
+        // propriétaire). Leur hauteur est étirée par l'activité
+        // (repos = dimen + inset).
+        liaison.entetePanneau.updatePadding(bottom = insetNavigationBas)
+        liaison.ongletsPanneau.updatePadding(bottom = insetNavigationBas)
     }
 
     /**
@@ -197,9 +274,10 @@ internal class GestionnaireInsetsEditeur(
      *  l'éditeur ne passe pas sous le sheet replié. Clavier ouvert,
      *  la réserve est la hauteur de l'IME (la barre de symboles se
      *  colle au clavier) ; clavier fermé, la réserve est `peekHeight`
-     *  (le sheet replié ne masque pas la dernière ligne de l'éditeur)
-     *  + inset de barre de navigation (l'en-tête replié reste
-     *  AU-DESSUS de la barre). */
+     *  TOTAL (v0.185.0 : l'inset de navigation est déjà INCLUS dans le
+     *  peek posé par [poserPeekTotal] — l'en-tête replié reste
+     *  AU-DESSUS de la barre, la dernière ligne de l'éditeur s'arrête
+     *  exactement au HAUT du sheet replié). */
     internal fun appliquerReservePanneau() {
         appliquerReserveEtPaddingSheet()
     }
@@ -210,9 +288,8 @@ internal class GestionnaireInsetsEditeur(
         /**
          * Calcule la réserve basse de la colonne centrale.
          *
-         * @param peek hauteur de peek du sheet (pixels).
-         * @param insetNavigation inset bas de la barre de navigation
-         *        (pixels, 0 si aucun).
+         * @param peek hauteur de peek TOTAL du sheet (pixels, inset de
+         *        navigation INCLUS — posé par [poserPeekTotal]).
          * @param insetIme hauteur de l'IME (pixels, 0 si clavier fermé).
          * @param clavierOuvert le clavier virtuel est-il visible ?
          * @return réserve basse en pixels (padding `bottom` de
@@ -221,27 +298,20 @@ internal class GestionnaireInsetsEditeur(
          * Règles :
          * - Clavier ouvert : la réserve = hauteur IME. La barre de
          *   symboles se colle au clavier via le padding, le sheet est
-         *   masqué (patron ADR 0056 décision 2). L'inset de navigation
-         *   est ignoré (le clavier recouvre la barre ou s'étend au-dessus).
-         * - Clavier fermé, sheet replié : la réserve = peek +
-         *   inset navigation. L'éditeur ne passe ni sous le sheet ni
-         *   sous la barre de navigation. L'en-tête replié (48 dp) reste
-         *   cliquable au-dessus de la barre.
-         * - Clavier fermé, sheet mi-hauteur/étendu : la réserve reste
-         *   peek + inset navigation (décision v0.80.2 : la zone d'édition
-         *   ne change pas de taille quand le sheet s'étend — l'état vide
-         *   ne « saute » pas).
+         *   masqué (patron ADR 0056 décision 2).
+         * - Clavier fermé : la réserve = peek TOTAL. Replié, le haut du
+         *   sheet vaut `bas écran − peek` : l'éditeur s'arrête EXACTEMENT
+         *   au haut du sheet — l'en-tête (contenu 48 dp + rembourrage
+         *   d'inset) vit entier au-dessus de la barre de navigation.
+         * - Mi-hauteur/étendu : la réserve reste la MÊME (décision
+         *   v0.80.2 : la zone d'édition ne change pas de taille quand le
+         *   sheet s'étend — l'état vide ne « saute » pas).
          */
         @JvmStatic
-        public fun calculerReserveEditeur(
-            peek: Int,
-            insetNavigation: Int,
-            insetIme: Int,
-            clavierOuvert: Boolean,
-        ): Int = if (clavierOuvert) {
+        public fun calculerReserveEditeur(peek: Int, insetIme: Int, clavierOuvert: Boolean): Int = if (clavierOuvert) {
             insetIme
         } else {
-            peek + insetNavigation
+            peek
         }
 
         /**
