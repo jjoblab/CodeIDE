@@ -36,7 +36,10 @@ public class AdapterEtapesAgent : ListAdapter<EtapeAgentIa, AdapterEtapesAgent.P
 
     override fun onBindViewHolder(porteur: Porteur, position: Int) {
         val etape = getItem(position)
-        porteur.numero.text = (position + 1).toString()
+        // Numéro LOCALISÉ (lint SetTextI18n) : une ressource à
+        // substituant, jamais un nombre forgé à la concaténation.
+        porteur.numero.text =
+            porteur.itemView.context.getString(R.string.agent_numero_etape, position + 1)
         porteur.libelle.text = etape.libelle
         // Les étapes s'ajoutent ACHEVÉES au fil du runner ; la coche
         // n'est masquée que si une étape « en cours » venait à exister.
