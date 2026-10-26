@@ -1742,3 +1742,60 @@ du frère) : membres hérités du classpath (`submitList`/`getString`)
 en TÊTE, puis erasure après `remember { }` et extensions de scope
 Compose — les fichiers concernés baveront encore jusqu'à la vague
 suivante côté codeide-lsp.
+
+## Montée codeide-lsp 1.14.0 — le monde Views/XML à zéro faux positif (bump-frère → v0.198.0, codeide-lsp 1.14.0)
+
+Contexte appareil : les scénarios de la section 1.13.0 restent valides
+et doivent être rejoués ; cette section ajoute les familles de la
+VAGUE 4 — un adaptant RecyclerView COMPLET est l'échantillon le plus
+riche (objet anonyme `Filter`, `submitList`, constructeur primaire à
+délégation `super(...)`, `apply` sur `Paint`). Chaque projet doit être
+SYNCHRONISÉ et l'écran d'indexation au vert AVANT de juger un
+diagnostic. Notes de passage : `docs/MISE-A-JOUR-CODEIDE.md` § 1.14.0
+du dépôt codeide-lsp (montée de coordonnées pure, AUCUN changement
+d'API) ; détail des sept familles : `CHANGELOG.md` § 1.14.0 du frère.
+
+1. **Membres hérités du classpath, this implicite** — dans une classe
+   `MonAdapter : ListAdapter<X, Y>()` : les appels NUS
+   `submitList(liste)` et `getItem(position)` sont MUETS (1.13.0 les
+   soulignait — le chaînon projet→classpath manquait) ; idem
+   `getString(...)` nu dans une Activity, `addItemDecoration`,
+   `setOnClickListener` sur une vue du binding.
+2. **Objet anonyme — la pile des this** — dans le `object : Filter()`
+   retourné par `getFilter()` : `performFiltering`/`publishResults`
+   (overrides) et un appel NU à un membre de la classe ENGLOBANTE
+   (ex. `submitList(...)`) : MUETS — l'objet anonyme ouvre la marche,
+   puis les this externes.
+3. **Imbriqués de supertype par nom simple** — dans le corps du
+   `object : Filter()` : `FilterResults()` et le paramètre typé
+   `results: FilterResults?` : MUETS (hériter met les imbriqués en
+   portée) ; `results?.values` : MUET (le bug de frontière `?.` est
+   éteint — chaque sélecteur d'accès sûr bavait avant 1.14.0).
+4. **Constructeur primaire — zone de construction** — une custom View
+   `class Jauge @JvmOverloads constructor(contexte: Context,
+   attributs: AttributeSet? = null, styleDef: Int = 0) :
+   View(contexte, attributs, styleDef)` : les TROIS segments de
+   `super(...)` sont MUETS ; un `init { }` qui lit `contexte` : MUET ;
+   dans une MÉTHODE, `contexte` doit être SIGNALÉ (vrai positif
+   rattrapé, miroir kotlinc) ; un setter custom
+   `set(valeur) { field = valeur }` : MUET.
+5. **FQN sans import en expression** — écrire
+   `androidx.recyclerview.widget.LinearLayoutManager(this)` SANS
+   import : MUET ; une coquille dans le paquet (ex.
+   `androidx.recyclerwidge.…`) : UN SEUL rouge sur le dernier
+   segment, pas trois.
+6. **`remember { }` générique (Compose)** — `val hote =
+   remember { SnackbarHostState() }` puis `hote.showSnackbar("…")`
+   dans le corps d'un effet : MUET (1.13.0 soulignait `showSnackbar` —
+   le type effacé masquait l'état).
+7. **`apply` sur un objet Java** — `Paint().apply { style =
+   Paint.Style.STROKE ; color = Color.RED }` : MUET (les propriétés
+   synthétiques Java du récepteur implicite) ; la chaîne de binding
+   `liaison.texteVue.context.getString(R.string.x)` : MUETTE.
+
+Backlog partagé à surveiller pour les prochaines montées (RETOURS § 4
+du frère) : extensions de SCOPE Compose (`weight` dans Row, `align`
+dans Box) en TÊTE, puis destructuring de lambda `(_, total)` et
+`Map.entries` — les fichiers concernés baveront encore jusqu'à la
+vague suivante côté codeide-lsp.
+
