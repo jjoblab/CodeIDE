@@ -1686,3 +1686,59 @@ La maquette de référence : `docs/mockups/indexation/indexation.html`.
 | IA26 | Couper le réseau, envoyer un message (échec hors-ligne/délai) | La carte d'erreur propose « Réessayer » ; rétablir le réseau puis toucher → le dernier échange REPART |
 | IA27 | Fournisseur mal configuré (clé refusée ou consentement révoqué) puis envoi | La carte propose « Ouvrir les réglages » → mène à Paramètres → IA ; une clé illisible (Keystore réinitialisé) propose la même action |
 | IA28 | Serveur non standard qui renvoie une réponse illisible | La carte propose « Changer de modèle » → ouvre le SÉLECTEUR de l'en-tête du chat (changer puis réessayer sans quitter le chat) |
+
+## Montée codeide-lsp 1.13.0 — les scénarios des quatre mondes (bump-frère → v0.197.0, codeide-lsp 1.13.0)
+
+Contexte appareil : un projet par monde — Compose (une `data class`
+modélisée par un ViewModel à `StateFlow`), mixte Java/Kotlin (une classe
+`.java` à champs et getters consommée depuis un `.kt`, un layout qui
+référence `@string`). Chaque projet doit être SYNCHRONISÉ et l'écran
+d'indexation au vert AVANT de juger un diagnostic. Notes de passage :
+`docs/MISE-A-JOUR-CODEIDE.md` § 1.13.0 du dépôt codeide-lsp (montée de
+coordonnées pure, AUCUN changement d'API) ; détail des trois vagues :
+`CHANGELOG.md` § 1.13.0 du frère ; rapports des quatre mondes :
+`docs/RETOURS-UTILISATEURS-2026-10-25.md` du frère.
+
+1. **Constructeur à valeurs par défaut** — appeler un constructeur
+   Compose sans ses paramètres optionnels (ex. `Article("Lait", 2)`
+   alors que `Article` accepte `poids: Float = 1f, bio: Boolean =
+   false`) : AUCUN « 4 fourni(s), 6 attendu(s) » (le faux positif n° 1
+   du quotidien — 1.12.0 le posait systématiquement).
+2. **Data class — `copy` en résolution ET en complétion** — écrire
+   `article.copy(titre = "…")` : la ligne reste MUETTE là où 1.12.0
+   soulignait `copy` ; la complétion après `article.` PROPOSE `copy`
+   (les membres synthétisés du modificateur `data` apparaissent, pas
+   seulement les membres écrits).
+3. **`collect` sur un `StateFlow` du ViewModel** — dans l'écran,
+   `vueModele.effets.collect { … }` : MUET (1.12.0 y posait un faux
+   `kt.unresolved` après récepteur typé) ; l'erreur volontaire placée
+   dans un AUTRE fichier du projet reste attrapée (le silence n'est
+   pas général).
+4. **Getters Compose, types imbriqués, annotations stdlib** —
+   `MaterialTheme.typography`, `Arrangement.spacedBy(8.dp)`,
+   `Icons.Filled.Add`, `Paint.Cap.ROUND` : muets ; la complétion après
+   `MaterialTheme.` propose les membres (typography, colorScheme — en
+   1.12.0 elle ne proposait que « INSTANCE ») ; `@OptIn(...)` et
+   `@Suppress(...)` ne sont plus marqués inutilisés, les imports
+   `by` (`getValue`/`setValue`) non plus.
+5. **Monde mixte — membres Java du projet depuis Kotlin** — depuis un
+   `.kt`, taper `vinyle.` sur une instance d'une classe `.java` du
+   projet : la complétion propose les champs, les méthodes ET les
+   getters (`getTitre()`, propriété synthétique `titre`) — en 1.12.0
+   la popup était VIDE (0 item) ; le survol d'un membre Java affiche
+   sa signature ; un chaînage `v.getTitre().length` reste muet.
+6. **`R` sans import (même paquet)** — dans le `.kt` du monde mixte,
+   écrire `R.string.app_name` SANS import : MUET (1.12.0 le
+   soulignait — le `R` du build suffit, le manifeste AGP 9 ne porte
+   plus de `package=`).
+7. **Vrai positif rattrapé (preuve d'absence projet)** — taper
+   `article.prixInconnu` : SIGNALÉ en rouge (le type `Article` est DU
+   projet, sans héritage écrit — 1.12.0 se taisait) ; corriger la
+   ligne : le souligné disparaît. Les deux tableaux (plus de faux
+   positif, toujours un vrai) sont tenus ENSEMBLE.
+
+Backlog partagé à surveiller pour les prochaines montées (RETOURS § 4
+du frère) : membres hérités du classpath (`submitList`/`getString`)
+en TÊTE, puis erasure après `remember { }` et extensions de scope
+Compose — les fichiers concernés baveront encore jusqu'à la vague
+suivante côté codeide-lsp.
