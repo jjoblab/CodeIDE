@@ -1,5 +1,57 @@
 # Journal des modifications
 
+## [0.198.0] – 2026-10-26
+
+### Montée codeide-lsp 1.13.0 → 1.14.0 — le programme utilisateurs, vague 4 : le monde Views/XML à ZÉRO faux positif (bump-frère)
+
+#### Corrigé
+
+- **Membres HÉRITÉS du classpath par this implicite** (le n° 1 du
+  backlog — 29 faux positifs chez l'utilisateur Views) :
+  `submitList` nu dans un adaptant RecyclerView, `getString` dans une
+  Activity, `addItemDecoration`, `setOnClickListener` — y compris
+  depuis un OBJET ANONYME (la PILE des this implicites, miroir
+  kotlinc : l'objet ouvre la marche, puis les classes englobantes).
+- **Types IMBRIQUÉS des supertypes par nom simple** : `FilterResults`
+  nu dans un `object : Filter()` (règle kotlinc prouvée par expérience :
+  hériter met les imbriqués en portée, l'import du conteneur seul ne
+  suffit pas) — ViewHolder, ItemDecoration, State.
+- **Frontière `?.` des sélecteurs** (bug transversal du moteur) :
+  chaque sélecteur d'accès sûr `results?.values` produisait un faux
+  `kt.unresolved` — le jeton `?.` captait le début du sélecteur
+  suivant dans la chaîne d'ancêtres.
+- **Paramètres du constructeur primaire en zone de construction** :
+  `super(contexte, attributs, styleDef)`, initialisateurs, `init` —
+  le vrai positif d'un paramètre HORS zone (corps de méthode) est
+  rattrapé ; `field` et le paramètre des setters custom résolvent.
+- **FQN complets sans import en expression**
+  (`androidx.recyclerview.widget.LinearLayoutManager(this)`) et
+  **imbriqués qualifiés en position de type**
+  (`ViewModelProvider.Factory`).
+- **Appels génériques liés par leur lambda** : `remember { X() }` type
+  son contenu — `hoteSnackbar.showSnackbar(...)` éteint (le décodeur
+  de métadonnées rend le retour paramètre de type « T »).
+- **Propriétés synthétiques Java dans `apply { }`** (`style =`,
+  `color =` sur Paint) et **chaînes de binding** vers
+  `context.getString(...)` (unicité du nom simple dans la vue).
+
+#### Conséquences
+
+- Le monde Views/XML du programme utilisateurs (AtelierVinyle,
+  RecyclerView + Filter + ViewBinding + custom View) ne produit PLUS
+  AUCUN faux positif — le contrat E2E de son test est vide (tout
+  nouveau faux positif casse la CI du frère).
+- Vrais positifs rattrapés : paramètre du primaire hors zone de
+  construction, premier segment d'une chaîne qualifiée inconnue
+  (`ArticleRepoInconnu.tenter()`).
+
+Notes de passage du frère : docs/MISE-A-JOUR-CODEIDE.md § 1.14.0
+(codeide-lsp) — aucun changement d'API (montée de coordonnées pure) ;
+scénarios d'appareil des quatre mondes à rejouer ; backlog partagé en
+tête : extensions de SCOPE Compose (weight/align).
+
+Validation : CI (les trois jobs, frère binaire 1.14.0 résolu par jeton
+Packages — registre maven-metadata.xml <latest> 1.14.0 vérifié).
 ## [0.197.0] – 2026-10-26
 
 ### Montée codeide-lsp 1.12.0 → 1.13.0 — le programme utilisateurs : trois vagues de faux positifs éteintes (bump-frère)
