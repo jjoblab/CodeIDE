@@ -1799,3 +1799,48 @@ dans Box) en TÊTE, puis destructuring de lambda `(_, total)` et
 `Map.entries` — les fichiers concernés baveront encore jusqu'à la
 vague suivante côté codeide-lsp.
 
+
+## Montée codeide-lsp 1.15.0 — les mondes Compose et KMP à zéro faux positif (bump-frère → v0.199.0, codeide-lsp 1.15.0)
+
+Contexte appareil : les scénarios des sections 1.13.0/1.14.0 restent
+valides et doivent être rejoués ; cette section ajoute les familles de
+la VAGUE 5 — un écran Compose COMPLET (Row/Box/Column imbriqués,
+Weight/align) et un module KMP métier (Map, destructuring) sont les
+échantillons les plus riches. Chaque projet doit être SYNCHRONISÉ et
+l'écran d'indexation au vert AVANT de juger un diagnostic. Notes de
+passage : `docs/MISE-A-JOUR-CODEIDE.md` § 1.15.0 du dépôt codeide-lsp
+(montée de coordonnées pure, AUCUN changement d'API) ; détail des
+trois familles : `CHANGELOG.md` § 1.15.0 du frère.
+
+1. **Extension de scope Compose — weight dans Row** — dans un écran
+   `Row { Checkbox(...); Column(modifier = Modifier.weight(1f)) { … } }` :
+   `weight` est MUET (1.14.0 le soulignait — le récepteur de portée
+   du lambda, `RowScope.() -> Unit`, n'était pas modélisé) ; de même
+   tout membre NU du scope.
+2. **Extension de scope Compose — align dans Box** — dans un
+   `Box(modifier = Modifier.fillMaxSize()) { LinearProgressIndicator(
+   modifier = Modifier.align(Alignment.BottomCenter).padding(…)) }` :
+   `align` est MUET ; une ERREUR volontaire dans le scope
+   (`Modifier.wight(1f)`) reste ROUGE (vrai positif gardé).
+3. **Pile des scopes emboîtés** — un `Row { Column { Text(...) } }` :
+   les membres des DEUX portées (ColumnScope puis RowScope)
+   résolvent — miroir kotlinc, les récepteurs s'empilent.
+4. **Destructuring de lambda** — un tri
+   `repartition.sortedByDescending { (_, total) -> total }` et un
+   `mapValues { (_, operations) -> … }` : les composants `total`/
+   `operations` sont MUETS (1.14.0 soulignait `total`) ; un nom
+   inconnu dans le corps reste ROUGE.
+5. **Builtins Map** — `totaux.entries`, `totaux.keys`, `totaux.values`
+   sur une `Map<String, Double>` : MUETS (kotlin.collections.Map
+   n'a aucun `.class` — les propriétés mappent vers `entrySet()`/
+   `keySet()`/`values()`) ; l'idée est la même pour
+   `buildList { add(…) }` (alias `Mutable*` de la chaîne ADR 0218).
+6. **Contrat des quatre mondes** — le programme utilisateurs (Léa
+   Compose, Marc Views, Nina KMP, Olivier Gradle) : les contrats E2E
+   Compose et KMP sont désormais VIDES comme celui de Marc — tout
+   nouveau faux positif sur un projet correct casse la CI du frère.
+7. **Backlog partagé après vague 5** (RETOURS §4 du frère) : jar
+   illisible → PARTIEL + avertissement en TÊTE, puis attributs XML
+   des layouts, NUS des lambdas `tasks.register` (monde Gradle),
+   complétion du récepteur de portée et typage des composants
+   destructurés.

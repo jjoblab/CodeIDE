@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.199.0] – 2026-10-26
+
+### Montée codeide-lsp 1.14.0 → 1.15.0 — le programme utilisateurs, vague 5 : les QUATRE mondes à zéro faux positif déclaré (bump-frère)
+
+#### Corrigé
+
+- **Extensions de SCOPE Compose** (le n° 1 du backlog — les 2 derniers
+  faux positifs du monde Compose) : `Modifier.weight(1f)` dans
+  `Row { … }`, `Modifier.align(…)` dans `Box { … }` — le paramètre
+  `content: RowScope.() -> Unit` de la fonction consommatrice prête
+  son type comme this IMPLICITE à tout le corps du littéral ; membres
+  NUS et member-extensions résolvent, pile des littéraux emboîtés
+  (ColumnScope puis RowScope, miroir kotlinc). Candidates PROJET
+  (type écrit) et CLASSPATH (l'index rend `Function1<RowScope, Unit>`,
+  nom court résolu par l'unicité du nom simple dans la vue — RowScope
+  ne s'importe jamais).
+- **Destructuring de paramètre de lambda** :
+  `sortedByDescending { (_, total) -> total }` — chaque composant
+  nommé (`_` exclu) est en portée dans le corps du littéral, miroir
+  kotlinc.
+- **Propriétés BUILTINS de Map** : `totaux.entries`/`.keys`/`.values`
+  (kotlin.collections.Map n'a aucun `.class` — les propriétés mappent
+  vers `entrySet()`/`keySet()`/`values()`) ; alias `Mutable*` complétés
+  dans la chaîne des collections (`buildList { add(…) }`).
+
+#### Conséquences
+
+- Les QUATRE mondes du programme utilisateurs sont à **ZÉRO faux
+  positif déclaré** : les contrats E2E Compose (Léa) et KMP (Nina)
+  deviennent VIDES comme celui de Marc — tout nouveau faux positif
+  sur un projet correct casse la CI du frère.
+- Vrais positifs gardés : un membre inconnu DANS le scope
+  (`Modifier.wight(1f)`) reste rouge, un nom inconnu dans un corps de
+  lambda destructuré reste rouge.
+- Borne D3 documentée (complétion et survol concernés plus tard) :
+  les métadonnées 2.x ne distinguent pas `A.() -> B` de `(a: A) -> B`
+  — sous-rapportage borné côté diagnostic, jamais de rouge mensonger.
+
+#### Notes de passage
+
+`docs/MISE-A-JOUR-CODEIDE.md` § 1.15.0 du dépôt codeide-lsp — montée
+de coordonnées pure, AUCUN changement d'API ; scénarios d'appareil au
+registre des tests manuels (section « Montée codeide-lsp 1.15.0 ») ;
+backlog partagé en tête : jar illisible → PARTIEL + avertissement.
+
 ## [0.198.0] – 2026-10-26
 
 ### Montée codeide-lsp 1.13.0 → 1.14.0 — le programme utilisateurs, vague 4 : le monde Views/XML à ZÉRO faux positif (bump-frère)
