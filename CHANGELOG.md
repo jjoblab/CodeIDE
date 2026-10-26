@@ -1,5 +1,44 @@
 # Journal des modifications
 
+## [0.197.0] – 2026-10-26
+
+### Montée codeide-lsp 1.12.0 → 1.13.0 — le programme utilisateurs : trois vagues de faux positifs éteintes (bump-frère)
+
+#### Corrigé
+
+- **Constructeurs à valeurs par défaut** (le faux positif n° 1 du
+  quotidien) : appeler un constructeur Compose sans ses paramètres
+  optionnels ne produit plus de « 4 fourni(s), 6 attendu(s) ».
+- **Data classes** : `copy`/`componentN` résolvent (et `copy` est
+  PROPOSÉ en complétion) — le modificateur `data` est enfin lu côté
+  moteur (les modificateurs vivent dans le MODIFIER_LIST enfant du
+  nœud classe, pas dans ses jetons directs).
+- **`collect` après récepteur typé** : `vueModele.effets.collect { }`
+  ne produit plus de faux `kt.unresolved` — le callee d'un appel
+  qualifié suit le typage de son récepteur.
+- **Getters Compose et inline classes manglées** :
+  `MaterialTheme.typography`, `Arrangement.spacedBy`, `Icons.Filled`
+  et `Paint.Cap` résolvent (survie, complétion, typage).
+- **`@OptIn`/`@Suppress` et imports `by`** : les annotations
+  implicites `kotlin.*` et les imports de délégation
+  (`getValue`/`setValue`) ne sont plus marqués inutilisés.
+- **Projets mixtes Java/Kotlin** : les membres des sources JAVA du
+  projet résolvent depuis le Kotlin (`getTitre()` → complétion, typage
+  en chaîne, propriété synthétique `titre`) ; `R` sans import (même
+  paquet) résout — `vinyle.` : 0 → 21 items en complétion.
+- **Vrais positifs rattrapés** : un membre inexistant sur un type du
+  projet SANS héritage écrit est SIGNALÉ (preuve d'absence projet,
+  miroir Android Studio sur les deux tableaux).
+
+#### Notes
+
+- Notes de passage du frère : `docs/MISE-A-JOUR-CODEIDE.md` § 1.13.0
+  du dépôt codeide-lsp — AUCUN changement d'API (montée de
+  coordonnées pure), scénarios d'appareil des quatre mondes à
+  rejouer, backlog partagé (membres hérités du classpath en tête).
+- Validation : CI (les trois jobs voient le frère binaire 1.13.0
+  résolu par jeton Packages).
+
 ## [0.196.0] – 2026-10-26
 
 ### Le chat respire : plus d'ANR, un bas qui suit sans trembler, une réponse qui se lit (retour propriétaire : ANR + fluidité + différenciation)
