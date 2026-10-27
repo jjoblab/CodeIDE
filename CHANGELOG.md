@@ -1,5 +1,58 @@
 # Journal des modifications
 
+## [0.200.2] – 2026-10-27
+
+### Une discussion de l'historique s'affiche DANS le chat — onglet sélectionné, résultat qui attend, disparition visible (rapport IA, chantier IA-CODEIDE, lot 1, B2)
+
+#### Corrigé
+
+- **L'ouverture d'une discussion de l'historique ne s'affichait pas
+  dans le chat** (rapport IA, lot 1, B2) — trois causes refermées :
+  (1) `ouvrirConversationDansChat` basculait le contenu sur l'onglet
+  Chat mais le `TabLayout` restait sur « Historique » : l'utilisateur
+  ne voyait PAS où la discussion s'ouvrait, et un appui sur « Chat »
+  ne déclenchait rien (onglet déjà considéré actif) ; (2) la
+  transmission se faisait par APPEL DIRECT `chat.ouvrirConversation(`
+  `id)` sur un fragment potentiellement SANS VUE — l'attachement est
+  asynchrone (`commitAllowingStateLoss`), l'appel était PERDU quand le
+  chat n'était pas encore attaché ; (3) `ChatViewModel.ouvrirConversation`
+  sortait SILENCIEUSEMENT si la conversation n'avait plus de messages
+  (purge concurrente, id périmé) — l'appui ne produisait AUCUN effet
+  visible.
+- **Le contrat de l'ouverture est désormais le standard FragmentResult
+  du framework** : le tiroir POSE le résultat (clé
+  `tiroir_ia_ouvrir_conversation`, extra `conversation_id`) et
+  SÉLECTIONNE l'onglet Chat (`select()` — déjà sélectionné :
+  l'affichage est fait à la main, idempotent) ; le chat CONSOMME le
+  résultat à son passage à STARTED (`setFragmentResultListener` sur
+  le `parentFragmentManager`, lié au `viewLifecycleOwner`) — le
+  résultat ATTEND dans le FragmentManager tant que le chat n'est pas
+  prêt, aucune perte, plus jamais d'appel direct sur un fragment sans
+  vue.
+- **Une discussion disparue est désormais un retour VISIBLE et
+  journalisé** : effet `Message` (« Discussion introuvable — elle a
+  peut-être été supprimée », FR + EN) + entrée `WARN` portant l'id
+  (`AppLogger` injecté au ViewModel, tag `IaChat`) — l'état écran ne
+  change pas (aucune discussion fantôme).
+- **Les ids de messages rouverts ne sont plus recyclés** : la séquence
+  d'identifiants n'est PLUS remise à zéro à la réouverture — deux
+  conversations ouvertes successivement ne partagent JAMAIS un id
+  `ia-h-N` (garde DiffUtil : un id recyclé pouvait masquer un rebind,
+  cf. B1).
+
+#### Ajouté
+
+- **+3 tests** : `ChatViewModelTest` — l'ouverture d'une discussion
+  disparue émet l'effet Message, journalise en `WARN` avec l'id, et ne
+  touche pas l'état ; deux ouvertures successives ne partagent aucun
+  id. `TiroirIaOuvertureConversationTest` (:app, Hilt + Robolectric,
+  hôte `ActiviteHoteTiroirIa`) — le chemin de production complet de
+  l'appui : l'onglet Historique sélectionné, `ouvrirConversationDansChat`
+  SÉLECTIONNE l'onglet Chat et POSE le FragmentResult porteur du bon
+  identifiant (la consommation par le chat réel et la liste non vide
+  d'une conversation persistée restent des scénarios d'appareil,
+  docs/TESTS_MANUELS.md).
+
 ## [0.200.1] – 2026-10-27
 
 ### Le chat affiche la réponse PENDANT le flux — les payloads DiffUtil enfin dépliés (rapport IA, chantier IA-CODEIDE, lot 1, B1)

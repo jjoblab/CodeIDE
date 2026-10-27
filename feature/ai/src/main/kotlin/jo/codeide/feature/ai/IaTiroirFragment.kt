@@ -83,14 +83,31 @@ public class IaTiroirFragment : Fragment() {
      * Rouvre une conversation de l'historique DANS le chat (lot IA-6,
      * spec E6) : bascule sur l'onglet Chat puis transmet l'identifiant
      * au fragment chat — conversation poursuivie, jamais dupliquée.
+     *
+     * B2 (rapport IA, lot 1) : l'onglet Chat est désormais le tab
+     * SÉLECTIONNÉ du TabLayout (l'utilisateur voit OÙ la discussion
+     * s'ouvre — plus d'onglet Historique resté actif pendant que le
+     * chat s'affiche), et la transmission passe par un FRAGMENT
+     * RESULT : le chat — possiblement détaché, l'attachement est
+     * asynchrone (`commitAllowingStateLoss`) — consomme le résultat à
+     * son passage à STARTED, plus JAMAIS d'appel direct sur un
+     * fragment sans vue (l'appel était PERDU quand le chat n'était
+     * pas encore attaché).
      */
     public fun ouvrirConversationDansChat(conversationId: String) {
-        afficherOnglet(POSITION_CHAT)
-        // L'onglet Chat est attaché ASYNCHRONEMENT (commit) : la
-        // transmission passe par la file du fragment enfant dès qu'il
-        // reprend son cycle de vie.
-        val chat = childFragmentManager.findFragmentByTag(TAG_CHAT) as? ChatFragment
-        chat?.ouvrirConversation(conversationId)
+        val liaison = liaisonTiroir
+        val ongletChat = liaison?.ongletsIa?.getTabAt(POSITION_CHAT)
+        if (ongletChat?.isSelected == true) {
+            // Déjà sélectionné : le listener ne redéclenchera pas,
+            // l'affichage est fait À LA MAIN (idempotent).
+            afficherOnglet(POSITION_CHAT)
+        } else {
+            ongletChat?.select()
+        }
+        childFragmentManager.setFragmentResult(
+            CLE_RESULTAT_OUVERTURE_CONVERSATION,
+            Bundle().apply { putString(EXTRA_CONVERSATION_ID, conversationId) },
+        )
     }
 
     /** Affiche l'onglet demandé — Chat, Agent et Historique en
@@ -238,3 +255,15 @@ public class IaTiroirFragment : Fragment() {
         const val POSITION_HISTORIQUE = 2
     }
 }
+
+/**
+ * Clé du FragmentResult d'ouverture d'une discussion (B2, rapport IA
+ * lot 1) : le tiroir POSE le résultat (identifiant de conversation),
+ * le chat le CONSOMME à son passage à STARTED — le résultat attend
+ * dans le `childFragmentManager` du tiroir tant que le chat n'est pas
+ * prêt (attachement asynchrone), aucune perte.
+ */
+internal const val CLE_RESULTAT_OUVERTURE_CONVERSATION: String = "tiroir_ia_ouvrir_conversation"
+
+/** Extra du résultat : identifiant de la conversation à rouvrir. */
+internal const val EXTRA_CONVERSATION_ID: String = "conversation_id"

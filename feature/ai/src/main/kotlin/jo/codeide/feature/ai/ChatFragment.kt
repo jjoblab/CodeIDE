@@ -141,6 +141,23 @@ public class ChatFragment : Fragment() {
         // 0121 point 3) via le callback testable [LienIa.ouverture].
         LienIa.ouverture = { url -> ouvrirUrl(url) }
 
+        // B2 (rapport IA, lot 1) : l'ouverture d'une discussion de
+        // l'historique arrive par FRAGMENT RESULT — le tiroir pose le
+        // résultat, le chat le consomme À SON PASSAGE À STARTED (que
+        // la vue soit déjà attachée ou en cours d'attachement
+        // asynchrone : le résultat ATTEND dans le FragmentManager).
+        // L'ancien appel direct sur un fragment potentiellement sans
+        // vue était PERDU quand le chat n'était pas encore attaché.
+        parentFragmentManager.setFragmentResultListener(
+            CLE_RESULTAT_OUVERTURE_CONVERSATION,
+            viewLifecycleOwner,
+        ) { _, extras ->
+            val identifiant = extras.getString(EXTRA_CONVERSATION_ID)
+            if (!identifiant.isNullOrBlank()) {
+                viewModel.onAction(ActionChatIa.OuvrirConversation(identifiant))
+            }
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 // v0.188.0 (rapport IA S3) : la clé a pu être ajoutée ou
@@ -156,15 +173,6 @@ public class ChatFragment : Fragment() {
                 }
             }
         }
-    }
-
-    /**
-     * Rouvre une conversation de l'historique (lot IA-6, appelé par
-     * [IaTiroirFragment]) : l'action charge les messages persistés dans
-     * la vue — l'envoi suivant poursuit la même conversation.
-     */
-    public fun ouvrirConversation(conversationId: String) {
-        viewModel.onAction(ActionChatIa.OuvrirConversation(conversationId))
     }
 
     override fun onDestroyView() {
