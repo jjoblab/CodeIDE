@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Message utilisateur : bulle alignée à droite (colorPrimaryContainer). -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Message utilisateur : bulle alignée à droite (colorPrimaryContainer)
+     + HEURE du message (C4, retour propriétaire) sous la bulle — le
+     moment de l'envoi se lit dans la conversation comme dans un client
+     de chat. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:gravity="end"
+    android:orientation="vertical"
     android:paddingHorizontal="@dimen/spacing_sm"
     android:paddingVertical="@dimen/spacing_xs">
 
@@ -10,11 +16,22 @@
         android:id="@+id/texte_message"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="end"
         android:background="@drawable/fond_bulle_utilisateur"
         android:maxWidth="320dp"
         android:paddingHorizontal="@dimen/spacing_sm"
         android:paddingVertical="@dimen/spacing_sm"
         android:textAppearance="?attr/textAppearanceBodyMedium"
-        android:textColor="?attr/colorOnPrimaryContainer" />
-</FrameLayout>
+        android:textColor="?attr/colorOnPrimaryContainer"
+        tools:text="Peux-tu expliquer ce code ?" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/heure_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="14:32"
+        tools:visibility="visible" />
+</LinearLayout>

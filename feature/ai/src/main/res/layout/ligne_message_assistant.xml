@@ -145,6 +145,21 @@
         android:layout_gravity="end"
         android:orientation="horizontal">
 
+        <!-- C4 (retour propriétaire) : l'heure de la réponse ouvre la
+             ligne d'actions — le moment de sa rédaction se lit AUSSI
+             dans une conversation longue. Masquée pendant le flux. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/heure_message"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="@dimen/spacing_sm"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="14:32"
+            tools:visibility="visible" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_copier_message"
             style="@style/Widget.CodeIDE.Button.Text"

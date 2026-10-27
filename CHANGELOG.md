@@ -1,5 +1,33 @@
 # Journal des modifications
 
+## [0.200.13] – 2026-10-28
+
+### L'HEURE des messages dans les conversations — sous la bulle utilisateur, en tête de la ligne d'actions de la réponse (C4, retour propriétaire)
+
+#### Ajouté
+
+- **Horodatage des messages** (`MessageChatUi.horodatageMs`) : posé
+  au DÉBUT de rédaction (envoi utilisateur, démarrage de réponse) ;
+  une conversation ROUVERTE montre SES heures (celles du stockage,
+  `creeA`), jamais celles de la réouverture. `0` = inconnu : aucune
+  heure affichée, jamais une heure inventée.
+- **Affichage** : sous la bulle utilisateur (aligné à droite,
+  LabelSmall variante) et en tête de la ligne d'actions de la réponse
+  complète — le moment de chaque échange se lit au fil d'une
+  conversation longue. Pendant le flux, AUCUNE heure (la réponse
+  n'est pas encore une réponse).
+- **Format respectueux du système** :
+  `DateFormat.getTimeFormat` — le réglage 12/24 h de l'appareil est
+  suivi, jamais un motif en dur.
+
+#### Tests
+
+- `AdapterMessagesTest` (Robolectric) : heure sous la bulle, heure de
+  la réponse à la fin du flux (jamais pendant), aucun affichage sans
+  horodatage.
+- `LayoutsIaTest` : les vues `heure_message` existent dans les deux
+  lignes de messages.
+
 ## [0.200.12] – 2026-10-28
 
 ### Le chat rend TOUTES les formes d'une réponse — listes ordonnées et imbriquées, cases, citations, séparateurs, tableaux, barré ; le RAISONNEMENT coule visible pendant la pensée (C3, retour propriétaire)
