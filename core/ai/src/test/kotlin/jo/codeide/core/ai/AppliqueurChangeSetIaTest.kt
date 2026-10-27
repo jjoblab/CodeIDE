@@ -302,4 +302,82 @@ class AppliqueurChangeSetIaTest {
         val (_, resultat) = appliqueur.appliquer(changeSet, null)
         assertTrue(resultat is ResultatApplicationIa.Echec)
     }
+
+    // ------------------------------------------------------------------
+    // Compteurs +/− de la carte de changements (rapport IA, lot 3 —
+    // d'après la maquette : « N fichiers · +A −S · C conflits »).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `une creation compte TOUTES ses lignes non vides en AJOUTS`() = runTest {
+        val changeSet =
+            ChangeSetIa() +
+                ChangementIa("Nouveau.kt", TypeChangementIa.CREER, "class A {\n\n}\n", null, "test")
+        val revue = appliqueur.preparer(changeSet, "/")
+
+        assertEquals(1, revue.fichiers.size)
+        assertEquals(2, revue.fichiers[0].lignesAjoutees)
+        assertEquals(0, revue.fichiers[0].lignesSupprimees)
+        assertEquals(2, revue.lignesAjoutees)
+        assertEquals(0, revue.lignesSupprimees)
+    }
+
+    @Test
+    fun `une modification compte les AJOUTS et les RETRAITS du diff unifie`() = runTest {
+        fichiers.pose(
+            "App.kt",
+            "ligne un\nligne deux\nligne trois\nligne quatre\n",
+        )
+        val changeSet =
+            ChangeSetIa() +
+                ChangementIa(
+                    "App.kt",
+                    TypeChangementIa.MODIFIER,
+                    "ligne un\nligne DEUX\nligne trois\nligne QUATRE\nligne cinq\n",
+                    empreinte("ligne un\nligne deux\nligne trois\nligne quatre\n"),
+                    "test",
+                )
+        val revue = appliqueur.preparer(changeSet, "/")
+
+        // Diff réel : « DEUX » remplace « deux », « QUATRE » remplace
+        // « quatre », « cinq » s'ajoute — 3 ajoutés, 2 retirés.
+        assertEquals(3, revue.fichiers[0].lignesAjoutees)
+        assertEquals(2, revue.fichiers[0].lignesSupprimees)
+    }
+
+    @Test
+    fun `une suppression compte TOUTES les lignes du fichier actuel en RETRAITS`() = runTest {
+        fichiers.pose("Vieux.kt", "a\nb\n\nc\n")
+        val changeSet =
+            ChangeSetIa() +
+                ChangementIa("Vieux.kt", TypeChangementIa.SUPPRIMER, "", empreinte("a\nb\n\nc\n"), "test")
+        val revue = appliqueur.preparer(changeSet, "/")
+
+        assertEquals(0, revue.fichiers[0].lignesAjoutees)
+        // Lignes non vides du contenu supprimé (a, b, c).
+        assertEquals(3, revue.fichiers[0].lignesSupprimees)
+    }
+
+    @Test
+    fun `les TOTAUX de la revue somment les compteurs des fichiers`() = runTest {
+        fichiers.pose("mod.kt", "un\ndeux\n")
+        val changeSet =
+            ChangeSetIa() +
+                ChangementIa("cree.kt", TypeChangementIa.CREER, "x\ny\n", null, "test") +
+                ChangementIa(
+                    "mod.kt",
+                    TypeChangementIa.MODIFIER,
+                    "un\nDEUX\ntrois\n",
+                    empreinte("un\ndeux\n"),
+                    "test",
+                ) +
+                ChangementIa("del.kt", TypeChangementIa.SUPPRIMER, "", empreinte("gone\n"), "test")
+        fichiers.pose("del.kt", "gone\n")
+        val revue = appliqueur.preparer(changeSet, "/")
+
+        // cree.kt : +2 ; mod.kt : +2 −1 ; del.kt : −1.
+        assertEquals(3, revue.fichiers.size)
+        assertEquals(4, revue.lignesAjoutees)
+        assertEquals(2, revue.lignesSupprimees)
+    }
 }

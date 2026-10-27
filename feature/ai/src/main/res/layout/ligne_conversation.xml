@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Ligne de conversation (mission IA, lot IA-6, spec E6) : titre auto ou
-  renommé, date relative, menu Renommer/Supprimer. Appui = rouvrir dans
-  le chat. TalkBack : description complète de la ligne.
+  renommé, date relative, épinglage en UN appui + suppression DIRECTE
+  avec « Annuler » côté Snackbar (rapport IA, lot 3 — d'après la
+  maquette), menu Renommer. Appui = rouvrir dans le chat. TalkBack :
+  description complète de la ligne et de chaque bouton.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -44,15 +46,35 @@
             tools:text="il y a 3 min · claude-test" />
     </LinearLayout>
 
-    <!-- Menu de ligne : Renommer / Supprimer (spec E6). -->
-    <ImageButton
-        android:id="@+id/bouton_menu_conversation"
+    <!-- Épinglage (rapport IA, lot 3 — d'après la maquette) : UN appui
+         épingle/détache — une discussion épinglée reste en tête de
+         liste, l'icône est teintée primaire quand épinglée. -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_epingle_conversation"
+        style="@style/Widget.CodeIDE.Button.Icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/ia_historique_epingler_cd"
+        app:icon="@drawable/ic_epingle" />
+
+    <!-- Suppression DIRECTE (rapport IA, lot 3 — d'après la maquette) :
+         la ligne part immédiatement, l'annulation vit dans le Snackbar
+         « Annuler » (restauration complète, conversation + messages). -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_supprimer_conversation"
+        style="@style/Widget.CodeIDE.Button.Icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/ia_historique_supprimer_cd"
+        app:icon="@drawable/ic_fermer_onglet" />
+
+    <!-- Menu de ligne : Renommer (spec E6 — renommage conservé ; la
+         suppression vit directement sur la ligne depuis le lot 3). -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_menu_conversation"
+        style="@style/Widget.CodeIDE.Button.Icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:contentDescription="@string/ia_historique_menu_cd"
-        android:minWidth="@dimen/touch_target_min"
-        android:minHeight="@dimen/touch_target_min"
-        android:src="@drawable/ic_outils"
-        app:tint="?attr/colorOnSurfaceVariant" />
+        app:icon="@drawable/ic_outils" />
 </LinearLayout>

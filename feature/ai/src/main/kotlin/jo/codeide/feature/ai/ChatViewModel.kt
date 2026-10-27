@@ -144,6 +144,15 @@ public sealed interface ActionChatIa {
     /** Régénère la réponse du dernier échange (sans le brouillon). */
     public data object Regenerer : ActionChatIa
 
+    /**
+     * Exporte la réponse d'un message assistant en MARKDOWN (rapport
+     * IA, lot 3 — d'après la maquette) : le texte BRUT de la réponse
+     * (tel que reçu du modèle, raisonnement exclu) part vers un
+     * fichier choisi par l'utilisateur (SAF — le fragment porte le
+     * lanceur `CreateDocument`).
+     */
+    public data class ExporterMessage(public val identifiant: String) : ActionChatIa
+
     /** Copie le texte d'un message (le fragment porte le presse-papiers). */
     public data class CopierMessage(public val identifiant: String) : ActionChatIa
 
@@ -261,6 +270,14 @@ public sealed interface EffetChatIa {
      * absent (pas d'éditeur) : aucun effet visible.
      */
     public data class AfficherDiff(public val proposition: PropositionDiffIa) : EffetChatIa
+
+    /**
+     * Exporte cette réponse en MARKDOWN (rapport IA, lot 3 — d'après
+     * la maquette) : le fragment ouvre le sélecteur SAF
+     * `CreateDocument("text/markdown")` puis écrit le texte dans l'URI
+     * choisie — l'EMPLACEMENT reste un choix utilisateur.
+     */
+    public data class ExporterMarkdown(public val texte: String) : EffetChatIa
 }
 
 /**
@@ -500,6 +517,16 @@ constructor(
                 val message = etatInterne.value.messages.firstOrNull { it.identifiant == action.identifiant }
                 if (message != null) {
                     emettre(EffetChatIa.Copier(message.texte))
+                }
+            }
+
+            is ActionChatIa.ExporterMessage -> {
+                // Rapport IA, lot 3 : le texte BRUT de la réponse part au
+                // sélecteur SAF (le raisonnement, présentation pure,
+                // n'est jamais exporté).
+                val message = etatInterne.value.messages.firstOrNull { it.identifiant == action.identifiant }
+                if (message != null && message.texte.isNotBlank()) {
+                    emettre(EffetChatIa.ExporterMarkdown(message.texte))
                 }
             }
 

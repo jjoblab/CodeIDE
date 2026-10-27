@@ -57,6 +57,22 @@ constructor(private val base: CodeIdeDatabase) : ConversationStore {
 
     override suspend fun supprimer(conversationId: String): Int = dao.supprimer(conversationId)
 
+    override suspend fun epingler(conversationId: String, epingle: Boolean) {
+        dao.epingler(conversationId, epingle)
+    }
+
+    override suspend fun restaurer(conversation: ConversationIa, messages: List<MessageConversationIa>) {
+        // Réinsertion complète (rapport IA, lot 3 — « Annuler » de la
+        // suppression) : la conversation revient avec son épinglage et
+        // ses métadonnées, puis chaque message réinséré — le titre
+        // RENOMMÉ survit (l'entité porte le titre actuel, PAS un titre
+        // auto recalculé).
+        dao.insererConversation(conversation.toEntity())
+        for (message in messages) {
+            dao.insererMessage(message.toEntity())
+        }
+    }
+
     override suspend fun toutSupprimer() {
         dao.toutSupprimer()
     }

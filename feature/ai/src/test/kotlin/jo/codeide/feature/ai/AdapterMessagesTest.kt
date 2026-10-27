@@ -61,6 +61,8 @@ class AdapterMessagesTest {
                 onCopierBloc = {},
                 onInsererBloc = {},
                 onAppliquerBloc = {},
+                onRegenererMessage = {},
+                onExporterMessage = {},
                 onActionErreur = { _, _ -> },
             )
     }

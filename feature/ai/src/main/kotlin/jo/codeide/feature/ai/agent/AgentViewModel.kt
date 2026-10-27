@@ -51,6 +51,11 @@ constructor(private val controleur: ControleurAgentIa) : ViewModel() {
         controleur.basculerPlanPremier(actif)
     }
 
+    /** Arme/désarme le mode « revue » (rapport IA, lot 3 — d'après la maquette). */
+    public fun basculerModeRevue(actif: Boolean) {
+        controleur.basculerModeRevue(actif)
+    }
+
     /** Valide le plan proposé — l'exécution repart du plan (A5, rapport IA lot 2). */
     public fun validerPlan() {
         controleur.validerPlan()

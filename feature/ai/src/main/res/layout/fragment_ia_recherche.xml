@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Onglet Recherche du tiroir IA (rapport IA, lot 3 — d'après la
+  maquette) : remplace l'état « bientôt » — recherche de FICHIERS du
+  projet par nom (même source bornée que le sélecteur `@` du chat),
+  un résultat par ligne avec l'action « Demander à l'IA » qui bascule
+  sur le chat et préremplit « /expliquer <chemin> ». Les symboles LSP
+  restent hors périmètre (écart documenté).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Barre de recherche (même patron que l'historique : champ plein
+         bandeau, fond surface, séparé de la liste). -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_xs">
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="?attr/textInputOutlinedDenseStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/ia_recherche_hint">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/champ_recherche_ia"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionSearch"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liste_resultats_recherche"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/spacing_sm"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/ligne_resultat_recherche_ia" />
+
+        <!-- État vide (projet fermé, aucun résultat, chargement) : un
+             message honnête, jamais une liste muette. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_recherche_vide"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="@dimen/spacing_lg"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="Aucun résultat."
+            tools:visibility="visible" />
+    </FrameLayout>
+</LinearLayout>

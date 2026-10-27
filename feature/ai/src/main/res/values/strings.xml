@@ -149,9 +149,18 @@
     <string name="ia_inserer">Insérer</string>
     <string name="ia_inserer_cd">Insérer le bloc de code au curseur</string>
     <string name="ia_copie_effectuee">Copié dans le presse-papiers</string>
-    <string name="ia_bientot_agent">L\'agent arrive au lot IA-7 — il ne modifiera rien sans votre validation.</string>
-    <string name="ia_bientot_historique">L\'historique des conversations arrive au lot IA-6.</string>
-    <string name="ia_bientot_recherche">La recherche sémantique est réservée — voir la feuille de route.</string>
+
+    <!-- Rapport IA, lot 3 — design d'après la maquette : actions par réponse
+         et commandes « / » du chat. -->
+    <string name="ia_regenerer">Régénérer</string>
+    <string name="ia_exporter_markdown">Exporter</string>
+    <string name="ia_export_reussi">Réponse exportée en Markdown</string>
+    <string name="ia_export_echoue">Export impossible — choisissez un autre emplacement</string>
+    <string name="ia_commande_expliquer_libelle">Expliquer</string>
+    <string name="ia_commande_corriger_libelle">Corriger</string>
+    <string name="ia_commande_tests_libelle">Tests</string>
+    <string name="ia_commande_doc_libelle">Documenter</string>
+    <string name="ia_commande_refactor_libelle">Simplifier</string>
 
     <!-- Contexte et confidentialité (lot IA-4) -->
     <string name="ia_puce_fichier_actif">Fichier : %1$s</string>
@@ -210,20 +219,22 @@
     <string name="ia_historique_meta">%1$s · %2$s</string>
     <string name="ia_historique_meta_usage">%1$s · %2$s · jetons : %3$d</string>
     <string name="ia_historique_menu_renommer">Renommer</string>
-    <string name="ia_historique_menu_supprimer">Supprimer</string>
     <string name="ia_historique_menu_cd">Actions de la conversation</string>
     <string name="ia_historique_ligne_cd">%1$s — rouvrir dans le chat</string>
     <string name="ia_historique_renommer_titre">Renommer la conversation</string>
     <string name="ia_historique_renommer_hint">Nouveau titre</string>
-    <string name="ia_historique_suppression_titre">Supprimer la conversation</string>
-    <string name="ia_historique_suppression_message">Supprimer « %1$s » et tous ses messages ?</string>
+    <string name="ia_historique_epingler_cd">Épingler la discussion</string>
+    <string name="ia_historique_detacher_cd">Détacher la discussion</string>
+    <string name="ia_historique_supprimer_cd">Supprimer la discussion</string>
     <string name="ia_historique_tout_effacer">Tout effacer</string>
     <string name="ia_historique_tout_effacer_titre">Tout effacer</string>
     <string name="ia_historique_tout_effacer_message">Supprimer TOUTES les conversations et leurs messages ?</string>
     <string name="ia_historique_confirmer">Confirmer</string>
     <string name="ia_historique_annuler">Annuler</string>
+    <string name="ia_historique_annuler_suppression">Annuler</string>
     <string name="ia_historique_renommee">Conversation renommée</string>
-    <string name="ia_historique_supprimee">Conversation supprimée</string>
+    <string name="ia_historique_supprimee">Discussion supprimée</string>
+    <string name="ia_historique_suppression_annulee">Discussion restaurée</string>
     <string name="ia_historique_purgee">Historique effacé</string>
     <string name="ia_reglages_historique_purge">Historique effacé</string>
     <string name="ia_carte_historique_titre">Historique</string>
@@ -231,7 +242,15 @@
     <string name="ia_retention_libelle_7j">Conserver 7 jours</string>
     <string name="ia_retention_libelle_30j">Conserver 30 jours</string>
     <string name="ia_retention_libelle_illimitee">Conserver indéfiniment</string>
-    <string name="ia_bientot_historique_ancien">L\'historique des conversations arrive au lot IA-6.</string>
+
+    <!-- Rapport IA, lot 3 — onglet Recherche du tiroir (d'après la maquette). -->
+    <string name="ia_recherche_hint">Rechercher fichiers et symboles</string>
+    <string name="ia_recherche_demander">Demander à l\'IA</string>
+    <string name="ia_recherche_vide">Les fichiers du projet apparaissent ici.</string>
+    <string name="ia_recherche_chargement">Recherche des fichiers du projet…</string>
+    <string name="ia_recherche_projet_ferme">Aucun projet ouvert — ouvrez un projet pour chercher ses fichiers.</string>
+    <string name="ia_recherche_aucun_resultat">Aucun fichier ne correspond.</string>
+    <string name="ia_recherche_resultat_cd">%1$s — demander à l\'IA</string>
 
     <!-- Lot IA-7b : écran Agent, revue des changements, service premier plan -->
     <string name="agent_objectif_hint">Objectif de l\'agent</string>
@@ -289,8 +308,11 @@
     <string name="agent_approbation_refuser">Refuser</string>
     <string name="agent_approbation_autoriser">Autoriser une fois</string>
     <string name="agent_changements_titre">Changements proposés</string>
-    <string name="agent_changements_resumes">Fichiers : %1$d · Conflits : %2$d</string>
+    <string name="agent_changements_resumes">Fichiers : %1$d · +%2$d −%3$d · Conflits : %4$d</string>
     <string name="agent_changements_examiner">Examiner</string>
+    <string name="agent_changements_voir_diff">Voir le diff</string>
+    <string name="agent_mode_revue">Mode revue</string>
+    <string name="agent_mode_revue_attente">Mode revue : examinez les changements proposés puis touchez « Continuer ».</string>
     <string name="agent_changements_rejeter">Rejeter</string>
     <string name="agent_changements_appliquer">Tout appliquer</string>
     <string name="agent_annulation_disponible" tools:ignore="Typos">Changements appliqués — un point de restauration « IA » est posé.</string>

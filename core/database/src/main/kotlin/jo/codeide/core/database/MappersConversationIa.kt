@@ -14,6 +14,7 @@ public fun ConversationIaEntity.toModel(): ConversationIa = ConversationIa(
     modifieA = modifieA,
     jetonsEntree = jetonsEntree,
     jetonsSortie = jetonsSortie,
+    epingle = epingle,
 )
 
 public fun ConversationIa.toEntity(): ConversationIaEntity = ConversationIaEntity(
@@ -24,6 +25,7 @@ public fun ConversationIa.toEntity(): ConversationIaEntity = ConversationIaEntit
     modifieA = modifieA,
     jetonsEntree = jetonsEntree,
     jetonsSortie = jetonsSortie,
+    epingle = epingle,
 )
 
 public fun MessageIaEntity.toModel(): MessageConversationIa = MessageConversationIa(

@@ -241,10 +241,17 @@ class LayoutsIaTest {
     }
 
     @Test
-    fun `la vue « bientôt » se gonfle avec son texte`() {
-        val racine = gonfler(R.layout.vue_ia_bientot)
+    fun `l'écran de RECHERCHE du tiroir IA se gonfle avec ses contrôles (rapport IA, lot 3)`() {
+        val racine = gonfler(R.layout.fragment_ia_recherche)
 
-        assertNotNull(racine.findViewById<View>(R.id.texte_bientot))
+        assertNotNull(racine.findViewById<View>(R.id.champ_recherche_ia))
+        assertNotNull(racine.findViewById<View>(R.id.liste_resultats_recherche))
+        assertNotNull(racine.findViewById<View>(R.id.texte_recherche_vide))
+
+        val ligne = gonfler(R.layout.ligne_resultat_recherche_ia)
+        assertNotNull(ligne.findViewById<View>(R.id.nom_resultat))
+        assertNotNull(ligne.findViewById<View>(R.id.dossier_resultat))
+        assertNotNull(ligne.findViewById<View>(R.id.bouton_demander_ia))
     }
 
     @Test

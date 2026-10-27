@@ -140,9 +140,18 @@
     <string name="ia_inserer">Insert</string>
     <string name="ia_inserer_cd">Insert the code block at the cursor</string>
     <string name="ia_copie_effectuee">Copied to the clipboard</string>
-    <string name="ia_bientot_agent">The agent arrives with lot IA-7 — it will change nothing without your approval.</string>
-    <string name="ia_bientot_historique">Conversation history arrives with lot IA-6.</string>
-    <string name="ia_bientot_recherche">Semantic search is reserved — see the roadmap.</string>
+
+    <!-- AI report, lot 3 — design from the mockup: per-response actions
+         and “/” commands of the chat. -->
+    <string name="ia_regenerer">Regenerate</string>
+    <string name="ia_exporter_markdown">Export</string>
+    <string name="ia_export_reussi">Response exported as Markdown</string>
+    <string name="ia_export_echoue">Export failed — pick another location</string>
+    <string name="ia_commande_expliquer_libelle">Explain</string>
+    <string name="ia_commande_corriger_libelle">Fix</string>
+    <string name="ia_commande_tests_libelle">Tests</string>
+    <string name="ia_commande_doc_libelle">Document</string>
+    <string name="ia_commande_refactor_libelle">Simplify</string>
 
     <!-- Context and privacy (lot IA-4) -->
     <string name="ia_puce_fichier_actif">File: %1$s</string>
@@ -201,20 +210,22 @@
     <string name="ia_historique_meta">%1$s · %2$s</string>
     <string name="ia_historique_meta_usage">%1$s · %2$s · tokens: %3$d</string>
     <string name="ia_historique_menu_renommer">Rename</string>
-    <string name="ia_historique_menu_supprimer">Delete</string>
     <string name="ia_historique_menu_cd">Conversation actions</string>
     <string name="ia_historique_ligne_cd">%1$s — reopen in chat</string>
     <string name="ia_historique_renommer_titre">Rename conversation</string>
     <string name="ia_historique_renommer_hint">New title</string>
-    <string name="ia_historique_suppression_titre">Delete conversation</string>
-    <string name="ia_historique_suppression_message">Delete \u201c%1$s\u201d and all its messages?</string>
+    <string name="ia_historique_epingler_cd">Pin the conversation</string>
+    <string name="ia_historique_detacher_cd">Unpin the conversation</string>
+    <string name="ia_historique_supprimer_cd">Delete the conversation</string>
     <string name="ia_historique_tout_effacer">Clear all</string>
     <string name="ia_historique_tout_effacer_titre">Clear all</string>
     <string name="ia_historique_tout_effacer_message">Delete ALL conversations and their messages?</string>
     <string name="ia_historique_confirmer">Confirm</string>
     <string name="ia_historique_annuler">Cancel</string>
+    <string name="ia_historique_annuler_suppression">Undo</string>
     <string name="ia_historique_renommee">Conversation renamed</string>
     <string name="ia_historique_supprimee">Conversation deleted</string>
+    <string name="ia_historique_suppression_annulee">Conversation restored</string>
     <string name="ia_historique_purgee">History cleared</string>
     <string name="ia_reglages_historique_purge">History cleared</string>
     <string name="ia_carte_historique_titre">History</string>
@@ -222,7 +233,15 @@
     <string name="ia_retention_libelle_7j">Keep for 7 days</string>
     <string name="ia_retention_libelle_30j">Keep for 30 days</string>
     <string name="ia_retention_libelle_illimitee">Keep forever</string>
-    <string name="ia_bientot_historique_ancien">Conversation history arrives in lot IA-6.</string>
+
+    <!-- AI report, lot 3 — Search tab of the drawer (from the mockup). -->
+    <string name="ia_recherche_hint">Search files and symbols</string>
+    <string name="ia_recherche_demander">Ask the AI</string>
+    <string name="ia_recherche_vide">Project files appear here.</string>
+    <string name="ia_recherche_chargement">Scanning project files…</string>
+    <string name="ia_recherche_projet_ferme">No project open — open a project to search its files.</string>
+    <string name="ia_recherche_aucun_resultat">No matching file.</string>
+    <string name="ia_recherche_resultat_cd">%1$s — ask the AI</string>
 
     <!-- Lot IA-7b: Agent screen, change review, foreground service -->
     <string name="agent_objectif_hint">Agent goal</string>
@@ -274,8 +293,11 @@
     <string name="agent_approbation_refuser">Deny</string>
     <string name="agent_approbation_autoriser">Allow once</string>
     <string name="agent_changements_titre">Proposed changes</string>
-    <string name="agent_changements_resumes">Files: %1$d · Conflicts: %2$d</string>
+    <string name="agent_changements_resumes">Files: %1$d · +%2$d −%3$d · Conflicts: %4$d</string>
     <string name="agent_changements_examiner">Review</string>
+    <string name="agent_changements_voir_diff">View diff</string>
+    <string name="agent_mode_revue">Review mode</string>
+    <string name="agent_mode_revue_attente">Review mode: inspect the proposed changes, then tap “Continue”.</string>
     <string name="agent_changements_rejeter">Reject</string>
     <string name="agent_changements_appliquer">Apply all</string>
     <string name="agent_annulation_disponible">Changes applied — an "IA" restore point was recorded.</string>

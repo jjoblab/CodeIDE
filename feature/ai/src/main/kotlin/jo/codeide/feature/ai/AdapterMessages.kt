@@ -175,14 +175,24 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
  * [RenduBlocsMarkdown].
  *
  * Les actions des blocs de code (Copier / Insérer au curseur), la
- * copie d'un message et l'ACTION DE REMÉDIATION d'une carte d'erreur
- * (rapport IA, Lot 5, point 5) remontent aux actions du ViewModel.
+ * copie d'un message, la RÉGÉNÉRATION de la dernière réponse et
+ * l'EXPORT MARKDOWN d'une réponse (rapport IA, lot 3 — d'après la
+ * maquette) et l'ACTION DE REMÉDIATION d'une carte d'erreur (rapport
+ * IA, Lot 5, point 5) remontent aux actions du ViewModel.
  */
+// Exemption detekt ciblée (règle 16) : LongParameterList — un rappel
+// par action de la ligne (copie, copie/insertion/application de bloc,
+// régénération, export, remédiation d'erreur), miroir des actions du
+// ViewModel — un objet de rappels masquerait la DESTINATION de chaque
+// action (rapport IA, lot 3).
+@Suppress("LongParameterList")
 public class AdapterMessages(
     private val onCopierMessage: (String) -> Unit,
     private val onCopierBloc: (String) -> Unit,
     private val onInsererBloc: (String) -> Unit,
     private val onAppliquerBloc: (String) -> Unit,
+    private val onRegenererMessage: () -> Unit,
+    private val onExporterMessage: (String) -> Unit,
     private val onActionErreur: (MessageChatUi, ActionErreurIa) -> Unit,
 ) : ListAdapter<MessageChatUi, RecyclerView.ViewHolder>(ComparateurMessages) {
     public override fun getItemViewType(position: Int): Int =
@@ -202,7 +212,17 @@ public class AdapterMessages(
         if (titulaire is TitulaireUtilisateur) {
             titulaire.lier(message)
         } else if (titulaire is TitulaireAssistant) {
-            titulaire.lier(message, onCopierMessage, onCopierBloc, onInsererBloc, onAppliquerBloc, onActionErreur)
+            titulaire.lier(
+                message,
+                estDernier = position == itemCount - 1,
+                onCopierMessage = onCopierMessage,
+                onCopierBloc = onCopierBloc,
+                onInsererBloc = onInsererBloc,
+                onAppliquerBloc = onAppliquerBloc,
+                onRegenererMessage = onRegenererMessage,
+                onExporterMessage = onExporterMessage,
+                onActionErreur = onActionErreur,
+            )
         }
     }
 
@@ -276,19 +296,36 @@ public class AdapterMessages(
         /** Rappel de l'action d'erreur capturé au bind COMPLET. */
         private var actionErreur: (MessageChatUi, ActionErreurIa) -> Unit = { _, _ -> Unit }
 
+        /** Rappels des actions par réponse (rapport IA, lot 3) — capturés au bind complet. */
+        private var onCopierMessageLie: (String) -> Unit = { _ -> Unit }
+
+        private var onRegenererMessageLie: () -> Unit = { }
+
+        private var onExporterMessageLie: (String) -> Unit = { _ -> Unit }
+
+        /** `true` si la ligne est le DERNIER message (Régénérer, rapport IA lot 3). */
+        private var estDerniere = false
+
         @Suppress("LongParameterList") // un rappel par action de la ligne, miroir de l'adaptateur.
         public fun lier(
             message: MessageChatUi,
+            estDernier: Boolean,
             onCopierMessage: (String) -> Unit,
             onCopierBloc: (String) -> Unit,
             onInsererBloc: (String) -> Unit,
             onAppliquerBloc: (String) -> Unit,
+            onRegenererMessage: () -> Unit,
+            onExporterMessage: (String) -> Unit,
             onActionErreur: (MessageChatUi, ActionErreurIa) -> Unit,
         ) {
             renduBlocs.copierBloc = onCopierBloc
             renduBlocs.insererBloc = onInsererBloc
             renduBlocs.appliquerBloc = onAppliquerBloc
             actionErreur = onActionErreur
+            onCopierMessageLie = onCopierMessage
+            onRegenererMessageLie = onRegenererMessage
+            onExporterMessageLie = onExporterMessage
+            estDerniere = estDernier
 
             // Le raisonnement suit son propre rendu (masqué quand vide).
             rendreRaisonnement(message)
@@ -305,8 +342,37 @@ public class AdapterMessages(
 
             rendreErreur(message)
 
-            liaison.boutonCopierMessage.isVisible = message.texte.isNotBlank()
-            liaison.boutonCopierMessage.setOnClickListener { onCopierMessage(message.identifiant) }
+            rendreActionsReponse(message, onCopierMessage, onRegenererMessage, onExporterMessage)
+        }
+
+        /**
+         * Actions par RÉPONSE (rapport IA, lot 3 — d'après la maquette) :
+         * Copier sur toute réponse complète, ↻ Régénérer sur la
+         * DERNIÈRE réponse (relance le dernier échange — jamais une
+         * réponse ancienne), Exporter en Markdown sur toute réponse
+         * complète (le fragment porte le sélecteur SAF). Pendant le
+         * flux, AUCUNE action (la réponse n'est pas encore une
+         * réponse).
+         */
+        private fun rendreActionsReponse(
+            message: MessageChatUi,
+            onCopierMessage: (String) -> Unit,
+            onRegenererMessage: () -> Unit,
+            onExporterMessage: (String) -> Unit,
+        ) {
+            val complete = message.texte.isNotBlank() && !message.generationEnCours
+            liaison.boutonCopierMessage.isVisible = complete
+            liaison.boutonRegenererMessage.isVisible = complete && estDerniere
+            liaison.boutonExporterMessage.isVisible = complete
+            if (complete) {
+                liaison.boutonCopierMessage.setOnClickListener { onCopierMessage(message.identifiant) }
+            }
+            if (complete && estDerniere) {
+                liaison.boutonRegenererMessage.setOnClickListener { onRegenererMessage() }
+            }
+            if (complete) {
+                liaison.boutonExporterMessage.setOnClickListener { onExporterMessage(message.identifiant) }
+            }
         }
 
         /** Rebind PARTIEL (v0.195.0) : seules les sections payées sont re-rendues. */
@@ -322,7 +388,7 @@ public class AdapterMessages(
                     ClePayload.FIN -> {
                         rendreCurseur(message.generationEnCours)
                         rendreRaisonnement(message)
-                        liaison.boutonCopierMessage.isVisible = message.texte.isNotBlank()
+                        rendreActionsReponse(message, onCopierMessageLie, onRegenererMessageLie, onExporterMessageLie)
                     }
                 }
             }

@@ -138,12 +138,43 @@
         android:visibility="gone"
         tools:text="Réessayer" />
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/bouton_copier_message"
-        style="@style/Widget.CodeIDE.Button.Text"
+    <LinearLayout
+        android:id="@+id/rangee_actions_reponse"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:minHeight="40dp"
-        android:text="@string/ia_copier"
-        android:visibility="gone" />
+        android:layout_gravity="end"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_copier_message"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:text="@string/ia_copier"
+            android:visibility="gone" />
+
+        <!-- ↻ Régénérer (rapport IA, lot 3 — d'après la maquette) :
+             relance le DERNIER échange — la réponse courante part, la
+             question repart au modèle. Dernière réponse SEULE. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_regenerer_message"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:text="@string/ia_regenerer"
+            android:visibility="gone" />
+
+        <!-- Exporter en Markdown (rapport IA, lot 3) : la réponse brute
+             part vers un fichier choisi par l'utilisateur (SAF). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_exporter_message"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minHeight="40dp"
+            android:text="@string/ia_exporter_markdown"
+            android:visibility="gone" />
+    </LinearLayout>
 </LinearLayout>

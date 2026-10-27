@@ -121,7 +121,12 @@
         <!-- État transverse (v0.188.0 : DANS la zone des messages) :
              IA non activée (consentement), clé absente (S3 — bouton
              « Ajouter une clé » vers le fournisseur actif) ou
-             conversation vide (accueil — la saisie reste LIBRE). -->
+             conversation vide (accueil — la saisie reste LIBRE).
+             Rapport IA, lot 3 — d'après la maquette : l'accueil vide
+             porte les ACTIONS RAPIDES (Expliquer, Corriger, Tests,
+             Documenter) — un appui PRÉREMPLIT la commande « / »
+             correspondante (l'utilisateur garde la main : rien n'est
+             envoyé sans lui). -->
         <LinearLayout
             android:id="@+id/etat_transverse"
             android:layout_width="match_parent"
@@ -174,6 +179,55 @@
                 android:text="@string/ia_cle_absente_bouton"
                 android:visibility="gone"
                 tools:visibility="visible" />
+
+            <!-- Actions rapides de l'accueil vide (rapport IA, lot 3 —
+                 d'après la maquette) : une commande « / » par geste —
+                 l'appui PRÉREMPLIT la saisie, rien n'est envoyé sans
+                 l'utilisateur. -->
+            <LinearLayout
+                android:id="@+id/rangee_actions_rapides"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:orientation="horizontal"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/action_rapide_expliquer"
+                    style="@style/Widget.CodeIDE.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:minWidth="0dp"
+                    android:text="@string/ia_commande_expliquer_libelle" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/action_rapide_corriger"
+                    style="@style/Widget.CodeIDE.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:minWidth="0dp"
+                    android:text="@string/ia_commande_corriger_libelle" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/action_rapide_tests"
+                    style="@style/Widget.CodeIDE.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:minWidth="0dp"
+                    android:text="@string/ia_commande_tests_libelle" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/action_rapide_documenter"
+                    style="@style/Widget.CodeIDE.Button.Outlined"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minWidth="0dp"
+                    android:text="@string/ia_commande_doc_libelle" />
+            </LinearLayout>
         </LinearLayout>
     </FrameLayout>
 
@@ -191,6 +245,28 @@
 
         <LinearLayout
             android:id="@+id/conteneur_puces"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs" />
+    </HorizontalScrollView>
+
+    <!-- Suggestions de COMMANDES « / » (rapport IA, lot 3 — d'après
+         la maquette) : la frappe d'un « / » non encore tranché (aucun
+         espace) suggère les commandes correspondantes — un appui
+         complète la saisie. Vide ou commande tranchée : masquée. -->
+    <HorizontalScrollView
+        android:id="@+id/rangee_commandes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:scrollbars="none"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <LinearLayout
+            android:id="@+id/conteneur_commandes"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"

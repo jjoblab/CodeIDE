@@ -33,4 +33,11 @@ public data class ConversationIaEntity(
     @ColumnInfo(name = "jetons_entree", defaultValue = "0") public val jetonsEntree: Long = 0,
     /** Jetons de sortie cumulés de la conversation (même contrat). */
     @ColumnInfo(name = "jetons_sortie", defaultValue = "0") public val jetonsSortie: Long = 0,
+    /**
+     * Discussion ÉPINGLÉE (rapport IA, lot 3 — d'après la maquette) :
+     * `true` = maintenue en HAUT de l'historique (tri `epingle DESC,
+     * modifie_a DESC`) — l'épinglage est un choix utilisateur,
+     * réversible d'un appui.
+     */
+    @ColumnInfo(name = "epingle", defaultValue = "0") public val epingle: Boolean = false,
 )

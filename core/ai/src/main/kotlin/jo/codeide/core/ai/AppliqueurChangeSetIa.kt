@@ -1,9 +1,11 @@
 package jo.codeide.core.ai
 
+import jo.codeide.core.domain.DiffUnifie
 import jo.codeide.core.domain.EntreeHistorique
 import jo.codeide.core.domain.FileSystem
 import jo.codeide.core.domain.HistoriqueLocal
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.domain.TypeLigneDiff
 import jo.codeide.core.domain.mimeFichierTexte
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.getOrNull
@@ -25,6 +27,13 @@ import javax.inject.Inject
  * @property segmentsManquants parents à créer pour un CREER (mkdir -p).
  * @property uriParent URI du dossier parent direct (CREER), `null` sinon.
  * @property nomFichier nom du dernier segment (CREER), `null` sinon.
+ * @property lignesAjoutees lignes AJOUTÉES du diff (rapport IA, lot 3 —
+ *           carte de changements « +37 −12 ») : tout le contenu pour un
+ *           CREER, ajoutés du diff unifié pour un MODIFIER, 0 pour un
+ *           SUPPRIMER (ou fichier illisible).
+ * @property lignesSupprimees lignes SUPPRIMÉES du diff (même contrat :
+ *           tout le contenu pour un SUPPRIMER lisible, supprimées du
+ *           diff unifié pour un MODIFIER, 0 pour un CREER).
  */
 public data class FichierRevueIa(
     public val cheminRelatif: String,
@@ -37,12 +46,15 @@ public data class FichierRevueIa(
     public val segmentsManquants: List<String>,
     public val uriParent: String?,
     public val nomFichier: String?,
+    public val lignesAjoutees: Int = 0,
+    public val lignesSupprimees: Int = 0,
 )
 
 /**
  * Revue complète d'un ChangeSet (écran Agent, spec E2) : fichiers,
  * conflits et applicables — la décision « tout appliquer / fichier par
- * fichier / rien » se prend sur cette donnée.
+ * fichier / rien » se prend sur cette donnée. Les totaux +/− (rapport
+ * IA, lot 3) nourrissent la carte de changements « N fichiers · +A −S ».
  */
 public data class RevueChangeSetIa(public val fichiers: List<FichierRevueIa>) {
     /** Fichiers marqués conflit (jamais proposés à l'application). */
@@ -50,6 +62,12 @@ public data class RevueChangeSetIa(public val fichiers: List<FichierRevueIa>) {
 
     /** Fichiers applicables (non conflits). */
     public val applicables: List<FichierRevueIa> get() = fichiers.filter { !it.conflit }
+
+    /** Total des lignes ajoutées (carte de changements, rapport IA lot 3). */
+    public val lignesAjoutees: Int get() = fichiers.sumOf { it.lignesAjoutees }
+
+    /** Total des lignes supprimées (même contrat). */
+    public val lignesSupprimees: Int get() = fichiers.sumOf { it.lignesSupprimees }
 
     public val vide: Boolean get() = fichiers.isEmpty()
 }
@@ -344,6 +362,16 @@ constructor(
             return conflitNonTextuel(changement, type, resolu.uri)
         }
         val divergent = empreinte(actuel) != changement.empreinteAttendue
+        // Rapport IA, lot 3 : compteurs +/− du diff unifié (carte de
+        // changements « +37 −12 ») — MODIFIER : ajoutés/retirés du diff
+        // (DiffUnifié borné, même moteur que la revue de l'historique) ;
+        // SUPPRIMER : tout le contenu actuel part en retraits.
+        val (ajoutees, supprimees) =
+            if (type == TypeChangementIa.SUPPRIMER) {
+                PAIRE_ZERO
+            } else {
+                compteursDiff(actuel, changement.contenu)
+            }
         return FichierRevueIa(
             changement.cheminRelatif,
             type,
@@ -355,6 +383,8 @@ constructor(
             segmentsManquants = emptyList(),
             uriParent = resolu.uriParent,
             nomFichier = resolu.nomFichier,
+            lignesAjoutees = ajoutees,
+            lignesSupprimees = if (type == TypeChangementIa.SUPPRIMER) nombreLignes(actuel) else supprimees,
         )
     }
 
@@ -405,6 +435,8 @@ constructor(
             segmentsManquants = manquants,
             uriParent = courant,
             nomFichier = nomFichier,
+            // Rapport IA, lot 3 : une création ajoute tout son contenu.
+            lignesAjoutees = nombreLignes(changement.contenu),
         )
     }
 
@@ -435,6 +467,21 @@ constructor(
             nomFichier = null,
         )
 
+    /**
+     * Compteurs +/− du diff unifié [DiffUnifie] (rapport IA, lot 3 —
+     * carte de changements) : pur et BORNÉ (le moteur est celui de
+     * l'historique local, jamais une matrice N×M).
+     */
+    private fun compteursDiff(ancien: String, nouveau: String): Pair<Int, Int> {
+        val lignes = DiffUnifie.calculer(ancien.lines(), nouveau.lines())
+        val ajoutees = lignes.count { it.type == TypeLigneDiff.AJOUT }
+        val supprimees = lignes.count { it.type == TypeLigneDiff.RETRAIT }
+        return Pair(ajoutees, supprimees)
+    }
+
+    /** Nombre de lignes non vides d'un contenu (compteur d'une création/suppression). */
+    private fun nombreLignes(contenu: String): Int = contenu.lines().count { it.isNotBlank() }
+
     /** Résolution d'un chemin EXISTANT : fichier, parent direct et dernier segment. */
     private data class ResoluIa(val uri: String, val uriParent: String, val nomFichier: String)
 
@@ -455,6 +502,9 @@ constructor(
     private companion object {
         /** Motif du garde-fou « historique indisponible » (ADR 0125). */
         const val MOTIF_HISTORIQUE = "historique local indisponible — application refusée (ADR 0125)"
+
+        /** Paire nulle (suppression : ajoutés comptés à part, jamais ici). */
+        val PAIRE_ZERO = Pair(0, 0)
 
         /** Empreinte SHA-256 (hex minuscule), même algorithme que les outils d'écriture. */
         fun empreinte(contenu: String): String = java.security.MessageDigest

@@ -16,14 +16,14 @@ import kotlinx.coroutines.flow.Flow
 @Suppress("TooManyFunctions") // un DAO Room est un contrat d'accès : une requête = une méthode dédiée.
 @Dao
 public interface ConversationIaDao {
-    /** Conversations du plus récent au plus ancien. */
-    @Query("SELECT * FROM ai_conversations ORDER BY modifie_a DESC")
+    /** Conversations : épinglées d'abord, puis de la plus récente à la plus ancienne. */
+    @Query("SELECT * FROM ai_conversations ORDER BY epingle DESC, modifie_a DESC")
     public fun observeToutes(): Flow<List<ConversationIaEntity>>
 
-    /** Recherche par titre (insensible à la casse), même tri. */
+    /** Recherche par titre (insensible à la casse), même tri (épinglées d'abord). */
     @Query(
         "SELECT * FROM ai_conversations WHERE titre LIKE '%' || :recherche || '%' " +
-            "COLLATE NOCASE ORDER BY modifie_a DESC",
+            "COLLATE NOCASE ORDER BY epingle DESC, modifie_a DESC",
     )
     public fun observeRecherche(recherche: String): Flow<List<ConversationIaEntity>>
 
@@ -54,6 +54,10 @@ public interface ConversationIaDao {
     /** Supprime une conversation — les messages partent en CASCADE. */
     @Query("DELETE FROM ai_conversations WHERE id = :id")
     public suspend fun supprimer(id: String): Int
+
+    /** Épingle ou détache une discussion (rapport IA, lot 3 — un appui, réversible). */
+    @Query("UPDATE ai_conversations SET epingle = :epingle WHERE id = :id")
+    public suspend fun epingler(id: String, epingle: Boolean)
 
     /** Tout effacer (conversations ET messages). */
     @Query("DELETE FROM ai_conversations")
