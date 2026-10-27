@@ -951,8 +951,18 @@ constructor(
         }
     }
 
+    /**
+     * Referme la conversation courante et RAZ l'écran (B3, rapport IA
+     * lot 1) : [conversationId] redevient `null` — la discussion
+     * suivante naîtra d'un NOUVEL identifiant au premier message
+     * persisté (une discussion réouverte puis « nettoyée » ne
+     * récupère JAMAIS l'ancienne conversation, le KDoc du champ le
+     * promettait déjà). Une discussion VIDE n'est jamais persistée :
+     * aucune fantôme dans l'historique.
+     */
     private fun nouvelleConversation() {
         arreter()
+        conversationId = null
         dernierMessageUtilisateur = null
         envoiEnAttente = null
         etatInterne.value =

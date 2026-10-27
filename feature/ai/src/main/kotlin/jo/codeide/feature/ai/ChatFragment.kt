@@ -125,6 +125,12 @@ public class ChatFragment : Fragment() {
         }
         // Lot 5, point 3 : le modèle se choisit depuis l'EN-TÊTE du chat.
         liaisonLocale.boutonModele.setOnClickListener { ouvrirSelecteurModele() }
+        // B3 (rapport IA, lot 1) : « ＋ Nouvelle » referme la discussion
+        // courante (messages, pièces, jetons, génération annulée) —
+        // une discussion VIDE n'est jamais persistée.
+        liaisonLocale.boutonNouvelleDiscussion.setOnClickListener {
+            viewModel.onAction(ActionChatIa.NouvelleConversation)
+        }
         // v0.188.0 (rapport IA S3) : l'état « Ajoutez une clé » mène au
         // DÉTAIL du fournisseur ACTIF (c'est sa clé qui manque).
         liaisonLocale.boutonAjouterCle.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirFournisseurCle) }
@@ -141,22 +147,7 @@ public class ChatFragment : Fragment() {
         // 0121 point 3) via le callback testable [LienIa.ouverture].
         LienIa.ouverture = { url -> ouvrirUrl(url) }
 
-        // B2 (rapport IA, lot 1) : l'ouverture d'une discussion de
-        // l'historique arrive par FRAGMENT RESULT — le tiroir pose le
-        // résultat, le chat le consomme À SON PASSAGE À STARTED (que
-        // la vue soit déjà attachée ou en cours d'attachement
-        // asynchrone : le résultat ATTEND dans le FragmentManager).
-        // L'ancien appel direct sur un fragment potentiellement sans
-        // vue était PERDU quand le chat n'était pas encore attaché.
-        parentFragmentManager.setFragmentResultListener(
-            CLE_RESULTAT_OUVERTURE_CONVERSATION,
-            viewLifecycleOwner,
-        ) { _, extras ->
-            val identifiant = extras.getString(EXTRA_CONVERSATION_ID)
-            if (!identifiant.isNullOrBlank()) {
-                viewModel.onAction(ActionChatIa.OuvrirConversation(identifiant))
-            }
-        }
+        installerResultatsTiroir()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -173,6 +164,35 @@ public class ChatFragment : Fragment() {
                 }
             }
         }
+    }
+
+    /**
+     * Résultats du TIROIR (B2/B3, rapport IA lot 1) : l'ouverture d'une
+     * discussion de l'historique et « ＋ Nouvelle » arrivent par FRAGMENT
+     * RESULT — le tiroir pose le résultat, le chat le consomme À SON
+     * PASSAGE À STARTED (que la vue soit déjà attachée ou en cours
+     * d'attachement asynchrone : le résultat ATTEND dans le
+     * FragmentManager). L'ancien appel direct sur un fragment
+     * potentiellement sans vue était PERDU quand le chat n'était pas
+     * encore attaché.
+     */
+    private fun installerResultatsTiroir() {
+        parentFragmentManager.setFragmentResultListener(
+            CLE_RESULTAT_OUVERTURE_CONVERSATION,
+            viewLifecycleOwner,
+        ) { _, extras ->
+            val identifiant = extras.getString(EXTRA_CONVERSATION_ID)
+            if (!identifiant.isNullOrBlank()) {
+                viewModel.onAction(ActionChatIa.OuvrirConversation(identifiant))
+            }
+        }
+
+        // « ＋ Nouvelle » depuis l'historique — même mécanisme (résultat
+        // consommé à STARTED), action sans identifiant.
+        parentFragmentManager.setFragmentResultListener(
+            CLE_RESULTAT_NOUVELLE_DISCUSSION,
+            viewLifecycleOwner,
+        ) { _, _ -> viewModel.onAction(ActionChatIa.NouvelleConversation) }
     }
 
     override fun onDestroyView() {

@@ -37,6 +37,18 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- ＋ Nouvelle discussion (B3, rapport IA lot 1) : bascule
+             sur le chat avec une discussion NEUVE — même action que
+             le bouton de l'en-tête du chat, visible AUSSI ici. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_nouvelle_discussion"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:contentDescription="@string/ia_chat_nouvelle_discussion"
+            app:icon="@drawable/ic_plus" />
+
         <!-- Tout effacer (confirmation préalable — critère IA-6). -->
         <ImageButton
             android:id="@+id/bouton_tout_effacer"

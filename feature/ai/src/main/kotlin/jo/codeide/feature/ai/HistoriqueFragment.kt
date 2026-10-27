@@ -64,6 +64,12 @@ public class HistoriqueFragment : Fragment() {
             viewModel.onAction(ActionHistoriqueIa.ChangerRecherche(texte?.toString().orEmpty()))
         }
         liaison.boutonToutEffacer.setOnClickListener { confirmerToutEffacer() }
+        // B3 (rapport IA, lot 1) : « ＋ Nouvelle » bascule sur le chat
+        // avec une discussion NEUVE — le tiroir sélectionne l'onglet
+        // et pose le FragmentResult que le chat consommera à STARTED.
+        liaison.boutonNouvelleDiscussion.setOnClickListener {
+            (parentFragment as? IaTiroirFragment)?.ouvrirNouvelleDiscussionDansChat()
+        }
 
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
             adaptateur.submitList(etat.conversations)

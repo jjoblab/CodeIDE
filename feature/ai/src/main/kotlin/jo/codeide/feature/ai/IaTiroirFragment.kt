@@ -110,6 +110,25 @@ public class IaTiroirFragment : Fragment() {
         )
     }
 
+    /**
+     * Ouvre une discussion NEUVE dans le chat (B3, rapport IA, lot 1 —
+     * bouton « ＋ Nouvelle » de l'en-tête de l'historique) : même
+     * mécanisme que [ouvrirConversationDansChat] — le tab Chat est
+     * SÉLECTIONNÉ et le résultat (clé dédiée, SANS identifiant) attend
+     * le passage à STARTED du chat : plus jamais d'appel direct sur un
+     * fragment sans vue.
+     */
+    public fun ouvrirNouvelleDiscussionDansChat() {
+        val liaison = liaisonTiroir
+        val ongletChat = liaison?.ongletsIa?.getTabAt(POSITION_CHAT)
+        if (ongletChat?.isSelected == true) {
+            afficherOnglet(POSITION_CHAT)
+        } else {
+            ongletChat?.select()
+        }
+        childFragmentManager.setFragmentResult(CLE_RESULTAT_NOUVELLE_DISCUSSION, Bundle.EMPTY)
+    }
+
     /** Affiche l'onglet demandé — Chat, Agent et Historique en
      * fragments enfants réels, Recherche en « bientôt ». */
     private fun afficherOnglet(position: Int) {
@@ -267,3 +286,10 @@ internal const val CLE_RESULTAT_OUVERTURE_CONVERSATION: String = "tiroir_ia_ouvr
 
 /** Extra du résultat : identifiant de la conversation à rouvrir. */
 internal const val EXTRA_CONVERSATION_ID: String = "conversation_id"
+
+/**
+ * Clé du FragmentResult de discussion NEUVE (B3, rapport IA lot 1) :
+ * le tiroir POSE le résultat, le chat le consomme à STARTED — sans
+ * identifiant : c'est une action, pas une donnée.
+ */
+internal const val CLE_RESULTAT_NOUVELLE_DISCUSSION: String = "tiroir_ia_nouvelle_discussion"

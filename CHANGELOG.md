@@ -1,5 +1,46 @@
 # Journal des modifications
 
+## [0.200.3] – 2026-10-27
+
+### Option « ＋ Nouvelle discussion » — en-tête du chat ET de l'historique, conversation réellement refermée (rapport IA, chantier IA-CODEIDE, lot 1, B3)
+
+#### Ajouté
+
+- **Le bouton « ＋ Nouvelle discussion » vit dans l'en-tête du chat**
+  (rapport IA, lot 1, B3) : `MaterialButton` au style maison
+  `Widget.CodeIDE.Button.Icon` (zone tactile ≥ 48 dp, icône
+  `ic_plus`, `contentDescription` FR + EN) posé à côté du compteur
+  d'usage — l'action `NouvelleConversation` (déjà portée par le
+  ViewModel) referme la conversation : messages, pièces de contexte,
+  mentions, alertes de secret, compteurs de jetons vidés, génération
+  en cours ANNULÉE proprement (`arreter()`).
+- **Le même bouton vit dans l'en-tête de l'HISTORIQUE** : il bascule
+  sur l'onglet Chat (tab SÉLECTIONNÉ, pas seulement le contenu) et
+  pose un FragmentResult dédié (`tiroir_ia_nouvelle_discussion`,
+  consommé par le chat à son passage à STARTED — même mécanisme que
+  B2 : le résultat ATTEND, aucun appel direct sur un fragment sans
+  vue).
+
+#### Corrigé
+
+- **« Nouvelle discussion » ne REFERMAIT pas la conversation courante**
+  (rapport IA, lot 1, B3) : `nouvelleConversation()` remettait
+  l'écran à zéro mais laissait `conversationId` en place — l'envoi
+  suivant POURSUIVAIT la conversation rouverte (le KDoc du champ
+  promettait pourtant « refermée par Nouvelle conversation »).
+  CORRECTIF : `conversationId = null` — la discussion suivante naît
+  d'un NOUVEL identifiant au premier message persisté ; une
+  discussion VIDE n'est jamais persistée (aucune fantôme dans
+  l'historique, par construction de `persister` : texte vide = rien).
+
+#### Tests
+
+- **+2 tests** (`ChatViewModelTest`) : la nouvelle discussion REFERME
+  la conversation rouverte (l'envoi suivant persiste dans une
+  discussion DISTINCTE, `conv-a` ne reçoit rien) ; la nouvelle
+  discussion sur un chat VIDE ne crée RIEN (aucune conversation, aucun
+  message persisté).
+
 ## [0.200.2] – 2026-10-27
 
 ### Une discussion de l'historique s'affiche DANS le chat — onglet sélectionné, résultat qui attend, disparition visible (rapport IA, chantier IA-CODEIDE, lot 1, B2)
