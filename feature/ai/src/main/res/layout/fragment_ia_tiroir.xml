@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Tiroir IA (mission IA, lot IA-3 — spec E1) : entête, onglets
-  Chat · Agent · Historique · Recherche, conteneur du contenu. Agent et
-  Historique restent en état « bientôt » jusqu'aux lots IA-7/IA-6 ;
-  Recherche est réservé (feuille de route).
+  Tiroir IA (mission IA, lot IA-3 — spec E1 ; C5, retour propriétaire
+  — écran de l'option IA du toolbar de l'éditeur) : entête avec puce
+  d'état du PROJET (l'état se lit AVANT d'ouvrir l'onglet Agent — plus
+  de « projet non ouvert » découvert tardivement), onglets en PILULES
+  (maquette : Chat · Agent · Recherche · Historique), conteneur du
+  contenu.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -36,14 +38,39 @@
             android:layout_weight="1"
             android:text="@string/ia_tiroir_titre"
             android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+        <!-- C5 (retour propriétaire) : puce d'état du PROJET — la
+             couleur porte le verdict (primaire = ouvert, variante =
+             aucun), le texte le dit en mots ; pilule surface
+             surélevée, jamais de couleur en dur. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/puce_projet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/fond_puce_projet_ia"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            tools:text="Projet ouvert"
+            tools:visibility="visible" />
     </LinearLayout>
 
+    <!-- Onglets en PILULES (C5, maquette) : fond de capsule sur
+         l'onglet sélectionné, AUCUN indicateur souligné, teintes du
+         thème (variante → texte). -->
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/onglets_ia"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/spacing_xs"
+        app:tabBackground="@drawable/fond_onglet_ia"
         app:tabGravity="fill"
-        app:tabMode="fixed" />
+        app:tabIndicator="@null"
+        app:tabIndicatorHeight="0dp"
+        app:tabMode="fixed"
+        app:tabRippleColor="?attr/colorControlHighlight"
+        app:tabSelectedTextColor="?attr/colorOnSurface"
+        app:tabTextColor="?attr/colorOnSurfaceVariant" />
 
     <FrameLayout
         android:id="@+id/conteneur_ia"

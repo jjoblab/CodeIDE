@@ -1,5 +1,39 @@
 # Journal des modifications
 
+## [0.200.14] – 2026-10-28
+
+### L'écran IA du toolbar de l'éditeur — puce PROJET dans l'en-tête, onglets PILULES à l'ordre de la maquette (C5, retour propriétaire)
+
+#### Ajouté
+
+- **Puce d'état du projet dans l'en-tête du tiroir** : « Projet
+  ouvert » en PRIMAIRE tant que la session l'est, « Aucun projet » en
+  VARIANTE sinon — l'état se lit DÈS l'ouverture du tiroir, AVANT de
+  visiter l'onglet Agent (le constat « l'écran agent dit que le
+  projet n'est pas ouvert » se vérifie désormais au premier regard).
+  La puce vit avec la SESSION (source de vérité, `ObservateurSessionProjet`
+  collecté en STARTED) — jamais un chemin deviné.
+- **Onglets en PILULES** (maquette) : capsule de surface surélevée sur
+  l'onglet sélectionné (`tabBackground` sélecteur, indicateur souligné
+  ÉTEINT), teintes variante → texte du thème, ripple discret.
+
+#### Modifié
+
+- **Ordre des onglets aligné sur la maquette** : Chat · Agent ·
+  Recherche · Historique (la recherche est une étape de travail
+  courante, l'historique une consultation — même ordre que la
+  maquette interactive).
+- **Garde anti-double-ajout** des onglets (vue recréée par rotation
+  ou restauration : plus jamais d'onglets dupliqués).
+
+#### Tests
+
+- `LayoutsIaTest` : la puce projet existe et porte son fond de
+  capsule ; les vues `heure_message` (C4) verrouillées au passage.
+- `TiroirIaOuvertureConversationTest` (:app, Hilt + Robolectric) :
+  l'historique est bien le 4ᵉ onglet (position 3) après le
+  réordonnancement.
+
 ## [0.200.13] – 2026-10-28
 
 ### L'HEURE des messages dans les conversations — sous la bulle utilisateur, en tête de la ligne d'actions de la réponse (C4, retour propriétaire)

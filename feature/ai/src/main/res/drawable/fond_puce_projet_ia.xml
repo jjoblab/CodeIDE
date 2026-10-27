@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond de la puce PROJET de l'en-tête du tiroir IA (C5, retour
+     propriétaire) : capsule pleine surface surélevée — l'état du
+     projet se lit AU PREMIER regard sur l'écran IA, avant même
+     d'ouvrir l'onglet Agent (la couleur du TEXTE porte l'état :
+     primaire = ouvert, variante = aucun). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <corners android:radius="@dimen/corner_radius_large" />
+    <solid android:color="?attr/colorSurfaceContainerHigh" />
+</shape>

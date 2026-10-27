@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fond des ONGLETS du tiroir IA (C5, retour propriétaire — maquette :
+  pilules). L'onglet SÉLECTIONNÉ reçoit une CAPSULE de surface
+  surélevée (rôle de thème — jour, nuit et couleurs dynamiques
+  suivies) ; les autres restent transparents. Miroir du geste
+  `fond_onglet_editeur` (qui a délibérément choisi le RECTANGLE pour
+  les onglets de FICHIER de l'éditeur — ici la maquette cible montre
+  des pilules).
+-->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/ia_onglet_coins" />
+            <solid android:color="?attr/colorSurfaceContainerHigh" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/ia_onglet_coins" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</selector>

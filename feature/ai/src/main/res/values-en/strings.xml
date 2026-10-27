@@ -117,6 +117,9 @@
     <string name="ia_reponse_tronquee">Answer stopped by the token limit — raise the cap in settings</string>
 
     <string name="ia_tiroir_titre">AI assistant</string>
+    <!-- C5 (retour propriétaire) : puce d'état du projet de l'en-tête. -->
+    <string name="ia_tiroir_projet_ouvert">Project open</string>
+    <string name="ia_tiroir_aucun_projet">No project</string>
     <string name="ia_onglet_chat">Chat</string>
     <string name="ia_onglet_agent">Agent</string>
     <string name="ia_onglet_historique">History</string>
