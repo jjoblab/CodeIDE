@@ -1,5 +1,66 @@
 # Journal des modifications
 
+## [0.200.9] – 2026-10-28
+
+### Design et fonctionnalités d'après la maquette — commandes « / », actions rapides, Régénérer/Exporter Markdown, épinglage + suppression réversible de l'historique, onglet Recherche réel, mode « revue » de l'agent et carte de changements avec diff (rapport IA, chantier IA-CODEIDE, lot 3)
+
+#### Ajouté
+
+- **Commandes « / » du chat** (`CommandesBarreIa`, pure et testée) :
+  `/expliquer`, `/corriger`, `/tests`, `/doc`, `/refactor` — la frappe
+  d'un « / » non tranché (aucun espace) suggère les commandes
+  correspondantes dans une rangée de puces au-dessus du compositeur
+  (garde d'empreinte, même anti-regonflage que les puces de contexte) ;
+  un appui complète la saisie — la commande tranchée ferme la rangée.
+- **Actions rapides de l'état vide** : l'accueil du chat porte
+  Expliquer / Corriger / Tests / Documenter — un appui PRÉREMPLIT la
+  commande « / » (l'utilisateur garde la main sur l'envoi, aucune
+  dépense de jetons sans lui).
+- **Actions par réponse** : ↻ **Régénérer** sur la DERNIÈRE réponse
+  (relance le dernier échange) et **Exporter en Markdown** sur toute
+  réponse complète (sélecteur SAF `CreateDocument("text/markdown")` —
+  l'emplacement reste un choix utilisateur, retour Snackbar honnête
+  succès/échec). Pendant le flux, AUCUNE action.
+- **Épinglage de l'historique** : colonne `epingle` (migration 4 → 5,
+  testée sur le schéma v4 exporté) — une discussion épinglée reste en
+  TÊTE de la liste quel que soit l'âge de son dernier message (tri
+  `epingle DESC, modifie_a DESC`) ; un appui épingle/détache (icône
+  teintée primaire quand épinglée, `contentDescription` dédiée).
+- **Suppression réversible** : la suppression d'une discussion est
+  IMMÉDIATE (plus de dialogue de confirmation) et le Snackbar propose
+  **« Annuler »** — l'instantané complet (conversation + messages,
+  épinglage et titre renommé compris) est restauré à l'identique.
+- **Onglet Recherche RÉEL** (l'état « bientôt » est MORT — vue, code
+  et chaînes supprimés) : recherche de FICHIERS du projet par nom
+  (même source bornée que le sélecteur `@` du chat, chargée UNE fois,
+  filtre local), nom + dossier par ligne, action **« Demander à
+  l'IA »** qui bascule sur le chat et préremplit
+  « /expliquer <chemin> » (FragmentResult, miroir de l'ouverture de
+  conversation). État honnête : chargement, projet fermé, aucun
+  résultat. Les SYMBOLES restent hors périmètre (même sobriété que
+  la spec RECHERCHE.md §1 — écart documenté dans le rapport).
+- **Mode « revue » de l'agent** (interrupteur à côté de
+  « Planifier d'abord ») : armé, l'exécution S'ARRÊTE à chaque
+  proposition d'écriture (`propose_edit`/`create_file`/`delete_file`)
+  — la carte de changements est préparée, le message dit le geste
+  suivant, et « Continuer » LIBÈRE la boucle (porte suspendable,
+  miroir de l'approbation `run_gradle` ; « Arrêter » annule
+  proprement).
+- **Carte de changements avec diff** : le résumé porte les compteurs
+  **« N fichiers · +A −S · C conflits »** (diff unifié `DiffUnifie`
+  borné, calculé à la préparation : MODIFIER = ajoutés/retirés du
+  diff, CREER = toutes les lignes du contenu, SUPPRIMER = lignes du
+  contenu actuel) et **« Voir le diff »** déploie un aperçu INLINE
+  par fichier (`＋ chemin (N)` en primaire, `− chemin (M)` en erreur —
+  teintes du thème, jamais de couleur en dur).
+
+#### Modifié
+
+- Le DAO `observeToutes`/`observeRecherche` trie « épinglées
+  d'abord » ; le menu d'une discussion ne porte plus que « Renommer »
+  (la suppression vit directement sur la ligne) ; le double de test
+  `FauxConversationStore` reflète le tri SQL.
+
 ## [0.200.8] – 2026-10-27
 
 ### L'agent devient INTELLIGENT — prompt système riche, « Planifier d'abord », outils de lecture avancés, auto-correction bornée, budget de jetons et reprise réelle (rapport IA, chantier IA-CODEIDE, lot 2, A5)

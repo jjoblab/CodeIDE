@@ -157,6 +157,20 @@
                 android:layout_weight="1"
                 android:minHeight="48dp"
                 android:text="@string/agent_planifier_dabord" />
+
+            <!-- Interrupteur « Mode revue » (rapport IA, lot 3 — d'après
+                 la maquette, À CÔTÉ de « Planifier d'abord ») : armé,
+                 l'exécution S'ARRÊTE à chaque proposition d'écriture —
+                 l'utilisateur examine (Voir le diff / Examiner), tranche
+                 (appliquer/rejeter), puis « Continuer » reprend. -->
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/interrupteur_revue"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_weight="1"
+                android:minHeight="48dp"
+                android:text="@string/agent_mode_revue" />
         </LinearLayout>
 
         <LinearLayout
@@ -411,12 +425,37 @@
                     android:textAppearance="?attr/textAppearanceBodySmall"
                     android:textColor="?attr/colorOnSurfaceVariant" />
 
+                <!-- « Voir le diff » (rapport IA, lot 3 — d'après la
+                     maquette) : aperçu INLINE borné — une ligne par
+                     fichier (＋ nom (N lignes) en primaire, − nom (M
+                     lignes) en erreur), teintes du thème, plié par
+                     défaut. -->
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_diff_changements"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:fontFamily="monospace"
+                    android:textAppearance="?attr/textAppearanceBodySmall"
+                    android:textColor="?attr/colorOnSurface"
+                    android:visibility="gone"
+                    tools:text="＋ SettingsFragment.kt (42 lignes)"
+                    tools:visibility="visible" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_voir_diff"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:text="@string/agent_changements_voir_diff" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/bouton_examiner"
                     style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:layout_marginTop="@dimen/spacing_xs"
                     android:text="@string/agent_changements_examiner" />
 
                 <LinearLayout

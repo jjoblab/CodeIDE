@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Un résultat de la recherche IA (rapport IA, lot 3) : nom du fichier
+  en gras, dossier parent en discret, action « Demander à l'IA » (Text,
+  style maison) qui bascule sur le chat avec « /expliquer <chemin> »
+  prérempli. Zone tactile ≥ 48 dp, appui sur la LIGNE = même action.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/racine_resultat_recherche"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="48dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_sm">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingVertical="@dimen/spacing_xs">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/nom_resultat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?attr/colorOnSurface"
+            tools:text="ChatViewModel.kt" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/dossier_resultat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="middle"
+            android:maxLines="1"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            tools:text="feature/ai/src/main/kotlin" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_demander_ia"
+        style="@style/Widget.CodeIDE.Button.Text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:minHeight="48dp"
+        android:text="@string/ia_recherche_demander" />
+</LinearLayout>

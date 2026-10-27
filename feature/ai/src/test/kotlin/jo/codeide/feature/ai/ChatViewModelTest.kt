@@ -31,6 +31,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -674,6 +675,69 @@ class ChatViewModelTest {
         advanceUntilIdle()
 
         assertEquals(EffetChatIa.Copier("code bloc"), modele.effets.first())
+    }
+
+    @Test
+    fun `ExporterMessage émet l'effet d'export Markdown avec le texte BRUT de la réponse (rapport IA, lot 3)`() =
+        runTest {
+            val fournisseur = FauxFournisseurFlux()
+            val modele =
+                ChatViewModel(
+                    SendMessageUseCase(fournisseur),
+                    reglagesActifs(),
+                    FakeCoffre(),
+                    RegistrePortEditeurActif(),
+                    FauxFournisseurContexte(),
+                    CanalSignauxIa(),
+                    FauxConversationStore(),
+                    HorlogeFixe,
+                    ListerModelesIaUseCase(fournisseur),
+                    FakeAppLogger(),
+                )
+            advanceUntilIdle()
+
+            modele.onAction(ActionChatIa.ChangerSaisie("Explique DiffUtil"))
+            modele.onAction(ActionChatIa.Envoyer)
+            advanceUntilIdle()
+            fournisseur.emettre(AiEvent.TextDelta("Réponse **complète**"))
+            fournisseur.emettre(AiEvent.Done(AiStopReason.EndTurn))
+            advanceUntilIdle()
+
+            val identifiant = modele.etat.value.messages.last { !it.utilisateur }.identifiant
+            modele.onAction(ActionChatIa.ExporterMessage(identifiant))
+            advanceUntilIdle()
+
+            // Le texte exporté est la réponse BRUTE (le raisonnement,
+            // présentation pure, n'est jamais exporté).
+            assertEquals(EffetChatIa.ExporterMarkdown("Réponse **complète**"), modele.effets.first())
+        }
+
+    @Test
+    fun `ExporterMessage sur un message inconnu ou vide ne produit AUCUN effet (rapport IA, lot 3)`() = runTest {
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                FauxConversationStore(),
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.ExporterMessage("identifiant-inconnu"))
+        modele.onAction(ActionChatIa.ExporterMessage("ia-h-42"))
+        advanceUntilIdle()
+
+        // Aucun effet n'est émis (message inconnu ou vide) — le canal
+        // reste silencieux (attente bornée en temps virtuel).
+        assertNull(
+            kotlinx.coroutines.withTimeoutOrNull(10) { modele.effets.first() },
+        )
     }
 
     // ------------------------------------------------------------------

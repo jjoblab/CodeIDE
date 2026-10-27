@@ -8,6 +8,7 @@ import jo.codeide.core.domain.RetentionIa
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -173,6 +174,77 @@ class ConversationStoreRoomTest {
 
         assertTrue(store.conversations().first().isEmpty())
         assertEquals(null, store.conversationParId("inexistante"))
+    }
+
+    // ------------------------------------------------------------------
+    // Épinglage + restauration (rapport IA, lot 3 — d'après la maquette).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `epingler maintient la discussion en TETE quel que soit l age de son dernier message`() = runTest {
+        // Horodatages DISTINCTS : le tri `epingle DESC, modifie_a DESC`
+        // doit être déterministe (deux messages au même `creeA` rendraient
+        // l'ordre ambigu).
+        store.ajouterMessage(
+            "ancienne",
+            "m",
+            message("m1", "Ancienne question", true, "ancienne").copy(creeA = 100L),
+        )
+        store.ajouterMessage(
+            "recente",
+            "m",
+            message("m2", "Question recente", true, "recente").copy(creeA = 900L),
+        )
+
+        // La discussion la plus récente est en tête (tri par modifie_a).
+        assertEquals("recente", store.conversations().first().first().identifiant)
+
+        // Épinglage de l'ANCIENNE : elle passe en tête, la récente reste
+        // en deuxième position (tri epingle DESC, modifie_a DESC).
+        store.epingler("ancienne", true)
+        val liste = store.conversations().first()
+        assertEquals(2, liste.size)
+        assertEquals("ancienne", liste[0].identifiant)
+        assertTrue(liste[0].epingle)
+        assertEquals("recente", liste[1].identifiant)
+        assertFalse(liste[1].epingle)
+
+        // Détachement : l'ordre chronologique reprend.
+        store.epingler("ancienne", false)
+        assertEquals("recente", store.conversations().first().first().identifiant)
+    }
+
+    @Test
+    fun `epingler une conversation inconnue n a aucun effet`() = runTest {
+        store.epingler("inexistante", true)
+        assertTrue(store.conversations().first().isEmpty())
+    }
+
+    @Test
+    fun `restaurer reintegre la conversation ET ses messages avec l epinglage (annulation)`() = runTest {
+        store.ajouterMessage("c1", "modele-test", message("m1", "Question", true))
+        store.ajouterMessage("c1", "modele-test", message("m2", "Réponse", false))
+        store.renommer("c1", "Titre renommé")
+        store.epingler("c1", true)
+
+        // Instantané complet AVANT la suppression (miroir du ViewModel).
+        val conversation = store.conversationParId("c1") ?: throw AssertionError("conversation absente")
+        val messages = store.messages("c1")
+        assertEquals(2, messages.size)
+
+        store.supprimer("c1")
+        assertTrue(store.conversations().first().isEmpty())
+        assertEquals(0, store.nombreMessages("c1"))
+
+        // « Annuler » : la discussion revient À L'IDENTIQUE — titre
+        // RENOMMÉ, épinglage, messages dans l'ordre.
+        store.restaurer(conversation, messages)
+        val restauree = store.conversations().first().single()
+        assertEquals("Titre renommé", restauree.titre)
+        assertTrue(restauree.epingle)
+        assertEquals(2, store.nombreMessages("c1"))
+        assertEquals("Question", store.messages("c1")[0].texte)
+        assertEquals("Réponse", store.messages("c1")[1].texte)
     }
 
     private fun message(

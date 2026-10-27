@@ -14,6 +14,10 @@ package jo.codeide.core.domain
  *        fournisseur (rapport IA, Lot 5, point 4 — jamais estimés
  *        localement ; 0 tant qu'aucun flux n'a rapporté d'usage).
  * @property jetonsSortie jetons de sortie cumulés (même contrat).
+ * @property epingle `true` = discussion ÉPINGLÉE en tête de
+ *        l'historique (rapport IA, lot 3 — d'après la maquette),
+ *        quel que soit l'âge de son dernier message ; choix
+ *        utilisateur réversible d'un appui.
  */
 public data class ConversationIa(
     public val identifiant: String,
@@ -23,6 +27,7 @@ public data class ConversationIa(
     public val modifieA: Long,
     public val jetonsEntree: Long = 0,
     public val jetonsSortie: Long = 0,
+    public val epingle: Boolean = false,
 )
 
 /**

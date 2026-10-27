@@ -169,6 +169,16 @@ public data class EtatAgentIa(
     /** Mode « Planifier d'abord » ARMÉ (A5, rapport IA lot 2). */
     public val modePlanPremier: Boolean = false,
 
+    /**
+     * Mode « revue » ARMÉ (rapport IA, lot 3 — d'après la maquette) :
+     * l'exécution S'ARRÊTE à chaque proposition d'écriture
+     * (`propose_edit`/`create_file`/`delete_file`) — la carte de
+     * changements est PRÉPARÉE, l'utilisateur tranche (Voir le diff /
+     * Examiner / appliquer / rejeter) puis « Continuer » reprend la
+     * conversation RÉELLE.
+     */
+    public val modeRevue: Boolean = false,
+
     /** Plan proposé par l'agent (mode Planifier d'abord — à valider). */
     public val plan: String? = null,
 
@@ -244,6 +254,15 @@ constructor(
     private var demandeEnVol: Pair<DemandeApprobationIa, CompletableDeferred<Boolean>>? = null
 
     /**
+     * PORTE DE REVUE du mode revue (rapport IA, lot 3 — d'après la
+     * maquette) : suspend la BOUCLE du runner à chaque proposition
+     * d'écriture — la carte de changements est PRÉPARÉE, l'utilisateur
+     * tranche, « Continuer » complète la porte (miroir exact de
+     * [PorteEcranIa] pour l'approbation d'exécution).
+     */
+    private var porteRevue: CompletableDeferred<Boolean>? = null
+
+    /**
      * Porte d'approbation EXÉCUTION (ADR 0125) : publie la carte et
      * suspend l'outil jusqu'à une décision explicite de l'utilisateur.
      */
@@ -281,6 +300,16 @@ constructor(
     public fun basculerPlanPremier(actif: Boolean) {
         if (_etat.value.statut == StatutAgentIa.EN_COURS) return
         _etat.update { courant -> courant.copy(modePlanPremier = actif) }
+    }
+
+    /**
+     * Arme ou désarme le mode « revue » (rapport IA, lot 3 — d'après
+     * la maquette) : ignoré pendant une exécution — miroir exact du
+     * mode « Planifier d'abord » (A5).
+     */
+    public fun basculerModeRevue(actif: Boolean) {
+        if (_etat.value.statut == StatutAgentIa.EN_COURS) return
+        _etat.update { courant -> courant.copy(modeRevue = actif) }
     }
 
     /**
@@ -407,15 +436,31 @@ constructor(
     }
 
     /**
-     * « Continuer » (spec E2 ; A5, rapport IA lot 2) : conserve la
-     * conversation RÉELLE de l'exécution interrompue — l'historique
-     * complet (objectif, appels d'outils, observations) repart au
-     * modèle avec un message de continuation, PAS un redémarrage à
-     * zéro sur le seul objectif. Sans conversation mémorisée
+     * « Continuer » (spec E2 ; A5, rapport IA lot 2 ; lot 3 — mode
+     * revue) : conserve la conversation RÉELLE de l'exécution
+     * interrompue — l'historique complet (objectif, appels d'outils,
+     * observations) repart au modèle avec un message de continuation,
+     * PAS un redémarrage à zéro sur le seul objectif. En mode revue,
+     * la poursuite passe D'ABORD par la PORTE : c'est elle qui rend la
+     * main à la boucle suspendue (même geste, l'utilisateur a tranché
+     * les changements proposés). Sans conversation mémorisée
      * (premier lancement refusé par les pré-vérifications), repli sur
      * un lancement franc.
      */
+    // Exemption detekt ciblée (règle 16) : ReturnCount — gardes
+    // SÉQUENTIELLES (porte de revue, exécution en cours, reprise
+    // possible) — un retour par issue, même motif que `lancer`.
+    @Suppress("ReturnCount")
     public fun continuer() {
+        // Mode revue (rapport IA, lot 3) : la boucle est suspendue à la
+        // porte — « Continuer » la LIBÈRE (l'utilisateur a examiné la
+        // carte de changements), l'exécution reprend IN SITU.
+        porteRevue?.let { porte ->
+            if (porte.isActive) {
+                porte.complete(true)
+                return
+            }
+        }
         val courant = _etat.value
         val reprise = conversationCourante
         if (courant.statut == StatutAgentIa.EN_COURS) return
@@ -469,8 +514,11 @@ constructor(
             }
     }
 
-    /** Arrête l'exécution (bouton Arrêter + action de la notification). */
+    /** Arrête l'exécution (bouton Arrêter + action de la notification) —
+     * la PORTE de revue (lot 3) est annulée AVANT le travail : la boucle
+     * suspendue meurt d'une annulation PROPRE, jamais d'une fuite. */
     public fun arreter() {
+        porteRevue?.cancel()
         demandeEnVol?.second?.cancel()
         travail?.cancel()
     }
@@ -630,7 +678,8 @@ constructor(
         rendreIssue(resultat)
     }
 
-    /** Remise à zéro de l'état d'exécution (le mode « Planifier d'abord » ARMÉ survit). */
+    /** Remise à zéro de l'état d'exécution (les modes « Planifier
+     * d'abord » (A5) et « revue » (rapport IA, lot 3) ARMÉS survivent). */
     private fun resetEtatExecution(objectif: String, modele: String) {
         _etat.update { etat ->
             EtatAgentIa(
@@ -641,6 +690,7 @@ constructor(
                 execution = etat.execution,
                 debutExecutionMs = horloge.nowMillis(),
                 modePlanPremier = etat.modePlanPremier,
+                modeRevue = etat.modeRevue,
             )
         }
         demarreurService.demarrer()
@@ -703,11 +753,14 @@ constructor(
     }
 
     /**
-     * Publication TEMPS RÉEL du progrès (A4, rapport IA lot 2) : chaque
-     * fragment du flux devient état — l'écran vit au fil de l'eau, plus
-     * d'attente de fin d'étape.
+     * Publication TEMPS RÉEL du progrès (A4, rapport IA lot 2 ; lot 3 —
+     * mode revue) : chaque fragment du flux devient état — l'écran vit
+     * au fil de l'eau. En mode revue ARMÉ, l'observation d'un outil
+     * D'ÉCRITURE suspend la boucle : la carte de changements est
+     * préparée, le message dit le geste suivant, la porte attend
+     * « Continuer ».
      */
-    private fun publierProgres(progres: ProgresAgentIa) {
+    private suspend fun publierProgres(progres: ProgresAgentIa) {
         when (progres) {
             is ProgresAgentIa.Texte -> Unit
 
@@ -730,10 +783,42 @@ constructor(
 
             // les arguments bruts ne montent pas à l'écran (bruit JSON)
 
-            is ProgresAgentIa.Observation ->
+            is ProgresAgentIa.Observation -> {
                 _etat.update { courant ->
                     courant.copy(derniereObservation = progres.extrait, outilEnCours = null)
                 }
+                // Mode revue (rapport IA, lot 3) : la proposition d'écriture
+                // SUSPEND la boucle — la porte attend « Continuer ». Une
+                // seule porte à la fois (une proposition par arrêt).
+                if (progres.nom in OUTILS_ECRITURE && _etat.value.modeRevue && porteRevue == null) {
+                    suspendrePourRevue()
+                }
+            }
+        }
+    }
+
+    /**
+     * Suspension de la boucle pour REVUE (rapport IA, lot 3) : prépare
+     * la carte de changements (résolution + conflits), publie le
+     * message « examinez puis Continuez » et ATTEND la décision — la
+     * porte est complétée par « Continuer », annulée par « Arrêter ».
+     */
+    private suspend fun suspendrePourRevue() {
+        val porte = CompletableDeferred<Boolean>()
+        porteRevue = porte
+        try {
+            val revue = preparerRevue()
+            _etat.update { courant ->
+                courant.copy(
+                    revue = revue,
+                    message = MessageAgentIa(R.string.agent_mode_revue_attente),
+                )
+            }
+            // L'attente est ANNULABLE : « Arrêter » tue le travail — la
+            // porte meurt avec lui (annulation propre, jamais de fuite).
+            porte.await()
+        } finally {
+            porteRevue = null
         }
     }
 
@@ -829,6 +914,13 @@ constructor(
     private companion object {
         /** Plafond de jetons par appel du modèle (même ordre de grandeur que le chat). */
         const val JETONS_REPONSE = 4096
+
+        /**
+         * Outils dont l'observation SUSPEND la boucle en mode revue
+         * (rapport IA, lot 3) — identifiants des trois outils D'ÉCRITURE
+         * d'ADR 0125 (l'écriture reste en attente de revue).
+         */
+        val OUTILS_ECRITURE = setOf("propose_edit", "create_file", "delete_file")
 
         /** Message de validation du plan (A5 — la conversation repart du plan). */
         const val MESSAGE_PLAN_VALIDEE =

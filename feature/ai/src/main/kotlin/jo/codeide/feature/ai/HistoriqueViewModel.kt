@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jo.codeide.core.domain.ConversationIa
 import jo.codeide.core.domain.ConversationStore
+import jo.codeide.core.domain.MessageConversationIa
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.model.AppResult
@@ -38,8 +39,27 @@ public sealed interface ActionHistoriqueIa {
     /** Renomme une conversation (titre non vide — dialogue borné). */
     public data class Renommer(public val conversationId: String, public val titre: String) : ActionHistoriqueIa
 
-    /** Supprime une conversation ET ses messages (cascade). */
+    /**
+     * Épingle ou détache une discussion (rapport IA, lot 3 — d'après
+     * la maquette) : une discussion épinglée reste en TÊTE de la liste,
+     * quel que soit l'âge de son dernier message.
+     */
+    public data class Epingler(public val conversationId: String, public val epingle: Boolean) : ActionHistoriqueIa
+
+    /**
+     * Supprime une conversation ET ses messages (cascade) — la
+     * suppression est IMMÉDIATE (rapport IA, lot 3 — d'après la
+     * maquette : plus de dialogue de confirmation), l'ANNULATION se
+     * fait par le Snackbar [EffetHistoriqueIa.Supprimee] qui porte
+     * l'instantané complet (conversation + messages).
+     */
     public data class Supprimer(public val conversationId: String) : ActionHistoriqueIa
+
+    /** Annule la dernière suppression (restaure l'instantané). */
+    public data class AnnulerSuppression(
+        public val conversation: ConversationIa,
+        public val messages: List<MessageConversationIa>,
+    ) : ActionHistoriqueIa
 
     /** Tout effacer (confirmation préalable côté fragment). */
     public data object ToutEffacer : ActionHistoriqueIa
@@ -49,6 +69,17 @@ public sealed interface ActionHistoriqueIa {
 public sealed interface EffetHistoriqueIa {
     /** Message éphémère (ressource). */
     public data class Message(@param:androidx.annotation.StringRes public val ressource: Int) : EffetHistoriqueIa
+
+    /**
+     * Suppression faite (rapport IA, lot 3) : le Snackbar propose
+     * « Annuler » — l'instantané complet (conversation + messages)
+     * voyagé JUSQU'AU fragment, l'annulation le RESTAURE tel quel
+     * ([ActionHistoriqueIa.AnnulerSuppression]).
+     */
+    public data class Supprimee(
+        public val conversation: ConversationIa,
+        public val messages: List<MessageConversationIa>,
+    ) : EffetHistoriqueIa
 }
 
 /**
@@ -107,10 +138,31 @@ constructor(
                 }
             }
 
+            is ActionHistoriqueIa.Epingler -> {
+                viewModelScope.launch {
+                    historique.epingler(action.conversationId, action.epingle)
+                }
+            }
+
             is ActionHistoriqueIa.Supprimer -> {
                 viewModelScope.launch {
-                    historique.supprimer(action.conversationId)
-                    emettre(EffetHistoriqueIa.Message(R.string.ia_historique_supprimee))
+                    // Rapport IA, lot 3 : suppression IMMÉDIATE + annulation
+                    // par Snackbar — l'instantané complet (conversation +
+                    // messages) est capturé AVANT la cascade, l'effet le
+                    // porte au fragment qui propose « Annuler ».
+                    val conversation = historique.conversationParId(action.conversationId)
+                    if (conversation != null) {
+                        val messages = historique.messages(action.conversationId)
+                        historique.supprimer(action.conversationId)
+                        emettre(EffetHistoriqueIa.Supprimee(conversation, messages))
+                    }
+                }
+            }
+
+            is ActionHistoriqueIa.AnnulerSuppression -> {
+                viewModelScope.launch {
+                    historique.restaurer(action.conversation, action.messages)
+                    emettre(EffetHistoriqueIa.Message(R.string.ia_historique_suppression_annulee))
                 }
             }
 

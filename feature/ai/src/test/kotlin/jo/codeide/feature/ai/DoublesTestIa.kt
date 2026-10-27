@@ -113,9 +113,13 @@ internal class FauxFabrique : FabriqueFournisseurIa {
     }
 }
 
-/** Fournisseur de contexte en mémoire (IA-4) : fichiers, chemins et
- * `ia-ignore` contrôlés par les tests — aucun disque. */
-internal class FauxFournisseurContexte : jo.codeide.core.ai.FournisseurContexteProjet {
+/**
+ * Fournisseur de contexte en mémoire (IA-4) : fichiers, chemins et
+ * `ia-ignore` contrôlés par les tests — aucun disque. Ouvert (rapport
+ * IA, lot 3) : les tests de la recherche surchargent `listerChemins`
+ * pour éprouver le projet fermé (échec du port).
+ */
+internal open class FauxFournisseurContexte : jo.codeide.core.ai.FournisseurContexteProjet {
     val fichiers = mutableMapOf<String, String>()
     var chemins: List<String> = emptyList()
     var iaIgnore: List<String> = emptyList()
@@ -211,10 +215,12 @@ internal class FauxConversationStore : ConversationStore {
     var usagesAccumules = 0
 
     override fun conversations(recherche: String): Flow<List<ConversationIa>> = kotlinx.coroutines.flow.flow {
+        // Miroir du tri SQL (rapport IA, lot 3) : épinglées d'abord,
+        // puis de la plus récente à la plus ancienne.
         val liste =
             conversations.values
                 .filter { recherche.isBlank() || it.titre.contains(recherche, ignoreCase = true) }
-                .sortedByDescending { it.modifieA }
+                .sortedWith(compareByDescending<ConversationIa> { it.epingle }.thenByDescending { it.modifieA })
         emit(liste)
     }
 
@@ -263,6 +269,16 @@ internal class FauxConversationStore : ConversationStore {
         val retiree = conversations.remove(conversationId)
         messagesParConversation.remove(conversationId)
         return if (retiree == null) 0 else 1
+    }
+
+    override suspend fun epingler(conversationId: String, epingle: Boolean) {
+        val existante = conversations[conversationId] ?: return
+        conversations[conversationId] = existante.copy(epingle = epingle)
+    }
+
+    override suspend fun restaurer(conversation: ConversationIa, messages: List<MessageConversationIa>) {
+        conversations[conversation.identifiant] = conversation
+        messagesParConversation[conversation.identifiant] = messages.toMutableList()
     }
 
     override suspend fun toutSupprimer() {

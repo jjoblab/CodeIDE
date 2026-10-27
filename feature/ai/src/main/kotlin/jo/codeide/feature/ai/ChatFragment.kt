@@ -5,11 +5,13 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ListView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
@@ -78,6 +80,31 @@ public class ChatFragment : Fragment() {
      */
     private var empreintePuces: String? = null
 
+    /** Empreinte des suggestions de COMMANDES déjà posées (rapport IA,
+     * lot 3 — même garde anti-regonflage que les puces). */
+    private var empreinteCommandes: String? = null
+
+    /** Nom de fichier proposé par l'export Markdown (rapport IA, lot 3). */
+    private val nomFichierExport: String
+        get() = "reponse-ia-${System.currentTimeMillis()}.md"
+
+    /**
+     * Export Markdown (rapport IA, lot 3 — d'après la maquette) : le
+     * sélecteur SAF `CreateDocument("text/markdown")` rend l'EMPLACEMENT
+     * à l'utilisateur — la réponse brute part dans l'URI choisie. Le
+     * texte en attente survit à la recréation du lanceur (rotation).
+     */
+    private var exportEnAttente: String? = null
+
+    private val lanceurExport =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
+            val texte = exportEnAttente
+            exportEnAttente = null
+            if (uri != null && texte != null) {
+                ecrireExport(uri, texte)
+            }
+        }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val liaisonLocale = FragmentIaChatBinding.inflate(inflater, container, false)
         liaison = liaisonLocale
@@ -93,6 +120,8 @@ public class ChatFragment : Fragment() {
                 onCopierBloc = { code -> viewModel.onAction(ActionChatIa.CopierBlocCode(code)) },
                 onInsererBloc = { code -> viewModel.onAction(ActionChatIa.InsererBlocCode(code)) },
                 onAppliquerBloc = { code -> viewModel.onAction(ActionChatIa.AppliquerBlocCode(code)) },
+                onRegenererMessage = { viewModel.onAction(ActionChatIa.Regenerer) },
+                onExporterMessage = { identifiant -> viewModel.onAction(ActionChatIa.ExporterMessage(identifiant)) },
                 onActionErreur = { _, action -> appliquerActionErreur(action) },
             )
         adaptateur = adaptateurLocal
@@ -134,6 +163,15 @@ public class ChatFragment : Fragment() {
         // v0.188.0 (rapport IA S3) : l'état « Ajoutez une clé » mène au
         // DÉTAIL du fournisseur ACTIF (c'est sa clé qui manque).
         liaisonLocale.boutonAjouterCle.setOnClickListener { viewModel.onAction(ActionChatIa.OuvrirFournisseurCle) }
+        // Actions rapides de l'accueil vide (rapport IA, lot 3 — d'après
+        // la maquette) : un appui PRÉREMPLIT la commande « / » —
+        // l'utilisateur garde la main sur l'envoi (aucune dépense de
+        // jetons sans lui), le curseur se pose prêt à préciser.
+        liaisonLocale.actionRapideExpliquer.setOnClickListener { preparerSaisie(CommandesBarreIa.COMMANDE_EXPLIQUER) }
+        liaisonLocale.actionRapideCorriger.setOnClickListener { preparerSaisie(CommandesBarreIa.COMMANDE_CORRIGER) }
+        liaisonLocale.actionRapideTests.setOnClickListener { preparerSaisie(CommandesBarreIa.COMMANDE_TESTS) }
+        liaisonLocale.actionRapideDocumenter.setOnClickListener { preparerSaisie(CommandesBarreIa.COMMANDE_DOC) }
+
         // Le brouillon vit dans le ViewModel (survit à la rotation) : la
         // frappe y est répercutée, l'écriture programmatique (effacement
         // après envoi, restauration) est gardée par le drapeau anti-écho.
@@ -193,6 +231,37 @@ public class ChatFragment : Fragment() {
             CLE_RESULTAT_NOUVELLE_DISCUSSION,
             viewLifecycleOwner,
         ) { _, _ -> viewModel.onAction(ActionChatIa.NouvelleConversation) }
+
+        // Préremplissage depuis la RECHERCHE (rapport IA, lot 3 — d'après
+        // la maquette) : « Demander à l'IA » sur un fichier bascule sur le
+        // chat et pose « /expliquer <chemin> » dans la saisie — même
+        // mécanisme, l'extra porte le TEXTE à poser.
+        parentFragmentManager.setFragmentResultListener(
+            CLE_RESULTAT_PREPARER_SAISIE,
+            viewLifecycleOwner,
+        ) { _, extras ->
+            val texte = extras.getString(EXTRA_SAISIE_PREREMPLIE)
+            if (!texte.isNullOrBlank()) {
+                preparerSaisie(texte)
+            }
+        }
+    }
+
+    /**
+     * Pose un texte dans la saisie (commande « / » ou préremplissage de
+     * la recherche, rapport IA, lot 3) : l'état reste la source de
+     * vérité (l'action passe par le ViewModel), l'anti-écho garde la
+     * frappe programmatique hors du flux utilisateur, le curseur se
+     * pose à la FIN (prêt à préciser) et le champ prend le focus.
+     */
+    private fun preparerSaisie(texte: String) {
+        val liaisonLocale = liaison ?: return
+        viewModel.onAction(ActionChatIa.ChangerSaisie(texte))
+        synchronisationSaisie = true
+        liaisonLocale.saisieIa.setText(texte)
+        liaisonLocale.saisieIa.setSelection(texte.length)
+        synchronisationSaisie = false
+        liaisonLocale.saisieIa.requestFocus()
     }
 
     override fun onDestroyView() {
@@ -232,6 +301,11 @@ public class ChatFragment : Fragment() {
         liaisonLocale.boutonArreter.isVisible = etat.generationEnCours
 
         rendrePuces(etat, liaisonLocale)
+
+        // Suggestions de COMMANDES « / » (rapport IA, lot 3 — d'après la
+        // maquette) : la frappe d'un « / » non tranché suggère, la
+        // commande complétée se tait.
+        rendreCommandes(etat, liaisonLocale)
 
         // Dialogue bloquant de secret (ADR 0124 §4) : tant que l'état
         // porte des alertes non tranchées, AUCUN envoi part — l'humain
@@ -384,13 +458,20 @@ public class ChatFragment : Fragment() {
                 liaisonLocale.etatTexte.setText(R.string.ia_chat_vide_texte)
                 liaisonLocale.boutonConsentement.isVisible = false
                 liaisonLocale.boutonAjouterCle.isVisible = false
+                // Rapport IA, lot 3 — actions rapides de l'accueil vide
+                // (Expliquer, Corriger, Tests, Documenter).
+                liaisonLocale.rangeeActionsRapides.isVisible = true
                 liaisonLocale.composeurIa.isVisible = true
             }
 
             EcranChat.CONVERSATION -> {
                 liaisonLocale.etatTransverse.isVisible = false
+                liaisonLocale.rangeeActionsRapides.isVisible = false
                 liaisonLocale.composeurIa.isVisible = true
             }
+        }
+        if (ecran == EcranChat.INACTIF || ecran == EcranChat.CLE_ABSENTE) {
+            liaisonLocale.rangeeActionsRapides.isVisible = false
         }
     }
 
@@ -450,6 +531,43 @@ public class ChatFragment : Fragment() {
             },
         )
         liaisonLocale.rangeePuces.isVisible = true
+    }
+
+    /**
+     * Rend la rangée de suggestions de COMMANDES « / » (rapport IA,
+     * lot 3) : UNE puce par commande suggérée par
+     * [CommandesBarreIa.suggestions] — la saisie « /ex » ne montre que
+     * `/expliquer`, la commande tranchée (espace tapé) ferme la rangée.
+     * Même garde d'empreinte que les puces (la frappe rebondit à chaque
+     * caractère — la rangée ne se regonfle que si les suggestions
+     * CHANGENT).
+     */
+    private fun rendreCommandes(etat: EtatChatIa, liaisonLocale: FragmentIaChatBinding) {
+        val suggestions = CommandesBarreIa.suggestions(etat.saisie)
+        if (suggestions.isEmpty()) {
+            liaisonLocale.rangeeCommandes.isVisible = false
+            empreinteCommandes = null
+            return
+        }
+        val empreinte = suggestions.joinToString("|")
+        if (empreinte == empreinteCommandes) {
+            liaisonLocale.rangeeCommandes.isVisible = true
+            return
+        }
+        empreinteCommandes = empreinte
+        val conteneur = liaisonLocale.conteneurCommandes
+        conteneur.removeAllViews()
+        for (commande in suggestions) {
+            conteneur.addView(
+                puce(
+                    layoutInflater,
+                    liaison?.conteneurCommandes,
+                    libelleCommande(requireContext(), commande),
+                    retirable = false,
+                ) { _ -> preparerSaisie("$commande ") },
+            )
+        }
+        liaisonLocale.rangeeCommandes.isVisible = true
     }
 
     /**
@@ -600,6 +718,41 @@ public class ChatFragment : Fragment() {
                 (activity as? jo.codeide.core.ui.ControleurIaTiroir)
                     ?.afficherPropositionDiff(effet.proposition)
             }
+
+            is EffetChatIa.ExporterMarkdown -> {
+                // Rapport IA, lot 3 : l'EMPLACEMENT reste un choix
+                // utilisateur (SAF) — le lanceur rend la main après la
+                // sélection, le texte attend en champ privé.
+                exportEnAttente = effet.texte
+                lanceurExport.launch(nomFichierExport)
+            }
+        }
+    }
+
+    /**
+     * Écrit l'export Markdown dans l'URI choisie (SAF) — retour
+     * honnête par Snackbar : succès OU échec d'écriture, jamais un
+     * silence.
+     */
+    // Exemption detekt ciblée (règle 16) : SwallowedException — l'incident
+    // d'E/S est CONVERTI en retour honnête (Snackbar d'échec), jamais
+    // remonté en exception vers l'UI (l'export ne fait pas tomber le chat).
+    @Suppress("SwallowedException")
+    private fun ecrireExport(uri: Uri, texte: String) {
+        val ecrit =
+            try {
+                requireContext().contentResolver.openOutputStream(uri)?.use { sortie ->
+                    sortie.write(texte.toByteArray(Charsets.UTF_8))
+                }
+                true
+            } catch (incident: java.io.IOException) {
+                // Échec d'écriture modélisé (retour honnête, jamais un crash).
+                false
+            }
+        if (ecrit) {
+            Retour.snackbar(requireView(), getString(R.string.ia_export_reussi))
+        } else {
+            Retour.snackbar(requireView(), getString(R.string.ia_export_echoue))
         }
     }
 
@@ -666,6 +819,30 @@ private fun puce(
     }
     vue.setOnClickListener { auClic(libelle) }
     return vue
+}
+
+/**
+ * Libellé localisé d'une COMMANDE « / » (rapport IA, lot 3) : le nom
+ * de la commande + sa description — la puce de suggestion montre ce
+ * que la commande FAIT, pas seulement son nom.
+ */
+internal fun libelleCommande(contexte: Context, commande: String): String = when (commande) {
+    CommandesBarreIa.COMMANDE_EXPLIQUER ->
+        contexte.getString(R.string.ia_commande_expliquer_libelle)
+
+    CommandesBarreIa.COMMANDE_CORRIGER ->
+        contexte.getString(R.string.ia_commande_corriger_libelle)
+
+    CommandesBarreIa.COMMANDE_TESTS ->
+        contexte.getString(R.string.ia_commande_tests_libelle)
+
+    CommandesBarreIa.COMMANDE_DOC ->
+        contexte.getString(R.string.ia_commande_doc_libelle)
+
+    CommandesBarreIa.COMMANDE_REFACTOR ->
+        contexte.getString(R.string.ia_commande_refactor_libelle)
+
+    else -> commande
 }
 
 /**

@@ -53,12 +53,19 @@ class IntelligenceAgentIaTest {
         val requetes = mutableListOf<AiRequest>()
         var appelerOutil = true
         var rapportUsage = false
+        var nomOutil = "read_file"
+        var argumentsOutil = "{\"chemin\":\"a.kt\"}"
+
+        /** Tours ÉMETTEURS d'appel d'outil restants (rapport IA, lot 3 —
+         *  un appel PUIS la réponse finale, sans retour manuel du test). */
+        var toursOutilRestants = Int.MAX_VALUE
 
         override fun stream(request: AiRequest) = flow {
             requetes += request
-            if (appelerOutil) {
-                emit(AiEvent.ToolCallStarted("call-1", "read_file"))
-                emit(AiEvent.ToolCallCompleted("call-1", "{\"chemin\":\"a.kt\"}"))
+            if (appelerOutil && toursOutilRestants > 0) {
+                toursOutilRestants--
+                emit(AiEvent.ToolCallStarted("call-1", nomOutil))
+                emit(AiEvent.ToolCallCompleted("call-1", argumentsOutil))
                 emit(AiEvent.Done(AiStopReason.ToolUse))
             } else {
                 if (rapportUsage) {
@@ -92,6 +99,8 @@ class IntelligenceAgentIaTest {
         fournisseur: FournisseurScenario,
         contexte: FauxFournisseurContexte = FauxFournisseurContexte(),
         editeur: RegistrePortEditeurActif = RegistrePortEditeurActif(),
+        racineDocument: String? = null,
+        fichiersTest: FakeFileSystem = FakeFileSystem(),
     ): ControleurAgentIa {
         val registreDossier = RegistreDossierProjetIa()
         registreDossier.publier("/projet/alpha")
@@ -107,8 +116,8 @@ class IntelligenceAgentIaTest {
                 ),
             ),
             dossierProjet = registreDossier,
-            racineHistorique = SourceProjetHistorique(),
-            appliqueur = AppliqueurChangeSetIa(FakeFileSystem(), FakeHistoriqueLocal(), TimeProvider { 0L }),
+            racineHistorique = SourceProjetHistorique().apply { this.racineDocument = racineDocument },
+            appliqueur = AppliqueurChangeSetIa(fichiersTest, FakeHistoriqueLocal(), TimeProvider { 0L }),
             demarreurService = ServiceNoOp,
             coffre = FakeCoffre().apply { enregistrer("anthropic", "cle".toCharArray()) },
             sessionProjet = SessionOuverte(),
@@ -309,5 +318,112 @@ class IntelligenceAgentIaTest {
         assertEquals(120L, jetons?.entree)
         assertEquals(30L, jetons?.sortie)
         assertTrue("l'estimation locale doit être positive", (jetons?.estimes ?: 0L) > 0L)
+    }
+
+    // ------------------------------------------------------------------
+    // Mode « revue » (rapport IA, lot 3 — d'après la maquette).
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `mode revue - la proposition d'ecriture SUSPEND la boucle et Continuer la LIBERE`() = runTest {
+        val fournisseur = FournisseurScenario().apply {
+            nomOutil = "create_file"
+            argumentsOutil = "{\"chemin\":\"Nouveau.kt\",\"contenu\":\"class A\",\"raison\":\"test\"}"
+            toursOutilRestants = 1
+        }
+        val controleur = controleur(
+            testScheduler,
+            fournisseur,
+            racineDocument = "/",
+            fichiersTest = FakeFileSystem().apply {
+                seedDocument("/", FakeFileSystem.Document("/", isDirectory = true))
+            },
+        )
+
+        controleur.basculerModeRevue(true)
+        controleur.definirObjectif("Crée Nouveau.kt")
+        controleur.lancer()
+        advanceUntilIdle()
+
+        // La boucle est SUSPENDUE à la porte : l'exécution est EN COURS
+        // (elle ne se termine PAS), la carte de changements est PRÉPARÉE
+        // (résolution faite — 1 fichier, +1 ligne), le message dit le
+        // geste suivant.
+        val suspendu = controleur.etat.value
+        assertEquals(StatutAgentIa.EN_COURS, suspendu.statut)
+        assertTrue(suspendu.modeRevue)
+        assertEquals(R.string.agent_mode_revue_attente, suspendu.message?.ressource)
+        val revue = suspendu.revue
+        assertNotNull(revue)
+        assertEquals(1, revue?.fichiers?.size)
+        assertEquals(1, revue?.lignesAjoutees)
+        // UNE seule requête partie : le second tour attend la porte.
+        assertEquals(1, fournisseur.requetes.size)
+
+        // « Continuer » LIBÈRE la porte : le tour final part, la réponse
+        // termine l'exécution.
+        controleur.continuer()
+        advanceUntilIdle()
+
+        assertEquals(StatutAgentIa.TERMINE, controleur.etat.value.statut)
+        assertEquals(2, fournisseur.requetes.size)
+    }
+
+    @Test
+    fun `mode revue - Arreter pendant la porte ANNULE proprement l'execution`() = runTest {
+        val fournisseur = FournisseurScenario().apply {
+            nomOutil = "create_file"
+            argumentsOutil = "{\"chemin\":\"Nouveau.kt\",\"contenu\":\"class A\",\"raison\":\"test\"}"
+            toursOutilRestants = 1
+        }
+        val controleur = controleur(
+            testScheduler,
+            fournisseur,
+            racineDocument = "/",
+            fichiersTest = FakeFileSystem().apply {
+                seedDocument("/", FakeFileSystem.Document("/", isDirectory = true))
+            },
+        )
+
+        controleur.basculerModeRevue(true)
+        controleur.definirObjectif("Crée Nouveau.kt")
+        controleur.lancer()
+        advanceUntilIdle()
+        assertEquals(StatutAgentIa.EN_COURS, controleur.etat.value.statut)
+
+        // « Arrêter » pendant la porte : la boucle suspendue meurt d'une
+        // annulation PROPRE — état ANNULE, plus aucun tour ne part.
+        controleur.arreter()
+        advanceUntilIdle()
+
+        assertEquals(StatutAgentIa.ANNULE, controleur.etat.value.statut)
+        assertEquals(1, fournisseur.requetes.size)
+    }
+
+    @Test
+    fun `sans mode revue - la proposition d'ecriture ne SUSPEND rien et l'execution va au bout`() = runTest {
+        val fournisseur = FournisseurScenario().apply {
+            nomOutil = "create_file"
+            argumentsOutil = "{\"chemin\":\"Nouveau.kt\",\"contenu\":\"class A\",\"raison\":\"test\"}"
+            toursOutilRestants = 1
+        }
+        val controleur = controleur(
+            testScheduler,
+            fournisseur,
+            racineDocument = "/",
+            fichiersTest = FakeFileSystem().apply {
+                seedDocument("/", FakeFileSystem.Document("/", isDirectory = true))
+            },
+        )
+
+        // Mode revue DÉSARMÉ (défaut) : la proposition n'arrête PAS la
+        // boucle — le tour suivant part jusqu'à la réponse finale.
+        controleur.definirObjectif("Crée Nouveau.kt")
+        controleur.lancer()
+        advanceUntilIdle()
+
+        assertTrue(controleur.etat.value.modeRevue.not())
+        assertEquals(StatutAgentIa.TERMINE, controleur.etat.value.statut)
+        assertEquals(2, fournisseur.requetes.size)
     }
 }

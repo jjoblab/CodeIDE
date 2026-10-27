@@ -94,6 +94,11 @@ public class AgentFragment : Fragment() {
         // plan proposé — l'agent produit D'ABORD un plan, la validation
         // précède TOUTE exécution.
         installerActionsPlan(liaison)
+        // Rapport IA, lot 3 : mode « revue » — l'exécution S'ARRÊTE à
+        // chaque proposition d'écriture, l'utilisateur tranche, puis
+        // « Continuer » reprend (miroir du mode « Planifier d'abord »).
+        installerActionsRevue(liaison)
+        liaison.boutonVoirDiff.setOnClickListener { basculerApercuDiff(liaison) }
         liaison.boutonArreter.setOnClickListener { modele.arreter() }
         liaison.boutonContinuer.setOnClickListener { modele.continuer() }
         liaison.boutonRefuser.setOnClickListener {
@@ -146,6 +151,25 @@ public class AgentFragment : Fragment() {
         }
         liaison.boutonValiderPlan.setOnClickListener { modele.validerPlan() }
         liaison.boutonRejeterPlan.setOnClickListener { modele.rejeterPlan() }
+    }
+
+    /** Garde anti-écho du mode « revue » (rapport IA, lot 3 — miroir du plan). */
+    private var synchronisationRevue = false
+
+    /** Câblage du mode « revue » (rapport IA, lot 3 — d'après la maquette). */
+    private fun installerActionsRevue(liaison: FragmentIaAgentBinding) {
+        liaison.interrupteurRevue.setOnCheckedChangeListener { _, coche ->
+            if (!synchronisationRevue) {
+                modele.basculerModeRevue(coche)
+            }
+        }
+    }
+
+    /** « Voir le diff » (rapport IA, lot 3 — d'après la maquette) : l'aperçu
+     * INLINE par fichier se replie/déplie — une ligne par fichier, teintes
+     * du thème (primaire pour les ajouts, erreur pour les retraits). */
+    private fun basculerApercuDiff(liaison: FragmentIaAgentBinding) {
+        liaison.texteDiffChangements.isVisible = !liaison.texteDiffChangements.isVisible
     }
 
     private fun rendre(etat: EtatAgentIa, liaison: FragmentIaAgentBinding, etapes: AdapterEtapesAgent) {
@@ -240,7 +264,10 @@ public class AgentFragment : Fragment() {
         liaison.progressionStatut.isVisible = etat.statut == StatutAgentIa.EN_COURS || etat.enApplication
     }
 
-    /** Carte des changements proposés + bandeau d'annulation + réponse finale. */
+    /** Carte des changements proposés + aperçu du diff + bandeau
+     * d'annulation + réponse finale (rapport IA, lot 3 — d'après la
+     * maquette : « N fichiers · +A −S · C conflits » et « Voir le diff »
+     * INLINE par fichier). */
     private fun rendreChangementsEtReponse(etat: EtatAgentIa, liaison: FragmentIaAgentBinding, enCours: Boolean) {
         val revue = etat.revue
         val changementsVisibles = revue != null && !revue.vide && etat.execution == null
@@ -250,9 +277,17 @@ public class AgentFragment : Fragment() {
                 getString(
                     R.string.agent_changements_resumes,
                     revue.fichiers.size,
+                    revue.lignesAjoutees,
+                    revue.lignesSupprimees,
                     revue.conflits.size,
                 )
             liaison.boutonToutAppliquer.isEnabled = revue.applicables.isNotEmpty()
+            // Aperçu INLINE (rapport IA, lot 3) : une ligne par fichier,
+            // SPANNÉE par teinte du thème (primaire = ajout, erreur =
+            // retrait) — les couleurs suivent le clair/sombre.
+            liaison.texteDiffChangements.text = apercuDiffSpanne(liaison, revue)
+        } else {
+            liaison.texteDiffChangements.isVisible = false
         }
 
         val execution = etat.execution
@@ -263,6 +298,63 @@ public class AgentFragment : Fragment() {
         // message d'état.
         liaison.carteReponse.isVisible = !etat.reponse.isNullOrBlank()
         liaison.texteReponse.text = etat.reponse.orEmpty()
+    }
+
+    /**
+     * Aperçu du diff par fichier (rapport IA, lot 3 — d'après la
+     * maquette) : une ligne MONOSPACE par fichier — `＋ chemin (N
+     * lignes)` en PRIMAIRE, `− chemin (M lignes)` en ERREUR —
+     * [android.text.SpannableStringBuilder] avec les teintes du THÈME
+     * (jamais de couleur en dur), plafonné au premier fichier porteur
+     * de lignes.
+     */
+    private fun apercuDiffSpanne(
+        liaison: FragmentIaAgentBinding,
+        revue: jo.codeide.core.ai.RevueChangeSetIa,
+    ): CharSequence {
+        val contexte = liaison.root.context
+        val couleurAjout = couleurTheme(contexte, androidx.appcompat.R.attr.colorPrimary)
+        val couleurRetrait = couleurTheme(contexte, androidx.appcompat.R.attr.colorError)
+        val texte = android.text.SpannableStringBuilder()
+        for (fichier in revue.fichiers) {
+            if (texte.isNotEmpty()) {
+                texte.append('\n')
+            }
+            if (fichier.lignesAjoutees > 0) {
+                val debut = texte.length
+                texte
+                    .append('＋')
+                    .append(fichier.cheminRelatif)
+                    .append(" (")
+                    .append(fichier.lignesAjoutees.toString())
+                    .append(')')
+                texte.setSpan(
+                    android.text.style.ForegroundColorSpan(couleurAjout),
+                    debut,
+                    texte.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                )
+            }
+            if (fichier.lignesSupprimees > 0) {
+                if (fichier.lignesAjoutees > 0) {
+                    texte.append('\n')
+                }
+                val debut = texte.length
+                texte
+                    .append('−')
+                    .append(fichier.cheminRelatif)
+                    .append(" (")
+                    .append(fichier.lignesSupprimees.toString())
+                    .append(')')
+                texte.setSpan(
+                    android.text.style.ForegroundColorSpan(couleurRetrait),
+                    debut,
+                    texte.length,
+                    android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
+                )
+            }
+        }
+        return texte
     }
 
     /**
@@ -320,6 +412,16 @@ public class AgentFragment : Fragment() {
             synchronisationPlan = false
         }
         liaison.interrupteurPlan.isEnabled = etat.statut != StatutAgentIa.EN_COURS
+
+        // Mode « revue » (rapport IA, lot 3) : miroir exact du plan —
+        // l'état ARMÉ suit, l'interrupteur se VERROUILLE en cours
+        // d'exécution (l'option est un choix AVANT le lancement).
+        if (liaison.interrupteurRevue.isChecked != etat.modeRevue) {
+            synchronisationRevue = true
+            liaison.interrupteurRevue.isChecked = etat.modeRevue
+            synchronisationRevue = false
+        }
+        liaison.interrupteurRevue.isEnabled = etat.statut != StatutAgentIa.EN_COURS
     }
 
     /**

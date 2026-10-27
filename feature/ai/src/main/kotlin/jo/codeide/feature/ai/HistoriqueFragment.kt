@@ -26,10 +26,13 @@ import jo.codeide.feature.ai.databinding.LigneConversationBinding
 /**
  * Écran Historique du tiroir IA (mission IA, lot IA-6, ADR 0124 §5,
  * spec E6) : conversations persistées localement — recherche par titre,
- * renommage, suppression en cascade, tout effacer, purge de rétention
- * faite à la création (l'onglet se crée à l'ouverture du tiroir).
- * Appui = rouvre la conversation dans le Chat (l'hôte [IaTiroirFragment]
- * bascule l'onglet et transmet au ChatViewModel).
+ * renommage, épinglage (rapport IA, lot 3 — d'après la maquette :
+ * épinglées en tête, un appui), suppression IMMÉDIATE avec « Annuler »
+ * par Snackbar (rapport IA, lot 3 — plus de dialogue de confirmation,
+ * l'instantané complet est restaurable), tout effacer, purge de
+ * rétention faite à la création (l'onglet se crée à l'ouverture du
+ * tiroir). Appui = rouvre la conversation dans le Chat (l'hôte
+ * [IaTiroirFragment] bascule l'onglet et transmet au ChatViewModel).
  */
 @AndroidEntryPoint
 public class HistoriqueFragment : Fragment() {
@@ -53,7 +56,17 @@ public class HistoriqueFragment : Fragment() {
 
     override fun onViewCreated(vue: View, savedInstanceState: Bundle?) {
         super.onViewCreated(vue, savedInstanceState)
-        val adaptateur = AdaptateurConversations(::ouvrir, ::ouvrirMenu)
+        val adaptateur =
+            AdaptateurConversations(
+                surOuvrir = ::ouvrir,
+                surMenu = ::ouvrirMenu,
+                surEpingler = { conversation, epingle ->
+                    viewModel.onAction(ActionHistoriqueIa.Epingler(conversation.identifiant, epingle))
+                },
+                surSupprimer = { conversation ->
+                    viewModel.onAction(ActionHistoriqueIa.Supprimer(conversation.identifiant))
+                },
+            )
         adaptateurAmorce = adaptateur
         liaison.listeConversations.layoutManager = LinearLayoutManager(requireContext())
         liaison.listeConversations.adapter = adaptateur
@@ -77,8 +90,26 @@ public class HistoriqueFragment : Fragment() {
             liaison.listeConversations.isVisible = etat.conversations.isNotEmpty()
         }
         viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet ->
-            if (effet is EffetHistoriqueIa.Message) {
-                Retour.snackbar(liaison.root, getString(effet.ressource))
+            when (effet) {
+                is EffetHistoriqueIa.Message -> {
+                    Retour.snackbar(liaison.root, getString(effet.ressource))
+                }
+
+                // Rapport IA, lot 3 — suppression avec « Annuler »
+                // (Snackbar) : l'instantané COMPLET voyagé par l'effet,
+                // l'annulation le restaure tel quel (conversation +
+                // messages, épinglage compris).
+                is EffetHistoriqueIa.Supprimee -> {
+                    Retour.snackbar(
+                        liaison.root,
+                        getString(R.string.ia_historique_supprimee),
+                        getString(R.string.ia_historique_annuler_suppression),
+                    ) {
+                        viewModel.onAction(
+                            ActionHistoriqueIa.AnnulerSuppression(effet.conversation, effet.messages),
+                        )
+                    }
+                }
             }
         }
     }
@@ -94,19 +125,19 @@ public class HistoriqueFragment : Fragment() {
         (parentFragment as? IaTiroirFragment)?.ouvrirConversationDansChat(conversationId)
     }
 
-    /** Menu de ligne : Renommer / Supprimer (spec E6). */
+    /** Menu de ligne : Renommer (spec E6 — renommage conservé ; la
+     * suppression vit désormais DIRECTEMENT sur la ligne, rapport IA
+     * lot 3, avec « Annuler » par Snackbar). */
     private fun ouvrirMenu(conversation: ConversationIa) {
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(conversation.titre)
             .setItems(
                 arrayOf(
                     getString(R.string.ia_historique_menu_renommer),
-                    getString(R.string.ia_historique_menu_supprimer),
                 ),
             ) { _, choix ->
-                when (choix) {
-                    0 -> demanderRenommage(conversation)
-                    1 -> confirmerSuppression(conversation)
+                if (choix == 0) {
+                    demanderRenommage(conversation)
                 }
             }.show()
     }
@@ -133,17 +164,6 @@ public class HistoriqueFragment : Fragment() {
             .show()
     }
 
-    /** Suppression : confirmation explicite (jamais d'effet silencieux). */
-    private fun confirmerSuppression(conversation: ConversationIa) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.ia_historique_suppression_titre)
-            .setMessage(getString(R.string.ia_historique_suppression_message, conversation.titre))
-            .setPositiveButton(R.string.ia_historique_confirmer) { _, _ ->
-                viewModel.onAction(ActionHistoriqueIa.Supprimer(conversation.identifiant))
-            }.setNegativeButton(R.string.ia_historique_annuler, null)
-            .show()
-    }
-
     /** Tout effacer : confirmation explicite (critère IA-6). */
     private fun confirmerToutEffacer() {
         MaterialAlertDialogBuilder(requireContext())
@@ -165,19 +185,32 @@ public class HistoriqueFragment : Fragment() {
 private class AdaptateurConversations(
     private val surOuvrir: (String) -> Unit,
     private val surMenu: (ConversationIa) -> Unit,
+    private val surEpingler: (ConversationIa, Boolean) -> Unit,
+    private val surSupprimer: (ConversationIa) -> Unit,
 ) : ListAdapter<ConversationIa, TitulaireConversation>(ComparateurConversations) {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TitulaireConversation =
         TitulaireConversation(LigneConversationBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
     override fun onBindViewHolder(titulaire: TitulaireConversation, position: Int) {
-        titulaire.lier(getItem(position), surOuvrir, surMenu)
+        titulaire.lier(getItem(position), surOuvrir, surMenu, surEpingler, surSupprimer)
     }
 }
 
-/** Titulaire d'une ligne : titre, méta (date · modèle · messages), menu. */
+/**
+ * Titulaire d'une ligne : titre, méta (date · modèle · messages),
+ * épinglage en un appui (rapport IA, lot 3 — l'icône teintée PRIMAIRE
+ * quand épinglée, le DAO la maintient en tête de liste), suppression
+ * directe (l'annulation vit dans le Snackbar), menu (renommage).
+ */
 private class TitulaireConversation(private val liaison: LigneConversationBinding) :
     RecyclerView.ViewHolder(liaison.root) {
-    fun lier(conversation: ConversationIa, surOuvrir: (String) -> Unit, surMenu: (ConversationIa) -> Unit) {
+    fun lier(
+        conversation: ConversationIa,
+        surOuvrir: (String) -> Unit,
+        surMenu: (ConversationIa) -> Unit,
+        surEpingler: (ConversationIa, Boolean) -> Unit,
+        surSupprimer: (ConversationIa) -> Unit,
+    ) {
         val contexte = liaison.root.context
         liaison.titreConversation.text = conversation.titre
         val relatif =
@@ -201,6 +234,44 @@ private class TitulaireConversation(private val liaison: LigneConversationBindin
             contexte.getString(R.string.ia_historique_ligne_cd, conversation.titre)
         liaison.root.setOnClickListener { surOuvrir(conversation.identifiant) }
         liaison.boutonMenuConversation.setOnClickListener { surMenu(conversation) }
+
+        // Épinglage (rapport IA, lot 3) : l'état se LIT sur l'icône —
+        // teinte primaire + description dédiée quand épinglée ; l'appui
+        // INVERSE l'état courant.
+        liaison.boutonEpingleConversation.contentDescription =
+            contexte.getString(
+                if (conversation.epingle) {
+                    R.string.ia_historique_detacher_cd
+                } else {
+                    R.string.ia_historique_epingler_cd
+                },
+            )
+        liaison.boutonEpingleConversation.iconTint =
+            android.content.res.ColorStateList.valueOf(
+                couleurTheme(contexte, if (conversation.epingle) ATTR_PRIMAIRE else ATTR_VARIANTE),
+            )
+        liaison.boutonEpingleConversation.setOnClickListener {
+            surEpingler(conversation, !conversation.epingle)
+        }
+
+        // Suppression directe (rapport IA, lot 3) : la ligne part
+        // immédiatement, l'instantané complet vit dans l'effet — le
+        // Snackbar propose « Annuler ».
+        liaison.boutonSupprimerConversation.setOnClickListener { surSupprimer(conversation) }
+    }
+
+    /** Attribut de thème résolu (le clair/sombre suit le thème — pas de couleur en dur). */
+    private fun couleurTheme(contexte: android.content.Context, attribut: Int): Int {
+        val valeur = android.util.TypedValue()
+        contexte.theme.resolveAttribute(attribut, valeur, true)
+        return valeur.data
+    }
+
+    private companion object {
+        /** Attributs de teinte de l'épingle (épinglée / détachée). */
+        private val ATTR_PRIMAIRE = androidx.appcompat.R.attr.colorPrimary
+
+        private val ATTR_VARIANTE = com.google.android.material.R.attr.colorOnSurfaceVariant
     }
 }
 
