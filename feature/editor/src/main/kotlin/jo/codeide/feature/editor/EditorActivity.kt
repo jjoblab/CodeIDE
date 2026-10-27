@@ -772,8 +772,18 @@ class EditorActivity :
 
     /** Affiche la carte de diff avec cette proposition (lot IA-5) —
      * appelé par le chat via [ControleurIaTiroir] : la vue autonome
-     * calcule le diff unifié et affiche Accepter/Rejeter/Réessayer. */
+     * calcule le diff unifié et affiche Accepter/Rejeter/Réessayer.
+     * C2 (retour propriétaire) : le chat vit dans le TIROIR — la
+     * carte apparaît dans la colonne centrale de l'éditeur, DERRIÈRE
+     * le tiroir ouvert : elle serait invisible au moment précis où
+     * l'utilisateur vient d'appuyer sur « Appliquer ». Le tiroir se
+     * REFERME (animé) pour révéler la carte et ses boutons de
+     * confirmation ; l'utilisateur tranche, le retour système du
+     * tiroir reste disponible. */
     override fun afficherPropositionDiff(proposition: PropositionDiffIa) {
+        if (liaison.racineEditeur.isDrawerOpen(liaison.tiroir)) {
+            liaison.racineEditeur.closeDrawer(liaison.tiroir)
+        }
         carteDiffIa.maj(proposition)
     }
 

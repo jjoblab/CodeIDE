@@ -200,7 +200,7 @@
     <!-- Lot IA-5: editor integration (bridge, diff card). -->
     <string name="ia_appliquer">Apply</string>
     <string name="ia_appliquer_cd">Propose this block in the editor\'s diff card</string>
-    <string name="ia_diff_plage_absente">Select the file range to replace first</string>
+    <string name="ia_diff_plage_absente">Select the text to replace in the editor first — or use "Insert" to drop the block at the cursor</string>
     <string name="ia_consigne_corriger">Fix this error in %1$s:\n</string>
     <string name="ia_consigne_expliquer_sortie">Explain this output and its likely causes:\n</string>
 
