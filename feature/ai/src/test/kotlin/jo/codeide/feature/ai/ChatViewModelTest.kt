@@ -19,6 +19,8 @@ import jo.codeide.core.domain.RetentionIa
 import jo.codeide.core.domain.SelectionEditeur
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.LogLevel
+import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -66,6 +68,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -95,6 +98,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -142,6 +146,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -197,6 +202,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -261,6 +267,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -313,6 +320,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -361,6 +369,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -370,6 +379,95 @@ class ChatViewModelTest {
         val reponse = modele.etat.value.messages.last()
         assertEquals("Réponse", reponse.texte)
         assertEquals("J'ai réfléchi longuement.", reponse.raisonnement)
+    }
+
+    @Test
+    fun `l'ouverture d'une discussion disparue est VISIBLE et journalisee (B2)`() = runTest {
+        val historique = FauxConversationStore()
+        val journal = FakeAppLogger()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+                journal,
+            )
+        advanceUntilIdle()
+
+        // Aucun message persisté pour cet id (purge concurrente, id
+        // périmé) : l'ancienne sortie SILENCIEUSE laissait l'appui
+        // sans AUCUN effet — le retour est désormais VISIBLE.
+        modele.onAction(ActionChatIa.OuvrirConversation("conv-fantome"))
+        advanceUntilIdle()
+
+        assertEquals(
+            EffetChatIa.Message(R.string.ia_erreur_conversation_introuvable),
+            modele.effets.first(),
+        )
+        // Journal : l'id aide à reconstituer le cas.
+        assertEquals(1, journal.entries.size)
+        assertEquals(LogLevel.WARN, journal.entries.single().level)
+        assertEquals("IaChat", journal.entries.single().tag)
+        assertTrue(
+            "l'entrée doit porter l'id disparu",
+            journal.entries.single().message.contains("conv-fantome"),
+        )
+        // L'état écran ne change pas : aucune discussion fantôme.
+        assertTrue(modele.etat.value.messages.isEmpty())
+    }
+
+    @Test
+    fun `les ids des messages rouverts restent UNIQUES a travers les ouvertures (B2)`() = runTest {
+        val historique = FauxConversationStore()
+        historique.ajouterMessage(
+            "conv-a",
+            "claude-test",
+            MessageConversationIa("m1", "conv-a", true, "Question A", System.currentTimeMillis()),
+        )
+        historique.ajouterMessage(
+            "conv-b",
+            "claude-test",
+            MessageConversationIa("m2", "conv-b", true, "Question B", System.currentTimeMillis()),
+        )
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
+            )
+        advanceUntilIdle()
+
+        modele.onAction(ActionChatIa.OuvrirConversation("conv-a"))
+        advanceUntilIdle()
+        val idsPremiereOuverture = modele.etat.value.messages.map { it.identifiant }
+
+        modele.onAction(ActionChatIa.OuvrirConversation("conv-b"))
+        advanceUntilIdle()
+        val idsSecondeOuverture = modele.etat.value.messages.map { it.identifiant }
+
+        // B2 : la séquence n'est plus remise à zéro — deux ouvertures
+        // successives ne partagent JAMAIS un id de message (garde
+        // DiffUtil : un id recyclé pouvait masquer un rebind).
+        assertTrue(idsPremiereOuverture.isNotEmpty())
+        assertTrue(idsSecondeOuverture.isNotEmpty())
+        assertTrue(
+            "aucun id de la première ouverture ne doit resservir : " +
+                "$idsPremiereOuverture vs $idsSecondeOuverture",
+            idsSecondeOuverture.none { it in idsPremiereOuverture },
+        )
     }
 
     @Test
@@ -386,6 +484,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -424,6 +523,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -467,6 +567,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -517,6 +618,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -541,6 +643,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -563,6 +666,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -594,6 +698,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseurFlux),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -642,6 +747,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseurFlux),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -683,6 +789,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseurFlux),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -736,6 +843,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseurFlux),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -776,6 +884,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseurFlux),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -818,6 +927,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -844,6 +954,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -871,6 +982,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -893,6 +1005,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -918,6 +1031,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseurFlux),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -947,6 +1061,7 @@ class ChatViewModelTest {
             historique,
             HorlogeFixe,
             ListerModelesIaUseCase(FauxFournisseurFlux()),
+            FakeAppLogger(),
         )
         advanceUntilIdle()
 
@@ -970,6 +1085,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1007,6 +1123,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1031,6 +1148,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1051,6 +1169,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
         assertTrue("avant : aucune clé", modele.etat.value.cleAbsente)
@@ -1086,6 +1205,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1127,6 +1247,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1148,6 +1269,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1181,6 +1303,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1209,6 +1332,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1238,6 +1362,7 @@ class ChatViewModelTest {
                 FauxConversationStore(),
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1270,6 +1395,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1309,6 +1435,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1344,6 +1471,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1386,6 +1514,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 
@@ -1411,6 +1540,7 @@ class ChatViewModelTest {
                 historique,
                 HorlogeFixe,
                 ListerModelesIaUseCase(fournisseur),
+                FakeAppLogger(),
             )
         advanceUntilIdle()
 

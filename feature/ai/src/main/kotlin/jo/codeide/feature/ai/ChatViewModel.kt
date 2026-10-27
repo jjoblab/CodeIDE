@@ -20,6 +20,7 @@ import jo.codeide.core.ai.PieceContexte
 import jo.codeide.core.ai.SendMessageUseCase
 import jo.codeide.core.ai.TypePieceContexte
 import jo.codeide.core.domain.AiSettings
+import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.CoffreClesIa
 import jo.codeide.core.domain.ConversationStore
 import jo.codeide.core.domain.FournisseursIa
@@ -30,6 +31,7 @@ import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.getOrNull
 import jo.codeide.core.ui.PropositionDiffIa
 import kotlinx.coroutines.Job
@@ -289,6 +291,7 @@ constructor(
     private val historique: ConversationStore,
     private val horloge: TimeProvider,
     private val listerModeles: ListerModelesIaUseCase,
+    private val journal: AppLogger,
 ) : ViewModel() {
     private val etatInterne = MutableStateFlow(EtatChatIa())
 
@@ -300,7 +303,12 @@ constructor(
     /** Dernier texte utilisateur envoyé (régénération). */
     private var dernierMessageUtilisateur: String? = null
 
-    /** Compteur d'identifiants de messages (stables pour le DiffUtil). */
+    /**
+     * Compteur d'identifiants de messages (stables pour le DiffUtil).
+     * B2 (rapport IA, lot 1) : JAMAIS remis à zéro — les ids `ia-h-N`
+     * des conversations rouvertes restent uniques à travers les
+     * réouvertures successives.
+     */
     private var sequence = 0L
 
     /**
@@ -901,10 +909,21 @@ constructor(
         viewModelScope.launch {
             val messagesPersistes = historique.messages(id)
             if (messagesPersistes.isEmpty()) {
+                // B2 (rapport IA, lot 1) : plus de sortie SILENCIEUSE —
+                // l'utilisateur a appuyé sur une discussion, un retour
+                // VISIBLE et une entrée de journal (l'id aide à
+                // reconstituer le cas : purge concurrente, id périmé).
+                journal.log(LogLevel.WARN, TAG_JOURNAL, null) {
+                    "Ouverture de conversation impossible : aucun message persiste pour '$id'"
+                }
+                emettre(EffetChatIa.Message(R.string.ia_erreur_conversation_introuvable))
                 return@launch
             }
             conversationId = id
-            sequence = 0L
+            // B2 : la séquence n'est PLUS remise à zéro — les ids
+            // `ia-h-N` restent UNIQUES à travers les réouvertures
+            // successives (garde DiffUtil : deux conversations ne
+            // partagent JAMAIS un id de message).
             dernierMessageUtilisateur =
                 messagesPersistes.lastOrNull { it.utilisateur }?.texte
             // Lot 5, point 4 : les compteurs d'usage de la conversation
@@ -986,6 +1005,9 @@ constructor(
          * saturait le fil principal (ANR rapporté par le propriétaire).
          */
         private const val CADENCE_FLUX_MS = 50L
+
+        /** Étiquette du journal pour ce ViewModel (B2, rapport IA lot 1). */
+        private const val TAG_JOURNAL = "IaChat"
     }
 }
 
