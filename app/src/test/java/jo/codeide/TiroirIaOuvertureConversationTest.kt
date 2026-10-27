@@ -87,11 +87,12 @@ class TiroirIaOuvertureConversationTest {
             assertEquals(0, onglets.selectedTabPosition)
 
             // L'utilisateur parcourt l'historique : l'onglet Historique
-            // devient sélectionné (position 2) — c'est DEPUIS là qu'un
-            // appui sur une discussion arrive.
-            onglets.getTabAt(2)!!.select()
+            // devient sélectionné (position 3 — C5 : ordre de la
+            // maquette Chat · Agent · Recherche · Historique) — c'est
+            // DEPUIS là qu'un appui sur une discussion arrive.
+            onglets.getTabAt(3)!!.select()
             shadowOf(Looper.getMainLooper()).idle()
-            assertEquals(2, onglets.selectedTabPosition)
+            assertEquals(3, onglets.selectedTabPosition)
 
             // L'écouteur de test est posé AVANT l'appui : le résultat
             // sera livré immédiatement à l'écouteur ACTIF (celui du

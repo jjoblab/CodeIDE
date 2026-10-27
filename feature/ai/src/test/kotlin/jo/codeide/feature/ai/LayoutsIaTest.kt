@@ -137,11 +137,23 @@ class LayoutsIaTest {
     // ------------------------------------------------------------------
 
     @Test
-    fun `le tiroir IA se gonfle avec ses onglets et son conteneur`() {
+    fun `le tiroir IA se gonfle avec ses onglets, son conteneur et sa PUCE PROJET (C5)`() {
         val racine = gonfler(R.layout.fragment_ia_tiroir)
 
         assertNotNull(racine.findViewById<View>(R.id.onglets_ia))
         assertNotNull(racine.findViewById<View>(R.id.conteneur_ia))
+        // C5 (retour propriétaire) : l'état du projet se lit DANS
+        // l'en-tête du tiroir — la puce vit avec la session.
+        val puce = racine.findViewById<View>(R.id.puce_projet)
+        assertNotNull("C5 : la puce projet de l'en-tête doit exister", puce)
+        assertNotNull(
+            "C5 : la puce projet porte son fond de capsule",
+            puce.background,
+        )
+        // Les onglets en PILULES portent leur contrat dans le LAYOUT
+        // (tabIndicatorHeight 0dp + fond sélecteur) — la bibliothèque
+        // pose TOUJOURS un drawable d'indicateur par défaut, l'état
+        // « éteint » se vérifie visuellement (T38 de la recette).
     }
 
     @Test
@@ -201,11 +213,15 @@ class LayoutsIaTest {
     fun `les lignes de messages et le bloc de code se gonflent`() {
         val utilisateur = gonfler(R.layout.ligne_message_utilisateur)
         assertNotNull(utilisateur.findViewById<View>(R.id.texte_message))
+        // C4 (retour propriétaire) : l'heure sous la bulle utilisateur.
+        assertNotNull(utilisateur.findViewById<View>(R.id.heure_message))
 
         val assistant = gonfler(R.layout.ligne_message_assistant)
         assertNotNull(assistant.findViewById<View>(R.id.conteneur_blocs))
         assertNotNull(assistant.findViewById<View>(R.id.erreur_message))
         assertNotNull(assistant.findViewById<View>(R.id.bouton_copier_message))
+        // C4 : l'heure de la réponse vit dans la ligne d'actions.
+        assertNotNull(assistant.findViewById<View>(R.id.heure_message))
         // v0.196.0 (retour propriétaire : « il devrait y avoir quelque
         // chose qui différencie la réponse ») : la réponse assistant porte
         // un FOND propre (fond_reponse_assistant) — le message se lit

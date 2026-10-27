@@ -52,6 +52,10 @@
     <dimen name="hauteur_separateur_ia">1dp</dimen>
     <dimen name="lisere_citation_ia">3dp</dimen>
 
+    <!-- C5 (retour propriétaire) : capsule des onglets du tiroir IA
+         (maquette : pilule pleine, 22 px sur tab 44 px). -->
+    <dimen name="ia_onglet_coins">22dp</dimen>
+
     <!-- Composants d'état (vide, chargement, erreur). -->
     <dimen name="state_icon_size">64dp</dimen>
     <dimen name="state_padding">32dp</dimen>

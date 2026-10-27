@@ -5,11 +5,18 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.EtatSessionProjetVue
+import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.ui.ControleurIaTiroir
 import jo.codeide.feature.ai.databinding.FragmentIaTiroirBinding
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
@@ -17,10 +24,16 @@ import javax.inject.Inject
  * 6ᵉ destination du rail de l'éditeur via [FabriqueFragmentIaTiroir]
  * (liée par Hilt dans `di/TiroirIaBindsModule` — miroir du terminal).
  * Onglets Chat (réel), Agent (réel — IA-7b, rapport IA lot 2),
- * Historique (réel — lot IA-6) et Recherche (réel — rapport IA, lot 3 :
- * l'état « bientôt » est MORT, remplacé par la recherche de fichiers
- * avec « Demander à l'IA ») ; le contrôleur hôte est résolu par
- * cast en `onAttach` (aucune dépendance feature ↔ feature).
+ * Recherche et Historique (réels — rapport IA, lot 3) ; le contrôleur
+ * hôte est résolu par cast en `onAttach` (aucune dépendance feature ↔
+ * feature).
+ *
+ * C5 (retour propriétaire — écran de l'option IA du toolbar) : la
+ * PUCE PROJET de l'en-tête vit avec la SESSION (source de vérité du
+ * projet ouvert) — l'état se lit AVANT d'ouvrir l'onglet Agent, la
+ * couleur porte le verdict ; les onglets suivent l'ordre de la
+ * maquette (Chat · Agent · Recherche · Historique) et la création
+ * des onglets est GARDE contre le double ajout (vue recréée).
  *
  * Le seuil de fonctions est structurellement dépassé : un fragment est
  * un CONTRAT de câblage des onglets (précédent `PanneauConsoleFragment`).
@@ -30,6 +43,10 @@ import javax.inject.Inject
 public class IaTiroirFragment : Fragment() {
     /** Commandes de l'hôte (chemin du fichier actif, dossier projet…) — IA-4/IA-7. */
     private var controleur: ControleurIaTiroir? = null
+
+    /** Session du projet (C5 — puce d'état de l'en-tête, la source de vérité). */
+    @Inject
+    internal lateinit var sessionProjet: ObservateurSessionProjet
 
     private var liaisonTiroir: FragmentIaTiroirBinding? = null
 
@@ -53,10 +70,14 @@ public class IaTiroirFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val liaison = liaisonTiroir ?: return
         val onglets = liaison.ongletsIa
-        onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_chat))
-        onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_agent))
-        onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_historique))
-        onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_recherche))
+        // C5 : la garde évite le DOUBLE ajout quand la vue est recréée
+        // (rotation, restauration) sur un TabLayout déjà peuplé.
+        if (onglets.tabCount == 0) {
+            onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_chat))
+            onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_agent))
+            onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_recherche))
+            onglets.addTab(onglets.newTab().setText(R.string.ia_onglet_historique))
+        }
         onglets.addOnTabSelectedListener(
             object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(onglet: TabLayout.Tab) {
@@ -69,6 +90,43 @@ public class IaTiroirFragment : Fragment() {
             },
         )
         afficherOnglet(POSITION_CHAT)
+        observerPuceProjet(liaison)
+    }
+
+    /**
+     * PUCE PROJET de l'en-tête (C5, retour propriétaire) : suit la
+     * session en temps réel — « Projet ouvert » en PRIMAIRE tant que
+     * la session l'est, « Aucun projet » en VARIANTE sinon (la puce
+     * ne devine JAMAIS depuis un chemin : c'est la session qui
+     * décide, le chemin suit — C1).
+     */
+    private fun observerPuceProjet(liaison: FragmentIaTiroirBinding) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                sessionProjet.etatSession.collect { etat ->
+                    val ouvert = etat is EtatSessionProjetVue.Ouverte
+                    liaison.puceProjet.isVisible = true
+                    liaison.puceProjet.setText(
+                        if (ouvert) R.string.ia_tiroir_projet_ouvert else R.string.ia_tiroir_aucun_projet,
+                    )
+                    val contexte = liaison.root.context
+                    val attribut =
+                        if (ouvert) {
+                            androidx.appcompat.R.attr.colorPrimary
+                        } else {
+                            com.google.android.material.R.attr.colorOnSurfaceVariant
+                        }
+                    liaison.puceProjet.setTextColor(couleurTheme(contexte, attribut))
+                }
+            }
+        }
+    }
+
+    /** Couleur d'attribut de thème résolue (le clair/sombre suit le thème). */
+    private fun couleurTheme(contexte: Context, attribut: Int): Int {
+        val valeur = android.util.TypedValue()
+        contexte.theme.resolveAttribute(attribut, valeur, true)
+        return valeur.data
     }
 
     override fun onDestroyView() {
@@ -156,8 +214,8 @@ public class IaTiroirFragment : Fragment() {
         when (position) {
             POSITION_CHAT -> afficherChat()
             POSITION_AGENT -> afficherAgent()
-            POSITION_HISTORIQUE -> afficherHistorique()
             POSITION_RECHERCHE -> afficherRecherche()
+            POSITION_HISTORIQUE -> afficherHistorique()
         }
     }
 
@@ -277,10 +335,13 @@ public class IaTiroirFragment : Fragment() {
         const val TAG_RECHERCHE = "tiroir_ia_recherche"
         const val TAG_REVUE = "tiroir_ia_revue"
 
+        // C5 : ordre de la MAQUETTE — Chat · Agent · Recherche ·
+        // Historique (la recherche est une ÉTAPE de travail courante,
+        // l'historique une consultation).
         const val POSITION_CHAT = 0
         const val POSITION_AGENT = 1
-        const val POSITION_HISTORIQUE = 2
-        const val POSITION_RECHERCHE = 3
+        const val POSITION_RECHERCHE = 2
+        const val POSITION_HISTORIQUE = 3
     }
 }
 
