@@ -172,6 +172,8 @@
     <string name="ia_erreur_hors_ligne">Offline — check the connection</string>
     <!-- B2 (rapport IA, lot 1) : ouverture d'une discussion disparue. -->
     <string name="ia_erreur_conversation_introuvable">Conversation not found — it may have been deleted</string>
+    <!-- B3 (rapport IA, lot 1) : option « Nouvelle discussion ». -->
+    <string name="ia_chat_nouvelle_discussion">New chat</string>
     <string name="ia_erreur_delai">Timed out — the provider does not respond</string>
     <string name="ia_erreur_illisible">Unreadable provider response</string>
     <string name="ia_erreur_consentement">Activate the assistant and give consent before anything is sent</string>

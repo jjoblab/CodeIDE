@@ -1558,6 +1558,85 @@ class ChatViewModelTest {
         assertEquals(0L, modele.etat.value.jetonsEntree)
         assertEquals(0L, modele.etat.value.jetonsSortie)
     }
+
+    @Test
+    fun `la nouvelle discussion REFERME la conversation rouverte (B3)`() = runTest {
+        val historique = FauxConversationStore()
+        historique.ajouterMessage(
+            "conv-a",
+            "claude-test",
+            MessageConversationIa("m1", "conv-a", true, "Question A", System.currentTimeMillis()),
+        )
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
+            )
+        advanceUntilIdle()
+        modele.onAction(ActionChatIa.OuvrirConversation("conv-a"))
+        advanceUntilIdle()
+        assertEquals(1, modele.etat.value.messages.size)
+
+        // « ＋ Nouvelle » referme la conversation courante…
+        modele.onAction(ActionChatIa.NouvelleConversation)
+        advanceUntilIdle()
+        assertTrue(modele.etat.value.messages.isEmpty())
+
+        // …l'envoi suivant naît dans une discussion NEUVE : conv-a ne
+        // récupère JAMAIS le message (l'ancien défaut poursuivait la
+        // conversation réouverte — conversationId non refermé).
+        modele.onAction(ActionChatIa.ChangerSaisie("Nouvelle question"))
+        modele.onAction(ActionChatIa.Envoyer)
+        advanceUntilIdle()
+
+        assertEquals(
+            "conv-a ne doit recevoir aucun nouveau message",
+            1,
+            historique.messagesParConversation["conv-a"]?.size,
+        )
+        val conversationsEcrites = historique.messagesParConversation.keys
+        assertTrue(
+            "un message doit être persisté dans une discussion distincte de conv-a : $conversationsEcrites",
+            conversationsEcrites.any { it != "conv-a" && !it.isNullOrEmpty() },
+        )
+    }
+
+    @Test
+    fun `la nouvelle discussion sur une discussion VIDE ne cree RIEN (B3)`() = runTest {
+        val historique = FauxConversationStore()
+        val modele =
+            ChatViewModel(
+                SendMessageUseCase(FauxFournisseurFlux()),
+                reglagesActifs(),
+                FakeCoffre(),
+                RegistrePortEditeurActif(),
+                FauxFournisseurContexte(),
+                CanalSignauxIa(),
+                historique,
+                HorlogeFixe,
+                ListerModelesIaUseCase(FauxFournisseurFlux()),
+                FakeAppLogger(),
+            )
+        advanceUntilIdle()
+
+        // « ＋ Nouvelle » sur un chat VIDE : aucune discussion fantôme
+        // dans l'historique (la persistance n'a lieu qu'au premier
+        // message envoyé).
+        modele.onAction(ActionChatIa.NouvelleConversation)
+        advanceUntilIdle()
+
+        assertTrue(historique.conversations.isEmpty())
+        assertTrue(historique.messagesParConversation.isEmpty())
+        assertTrue(modele.etat.value.messages.isEmpty())
+    }
 }
 
 /** Fournisseur à flux CONTRÔLÉ : le test émet les événements un à un

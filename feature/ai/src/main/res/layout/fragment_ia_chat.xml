@@ -65,6 +65,20 @@
             android:visibility="gone"
             tools:text="Entrée 123 · Sortie 45"
             tools:visibility="visible" />
+
+        <!-- ＋ Nouvelle discussion (B3, rapport IA lot 1) : referme la
+             conversation courante (messages, pièces de contexte,
+             jetons, annulation d'une génération en cours) — une
+             discussion VIDE n'est jamais persistée, aucune fantôme
+             dans l'historique. Zone tactile ≥ 48 dp (style Icon). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_nouvelle_discussion"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:contentDescription="@string/ia_chat_nouvelle_discussion"
+            app:icon="@drawable/ic_plus" />
     </LinearLayout>
 
     <!-- Zone des messages : la liste ET son calque d'état vivent

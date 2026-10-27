@@ -181,6 +181,8 @@
     <string name="ia_erreur_hors_ligne">Hors-ligne — vérifiez la connexion</string>
     <!-- B2 (rapport IA, lot 1) : ouverture d'une discussion disparue. -->
     <string name="ia_erreur_conversation_introuvable">Discussion introuvable — elle a peut-être été supprimée</string>
+    <!-- B3 (rapport IA, lot 1) : option « Nouvelle discussion ». -->
+    <string name="ia_chat_nouvelle_discussion">Nouvelle discussion</string>
     <string name="ia_erreur_delai">Délai dépassé — le fournisseur ne répond pas</string>
     <string name="ia_erreur_illisible">Réponse illisible du fournisseur</string>
     <string name="ia_erreur_consentement">Activez l\'assistant et donnez votre consentement avant tout envoi</string>
