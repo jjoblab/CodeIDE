@@ -311,6 +311,65 @@ class AnthropicProviderTest {
     }
 
     @Test
+    fun `le tour MULTI-outils porte les deux tool_use puis les deux tool_result (A1)`() = runBlocking {
+        FauxServeurIa().use { serveur ->
+            serveur.demarrer()
+            serveur.enregistrer { echange ->
+                serveur.repondreSse(echange, 200, ressource("anthropic-nominal.sse"))
+            }
+            // La forme EXACTE produite par AgentRunnerIa quand le modèle
+            // appelle DEUX outils dans un même tour (A1, rapport IA
+            // lot 2) : assistant texte + 2 blocs ToolUse, puis un
+            // message Tool PAR résultat (même identifiant chacun).
+            val requete =
+                AiRequest(
+                    messages =
+                    listOf(
+                        AiMessage.user("Explore le projet."),
+                        AiMessage(
+                            AiRole.Assistant,
+                            listOf(
+                                AiContentBlock.Text("Je regarde."),
+                                AiContentBlock.ToolUse("call-1", "list_files", "{}"),
+                                AiContentBlock.ToolUse("call-2", "read_file", "{\"chemin\":\"a.kt\"}"),
+                            ),
+                        ),
+                        AiMessage.toolResult("call-1", "a.kt"),
+                        AiMessage.toolResult("call-2", "contenu"),
+                    ),
+                    model = "modele-test",
+                    maxOutputTokens = 77,
+                )
+
+            provider(serveur).stream(requete).toList()
+
+            val corps =
+                (
+                    JsonIa.parseur
+                        .parseToJsonElement(serveur.dernierCorps ?: error("corps capturé absent")) as JsonObject
+                    ).corpsTest()
+            val messages = corps["messages"].tableau()
+            assertEquals(4, messages.size)
+            // Assistant : texte PUIS les deux tool_use (ordre conservé).
+            assertEquals("assistant", messages[1]["role"].texte())
+            val blocs = messages[1]["content"].tableau()
+            assertEquals(3, blocs.size)
+            assertEquals("text", blocs[0]["type"].texte())
+            assertEquals("tool_use", blocs[1]["type"].texte())
+            assertEquals("call-1", blocs[1]["id"].texte())
+            assertEquals("list_files", blocs[1]["name"].texte())
+            assertEquals("tool_use", blocs[2]["type"].texte())
+            assertEquals("call-2", blocs[2]["id"].texte())
+            // Chaque résultat répond par SON identifiant (user).
+            assertEquals("user", messages[2]["role"].texte())
+            assertEquals("tool_result", messages[2]["content"].tableau()[0]["type"].texte())
+            assertEquals("call-1", messages[2]["content"].tableau()[0]["tool_use_id"].texte())
+            assertEquals("user", messages[3]["role"].texte())
+            assertEquals("call-2", messages[3]["content"].tableau()[0]["tool_use_id"].texte())
+        }
+    }
+
+    @Test
     fun `les en-têtes d'authentification partent bien mais ne sont jamais journalisés`() = runBlocking {
         FauxServeurIa().use { serveur ->
             serveur.demarrer()

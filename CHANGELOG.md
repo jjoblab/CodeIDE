@@ -1,5 +1,56 @@
 # Journal des modifications
 
+## [0.200.4] – 2026-10-27
+
+### Le protocole d'outils de l'agent est REPAIRÉ — vrais `toolCallId`, blocs `ToolUse`, plusieurs appels par étape (rapport IA, chantier IA-CODEIDE, lot 2, A1)
+
+#### Corrigé
+
+- **L'agent était cassé DÈS L'ÉTAPE 2** (rapport IA, lot 2, A1 —
+  CRITIQUE) : `AgentRunnerIa` renvoyait au fournisseur un
+  `AiMessage.assistant(texte)` (bloc Text seul) puis un
+  `toolResult("etape-N", …)` à identifiant **INVENTÉ** — Anthropic
+  (`tool_result` sans `tool_use` correspondant) comme les serveurs
+  compatibles OpenAI (`tool_call_id` inconnu) rejetaient la requête :
+  l'agent n'exécutait jamais plus d'un tour d'outils.
+- **Le message assistant reconstruit porte désormais les VRAIS
+  appels** : texte éventuel + un bloc [AiContentBlock.ToolUse] PAR
+  appel, avec l'identifiant attribué par le fournisseur
+  ([AiEvent.ToolCallStarted]), le nom et les arguments reconstitués —
+  c'est exactement ce que les traducteurs des providers sérialisent
+  (Anthropic `tool_use`, compatibles OpenAI `tool_calls`).
+- **Chaque appel reçoit SA réponse** : exécution de CHAQUE appel de
+  l'étape puis un [AiContentBlock.ToolResult] PAR appel portant le
+  MÊME identifiant — un message par résultat (Anthropic fusionne les
+  `user` consécutifs ; les compatibles OpenAI exigent un message
+  `tool` par `tool_call_id`).
+- **Plusieurs appels par étape sont honorés** : les événements sont
+  accumulés PAR `toolCallId` (ordre d'arrivée conservé, fragments
+  concaténés par appel — l'ancienne accumulation globale mélangeait
+  les arguments de deux appels) ; `ToolCallCompleted` complète les
+  arguments quand les fragments manquent.
+- **L'enveloppe maison `{"nom","parametres"}` est morte** : les
+  paramètres sont lus DIRECTEMENT dans l'objet d'arguments du schéma
+  de l'outil (ex. `{"chemin": "src/…"}` pour `read_file`) — le nom de
+  l'outil vient du `ToolCallStarted`, jamais du corps JSON.
+
+#### Tests
+
+- **+7 tests** : `AgentRunnerIaTest` (:core:ai, nouveau — scénario
+  complet appel → résultat → réponse finale avec vérification du
+  CONTRAT au niveau `AiMessage` : ToolUse du vrai identifiant + texte
+  en tête, ToolResult du MÊME identifiant, arguments du schéma
+  reçus par l'outil ; deux appels dans une MÊME étape : deux ToolUse
+  ordonnés, deux ToolResult, chaque outil exécuté une fois ;
+  arguments complétés par `ToolCallCompleted` ; outil inconnu → refus
+  observable avec le bon identifiant ; JSON malformé → paramètres
+  vides, l'outil refuse, la bouche continue). La sérialisation
+  NATIVE de la forme multi-outils est verrouillée côté
+  `:ai:providers` : `AnthropicProviderTest` (assistant `text` + 2
+  `tool_use` ordonnés, puis les 2 `tool_result` en `user`) et
+  `OpenAiCompatibleProviderTest` (assistant `tool_calls[2]`, puis
+  2 messages `tool` par `tool_call_id`).
+
 ## [0.200.3] – 2026-10-27
 
 ### Option « ＋ Nouvelle discussion » — en-tête du chat ET de l'historique, conversation réellement refermée (rapport IA, chantier IA-CODEIDE, lot 1, B3)
