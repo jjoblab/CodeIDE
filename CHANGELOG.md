@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.200.1] – 2026-10-27
+
+### Le chat affiche la réponse PENDANT le flux — les payloads DiffUtil enfin dépliés (rapport IA, chantier IA-CODEIDE, lot 1, B1)
+
+#### Corrigé
+
+- **La réponse de l'assistant était INVISIBLE pendant la génération**
+  (rapport IA, lot 1, B1) : `ComparateurMessages.getChangePayload`
+  renvoie un `Set<ClePayload>` (le paiement du rebind partiel),
+  mais `AdapterMessages.onBindViewHolder(payloads)` le lisait par
+  `payloads.mapNotNull { it as? ClePayload }` — un `Set` n'est pas
+  une `ClePayload`, la liste dépliée était **VIDE** :
+  `lierPartiellement` ne rendait NI le texte qui coule, NI le
+  raisonnement, NI la fin de génération (le curseur clignotait
+  indéfiniment) ; seul un changement d'onglet — recréation de vue —
+  déclenchait le rendu complet, d'où l'impression d'un chat muet
+  pendant le streaming.
+- **Le contrat du paiement est refermé des deux côtés** :
+  `getChangePayload` renvoie TOUJOURS un `Set<ClePayload>` (le
+  repli de l'ensemble vide est AUSSI un `Set` : `setOf(FIN)` — plus
+  jamais une clé nue qui contredirait la lecture dépliante), et
+  l'adaptateur DÉPLIE chaque élément du payload
+  (`flatMap { (it as? Set<*>)?.toList() ?: listOf(it) }`) : un
+  émetteur tiers qui poserait une clé nue reste reconnu (défense en
+  profondeur), un payload inconnu replie sur le bind COMPLET —
+  jamais un rendu muet. `ClePayload` et le comparateur vivent
+  désormais au niveau du FICHIER (`ComparateurMessages.kt`,
+  visibilité interne) : le contrat partagé émetteur/consommateur
+  est testable côté JVM sans gonfler de vue.
+
+#### Ajouté
+
+- **+11 tests verrouillent la régression** :
+  `ComparateurMessagesTest` (JVM — texte changé → payload
+  `Set` contenant `TEXTE` seul ; fin → `FIN` ; flux qui s'achève →
+  `TEXTE`+`FIN` ; identiques → `null` ; repli de l'ensemble vide →
+  `Set`, jamais une clé nue) et `AdapterMessagesTest` (Robolectric —
+  le rebind partiel `TEXTE` rend le texte qui coule sur la MÊME
+  ligne sans la détruire, `RAISONNEMENT` révèle la section sans
+  regonfler les blocs, `FIN` éteint le curseur, et la clé NUE
+  d'un ancien émetteur reste reconnue). Le test pilote
+  `onBindViewHolder(payloads)` avec le VRAI payload du comparateur
+  et attend le COMMIT du diff (verrou borné 5 s + looper joué) :
+  c'est le chemin exact du RecyclerView qui est verrouillé.
+
 ## [0.200.0] – 2026-10-27
 
 ### Montée code-editor 4.2.0 → 4.5.1 — complétion fiabilisée, occurrences du mot courant, sémantique déclarative, gabarits et postfix (bump-frère)
