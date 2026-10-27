@@ -44,7 +44,7 @@
   ordonnés, deux ToolResult, chaque outil exécuté une fois ;
   arguments complétés par `ToolCallCompleted` ; outil inconnu → refus
   observable avec le bon identifiant ; JSON malformé → paramètres
-  vides, l'outil refuse, la bouche continue). La sérialisation
+  vides, l'outil refuse, la boucle continue). La sérialisation
   NATIVE de la forme multi-outils est verrouillée côté
   `:ai:providers` : `AnthropicProviderTest` (assistant `text` + 2
   `tool_use` ordonnés, puis les 2 `tool_result` en `user`) et
