@@ -209,7 +209,7 @@
     <!-- Lot IA-5 : intégration éditeur (pont, carte de diff). -->
     <string name="ia_appliquer">Appliquer</string>
     <string name="ia_appliquer_cd">Proposer ce bloc dans la carte de diff de l\'éditeur</string>
-    <string name="ia_diff_plage_absente">Sélectionnez d\'abord la plage du fichier à remplacer</string>
+    <string name="ia_diff_plage_absente">Sélectionnez d\'abord le texte à remplacer dans l\'éditeur — ou « Insérer » pose le bloc au curseur</string>
     <string name="ia_consigne_corriger">Corrige cette erreur dans %1$s :\n</string>
     <string name="ia_consigne_expliquer_sortie">Explique cette sortie et ses causes probables :\n</string>
 

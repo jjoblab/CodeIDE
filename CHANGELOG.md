@@ -1,5 +1,26 @@
 # Journal des modifications
 
+## [0.200.11] – 2026-10-28
+
+### « Appliquer » du chat RÉVÈLE la carte de diff — le tiroir se referme, Accepter/Rejeter enfin visibles (C2, retour propriétaire)
+
+#### Corrigé
+
+- **Le tiroir se referme quand la carte de diff apparaît**
+  (`EditorActivity.afficherPropositionDiff`) : le chat vit dans le
+  tiroir, la carte de proposition vit dans la colonne centrale de
+  l'éditeur — DERRIÈRE le tiroir ouvert, donc invisible au moment
+  précis où l'utilisateur vient d'appuyer sur « Appliquer ». La carte
+  ne bouge pas (son emplacement contracté reste entre l'éditeur et la
+  barre de symboles) : c'est le TIROIR qui se referme (animé) pour la
+  révéler, boutons Accepter / Rejeter / Réessayer compris.
+- **Message de repli plus actionnable** (sans sélection, la carte ne
+  devine JAMAIS une plage — contrat inchangé) : « Sélectionnez d'abord
+  le texte à remplacer dans l'éditeur — ou « Insérer » pose le bloc au
+  curseur » — l'alternative existe déjà à côté du bouton, le message
+  la DIT désormais (avant : « Sélectionnez d'abord la plage du
+  fichier à remplacer », sans issue).
+
 ## [0.200.10] – 2026-10-28
 
 ### Le chemin du projet est REPASSÉ à l'ouverture du tiroir IA — la puce « Projet » de l'agent vit avec les signaux (C1, retour propriétaire)
