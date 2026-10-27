@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fond de la CITATION Markdown (C3, retour propriétaire — « mieux
+  représenter les différents types de format d'une réponse ») :
+  liseré gauche PRIMAIRE (le geste visuel de l'attribution, jour,
+  nuit et couleurs dynamiques suivies) sur fond discret de surface
+  surélevée — la citation se lit comme un EXTRAIT, pas comme un
+  paragraphe de plus.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="start" android:width="@dimen/lisere_citation_ia">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorPrimary" />
+        </shape>
+    </item>
+    <item android:left="@dimen/lisere_citation_ia">
+        <shape android:shape="rectangle">
+            <solid android:color="?attr/colorSurfaceContainerHigh" />
+        </shape>
+    </item>
+</layer-list>

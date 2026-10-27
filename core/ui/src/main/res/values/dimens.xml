@@ -46,6 +46,12 @@
          de diff de l'éditeur (au-delà, elle défile). -->
     <dimen name="ia_carte_diff_hauteur_max">280dp</dimen>
 
+    <!-- C3 (retour propriétaire) : filet du séparateur horizontal
+         Markdown et liseré gauche de la citation — épaisseurs en
+         densité, jamais en dur côté vue. -->
+    <dimen name="hauteur_separateur_ia">1dp</dimen>
+    <dimen name="lisere_citation_ia">3dp</dimen>
+
     <!-- Composants d'état (vide, chargement, erreur). -->
     <dimen name="state_icon_size">64dp</dimen>
     <dimen name="state_padding">32dp</dimen>

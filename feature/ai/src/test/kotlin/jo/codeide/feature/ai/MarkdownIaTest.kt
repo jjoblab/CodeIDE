@@ -1,13 +1,15 @@
 package jo.codeide.feature.ai
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tests de l'analyseur Markdown minimal maison (mission IA, lot IA-3) :
- * titres, paragraphes, listes, blocs de code — fermés et **provisoires**
- * (le flux incrémental ne perd jamais un bloc en cours d'écriture),
- * mélange ordonné.
+ * Tests de l'analyseur Markdown minimal maison (mission IA, lot IA-3 ;
+ * C3, retour propriétaire : listes ordonnées, imbrication, cases à
+ * cocher, citations, séparateurs, tableaux) — fermés et
+ * **provisoires** (le flux incrémental ne perd jamais un bloc en
+ * cours d'écriture), mélange ordonné.
  */
 class MarkdownIaTest {
     @Test
@@ -39,9 +41,94 @@ class MarkdownIaTest {
     @Test
     fun `une liste consécutive accumule ses éléments`() {
         assertEquals(
-            listOf<BlocMarkdown>(BlocMarkdown.Liste(listOf("premier", "deuxième"))),
+            listOf<BlocMarkdown>(
+                BlocMarkdown.Liste(
+                    listOf(
+                        BlocMarkdown.ElementListe("premier"),
+                        BlocMarkdown.ElementListe("deuxième"),
+                    ),
+                ),
+            ),
             MarkdownIa.parser("- premier\n- deuxième"),
         )
+    }
+
+    @Test
+    fun `C3 - une liste ordonnée porte son drapeau et ses éléments`() {
+        assertEquals(
+            listOf<BlocMarkdown>(
+                BlocMarkdown.Liste(
+                    listOf(BlocMarkdown.ElementListe("ouvrir"), BlocMarkdown.ElementListe("vérifier")),
+                    ordonee = true,
+                ),
+            ),
+            MarkdownIa.parser("1. ouvrir\n2. vérifier"),
+        )
+    }
+
+    @Test
+    fun `C3 - l'imbrication par indentation porte le niveau des éléments`() {
+        val blocs = MarkdownIa.parser("- racine\n  - enfant\n    - petit-enfant\n- retour")
+        val liste = blocs.single() as BlocMarkdown.Liste
+        assertEquals(
+            listOf(0, 1, 2, 0),
+            liste.elements.map { it.niveau },
+        )
+        assertEquals(listOf("racine", "enfant", "petit-enfant", "retour"), liste.elements.map { it.texte })
+    }
+
+    @Test
+    fun `C3 - les cases à cocher deviennent coche true ou false`() {
+        val blocs = MarkdownIa.parser("- [x] fait\n- [ ] reste\n- simple")
+        val liste = blocs.single() as BlocMarkdown.Liste
+        assertEquals(listOf(true, false, null), liste.elements.map { it.coche })
+        assertEquals(listOf("fait", "reste", "simple"), liste.elements.map { it.texte })
+    }
+
+    @Test
+    fun `C3 - les lignes de citation consécutives forment UN bloc Citation`() {
+        assertEquals(
+            listOf<BlocMarkdown>(BlocMarkdown.Citation("première ligne\ndeuxième ligne")),
+            MarkdownIa.parser("> première ligne\n> deuxième ligne"),
+        )
+    }
+
+    @Test
+    fun `C3 - un séparateur horizontal devient un bloc Separateur - pas une liste`() {
+        assertEquals(
+            listOf<BlocMarkdown>(
+                BlocMarkdown.Paragraphe("avant"),
+                BlocMarkdown.Separateur,
+                BlocMarkdown.Paragraphe("après"),
+            ),
+            MarkdownIa.parser("avant\n\n---\n\naprès"),
+        )
+        // Les trois marqueurs sont admis, seuls sur leur ligne.
+        assertEquals(
+            listOf<BlocMarkdown>(BlocMarkdown.Separateur),
+            MarkdownIa.parser("***"),
+        )
+        assertEquals(
+            listOf<BlocMarkdown>(BlocMarkdown.Separateur),
+            MarkdownIa.parser("___"),
+        )
+    }
+
+    @Test
+    fun `C3 - un tableau est reconnu avec en-têtes, alignements et lignes`() {
+        val blocs = MarkdownIa.parser("| Colonne | Total |\n|---|--:|\n| a | 1 |\n| b | 22 |")
+        val tableau = blocs.single() as BlocMarkdown.Tableau
+        assertEquals(listOf("Colonne", "Total"), tableau.entetes)
+        assertEquals(listOf(listOf("a", "1"), listOf("b", "22")), tableau.lignes)
+        assertEquals(listOf(null, AlignementColonne.DROITE), tableau.alignements)
+    }
+
+    @Test
+    fun `C3 - une ligne barree seule n'est PAS un tableau - c'est un paragraphe`() {
+        // Sans ligne séparatrice sous l'en-tête, Markdown exige un
+        // paragraphe : jamais de tableau deviné.
+        val blocs = MarkdownIa.parser("| pas un |\n| tableau |")
+        assertTrue(blocs.single() is BlocMarkdown.Paragraphe)
     }
 
     @Test
@@ -84,7 +171,7 @@ class MarkdownIaTest {
         assertEquals(
             listOf<BlocMarkdown>(
                 BlocMarkdown.Titre(1, "Plan"),
-                BlocMarkdown.Liste(listOf("a")),
+                BlocMarkdown.Liste(listOf(BlocMarkdown.ElementListe("a"))),
                 BlocMarkdown.BlocCode("kotlin", "val x = 1"),
                 BlocMarkdown.Paragraphe("Conclusion"),
             ),

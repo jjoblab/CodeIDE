@@ -1,7 +1,10 @@
 package jo.codeide.feature.ai
 
 import android.animation.ObjectAnimator
+import android.text.SpannableStringBuilder
+import android.text.Spanned
 import android.text.method.LinkMovementMethod
+import android.text.style.ForegroundColorSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,6 +39,11 @@ import jo.codeide.feature.ai.databinding.LigneMessageUtilisateurBinding
  * apparaître un NOUVEAU bloc de code rebranche les mêmes rappels sans
  * repasser par l'adaptateur.
  */
+// Exemption detekt ciblée (règle 16) : TooManyFunctions — une fonction
+// de rendu par TYPE de bloc Markdown (titre, paragraphe, liste, code,
+// citation, séparateur, tableau — C3, retour propriétaire) : la surface
+// EST la couverture des constructes, chacun reste fermé et testé.
+@Suppress("TooManyFunctions")
 internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val espaceVerticalPx: Int) {
     var copierBloc: (String) -> Unit = {}
     var insererBloc: (String) -> Unit = {}
@@ -54,6 +62,9 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
                 is BlocMarkdown.Paragraphe -> rendreParagraphe(bloc, index)
                 is BlocMarkdown.Liste -> rendreListe(bloc, index)
                 is BlocMarkdown.BlocCode -> rendreBlocCode(bloc, index)
+                is BlocMarkdown.Citation -> rendreCitation(bloc, index)
+                BlocMarkdown.Separateur -> rendreSeparateur(index)
+                is BlocMarkdown.Tableau -> rendreTableau(bloc, index)
             }
         }
     }
@@ -83,9 +94,24 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
         }.poserTexte(bloc.texte) { SpansMarkdown.de(bloc.texte) }
     }
 
-    /** Liste : vue textuelle réutilisée, puces préposées. */
+    /** Liste : vue textuelle réutilisée — puce, numéro ou case par
+     * élément, indentation par niveau (C3, retour propriétaire :
+     * l'imbrication et les cases à cocher deviennent VISIBLES, les
+     * listes ordonnées gardent LEUR numérotation). */
     private fun rendreListe(bloc: BlocMarkdown.Liste, index: Int) {
-        val brut = bloc.elements.joinToString("\n") { "•  $it" }
+        var numero = 1
+        val brut =
+            bloc.elements.joinToString("\n") { element ->
+                val prefixe =
+                    when {
+                        element.coche != null -> if (element.coche == true) "☑" else "☐"
+                        bloc.ordonee -> "${numero++}."
+                        element.niveau == 0 -> "•"
+                        element.niveau == 1 -> " ◦"
+                        else -> "  ‧"
+                    }
+                "${"  ".repeat(element.niveau)}$prefixe  ${element.texte}"
+            }
         blocTexte(TYPE_BLOC_LISTE, index) {
             TextView(conteneur.context).apply {
                 setTextAppearance(
@@ -94,6 +120,130 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
                 setPadding(0, espaceVerticalPx, 0, 0)
             }
         }.poserTexte(brut) { SpansMarkdown.de(brut) }
+    }
+
+    /** Citation : bloc renfoncé à liseré primaire, corps discret
+     * (C3, retour propriétaire — l'attribution est VISUELLE, pas
+     * seulement textuelle). */
+    private fun rendreCitation(bloc: BlocMarkdown.Citation, index: Int) {
+        val espacement = conteneur.resources
+        blocTexte(TYPE_BLOC_CITATION, index) {
+            TextView(conteneur.context).apply {
+                setTextAppearance(
+                    com.google.android.material.R.style.TextAppearance_Material3_BodyMedium,
+                )
+                setBackgroundResource(R.drawable.fond_citation_ia)
+                setPaddingRelative(
+                    espacement.getDimensionPixelSize(jo.codeide.core.ui.R.dimen.spacing_md),
+                    espacement.getDimensionPixelSize(jo.codeide.core.ui.R.dimen.spacing_xs),
+                    espacement.getDimensionPixelSize(jo.codeide.core.ui.R.dimen.spacing_sm),
+                    espacement.getDimensionPixelSize(jo.codeide.core.ui.R.dimen.spacing_xs),
+                )
+            }
+        }.poserTexte(bloc.texte) { SpansMarkdown.de(bloc.texte) }
+    }
+
+    /** Séparateur horizontal : filet discret pleine largeur (C3,
+     * retour propriétaire — les coupes de section deviennent
+     * VISIBLES, pas un paragraphe de tirets). */
+    private fun rendreSeparateur(index: Int) {
+        val existante = vueAuRang(index)
+        if (existante?.tag != TYPE_BLOC_SEPARATEUR) {
+            existante?.let { conteneur.removeView(it) }
+            val filet =
+                View(conteneur.context).apply {
+                    tag = TYPE_BLOC_SEPARATEUR
+                    setBackgroundResource(R.drawable.ligne_separateur_ia)
+                    layoutParams =
+                        ViewGroup.MarginLayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            conteneur.resources.getDimensionPixelSize(
+                                jo.codeide.core.ui.R.dimen.hauteur_separateur_ia,
+                            ),
+                        ).apply {
+                            topMargin = espaceVerticalPx
+                            bottomMargin = espaceVerticalPx
+                        }
+                }
+            conteneur.addView(filet, index)
+        }
+    }
+
+    /**
+     * Tableau (C3, retour propriétaire) : grille MONOSPACE aux
+     * colonnes PADDÉES — l'en-tête en gras thématique, un filet sous
+     * l'en-tête, l'alignement déclaré (`--:` `:-:`) suivi par
+     * colonne. Le monospace rend l'alignement honnête ; le texte
+     * passe à la ligne au-delà de l'écran (TextView non éditable,
+     * jamais tronqué) — pas de défilement horizontal caché.
+     */
+    private fun rendreTableau(bloc: BlocMarkdown.Tableau, index: Int) {
+        val colonnes = bloc.entetes.size.coerceAtLeast(1)
+        val largeurs =
+            IntArray(colonnes) { colonne ->
+                (bloc.entetes.getOrNull(colonne)?.length ?: 0).coerceAtLeast(
+                    bloc.lignes.maxOfOrNull { it.getOrNull(colonne)?.length ?: 0 } ?: 0,
+                )
+            }
+
+        fun ligne(cells: List<String>): String = (0 until colonnes).joinToString("  ") { colonne ->
+            val texte = cells.getOrNull(colonne) ?: ""
+            val largeur = largeurs[colonne]
+            when (bloc.alignements.getOrNull(colonne)) {
+                AlignementColonne.DROITE -> texte.padStart(largeur)
+                AlignementColonne.CENTRE -> texte.padStart((largeur + texte.length) / 2).padEnd(largeur)
+                else -> texte.padEnd(largeur)
+            }
+        }
+
+        val filet = (0 until colonnes).joinToString("  ") { "─".repeat(largeurs[it]) }
+        val brut = buildString {
+            append(ligne(bloc.entetes))
+            append('\n')
+            append(filet)
+            for (rangee in bloc.lignes) {
+                append('\n')
+                append(ligne(rangee))
+            }
+        }
+        blocTexte(TYPE_BLOC_TABLEAU, index) {
+            TextView(conteneur.context).apply {
+                typeface = android.graphics.Typeface.MONOSPACE
+                setTextAppearance(
+                    com.google.android.material.R.style.TextAppearance_Material3_BodySmall,
+                )
+                setPadding(0, espaceVerticalPx, 0, 0)
+            }
+        }.poserTexte(brut) { spanTableau(brut) }
+    }
+
+    /** Spanne l'EN-TÊTE du tableau (première ligne) en gras primaire —
+     * le corps reste tel quel (monospace + padding = la structure). */
+    private fun spanTableau(brut: String): CharSequence {
+        val constructeur = SpannableStringBuilder(brut)
+        val finEntetes = brut.indexOf('\n')
+        if (finEntetes > 0) {
+            constructeur.setSpan(
+                android.text.style.StyleSpan(android.graphics.Typeface.BOLD),
+                0,
+                finEntetes,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+            constructeur.setSpan(
+                ForegroundColorSpan(couleurTheme(androidx.appcompat.R.attr.colorPrimary)),
+                0,
+                finEntetes,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+            )
+        }
+        return constructeur
+    }
+
+    /** Couleur d'attribut de thème résolue (le clair/sombre suit le thème). */
+    private fun couleurTheme(attribut: Int): Int {
+        val valeur = android.util.TypedValue()
+        conteneur.context.theme.resolveAttribute(attribut, valeur, true)
+        return valeur.data
     }
 
     /** Bloc de code : carte dédiée (langue · Copier · Insérer · Appliquer). */
@@ -161,6 +311,9 @@ internal class RenduBlocsMarkdown(private val conteneur: ViewGroup, private val 
         const val TYPE_BLOC_PARAGRAPHE = "paragraphe"
         const val TYPE_BLOC_LISTE = "liste"
         const val TYPE_BLOC_CODE = "code"
+        const val TYPE_BLOC_CITATION = "citation"
+        const val TYPE_BLOC_SEPARATEUR = "separateur"
+        const val TYPE_BLOC_TABLEAU = "tableau"
     }
 }
 
@@ -279,8 +432,14 @@ public class AdapterMessages(
     public class TitulaireAssistant(private val liaison: LigneMessageAssistantBinding) :
         RecyclerView.ViewHolder(liaison.root) {
 
-        /** Repli du raisonnement — état de LA ligne, survit aux rebinds partiels. */
-        private var raisonnementDeplie = false
+        /** Repli du raisonnement — état de LA ligne, survit aux rebinds
+         * partiels. `null` = AUTO (C3, retour propriétaire) : déplié
+         * pendant la phase de PENSÉE (l'utilisateur VOIT le flux de
+         * pensée couler — l'ancien comportement le masquait derrière
+         * un clic qu'on ne devine pas), replié dès que la réponse
+         * démarre ; le clic de l'utilisateur tranche ensuite
+         * (Boolean explicite qui survit à la fin du flux). */
+        private var replieRaisonnement: Boolean? = null
 
         /** Curseur de flux : animation alpha clignotante, annulée au recyclage. */
         private var clignotement: ObjectAnimator? = null
@@ -326,6 +485,11 @@ public class AdapterMessages(
             onRegenererMessageLie = onRegenererMessage
             onExporterMessageLie = onExporterMessage
             estDerniere = estDernier
+
+            // C3 : un NOUVEAU message repart en repli AUTOMATIQUE (la
+            // préférence explicite appartient au message précédent, le
+            // titulaire peut être recyclé pour un autre message).
+            replieRaisonnement = null
 
             // Le raisonnement suit son propre rendu (masqué quand vide).
             rendreRaisonnement(message)
@@ -401,35 +565,42 @@ public class AdapterMessages(
         }
 
         /**
-         * Raisonnement (v0.195.0) : en-tête repliable + corps italique
-         * discret. Pendant la phase de pensée la ligne titre annonce
-         * « Raisonnement en cours… » et le corps coule au fil des
-         * fragments ; dès que la réponse démarre ou à la fin, le titre
-         * repasse à « Raisonnement » — repliable au clic, la ligne
-         * seule reste visible (style Claude : jamais une 2e bulle).
+         * Raisonnement (v0.195.0 ; C3, retour propriétaire) : en-tête
+         * repliable + corps italique discret. Pendant la phase de
+         * pensée la ligne titre annonce « Raisonnement en cours… » et
+         * le corps COULE VISIBLE (auto-déplié — on regarde l'IA
+         * réfléchir, plus un clic à deviner) ; dès que la réponse
+         * démarre ou à la fin, le corps se REPLIE (l'utilisateur peut
+         * le rouvrir) — style Claude : jamais une 2e bulle.
          */
         private fun rendreRaisonnement(message: MessageChatUi) {
             val visible = message.raisonnement.isNotBlank()
             liaison.ligneRaisonnement.isVisible = visible
-            liaison.texteRaisonnement.isVisible = visible && raisonnementDeplie
+            val phasePensee = message.generationEnCours && message.texte.isBlank()
+            val deplie = replieRaisonnement ?: phasePensee
+            liaison.texteRaisonnement.isVisible = visible && deplie
             if (!visible) {
                 return
             }
             liaison.titreRaisonnement.setText(
-                if (message.generationEnCours && message.texte.isBlank()) {
+                if (phasePensee) {
                     R.string.ia_raisonnement_en_cours
                 } else {
                     R.string.ia_raisonnement_titre
                 },
             )
             liaison.texteRaisonnement.text = message.raisonnement
-            liaison.chevronRaisonnement.rotation = if (raisonnementDeplie) ROTATION_DEPLIE else ROTATION_REPLIE
+            liaison.chevronRaisonnement.rotation = if (deplie) ROTATION_DEPLIE else ROTATION_REPLIE
             if (!liaison.ligneRaisonnement.hasOnClickListeners()) {
                 liaison.ligneRaisonnement.setOnClickListener {
-                    raisonnementDeplie = !raisonnementDeplie
-                    liaison.texteRaisonnement.isVisible = raisonnementDeplie
+                    // Bascule l'état EFFECTIF (AUTO compris) : la pensée
+                    // en cours est dépliée SANS clic — le premier appui
+                    // la REPLIE, le suivant la ROUVRE.
+                    val deplieMaintenant = liaison.texteRaisonnement.isVisible
+                    replieRaisonnement = !deplieMaintenant
+                    liaison.texteRaisonnement.isVisible = !deplieMaintenant
                     liaison.chevronRaisonnement.rotation =
-                        if (raisonnementDeplie) ROTATION_DEPLIE else ROTATION_REPLIE
+                        if (!deplieMaintenant) ROTATION_DEPLIE else ROTATION_REPLIE
                 }
             }
         }
@@ -497,3 +668,4 @@ public class AdapterMessages(
         const val TYPE_ASSISTANT = 1
     }
 }
+
