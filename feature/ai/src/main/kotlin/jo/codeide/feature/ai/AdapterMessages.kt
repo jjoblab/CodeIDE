@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.view.animation.LinearInterpolator
 import android.widget.TextView
 import androidx.core.view.isVisible
-import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import jo.codeide.feature.ai.databinding.LigneBlocCodeBinding
@@ -212,6 +211,14 @@ public class AdapterMessages(
      * DiffUtil re-rend SEULEMENT ce qui a changé — le texte qui coule,
      * le raisonnement qui s'écrit, la carte d'erreur ou la fin — sans
      * jamais regonfler la ligne entière.
+     *
+     * B1 (rapport IA, lot 1) : le payload de [ComparateurMessages] est
+     * un `Set<ClePayload>` — il est DÉPLIÉ ici (`flatMap` sur chaque
+     * élément, Set ou clé nue). L'ancienne lecture `mapNotNull {
+     * it as? ClePayload }` rejetait le `Set` entier : liste VIDE,
+     * `lierPartiellement` sans effet, réponse INVISIBLE pendant le
+     * flux. Un dépliage qui ne reconnaît RIEN replie sur le bind
+     * COMPLET (jamais un rendu muet).
      */
     public override fun onBindViewHolder(
         titulaire: RecyclerView.ViewHolder,
@@ -222,7 +229,13 @@ public class AdapterMessages(
             super.onBindViewHolder(titulaire, position, payloads)
             return
         }
-        titulaire.lierPartiellement(getItem(position), payloads.mapNotNull { it as? ClePayload })
+        val cles =
+            payloads.flatMap { (it as? Set<*>)?.toList() ?: listOf(it) }.filterIsInstance<ClePayload>()
+        if (cles.isEmpty()) {
+            super.onBindViewHolder(titulaire, position, payloads)
+            return
+        }
+        titulaire.lierPartiellement(getItem(position), cles)
     }
 
     /** Le titulaire recyclé ne doit PAS garder son curseur en animation. */
@@ -410,38 +423,6 @@ public class AdapterMessages(
 
             /** Demi-période du clignotement du curseur de flux. */
             const val DUREE_CLIGNOTEMENT_MS = 450L
-        }
-    }
-
-    /** Clés de paiement du rebind partiel (v0.195.0). */
-    internal enum class ClePayload {
-        TEXTE,
-        RAISONNEMENT,
-        ERREUR,
-        FIN,
-    }
-
-    private object ComparateurMessages : DiffUtil.ItemCallback<MessageChatUi>() {
-        public override fun areItemsTheSame(ancien: MessageChatUi, nouveau: MessageChatUi): Boolean =
-            ancien.identifiant == nouveau.identifiant
-
-        public override fun areContentsTheSame(ancien: MessageChatUi, nouveau: MessageChatUi): Boolean =
-            ancien == nouveau
-
-        public override fun getChangePayload(ancien: MessageChatUi, nouveau: MessageChatUi): Any? {
-            if (ancien == nouveau) {
-                return null
-            }
-            val cles = mutableSetOf<ClePayload>()
-            if (ancien.texte != nouveau.texte) cles.add(ClePayload.TEXTE)
-            if (ancien.raisonnement != nouveau.raisonnement) cles.add(ClePayload.RAISONNEMENT)
-            if (ancien.erreur != nouveau.erreur) cles.add(ClePayload.ERREUR)
-            if (ancien.generationEnCours != nouveau.generationEnCours ||
-                ancien.tronque != nouveau.tronque
-            ) {
-                cles.add(ClePayload.FIN)
-            }
-            return cles.ifEmpty { ClePayload.FIN }
         }
     }
 
