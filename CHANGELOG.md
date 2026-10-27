@@ -1,5 +1,44 @@
 # Journal des modifications
 
+## [0.200.12] – 2026-10-28
+
+### Le chat rend TOUTES les formes d'une réponse — listes ordonnées et imbriquées, cases, citations, séparateurs, tableaux, barré ; le RAISONNEMENT coule visible pendant la pensée (C3, retour propriétaire)
+
+#### Ajouté
+
+- **Nouveaux blocs Markdown** (`MarkdownIa`, analyseur pur testé) :
+  listes **ordonnées** (`1. ` — la numérotation se restitue), listes
+  **imbriquées** (2 espaces par niveau, ◦ sous •), **cases à cocher**
+  (`- [ ]`/`- [x]` → ☐/☑), **citations** (`> ` — bloc renfoncé à
+  liseré primaire sur fond discret), **séparateurs horizontaux**
+  (`---`/`***`/`___` — filet contour-variant, plus jamais un
+  paragraphe de tirets) et **tableaux** (`| … |` avec ligne
+  séparatrice exigée : en-têtes en gras primaire, filet, colonnes
+  paddées au monospace, alignements `:--` `:-:` `--:` suivis). Une
+  ligne barrée seule n'est PAS un tableau (jamais de grille devinée).
+- **Barré en ligne** (`SpansMarkdown`) : `~~texte~~` rendu barré —
+  évalué avant le gras (`~~**x**~~` marche).
+- **Rendu incrémental étendu** (`RenduBlocsMarkdown`) : un rendu par
+  TYPE de bloc (garde anti-rendu conservée — un bloc inchangé ne
+  repasse ni par `setText` ni par les spans pendant le flux).
+
+#### Modifié
+
+- **Le raisonnement coule VISIBLE pendant la pensée** : en phase de
+  réflexion (réponse pas encore démarrée), le corps du raisonnement
+  est déplié PAR DÉFAUT — on regarde l'IA réfléchir, plus de clic à
+  deviner ; dès que la réponse démarre, il se REPLIE de lui-même (la
+  ligne d'en-tête reste), un appui le rouvre. Le repli explicite de
+  l'utilisateur survit à la fin du flux.
+
+#### Tests
+
+- `MarkdownIaTest` : ordonnée, imbrication (niveaux 0/1/2), cases,
+  citation, séparateur (trois marqueurs, pas une liste), tableau
+  (en-têtes/alignements/lignes) et ligne barrée seule ≠ tableau.
+- `AdapterMessagesTest` (Robolectric) : pensée visible sans clic puis
+  repli au démarrage de la réponse, ligne d'en-tête conservée.
+
 ## [0.200.11] – 2026-10-28
 
 ### « Appliquer » du chat RÉVÈLE la carte de diff — le tiroir se referme, Accepter/Rejeter enfin visibles (C2, retour propriétaire)

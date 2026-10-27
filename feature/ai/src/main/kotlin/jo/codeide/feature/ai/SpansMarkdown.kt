@@ -3,6 +3,7 @@ package jo.codeide.feature.ai
 import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ClickableSpan
+import android.text.style.StrikethroughSpan
 import android.text.style.StyleSpan
 import android.text.style.TypefaceSpan
 import android.view.View
@@ -10,10 +11,12 @@ import androidx.core.net.toUri
 
 /**
  * Spans **en ligne** du Markdown (mission IA, lot IA-3) : gras `**x**`,
- * italique `*x*` ou `_x_`, code en ligne `` `x` ``, lien `[t](url)` —
- * rendus dans un [SpannableStringBuilder] (aucune dépendance, aucune
- * vue Web). L'analyse est une seule passe de plus court motif : le
- * gras est évalué avant l'italique (`**` gagne sur `*`).
+ * italique `*x*` ou `_x_`, code en ligne `` `x` ``, lien `[t](url)`,
+ * barré `~~x~~` (C3, retour propriétaire) — rendus dans un
+ * [SpannableStringBuilder] (aucune dépendance, aucune vue Web).
+ * L'analyse est une seule passe de plus court motif : le gras est
+ * évalué avant l'italique (`**` gagne sur `*`), le barré avant le
+ * gras en cas d'imbrication (`~~**x**~~` barré + gras).
  */
 public object SpansMarkdown {
     /** Construit le texte spanné d'un paragraphe ou d'un élément de liste. */
@@ -32,6 +35,7 @@ public object SpansMarkdown {
                 Type.GRAS -> constructeur.append(gras(interieur))
                 Type.ITALIQUE -> constructeur.append(italique(interieur))
                 Type.CODE -> constructeur.append(codeEnLigne(interieur))
+                Type.BARRE -> constructeur.append(barre(interieur))
                 Type.LIEN -> constructeur.append(lien(interieur, motif.url ?: "#"))
             }
             index = motif.suite
@@ -111,6 +115,14 @@ public object SpansMarkdown {
         return spannable
     }
 
+    /** Barré `~~x~~` (C3, retour propriétaire) — correction/retrait
+     * lisible dans une réponse, même geste que l'éditeur. */
+    private fun barre(texte: String): Spanned {
+        val spannable = SpannableStringBuilder(texte)
+        spannable.setSpan(StrikethroughSpan(), 0, texte.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        return spannable
+    }
+
     private fun lien(texte: String, url: String): Spanned {
         val spannable = SpannableStringBuilder(texte)
         spannable.setSpan(
@@ -143,11 +155,13 @@ public object SpansMarkdown {
         GRAS,
         ITALIQUE,
         CODE,
+        BARRE,
         LIEN,
     }
 
     private val REGLES =
         listOf(
+            Regle(Type.BARRE, "~~"),
             Regle(Type.GRAS, "**"),
             Regle(Type.ITALIQUE, "*"),
             Regle(Type.ITALIQUE, "_"),

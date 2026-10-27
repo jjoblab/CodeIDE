@@ -191,6 +191,37 @@ class AdapterMessagesTest {
         assertEquals("Bonjour le monde", texteRendu(titulaire))
     }
 
+    @Test
+    fun `C3 - pendant la PENSEE le raisonnement est VISIBLE sans clic - puis se replie quand la reponse demarre`() {
+        // Phase de pensée : génération en cours, texte vide — le corps
+        // du raisonnement coule VISIBLE (l'ancien comportement le
+        // masquait derrière un clic à deviner).
+        val pensee = messageAssistant("", generationEnCours = true, raisonnement = "Je réfléchis au problème…")
+        soumettreEtCommmettre(listOf(pensee))
+        val titulaire = adaptateur.onCreateViewHolder(liste, TYPE_ASSISTANT)
+        adaptateur.onBindViewHolder(titulaire, 0)
+
+        val corpsPensee = titulaire.itemView.findViewById<View>(R.id.texte_raisonnement)
+        assertTrue(
+            "le corps du raisonnement doit être VISIBLE pendant la pensée",
+            corpsPensee.visibility == View.VISIBLE,
+        )
+
+        // La réponse démarre : le raisonnement se REPLIE de lui-même.
+        val reponse = pensee.copy(texte = "Voici la réponse.", generationEnCours = false)
+        soumettreEtCommmettre(listOf(reponse))
+        val payload = ComparateurMessages.getChangePayload(pensee, reponse)!!
+        adaptateur.onBindViewHolder(titulaire, 0, mutableListOf(payload))
+
+        assertTrue(
+            "le corps du raisonnement doit être REPLIE quand la réponse démarre",
+            corpsPensee.visibility != View.VISIBLE,
+        )
+        // …et l'utilisateur peut le ROUVrir (la ligne reste visible).
+        val ligneRaisonnement = titulaire.itemView.findViewById<View>(R.id.ligne_raisonnement)
+        assertTrue(ligneRaisonnement.visibility == View.VISIBLE)
+    }
+
     private companion object {
         const val TYPE_ASSISTANT = 1
     }

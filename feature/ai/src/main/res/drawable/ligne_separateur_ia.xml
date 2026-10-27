@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Filet du SÉPARATEUR horizontal Markdown (C3, retour propriétaire) :
+  trait plein contour-variant pleine largeur — une coupe de section
+  honnête, discrète en clair comme en sombre (rôle de thème, jamais
+  de couleur en dur).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="?attr/colorOutlineVariant" />
+</shape>
