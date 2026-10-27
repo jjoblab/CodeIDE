@@ -257,6 +257,9 @@
     <string name="agent_preverif_modele">Choose a model before launching the agent</string>
     <string name="agent_preverif_projet">Open a project — the agent works on the open project</string>
     <string name="agent_lancer_indisponible">Launch unavailable — fix the chips above</string>
+    <!-- Live execution progress (A4, rapport IA lot 2). -->
+    <string name="agent_progression">Step %1$d of %2$d · %3$d s</string>
+    <string name="agent_progression_outil">Step %1$d of %2$d · %3$d s · %4$s</string>
     <string name="agent_approbation_titre">Execution requested</string>
     <string name="agent_approbation_refuser">Deny</string>
     <string name="agent_approbation_autoriser">Allow once</string>

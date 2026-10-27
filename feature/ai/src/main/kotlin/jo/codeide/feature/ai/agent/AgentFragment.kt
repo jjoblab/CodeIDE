@@ -153,6 +153,7 @@ public class AgentFragment : Fragment() {
         liaison.champObjectif.isEnabled = !enCours
 
         rendreStatut(etat, liaison)
+        rendreTempsReel(etat, liaison)
         etapes.submitList(etat.etapes)
 
         rendreApprobation(etat, liaison)
@@ -243,6 +244,34 @@ public class AgentFragment : Fragment() {
         liaison.texteReponse.text = etat.reponse.orEmpty()
     }
 
+    /**
+     * Temps réel de l'exécution (A4, rapport IA lot 2) : « Étape 4 / 25 ·
+     * 18 s » (outil en cours en suffixe) + aperçu de la RÉFLEXION du
+     * modèle (2 lignes, italique — présentation pure). La durée se
+     * calcule au rendu (l'état porte le début).
+     */
+    private fun rendreTempsReel(etat: EtatAgentIa, liaison: FragmentIaAgentBinding) {
+        val enCours = etat.statut == StatutAgentIa.EN_COURS
+        val visible = enCours && etat.etapeActive > 0
+        liaison.progressionTempsReel.isVisible = visible
+        if (visible) {
+            val secondes =
+                ((System.currentTimeMillis() - etat.debutExecutionMs) / MILLIS_PAR_SECONDE).coerceAtLeast(0L)
+            val outil = etat.outilEnCours
+            liaison.progressionTempsReel.text =
+                if (outil.isNullOrBlank()) {
+                    getString(R.string.agent_progression, etat.etapeActive, etat.etapesMax, secondes)
+                } else {
+                    getString(R.string.agent_progression_outil, etat.etapeActive, etat.etapesMax, secondes, outil)
+                }
+        }
+
+        liaison.texteReflexion.isVisible = enCours && etat.reflexion.isNotBlank()
+        if (liaison.texteReflexion.isVisible) {
+            liaison.texteReflexion.text = etat.reflexion
+        }
+    }
+
     /** Carte d'approbation EXÉCUTION (ADR 0125) — outil + raison. */
     private fun rendreApprobation(etat: EtatAgentIa, liaison: FragmentIaAgentBinding) {
         val demande = etat.demande
@@ -305,6 +334,11 @@ public class AgentFragment : Fragment() {
             jo.codeide.feature.ai.ActionErreurIa.CHANGER_MODELE ->
                 navigator.openSettingsSection(jo.codeide.core.ui.SectionParametres.IA)
         }
+    }
+
+    private companion object {
+        /** Conversion ms → s de la durée affichée (A4). */
+        private const val MILLIS_PAR_SECONDE = 1000L
     }
 
     private fun cacherClavier(champ: View) {

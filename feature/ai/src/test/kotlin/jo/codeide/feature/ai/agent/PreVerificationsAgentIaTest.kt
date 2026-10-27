@@ -24,9 +24,11 @@ import jo.codeide.feature.ai.FakeReglagesIa
 import jo.codeide.feature.ai.FauxFournisseurContexte
 import jo.codeide.feature.ai.R
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -130,6 +132,7 @@ class PreVerificationsAgentIaTest {
                 coffre = coffre,
                 sessionProjet = session,
                 dispatchers = TestDispatcherProvider(StandardTestDispatcher(horlogeTest)),
+                horloge = TimeProvider { 0L },
             )
         return controleur to fournisseur
     }
@@ -250,6 +253,89 @@ class PreVerificationsAgentIaTest {
         // Ai") et ACTION de remédiation portée par l'état.
         assertEquals(R.string.ia_erreur_authentication, controleur.etat.value.message?.ressource)
         assertEquals(jo.codeide.feature.ai.ActionErreurIa.OUVRIR_REGLAGES, controleur.etat.value.actionErreur)
+    }
+
+    @Test
+    fun `le TEMPS REEL publie la reflexion, l'outil en cours et l'etape active (A4)`() = runTest {
+        // Scénario : raisonnement → appel d'outil (observation) → réponse.
+        // (Les outils du contrôleur passent par le FAUX contexte — le
+        // read_file réel refuse « a.kt » : la PUBLICATION temps réel est
+        // ce qu'on éprouve, pas la réussite de l'outil.)
+        val fournisseur =
+            object : AiProvider {
+                val requetes = mutableListOf<AiRequest>()
+
+                override fun stream(request: AiRequest) = flow {
+                    requetes += request
+                    if (requetes.size == 1) {
+                        // delay entre chaque événement : l'horloge virtuelle
+                        // laisse la COLLECTE d'état jouer à chaque étape —
+                        // sans suspension, StateFlow conflate et le test ne
+                        // verrait que l'état final.
+                        emit(AiEvent.ReasoningDelta("Je réfléchis "))
+                        delay(1)
+                        emit(AiEvent.ReasoningDelta("au projet…"))
+                        delay(1)
+                        emit(AiEvent.ToolCallStarted("call-1", "read_file"))
+                        delay(1)
+                        emit(AiEvent.ToolCallArguments("call-1", "{\"chemin\":\"a.kt\"}"))
+                        delay(1)
+                        emit(AiEvent.Done(AiStopReason.ToolUse))
+                    } else {
+                        emit(AiEvent.TextDelta("Fait."))
+                        emit(AiEvent.Done(AiStopReason.EndTurn))
+                    }
+                }
+
+                override suspend fun listModels(): AppResult<List<AiModelInfo>> = AppResult.Success(emptyList())
+
+                override suspend fun ping(): AppResult<Unit> = AppResult.Success(Unit)
+            }
+        val registreDossier = RegistreDossierProjetIa()
+        registreDossier.publier("/projet/alpha")
+        val controleur =
+            ControleurAgentIa(
+                fournisseur = fournisseur,
+                contextes = FauxFournisseurContexte(),
+                reglages = reglagesPrets(),
+                dossierProjet = registreDossier,
+                racineHistorique = SourceProjetHistorique(),
+                appliqueur = AppliqueurChangeSetIa(FakeFileSystem(), FakeHistoriqueLocal(), TimeProvider { 0L }),
+                demarreurService = ServiceNoOp,
+                coffre = coffreAvecCle(),
+                sessionProjet = SessionPilotable(EtatSessionProjetVue.Ouverte(ProjectId("alpha"))),
+                dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
+                horloge = TimeProvider { 0L },
+            )
+
+        controleur.definirObjectif("Fais quelque chose")
+        controleur.lancer()
+        // On capture le temps réel AU FIL de l'eau : la collecte d'état
+        // voit la réflexion AVANT l'observation (pas de bufferisation).
+        val vus = mutableListOf<EtatAgentIa>()
+        val collecte = launch {
+            controleur.etat.collect { vus.add(it) }
+        }
+        advanceUntilIdle()
+        collecte.cancel()
+
+        // La réflexion a été publiée PENDANT l'exécution (au moins un
+        // état intermédiaire la porte).
+        assertTrue(
+            "la réflexion doit vivre dans un état intermédiaire",
+            vus.any { it.reflexion.isNotBlank() },
+        )
+        // L'outil en cours et l'étape active ont été publiés, puis
+        // refermés à la fin.
+        assertTrue(vus.any { it.outilEnCours == "read_file" && it.etapeActive == 1 })
+        val final = controleur.etat.value
+        assertEquals(StatutAgentIa.TERMINE, final.statut)
+        assertEquals(0, final.etapeActive)
+        assertEquals(null, final.outilEnCours)
+        // La dernière observation est restée (extrait borné) — un REFUS
+        // typé du faux contexte, portant le chemin demandé.
+        org.junit.Assert.assertNotNull(final.derniereObservation)
+        org.junit.Assert.assertTrue(final.derniereObservation!!.contains("a.kt"))
     }
 
     @Test
