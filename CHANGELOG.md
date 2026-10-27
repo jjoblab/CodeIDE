@@ -1,5 +1,37 @@
 # Journal des modifications
 
+## [0.200.6] – 2026-10-27
+
+### Erreurs de l'agent LISIBLES et réparables — l'erreur typée voyage, le « échec fournisseur : NomDeClasse » est mort (rapport IA, chantier IA-CODEIDE, lot 2, A3)
+
+#### Corrigé
+
+- **`échec fournisseur : <NomDeClasse>` n'existe plus** (rapport IA,
+  lot 2, A3) : le runner (`core:ai`) remonte désormais l'ERREUR
+  TYPÉE du fournisseur (`ResultatAgentIa.erreur` — l'`AppError` du
+  `AiEvent.Failure`) au lieu d'une chaîne forgée ; le contrôleur la
+  traduit par la MÊME présentation que le chat
+  (`PresentationErreursIa` — table fermée des raisons :
+  « Clé absente ou refusée par le fournisseur », « Hors-ligne —
+  vérifiez la connexion », « Limite de débit atteinte »…) : le
+  message est LISIBLE et la raison est honnête.
+- **Chaque carte d'erreur propose SA remédiation** (A3) : l'état
+  porte `actionErreur` (Réessayer / Ouvrir les réglages / Changer de
+  modèle — miroir du chat) et l'écran Agent affiche le bouton SOUS le
+  message : « Réessayer » relance l'exécution, « Ouvrir les
+  réglages »/« Changer de modèle » ouvrent la section IA des
+  paramètres (le `navigator` du fragment, même patron que le chat).
+  Une nouvelle tentative EFFACE l'action précédente (jamais de bouton
+  périmé).
+
+#### Tests
+
+- **+2 tests** : `AgentRunnerIaTest` (:core:ai) — l'échec
+  `Failure(Authentication)` remonte TYPIÉ dans le résultat ;
+  `PreVerificationsAgentIaTest` (:feature:ai) — le contrôleur rend le
+  message `ia_erreur_authentication` ET l'action
+  `OUVRIR_REGLAGES` dans l'état.
+
 ## [0.200.5] – 2026-10-27
 
 ### Pré-vérifications avant lancement de l'agent — puces ● Projet / ● Clé / ● Modèle, le déguisement « modele-a-configurer » est mort (rapport IA, chantier IA-CODEIDE, lot 2, A2)

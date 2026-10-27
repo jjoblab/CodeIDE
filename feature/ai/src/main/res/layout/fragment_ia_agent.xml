@@ -369,5 +369,19 @@
             android:visibility="gone"
             tools:text="Décrivez d'abord l'objectif de l'agent"
             tools:visibility="visible" />
+
+        <!-- Action de remédiation de l'erreur (A3, rapport IA lot 2) :
+             Réessayer / Ouvrir les réglages / Changer de modèle —
+             jamais une carte d'erreur muette. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_action_erreur"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:visibility="gone"
+            tools:text="Réessayer"
+            tools:visibility="visible" />
     </LinearLayout>
 </ScrollView>
