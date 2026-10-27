@@ -3312,6 +3312,13 @@ class EditorActivity :
                         .makeText(this, R.string.editor_sortie_build_continue, android.widget.Toast.LENGTH_LONG)
                         .show()
                 }
+                // A2 (rapport IA, lot 2) : le registre IA du dossier
+                // projet est EFFACÉ à la fermeture — l'ancienne
+                // publication unique à la création laissait un dossier
+                // FANTÔME aux pré-vérifications de l'agent après
+                // fermeture du projet.
+                dossierProjetReelCache = null
+                registreDossierIa.publier(null)
                 finish()
             }
 

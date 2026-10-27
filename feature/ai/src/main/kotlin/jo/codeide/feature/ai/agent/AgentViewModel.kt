@@ -28,6 +28,11 @@ constructor(private val controleur: ControleurAgentIa) : ViewModel() {
         controleur.definirObjectif(objectif)
     }
 
+    /** Recalcule les puces de pré-vérification (A2, rapport IA lot 2). */
+    public fun rafraichirPreVerifications() {
+        controleur.rafraichirPreVerifications()
+    }
+
     public fun lancer() {
         controleur.lancer()
     }

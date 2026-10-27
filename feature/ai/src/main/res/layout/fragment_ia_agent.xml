@@ -75,6 +75,43 @@
                 android:maxLines="6" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Pré-vérifications de lancement (A2, rapport IA lot 2) :
+             puces ● Projet / ● Clé / ● Modèle — une par condition, le
+             libellé porte l'ÉTAT, la couleur suit le jeton du thème. -->
+        <LinearLayout
+            android:id="@+id/bandeau_preverifications"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:orientation="horizontal">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/puce_projet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                tools:text="● Projet"
+                tools:ignore="HardcodedText" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/puce_cle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="@dimen/spacing_sm"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                tools:text="● Clé"
+                tools:ignore="HardcodedText" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/puce_modele"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                tools:text="● Modèle"
+                tools:ignore="HardcodedText" />
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

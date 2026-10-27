@@ -24,10 +24,16 @@ import jo.codeide.core.ai.RegistreOutilsIa
 import jo.codeide.core.ai.ResolveurCheminsProjetIa
 import jo.codeide.core.ai.ResultatApplicationIa
 import jo.codeide.core.ai.RevueChangeSetIa
+import jo.codeide.core.domain.AiSettings
+import jo.codeide.core.domain.CoffreClesIa
+import jo.codeide.core.domain.DispatcherProvider
+import jo.codeide.core.domain.EtatSessionProjetVue
+import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.domain.RegistreDossierProjetIa
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.getOrNull
 import jo.codeide.feature.ai.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -87,6 +93,28 @@ public data class MessageAgentIa(
     public val argument: String? = null,
 )
 
+/**
+ * Pré-vérifications de lancement (A2, rapport IA lot 2) : puces du
+ * bandeau d'état — une action par problème. Le bouton « Lancer » est
+ * désactivé tant qu'une puce est en échec ; [pret] est la conjonction.
+ */
+public data class PreVerificationsAgentIa(
+    /** Assistant actif ET consentement donné (garde du routeur IA-2). */
+    public val assistantActif: Boolean = false,
+
+    /** Clé présente pour le fournisseur ACTIF (le coffre décide). */
+    public val clePresente: Boolean = false,
+
+    /** Modèle CHOISI — `"modele-a-configurer"` n'est plus JAMAIS envoyé. */
+    public val modeleChoisi: Boolean = false,
+
+    /** Projet ouvert (session Ouverte) ET dossier résolu (repli FUSE). */
+    public val projetOuvert: Boolean = false,
+) {
+    /** Vraisemblance complète — condition du bouton « Lancer ». */
+    public val pret: Boolean get() = assistantActif && clePresente && modeleChoisi && projetOuvert
+}
+
 /** État complet de l'écran Agent (UDF — observé par le fragment ET le service premier plan). */
 public data class EtatAgentIa(
     public val statut: StatutAgentIa = StatutAgentIa.INACTIF,
@@ -102,6 +130,8 @@ public data class EtatAgentIa(
     /** Réponse FINALE de l'agent quand l'objectif est couvert (contenu). */
     public val reponse: String? = null,
     public val enApplication: Boolean = false,
+    /** Puces de pré-vérification (A2, rapport IA lot 2). */
+    public val preVerifications: PreVerificationsAgentIa = PreVerificationsAgentIa(),
 )
 
 /**
@@ -129,12 +159,17 @@ constructor(
     private val dossierProjet: RegistreDossierProjetIa,
     private val racineHistorique: SourceProjetHistorique,
     private val appliqueur: AppliqueurChangeSetIa,
-    private val demarreurService: DemarreurServiceAgentIa,
+    private val demarreurService: ServiceAgentIaPremierPlan,
+    private val coffre: CoffreClesIa,
+    private val sessionProjet: ObservateurSessionProjet,
+    private val dispatchers: DispatcherProvider,
 ) {
     private val _etat = MutableStateFlow(EtatAgentIa())
     public val etat: StateFlow<EtatAgentIa> = _etat.asStateFlow()
 
-    private val portee = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // A2 : la portée vient du provider injecté (les tests la pilotent
+    // sur l'horloge virtuelle — plus de Dispatchers.IO en dur).
+    private val portee = CoroutineScope(SupervisorJob() + dispatchers.io)
     private var travail: Job? = null
     private val changeSetCourant = ChangeSetIaCourant()
 
@@ -171,6 +206,65 @@ constructor(
         _etat.update { courant -> courant.copy(objectif = objectif) }
     }
 
+    /**
+     * Recalcule les puces de pré-vérification (A2, rapport IA lot 2) —
+     * appelée à l'arrivée sur l'écran Agent (STARTED) et avant Lancer :
+     * assistant + consentement, clé du fournisseur ACTIF, modèle choisi,
+     * projet ouvert (session [EtatSessionProjetVue.Ouverte]) et dossier
+     * résolu (repli asynchrone FUSE — le registre reste la voie du
+     * CHEMIN, la session est la source de vérité du projet OUVERT).
+     */
+    public fun rafraichirPreVerifications() {
+        portee.launch {
+            val courant = reglages.courant().getOrNull()
+            if (courant == null) {
+                _etat.update { it.copy(preVerifications = PreVerificationsAgentIa()) }
+                return@launch
+            }
+            val clePresente = coffre.contient(courant.fournisseurActif)
+            val sessionOuverte = sessionProjet.etatSession.value is EtatSessionProjetVue.Ouverte
+            _etat.update { etat ->
+                etat.copy(
+                    preVerifications =
+                    PreVerificationsAgentIa(
+                        assistantActif = courant.assistantActive && courant.consentementDonne,
+                        clePresente = clePresente,
+                        modeleChoisi = courant.modeleActif.isNotBlank(),
+                        projetOuvert = sessionOuverte && dossierProjet.dossier() != null,
+                    ),
+                )
+            }
+        }
+    }
+
+    /**
+     * Garde de lancement (A2) : le PREMIER motif manquant, dans cet
+     * ordre — assistant actif + consentement, clé présente pour le
+     * fournisseur actif, modèle choisi (JAMAIS `"modele-a-configurer"`
+     * envoyé), projet ouvert et résolu. `null` = tout est prêt.
+     */
+    @Suppress("ReturnCount") // garde SÉQUENTIELLE : un retour par puce, l'ordre est le contrat.
+    private suspend fun verifierLancement(): MessageAgentIa? {
+        val courant =
+            reglages.courant().getOrNull()
+                ?: return MessageAgentIa(R.string.agent_reglages_illisibles)
+        if (!courant.assistantActive || !courant.consentementDonne) {
+            return MessageAgentIa(R.string.agent_preverif_assistant)
+        }
+        if (!coffre.contient(courant.fournisseurActif)) {
+            return MessageAgentIa(R.string.agent_preverif_cle)
+        }
+        if (courant.modeleActif.isBlank()) {
+            return MessageAgentIa(R.string.agent_preverif_modele)
+        }
+        if (sessionProjet.etatSession.value !is EtatSessionProjetVue.Ouverte ||
+            dossierProjet.dossier() == null
+        ) {
+            return MessageAgentIa(R.string.agent_preverif_projet)
+        }
+        return null
+    }
+
     /** Lance l'exécution (garde : objectif non vide, pas déjà en cours). */
     public fun lancer() {
         if (_etat.value.statut == StatutAgentIa.EN_COURS) return
@@ -182,6 +276,15 @@ constructor(
         travail =
             portee.launch {
                 try {
+                    // A2 : pré-vérifications AVANT tout lancement — une
+                    // action par problème, le motif le plus lisible gagne,
+                    // aucune requête ne part déguisée.
+                    rafraichirPreVerifications()
+                    val garde = verifierLancement()
+                    if (garde != null) {
+                        _etat.update { it.copy(message = garde) }
+                        return@launch
+                    }
                     executer(objectif)
                 } catch (annulation: CancellationException) {
                     _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, MessageAgentIa(R.string.agent_annule)) }
@@ -221,7 +324,7 @@ constructor(
      * Prépare la revue du ChangeSet en attente (résolution + conflits)
      * — appelée à l'ouverture de la revue et avant « Tout appliquer ».
      */
-    public suspend fun preparerRevue(): RevueChangeSetIa? = withContext(Dispatchers.IO) {
+    public suspend fun preparerRevue(): RevueChangeSetIa? = withContext(dispatchers.io) {
         val revue = appliqueur.preparer(changeSetCourant.depot, racineHistorique.racineDocument)
         _etat.update { it.copy(revue = revue) }
         revue
@@ -229,7 +332,7 @@ constructor(
 
     /** Applique les fichiers [retenus] (`null` = tous les applicables). */
     public suspend fun appliquer(retenus: Set<String>? = null) {
-        withContext(Dispatchers.IO) {
+        withContext(dispatchers.io) {
             _etat.update { it.copy(enApplication = true) }
             val (execution, resultat) =
                 appliqueur.appliquer(changeSetCourant.depot, racineHistorique.racineDocument, retenus)
@@ -258,7 +361,7 @@ constructor(
     /** « Annuler cette exécution » — restauration exacte (ADR 0125). */
     public suspend fun annulerExecution() {
         val execution = _etat.value.execution ?: return
-        withContext(Dispatchers.IO) {
+        withContext(dispatchers.io) {
             val resultat = appliqueur.annuler(execution)
             _etat.update { courant ->
                 when (resultat) {
@@ -280,7 +383,14 @@ constructor(
         _etat.update { it.copy(revue = null) }
     }
 
-    private suspend fun executer(objectif: String) {
+    /**
+     * Garde d'ouverture de l'exécution (A2, rapport IA lot 2) :
+     * réglages lisibles, modèle CHOISI (le déguisement
+     * `"modele-a-configurer"` est mort), dossier résolu. `null` = la
+     * défense en profondeur a publié son motif et l'exécution s'arrête.
+     */
+    @Suppress("ReturnCount") // garde SÉQUENTIELLE : un retour par condition, miroir de verifierLancement.
+    private suspend fun ouvrirExecution(): Triple<AiSettings, String, String>? {
         val reglagesCourants =
             when (val lecture = reglages.courant()) {
                 is AppResult.Success -> {
@@ -291,15 +401,30 @@ constructor(
                     _etat.update {
                         it.reprise(StatutAgentIa.ECHOUE, MessageAgentIa(R.string.agent_reglages_illisibles))
                     }
-                    return
+                    return null
                 }
             }
-        val modele = reglagesCourants.modeleActif.ifBlank { "modele-a-configurer" }
+        val modele = reglagesCourants.modeleActif
+        if (modele.isBlank()) {
+            _etat.update {
+                it.reprise(StatutAgentIa.ECHOUE, MessageAgentIa(R.string.agent_preverif_modele))
+            }
+            return null
+        }
         val dossier = dossierProjet.dossier()
         if (dossier == null) {
             _etat.update { it.reprise(StatutAgentIa.ECHOUE, MessageAgentIa(R.string.agent_aucun_projet)) }
-            return
+            return null
         }
+        return Triple(reglagesCourants, modele, dossier)
+    }
+
+    private suspend fun executer(objectif: String) {
+        // A2 : la garde d'ouverture regroupe les défenses en profondeur
+        // (réglages, modèle choisi, dossier) — l'exécution ne commence
+        // qu'honnête.
+        val ouverture = ouvrirExecution() ?: return
+        val (_, modele, dossier) = ouverture
 
         _etat.update { etat ->
             EtatAgentIa(

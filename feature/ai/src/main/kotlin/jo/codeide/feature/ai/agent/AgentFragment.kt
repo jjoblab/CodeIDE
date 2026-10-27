@@ -101,6 +101,10 @@ public class AgentFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // A2 (rapport IA lot 2) : les puces se recalculent à
+                // CHAQUE arrivée sur l'écran — l'état des réglages, de
+                // la clé et du projet a pu changer pendant l'arrêt.
+                modele.rafraichirPreVerifications()
                 modele.etat.collect { etat -> rendre(etat, liaison, etapes) }
             }
         }
@@ -121,6 +125,12 @@ public class AgentFragment : Fragment() {
         liaison.boutonLancer.isVisible = !enCours
         liaison.boutonArreter.isVisible = enCours
         liaison.boutonContinuer.isVisible = etat.statut == StatutAgentIa.INTERROMPU
+        // A2 (rapport IA lot 2) : Lancer désactivé tant qu'une puce est
+        // en échec — les puces portent le motif, le message d'état le
+        // précise au premier problème.
+        val preVerifications = etat.preVerifications
+        liaison.boutonLancer.isEnabled = enCours || preVerifications.pret
+        rendrePreVerifications(preVerifications, liaison)
         liaison.texteLimites.text =
             getString(R.string.agent_limites, etat.etapes.size, etat.etapesMax, etat.modele)
         // Le champ verrouillé pendant l'exécution : l'objectif en cours
@@ -130,12 +140,7 @@ public class AgentFragment : Fragment() {
         rendreStatut(etat, liaison)
         etapes.submitList(etat.etapes)
 
-        val demande = etat.demande
-        liaison.carteApprobation.isVisible = demande != null
-        if (demande != null) {
-            liaison.texteApprobationOutil.text = demande.outil
-            liaison.texteApprobationRaison.text = demande.raison
-        }
+        rendreApprobation(etat, liaison)
 
         val revue = etat.revue
         val changementsVisibles = revue != null && !revue.vide && etat.execution == null
@@ -207,6 +212,53 @@ public class AgentFragment : Fragment() {
             },
         )
         liaison.progressionStatut.isVisible = etat.statut == StatutAgentIa.EN_COURS || etat.enApplication
+    }
+
+    /** Carte d'approbation EXÉCUTION (ADR 0125) — outil + raison. */
+    private fun rendreApprobation(etat: EtatAgentIa, liaison: FragmentIaAgentBinding) {
+        val demande = etat.demande
+        liaison.carteApprobation.isVisible = demande != null
+        if (demande != null) {
+            liaison.texteApprobationOutil.text = demande.outil
+            liaison.texteApprobationRaison.text = demande.raison
+        }
+    }
+
+    /**
+     * Bandeau de pré-vérifications (A2, rapport IA lot 2) : une puce par
+     * condition — le LIBELLÉ porte l'état (pas de faux « tout va bien »),
+     * la couleur suit les jetons du thème (primaire = prêt, erreur = à
+     * corriger). Le bandeau vit au-dessus du bouton Lancer, jamais au
+     * milieu des étapes d'une exécution en cours.
+     */
+    private fun rendrePreVerifications(preVerifications: PreVerificationsAgentIa, liaison: FragmentIaAgentBinding) {
+        val contexte = liaison.root.context
+        val couleurPret = couleurTheme(contexte, androidx.appcompat.R.attr.colorPrimary)
+        val couleurEchec = couleurTheme(contexte, androidx.appcompat.R.attr.colorError)
+
+        fun puce(
+            vue: com.google.android.material.textview.MaterialTextView,
+            ok: Boolean,
+            ressourceOk: Int,
+            ressourceKo: Int,
+        ) {
+            vue.setText(if (ok) ressourceOk else ressourceKo)
+            vue.setTextColor(if (ok) couleurPret else couleurEchec)
+        }
+
+        puce(
+            liaison.puceProjet,
+            preVerifications.projetOuvert,
+            R.string.agent_puce_projet_ok,
+            R.string.agent_puce_projet_ko,
+        )
+        puce(liaison.puceCle, preVerifications.clePresente, R.string.agent_puce_cle_ok, R.string.agent_puce_cle_ko)
+        puce(
+            liaison.puceModele,
+            preVerifications.modeleChoisi,
+            R.string.agent_puce_modele_ok,
+            R.string.agent_puce_modele_ko,
+        )
     }
 
     private fun cacherClavier(champ: View) {

@@ -1,5 +1,63 @@
 # Journal des modifications
 
+## [0.200.5] – 2026-10-27
+
+### Pré-vérifications avant lancement de l'agent — puces ● Projet / ● Clé / ● Modèle, le déguisement « modele-a-configurer » est mort (rapport IA, chantier IA-CODEIDE, lot 2, A2)
+
+#### Ajouté
+
+- **Le bandeau de pré-vérifications vit au-dessus du bouton
+  « Lancer »** (rapport IA, lot 2, A2) : trois puces — ● Projet /
+  ● Clé / ● Modèle — dont le LIBELLÉ porte l'état (« ● Aucun projet »,
+  « ● Clé absente », « ● Modèle à choisir »), la couleur suit les
+  jetons du thème (primaire = prêt, erreur = à corriger). Le bouton
+  « Lancer » est DÉSACTIVÉ tant qu'une puce est en échec ; les puces
+  se recalculent à CHAQUE arrivée sur l'écran (STARTED) — l'état des
+  réglages, de la clé et du projet a pu changer pendant l'arrêt.
+- **La garde de lancement vérifie dans l'ordre, avec le motif le plus
+  lisible** : assistant actif + consentement → clé présente pour le
+  fournisseur ACTIF (le coffre décide) → modèle CHOISI → projet ouvert
+  et dossier résolu. Aucune requête ne part tant qu'une vérification
+  échoue — le message d'état porte le PREMIER motif
+  (`agent_preverif_assistant/cle/modele/projet`, FR + EN).
+
+#### Corrigé
+
+- **`"modele-a-configurer"` n'est plus JAMAIS envoyé** : le modèle
+  VIDE était déguisé en identifiant bidon dans la requête — la garde
+  de lancement le refuse AVANT, et la défense en profondeur
+  (`ouvrirExecution`) échoue HONNÊTEMENT avec le motif
+  « Choisissez un modèle ».
+- **Le projet FANTÔME après fermeture n'existe plus** : le registre
+  du dossier IA (publication unique à la création de l'éditeur,
+  jamais effacée) est EFFACÉ à la fermeture du projet
+  (`EffetEditor.Quitter` → `publier(null)` + cache vidé). La
+  pré-vérification « projet » lit la SESSION (source de vérité du
+  projet ouvert, `ObservateurSessionProjet` — `EtatSessionProjetVue.
+  Ouverte`) ET le dossier résolu : une session fermée refuse le
+  lancement même si le registre porte encore un chemin périmé.
+
+#### Technique
+
+- **Le contrôleur devient testable JVM** : le service premier plan
+  passe par le PORT [ServiceAgentIaPremierPlan] (double no-op dans
+  les tests, liaison Hilt dans `TiroirIaBindsModule`) et la portée
+  interne vient du `DispatcherProvider` injecté (l'horloge virtuelle
+  des tests pilote tout — plus de `Dispatchers.IO` en dur). La garde
+  d'ouverture regroupe les défenses en profondeur (`ouvrirExecution`
+  — réglages, modèle, dossier).
+
+#### Tests
+
+- **+7 tests** (`PreVerificationsAgentIaTest`, JVM pur) : sans
+  assistant actif / sans clé / sans modèle → lancement refusé avec le
+  BON motif et AUCUNE requête au fournisseur (le déguisement
+  `modele-a-configurer` ne paraît dans aucune requête) ; session
+  FERMÉE → refus même si le registre porte encore le dossier ;
+  session ouverte mais dossier non résolu → refus ; toutes conditions
+  réunies → la requête part au VRAI modèle et l'agent TERMINE ;
+  `rafraichirPreVerifications` calcule les puces sans lancer.
+
 ## [0.200.4] – 2026-10-27
 
 ### Le protocole d'outils de l'agent est REPAIRÉ — vrais `toolCallId`, blocs `ToolUse`, plusieurs appels par étape (rapport IA, chantier IA-CODEIDE, lot 2, A1)
