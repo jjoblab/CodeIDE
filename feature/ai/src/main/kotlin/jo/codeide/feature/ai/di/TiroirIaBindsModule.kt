@@ -11,6 +11,8 @@ import jo.codeide.core.ui.PontIaEditeur
 import jo.codeide.feature.ai.IaTiroirFragment
 import jo.codeide.feature.ai.PontCompletionFantomeIaImpl
 import jo.codeide.feature.ai.PontIaEditeurImpl
+import jo.codeide.feature.ai.agent.DemarreurServiceAgentIa
+import jo.codeide.feature.ai.agent.ServiceAgentIaPremierPlan
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -35,6 +37,11 @@ internal abstract class TiroirIaBindsModule {
     @Binds
     @Singleton
     internal abstract fun lierPontCompletionFantome(impl: PontCompletionFantomeIaImpl): PontCompletionFantomeIa
+
+    /** A2 (rapport IA lot 2) : le port du service premier plan de l'agent. */
+    @Binds
+    @Singleton
+    internal abstract fun lierServiceAgentIaPremierPlan(impl: DemarreurServiceAgentIa): ServiceAgentIaPremierPlan
 }
 
 /** Implémentation : crée le fragment IA du tiroir, prêt à ajouter. */

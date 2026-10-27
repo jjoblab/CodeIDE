@@ -259,6 +259,19 @@
     <string name="agent_application_echouee">Application échouée : %1$s</string>
     <string name="agent_reglages_illisibles">Réglages IA illisibles</string>
     <string name="agent_aucun_projet">Aucun projet ouvert</string>
+    <!-- Pré-vérifications de lancement (A2, rapport IA lot 2). -->
+    <string name="agent_puce_projet_ok">● Projet</string>
+    <string name="agent_puce_projet_ko">● Aucun projet</string>
+    <string name="agent_puce_cle_ok">● Clé</string>
+    <string name="agent_puce_cle_ko">● Clé absente</string>
+    <string name="agent_puce_modele_ok">● Modèle</string>
+    <string name="agent_puce_modele_ko">● Modèle à choisir</string>
+    <string name="agent_puce_assistant_ko">● Assistant à activer</string>
+    <string name="agent_preverif_assistant">Activez l\'assistant IA et donnez votre consentement avant de lancer l\'agent</string>
+    <string name="agent_preverif_cle">Ajoutez la clé du fournisseur actif avant de lancer l\'agent</string>
+    <string name="agent_preverif_modele">Choisissez un modèle avant de lancer l\'agent</string>
+    <string name="agent_preverif_projet">Ouvrez un projet — l\'agent travaille sur le projet ouvert</string>
+    <string name="agent_lancer_indisponible">Lancer indisponible — corrigez les puces ci-dessus</string>
     <string name="agent_approbation_titre">Exécution demandée</string>
     <string name="agent_approbation_refuser">Refuser</string>
     <string name="agent_approbation_autoriser">Autoriser une fois</string>

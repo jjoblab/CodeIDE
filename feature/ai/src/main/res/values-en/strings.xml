@@ -244,6 +244,19 @@
     <string name="agent_application_echouee">Apply failed: %1$s</string>
     <string name="agent_reglages_illisibles">AI settings unreadable</string>
     <string name="agent_aucun_projet">No project open</string>
+    <!-- Pre-flight checks (A2, rapport IA lot 2). -->
+    <string name="agent_puce_projet_ok">● Project</string>
+    <string name="agent_puce_projet_ko">● No project</string>
+    <string name="agent_puce_cle_ok">● Key</string>
+    <string name="agent_puce_cle_ko">● Key missing</string>
+    <string name="agent_puce_modele_ok">● Model</string>
+    <string name="agent_puce_modele_ko">● Pick a model</string>
+    <string name="agent_puce_assistant_ko">● Enable the assistant</string>
+    <string name="agent_preverif_assistant">Enable the AI assistant and give consent before launching the agent</string>
+    <string name="agent_preverif_cle">Add the active provider\'s key before launching the agent</string>
+    <string name="agent_preverif_modele">Choose a model before launching the agent</string>
+    <string name="agent_preverif_projet">Open a project — the agent works on the open project</string>
+    <string name="agent_lancer_indisponible">Launch unavailable — fix the chips above</string>
     <string name="agent_approbation_titre">Execution requested</string>
     <string name="agent_approbation_refuser">Deny</string>
     <string name="agent_approbation_autoriser">Allow once</string>
