@@ -57,6 +57,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -242,6 +244,25 @@ constructor(
     // A2 : la portée vient du provider injecté (les tests la pilotent
     // sur l'horloge virtuelle — plus de Dispatchers.IO en dur).
     private val portee = CoroutineScope(SupervisorJob() + dispatchers.io)
+
+    init {
+        // C1 (retour propriétaire) : les puces de pré-vérification
+        // réagissent aux SIGNAUX du projet — la résolution FUSE du
+        // démarrage peut atterrir APRÈS l'arrivée sur l'écran Agent
+        // (l'ouverture du tiroir redemande le chemin, l'activité
+        // republie) ; session OUVERTE et dossier publié recalculent
+        // l'état, la puce « Projet » ne reste jamais rouge sur un
+        // état périmé. La conjonction est dédupliquée : un signal qui
+        // ne change PAS le verdict ne recompute pas.
+        portee.launch {
+            combine(sessionProjet.etatSession, dossierProjet.etat) { session, dossier ->
+                session is EtatSessionProjetVue.Ouverte && dossier != null
+            }.distinctUntilChanged().collect {
+                rafraichirPreVerifications()
+            }
+        }
+    }
+
     private var travail: Job? = null
     private val changeSetCourant = ChangeSetIaCourant()
 

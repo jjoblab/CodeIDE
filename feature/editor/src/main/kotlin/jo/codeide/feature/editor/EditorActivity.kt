@@ -606,6 +606,14 @@ class EditorActivity :
                         getString(R.string.editor_fermer_tiroir_cd)
                     fractionTiroir = 1f
                     recalerPoignee()
+                    // C1 (retour propriétaire) : le CHEMIN du projet est
+                    // repassé à chaque ouverture du tiroir — la résolution
+                    // FUSE du démarrage a pu échouer ou être encore en vol
+                    // quand l'utilisateur a ouvert l'assistant (l'écran
+                    // Agent affichait « projet non ouvert » sur un état
+                    // périmé). La republication est idempotente : cache du
+                    // ViewModel côté succès, NOUVELLE tentative côté échec.
+                    resoudreDossierProjetAsynchrone()
                 }
 
                 override fun onDrawerClosed(vueTiroir: View) {

@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.200.10] – 2026-10-28
+
+### Le chemin du projet est REPASSÉ à l'ouverture du tiroir IA — la puce « Projet » de l'agent vit avec les signaux (C1, retour propriétaire)
+
+#### Corrigé
+
+- **Registre du dossier projet observable** (`RegistreDossierProjetIa`,
+  `MutableStateFlow`) : la publication reste synchrone pour ses
+  lecteurs, mais les écrans peuvent désormais COLLECTER l'arrivée du
+  chemin — la résolution FUSE du démarrage peut atterrir APRÈS
+  l'ouverture du tiroir (l'écran Agent affichait « projet non ouvert »
+  figé sur un état périmé alors que le projet ÉTAIT ouvert).
+- **Pré-vérifications réactives** (`ControleurAgentIa`) : le contrôleur
+  collecte la conjonction session OUVERTE × dossier publié
+  (dédupliquée) et recalcule les puces à CHAQUE signal — la puce
+  « Projet » passe au vert D'ELLE-MÊME quand le chemin atterrit, et
+  repasse au rouge PAR LE FLUX quand le projet se ferme (plus jamais
+  de puce menteuse ou périmée sans re-visiter l'écran).
+- **Re-résolution à l'ouverture du tiroir** (`EditorActivity`) :
+  `onDrawerOpened` relance la résolution + publication (idempotente :
+  cache du ViewModel côté succès, NOUVELLE tentative côté échec) —
+  « lorsque le tiroir IA s'ouvre, le chemin du projet est passé ».
+
+#### Tests
+
+- `PreVerificationsAgentIaTest` : le chemin qui atterrit TARD réactive
+  la puce Projet sans repasser par l'écran ; la FERMETURE de session
+  réactive aussi la puce (miroir inverse).
+
 ## [0.200.9] – 2026-10-28
 
 ### Design et fonctionnalités d'après la maquette — commandes « / », actions rapides, Régénérer/Exporter Markdown, épinglage + suppression réversible de l'historique, onglet Recherche réel, mode « revue » de l'agent et carte de changements avec diff (rapport IA, chantier IA-CODEIDE, lot 3)
