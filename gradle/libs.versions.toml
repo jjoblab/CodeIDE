@@ -121,8 +121,48 @@ androidx-viewpager2 = "1.1.0"
 # aucun œil ; hitTestGutterPreviewAnchor ; onPreviewAnchorTapped à
 # défaut ; selectPreviewDropTab — miroir d'un tap d'onglet) ; build
 # JitPack v4.2.0 « ok » (la chaîne locale de v0.177.0 a résolu et
-# testé l'artefact).
-code-editor = "v4.2.0"
+# testé l'artefact). MONTÉE 4.2.0 → 4.5.1 (bump-frère du 2026-10-27,
+# instruction propriétaire « Monte la version de code-editor dans
+# CodeIDE ») : plage STRICTEMENT ADDITIVE (guide
+# MISE-A-JOUR-CODEIDE.md §4.3.0 → §4.5.1 : « aucune rupture d'API »,
+# aucune migration obligatoire). 4.3.0 = complétion fiabilisée
+# (drapeau LSP isIncomplete honoré : re-requête débouncée et
+# coalescée sur liste tronquée, classement local par paliers sur
+# l'IDENTIFIANT DE TÊTE, appariement unifié CompletionMatcher — les
+# indices en gras sont EXACTEMENT ceux qui ont matché, affichage
+# riche container/documentation ; dépréciations à DÉLÉGATION, aucun
+# retrait côté hôte) ; 4.3.1 = démo seulement (bibliothèque
+# inchangée) ; 4.4.0 = occurrences du mot courant (défaut ACTIVÉ —
+# cède TOUJOURS la voie à la session de recherche et à
+# setFindHighlights, NON posé par CodeIDE : vérifié, aucun conflit),
+# modificateurs sémantiques barré/gras/italique (légende serveur
+# requise — codeide-lsp ne l'annonce pas encore : aucun rendu avant
+# ce chantier frère) et panneau de documentation du popup ; 4.5.0 =
+# apprentissage du classement (défaut activé : les candidats
+# acceptés remontent à palier et groupe égaux), gabarits à choix +
+# macros $FILE$/$USER$, postfix .sout par profil, mode gros fichiers
+# AUTO (inchangé sous les seuils), renommage XML lié balise
+# ouvrante ↔ fermante en UNE étape d'annulation (défaut activé —
+# CodeIDE ne gère AUCUN miroir maison : vérifié, :preview:xml est
+# hors éditeur), compensation du viewport des éditions groupées
+# au-dessus de l'écran (anti-saut des auto-imports), barre de
+# touches EditorTouchBar (JAMAIS posée par la bibliothèque :
+# adoption à instruire en ADR ultérieure, aucun coût tant qu'elle
+# n'est pas au layout) ; 4.5.1 = correctifs démo seulement. POINTS
+# D'ATTENTION 4.5.0 SANS action pour CodeIDE : le recentrage coupé
+# PENDANT les lots beginBatch/endBatch est le comportement VOULU
+# (FantomeCompletionIa accepte en un lot, aucun recentrage
+# intermédiaire utile). PONT EFFECTIF (règle 9, résolution vérifiée
+# AVANT/APRÈS montée) : cel-lsp transitif du host:1.15.0 reste
+# 3.74.0 — état hérité des montées 4.0.0 → 4.2.0, l'alignement
+# attend le chantier serveur « drapeau isIncomplete honnête » du
+# frère (guide §4.3.0 §5) ; setIncomplete (no-op au défaut) et
+# provideResult 5-args (enveloppe au défaut) sont ADDITIFS : le pont
+# 3.74.0 compile et fonctionne contre cel-core/cel-lsp-api 4.5.1,
+# les re-requêtes 4.3.0 ne s'activeront qu'à l'alignement du frère.
+# Artefacts JitPack v4.5.1 vérifiés HTTP 200 (cel-core .pom, build
+# « ok ») ; la chaîne locale de v0.200.0 résout et teste l'artefact.
+code-editor = "v4.5.1"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"
