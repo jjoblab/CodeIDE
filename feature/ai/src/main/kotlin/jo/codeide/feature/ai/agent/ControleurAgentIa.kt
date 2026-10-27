@@ -20,6 +20,7 @@ import jo.codeide.core.ai.OutilProposerSuppressionIa
 import jo.codeide.core.ai.OutilRunGradleIa
 import jo.codeide.core.ai.OutilsEcritureIa
 import jo.codeide.core.ai.PorteApprobationIa
+import jo.codeide.core.ai.ProgresAgentIa
 import jo.codeide.core.ai.RegistreOutilsIa
 import jo.codeide.core.ai.ResolveurCheminsProjetIa
 import jo.codeide.core.ai.ResultatAgentIa
@@ -33,6 +34,7 @@ import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.domain.RegistreDossierProjetIa
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
+import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.getOrNull
 import jo.codeide.feature.ai.ActionErreurIa
@@ -137,6 +139,21 @@ public data class EtatAgentIa(
     public val preVerifications: PreVerificationsAgentIa = PreVerificationsAgentIa(),
     /** Action de remédiation de la dernière erreur (A3, rapport IA lot 2). */
     public val actionErreur: ActionErreurIa? = null,
+
+    /** Étape ACTIVE (1-indexée, 0 = aucune — A4, rapport IA lot 2). */
+    public val etapeActive: Int = 0,
+
+    /** Réflexion du modèle EN COURS (frag concaténés — présentation pure). */
+    public val reflexion: String = "",
+
+    /** Outil en cours (dernier démarré — nom court). */
+    public val outilEnCours: String? = null,
+
+    /** Dernier extrait d'observation (borné — A4). */
+    public val derniereObservation: String? = null,
+
+    /** Début de l'exécution (ms — calcule la durée affichée). */
+    public val debutExecutionMs: Long = 0L,
 )
 
 /**
@@ -168,6 +185,7 @@ constructor(
     private val coffre: CoffreClesIa,
     private val sessionProjet: ObservateurSessionProjet,
     private val dispatchers: DispatcherProvider,
+    private val horloge: TimeProvider,
 ) {
     private val _etat = MutableStateFlow(EtatAgentIa())
     public val etat: StateFlow<EtatAgentIa> = _etat.asStateFlow()
@@ -441,6 +459,7 @@ constructor(
                 modele = modele,
                 etapesMax = etat.etapesMax,
                 execution = etat.execution,
+                debutExecutionMs = horloge.nowMillis(),
             )
         }
         demarreurService.demarrer()
@@ -461,14 +480,59 @@ constructor(
             )
         val runner = AgentRunnerIa(fournisseur, registre, LimitesAgentIa(_etat.value.etapesMax))
         val resultat =
-            runner.executer(messagesAgent(objectif), modele, JETONS_REPONSE) { etape ->
+            runner.executer(
+                messagesAgent(objectif),
+                modele,
+                JETONS_REPONSE,
+                surEtape = { etape ->
+                    _etat.update { courant ->
+                        courant.copy(
+                            etapes = courant.etapes + EtapeAgentIa(etape, enCours = false),
+                        )
+                    }
+                },
+                surProgres = { progres -> publierProgres(progres) },
+            )
+        // Fin d'exécution : le temps réel se referme (plus d'étape
+        // active ni d'outil en cours, la réponse/le message prend le
+        // relais).
+        _etat.update { courant -> courant.copy(etapeActive = 0, outilEnCours = null) }
+        rendreIssue(resultat)
+    }
+
+    /**
+     * Publication TEMPS RÉEL du progrès (A4, rapport IA lot 2) : chaque
+     * fragment du flux devient état — l'écran vit au fil de l'eau, plus
+     * d'attente de fin d'étape.
+     */
+    private fun publierProgres(progres: ProgresAgentIa) {
+        when (progres) {
+            is ProgresAgentIa.Texte -> Unit
+
+            // le texte final vit dans la réponse ; le flux texte n'a pas de carte dédiée
+
+            is ProgresAgentIa.Raisonnement ->
+                _etat.update { courant -> courant.copy(reflexion = courant.reflexion + progres.fragment) }
+
+            is ProgresAgentIa.OutilDemarre ->
                 _etat.update { courant ->
                     courant.copy(
-                        etapes = courant.etapes + EtapeAgentIa(etape, enCours = false),
+                        outilEnCours = progres.nom,
+                        // Une nouvelle étape commence quand un outil démarre.
+                        etapeActive = courant.etapes.size + 1,
+                        reflexion = "",
                     )
                 }
-            }
-        rendreIssue(resultat)
+
+            is ProgresAgentIa.OutilArguments -> Unit
+
+            // les arguments bruts ne montent pas à l'écran (bruit JSON)
+
+            is ProgresAgentIa.Observation ->
+                _etat.update { courant ->
+                    courant.copy(derniereObservation = progres.extrait, outilEnCours = null)
+                }
+        }
     }
 
     /**

@@ -1,5 +1,37 @@
 # Journal des modifications
 
+## [0.200.7] – 2026-10-27
+
+### L'agent vit au FIL DE L'EAU — streaming événement par événement, réflexion et outil en cours, « Étape 4 / 25 · 18 s » (rapport IA, chantier IA-CODEIDE, lot 2, A4)
+
+#### Corrigé
+
+- **Le runner ne bufferise PLUS le flux** (rapport IA, lot 2, A4) :
+  `fournisseur.stream(requete).toList()` est mort — chaque
+  événement est consommé À SA RÉCEPTION et publié sur un canal de
+  PROGRÈS (`ProgresAgentIa` : fragment de texte, fragment de
+  RAISONNEMENT, outil DÉMARRÉ, arguments en cours, OBSERVATION avec
+  extrait borné à 200 caractères).
+- **L'état de l'écran vit en temps réel** : `reflexion` (fragments
+  concaténés — présentation pure), `outilEnCours` (nom du dernier
+  outil démarré), `etapeActive`, `derniereObservation` (extrait) et
+  `debutExecutionMs` (durée) sont publiés AU FIL DE L'EAU ; la ligne
+  « Étape %1$d / %2$d · %3$d s » (avec l'outil en suffixe) s'affiche
+  pendant l'exécution sous le bandeau de statut, la RÉFLEXION en
+  aperçu italique 2 lignes. À la fin de l'exécution le temps réel se
+  referme (étape active et outil en cours remis à zéro) : la réponse
+  finale ou le message prend le relais.
+
+#### Tests
+
+- **+1 test** (`PreVerificationsAgentIaTest`) : un flux avec
+  raisonnement → appel d'outil → observation → réponse finale publie
+  la réflexion DANS un état intermédiaire (le flux du test suspend
+  entre les événements : sans suspension, StateFlow conflate et le
+  temps réel serait invisible), l'outil en cours et l'étape active
+  pendant l'exécution, et referme tout à la fin (la dernière
+  observation reste, extrait portant le chemin demandé).
+
 ## [0.200.6] – 2026-10-27
 
 ### Erreurs de l'agent LISIBLES et réparables — l'erreur typée voyage, le « échec fournisseur : NomDeClasse » est mort (rapport IA, chantier IA-CODEIDE, lot 2, A3)

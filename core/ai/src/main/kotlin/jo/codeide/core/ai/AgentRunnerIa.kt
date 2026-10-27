@@ -61,6 +61,29 @@ public data class ResultatAgentIa(
 )
 
 /**
+ * Progrès TEMPS RÉEL d'une exécution (A4, rapport IA lot 2) : publié
+ * événement PAR ÉVÉNEMENT pendant la consommation du flux — le runner
+ * ne bufferise PLUS (`toList` est mort), l'écran vit au fil de l'eau.
+ */
+public sealed interface ProgresAgentIa {
+    /** Fragment du TEXTE de la réponse en cours. */
+    public data class Texte(public val fragment: String) : ProgresAgentIa
+
+    /** Fragment du RAISONNEMENT du modèle (présentation pure). */
+    public data class Raisonnement(public val fragment: String) : ProgresAgentIa
+
+    /** Un appel d'outil COMMENCE (vrai `toolCallId`, nom). */
+    public data class OutilDemarre(public val toolCallId: String, public val nom: String) : ProgresAgentIa
+
+    /** Arguments d'un appel EN COURS (fragment JSON). */
+    public data class OutilArguments(public val toolCallId: String, public val fragment: String) : ProgresAgentIa
+
+    /** Observation d'un outil TERMINÉ (extrait borné). */
+    public data class Observation(public val toolCallId: String, public val nom: String, public val extrait: String) :
+        ProgresAgentIa
+}
+
+/**
  * Appel d'outil collecté pendant une étape (A1, rapport IA lot 2) :
  * accumulé PAR `toolCallId` — le VRAI identifiant attribué par le
  * fournisseur, JAMAIS un identifiant inventé. Plusieurs appels peuvent
@@ -129,6 +152,7 @@ public class AgentRunnerIa(
         modele: String,
         maxJetonsReponse: Int,
         surEtape: suspend (String) -> Unit = {},
+        surProgres: suspend (ProgresAgentIa) -> Unit = {},
     ): ResultatAgentIa {
         var conversation = messages
         var etapes = 0
@@ -148,18 +172,41 @@ public class AgentRunnerIa(
                 )
 
             val evenements =
-                try {
-                    fournisseur.stream(requete).toList()
-                } catch (annulation: kotlinx.coroutines.CancellationException) {
-                    throw annulation
-                } catch (incident: Exception) {
-                    // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
-                    @Suppress("SwallowedException")
-                    return ResultatAgentIa(
-                        IssueAgentIa.ECHOUE,
-                        "incident fournisseur : ${incident.javaClass.simpleName}",
-                    )
+                mutableListOf<AiEvent>() // A4 : collectée (analyse), la PUBLICATION devient temps réel.
+            try {
+                fournisseur.stream(requete).collect { evenement ->
+                    evenements += evenement
+                    // A4 : publication TEMPS RÉEL — le flux n'est plus
+                    // bufferisé, chaque fragment part dès sa réception.
+                    when (evenement) {
+                        is AiEvent.TextDelta -> surProgres(ProgresAgentIa.Texte(evenement.text))
+
+                        is AiEvent.ReasoningDelta -> surProgres(ProgresAgentIa.Raisonnement(evenement.text))
+
+                        is AiEvent.ToolCallStarted ->
+                            surProgres(ProgresAgentIa.OutilDemarre(evenement.toolCallId, evenement.name))
+
+                        is AiEvent.ToolCallArguments ->
+                            surProgres(
+                                ProgresAgentIa.OutilArguments(
+                                    evenement.toolCallId,
+                                    evenement.argumentsJsonFragment,
+                                ),
+                            )
+
+                        else -> Unit
+                    }
                 }
+            } catch (annulation: kotlinx.coroutines.CancellationException) {
+                throw annulation
+            } catch (incident: Exception) {
+                // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
+                @Suppress("SwallowedException")
+                return ResultatAgentIa(
+                    IssueAgentIa.ECHOUE,
+                    "incident fournisseur : ${incident.javaClass.simpleName}",
+                )
+            }
 
             val texte = StringBuilder()
             // A1 : accumulation PAR toolCallId (ordre d'arrivée conservé)
@@ -273,6 +320,9 @@ public class AgentRunnerIa(
                         }
                     }
                 surEtape("observation ($nom) : $observation")
+                // A4 : l'observation part AUSSI en temps réel (extrait
+                // borné — l'écran vit sans attendre la fin de l'étape).
+                surProgres(ProgresAgentIa.Observation(identifiant, nom, observation.take(EXTRAIT_OBSERVATION_MAX)))
 
                 conversation =
                     conversation +
@@ -294,6 +344,11 @@ public class AgentRunnerIa(
             IssueAgentIa.INTERROMPU,
             "limite atteinte : ${limites.maxEtapes} étapes sans réponse finale",
         )
+    }
+
+    private companion object {
+        /** Extrait d'observation publié en temps réel (A4) — borné, l'état reste léger. */
+        const val EXTRAIT_OBSERVATION_MAX = 200
     }
 
     /**

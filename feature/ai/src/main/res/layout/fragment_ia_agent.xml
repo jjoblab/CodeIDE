@@ -59,6 +59,34 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- Temps réel de l'exécution (A4, rapport IA lot 2) : étape
+             active, durée, outil en cours — la réflexion en aperçu
+             (2 lignes, ellipsée). Visibles pendant EN_COURS. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/progression_temps_reel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textAppearance="?attr/textAppearanceLabelMedium"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="Étape 4 / 25 · 18 s · read_file"
+            tools:visibility="visible" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_reflexion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textStyle="italic"
+            android:visibility="gone"
+            tools:text="Je regarde d'abord la structure du projet…"
+            tools:visibility="visible" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
