@@ -120,9 +120,11 @@ class PreVerificationsAgentIaTest {
         dossier: String? = "/projet/alpha",
         fournisseur: FournisseurEspion = FournisseurEspion(),
         editeur: RegistrePortEditeurActif = RegistrePortEditeurActif(),
+        surRegistre: (RegistreDossierProjetIa) -> Unit = {},
     ): Pair<ControleurAgentIa, FournisseurEspion> {
         val registreDossier = RegistreDossierProjetIa()
         registreDossier.publier(dossier)
+        surRegistre(registreDossier)
         val controleur =
             ControleurAgentIa(
                 fournisseur = fournisseur,
@@ -219,6 +221,54 @@ class PreVerificationsAgentIaTest {
         assertEquals(StatutAgentIa.INACTIF, controleur.etat.value.statut)
         assertEquals(R.string.agent_preverif_projet, controleur.etat.value.message?.ressource)
         assertEquals(0, fournisseur.requetes.size)
+    }
+
+    @Test
+    fun `C1 - le chemin du projet qui atterrit TARD reactive la puce Projet sans repasser par l'ecran`() = runTest {
+        // C1 (retour propriétaire) : l'utilisateur ouvre le tiroir AVANT
+        // la fin de la résolution FUSE — l'écran Agent affiche « projet
+        // non ouvert » ; le chemin atterrit (republication à
+        // l'ouverture du tiroir) et la puce passe au VERT SANS que
+        // l'écran soit quitté : le contrôleur COLLECTE les signaux.
+        var registre: RegistreDossierProjetIa? = null
+        val (controleur, _) =
+            controleur(
+                testScheduler,
+                coffre = coffreAvecCle(),
+                dossier = null,
+                surRegistre = { registre = it },
+            )
+        // Premier rafraîchissement explicite (arrivée sur l'écran) :
+        // la résolution n'est PAS terminée — puce Projet ROUGE.
+        controleur.rafraichirPreVerifications()
+        advanceUntilIdle()
+        assertFalse(controleur.etat.value.preVerifications.projetOuvert)
+        assertFalse(controleur.etat.value.preVerifications.pret)
+
+        // Le chemin atterrit (l'activité a republié) : la puce passe au
+        // vert PAR LE FLUX — aucun nouvel appel à rafraichirPreVerifications.
+        registre?.publier("/projet/alpha")
+        advanceUntilIdle()
+
+        assertTrue(controleur.etat.value.preVerifications.projetOuvert)
+        assertTrue(controleur.etat.value.preVerifications.pret)
+    }
+
+    @Test
+    fun `C1 - la fermeture de session reactive aussi la puce Projet`() = runTest {
+        // Miroir inverse : le projet se FERME pendant que l'écran
+        // Agent est visible — la puce repasse au ROUGE par le flux
+        // (plus de puce verte menteuse sur un projet fermé).
+        val session = SessionPilotable(EtatSessionProjetVue.Ouverte(ProjectId("alpha")))
+        val (controleur, _) = controleur(testScheduler, coffre = coffreAvecCle(), session = session)
+        controleur.rafraichirPreVerifications()
+        advanceUntilIdle()
+        assertTrue(controleur.etat.value.preVerifications.projetOuvert)
+
+        session.basculer(EtatSessionProjetVue.Aucune)
+        advanceUntilIdle()
+
+        assertFalse(controleur.etat.value.preVerifications.projetOuvert)
     }
 
     @Test
