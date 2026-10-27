@@ -1,5 +1,69 @@
 # Journal des modifications
 
+## [0.200.0] – 2026-10-27
+
+### Montée code-editor 4.2.0 → 4.5.1 — complétion fiabilisée, occurrences du mot courant, sémantique déclarative, gabarits et postfix (bump-frère)
+
+#### Ajouté
+
+- **La bibliothèque d'édition passe de 4.2.0 à 4.5.1** (instruction
+  propriétaire du 2026-10-27 « Monte la version de code-editor dans
+  CodeIDE » ; plage franchie STRICTEMENT ADDITIVE — guide
+  `MISE-A-JOUR-CODEIDE.md` du dépôt frère §4.3.0 → §4.5.1 : « aucune
+  rupture d'API », aucune migration obligatoire ; les 5 conditions de
+  publication vérifiées : tag `v4.5.1` annoté, artefacts JitPack
+  « ok » — `cel-core` .pom résolu HTTP 200, la chaîne locale de cette
+  version résout et teste l'artefact). Les trois points d'attention
+  du guide sont SANS action pour CodeIDE, vérifiés au code :
+  occurrences par défaut (CodeIDE ne pose pas `setFindHighlights`,
+  la voie find reste libre), renommage XML lié par défaut (aucun
+  miroir maison — `:preview:xml` vit hors éditeur), recentrage coupé
+  pendant les lots d'éditions (`FantomeCompletionIa` accepte en un
+  lot, aucun recentrage intermédiaire utile — comportement voulu).
+- **Ce que la montée apporte SANS changement de code côté CodeIDE** :
+  4.3.0 — le popup de complétion honore le drapeau LSP
+  `isIncomplete` (re-requête débouncée et coalescée sur liste
+  tronquée : un candidat écarté par le plafond serveur réapparaît),
+  classement local par paliers sur l'IDENTIFIANT DE TÊTE (`Text()`
+  devant `TextField()` pour le préfixe `Text`), appariement unifié
+  (les indices en gras sont EXACTEMENT ceux qui ont matché, plus de
+  divergence filtre/surbrillance), affichage riche `container`
+  (origine du symbole à droite, tronquée à l'ellipse) ; 4.4.0 — la
+  surbrillance des occurrences du mot sous le caret s'allume sans
+  action (elle CÈDE la place à la recherche), le panneau de
+  documentation s'ajoute sous la liste du popup quand l'item
+  sélectionné porte une documentation (glyphe ⓘ de rangée sous
+  340 dp), les modificateurs sémantiques barré/gras/italique
+  s'activeront dès que le serveur annoncera sa légende
+  (`textDocument.semanticTokens` désormais annoncé côté client) ;
+  4.5.0 — l'apprentissage du classement (les candidats acceptés
+  remontent à palier et groupe égaux), les gabarits à choix et
+  macros (`$FILE$`/`$USER$`), le postfix `.sout` par profil, le mode
+  gros fichiers AUTO (complétion auto coupée au-delà des seuils,
+  voie explicite hôte ouverte), le renommage lié des balises XML
+  (une seule étape d'annulation) et la compensation du viewport des
+  éditions groupées au-dessus de l'écran (anti-saut des
+  auto-imports).
+- **Bornes documentées (l'honnêteté d'usage)** : le pont `cel-lsp`
+  EFFECTIF reste **3.74.0** (transitif du `host:1.15.0` publié —
+  résolution vérifiée avant/après montée, règle 9 : personne ne
+  déclare `cel-lsp` 4.x dans le graphe, état hérité des montées
+  4.0.0 → 4.2.0) : les SPI 4.3.0 (`setIncomplete` no-op au défaut,
+  `provideResult` 5-args enveloppe au défaut) sont additifs, le pont
+  compile et fonctionne contre `cel-core`/`cel-lsp-api` 4.5.1 — les
+  RE-REQUÊTES 4.3.0 ne s'activeront qu'à l'alignement du frère
+  (chantier serveur « drapeau isIncomplete honnête », guide §4.3.0).
+  La barre de touches `EditorTouchBar` n'est JAMAIS posée par la
+  bibliothèque : son adoption (cinq touches usuelles, `setActions`
+  maison, ou refus) est une décision d'INTERFACE à instruire en ADR
+  ultérieure — aucun coût tant qu'elle n'est pas au layout.
+
+#### Docs
+
+- `docs/TESTS_MANUELS.md` : section « Montée code-editor 4.5.1 » —
+  scénarios d'appareil (occurrences, classement du popup, panneau de
+  documentation, apprentissage, postfix, XML lié, gros fichiers).
+
 ## [0.199.0] – 2026-10-26
 
 ### Montée codeide-lsp 1.14.0 → 1.15.0 — le programme utilisateurs, vague 5 : les QUATRE mondes à zéro faux positif déclaré (bump-frère)

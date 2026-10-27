@@ -1844,3 +1844,57 @@ trois familles : `CHANGELOG.md` § 1.15.0 du frère.
    des layouts, NUS des lambdas `tasks.register` (monde Gradle),
    complétion du récepteur de portée et typage des composants
    destructurés.
+
+## Montée code-editor 4.5.1 — complétion fiabilisée, occurrences, gabarits et postfix (bump-frère → v0.200.0, code-editor 4.5.1)
+
+Écran : éditeur, un fichier Kotlin du projet (composants Compose ou
+symboles répétés) et un fichier XML de layout. La plage 4.2.0 → 4.5.1
+est STRICTEMENT additive — ces scénarios valident les comportements
+nouveaux qui s'activent SANS changement de code côté CodeIDE (le pont
+`cel-lsp` effectif reste 3.74.0 : les re-requêtes 4.3.0 attendent
+l'alignement du frère — voir CHANGELOG v0.200.0, bornes).
+
+1. **Occurrences du mot courant** — parquer le caret sur un
+   identifiant répété dans le fichier : les occurrences s'allument
+   (~300 ms) ; OUVRIR la recherche (Ctrl+F du menu édition) : les
+   bandes de recherche prennent la place ; REFERMER et déplacer le
+   caret : les occurrences reviennent. Une surbrillance d'hôte posée
+   par `setFindHighlights` primerait pareil (non posé par CodeIDE —
+   la cohabitation est gérée par la bibliothèque).
+2. **Classement du popup par identifiant de tête** — dans un fichier
+   Kotlin contenant `TextField(...)`, `Text(...)` et `TextView` :
+   taper le préfixe `Text` : `Text()` est proposé EN TÊTE (exact sur
+   l'identifiant de tête) devant `TextField()` (préfixe) ; les
+   indices en gras sont EXACTEMENT les lettres qui ont matché.
+3. **Panneau de documentation du popup** — un préfixe dont le
+   candidat résolu porte une documentation (serveur branché) : le
+   panneau s'ajoute SOUS la liste, suit la sélection au clavier
+   haut/bas, disparaît sur un item sans documentation ; sur écran
+   étroit (écran partagé, < 340 dp) : glyphe ⓘ à droite de la
+   rangée.
+4. **Apprentissage du classement** — accepter 2 à 3 fois le même
+   candidat pour un même préfixe : il passe DEVANT ses congénères à
+   palier égal ; couper la bascule
+   (`setCompletionRankingLearningEnabled(false)`) ou purger
+   (`clearCompletionRankingHistory()`) : l'ordre du serveur revient
+   (les réglages d'exposition écran restent à instruire — comportement
+   par défaut actif).
+5. **Postfix .sout** — dans un fichier Java/Kotlin, taper
+   `msg.sout` puis Entrée : l'expression s'entoure de
+   `System.out.println(msg);` (Kotlin : `println(msg)`).
+6. **Rennommage XML lié** — dans le fichier XML, éditer le NOM d'une
+   balise ouvrante (caret dans le nom, pas dans un attribut) : la
+   fermante appariée suit la frappe ET le backspace ; UN seul
+   bouton Annuler retire les DEUX éditions (une étape d'annulation).
+7. **Gros fichiers (mode AUTO)** — ouvrir un très grand fichier
+   (plusieurs dizaines de milliers de lignes) : sous les seuils,
+   comportement inchangé ; au-delà, la complétion AUTO ne déclenche
+   plus (frappe et undo vivants) — la voie explicite hôte reste
+   ouverte.
+8. **Anti-saut du viewport** — déclencher un auto-import en tête de
+   fichier depuis une complétion (Java) : le texte lu ne SAUTE pas
+   (la compensation du viewport garde l'écran en place pendant le lot
+   d'éditions).
+9. **Régression des yeux @Preview (4.1.0/4.2.0)** — un fichier
+   Kotlin avec `@Preview` : l'œil de gouttière reste À SA LIGNE, le
+   tap ouvre la carte (montées précédentes, rejeu rapide).
