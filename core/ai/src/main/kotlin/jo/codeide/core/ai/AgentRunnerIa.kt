@@ -19,12 +19,26 @@ public class ChangeSetIaCourant {
  *
  * @property maxEtapes nombre maximal d'aller-retours modèle↔outils.
  * @property echecsConsecutifsMax nombre d'échecs/refus consécutifs avant
- * arrêt (boucle folle : l'agent tourne en rond ou est bloqué).
+ * arrêt (boucle folle : l'agent tourne en rond ou est bloqué) — borne
+ * AUSSI la boucle d'auto-correction `run_gradle` (A5, rapport IA lot 2).
+ * @property budgetJetonsMax plafond du CONTEXTE estimé par exécution
+ * (A5, rapport IA lot 2 : la conversation est estimée avant CHAQUE
+ * requête ; au-delà, l'exécution s'arrête honnêtement).
  */
-public data class LimitesAgentIa(public val maxEtapes: Int = 25, public val echecsConsecutifsMax: Int = 3) {
+public data class LimitesAgentIa(
+    public val maxEtapes: Int = 25,
+    public val echecsConsecutifsMax: Int = 3,
+    public val budgetJetonsMax: Long = BUDGET_JETONS_DEFAUT,
+) {
     init {
         require(maxEtapes >= 1) { "au moins une étape" }
         require(echecsConsecutifsMax >= 1) { "au moins un échec toléré" }
+        require(budgetJetonsMax >= 1) { "un budget de jetons strictement positif" }
+    }
+
+    private companion object {
+        /** Défaut prudent (A5) : ~160 000 jetons de contexte estimés. */
+        private const val BUDGET_JETONS_DEFAUT = 160_000L
     }
 }
 
@@ -50,6 +64,15 @@ public enum class IssueAgentIa {
  * `PresentationErreursIa` côté écran, plus JAMAIS de
  * « échec fournisseur : NomDeClasse » brut).
  *
+ * A5 (rapport IA lot 2) :
+ * - [conversation] : la conversation RÉELLE à la sortie (reprise :
+ *   « Continuer » repart de l'historique, pas seulement de l'objectif) ;
+ * - [jetonsEntree]/[jetonsSortie] : compteurs rapportés par le
+ *   fournisseur ([AiEvent.Usage] cumulés — 0 quand le serveur ne
+ *   rapporte pas) ;
+ * - [jetonsEstimes] : estimation LOCALE du contexte final
+ *   ([TokenBudget], heuristique honnête — jamais de la facturation).
+ *
  * @property issue état d'issue de la boucle.
  * @property texte réponse finale ou message d'état lisible.
  * @property erreur erreur modélisée du fournisseur quand [IssueAgentIa.ECHOUE].
@@ -58,6 +81,10 @@ public data class ResultatAgentIa(
     public val issue: IssueAgentIa,
     public val texte: String,
     public val erreur: AppError? = null,
+    public val conversation: List<AiMessage> = emptyList(),
+    public val jetonsEntree: Long = 0L,
+    public val jetonsSortie: Long = 0L,
+    public val jetonsEstimes: Long = 0L,
 )
 
 /**
@@ -131,6 +158,7 @@ public class AgentRunnerIa(
     private val fournisseur: AiProvider,
     private val registre: RegistreOutilsIa,
     private val limites: LimitesAgentIa = LimitesAgentIa(),
+    private val budget: TokenBudget = TokenBudget(),
 ) {
     /**
      * Exécute l'objectif avec l'historique de conversation donné.
@@ -158,10 +186,28 @@ public class AgentRunnerIa(
         var etapes = 0
         var echecsConsecutifs = 0
         var reponseFinale = ""
+        var jetonsEntree = 0L
+        var jetonsSortie = 0L
 
         while (etapes < limites.maxEtapes) {
             etapes++
             currentCoroutineContext().ensureActive()
+
+            // A5 (rapport IA lot 2) : budget de jetons — le contexte est
+            // estimé AVANT chaque requête ; au-delà du plafond, l'exécution
+            // s'arrête honnêtement (l'estimation est heuristique, jamais
+            // une facturation — mais la garde tient).
+            val estimation = budget.estimateMessages(conversation)
+            if (estimation > limites.budgetJetonsMax) {
+                return ResultatAgentIa(
+                    issue = IssueAgentIa.INTERROMPU,
+                    texte = "budget de jetons atteint : ≈$estimation jetons estimés",
+                    conversation = conversation,
+                    jetonsEntree = jetonsEntree,
+                    jetonsSortie = jetonsSortie,
+                    jetonsEstimes = estimation,
+                )
+            }
 
             val requete =
                 AiRequest(
@@ -205,6 +251,9 @@ public class AgentRunnerIa(
                 return ResultatAgentIa(
                     IssueAgentIa.ECHOUE,
                     "incident fournisseur : ${incident.javaClass.simpleName}",
+                    conversation = conversation,
+                    jetonsEntree = jetonsEntree,
+                    jetonsSortie = jetonsSortie,
                 )
             }
 
@@ -213,6 +262,7 @@ public class AgentRunnerIa(
             // — plusieurs appels par étape, jamais d'identifiant inventé.
             val appels = LinkedHashMap<String, AppelOutilEnCours>()
             var echec: AppError? = null
+            var usageDuTour: AiEvent.Usage? = null
 
             for (evenement in evenements) {
                 when (evenement) {
@@ -236,6 +286,12 @@ public class AgentRunnerIa(
                         }
                     }
 
+                    is AiEvent.Usage -> {
+                        // A5 : le DERNIER rapport du tour gagne (les serveurs
+                        // cumulent, certains rapportent par fragment).
+                        usageDuTour = evenement
+                    }
+
                     is AiEvent.Failure -> {
                         echec = evenement.error
                     }
@@ -246,17 +302,41 @@ public class AgentRunnerIa(
                 }
             }
 
+            // A5 : compteurs du fournisseur cumulés par tour (0 si absent).
+            usageDuTour?.let { usage ->
+                jetonsEntree += usage.inputTokens ?: 0L
+                jetonsSortie += usage.outputTokens ?: 0L
+            }
+
             if (echec != null) {
                 // A3 (rapport IA lot 2) : l'erreur TYPIÉE voyage — le
                 // message lisible en est dérivé côté présentation.
-                return ResultatAgentIa(IssueAgentIa.ECHOUE, "échec fournisseur", echec)
+                return ResultatAgentIa(
+                    IssueAgentIa.ECHOUE,
+                    "échec fournisseur",
+                    echec,
+                    conversation = conversation,
+                    jetonsEntree = jetonsEntree,
+                    jetonsSortie = jetonsSortie,
+                )
             }
 
             reponseFinale = texte.toString()
             if (appels.isEmpty()) {
                 // Réponse finale sans appel d'outil : l'objectif est atteint.
                 surEtape("réponse finale")
-                return ResultatAgentIa(IssueAgentIa.TERMINE, reponseFinale)
+                // A5 : la réponse finale EST un message de la conversation
+                // réelle (le plan du mode « Planifier d'abord » doit vivre
+                // dans l'historique que la validation renverra).
+                val conversationFinale = conversation + AiMessage.assistant(reponseFinale)
+                return ResultatAgentIa(
+                    issue = IssueAgentIa.TERMINE,
+                    texte = reponseFinale,
+                    conversation = conversationFinale,
+                    jetonsEntree = jetonsEntree,
+                    jetonsSortie = jetonsSortie,
+                    jetonsEstimes = budget.estimateMessages(conversationFinale),
+                )
             }
 
             // A1 : le message assistant reconstruit porte les VRAIS
@@ -307,11 +387,15 @@ public class AgentRunnerIa(
                         }
                     }
 
+                // A5 : l'observation est BORNÉE (le résultat d'un outil
+                // volumineux ne gonfle pas le contexte — troncature
+                // marquée) et un échec déclarÉ (`compteEchec`) nourrit la
+                // garde des échecs consécutifs (auto-correction bornée).
                 val observation =
                     when (resultat) {
                         is ResultatOutilIa.Succes -> {
-                            echecsConsecutifs = 0
-                            resultat.sortie
+                            if (resultat.compteEchec) echecsConsecutifs++ else echecsConsecutifs = 0
+                            borner(resultat.sortie)
                         }
 
                         is ResultatOutilIa.Refuse -> {
@@ -334,21 +418,42 @@ public class AgentRunnerIa(
 
             if (echecsConsecutifs >= limites.echecsConsecutifsMax) {
                 return ResultatAgentIa(
-                    IssueAgentIa.INTERROMPU,
-                    "limite atteinte : $echecsConsecutifs échecs consécutifs d'outil",
+                    issue = IssueAgentIa.INTERROMPU,
+                    texte = "limite atteinte : $echecsConsecutifs échecs consécutifs d'outil",
+                    conversation = conversation,
+                    jetonsEntree = jetonsEntree,
+                    jetonsSortie = jetonsSortie,
+                    jetonsEstimes = budget.estimateMessages(conversation),
                 )
             }
         }
 
         return ResultatAgentIa(
-            IssueAgentIa.INTERROMPU,
-            "limite atteinte : ${limites.maxEtapes} étapes sans réponse finale",
+            issue = IssueAgentIa.INTERROMPU,
+            texte = "limite atteinte : ${limites.maxEtapes} étapes sans réponse finale",
+            conversation = conversation,
+            jetonsEntree = jetonsEntree,
+            jetonsSortie = jetonsSortie,
+            jetonsEstimes = budget.estimateMessages(conversation),
         )
+    }
+
+    /**
+     * BornE une observation (A5, rapport IA lot 2) : tronquée au plafond
+     * avec marqueur honnête — le modèle SAIT que la sortie est incomplète.
+     */
+    internal fun borner(sortie: String): String = if (sortie.length <= OBSERVATION_MAX) {
+        sortie
+    } else {
+        sortie.take(OBSERVATION_MAX) + "\n[… sortie tronquée — demande un intervalle plus étroit]"
     }
 
     private companion object {
         /** Extrait d'observation publié en temps réel (A4) — borné, l'état reste léger. */
         const val EXTRAIT_OBSERVATION_MAX = 200
+
+        /** Plafond d'une observation renvoyée au modèle (A5 — maîtrise du contexte). */
+        const val OBSERVATION_MAX = 8_000
     }
 
     /**

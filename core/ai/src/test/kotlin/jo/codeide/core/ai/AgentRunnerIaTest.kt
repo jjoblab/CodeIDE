@@ -287,4 +287,169 @@ class AgentRunnerIaTest {
         assertEquals("call-m", toolResult.toolCallId)
         assertEquals("REFUSÉ : chemin manquant", toolResult.content)
     }
+
+    // ------------------------------------------------------------------
+    // A5 (rapport IA lot 2) : conversation réelle, budget, usage,
+    // observation bornée, auto-correction bornée.
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `le resultat porte la conversation REELLE - la reprise repart de l'historique`() = runTest {
+        val outil = OutilEspion("read_file")
+        val fournisseur =
+            FournisseurScenario(
+                listOf(
+                    listOf(
+                        AiEvent.ToolCallStarted("call-1", "read_file"),
+                        AiEvent.ToolCallCompleted("call-1", "{\"chemin\":\"a.kt\"}"),
+                        AiEvent.Done(AiStopReason.ToolUse),
+                    ),
+                    listOf(
+                        AiEvent.TextDelta("Fait."),
+                        AiEvent.Done(AiStopReason.EndTurn),
+                    ),
+                ),
+            )
+        val runner = AgentRunnerIa(fournisseur, RegistreOutilsIa(listOf(outil)))
+
+        val resultat = runner.executer(listOf(AiMessage.user("relis a.kt")), "m", 100)
+
+        // La conversation à la sortie CONTIENT tout l'historique réel :
+        // objectif, appel d'outil (ToolUse), observation (ToolResult) ET
+        // la réponse finale (A5 : elle vit dans l'historique renvoyé).
+        assertEquals(IssueAgentIa.TERMINE, resultat.issue)
+        assertEquals(4, resultat.conversation.size)
+        assertEquals(AiRole.User, resultat.conversation[0].role)
+        assertEquals(AiRole.Assistant, resultat.conversation[1].role)
+        assertTrue(resultat.conversation[1].blocks.any { it is AiContentBlock.ToolUse })
+        assertEquals(AiRole.Tool, resultat.conversation[2].role)
+        assertEquals(AiRole.Assistant, resultat.conversation[3].role)
+        assertEquals(
+            "Fait.",
+            resultat.conversation[3].blocks.filterIsInstance<AiContentBlock.Text>().single().text,
+        )
+    }
+
+    @Test
+    fun `une observation VOLUMINEUSE est bornee avec marqueur honnete`() = runTest {
+        val longue = "x".repeat(20_000)
+        val outil = OutilEspion("read_file", ResultatOutilIa.Succes(longue))
+        val fournisseur =
+            FournisseurScenario(
+                listOf(
+                    listOf(
+                        AiEvent.ToolCallStarted("call-1", "read_file"),
+                        AiEvent.ToolCallCompleted("call-1", "{}"),
+                        AiEvent.Done(AiStopReason.ToolUse),
+                    ),
+                    listOf(
+                        AiEvent.TextDelta("Ok."),
+                        AiEvent.Done(AiStopReason.EndTurn),
+                    ),
+                ),
+            )
+        val runner = AgentRunnerIa(fournisseur, RegistreOutilsIa(listOf(outil)))
+
+        val resultat = runner.executer(listOf(AiMessage.user("x")), "m", 100)
+
+        assertEquals(IssueAgentIa.TERMINE, resultat.issue)
+        val observation =
+            resultat.conversation[2].blocks.filterIsInstance<AiContentBlock.ToolResult>().single().content
+        assertTrue(observation.length < longue.length)
+        assertTrue(observation.contains("sortie tronquée"))
+    }
+
+    @Test
+    fun `le budget de jetons depasse interrompt honnetement avant la requete`() = runTest {
+        val grosHistorique = listOf(AiMessage.user("x".repeat(4_000)))
+        val fournisseur =
+            FournisseurScenario(
+                listOf(
+                    listOf(AiEvent.TextDelta("Fait."), AiEvent.Done(AiStopReason.EndTurn)),
+                ),
+            )
+        val runner =
+            AgentRunnerIa(
+                fournisseur,
+                RegistreOutilsIa(emptyList()),
+                limites = LimitesAgentIa(maxEtapes = 5, echecsConsecutifsMax = 3, budgetJetonsMax = 1),
+            )
+
+        val resultat = runner.executer(grosHistorique, "m", 100)
+
+        // Le budget est estimé AVANT la première requête : aucune requête
+        // ne part, l'interruption porte l'estimation honnête.
+        assertEquals(IssueAgentIa.INTERROMPU, resultat.issue)
+        assertTrue(resultat.texte.contains("budget de jetons atteint"))
+        assertEquals(0, fournisseur.requetes.size)
+        assertEquals(grosHistorique, resultat.conversation)
+    }
+
+    @Test
+    fun `les compteurs Usage du fournisseur sont cumules dans le resultat`() = runTest {
+        val fournisseur =
+            FournisseurScenario(
+                listOf(
+                    listOf(
+                        AiEvent.TextDelta("Premier tour."),
+                        AiEvent.Usage(inputTokens = 100L, outputTokens = 20L),
+                        AiEvent.Done(AiStopReason.EndTurn),
+                    ),
+                ),
+            )
+        val runner = AgentRunnerIa(fournisseur, RegistreOutilsIa(emptyList()))
+
+        val resultat = runner.executer(listOf(AiMessage.user("x")), "m", 100)
+
+        assertEquals(IssueAgentIa.TERMINE, resultat.issue)
+        assertEquals(100L, resultat.jetonsEntree)
+        assertEquals(20L, resultat.jetonsSortie)
+    }
+
+    @Test
+    fun `les echecs declarés de run_gradle comptent dans la garde - l'autocorrection est bornée`() = runTest {
+        // L'outil échoue À CHAQUE appel mais RENVOIE une observation (le
+        // modèle peut corriger) : l'auto-correction vit MAIS la garde
+        // echecsConsecutifsMax l'arrête (boucle folle impossible).
+        val outil =
+            object : OutilIa {
+                override val identifiant = "run_gradle"
+                override val description = "test"
+                override val niveau = NiveauRisqueIa.LECTURE
+                override val parametresJson = "{}"
+
+                override suspend fun executer(arguments: Map<String, String>) =
+                    ResultatOutilIa.Succes("ÉCHEC de la tâche", compteEchec = true)
+            }
+        val fournisseur = FournisseurBoucleGradle()
+        val runner =
+            AgentRunnerIa(
+                fournisseur,
+                RegistreOutilsIa(listOf(outil)),
+                limites = LimitesAgentIa(maxEtapes = 25, echecsConsecutifsMax = 3),
+            )
+
+        val resultat = runner.executer(listOf(AiMessage.user("compile")), "m", 100)
+
+        assertEquals(IssueAgentIa.INTERROMPU, resultat.issue)
+        assertTrue(resultat.texte.contains("échecs consécutifs"))
+        // La boucle de correction a vécu : 3 échecs déclarés = 3
+        // observations renvoyées au modèle.
+        val observations =
+            resultat.conversation.filter { it.role == AiRole.Tool }
+        assertEquals(3, observations.size)
+    }
+
+    /** Fournisseur qui appelle `run_gradle` à chaque tour (autocorrection obstinée). */
+    private class FournisseurBoucleGradle : AiProvider {
+        override fun stream(request: AiRequest) = flow {
+            emit(AiEvent.ToolCallStarted("g1", "run_gradle"))
+            emit(AiEvent.ToolCallCompleted("g1", "{}"))
+            emit(AiEvent.Done(AiStopReason.ToolUse))
+        }
+
+        override suspend fun listModels(): AppResult<List<AiModelInfo>> = AppResult.Success(emptyList())
+
+        override suspend fun ping(): AppResult<Unit> = AppResult.Success(Unit)
+    }
 }

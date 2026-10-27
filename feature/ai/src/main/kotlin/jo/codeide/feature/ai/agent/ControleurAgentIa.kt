@@ -7,31 +7,38 @@ import jo.codeide.core.ai.AiMessage
 import jo.codeide.core.ai.AppliqueurChangeSetIa
 import jo.codeide.core.ai.ChangeSetIa
 import jo.codeide.core.ai.ChangeSetIaCourant
+import jo.codeide.core.ai.DonneesPromptAgentIa
 import jo.codeide.core.ai.ExclusionsIa
 import jo.codeide.core.ai.ExecChangeSetIa
 import jo.codeide.core.ai.FournisseurContexteProjet
 import jo.codeide.core.ai.IssueAgentIa
 import jo.codeide.core.ai.LimitesAgentIa
+import jo.codeide.core.ai.OutilDiagnosticsFichierIa
 import jo.codeide.core.ai.OutilLireFichierIa
+import jo.codeide.core.ai.OutilLireLignesIa
 import jo.codeide.core.ai.OutilListeFichiersIa
 import jo.codeide.core.ai.OutilProposerCreationIa
 import jo.codeide.core.ai.OutilProposerModificationIa
 import jo.codeide.core.ai.OutilProposerSuppressionIa
+import jo.codeide.core.ai.OutilRechercherTexteIa
 import jo.codeide.core.ai.OutilRunGradleIa
 import jo.codeide.core.ai.OutilsEcritureIa
 import jo.codeide.core.ai.PorteApprobationIa
 import jo.codeide.core.ai.ProgresAgentIa
+import jo.codeide.core.ai.PromptSystemeAgentIa
 import jo.codeide.core.ai.RegistreOutilsIa
 import jo.codeide.core.ai.ResolveurCheminsProjetIa
 import jo.codeide.core.ai.ResultatAgentIa
 import jo.codeide.core.ai.ResultatApplicationIa
 import jo.codeide.core.ai.RevueChangeSetIa
+import jo.codeide.core.ai.SourceDiagnosticsFichierIa
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.CoffreClesIa
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.EtatSessionProjetVue
 import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.domain.RegistreDossierProjetIa
+import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.TimeProvider
@@ -75,6 +82,10 @@ public enum class StatutAgentIa {
 
     /** Arrêt demandé par l'utilisateur. */
     ANNULE,
+
+    /** Plan proposé (mode « Planifier d'abord », A5 rapport IA lot 2) :
+     * la validation de l'utilisateur précède TOUTE exécution. */
+    PLAN_ATTENDU,
 }
 
 /** Une étape affichée (spec E2 : pastille d'état + titre). */
@@ -154,6 +165,32 @@ public data class EtatAgentIa(
 
     /** Début de l'exécution (ms — calcule la durée affichée). */
     public val debutExecutionMs: Long = 0L,
+
+    /** Mode « Planifier d'abord » ARMÉ (A5, rapport IA lot 2). */
+    public val modePlanPremier: Boolean = false,
+
+    /** Plan proposé par l'agent (mode Planifier d'abord — à valider). */
+    public val plan: String? = null,
+
+    /** Coût de la dernière exécution (A5, rapport IA lot 2). */
+    public val jetons: JetonsAgentIa? = null,
+)
+
+/**
+ * Coût d'une exécution (A5, rapport IA lot 2) : compteurs rapportés par
+ * le fournisseur (0 quand le serveur ne les rapporte pas) et estimation
+ * LOCALE du contexte final (heuristique [TokenBudget] — jamais une
+ * facturation, mais une jauge honnête affichée).
+ */
+public data class JetonsAgentIa(
+    /** Jetons d'entrée cumulés (rapports du fournisseur). */
+    public val entree: Long = 0L,
+
+    /** Jetons de sortie cumulés (rapports du fournisseur). */
+    public val sortie: Long = 0L,
+
+    /** Contexte final ESTIMÉ localement (jetons). */
+    public val estimes: Long = 0L,
 )
 
 /**
@@ -164,13 +201,13 @@ public data class EtatAgentIa(
  * l'application via [AppliqueurChangeSetIa] (revue obligatoire).
  */
 @Singleton
-// Exemption detekt ciblée (règle 16) : LongParameterList — sept ports
+// Exemption detekt ciblée (règle 16) : LongParameterList — huit ports
 // injectés par Hilt (fournisseur, contextes, réglages, dossier, racine
-// historique, applicateur, service) : chaque dépendance est une
-// frontière réelle, aucun regroupement honnête.
+// historique, applicateur, service, éditeur actif) : chaque dépendance
+// est une frontière réelle, aucun regroupement honnête.
 // Exemption detekt ciblée (règle 16) : TooManyFunctions — le contrat
-// UDF complet (lancer, arrêter, approuver, appliquer, annuler…) EST la
-// surface d'orchestration de l'écran Agent.
+// UDF complet (lancer, arrêter, approuver, appliquer, annuler, plan…)
+// EST la surface d'orchestration de l'écran Agent.
 @Suppress("LongParameterList", "TooManyFunctions")
 public class ControleurAgentIa
 @Inject
@@ -186,6 +223,8 @@ constructor(
     private val sessionProjet: ObservateurSessionProjet,
     private val dispatchers: DispatcherProvider,
     private val horloge: TimeProvider,
+    private val registreEditeur: RegistrePortEditeurActif,
+    private val sourceDiagnostics: SourceDiagnosticsFichierIa,
 ) {
     private val _etat = MutableStateFlow(EtatAgentIa())
     public val etat: StateFlow<EtatAgentIa> = _etat.asStateFlow()
@@ -195,6 +234,11 @@ constructor(
     private val portee = CoroutineScope(SupervisorJob() + dispatchers.io)
     private var travail: Job? = null
     private val changeSetCourant = ChangeSetIaCourant()
+
+    // A5 (rapport IA lot 2) : la conversation RÉELLE de la dernière
+    // exécution — « Continuer » repart de l'historique complet (objectif,
+    // appels d'outils, observations), PAS du seul objectif.
+    private var conversationCourante: List<AiMessage>? = null
 
     // Décision d'approbation en vol : la porte suspend l'outil jusqu'à la carte.
     private var demandeEnVol: Pair<DemandeApprobationIa, CompletableDeferred<Boolean>>? = null
@@ -227,6 +271,51 @@ constructor(
     /** Note l'objectif (modifiable avant lancement — spec E2). */
     public fun definirObjectif(objectif: String) {
         _etat.update { courant -> courant.copy(objectif = objectif) }
+    }
+
+    /**
+     * Arme ou désarme le mode « Planifier d'abord » (A5, rapport IA
+     * lot 2) : ignoré pendant une exécution (l'objectif en cours n'est
+     * pas modifiable à mi-parcours, miroir du champ objectif).
+     */
+    public fun basculerPlanPremier(actif: Boolean) {
+        if (_etat.value.statut == StatutAgentIa.EN_COURS) return
+        _etat.update { courant -> courant.copy(modePlanPremier = actif) }
+    }
+
+    /**
+     * Valide le plan proposé (mode « Planifier d'abord », A5 rapport IA
+     * lot 2) : l'exécution repart de la conversation RÉELLE de la phase
+     * de plan (le plan y vit) — pas d'un redémarrage à zéro.
+     */
+    @Suppress("ReturnCount") // garde SÉQUENTIELLE : statut, conversation, objectif — un retour par refus.
+    public fun validerPlan() {
+        val courant = _etat.value
+        if (courant.statut != StatutAgentIa.PLAN_ATTENDU) return
+        val conversation = conversationCourante ?: return
+        if (courant.objectif.isBlank()) return
+        demarrer {
+            _etat.update { it.copy(actionErreur = null) }
+            executerConversation(
+                conversation + AiMessage.user(MESSAGE_PLAN_VALIDEE),
+                objectif = courant.objectif,
+            )
+        }
+    }
+
+    /** Rejette le plan proposé : retour à l'inactif, l'objectif reste modifiable. */
+    public fun rejeterPlan() {
+        if (_etat.value.statut != StatutAgentIa.PLAN_ATTENDU) return
+        conversationCourante = null
+        _etat.update { courant ->
+            courant.copy(
+                statut = StatutAgentIa.INACTIF,
+                plan = null,
+                jetons = null,
+                reponse = null,
+                message = MessageAgentIa(R.string.agent_plan_rejete),
+            )
+        }
     }
 
     /**
@@ -296,22 +385,72 @@ constructor(
             _etat.update { it.copy(message = MessageAgentIa(R.string.agent_objectif_vide)) }
             return
         }
+        // A5 : un lancement FRANC part d'une conversation NEUVE — la
+        // reprise d'une exécution passée ne peut se faire que par
+        // « Continuer » (qui conserve la conversation réelle).
+        conversationCourante = null
+        demarrer {
+            // A2 : pré-vérifications AVANT tout lancement — une
+            // action par problème, le motif le plus lisible gagne,
+            // aucune requête ne part déguisée.
+            rafraichirPreVerifications()
+            val garde = verifierLancement()
+            if (garde != null) {
+                _etat.update { it.copy(message = garde, actionErreur = null) }
+                return@demarrer
+            }
+            // A3 : une nouvelle tentative efface l'action de
+            // l'erreur précédente (jamais de bouton périmé).
+            _etat.update { it.copy(actionErreur = null) }
+            executer(objectif, _etat.value.modePlanPremier)
+        }
+    }
+
+    /**
+     * « Continuer » (spec E2 ; A5, rapport IA lot 2) : conserve la
+     * conversation RÉELLE de l'exécution interrompue — l'historique
+     * complet (objectif, appels d'outils, observations) repart au
+     * modèle avec un message de continuation, PAS un redémarrage à
+     * zéro sur le seul objectif. Sans conversation mémorisée
+     * (premier lancement refusé par les pré-vérifications), repli sur
+     * un lancement franc.
+     */
+    public fun continuer() {
+        val courant = _etat.value
+        val reprise = conversationCourante
+        if (courant.statut == StatutAgentIa.EN_COURS) return
+        val reprenable =
+            reprise != null &&
+                (courant.statut == StatutAgentIa.INTERROMPU || courant.statut == StatutAgentIa.ECHOUE)
+        if (!reprenable) {
+            lancer()
+            return
+        }
+        demarrer {
+            rafraichirPreVerifications()
+            val garde = verifierLancement()
+            if (garde != null) {
+                _etat.update { it.copy(message = garde, actionErreur = null) }
+                return@demarrer
+            }
+            _etat.update { it.copy(actionErreur = null) }
+            executerConversation(
+                reprise.orEmpty() + AiMessage.user(MESSAGE_CONTINUATION),
+                objectif = courant.objectif.trim(),
+            )
+        }
+    }
+
+    /**
+     * Enveloppe commune de lancement (A5) : pré-vérifications hors du
+     * corps, issues modélisées (annulation RELANCÉE, incident → état
+     * ECHOUE lisible), service arrêté dans TOUS les cas.
+     */
+    private fun demarrer(corps: suspend () -> Unit) {
         travail =
             portee.launch {
                 try {
-                    // A2 : pré-vérifications AVANT tout lancement — une
-                    // action par problème, le motif le plus lisible gagne,
-                    // aucune requête ne part déguisée.
-                    rafraichirPreVerifications()
-                    val garde = verifierLancement()
-                    if (garde != null) {
-                        _etat.update { it.copy(message = garde, actionErreur = null) }
-                        return@launch
-                    }
-                    // A3 : une nouvelle tentative efface l'action de
-                    // l'erreur précédente (jamais de bouton périmé).
-                    _etat.update { it.copy(actionErreur = null) }
-                    executer(objectif)
+                    corps()
                 } catch (annulation: CancellationException) {
                     _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, MessageAgentIa(R.string.agent_annule)) }
                     throw annulation // règle 6 : toujours relancée
@@ -328,11 +467,6 @@ constructor(
                     demarreurService.arreter()
                 }
             }
-    }
-
-    /** « Continuer » après une interruption (spec E2) — même objectif, limites conservées. */
-    public fun continuer() {
-        lancer()
     }
 
     /** Arrête l'exécution (bouton Arrêter + action de la notification). */
@@ -445,13 +579,59 @@ constructor(
         return Triple(reglagesCourants, modele, dossier)
     }
 
-    private suspend fun executer(objectif: String) {
+    /**
+     * Exécution FRANCHE (A5, rapport IA lot 2) : conversation NEUVE avec
+     * le prompt système RICHE (rôle, langue, build, arborescence élaguée,
+     * fichier actif, règles d'outils). En mode « Planifier d'abord », la
+     * phase produit le PLAN : la réponse finale devient la carte « Plan
+     * proposé » (statut [StatutAgentIa.PLAN_ATTENDU]), AUCUNE exécution
+     * ne part avant la validation.
+     */
+    private suspend fun executer(objectif: String, phasePlan: Boolean) {
         // A2 : la garde d'ouverture regroupe les défenses en profondeur
         // (réglages, modèle choisi, dossier) — l'exécution ne commence
         // qu'honnête.
         val ouverture = ouvrirExecution() ?: return
         val (_, modele, dossier) = ouverture
 
+        resetEtatExecution(objectif, modele)
+        val messages = messagesAgent(objectif, phasePlan)
+        val resultat = executerAvecOutils(modele, dossier, messages)
+        if (phasePlan && resultat.issue == IssueAgentIa.TERMINE && resultat.texte.isNotBlank()) {
+            // A5 : le plan est la RÉPONSE de la phase de plan — la
+            // conversation est mémorisée, la validation repart d'elle.
+            conversationCourante = resultat.conversation
+            _etat.update { courant ->
+                courant.copy(
+                    statut = StatutAgentIa.PLAN_ATTENDU,
+                    plan = resultat.texte,
+                    etapeActive = 0,
+                    outilEnCours = null,
+                    jetons = JetonsAgentIa(resultat.jetonsEntree, resultat.jetonsSortie, resultat.jetonsEstimes),
+                )
+            }
+            return
+        }
+        rendreIssue(resultat)
+    }
+
+    /**
+     * Exécution d'une conversation DONNÉE (A5, rapport IA lot 2) :
+     * validation du plan (« Plan validé — exécute ») ou reprise
+     * (« Continuer ») — l'historique RÉEL repart au modèle, le ChangeSet
+     * en attente n'est PAS vidé (les propositions s'accumulent).
+     */
+    private suspend fun executerConversation(messages: List<AiMessage>, objectif: String) {
+        val ouverture = ouvrirExecution() ?: return
+        val (_, modele, dossier) = ouverture
+
+        resetEtatExecution(objectif, modele)
+        val resultat = executerAvecOutils(modele, dossier, messages)
+        rendreIssue(resultat)
+    }
+
+    /** Remise à zéro de l'état d'exécution (le mode « Planifier d'abord » ARMÉ survit). */
+    private fun resetEtatExecution(objectif: String, modele: String) {
         _etat.update { etat ->
             EtatAgentIa(
                 statut = StatutAgentIa.EN_COURS,
@@ -460,10 +640,22 @@ constructor(
                 etapesMax = etat.etapesMax,
                 execution = etat.execution,
                 debutExecutionMs = horloge.nowMillis(),
+                modePlanPremier = etat.modePlanPremier,
             )
         }
         demarreurService.demarrer()
+    }
 
+    /**
+     * Boucle partagée (A5) : registre d'outils COMPLET (lectures avancées
+     * incluses), exécution du runner, mémorisation de la conversation
+     * RÉELLE à la sortie (reprise), fermeture du temps réel.
+     */
+    private suspend fun executerAvecOutils(
+        modele: String,
+        dossier: String,
+        messages: List<AiMessage>,
+    ): ResultatAgentIa {
         changeSetCourant.depot = ChangeSetIa()
         val resolveur = ResolveurCheminsProjetIa(java.io.File(dossier), ExclusionsIa())
         val outilsEcriture = OutilsEcritureIa(resolveur, changeSetCourant)
@@ -472,6 +664,11 @@ constructor(
                 listOf(
                     OutilListeFichiersIa(contextes),
                     OutilLireFichierIa(contextes),
+                    // A5 : nouveaux outils de LECTURE — recherche bornée,
+                    // intervalle de lignes, diagnostics du fichier actif.
+                    OutilRechercherTexteIa(contextes),
+                    OutilLireLignesIa(contextes),
+                    OutilDiagnosticsFichierIa(sourceDiagnostics),
                     OutilProposerModificationIa(outilsEcriture),
                     OutilProposerCreationIa(outilsEcriture),
                     OutilProposerSuppressionIa(outilsEcriture),
@@ -481,7 +678,7 @@ constructor(
         val runner = AgentRunnerIa(fournisseur, registre, LimitesAgentIa(_etat.value.etapesMax))
         val resultat =
             runner.executer(
-                messagesAgent(objectif),
+                messages,
                 modele,
                 JETONS_REPONSE,
                 surEtape = { etape ->
@@ -493,11 +690,16 @@ constructor(
                 },
                 surProgres = { progres -> publierProgres(progres) },
             )
+        // A5 : la conversation RÉELLE à la sortie est MÉMORISÉE —
+        // « Continuer » repart de l'historique, pas de l'objectif seul.
+        if (resultat.conversation.isNotEmpty()) {
+            conversationCourante = resultat.conversation
+        }
         // Fin d'exécution : le temps réel se referme (plus d'étape
         // active ni d'outil en cours, la réponse/le message prend le
         // relais).
         _etat.update { courant -> courant.copy(etapeActive = 0, outilEnCours = null) }
-        rendreIssue(resultat)
+        return resultat
     }
 
     /**
@@ -536,20 +738,26 @@ constructor(
     }
 
     /**
-     * Traduction de l'issue du runner (v0.195.0 ; A3 rapport IA lot 2) :
-     * la réponse FINALE est du CONTENU (carte dédiée), une ERREUR TYPIÉE
-     * devient message + ACTION de remédiation (plus JAMAIS
-     * « échec fournisseur : NomDeClasse »), les autres issues portent un
-     * message localisé.
+     * Traduction de l'issue du runner (v0.195.0 ; A3, A5 rapport IA
+     * lot 2) : la réponse FINALE est du CONTENU (carte dédiée), une
+     * ERREUR TYPIÉE devient message + ACTION de remédiation (plus
+     * JAMAIS « échec fournisseur : NomDeClasse »), les autres issues
+     * portent un message localisé — et le COÛT (jetons) est publié
+     * dans l'état (A5).
      */
     private fun rendreIssue(resultat: ResultatAgentIa) {
         _etat.update { courant ->
+            val jetons = JetonsAgentIa(resultat.jetonsEntree, resultat.jetonsSortie, resultat.jetonsEstimes)
             when (resultat.issue) {
                 IssueAgentIa.TERMINE ->
-                    courant.copy(statut = StatutAgentIa.TERMINE, reponse = resultat.texte.ifBlank { null })
+                    courant.copy(
+                        statut = StatutAgentIa.TERMINE,
+                        reponse = resultat.texte.ifBlank { null },
+                        jetons = jetons,
+                    )
 
                 IssueAgentIa.INTERROMPU ->
-                    courant.copy(statut = StatutAgentIa.INTERROMPU)
+                    courant.copy(statut = StatutAgentIa.INTERROMPU, jetons = jetons)
 
                 IssueAgentIa.ECHOUE -> {
                     // A3 : l'erreur TYPIÉE du fournisseur devient message
@@ -566,32 +774,54 @@ constructor(
                                 presentation.argument,
                             ),
                             actionErreur = PresentationErreursIa.action(erreur),
+                            jetons = jetons,
                         )
                     } else {
                         courant.copy(
                             statut = StatutAgentIa.ECHOUE,
                             message =
                             MessageAgentIa(R.string.agent_statut_echoue, resultat.texte.ifBlank { null }),
+                            jetons = jetons,
                         )
                     }
                 }
 
                 IssueAgentIa.ANNULE ->
-                    courant.copy(statut = StatutAgentIa.ANNULE, message = MessageAgentIa(R.string.agent_annule))
+                    courant.copy(
+                        statut = StatutAgentIa.ANNULE,
+                        message = MessageAgentIa(R.string.agent_annule),
+                        jetons = jetons,
+                    )
             }
         }
     }
 
-    /** Messages d'ouverture de l'exécution (confinement rappelé au modèle). */
-    private fun messagesAgent(objectif: String): List<AiMessage> = listOf(
-        AiMessage.system(
-            "Tu es l'agent de CodeIDE. Objectif de l'utilisateur : $objectif. " +
-                "Tu proposes des changements via les outils ; RIEN n'est écrit " +
-                "sans la revue de l'utilisateur. Termine par une réponse " +
-                "claire quand l'objectif est couvert.",
-        ),
-        AiMessage.user(objectif),
-    )
+    /**
+     * Messages d'ouverture (A5, rapport IA lot 2) : le prompt système
+     * RICHE ([PromptSystemeAgentIa] — rôle, langue, règles d'outils,
+     * système de build détecté, arborescence élaguée, fichier actif et
+     * sélection de l'éditeur, consigne « Planifier d'abord » si armée)
+     * puis l'objectif de l'utilisateur.
+     */
+    private suspend fun messagesAgent(objectif: String, phasePlan: Boolean): List<AiMessage> {
+        val chemins =
+            when (val listing = contextes.listerChemins()) {
+                is AppResult.Success -> listing.value
+                is AppResult.Failure -> emptyList()
+            }
+        val port = registreEditeur.actif()
+        val prompt =
+            PromptSystemeAgentIa().construire(
+                DonneesPromptAgentIa(
+                    objectif = objectif,
+                    chemins = chemins,
+                    cheminFichierActif = port?.cheminRelatifFichier,
+                    selection = port?.selection?.texte,
+                    planPremier = phasePlan,
+                ),
+            )
+        return listOf(AiMessage.system(prompt), AiMessage.user(objectif))
+    }
 
     private fun EtatAgentIa.reprise(statut: StatutAgentIa, message: MessageAgentIa?): EtatAgentIa =
         copy(statut = statut, message = message, demande = null)
@@ -599,5 +829,15 @@ constructor(
     private companion object {
         /** Plafond de jetons par appel du modèle (même ordre de grandeur que le chat). */
         const val JETONS_REPONSE = 4096
+
+        /** Message de validation du plan (A5 — la conversation repart du plan). */
+        const val MESSAGE_PLAN_VALIDEE =
+            "Plan validé par l'utilisateur — exécute maintenant le plan ci-dessus, " +
+                "étape par étape, avec les outils (lectures d'abord, propositions ensuite)."
+
+        /** Message de continuation (A5 — la conversation RÉELLE reprend). */
+        const val MESSAGE_CONTINUATION =
+            "Continue vers l'objectif initial — l'exécution précédente a été interrompue, " +
+                "reprends là où elle s'était arrêtée."
     }
 }

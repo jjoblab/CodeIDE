@@ -35,4 +35,28 @@ public interface FournisseurContexteProjet {
      * absent) — ÉTEND la liste d'exclusion par défaut (ADR 0124 §4).
      */
     public suspend fun lireIaIgnore(): List<String>
+
+    /**
+     * Recherche TEXTE bornée dans le projet (rapport IA, lot 2, A5) :
+     * motif LITTÉRAL (sensible à la casse), chemins RELATIFS, une
+     * occurrence par ligne porteuse — le nombre de résultats est borné
+     * par [limite], la parcourue par l'implémentation (dossiers lourds
+     * et fichiers binaires écartés).
+     */
+    public suspend fun rechercherTexte(motif: String, limite: Int): AppResult<List<OccurrenceRechercheIa>>
+
+    /**
+     * Lecture d'un INTERVALLE de lignes (rapport IA, lot 2, A5) :
+     * bornes 1-based INCLUSIVES, texte numéroté (`12| …`), bornes
+     * repliées par l'implémentation (plafond de lignes par appel) —
+     * [debut] au-delà de la fin du fichier = échec honnête.
+     */
+    public suspend fun lireLignes(cheminRelatif: String, debut: Int, fin: Int): AppResult<String>
 }
+
+/** Une occurrence de recherche texte (A5, rapport IA lot 2) — chemin, numéro de ligne, extrait. */
+public data class OccurrenceRechercheIa(
+    public val cheminRelatif: String,
+    public val ligne: Int,
+    public val extrait: String,
+)

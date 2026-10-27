@@ -42,8 +42,17 @@ public enum class NiveauRisqueIa {
 
 /** Résultat d'un outil — modélisé, jamais une exception. */
 public sealed interface ResultatOutilIa {
-    /** Sortie texte (observation pour le modèle, bornée). */
-    public data class Succes(public val sortie: String) : ResultatOutilIa
+    /**
+     * Sortie texte (observation pour le modèle, bornée).
+     *
+     * @property sortie observation renvoyée au modèle.
+     * @property compteEchec `true` = la sortie rapporte un ÉCHEC qui
+     * compte dans la garde `echecsConsecutifsMax` (auto-correction
+     * bornée, A5 rapport IA lot 2 : un `run_gradle` en échec alimente
+     * l'observation ET la garde — la boucle de correction ne peut pas
+     * tourner indéfiniment).
+     */
+    public data class Succes(public val sortie: String, public val compteEchec: Boolean = false) : ResultatOutilIa
 
     /** Refus : l'outil n'a pas agi (évasion, fichier exclu, hors limite). */
     public data class Refuse(public val motif: String) : ResultatOutilIa

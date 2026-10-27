@@ -41,8 +41,24 @@ constructor(private val controleur: ControleurAgentIa) : ViewModel() {
         controleur.arreter()
     }
 
+    /** « Continuer » conserve la conversation RÉELLE (A5, rapport IA lot 2). */
     public fun continuer() {
         controleur.continuer()
+    }
+
+    /** Arme/désarme le mode « Planifier d'abord » (A5, rapport IA lot 2). */
+    public fun basculerPlanPremier(actif: Boolean) {
+        controleur.basculerPlanPremier(actif)
+    }
+
+    /** Valide le plan proposé — l'exécution repart du plan (A5, rapport IA lot 2). */
+    public fun validerPlan() {
+        controleur.validerPlan()
+    }
+
+    /** Rejette le plan proposé — retour à l'inactif (A5, rapport IA lot 2). */
+    public fun rejeterPlan() {
+        controleur.rejeterPlan()
     }
 
     public fun approuver(id: String) {

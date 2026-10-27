@@ -49,6 +49,9 @@ public class AgentFragment : Fragment() {
      * ne doit pas repartir au contrôleur comme une frappe. */
     private var synchronisationObjectif = false
 
+    /** Garde anti-écho du mode « Planifier d'abord » (A5 — miroir de l'objectif). */
+    private var synchronisationPlan = false
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         liaison = FragmentIaAgentBinding.inflate(inflater, container, false)
         return liaison!!.root
@@ -87,6 +90,10 @@ public class AgentFragment : Fragment() {
             cacherClavier(liaison.champObjectif)
             modele.lancer()
         }
+        // A5 (rapport IA lot 2) : mode « Planifier d'abord » + carte du
+        // plan proposé — l'agent produit D'ABORD un plan, la validation
+        // précède TOUTE exécution.
+        installerActionsPlan(liaison)
         liaison.boutonArreter.setOnClickListener { modele.arreter() }
         liaison.boutonContinuer.setOnClickListener { modele.continuer() }
         liaison.boutonRefuser.setOnClickListener {
@@ -130,6 +137,17 @@ public class AgentFragment : Fragment() {
         super.onDestroyView()
     }
 
+    /** Câblage du mode « Planifier d'abord » et de la carte plan (A5). */
+    private fun installerActionsPlan(liaison: FragmentIaAgentBinding) {
+        liaison.interrupteurPlan.setOnCheckedChangeListener { _, coche ->
+            if (!synchronisationPlan) {
+                modele.basculerPlanPremier(coche)
+            }
+        }
+        liaison.boutonValiderPlan.setOnClickListener { modele.validerPlan() }
+        liaison.boutonRejeterPlan.setOnClickListener { modele.rejeterPlan() }
+    }
+
     private fun rendre(etat: EtatAgentIa, liaison: FragmentIaAgentBinding, etapes: AdapterEtapesAgent) {
         if (liaison.champObjectif.text?.toString() != etat.objectif) {
             synchronisationObjectif = true
@@ -154,6 +172,8 @@ public class AgentFragment : Fragment() {
 
         rendreStatut(etat, liaison)
         rendreTempsReel(etat, liaison)
+        rendrePlan(etat, liaison)
+        rendreJetons(etat, liaison)
         etapes.submitList(etat.etapes)
 
         rendreApprobation(etat, liaison)
@@ -213,6 +233,7 @@ public class AgentFragment : Fragment() {
                 StatutAgentIa.TERMINE -> R.string.agent_statut_termine
                 StatutAgentIa.ECHOUE -> R.string.agent_statut_echoue
                 StatutAgentIa.ANNULE -> R.string.agent_statut_annule
+                StatutAgentIa.PLAN_ATTENDU -> R.string.agent_statut_plan_attendu
                 StatutAgentIa.INACTIF -> R.string.agent_statut_en_cours
             },
         )
@@ -280,6 +301,45 @@ public class AgentFragment : Fragment() {
             liaison.texteApprobationOutil.text = demande.outil
             liaison.texteApprobationRaison.text = demande.raison
         }
+    }
+
+    /**
+     * Carte du PLAN PROPOSÉ (A5, rapport IA lot 2) : visible quand le
+     * statut attend la validation — l'interrupteur suit l'état ARMÉ
+     * (garde anti-écho) et se verrouille pendant l'exécution.
+     */
+    private fun rendrePlan(etat: EtatAgentIa, liaison: FragmentIaAgentBinding) {
+        val plan = etat.plan
+        liaison.cartePlan.isVisible = etat.statut == StatutAgentIa.PLAN_ATTENDU && !plan.isNullOrBlank()
+        if (!plan.isNullOrBlank()) {
+            liaison.textePlan.text = plan
+        }
+        if (liaison.interrupteurPlan.isChecked != etat.modePlanPremier) {
+            synchronisationPlan = true
+            liaison.interrupteurPlan.isChecked = etat.modePlanPremier
+            synchronisationPlan = false
+        }
+        liaison.interrupteurPlan.isEnabled = etat.statut != StatutAgentIa.EN_COURS
+    }
+
+    /**
+     * Coût de la dernière exécution (A5, rapport IA lot 2) : compteurs
+     * du fournisseur quand il les rapporte, estimation LOCALE honnête
+     * sinon — jamais une facturation.
+     */
+    private fun rendreJetons(etat: EtatAgentIa, liaison: FragmentIaAgentBinding) {
+        val jetons = etat.jetons
+        val visible = jetons != null && (jetons.entree > 0L || jetons.sortie > 0L || jetons.estimes > 0L)
+        liaison.texteJetons.isVisible = visible
+        if (jetons == null || !visible) {
+            return
+        }
+        liaison.texteJetons.text =
+            if (jetons.entree > 0L || jetons.sortie > 0L) {
+                getString(R.string.agent_jetons, jetons.entree, jetons.sortie, jetons.estimes)
+            } else {
+                getString(R.string.agent_jetons_estimes, jetons.estimes)
+            }
     }
 
     /**

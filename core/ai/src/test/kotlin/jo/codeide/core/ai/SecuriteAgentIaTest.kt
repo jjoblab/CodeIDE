@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -97,7 +98,7 @@ class SecuriteAgentIaTest {
                     sollicitations++
                     true
                 },
-                executant = { "ok" },
+                executant = { ExecutionGradleIa(succes = true, sortie = "ok") },
             )
         val resultat = outil.executer(mapOf("tache" to "installRelease", "raison" to "x"))
         assertTrue(resultat is ResultatOutilIa.Refuse)
@@ -117,7 +118,7 @@ class SecuriteAgentIaTest {
                 },
                 executant = { tache ->
                     executions.add(tache)
-                    "BUILD OK"
+                    ExecutionGradleIa(succes = true, sortie = "BUILD OK")
                 },
             )
         outil.executer(mapOf("tache" to "lintDebug", "raison" to "vérifier"))
@@ -130,9 +131,36 @@ class SecuriteAgentIaTest {
 
     @Test
     fun `raison vide refusée avant approbation`() = runTest {
-        val outil = OutilRunGradleIa(porte = { _, _, _ -> true }, executant = { "ok" })
+        val outil = OutilRunGradleIa(porte = { _, _, _ -> true }, executant = { ExecutionGradleIa(true, "ok") })
         val resultat = outil.executer(mapOf("tache" to "detekt", "raison" to ""))
         assertTrue(resultat is ResultatOutilIa.Refuse)
+    }
+
+    @Test
+    fun `un echec de run_gradle renvoie les ERREURS FILTREES et compte dans la garde (A5)`() = runTest {
+        val outil =
+            OutilRunGradleIa(
+                porte = { _, _, _ -> true },
+                executant = {
+                    ExecutionGradleIa(
+                        succes = false,
+                        sortie =
+                        "> Task :app:compileDebugKotlin FAILED\n" +
+                            "e: file.kt:12:5 unresolved reference: foo\n" +
+                            "warning: something else\n" +
+                            "FAILURE: Build failed with an exception.",
+                    )
+                },
+            )
+        val resultat = outil.executer(mapOf("tache" to "detekt", "raison" to "vérifier"))
+        val succes = resultat as ResultatOutilIa.Succes
+        // L'échec est une OBSERVATION pour le modèle : erreurs filtrées + consigne.
+        assertTrue(succes.sortie.startsWith("ÉCHEC de la tâche detekt"))
+        assertTrue(succes.sortie.contains("e: file.kt:12:5 unresolved reference: foo"))
+        assertTrue(succes.sortie.contains("Corrige puis réessaie"))
+        assertFalse(succes.sortie.contains("warning: something else"))
+        // ... ET il compte dans la garde des échecs consécutifs (auto-correction bornée).
+        assertTrue(succes.compteEchec)
     }
 
     // ------------------------------------------------------------------
@@ -209,6 +237,11 @@ class SecuriteAgentIaTest {
         override suspend fun listerChemins() = AppResult.Success(emptyList<String>())
 
         override suspend fun lireIaIgnore() = emptyList<String>()
+
+        override suspend fun rechercherTexte(motif: String, limite: Int) =
+            AppResult.Success(emptyList<OccurrenceRechercheIa>())
+
+        override suspend fun lireLignes(cheminRelatif: String, debut: Int, fin: Int) = AppResult.Success("")
     }
 
     @Test
