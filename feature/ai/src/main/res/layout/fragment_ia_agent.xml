@@ -140,6 +140,25 @@
                 tools:ignore="HardcodedText" />
         </LinearLayout>
 
+        <!-- Mode « Planifier d'abord » (A5, rapport IA lot 2) : l'agent
+             produit D'ABORD un plan — la validation de l'utilisateur
+             précède TOUTE exécution. Verrouillé pendant une exécution. -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/interrupteur_plan"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minHeight="48dp"
+                android:text="@string/agent_planifier_dabord" />
+        </LinearLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -191,6 +210,20 @@
             android:textAppearance="?attr/textAppearanceBodySmall"
             android:textColor="?attr/colorOnSurfaceVariant" />
 
+        <!-- Coût de la dernière exécution (A5, rapport IA lot 2) :
+             compteurs du fournisseur quand il les rapporte, estimation
+             locale honnête sinon — jamais une facturation. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/texte_jetons"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:visibility="gone"
+            tools:text="Jetons : entrée 12 000 · sortie 1 500 · contexte ≈ 45 000"
+            tools:visibility="visible" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/liste_etapes"
             android:layout_width="match_parent"
@@ -198,6 +231,65 @@
             android:layout_marginTop="@dimen/spacing_sm"
             tools:itemCount="3"
             tools:listitem="@layout/ligne_etape_agent" />
+
+        <!-- Carte du PLAN PROPOSÉ (A5, rapport IA lot 2) : mode
+             « Planifier d'abord » — la validation de l'utilisateur
+             précède TOUTE exécution. -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/carte_plan"
+            style="?attr/materialCardViewOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_md">
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/agent_plan_titre"
+                    android:textAppearance="?attr/textAppearanceTitleSmall" />
+
+                <com.google.android.material.textview.MaterialTextView
+                    android:id="@+id/texte_plan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    tools:text="1. Lire la structure… 2. Modifier…" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_sm"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_rejeter_plan"
+                        style="@style/Widget.CodeIDE.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/spacing_xs"
+                        android:layout_weight="1"
+                        android:text="@string/agent_plan_rejeter" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_valider_plan"
+                        style="@style/Widget.CodeIDE.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:layout_weight="1"
+                        android:text="@string/agent_plan_valider" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/carte_reponse"

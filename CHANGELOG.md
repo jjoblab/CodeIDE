@@ -1,5 +1,80 @@
 # Journal des modifications
 
+## [0.200.8] – 2026-10-27
+
+### L'agent devient INTELLIGENT — prompt système riche, « Planifier d'abord », outils de lecture avancés, auto-correction bornée, budget de jetons et reprise réelle (rapport IA, chantier IA-CODEIDE, lot 2, A5)
+
+#### Ajouté
+
+- **Prompt système RICHE** (rapport IA, lot 2, A5) : le prompt n'est
+  plus une chaîne forgée dans le contrôleur — il vit dans
+  `PromptSystemeAgentIa` (`core:ai`, classe dédiée et testée) : rôle
+  d'agent de développement de CodeIDE, réponse TOUJOURS en français,
+  système de build DÉTECTÉ depuis les chemins (Gradle Kotlin DSL /
+  Groovy, Maven, npm, Cargo, Go), arborescence ÉLAGUÉE au premier
+  niveau (dossiers + nombre de fichiers, bornée à 30 lignes), fichier
+  ACTIF et SÉLECTION de l'éditeur (bornée à 400 caractères), règles
+  d'usage des outils — « LIS avant de modifier », « petites
+  modifications CIBLÉES », « termine par un RÉSUMÉ ».
+- **Mode « Planifier d'abord »** : interrupteur sur l'écran Agent ;
+  armé, l'agent produit D'ABORD un plan en étapes numérotées (lecture
+  autorisée, AUCUNE proposition de modification) — la carte « Plan
+  proposé » attend la VALIDATION de l'utilisateur (« Valider le plan »
+  / « Rejeter le plan ») avant TOUTE exécution ; la validation repart
+  de la conversation RÉELLE de la phase de plan (le plan y vit).
+- **Nouveaux outils de LECTURE** : `search_text` (recherche littérale
+  bornée dans le projet — occurrences chemin:ligne:extrait, plafond
+  50, dossiers `build`/`.git` et binaires écartés), `read_lines`
+  (intervalle de lignes 1-based inclus, numéroté, plafond 400 lignes
+  par appel, repli de la fin hors fichier), `diagnostics_lsp`
+  (diagnostics du fichier ACTIF de l'éditeur — demande sur un autre
+  fichier = message honnête). Le confinement est inchangé : écritures
+  en attente dans le ChangeSet, `run_gradle` derrière l'approbation à
+  chaque appel.
+- **Auto-correction bornée** : un `run_gradle` en ÉCHEC renvoie au
+  modèle les ERREURS FILTRÉES (lignes porteuses d'erreur, bornées à
+  30) avec la consigne « Corrige puis réessaie » — et compte dans la
+  garde `echecsConsecutifsMax` du runner : la boucle de correction vit
+  mais ne peut pas tourner indéfiniment (l'exécutant structuré
+  `ExecutionGradleIa` distingue succès et échec).
+- **Budget de jetons + coût affiché** : le contexte est estimé AVANT
+  chaque requête (plafond 160 000 jetons estimés — au-delà,
+  interruption honnête « budget de jetons atteint ») ; les compteurs
+  `Usage` du fournisseur (entrée/sortie) sont cumulés et AFFICHÉS
+  (« Jetons : entrée 12 000 · sortie 1 500 · contexte ≈ 45 000 », ou
+  « ≈ 45 000 (estimation locale) » quand le serveur ne rapporte rien).
+- **« Continuer » conserve la conversation RÉELLE** : le runner rend
+  la conversation complète (objectif, appels d'outils, observations,
+  réponse finale) ; « Continuer » repart de cet historique avec un
+  message de continuation — plus de redémarrage à zéro sur le seul
+  objectif. Un lancement FRANC (nouvel objectif) part d'une
+  conversation NEUVE.
+
+#### Corrigé
+
+- **Les observations volumineuses ne gonflent plus le contexte** :
+  chaque résultat d'outil est borné à 8 000 caractères avec marqueur
+  honnête « [… sortie tronquée — demande un intervalle plus étroit] ».
+
+#### Tests
+
+- **+23 tests** : `PromptSystemeAgentIaTest` (6 — rôle/langue/règles,
+  outils/confinement, détection build, arborescence élaguée et bornée,
+  fichier actif + sélection bornée, consigne Planifier d'abord
+  conditionnelle) ; `AgentRunnerIaTest` (+5 — conversation réelle
+  rendue, observation volumineuse bornée, budget dépassé interrompt
+  AVANT la requête, compteurs Usage cumulés, échecs déclarés de
+  `run_gradle` bornés par la garde) ; `OutilsLectureAvancesIaTest`
+  (8 — `search_text` occurrences/vide/refus, `read_lines` intervalle
+  et bornes invalides, `diagnostics_lsp` actif/sans éditeur/fichier
+  non actif) ; `SecuriteAgentIaTest` (+1 — échec de `run_gradle` :
+  erreurs filtrées + compte dans la garde) ;
+  `FournisseurContexteProjetDossierTest` (5 — recherche hors `build`
+  et bornée, intervalle replié/refusé, hors projet) ;
+  `IntelligenceAgentIaTest` (7 — prompt riche dans la requête, plan
+  proposé, validation depuis la conversation réelle, rejet, reprise
+  réelle au « Continuer », lancement franc neuf, coût dans l'état).
+
 ## [0.200.7] – 2026-10-27
 
 ### L'agent vit au FIL DE L'EAU — streaming événement par événement, réflexion et outil en cours, « Étape 4 / 25 · 18 s » (rapport IA, chantier IA-CODEIDE, lot 2, A4)

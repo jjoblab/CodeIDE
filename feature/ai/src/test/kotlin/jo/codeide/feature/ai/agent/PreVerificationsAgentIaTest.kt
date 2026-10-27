@@ -6,10 +6,12 @@ import jo.codeide.core.ai.AiProvider
 import jo.codeide.core.ai.AiRequest
 import jo.codeide.core.ai.AiStopReason
 import jo.codeide.core.ai.AppliqueurChangeSetIa
+import jo.codeide.core.ai.DiagnosticsFichierIa
 import jo.codeide.core.domain.AiSettings
 import jo.codeide.core.domain.EtatSessionProjetVue
 import jo.codeide.core.domain.ObservateurSessionProjet
 import jo.codeide.core.domain.RegistreDossierProjetIa
+import jo.codeide.core.domain.RegistrePortEditeurActif
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.TimeProvider
@@ -117,6 +119,7 @@ class PreVerificationsAgentIaTest {
         ),
         dossier: String? = "/projet/alpha",
         fournisseur: FournisseurEspion = FournisseurEspion(),
+        editeur: RegistrePortEditeurActif = RegistrePortEditeurActif(),
     ): Pair<ControleurAgentIa, FournisseurEspion> {
         val registreDossier = RegistreDossierProjetIa()
         registreDossier.publier(dossier)
@@ -133,6 +136,8 @@ class PreVerificationsAgentIaTest {
                 sessionProjet = session,
                 dispatchers = TestDispatcherProvider(StandardTestDispatcher(horlogeTest)),
                 horloge = TimeProvider { 0L },
+                registreEditeur = editeur,
+                sourceDiagnostics = { DiagnosticsFichierIa(cheminActif = null) },
             )
         return controleur to fournisseur
     }
@@ -306,6 +311,8 @@ class PreVerificationsAgentIaTest {
                 sessionProjet = SessionPilotable(EtatSessionProjetVue.Ouverte(ProjectId("alpha"))),
                 dispatchers = TestDispatcherProvider(StandardTestDispatcher(testScheduler)),
                 horloge = TimeProvider { 0L },
+                registreEditeur = RegistrePortEditeurActif(),
+                sourceDiagnostics = { DiagnosticsFichierIa(cheminActif = null) },
             )
 
         controleur.definirObjectif("Fais quelque chose")

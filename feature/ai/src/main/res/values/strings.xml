@@ -275,6 +275,16 @@
     <!-- Temps réel de l'exécution (A4, rapport IA lot 2). -->
     <string name="agent_progression">Étape %1$d / %2$d · %3$d s</string>
     <string name="agent_progression_outil">Étape %1$d / %2$d · %3$d s · %4$s</string>
+
+    <!-- Intelligence de l'agent (A5, rapport IA lot 2). -->
+    <string name="agent_planifier_dabord">Planifier d\'abord</string>
+    <string name="agent_plan_titre">Plan proposé</string>
+    <string name="agent_plan_valider">Valider le plan</string>
+    <string name="agent_plan_rejeter">Rejeter le plan</string>
+    <string name="agent_plan_rejete">Plan rejeté — modifiez l\'objectif puis relancez</string>
+    <string name="agent_statut_plan_attendu">Plan proposé — validez le plan pour exécuter</string>
+    <string name="agent_jetons">Jetons : entrée %1$d · sortie %2$d · contexte ≈ %3$d</string>
+    <string name="agent_jetons_estimes">Jetons : ≈ %1$d (estimation locale)</string>
     <string name="agent_approbation_titre">Exécution demandée</string>
     <string name="agent_approbation_refuser">Refuser</string>
     <string name="agent_approbation_autoriser">Autoriser une fois</string>

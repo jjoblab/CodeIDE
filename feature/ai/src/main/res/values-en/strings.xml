@@ -260,6 +260,16 @@
     <!-- Live execution progress (A4, rapport IA lot 2). -->
     <string name="agent_progression">Step %1$d of %2$d · %3$d s</string>
     <string name="agent_progression_outil">Step %1$d of %2$d · %3$d s · %4$s</string>
+
+    <!-- Agent intelligence (A5, rapport IA lot 2). -->
+    <string name="agent_planifier_dabord">Plan first</string>
+    <string name="agent_plan_titre">Proposed plan</string>
+    <string name="agent_plan_valider">Approve plan</string>
+    <string name="agent_plan_rejeter">Reject plan</string>
+    <string name="agent_plan_rejete">Plan rejected — edit the goal and run again</string>
+    <string name="agent_statut_plan_attendu">Plan proposed — approve it to execute</string>
+    <string name="agent_jetons">Tokens: input %1$d · output %2$d · context ≈ %3$d</string>
+    <string name="agent_jetons_estimes">Tokens: ≈ %1$d (local estimate)</string>
     <string name="agent_approbation_titre">Execution requested</string>
     <string name="agent_approbation_refuser">Deny</string>
     <string name="agent_approbation_autoriser">Allow once</string>

@@ -121,6 +121,8 @@ internal class FauxFournisseurContexte : jo.codeide.core.ai.FournisseurContexteP
     var iaIgnore: List<String> = emptyList()
     var lectures = 0
     var listages = 0
+    var recherches = 0
+    var lecturesLignes = 0
 
     override suspend fun lireFichier(cheminRelatif: String): AppResult<String> {
         lectures++
@@ -135,6 +137,59 @@ internal class FauxFournisseurContexte : jo.codeide.core.ai.FournisseurContexteP
     }
 
     override suspend fun lireIaIgnore(): List<String> = iaIgnore
+
+    /** Recherche littérale dans la MAP des fichiers (miroir honnête du port réel). */
+    override suspend fun rechercherTexte(
+        motif: String,
+        limite: Int,
+    ): AppResult<List<jo.codeide.core.ai.OccurrenceRechercheIa>> {
+        recherches++
+        return AppResult.Success(occurrencesDe(motif, limite))
+    }
+
+    /** Scan plat : un fichier à la fois, occurrences plafonnées. */
+    private fun occurrencesDe(motif: String, limite: Int): List<jo.codeide.core.ai.OccurrenceRechercheIa> {
+        if (motif.isEmpty()) {
+            return emptyList()
+        }
+        val occurrences = mutableListOf<jo.codeide.core.ai.OccurrenceRechercheIa>()
+        for ((chemin, contenu) in fichiers) {
+            ajouterOccurrences(chemin, contenu, motif, limite, occurrences)
+        }
+        return occurrences
+    }
+
+    /** Ajoute les occurrences d'un fichier (une par ligne porteuse). */
+    private fun ajouterOccurrences(
+        chemin: String,
+        contenu: String,
+        motif: String,
+        limite: Int,
+        occurrences: MutableList<jo.codeide.core.ai.OccurrenceRechercheIa>,
+    ) {
+        for ((indice, ligne) in contenu.lines().withIndex()) {
+            if (occurrences.size < limite && ligne.contains(motif)) {
+                occurrences.add(jo.codeide.core.ai.OccurrenceRechercheIa(chemin, indice + 1, ligne.trim().take(200)))
+            }
+        }
+    }
+
+    /** Lecture d'un intervalle de lignes numérotées (miroir honnête du port réel). */
+    override suspend fun lireLignes(cheminRelatif: String, debut: Int, fin: Int): AppResult<String> {
+        lecturesLignes++
+        val contenu = fichiers[cheminRelatif]
+        return if (contenu == null) {
+            AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "absent"))
+        } else {
+            val lignes = contenu.lines()
+            if (debut > lignes.size) {
+                AppResult.Failure(AppError.Storage(AppError.StorageReason.NotFound, "plage hors fichier"))
+            } else {
+                val finBornee = fin.coerceAtMost(lignes.size)
+                AppResult.Success((debut..finBornee).joinToString("\n") { "$it| ${lignes[it - 1]}" })
+            }
+        }
+    }
 }
 
 /** Horloge figée : temps contrôlé (exigence section 12.5). */

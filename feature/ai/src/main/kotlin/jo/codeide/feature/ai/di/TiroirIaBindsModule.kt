@@ -42,6 +42,13 @@ internal abstract class TiroirIaBindsModule {
     @Binds
     @Singleton
     internal abstract fun lierServiceAgentIaPremierPlan(impl: DemarreurServiceAgentIa): ServiceAgentIaPremierPlan
+
+    /** A5 (rapport IA lot 2) : les diagnostics du fichier actif pour l'agent. */
+    @Binds
+    @Singleton
+    internal abstract fun lierSourceDiagnosticsFichierIa(
+        impl: jo.codeide.feature.ai.SourceDiagnosticsFichierIaImpl,
+    ): jo.codeide.core.ai.SourceDiagnosticsFichierIa
 }
 
 /** Implémentation : crée le fragment IA du tiroir, prêt à ajouter. */

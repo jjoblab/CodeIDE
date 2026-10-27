@@ -33,6 +33,23 @@ class OutilsAdaptateursIaTest {
         }
 
         override suspend fun lireIaIgnore(): List<String> = emptyList()
+
+        var occurrences: List<OccurrenceRechercheIa> = emptyList()
+
+        override suspend fun rechercherTexte(motif: String, limite: Int): AppResult<List<OccurrenceRechercheIa>> =
+            if (echec) {
+                AppResult.Failure(AppError.Unknown("test"))
+            } else {
+                AppResult.Success(occurrences)
+            }
+
+        var lignes: String = ""
+
+        override suspend fun lireLignes(cheminRelatif: String, debut: Int, fin: Int): AppResult<String> = if (echec) {
+            AppResult.Failure(AppError.Unknown("test"))
+        } else {
+            AppResult.Success(lignes)
+        }
     }
 
     @Test
