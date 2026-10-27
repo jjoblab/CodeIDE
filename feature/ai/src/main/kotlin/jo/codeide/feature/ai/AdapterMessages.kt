@@ -422,6 +422,11 @@ public class AdapterMessages(
         RecyclerView.ViewHolder(liaison.root) {
         public fun lier(message: MessageChatUi) {
             liaison.texteMessage.text = message.texte
+            // C4 (retour propriétaire) : l'heure sous la bulle — lue
+            // au fil de la conversation comme dans un client de chat.
+            val heure = heureCourte(liaison.root.context, message.horodatageMs)
+            liaison.heureMessage.isVisible = heure.isNotEmpty()
+            liaison.heureMessage.text = heure
             // TalkBack : chaque message est annoncé avec son rôle.
             liaison.root.contentDescription =
                 liaison.root.context.getString(R.string.ia_message_cd_utilisateur, message.texte)
@@ -528,6 +533,12 @@ public class AdapterMessages(
             liaison.boutonCopierMessage.isVisible = complete
             liaison.boutonRegenererMessage.isVisible = complete && estDerniere
             liaison.boutonExporterMessage.isVisible = complete
+            // C4 (retour propriétaire) : l'heure de la réponse joint
+            // la ligne d'actions — le moment où elle a été rédigée se
+            // lit AUSSI dans une conversation longue.
+            val heure = heureCourte(liaison.root.context, message.horodatageMs)
+            liaison.heureMessage.isVisible = complete && heure.isNotEmpty()
+            liaison.heureMessage.text = heure
             if (complete) {
                 liaison.boutonCopierMessage.setOnClickListener { onCopierMessage(message.identifiant) }
             }
@@ -669,3 +680,17 @@ public class AdapterMessages(
     }
 }
 
+/**
+ * Heure locale courte d'un message (C4, retour propriétaire — « ajoute
+ * l'heure dans les conversations ») : le FORMAT suit le réglage 12/24 h
+ * du SYSTÈME ([android.text.format.DateFormat.getTimeFormat] — jamais
+ * un motif en dur) ; chaîne vide si l'horodatage est inconnu (0 —
+ * jamais une heure inventée).
+ */
+internal fun heureCourte(contexte: android.content.Context, horodatageMs: Long): String = if (horodatageMs <= 0L) {
+    ""
+} else {
+    android.text.format.DateFormat
+        .getTimeFormat(contexte)
+        .format(java.util.Date(horodatageMs))
+}

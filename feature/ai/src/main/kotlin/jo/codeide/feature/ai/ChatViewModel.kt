@@ -66,6 +66,13 @@ public data class MessageChatUi(
      * « réponse tronquée — augmentez le plafond ».
      */
     public val tronque: Boolean = false,
+    /**
+     * Instant du message en epoch ms (C4, retour propriétaire) :
+     * l'heure s'affiche dans la conversation — sous la bulle
+     * utilisateur, dans la ligne d'actions de la réponse. `0` = inconnu
+     * (aucune heure affichée, jamais une heure inventée).
+     */
+    public val horodatageMs: Long = 0L,
 )
 
 /** Écran Chat du tiroir IA (état) — mission IA, lots IA-3 et IA-4. */
@@ -676,7 +683,14 @@ constructor(
         etatInterne.value =
             etatInterne.value.copy(
                 saisie = "",
-                messages = etatInterne.value.messages + MessageChatUi(identifiantSuivant, true, texte),
+                messages =
+                etatInterne.value.messages +
+                    MessageChatUi(
+                        identifiant = identifiantSuivant,
+                        utilisateur = true,
+                        texte = texte,
+                        horodatageMs = horloge.nowMillis(),
+                    ),
                 pieces = contexte.pieces,
                 jetonsContexte = contexte.jetons,
             )
@@ -698,6 +712,9 @@ constructor(
                         utilisateur = false,
                         texte = "",
                         generationEnCours = true,
+                        // C4 : l'heure de la réponse est celle du DÉBUT de
+                        // sa rédaction (pas de la dernière delta).
+                        horodatageMs = horloge.nowMillis(),
                     ),
             )
         generation =
@@ -966,6 +983,10 @@ constructor(
                             utilisateur = message.utilisateur,
                             texte = message.texte,
                             raisonnement = message.raisonnement,
+                            // C4 : l'heure vient du STOCKAGE — la
+                            // conversation rouverte montre SES heures,
+                            // pas celles de la réouverture.
+                            horodatageMs = message.creeA,
                         )
                     },
                     saisie = "",

@@ -222,7 +222,64 @@ class AdapterMessagesTest {
         assertTrue(ligneRaisonnement.visibility == View.VISIBLE)
     }
 
+    @Test
+    fun `C4 - la bulle UTILISATEUR porte son heure sous le texte`() {
+        val message =
+            MessageChatUi(
+                identifiant = "ia-1",
+                utilisateur = true,
+                texte = "Bonjour",
+                horodatageMs = 1_000_000_000_000L,
+            )
+        soumettreEtCommmettre(listOf(message))
+        val titulaire = adaptateur.onCreateViewHolder(liste, TYPE_UTILISATEUR)
+        adaptateur.onBindViewHolder(titulaire, 0)
+
+        val heure = titulaire.itemView.findViewById<TextView>(R.id.heure_message)
+        assertTrue("l'heure doit être visible sous la bulle", heure.visibility == View.VISIBLE)
+        assertTrue("l'heure ne doit pas être vide", heure.text.toString().isNotBlank())
+    }
+
+    @Test
+    fun `C4 - l'heure de la REPONSE joint la ligne d'actions quand elle est complete - jamais pendant le flux`() {
+        // Pendant le flux : pas d'heure (la réponse n'est pas une réponse).
+        val enCours = messageAssistant("Bon", generationEnCours = true)
+        soumettreEtCommmettre(listOf(enCours))
+        val titulaire = adaptateur.onCreateViewHolder(liste, TYPE_ASSISTANT)
+        adaptateur.onBindViewHolder(titulaire, 0)
+        val heure = titulaire.itemView.findViewById<TextView>(R.id.heure_message)
+        assertTrue(
+            "aucune heure pendant le flux",
+            heure.visibility != View.VISIBLE,
+        )
+
+        // Fin du flux : l'heure s'affiche dans la ligne d'actions.
+        val termine = enCours.copy(generationEnCours = false, horodatageMs = 1_000_000_000_000L)
+        soumettreEtCommmettre(listOf(termine))
+        val payload = ComparateurMessages.getChangePayload(enCours, termine)!!
+        adaptateur.onBindViewHolder(titulaire, 0, mutableListOf(payload))
+        assertTrue(
+            "l'heure doit être visible à la fin de la génération",
+            heure.visibility == View.VISIBLE,
+        )
+        assertTrue("l'heure ne doit pas être vide", heure.text.toString().isNotBlank())
+    }
+
+    @Test
+    fun `C4 - un message sans horodatage n'affiche AUCUNE heure - jamais une heure inventee`() {
+        val message = messageAssistant("Bonjour le monde", generationEnCours = false)
+        soumettreEtCommmettre(listOf(message))
+        val titulaire = adaptateur.onCreateViewHolder(liste, TYPE_ASSISTANT)
+        adaptateur.onBindViewHolder(titulaire, 0)
+        val heure = titulaire.itemView.findViewById<TextView>(R.id.heure_message)
+        assertTrue(
+            "aucune heure sans horodatage",
+            heure.visibility != View.VISIBLE || heure.text.isBlank(),
+        )
+    }
+
     private companion object {
         const val TYPE_ASSISTANT = 1
+        const val TYPE_UTILISATEUR = 0
     }
 }
