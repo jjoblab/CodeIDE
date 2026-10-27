@@ -13,6 +13,7 @@ import jo.codeide.core.domain.RegistreDossierProjetIa
 import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.testing.FakeFileSystem
@@ -49,12 +50,17 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 @Suppress("LargeClass") // une classe par écran : les quatre défaillances y déploient le contrat.
 class PreVerificationsAgentIaTest {
-    /** Fournisseur espion : enregistre les requêtes, répond texte final. */
-    private class FournisseurEspion : AiProvider {
+    /** Fournisseur espion : enregistre les requêtes, répond texte final
+     *  ou l'ÉCHEC semé par le test (A3 — l'erreur typée voyage). */
+    private class FournisseurEspion(private var echec: AppError? = null) : AiProvider {
         val requetes = mutableListOf<AiRequest>()
 
         override fun stream(request: AiRequest) = flow {
             requetes += request
+            echec?.let {
+                emit(AiEvent.Failure(it))
+                return@flow
+            }
             emit(AiEvent.TextDelta("Réponse immédiate."))
             emit(AiEvent.Done(AiStopReason.EndTurn))
         }
@@ -219,6 +225,31 @@ class PreVerificationsAgentIaTest {
         assertEquals(1, fournisseur.requetes.size)
         assertEquals("claude-test", fournisseur.requetes.single().model)
         assertTrue(controleur.etat.value.preVerifications.pret)
+    }
+
+    @Test
+    fun `l'echec fournisseur devient message LISIBLE et action de remediation (A3)`() = runTest {
+        val (controleur, _) =
+            controleur(
+                testScheduler,
+                coffre = coffreAvecCle(),
+                fournisseur =
+                FournisseurEspion(
+                    jo.codeide.core.model.AppError.Ai(
+                        jo.codeide.core.model.AppError.AiReason.Authentication,
+                    ),
+                ),
+            )
+
+        controleur.definirObjectif("Fais quelque chose")
+        controleur.lancer()
+        advanceUntilIdle()
+
+        assertEquals(StatutAgentIa.ECHOUE, controleur.etat.value.statut)
+        // Message LISIBLE (table du chat, plus de "échec fournisseur :
+        // Ai") et ACTION de remédiation portée par l'état.
+        assertEquals(R.string.ia_erreur_authentication, controleur.etat.value.message?.ressource)
+        assertEquals(jo.codeide.feature.ai.ActionErreurIa.OUVRIR_REGLAGES, controleur.etat.value.actionErreur)
     }
 
     @Test

@@ -22,6 +22,7 @@ import jo.codeide.core.ai.OutilsEcritureIa
 import jo.codeide.core.ai.PorteApprobationIa
 import jo.codeide.core.ai.RegistreOutilsIa
 import jo.codeide.core.ai.ResolveurCheminsProjetIa
+import jo.codeide.core.ai.ResultatAgentIa
 import jo.codeide.core.ai.ResultatApplicationIa
 import jo.codeide.core.ai.RevueChangeSetIa
 import jo.codeide.core.domain.AiSettings
@@ -34,6 +35,8 @@ import jo.codeide.core.domain.ReglagesIaRepository
 import jo.codeide.core.domain.SourceProjetHistorique
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.getOrNull
+import jo.codeide.feature.ai.ActionErreurIa
+import jo.codeide.feature.ai.PresentationErreursIa
 import jo.codeide.feature.ai.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -132,6 +135,8 @@ public data class EtatAgentIa(
     public val enApplication: Boolean = false,
     /** Puces de pré-vérification (A2, rapport IA lot 2). */
     public val preVerifications: PreVerificationsAgentIa = PreVerificationsAgentIa(),
+    /** Action de remédiation de la dernière erreur (A3, rapport IA lot 2). */
+    public val actionErreur: ActionErreurIa? = null,
 )
 
 /**
@@ -282,9 +287,12 @@ constructor(
                     rafraichirPreVerifications()
                     val garde = verifierLancement()
                     if (garde != null) {
-                        _etat.update { it.copy(message = garde) }
+                        _etat.update { it.copy(message = garde, actionErreur = null) }
                         return@launch
                     }
+                    // A3 : une nouvelle tentative efface l'action de
+                    // l'erreur précédente (jamais de bouton périmé).
+                    _etat.update { it.copy(actionErreur = null) }
                     executer(objectif)
                 } catch (annulation: CancellationException) {
                     _etat.update { etat -> etat.reprise(StatutAgentIa.ANNULE, MessageAgentIa(R.string.agent_annule)) }
@@ -452,7 +460,7 @@ constructor(
                 ),
             )
         val runner = AgentRunnerIa(fournisseur, registre, LimitesAgentIa(_etat.value.etapesMax))
-        val (issue, texte) =
+        val resultat =
             runner.executer(messagesAgent(objectif), modele, JETONS_REPONSE) { etape ->
                 _etat.update { courant ->
                     courant.copy(
@@ -460,28 +468,49 @@ constructor(
                     )
                 }
             }
-        rendreIssue(issue, texte)
+        rendreIssue(resultat)
     }
 
     /**
-     * Traduction de l'issue du runner (v0.195.0) : la réponse FINALE
-     * est du CONTENU (carte dédiée), les autres issues portent un
-     * message localisé — jamais de chaîne brute.
+     * Traduction de l'issue du runner (v0.195.0 ; A3 rapport IA lot 2) :
+     * la réponse FINALE est du CONTENU (carte dédiée), une ERREUR TYPIÉE
+     * devient message + ACTION de remédiation (plus JAMAIS
+     * « échec fournisseur : NomDeClasse »), les autres issues portent un
+     * message localisé.
      */
-    private fun rendreIssue(issue: IssueAgentIa, texte: String) {
+    private fun rendreIssue(resultat: ResultatAgentIa) {
         _etat.update { courant ->
-            when (issue) {
+            when (resultat.issue) {
                 IssueAgentIa.TERMINE ->
-                    courant.copy(statut = StatutAgentIa.TERMINE, reponse = texte.ifBlank { null })
+                    courant.copy(statut = StatutAgentIa.TERMINE, reponse = resultat.texte.ifBlank { null })
 
                 IssueAgentIa.INTERROMPU ->
                     courant.copy(statut = StatutAgentIa.INTERROMPU)
 
-                IssueAgentIa.ECHOUE ->
-                    courant.copy(
-                        statut = StatutAgentIa.ECHOUE,
-                        message = MessageAgentIa(R.string.agent_statut_echoue, texte.ifBlank { null }),
-                    )
+                IssueAgentIa.ECHOUE -> {
+                    // A3 : l'erreur TYPIÉE du fournisseur devient message
+                    // LISIBLE + action de remédiation — la présentation du
+                    // chat est réutilisée (table fermée des raisons).
+                    val erreur = resultat.erreur
+                    if (erreur != null) {
+                        val presentation = PresentationErreursIa.message(erreur)
+                        courant.copy(
+                            statut = StatutAgentIa.ECHOUE,
+                            message =
+                            MessageAgentIa(
+                                presentation.ressource,
+                                presentation.argument,
+                            ),
+                            actionErreur = PresentationErreursIa.action(erreur),
+                        )
+                    } else {
+                        courant.copy(
+                            statut = StatutAgentIa.ECHOUE,
+                            message =
+                            MessageAgentIa(R.string.agent_statut_echoue, resultat.texte.ifBlank { null }),
+                        )
+                    }
+                }
 
                 IssueAgentIa.ANNULE ->
                     courant.copy(statut = StatutAgentIa.ANNULE, message = MessageAgentIa(R.string.agent_annule))

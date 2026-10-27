@@ -44,6 +44,23 @@ public enum class IssueAgentIa {
 }
 
 /**
+ * Résultat d'une exécution d'agent (A3, rapport IA lot 2) : l'issue +
+ * le texte final + l'ERREUR TYPIÉE quand il y en a une (le message
+ * LISIBLE en est dérivé côté présentation —
+ * `PresentationErreursIa` côté écran, plus JAMAIS de
+ * « échec fournisseur : NomDeClasse » brut).
+ *
+ * @property issue état d'issue de la boucle.
+ * @property texte réponse finale ou message d'état lisible.
+ * @property erreur erreur modélisée du fournisseur quand [IssueAgentIa.ECHOUE].
+ */
+public data class ResultatAgentIa(
+    public val issue: IssueAgentIa,
+    public val texte: String,
+    public val erreur: AppError? = null,
+)
+
+/**
  * Appel d'outil collecté pendant une étape (A1, rapport IA lot 2) :
  * accumulé PAR `toolCallId` — le VRAI identifiant attribué par le
  * fournisseur, JAMAIS un identifiant inventé. Plusieurs appels peuvent
@@ -112,7 +129,7 @@ public class AgentRunnerIa(
         modele: String,
         maxJetonsReponse: Int,
         surEtape: suspend (String) -> Unit = {},
-    ): Pair<IssueAgentIa, String> {
+    ): ResultatAgentIa {
         var conversation = messages
         var etapes = 0
         var echecsConsecutifs = 0
@@ -138,7 +155,10 @@ public class AgentRunnerIa(
                 } catch (incident: Exception) {
                     // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
                     @Suppress("SwallowedException")
-                    return Pair(IssueAgentIa.ECHOUE, "incident fournisseur : ${incident.javaClass.simpleName}")
+                    return ResultatAgentIa(
+                        IssueAgentIa.ECHOUE,
+                        "incident fournisseur : ${incident.javaClass.simpleName}",
+                    )
                 }
 
             val texte = StringBuilder()
@@ -180,14 +200,16 @@ public class AgentRunnerIa(
             }
 
             if (echec != null) {
-                return Pair(IssueAgentIa.ECHOUE, "échec fournisseur : ${echec.javaClass.simpleName}")
+                // A3 (rapport IA lot 2) : l'erreur TYPIÉE voyage — le
+                // message lisible en est dérivé côté présentation.
+                return ResultatAgentIa(IssueAgentIa.ECHOUE, "échec fournisseur", echec)
             }
 
             reponseFinale = texte.toString()
             if (appels.isEmpty()) {
                 // Réponse finale sans appel d'outil : l'objectif est atteint.
                 surEtape("réponse finale")
-                return Pair(IssueAgentIa.TERMINE, reponseFinale)
+                return ResultatAgentIa(IssueAgentIa.TERMINE, reponseFinale)
             }
 
             // A1 : le message assistant reconstruit porte les VRAIS
@@ -261,14 +283,14 @@ public class AgentRunnerIa(
             }
 
             if (echecsConsecutifs >= limites.echecsConsecutifsMax) {
-                return Pair(
+                return ResultatAgentIa(
                     IssueAgentIa.INTERROMPU,
                     "limite atteinte : $echecsConsecutifs échecs consécutifs d'outil",
                 )
             }
         }
 
-        return Pair(
+        return ResultatAgentIa(
             IssueAgentIa.INTERROMPU,
             "limite atteinte : ${limites.maxEtapes} étapes sans réponse finale",
         )

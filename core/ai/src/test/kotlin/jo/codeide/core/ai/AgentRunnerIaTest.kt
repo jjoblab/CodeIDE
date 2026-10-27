@@ -199,6 +199,27 @@ class AgentRunnerIaTest {
     }
 
     @Test
+    fun `l'echec fournisseur voyage TYPIE - le message lisible est derive cote ecran (A3)`() = runTest {
+        val erreurAttendue = jo.codeide.core.model.AppError.Ai(
+            jo.codeide.core.model.AppError.AiReason.Authentication,
+        )
+        val fournisseur =
+            FournisseurScenario(
+                listOf(
+                    listOf(
+                        AiEvent.Failure(erreurAttendue),
+                    ),
+                ),
+            )
+        val runner = AgentRunnerIa(fournisseur, RegistreOutilsIa(emptyList()))
+
+        val resultat = runner.executer(listOf(AiMessage.user("x")), "m", 100)
+
+        assertEquals(IssueAgentIa.ECHOUE, resultat.issue)
+        assertEquals(erreurAttendue, resultat.erreur)
+    }
+
+    @Test
     fun `outil inconnu - un ToolResult de refus avec le meme identifiant`() = runTest {
         val fournisseur =
             FournisseurScenario(

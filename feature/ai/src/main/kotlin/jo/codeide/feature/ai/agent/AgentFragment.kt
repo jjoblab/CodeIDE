@@ -20,6 +20,7 @@ import jo.codeide.feature.ai.IaTiroirFragment
 import jo.codeide.feature.ai.R
 import jo.codeide.feature.ai.databinding.FragmentIaAgentBinding
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Écran Agent (IA-7b, spec E2 ; v0.195.0 — retour propriétaire) :
@@ -32,7 +33,15 @@ import kotlinx.coroutines.launch
  * via [AgentViewModel] — la vue rend l'état.
  */
 @AndroidEntryPoint
+// Exemption detekt ciblée (règle 16) : TooManyFunctions — un rendu par
+// SECTION de l'état UDF (statut, approbation, changements, réponse,
+// pré-vérifications) : la surface de câblage de l'écran Agent.
+@Suppress("TooManyFunctions")
 public class AgentFragment : Fragment() {
+    /** Navigation des actions de remédiation (A3 — pattern du chat). */
+    @Inject
+    internal lateinit var navigator: jo.codeide.core.ui.AppNavigator
+
     private val modele: AgentViewModel by viewModels()
     private var liaison: FragmentIaAgentBinding? = null
 
@@ -98,6 +107,12 @@ public class AgentFragment : Fragment() {
         liaison.boutonToutAppliquer.setOnClickListener { modele.appliquerTout() }
         liaison.boutonRejeter.setOnClickListener { modele.rejeterChangements() }
         liaison.boutonAnnulerExecution.setOnClickListener { modele.annulerExecution() }
+        // A3 (rapport IA lot 2) : l'action de remédiation de la dernière
+        // erreur — Réessayer relance, les autres ouvrent les réglages IA
+        // (l'action lue est CELLE de l'état au moment du clic).
+        liaison.boutonActionErreur.setOnClickListener {
+            modele.etat.value.actionErreur?.let(::appliquerActionErreur)
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -142,30 +157,19 @@ public class AgentFragment : Fragment() {
 
         rendreApprobation(etat, liaison)
 
-        val revue = etat.revue
-        val changementsVisibles = revue != null && !revue.vide && etat.execution == null
-        liaison.carteChangements.isVisible = changementsVisibles
-        if (revue != null && changementsVisibles) {
-            liaison.texteChangements.text =
-                getString(
-                    R.string.agent_changements_resumes,
-                    revue.fichiers.size,
-                    revue.conflits.size,
-                )
-            liaison.boutonToutAppliquer.isEnabled = revue.applicables.isNotEmpty()
-        }
-
-        val execution = etat.execution
-        liaison.bandeauAnnulation.isVisible = execution != null
-        liaison.indicateur.isVisible = enCours || etat.enApplication
-
-        // Réponse finale (v0.195.0) : carte dédiée — du contenu, pas un
-        // message d'état.
-        liaison.carteReponse.isVisible = !etat.reponse.isNullOrBlank()
-        liaison.texteReponse.text = etat.reponse.orEmpty()
+        rendreChangementsEtReponse(etat, liaison, enCours)
 
         // Bannière localisée (v0.195.0) : teinte d'erreur quand le
         // statut est ÉCHOUÉ — jamais de texte brut perdu au milieu.
+        // A3 : bouton d'action de remédiation — visible quand l'état
+        // en porte une (l'erreur typée a une remédiation), jamais de
+        // bouton périmé (effacé à chaque nouvelle tentative).
+        val actionErreur = etat.actionErreur
+        liaison.boutonActionErreur.isVisible = actionErreur != null
+        if (actionErreur != null) {
+            liaison.boutonActionErreur.setText(actionErreur.libelleRes)
+        }
+
         val message = etat.message
         liaison.texteMessage.isVisible = message != null
         if (message != null) {
@@ -214,6 +218,31 @@ public class AgentFragment : Fragment() {
         liaison.progressionStatut.isVisible = etat.statut == StatutAgentIa.EN_COURS || etat.enApplication
     }
 
+    /** Carte des changements proposés + bandeau d'annulation + réponse finale. */
+    private fun rendreChangementsEtReponse(etat: EtatAgentIa, liaison: FragmentIaAgentBinding, enCours: Boolean) {
+        val revue = etat.revue
+        val changementsVisibles = revue != null && !revue.vide && etat.execution == null
+        liaison.carteChangements.isVisible = changementsVisibles
+        if (revue != null && changementsVisibles) {
+            liaison.texteChangements.text =
+                getString(
+                    R.string.agent_changements_resumes,
+                    revue.fichiers.size,
+                    revue.conflits.size,
+                )
+            liaison.boutonToutAppliquer.isEnabled = revue.applicables.isNotEmpty()
+        }
+
+        val execution = etat.execution
+        liaison.bandeauAnnulation.isVisible = execution != null
+        liaison.indicateur.isVisible = enCours || etat.enApplication
+
+        // Réponse finale (v0.195.0) : carte dédiée — du contenu, pas un
+        // message d'état.
+        liaison.carteReponse.isVisible = !etat.reponse.isNullOrBlank()
+        liaison.texteReponse.text = etat.reponse.orEmpty()
+    }
+
     /** Carte d'approbation EXÉCUTION (ADR 0125) — outil + raison. */
     private fun rendreApprobation(etat: EtatAgentIa, liaison: FragmentIaAgentBinding) {
         val demande = etat.demande
@@ -259,6 +288,23 @@ public class AgentFragment : Fragment() {
             R.string.agent_puce_modele_ok,
             R.string.agent_puce_modele_ko,
         )
+    }
+
+    /**
+     * Action de remédiation de la carte d'erreur (A3, rapport IA lot 2 —
+     * miroir du chat) : Réessayer relance l'exécution, les réglages IA
+     * portent la clé, le consentement et le modèle.
+     */
+    private fun appliquerActionErreur(action: jo.codeide.feature.ai.ActionErreurIa) {
+        when (action) {
+            jo.codeide.feature.ai.ActionErreurIa.REESSAYER -> modele.continuer()
+
+            jo.codeide.feature.ai.ActionErreurIa.OUVRIR_REGLAGES ->
+                navigator.openSettingsSection(jo.codeide.core.ui.SectionParametres.IA)
+
+            jo.codeide.feature.ai.ActionErreurIa.CHANGER_MODELE ->
+                navigator.openSettingsSection(jo.codeide.core.ui.SectionParametres.IA)
+        }
     }
 
     private fun cacherClavier(champ: View) {
