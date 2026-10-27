@@ -1,7 +1,6 @@
 package jo.codeide.core.ai
 
 import jo.codeide.core.model.AppError
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.toList
@@ -45,8 +44,34 @@ public enum class IssueAgentIa {
 }
 
 /**
+ * Appel d'outil collecté pendant une étape (A1, rapport IA lot 2) :
+ * accumulé PAR `toolCallId` — le VRAI identifiant attribué par le
+ * fournisseur, JAMAIS un identifiant inventé. Plusieurs appels peuvent
+ * vivre dans une même étape (ordre d'arrivée conservé).
+ */
+private class AppelOutilEnCours {
+    /** Nom de l'outil ([AiEvent.ToolCallStarted] — repli vide). */
+    var nom: String = ""
+
+    /** Fragments d'arguments JSON concaténés au fil du flux. */
+    val fragments = StringBuilder()
+}
+
+/**
  * Exécuteur d'agent (mission IA, lot IA-7, ADR 0125) : boucle bornée
  * **réfléchir → appeler un outil → observer → continuer**.
+ *
+ * PROTOCOLE D'OUTILS (A1, rapport IA lot 2) : le message assistant
+ * reconstruit porte les appels en blocs [AiContentBlock.ToolUse] avec
+ * les VRAIS `toolCallId` du fournisseur, et chaque résultat répond par
+ * un [AiContentBlock.ToolResult] portant le MÊME identifiant —
+ * Anthropic (`tool_use`/`tool_result`) comme les serveurs compatibles
+ * OpenAI (`tool_calls`/`tool_call_id`) rejettent toute réponse dont
+ * l'identifiant ne correspond pas à un appel du tour précédent.
+ * Plusieurs appels par étape sont honorés (accumulation par
+ * identifiant, un résultat PAR appel). Les arguments sont lus
+ * DIRECTEMENT dans l'objet du schéma de l'outil (ex. `{"chemin": …}`) —
+ * plus d'enveloppe maison `{"nom","parametres"}`.
  *
  * Confinement structurel :
  * - les outils de LECTURE s'exécutent d'eux-mêmes (approbation
@@ -117,8 +142,9 @@ public class AgentRunnerIa(
                 }
 
             val texte = StringBuilder()
-            val fragmentsArguments = StringBuilder()
-            var outilNom: String = ""
+            // A1 : accumulation PAR toolCallId (ordre d'arrivée conservé)
+            // — plusieurs appels par étape, jamais d'identifiant inventé.
+            val appels = LinkedHashMap<String, AppelOutilEnCours>()
             var echec: AppError? = null
 
             for (evenement in evenements) {
@@ -128,18 +154,18 @@ public class AgentRunnerIa(
                     }
 
                     is AiEvent.ToolCallStarted -> {
-                        outilNom = evenement.name
+                        appels.getOrPut(evenement.toolCallId) { AppelOutilEnCours() }.nom = evenement.name
                     }
 
                     is AiEvent.ToolCallArguments -> {
-                        fragmentsArguments.append(evenement.argumentsJsonFragment)
+                        appels.getOrPut(evenement.toolCallId) { AppelOutilEnCours() }
+                            .fragments.append(evenement.argumentsJsonFragment)
                     }
 
                     is AiEvent.ToolCallCompleted -> {
-                        if (fragmentsArguments.isEmpty()) {
-                            fragmentsArguments.append(
-                                evenement.argumentsJson,
-                            )
+                        val appel = appels.getOrPut(evenement.toolCallId) { AppelOutilEnCours() }
+                        if (appel.fragments.isEmpty()) {
+                            appel.fragments.append(evenement.argumentsJson)
                         }
                     }
 
@@ -158,50 +184,81 @@ public class AgentRunnerIa(
             }
 
             reponseFinale = texte.toString()
-            val argumentsOutil = fragmentsArguments.toString().ifBlank { null }
-            if (argumentsOutil == null) {
+            if (appels.isEmpty()) {
                 // Réponse finale sans appel d'outil : l'objectif est atteint.
                 surEtape("réponse finale")
                 return Pair(IssueAgentIa.TERMINE, reponseFinale)
             }
 
-            // Un appel d'outil à exécuter (V1 : un seul par étape —
-            // suffisant pour les outils listés, boucle bornée garantie).
-            val (nomOutil, parametres) = lireAppel(outilNom, argumentsOutil)
-            surEtape("étape $etapes : $nomOutil")
+            // A1 : le message assistant reconstruit porte les VRAIS
+            // appels — texte éventuel + un bloc ToolUse PAR appel avec
+            // l'identifiant du fournisseur (Anthropic `tool_use`,
+            // compatibles OpenAI `tool_calls` : les deux sérialisent
+            // ces blocs, cf. tests des providers).
+            val appelsComplets =
+                appels.map { (identifiant, appel) ->
+                    Triple(identifiant, appel.nom, appel.fragments.toString())
+                }
+            surEtape("étape $etapes : " + appelsComplets.joinToString(", ") { it.second })
             conversation =
                 conversation +
-                AiMessage.assistant(reponseFinale.ifBlank { "appel d'outil" })
+                AiMessage(
+                    role = AiRole.Assistant,
+                    blocks =
+                    buildList {
+                        if (texte.isNotBlank()) {
+                            add(AiContentBlock.Text(texte.toString()))
+                        }
+                        for ((identifiant, nom, arguments) in appelsComplets) {
+                            add(AiContentBlock.ToolUse(identifiant, nom, arguments))
+                        }
+                    },
+                )
 
-            val outil = registre.parIdentifiant(nomOutil)
-            val resultat =
-                if (outil == null) {
-                    ResultatOutilIa.Refuse("outil inconnu : $nomOutil")
-                } else {
-                    try {
-                        outil.executer(parametres)
-                    } catch (annulation: kotlinx.coroutines.CancellationException) {
-                        throw annulation
-                    } catch (incident: Exception) {
-                        // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
-                        @Suppress("SwallowedException")
-                        ResultatOutilIa.Refuse("incident outil : ${incident.javaClass.simpleName}")
+            // A1 : CHAQUE appel est exécuté et reçoit SA réponse — un
+            // ToolResult PAR appel, portant le MÊME identifiant (un
+            // message par résultat : Anthropic fusionne les `user`
+            // consécutifs, les compatibles OpenAI exigent un message
+            // `tool` par `tool_call_id`).
+            for ((identifiant, nom, arguments) in appelsComplets) {
+                val parametres = lireParametres(arguments)
+                val outil = registre.parIdentifiant(nom)
+                val resultat =
+                    if (outil == null) {
+                        ResultatOutilIa.Refuse("outil inconnu : $nom")
+                    } else {
+                        try {
+                            outil.executer(parametres)
+                        } catch (annulation: kotlinx.coroutines.CancellationException) {
+                            throw annulation
+                        } catch (incident: Exception) {
+                            // le TYPE de l'incident est le message modélisé (sobriété ADR 0124).
+                            @Suppress("SwallowedException")
+                            ResultatOutilIa.Refuse("incident outil : ${incident.javaClass.simpleName}")
+                        }
                     }
-                }
 
-            val observation =
-                when (resultat) {
-                    is ResultatOutilIa.Succes -> {
-                        echecsConsecutifs = 0
-                        resultat.sortie
-                    }
+                val observation =
+                    when (resultat) {
+                        is ResultatOutilIa.Succes -> {
+                            echecsConsecutifs = 0
+                            resultat.sortie
+                        }
 
-                    is ResultatOutilIa.Refuse -> {
-                        echecsConsecutifs++
-                        "REFUSÉ : ${resultat.motif}"
+                        is ResultatOutilIa.Refuse -> {
+                            echecsConsecutifs++
+                            "REFUSÉ : ${resultat.motif}"
+                        }
                     }
-                }
-            surEtape("observation : $observation")
+                surEtape("observation ($nom) : $observation")
+
+                conversation =
+                    conversation +
+                    AiMessage.toolResult(
+                        toolCallId = identifiant,
+                        content = observation,
+                    )
+            }
 
             if (echecsConsecutifs >= limites.echecsConsecutifsMax) {
                 return Pair(
@@ -209,13 +266,6 @@ public class AgentRunnerIa(
                     "limite atteinte : $echecsConsecutifs échecs consécutifs d'outil",
                 )
             }
-
-            conversation =
-                conversation +
-                AiMessage.toolResult(
-                    toolCallId = "etape-$etapes",
-                    content = observation,
-                )
         }
 
         return Pair(
@@ -224,26 +274,21 @@ public class AgentRunnerIa(
         )
     }
 
-    /** Lit (nom, paramètres) d'un appel d'outil émis par le modèle. */
-    @Suppress("SwallowedException") // JSON malformé : paramètres vides = appel sans argument (refus modélisé).
-    private fun lireAppel(
-        nom: String,
-        brut: String,
-    ): Pair<String, Map<String, String>> =
-        try {
-            val objet =
-                kotlinx.serialization.json.Json
-                    .parseToJsonElement(brut) as kotlinx.serialization.json.JsonObject
-            val nomLu = (objet["nom"] as? kotlinx.serialization.json.JsonPrimitive)?.content ?: nom
-            val parametres =
-                (objet["parametres"] as? kotlinx.serialization.json.JsonObject)
-                    ?.entries
-                    ?.associate { (cle, valeur) ->
-                        cle to ((valeur as? kotlinx.serialization.json.JsonPrimitive)?.content ?: valeur.toString())
-                    }
-                    ?: emptyMap()
-            Pair(nomLu, parametres)
-        } catch (malforme: Exception) {
-            Pair(nom, emptyMap())
+    /**
+     * Lit les paramètres DIRECTEMENT dans l'objet d'arguments du schéma
+     * de l'outil (A1, rapport IA lot 2) : le modèle émet `{"chemin":
+     * "src/…"}` — plus d'enveloppe maison `{"nom","parametres"}`. JSON
+     * malformé : paramètres vides (l'outil refuse l'appel incomplet).
+     */
+    @Suppress("SwallowedException")
+    private fun lireParametres(brut: String): Map<String, String> = try {
+        val objet =
+            kotlinx.serialization.json.Json
+                .parseToJsonElement(brut) as kotlinx.serialization.json.JsonObject
+        objet.entries.associate { (cle, valeur) ->
+            cle to ((valeur as? kotlinx.serialization.json.JsonPrimitive)?.content ?: valeur.toString())
         }
+    } catch (malforme: Exception) {
+        emptyMap()
+    }
 }

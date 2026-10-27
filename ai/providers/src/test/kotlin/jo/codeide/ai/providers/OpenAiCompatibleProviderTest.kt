@@ -270,6 +270,64 @@ class OpenAiCompatibleProviderTest {
     }
 
     @Test
+    fun `le tour MULTI-outils porte les deux tool_calls puis les deux messages tool (A1)`() = runBlocking {
+        FauxServeurIa().use { serveur ->
+            serveur.demarrer()
+            serveur.enregistrer { echange ->
+                serveur.repondreSse(echange, 200, ressource("openai-nominal.sse"))
+            }
+            // La forme EXACTE produite par AgentRunnerIa quand le modèle
+            // appelle DEUX outils dans un même tour (A1, rapport IA
+            // lot 2) : assistant texte + 2 blocs ToolUse, puis un
+            // message Tool PAR résultat (un message `tool` natif par
+            // `tool_call_id` — exigence du protocole Chat Completions).
+            val requete =
+                AiRequest(
+                    messages =
+                    listOf(
+                        AiMessage.user("Explore le projet."),
+                        AiMessage(
+                            AiRole.Assistant,
+                            listOf(
+                                AiContentBlock.Text("Je regarde."),
+                                AiContentBlock.ToolUse("call-1", "list_files", "{}"),
+                                AiContentBlock.ToolUse("call-2", "read_file", "{\"chemin\":\"a.kt\"}"),
+                            ),
+                        ),
+                        AiMessage.toolResult("call-1", "a.kt"),
+                        AiMessage.toolResult("call-2", "contenu"),
+                    ),
+                    model = "modele-test",
+                    maxOutputTokens = 77,
+                )
+
+            provider(serveur).stream(requete).toList()
+
+            val corps =
+                (
+                    JsonIa.parseur
+                        .parseToJsonElement(serveur.dernierCorps ?: error("corps capturé absent")) as JsonObject
+                    ).corpsTest()
+            val messages = corps["messages"].tableau()
+            assertEquals(4, messages.size)
+            // Assistant : texte PUIS les deux tool_calls (ordre conservé).
+            assertEquals("assistant", messages[1]["role"].texte())
+            assertEquals("Je regarde.", messages[1]["content"].texte())
+            val appels = messages[1]["tool_calls"].tableau()
+            assertEquals(2, appels.size)
+            assertEquals("call-1", appels[0]["id"].texte())
+            assertEquals("call-2", appels[1]["id"].texte())
+            assertEquals("list_files", (appels[0]["function"] ?: error("function attendu")).corpsTest()["name"].texte())
+            // Un message `tool` PAR tool_call_id.
+            assertEquals("tool", messages[2]["role"].texte())
+            assertEquals("call-1", messages[2]["tool_call_id"].texte())
+            assertEquals("a.kt", messages[2]["content"].texte())
+            assertEquals("tool", messages[3]["role"].texte())
+            assertEquals("call-2", messages[3]["tool_call_id"].texte())
+        }
+    }
+
+    @Test
     fun `l'en-tête Bearer part mais ne fuite jamais dans les journaux`() = runBlocking {
         FauxServeurIa().use { serveur ->
             serveur.demarrer()
