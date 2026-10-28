@@ -162,7 +162,55 @@ androidx-viewpager2 = "1.1.0"
 # les re-requêtes 4.3.0 ne s'activeront qu'à l'alignement du frère.
 # Artefacts JitPack v4.5.1 vérifiés HTTP 200 (cel-core .pom, build
 # « ok ») ; la chaîne locale de v0.200.0 résout et teste l'artefact.
-code-editor = "v4.5.1"
+# MONTÉE 4.5.1 → 4.9.1 (bump-frère du 2026-10-28, instruction
+# propriétaire « mettre à jour CodeIDE pour utiliser la dernière
+# version de code-editor »). Plage vérifiée au code des DEUX côtés
+# (CodeIDE v0.200.14 + cel-lsp 3.74.0 du pont) : 4.6.0 retrait des 17
+# dépréciations hors fenêtre — AUCUNE utilisée (grep des deux arbres :
+# les onTextChanged trouvés sont des TextWatcher Android 4-args, pas
+# le LspEditor.onTextChanged(CharSequence) retiré) + persistance de
+# l'apprentissage snapshot()/restore() DISPONIBLE (recommandation du
+# guide, adoption laissée au chantier réglages) ; 4.7.0 résolution
+# paresseuse de la documentation — côté VUE (dwell 200 ms, cache,
+# pré-remplissage : actif), côté FOURNISSEUR resolveDocumentation est
+# un défaut no-op : DORMANT derrière le pont 3.74.0 (même statut que
+# les re-requêtes 4.3.0, s'activera à l'alignement du frère) ; 4.8.0
+# plancher de complétion fusionné (défaut ACTIF : mots-clés/snippets
+# du profil AJOUTÉS à la réponse du fournisseur, dédupliqués par
+# libellé, réponse VIDE respectée — bascule publique
+# setMergeBuiltinCompletionsEnabled), session vierge NEUTRE (text au
+# lieu de java : ALIGNÉ sur le « repli neutre » documenté de
+# FichiersOuverture — les extensions inconnues ne colorent plus en
+# Java, le comportement rejoint l'intention écrite), aide de signature
+# redessinée (largeur adaptative, paramètre actif garanti visible,
+# badge de surcharges tactile), repli signature/postfix bornés aux
+# langages à appels (callSyntax) ; 4.9.0 tir sémantique indépendant
+# des diagnostics + purge à la déconnexion — INTERNE au cel-lsp 4.9.0
+# : DORMANT derrière le pont 3.74.0 (le puller du pont tire sur
+# publishDiagnostics ; les serveurs du frère n'annoncent pas encore
+# la légende : aucun changement visible) ; 4.9.1 popup de complétion
+# DEUX LIGNES (correctif demandé par le propriétaire : le FQCN — ex.
+# android.widget.Button pour le candidat Button — vit SOUS le nom en
+# atténué, plus JAMAIS à l'horizontale contre lui ; rangées 28 → 40
+# dp, badge plafonné, glyphe ⓘ avec réserve dédiée) — ACTIF côté
+# cel-ui dès la compilation ; bornes 4.9.1 côté graphe : jars
+# joni/jcodings INTÉGRÉS au dépôt frère (POM cel-textmate sans les
+# coordonnées — cel-textmate est HORS du graphe CodeIDE, aucun
+# impact de résolution, c'est ce qui rend le tag constructible sur
+# JitPack). PONT RE-VÉRIFIÉ : cel-lsp transitif du host:1.15.0 reste
+# 3.74.0, compileOnly sur cel-core/cel-lsp-api — aucun des 17
+# symboles retirés n'est référencé par le v3.74.0 (grep), le pont
+# fonctionne contre cel-core/cel-lsp-api 4.9.1. Artefacts :
+# publication GitHub Packages 4.9.1 SUCCÈS (5 paquets, run du tag
+# v4.9.1) ; build JitPack v4.9.1 « ok » (5 modules, AAR vérifiés
+# téléchargeables) — les jars joni/jcodings intégrés au dépôt rendent
+# la construction AUTONOME (elle dépendait du miroir Central de
+# JitPack, jamais synchronisé pour joni 2.2.8 — v4.7.0 → v4.9.0
+# resteront invendables sur ce canal, sans importance : la 4.9.1 les
+# remplace) ; la chaîne locale de v0.201.0 a compilé et testé contre
+# la résolution JitPack RÉELLE (v4.9.1 vert au moment de la montée) ;
+# résolution JitPack re-vérifiée HTTP 200 avant la poussée sur main.
+code-editor = "v4.9.1"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"

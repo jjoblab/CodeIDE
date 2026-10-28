@@ -1,5 +1,94 @@
 # Journal des modifications
 
+## [0.201.0] – 2026-10-28
+
+### Montée code-editor 4.5.1 → 4.9.1 — popup de complétion deux lignes, plancher fusionné, aide de signature redessinée, repli neutre réel (bump-frère)
+
+#### Ajouté
+
+- **La bibliothèque d'édition passe de 4.5.1 à 4.9.1** (instruction
+  propriétaire du 2026-10-28 « mettre à jour CodeIDE » ; plage audité
+  au code des DEUX côtés — CodeIDE v0.200.14 et le `cel-lsp` 3.74.0 du
+  pont : les 17 dépréciations retirées en 4.6.0 ne sont utilisées
+  NULLE PART, les `onTextChanged` du code sont des `TextWatcher`
+  Android 4-args et non le `LspEditor.onTextChanged(CharSequence)`
+  retiré). Conditions de publication vérifiées : tag `v4.9.1` annoté
+  du dépôt frère, CI verte (2 945 tests), publication GitHub Packages
+  en succès (5 paquets, POM `cel-textmate` vérifié sans les
+  coordonnées joni) ; build JitPack du tag « ok » (5 modules, AAR
+  vérifiés téléchargeables) — les jars `joni`/`jcodings` INTÉGRÉS au
+  dépôt frère rendent la construction autonome (plus de dépendance au
+  miroir Central de JitPack qui bloquait v4.7.0 → v4.9.0) ; la chaîne
+  locale de v0.201.0 a compilé et testé contre la résolution JitPack
+  RÉELLE du tag v4.9.1, re-vérifiée HTTP 200 avant la poussée.
+- **Ce que la montée apporte SANS changement de code côté CodeIDE** :
+  4.6.0 — la persistance de l'apprentissage devient POSSIBLE
+  (`completionHistory.snapshot()`/`restore()`, photographie immuable —
+  adoption laissée au chantier réglages, la bibliothèque ne décide
+  jamais du stockage de l'hôte) ; 4.7.0 — le MOTEUR de résolution
+  paresseuse côté vue (dwell 200 ms sur un candidat sans documentation,
+  cache par libellé, pré-remplissage des lots suivants) : opérationnel
+  dès qu'un fournisseur implémente `resolveDocumentation` (le pont
+  3.74.0 sert le défaut no-op — voir bornes) ; 4.8.0 — l'aide de
+  signature redessinée : largeur ADAPTATIVE (contenu mesuré, borné par
+  l'écran), paramètre ACTIF garanti visible (ellipses autour de lui),
+  badge de surcharges « n/m » TACTILE au coin du popup, bande de
+  documentation ouvrant sur le paramètre actif ; 4.9.0 — stabilité
+  interne du pont LSP côté bibliothèque (aucune surface visible) ;
+  4.9.1 — le popup de complétion passe aux rangées DEUX LIGNES
+  (correctif demandé par le propriétaire) : l'identité qualifiée d'un
+  candidat — FQCN d'un type (ex. `android.widget.Button` pour le
+  candidat `Button`) ou signature d'un membre — vit SOUS le nom, en
+  atténué, ellipsée à la largeur restante, plus JAMAIS à
+  l'horizontale contre le nom court ; le glyphe ⓘ de documentation a
+  sa réserve dédiée (le libellé ne le recouvre plus).
+- **Bornes documentées (l'honnêteté d'usage)** : le pont `cel-lsp`
+  EFFECTIF reste **3.74.0** (transitif du `host:1.15.0` publié ;
+  `compileOnly` sur `cel-core`/`cel-lsp-api` — re-vérifié : aucun des
+  17 symboles retirés en 4.6.0 n'est référencé par le 3.74.0, le pont
+  fonctionne contre `cel-core`/`cel-lsp-api` 4.9.1). Conséquences :
+  les RE-REQUÊTES 4.3.0, la résolution `resolveDocumentation` 4.7.0 et
+  le tir sémantique indépendant 4.9.0 restent DORMANTS derrière le
+  pont (ils s'activeront à l'alignement du frère sur `cel-lsp` 4.x) ;
+  le surlignage sémantique reste de toute façon éteint tant que les
+  serveurs du frère n'annoncent pas la légende des modificateurs.
+
+#### Modifié
+
+- ⚠️ **Repli neutre RÉEL pour les extensions inconnues** (4.8.0) :
+  une session sans langage naît en `text` neutre au lieu de `java`
+  implicite. CodeIDE posait déjà la langue des extensions reconnues
+  (`FichiersOuverture.langage`) et documentait un « repli neutre »
+  pour les autres — jusqu'ici le repli colorait tacitement en Java :
+  le comportement rejoint l'intention écrite. Un fichier sans
+  extension reconnue (`gradlew`, `LICENSE`, `.gitignore`) n'affiche
+  plus les mots-clés Java et ne déclenche plus le postfix.
+- ⚠️ **Rangées de complétion de 28 → 40 dp** (4.9.1) : le popup
+  deux lignes est plus HAUT par rangée — il montre moins de rangées à
+  hauteur égale (plafond inchangé à 8, le popup ne recouvre jamais la
+  ligne de frappe). Le FQCN/signature en seconde ligne est la
+  correction demandée : le nom court ne cède plus de place au nom
+  long.
+- **Plancher de complétion fusionné** (4.8.0, défaut ACTIF) : avec le
+  serveur branché, les mots-clés et snippets du profil s'AJOUTENT à sa
+  réponse (dédupliqués par libellé — le candidat serveur, plus riche,
+  gagne) ; une réponse VIDE reste respectée. Un serveur silencieux ne
+  vide plus le popup. Bascule publique
+  `setMergeBuiltinCompletionsEnabled(false)` pour servir une liste
+  strictement serveur.
+- **Aide de signature et postfix bornés aux langages à appels**
+  (4.8.0) : le repli synthétique `nom(…) paramètre N` ne s'affiche
+  plus sur du texte brut, XML ou prose (porte `callSyntax` par
+  famille) ; `mot.sout` ne déclenche plus sur le profil neutre —
+  Java/Kotlin/XML reconnus restent éligibles.
+
+#### Docs
+
+- `docs/TESTS_MANUELS.md` : section « Montée code-editor 4.9.1 » —
+  scénarios d'appareil (popup deux lignes/FQCN vertical, plancher
+  fusionné, serveur silencieux, repli neutre, signature redessinée,
+  postfix borné, rejeu occurrences).
+
 ## [0.200.14] – 2026-10-28
 
 ### L'écran IA du toolbar de l'éditeur — puce PROJET dans l'en-tête, onglets PILULES à l'ordre de la maquette (C5, retour propriétaire)
