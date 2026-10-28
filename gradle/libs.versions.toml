@@ -210,7 +210,21 @@ androidx-viewpager2 = "1.1.0"
 # remplace) ; la chaîne locale de v0.201.0 a compilé et testé contre
 # la résolution JitPack RÉELLE (v4.9.1 vert au moment de la montée) ;
 # résolution JitPack re-vérifiée HTTP 200 avant la poussée sur main.
-code-editor = "v4.9.1"
+# MONTÉE 4.9.1 → 4.10.0 (2026-10-28, « lance tous les chantiers ») :
+# l'aide de signature ne se tait plus — UNE surcharge à la fois (stepper
+# ‹ i/n › tactile borné, fenêtrage ±1 au-delà de 5 paramètres, PEEK
+# complet par appui long) ; un résolveur branché ne reste maître que
+# d'une réponse NON VIDE (repli local sur l'appel vivant, porte
+# callSyntax inchangée) ; rangées de complétion à TROIS axes (libellé
+# seul / container à gauche / détail à droite), badge 6 dp, quatre
+# coins 14 dp. API : signatureHelpBadgeMetrics REMPLACÉ par
+# signatureHelpStepperMetrics + signatureHelpPopupMetrics (aucun usage
+# CodeIDE) ; SignatureHelpController.isPeeked/setPeeked additif.
+# Artefacts : publication GitHub Packages v4.10.0 SUCCÈS (5 paquets,
+# run du tag v4.10.0) ; CI main : re-run du bench flaky
+# EditorSessionBenchmark.undoRedo (budget 2 s, runner chargé — même
+# incident que v4.8.0, passé vert au re-run).
+code-editor = "v4.10.0"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"
@@ -330,7 +344,21 @@ codeide-tooling = "1.0.0"
 # d'indexation multi-moteurs, ADR 0146), 1.7.0 (v0.179.0 — GO TO
 # symétrique, ADR 0208–0210), 1.5.0 (C4 — ADR 0143, ligne d'annotation
 # @Preview).
-codeide-lsp = "1.15.0"
+# MONTÉE 1.15.0 → 1.16.0 (2026-10-28, « lance tous les chantiers ») :
+# le moteur ECJ gagne les variantes réparées de l'aide de signature
+# (appels non refermés add( / add(1, / chaînes ouvertes / arguments à
+# moitié tapés — le popup ne se vide plus pendant la frappe) et
+# l'énumération des surcharges de CONSTRUCTEUR (new StringBuilder(
+# sert les 4). Complétion contextuelle : filtres grammaticaux
+# (extends → classes concrètes, implements → interfaces, throws/catch
+# → Throwables, new → concrets, @anno → annotations), stubs
+# d'override en corps de classe (snippets @Override complets),
+# suggestions de noms en déclaration (Button but| → button),
+# constantes d'enum dans les case, attributs d'annotation. Aucun
+# changement de protocole ni de SPI. Artefacts : publication GitHub
+# Packages v1.16.0 SUCCÈS ; CI main : incident réseau Maven Central
+# transitoire (résolution gson) au premier passage, re-lancé.
+codeide-lsp = "1.16.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
