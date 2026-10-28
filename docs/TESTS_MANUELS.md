@@ -1898,3 +1898,56 @@ l'alignement du frère — voir CHANGELOG v0.200.0, bornes).
 9. **Régression des yeux @Preview (4.1.0/4.2.0)** — un fichier
    Kotlin avec `@Preview` : l'œil de gouttière reste À SA LIGNE, le
    tap ouvre la carte (montées précédentes, rejeu rapide).
+
+## Montée code-editor 4.9.1 — popup deux lignes, plancher fusionné, signature redessinée, repli neutre réel (bump-frère → v0.201.0, code-editor 4.9.1)
+
+Écran : éditeur, un fichier Kotlin du projet (serveur LSP branché),
+un fichier Java et un fichier sans extension reconnue (p. ex.
+`gradlew` ou `LICENSE` — le « repli neutre » de
+`FichiersOuverture`). La plage 4.5.1 → 4.9.1 est audité au code (17
+dépréciations retirées en 4.6.0 : aucune utilisée) ; ces scénarios
+valident les comportements qui changent SANS modification côté
+CodeIDE (le pont `cel-lsp` effectif reste 3.74.0 — voir CHANGELOG
+v0.201.0, bornes).
+
+1. **Popup de complétion deux lignes (4.9.1, correctif demandé)** —
+   dans le fichier Java (ou Kotlin), serveur branché, taper le
+   préfixe d'un type (p. ex. `But` pour `Button`) : le candidat
+   affiche son NOM COURT sur la première ligne (runs de match en
+   accent) et son FQCN (`android.widget.Button`) SOUS le nom, en
+   atténué — jamais aligné à l'horizontale contre le nom ; un FQCN
+   plus large que le popup est ellipsé proprement en seconde ligne,
+   le nom reste entier ; les rangées sont plus hautes (40 dp — moins
+   de rangées visibles à hauteur égale, le popup ne recouvre jamais
+   la ligne de frappe).
+2. **Plancher de complétion fusionné** — dans le fichier Kotlin,
+   serveur branché, taper le préfixe `pri` : le popup montre les
+   candidats du serveur ET `private` (badge « k » = intégré) ;
+   accepter un candidat du serveur : sa documentation riche reste
+   intacte (le plancher ne remplace JAMAIS un candidat serveur).
+3. **Serveur silencieux** — couper le serveur (onglet sans LSP ou
+   attente de connexion) et taper un préfixe de mot-clé du profil :
+   le popup affiche le plancher intégré au lieu de se vider —
+   réponse serveur VIDE respectée (aucun candidat intégré sur un
+   « rien ici » délibéré d'un fournisseur qui répond vide).
+4. **Repli neutre réel** — ouvrir `gradlew` ou `LICENSE` : AUCUNE
+   coloration Java (avant la montée : mots-clés Java colorés sur tout
+   fichier inconnu) ; la coloration lexicale des extensions reconnues
+   (kt, java, xml, json…) est inchangée ; `msg.sout` + Entrée sur un
+   fichier sans extension reconnue ne déclenche PAS le postfix
+   (`.sout` reste actif sur les fichiers Java/Kotlin).
+5. **Aide de signature redessinée** — dans le fichier Java, ouvrir un
+   appel à plusieurs arguments `strlen(hello,` : la bannière affiche
+   l'appel VIVANT, le paramètre ACTIF en couleur est garanti visible
+   (les longues signatures ellipsent AUTOUR de lui, jamais sur lui) ;
+   le badge « n/m » au coin haut droit du popup se TAPE pour défiler
+   les surcharges (l'équivalent tactile des flèches Haut/Bas).
+6. **Repli signature borné** — dans le fichier sans extension
+   reconnue, ouvrir une parenthèse dans du texte brut : la bannière
+   synthétique `nom(…) paramètre N` ne s'affiche PLUS (porte
+   `callSyntax`) ; sur les fichiers Java/Kotlin le comportement est
+   inchangé (résolveur du serveur maître, repli vivant sinon).
+7. **Rejeu rapide occurrences (4.4.0)** — parker le caret sur un
+   identifiant répété : les occurrences s'allument, la recherche
+   ouverte prend la place, refermée elles reviennent (montée
+   précédente, non-régression).
