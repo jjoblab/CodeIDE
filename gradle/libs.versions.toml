@@ -360,6 +360,16 @@ codeide-tooling = "1.0.0"
 # transitoire (résolution gson) au premier passage, re-lancé.
 codeide-lsp = "1.16.0"
 
+# Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
+# jjoblab/code-lsp) : publication GitHub Packages 1.0.0 (workflow
+# publish.yml sur tag v*). RAILS SEULEMENT pour l'instant : aucun module
+# de CodeIDE ne consomme la coordonnée — la dépendance moteur vit dans
+# le POM de l'hôte vendored (jjoblab/codeide-lsp:lsp/host), dont
+# l'adaptation à la façade neuve (jo.codeide.lsp.java.*) est le
+# chaînon restant (docs/BASCULE-CODEIDE.md §3.2.2 du dépôt code-lsp).
+# Mise à jour future = bump ici + tag v* côté code-lsp.
+codeide-lsp-java = "1.0.0"
+
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
 # ADR 0002 intact — pas de Compose pour l'UI CodeIDE). BOM vérifiée sur
@@ -494,6 +504,11 @@ tooling-server = { group = "com.github.jjoblab.codeide-tooling", name = "server"
 tooling-testing = { group = "com.github.jjoblab.codeide-tooling", name = "testing", version.ref = "codeide-tooling" }
 lsp-host = { group = "com.github.jjoblab.codeide-lsp", name = "host", version.ref = "codeide-lsp" }
 lsp-kotlin = { group = "com.github.jjoblab.codeide-lsp", name = "kotlin", version.ref = "codeide-lsp" }
+# Bascule §8.5 (30/10/2026) — moteur Java réécrit + compagnon ecj
+# (runtime compileOnly : « l'hôte fournit le jar »). RAILS : consommateur
+# à venir = l'hôte LSP (adaptation façade neuve, cf. section versions).
+lsp-java-moteur = { group = "jo.codeide.lsp.java", name = "jo-codeide-lsp-java", version.ref = "codeide-lsp-java" }
+lsp-java-ecj-art = { group = "jo.codeide.lsp.java", name = "jo-codeide-lsp-java-ecj-art", version.ref = "codeide-lsp-java" }
 
 # Runtime Compose embarqué (PC1/PC2 — bibliothèque d'interprétation du
 # module :preview:compose, Jamais l'UI CodeIDE — ADR 0002).
