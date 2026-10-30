@@ -224,7 +224,53 @@ androidx-viewpager2 = "1.1.0"
 # run du tag v4.10.0) ; CI main : re-run du bench flaky
 # EditorSessionBenchmark.undoRedo (budget 2 s, runner chargé — même
 # incident que v4.8.0, passé vert au re-run).
-code-editor = "v4.10.0"
+# MONTÉE 4.10.0 → 4.14.1 (bump-frère du 2026-10-30, instruction
+# propriétaire « mettez à jour code-editor à la dernière version ») :
+# la plage 4.11.0 → 4.14.1 est STRICTEMENT ADDITIVE (guide
+# MISE-A-JOUR-CODEIDE.md de CHAQUE version intermédiaire : « aucune
+# action obligatoire », aucune API publique retirée ni changée) —
+# vérifié en plus par l'inventaire des imports cel de CodeIDE contre
+# les sources v4.14.1 : LspProject/LspEditor/LspLogSink/
+# LanguageServerDefinition/InProcessStreamConnectionProvider (cel-lsp),
+# EditorView/LspEditorViewHost/EditorTheme/SymbolBarView/render/
+# preview (cel-ui), EditorSession/EditorDocument/Selection/
+# DiagnosticShift (cel-core transitif) — TOUS présents. 4.11.0 = aide
+# de signature TROIS PALIERS (paramètres passés en accent, actif en
+# gras, à venir atténué ; paramètre actif PAR SIGNATURE LSP 3.16 —
+# SignatureInformation.activeParameter l'emporte sur le champ global) ;
+# 4.12.0 = complétion contextuelle P1-B (constantes d'enum, attributs
+# d'annotation, arguments nommés) + implémenter les membres manquants
+# P1-C (MOTEURS DE DÉMO — ponts clients déjà existants ; nouvelle API
+# optionnelle EditorView.setCompletionTriggerCharacters NON posée par
+# CodeIDE : la voie LSP reste prioritaire) ; 4.13.0 = documentation de
+# classpath au survol et à la signature + indices lambda (démo) et
+# CORRECTION CLIENT utile aux serveurs réels : positionVersOffset en
+# arithmétique longue sur la borne (ligne, Integer.MAX_VALUE) des
+# plages inlayHint ; 4.14.0 = refactorings wrap/cast/surround (genre
+# refactor.rewrite), références et renommage à portées honnêtes
+# (prepareRename REFUSE les noms surchargés/ambigus entre enums),
+# auto-import du classpath (quickfix — ponts clients existants :
+# LspReferencesProvider, LspRenameProvider, application WorkspaceEdit
+# compensée viewport 4.5.0) ; 4.14.1 = rendu des inlay hints RÉPARÉ
+# (taille du code sur la MÊME baseline, padding LSP = UN espace net
+# exact, ligatures tissées, loupe réparée du même coup — rapport
+# terrain). APPARIEMENT : ces versions sont les contreparties CLIENT
+# des chantiers Kotlin du frère codeide-lsp 1.17.0 → 1.23.0 (P1-B ↔
+# 4.12.0, fiche classpath/KDoc ↔ 4.13.0, wrap/cast/surround ↔ 4.14.0)
+# — CodeIDE porte déjà l'hôte 1.23.0 depuis v0.203.0 : la montée
+# RÉ-ALIGNE le client sur l'hôte. PONT RE-VÉRIFIÉ (règle 9) : cel-lsp
+# transitif du host:1.23.0 reste 3.74.0, la résolution effective passe
+# à v4.14.1 (« v4… » > « 3.74.0 » en comparaison Gradle) ; aucun
+# symbole retiré depuis 3.74.0 n'est référencé (les 17 retraits de
+# 4.6.0 vérifiés « AUCUNE utilisée » à la montée 4.9.1, aucune rupture
+# déclarée depuis — le pont compile et fonctionne contre
+# cel-core/cel-lsp-api 4.14.1). Artefacts : build JitPack v4.14.1
+# « ok » (API builds : status ok, 5 modules, commit 3eb8096 = le tag ;
+# .pom cel-lsp/cel-ui/cel-core/cel-lsp-api/cel-textmate vérifiés HTTP
+# 200, résolution Gradle réelle exercée par le harnais de vérification
+# du bump) ; publication GitHub Packages v4.14.1 en succès (run du
+# tag v4.14.1).
+code-editor = "v4.14.1"
 # Termux terminal-emulator (Apache-2.0) : sessions shell via pty — v0.118.3
 # vérifiée sur JitPack le 2026-09-23 (com.github.termux.termux-app).
 termux = "v0.118.3"

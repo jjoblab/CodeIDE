@@ -248,6 +248,23 @@ internal class CoordonnateurLsp(
         }
         return try {
             LspProject(racine.absolutePath).also { projet ->
+                // v0.204.0 : la plomberie INTERNE de cel-lsp entre dans le
+                // journal applicatif. Retour appareil du 30/10 (« l'éditeur
+                // n'affiche rien quand je tape, aucun signe des
+                // fonctionnalités du serveur ») : les traces de la
+                // bibliothèque (cycle connect, didOpen/didChange,
+                // publishDiagnostics, échecs des fournisseurs) partaient
+                // dans EditorLog/logcat — INVISIBLES dans l'export du
+                // journal applicatif, la panne restait indiagnostiquable.
+                // Le sink câblé ici les fait lire au niveau DEBUG sous le
+                // tag LspEditeur (« connect: SUCCESS — server ready »,
+                // « publishDiagnostics: N diagnostics received »,
+                // « didChange FAILED: … ») ; en verbosité NORMAL rien ne
+                // change (la lambda n'est évaluée que si le niveau est
+                // actif, §5.7 du journal). Les rappels arrivent sur le fil
+                // exécuteur LSP4J : AppLogger est sûr depuis n'importe
+                // quel fil (contrat de l'interface).
+                projet.setLogSink { message -> journal.d(TAG) { message } }
                 session?.let { projet.addServerDefinition(it.definition()) }
                 sessionKotlin?.definitions()?.forEach { projet.addServerDefinition(it) }
                 sessionXml?.let { projet.addServerDefinition(it.definition()) }

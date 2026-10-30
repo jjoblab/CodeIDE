@@ -1,5 +1,64 @@
 # Journal des modifications
 
+## [0.204.0] – 2026-10-30
+
+### Montée code-editor 4.10.0 → 4.14.1 — le client ré-aligné sur l'hôte 1.23.0, la plomberie LSP enfin visible dans le journal (bump-frère)
+
+#### Ajouté
+
+- **La bibliothèque d'édition passe de 4.10.0 à 4.14.1** (instruction
+  propriétaire du 30/10/2026 « mettez à jour code-editor à la dernière
+  version »). Plage STRICTEMENT ADDITIVE — guide
+  `MISE-A-JOUR-CODEIDE.md` de chaque version intermédiaire : « aucune
+  action obligatoire », aucune API publique retirée ni changée ;
+  inventaire des imports cel de CodeIDE vérifié contre les sources
+  v4.14.1 (toutes présentes, cel-core en transitif). Apports :
+  l'aide de signature trois paliers avec paramètre actif PAR signature
+  (LSP 3.16 — 4.11.0), les popups unifiés et la refonte signature +
+  complétion avec placement coordonné (4.14.x), le rendu des inlay
+  hints réparé (4.14.1 — rapport terrain « espaces fantômes »), la
+  correction cliente `positionVersOffset` en arithmétique longue
+  (4.13.0 — bornes inlayHint `(ligne, Integer.MAX_VALUE)`). Ces
+  versions sont les contreparties CLIENT des chantiers Kotlin de
+  codeide-lsp 1.17.0 → 1.23.0 portés depuis v0.203.0 : la montée
+  RÉ-ALIGNE le client sur l'hôte. Pont re-vérifié : cel-lsp transitif
+  de l'hôte (3.74.0) fonctionne contre cel-core/cel-lsp-api 4.14.1.
+  Artefacts JitPack v4.14.1 vérifiés (build « ok », 5 modules, .pom
+  HTTP 200).
+- **La plomberie LSP de cel-lsp entre dans le journal applicatif**
+  (retour appareil du 30/10 sur v0.203.0 : « le serveur semble ne pas
+  fonctionner, l'éditeur n'affiche rien quand je tape, aucun signe des
+  fonctionnalités du serveur » — les 39 entrées exportées ne montrent
+  AUCUNE activité de requête) : `LspProject.setLogSink` est désormais
+  câblé dans `CoordonnateurLsp.creerProjet`. Les traces internes de la
+  bibliothèque — cycle `connect:` (démarrage du wrapper, didOpen,
+  « SUCCESS — server ready », « FAILED — » avec la cause),
+  `didChange`/`didSave`, `publishDiagnostics: N diagnostics received`,
+  échecs des fournisseurs (survol, complétion, signature) — se lisent
+  au niveau DEBUG sous le tag `LspEditeur`, aux côtés des lignes
+  existantes (« session LSP ouverte → LSP Java connecté → session LSP
+  nourrie ») : la prochaine passe appareil montrera OÙ le pipeline
+  s'arrête. En verbosité NORMAL, rien ne change (la lambda de message
+  n'est évaluée que si le niveau est actif) ; les rappels arrivant sur
+  le fil exécuteur LSP4J, la thread-safety d'`AppLogger` (« depuis
+  n'importe quel thread ») fait foi.
+
+#### Deltas connus (consignés pour la passe appareil I5)
+
+- **Le témoin `serverInfo` attendu par B1 (critère 1
+  d'INTEGRATION-CODEIDE §5) n'est PAS encore consigné** dans la ligne
+  « LSP Java connecté » : `cel-lsp` ne remonte pas le `serverInfo` de
+  la réponse `initialize` (la bibliothèque n'en garde que les
+  `capabilities`) — son ajout exige une évolution de code-editor (ou
+  une sonde côté hôte) ; la trace DEBUG du sink (« connect: SUCCESS —
+  server ready ») prouve déjà que le moteur branché a répondu à
+  `initialize` sur CE transport. À traiter au chantier suivant.
+- Le diagnostic « rien ne s'affiche » de la passe du 30/10 reste OUVERT
+  : le bump 4.14.1 ré-aligne le client, le sink rendra la prochaine
+  passe lisible (premier point d'arrêt observable : `didOpen sent` →
+  `publishDiagnostics: N diagnostics received` à l'ouverture d'un
+  fichier `.java`).
+
 ## [0.203.0] – 2026-10-30
 
 ### Montée codeide-lsp 1.16.0 → 1.23.0 — LA BASCULE DU MOTEUR LSP JAVA : l'hôte adapté consomme le moteur RÉÉCRIT v1.1.0 (le chaînon restant franchi)
