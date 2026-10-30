@@ -1,5 +1,41 @@
 # Journal des modifications
 
+## [0.204.1] – 2026-10-30
+
+### Montée codeide-lsp 1.23.0 → 1.23.1 (pin moteur 1.1.1) — LA CAUSE RACINE DE « rien ne s'affiche à la frappe » CORRIGÉE
+
+#### Corrigé
+
+- **Le moteur Java réécrit passe de 1.1.0 à 1.1.1** (hôte 1.23.1 —
+  version de maintenance, pin seul, surface publique inchangée).
+  Défaut corrigé côté moteur : le diagnose RAPIDE masquait le corps
+  HÔTE par erreur de comparaison d'identité (`===` entre deux scans
+  distincts de la même source) — **la frappe de l'utilisateur était
+  littéralement effacée du texte soumis à ecj** : plus AUCUN diagnostic
+  à la frappe après l'ouverture saine d'un fichier, et l'arbre focalisé
+  (complétion dans le corps) atteint du même défaut. C'est la cause
+  racine MESURÉE du retour appareil du 30/10 sur v0.203.0 (« le serveur
+  semble ne pas fonctionner, l'éditeur n'affiche rien quand je tape,
+  aucun signe des fonctionnalités du serveur ») — reproduite sur JVM par
+  un harnais miroir du branchement complet (cel-lsp + transport
+  in-process + `ServeurLangageJava` + frappe réelle), corrigée par
+  égalité structurelle, régression verrouillée dans la fiche 014 du
+  cahier de code-lsp (478 tests moteur verts, CI verte branche + tag ;
+  PV complet : INTEGRATION-CODEIDE §9 du dépôt code-lsp ; validation
+  finale : le jar publié 1.1.1 rejoué dans le harnais rend
+  `publishDiagnostics count=1` à la frappe).
+- **Pourquoi la CI de la v1.1.0 n'avait rien vu** : les corps de la
+  fixture du diagnose rapide sont tous plus courts que le synthétique
+  (30 caractères — laissés verbatim) ; tout fichier Java réel déclenchait
+  le défaut à la première frappe confinée.
+
+#### Attendu (passe appareil)
+
+- La séquence DEBUG observable avec le sink cel-lsp câblé en v0.204.0
+  devient : `didChange` → `publishDiagnostics: N diagnostics received`
+  avec N > 0 dès qu'une erreur est frappée ; le défaut était INVISIBLE
+  en verbosité normale (aucune erreur — juste des diagnostics vides).
+
 ## [0.204.0] – 2026-10-30
 
 ### Montée code-editor 4.10.0 → 4.14.1 — le client ré-aligné sur l'hôte 1.23.0, la plomberie LSP enfin visible dans le journal (bump-frère)
