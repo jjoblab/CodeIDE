@@ -11,9 +11,9 @@ import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.testing.FakeFileSystem
 import jo.codeide.core.testing.TestDispatcherProvider
 import jo.codeide.lsp.host.SessionLsp
+import jo.codeide.lsp.java.protocole.ServeurLangageJava
 import jo.codeide.tooling.protocol.ClasspathModule
 import jo.codeide.tooling.protocol.ClasspathResult
-import jo.lspjava.lsp.JavaLanguageServer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -508,10 +508,10 @@ class LspEditorViewModelTest : BaseEditorViewModelTest() {
 
         val session = viewModel.sessionLsp.value
         assertNotNull("la session devait s'ouvrir", session)
-        val environnement = (session!!.serveur() as JavaLanguageServer).environment()
+        val environnement = (session!!.serveur() as ServeurLangageJava).environnement()
         assertTrue(
             "la plateforme de la toolchain devait rejoindre le moteur par défaut",
-            environnement.classpathEntries().any { it.name == "android.jar" },
+            environnement!!.jarsDefaut().any { it.fileName.toString() == "android.jar" },
         )
     }
 
