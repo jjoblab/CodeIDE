@@ -1,5 +1,60 @@
 # Journal des modifications
 
+## [0.204.2] – 2026-10-30
+
+### Montée codeide-lsp 1.23.1 → 1.23.2 (pin moteur 1.1.2) — LA PANNE « Internal error. » SUR TOUTE REQUÊTE CORRIGÉE
+
+#### Corrigé
+
+- **Le moteur Java réécrit passe de 1.1.1 à 1.1.2** (hôte 1.23.2 —
+  version de maintenance, pin seul, surface publique inchangée). Défaut
+  corrigé côté moteur : sur **ART**, le fournisseur `jrt` du
+  `lib/jrt-fs.jar` du JDK Termux externe ne peut PAS s'instancier (il
+  référence des internes JDK absents du runtime Android —
+  `jdk.internal.jimage` notamment) : `ServiceLoader` le signale par
+  `ServiceConfigurationError`, un **Error** que l'ancien
+  `catch (Exception)` laissait fuir. La construction paresseuse
+  d'`EnvironnementNoms` explosait à la PREMIÈRE requête moteur : le
+  serveur répondait **« Internal error. » à TOUT** (complétion,
+  surlignage, inlay) pendant que les diagnostics restaient muets. C'est
+  la cause racine MESURÉE du retour appareil du 30/10 au soir sur
+  v0.204.1 (logs `codeide-logs-2026-10-30-001905.zip` : `connect:
+  SUCCESS`, capabilities YES, puis chaque requête en erreur) —
+  reproduite sur JVM par le harnais `ReproductionFrappeAppareilTest`
+  (fil exact de la session rejoué sur la chaîne stdio complète),
+  corrigée par capture `Throwable` + repli régime instantané documenté,
+  régressions verrouillées dans la fiche 031 du cahier de code-lsp
+  (482 tests moteur verts, CI verte branche + tag ; PV complet :
+  INTEGRATION-CODEIDE §10 du dépôt code-lsp).
+- **Pourquoi ni la CI ni la JVM locale ne l'avaient vu** : sur JVM, le
+  fournisseur `jrt` du module `java.base` précède TOUJOURS celui du jar
+  externe dans l'itération du `ServiceLoader` (modules avant classpath)
+  — le défaut n'est observable QUE sur ART, où aucun fournisseur jrt
+  système n'existe. Test de masquage documenté dans la fiche 031.
+- **Conséquence fonctionnelle du repli** : la plateforme `java.*` n'est
+  plus résolue par l'image jrt du JDK externe sur ART (régime
+  instantané) — complétion, diagnostics et navigation continuent de
+  servir le code utilisateur via les entrées réelles du classpath
+  (android.jar du modèle, bibliothèques du projet).
+
+#### Ajouté (côté frère)
+
+- **L'hôte codeide-lsp 1.23.2 embarque la régression du fil appareil**
+  (`ReproductionFrappeAppareilTest`) : LE FIL EXACT de la session
+  défaillante (didOpen → documentHighlight(0) → inlayHint → didChange →
+  completion, puis pousserSync + re-frappe) est désormais exécuté par la
+  CI de codeide-lsp sur la chaîne de production stdio complète — la
+  panne ne peut plus repasser inaperçue.
+
+#### Attendu (passe appareil)
+
+- Avec le sink cel-lsp câblé en v0.204.0, la séquence sur ART n'est
+  PLUS `completion: ERROR … ResponseErrorException: Internal error.` :
+  les requêtes répondent, et la frappe d'une erreur republie
+  `publishDiagnostics: N diagnostics received` avec N > 0. Écart
+  résiduel possible sur la complétion des API `java.*` pures (régime
+  instantané — consigné INTEGRATION-CODEIDE §10).
+
 ## [0.204.1] – 2026-10-30
 
 ### Montée codeide-lsp 1.23.0 → 1.23.1 (pin moteur 1.1.1) — LA CAUSE RACINE DE « rien ne s'affiche à la frappe » CORRIGÉE

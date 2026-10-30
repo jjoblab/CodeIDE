@@ -429,7 +429,7 @@ codeide-tooling = "1.0.0"
 # changement de protocole ni de SPI. Artefacts : publication GitHub
 # Packages v1.16.0 SUCCÈS ; CI main : incident réseau Maven Central
 # transitoire (résolution gson) au premier passage, re-lancé.
-codeide-lsp = "1.23.1"
+codeide-lsp = "1.23.2"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -445,12 +445,18 @@ codeide-lsp = "1.23.1"
 # était EFFACÉE du texte diagnostiqué : plus AUCUN diagnostic à la
 # frappe après l'ouverture saine d'un fichier — cause racine mesurée du
 # retour appareil du 30/10, reproduite sur JVM par harnais miroir et
-# corrigée côté code-lsp INTEGRATION-CODEIDE §9).
+# corrigée côté code-lsp INTEGRATION-CODEIDE §9 ; v1.1.2 : correctif ART —
+# le fournisseur jrt du lib/jrt-fs.jar du JDK externe lève
+# ServiceConfigurationError à l'instanciation (un Error invisible à
+# l'ancien catch (Exception)) : TOUTE requête répondait « Internal
+# error. » sur appareil — capture Throwable, repli régime instantané
+# documenté, INTEGRATION-CODEIDE §10 ; régression du fil appareil
+# commitée dans l'hôte 1.23.2 — ReproductionFrappeAppareilTest).
 # Résolution : rails settings.gradle.kts posés en 8450bb7 (mavenLocal
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.1.1"
+codeide-lsp-java = "1.1.2"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
