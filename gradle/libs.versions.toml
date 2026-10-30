@@ -429,7 +429,7 @@ codeide-tooling = "1.0.0"
 # changement de protocole ni de SPI. Artefacts : publication GitHub
 # Packages v1.16.0 SUCCÈS ; CI main : incident réseau Maven Central
 # transitoire (résolution gson) au premier passage, re-lancé.
-codeide-lsp = "1.23.5"
+codeide-lsp = "1.23.6"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -479,12 +479,24 @@ codeide-lsp = "1.23.5"
 # additionalTextEdits (insertion au point d'imports, jamais si inutile),
 # marqueur de splice interne écarté de l'inventaire, identifiant isolé
 # en corps = contexte NOM (la locale en tête du popup), classpath de
-# banc à fermeture transitive réelle — INTEGRATION-CODEIDE §13).
+# banc à fermeture transitive réelle — INTEGRATION-CODEIDE §13) ;
+# v1.1.6 : retours appareil du 31/10 au soir sur 0.204.5 (« des progrès
+# minuscules ; listé les écarts ; le plus urgent c'est la complétion ;
+# méthodes des classes de l'utilisateur en complétion ET en aide de
+# signature ; toujours un retard ») — l'INVENTAIRE DES ÉCARTS
+# (docs/ECARTS-SERVEUR.md : moteur §2, hôte §3 la cause racine des
+# retards appareil, client §4) + TROIS correctifs : mots-clés de top
+# level (i|/im| avant l'espace — le popup Android Studio), aide de
+# signature niveau 4 refermée AVANT l'accolade englobante (la virgule
+# traînante repeter("monip", rendait RIEN — signatures PROJET servies,
+# noms de paramètres depuis la source, paramètre actif exact),
+# réduction SourceFocuser de la résolution marquée (coût de frappe
+# délié de la taille du fichier) — INTEGRATION-CODEIDE §14).
 # Résolution : rails settings.gradle.kts posés en 8450bb7 (mavenLocal
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.1.5"
+codeide-lsp-java = "1.1.6"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
