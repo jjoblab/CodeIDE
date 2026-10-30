@@ -1,5 +1,57 @@
 # Journal des modifications
 
+## [0.204.4] – 2026-10-30
+
+### Montée codeide-lsp 1.23.3 → 1.23.4 (pin moteur 1.1.4) — LE RÉGIME PLEIN REVIENT SUR L'APPAREIL : LA PLATEFORME SUIT ANDROID.JAR
+
+Retour appareil du 30/10 10:59 sur v0.204.3 (logs
+`codeide-logs-2026-10-30-105910.zip`, moto g06) : « à part le document
+highlight qui me semble lui fonctionner bien, les autres fonctionnalités
+non. Les diagnostics, go to, complétion, etc. rien du tout, seulement du
+basic. » Audit fonctionnalité par fonctionnalité sur les 443 entrées
+`LspEditeur` (INTEGRATION-CODEIDE §12 du dépôt code-lsp) : les « no
+results » persistent SUR FICHIER SAIN (documentHighlight ×50, inlayHint
+×28, definition/typeDefinition/superDefinition/implementation, codeAction)
+et la complétion rend des MOTS-CLÉS en masse (58 items après « . ») — la
+signature du régime instantané.
+
+#### Cause racine (côté moteur — v1.1.4)
+
+Sur ART, le fournisseur `jrt` du `lib/jrt-fs.jar` du JDK Termux externe
+est ININSTANCIABLE (internes JDK absents — incident déjà contenu en
+v1.1.2) ET la sonde du régime plein ne voyait QUE le jrt : l'appareil
+vivait donc en RÉGIME INSTANTANÉ alors que le classpath porte
+`android.jar` (boot classpath Android : `java.*` ET `android.*`). La
+sonde devient « `java.lang.Object` résoluble » (jrt OU jar du classpath
+porteur) : les gardes de définition/typeDefinition/implementation/
+superDefinition, survol, documentHighlight, inlay, codeAction, les tables
+analytiques « unused » (import/variable/champ) et la complétion de
+classpath (paquets aux imports) repassent en régime plein sur l'appareil.
+Régression ART simulée verrouillée côté moteur
+(`PlateformeClasspathARTTest`, 8 tests ; 501 tests moteur verts).
+
+#### Étude éditeur ↔ LSP (mandat propriétaire : « consulte Android Studio
+avant toute décision de refonte »)
+
+Livrée dans code-lsp (`docs/etudes/editeur-lsp/
+01-responsabilites-editeur-lsp.md`) : l'éditeur IntelliJ/VS Code est
+générique (fonctionnalités langue = points d'extension ; l'API LSP
+d'IntelliJ est un ADAPTATEUR ; Android Studio n'utilise LSP pour rien —
+Java natif PSI — et sa plateforme suit le module : jrt sur bureau,
+`android.jar` sur appareil). Verdict : **cel-lsp/cel-lsp-api est DÉJÀ au
+modèle — aucune refonte de l'éditeur** ; les pannes venaient du serveur.
+Le « document highlight » cru fonctionnel est la couche 1 de l'éditeur
+(surlignage lexical du mot sous le curseur) — le documentHighlight LSP
+répondait vide ; à distinguer dans les passes terrain.
+
+#### Passe appareil attendue
+
+Les TROIS signaux « unused » (import, champ privé, locale) à l'ouverture
+et leur persistance à la frappe ; les paquets (`com`, `java`, `javax`,
+`org`, `exemple`…) dès la première lettre après « import » et au « . » ;
+go-to définition/super non vide ; documentHighlight LSP (tester sur un
+champ lié à son usage) ; inlay hints ; hover à l'appui-long.
+
 ## [0.204.3] – 2026-10-30
 
 ### Montée codeide-lsp 1.23.2 → 1.23.3 (pin moteur 1.1.3) — SUPERDEFINITION RECONNU, SIGNAUX « UNUSED » ÉLARGIS ET STABLES, DÉCLENCHEUR @
