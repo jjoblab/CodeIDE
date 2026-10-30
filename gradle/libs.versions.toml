@@ -429,7 +429,7 @@ codeide-tooling = "1.0.0"
 # changement de protocole ni de SPI. Artefacts : publication GitHub
 # Packages v1.16.0 SUCCÈS ; CI main : incident réseau Maven Central
 # transitoire (résolution gson) au premier passage, re-lancé.
-codeide-lsp = "1.23.4"
+codeide-lsp = "1.23.5"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -470,12 +470,21 @@ codeide-lsp = "1.23.4"
 # analytiques « unused » et complétion de classpath repassent en régime
 # plein sur l'appareil ; régression ART simulée verrouillée
 # (PlateformeClasspathARTTest — INTEGRATION-CODEIDE §12 ; étude
-# éditeur↔LSP du mandat propriétaire dans docs/etudes/editeur-lsp/)).
+# éditeur↔LSP du mandat propriétaire dans docs/etudes/editeur-lsp/)) ;
+# v1.1.5 : banc PROJET ANDROID RÉEL du mandat propriétaire du 31/10
+# (logs 124450, « exactement comme Android Studio ») — réplique monip +
+# android.jar 34-ext12 + 16 AARs/jars réels, timeline appareil rejouée
+# au protocole ; CINQ correctifs de précision de complétion : qualifier
+# imbriqué (R.layout.a| propose ses constantes), auto-import en
+# additionalTextEdits (insertion au point d'imports, jamais si inutile),
+# marqueur de splice interne écarté de l'inventaire, identifiant isolé
+# en corps = contexte NOM (la locale en tête du popup), classpath de
+# banc à fermeture transitive réelle — INTEGRATION-CODEIDE §13).
 # Résolution : rails settings.gradle.kts posés en 8450bb7 (mavenLocal
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.1.4"
+codeide-lsp-java = "1.1.5"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,

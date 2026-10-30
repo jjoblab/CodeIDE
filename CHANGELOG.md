@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.204.5] – 2026-10-31
+
+### Montée codeide-lsp 1.23.4 → 1.23.5 (pin moteur 1.1.5) — LA PRÉCISION ANDROID STUDIO DE LA COMPLÉTION, ÉPROUVÉE SUR UN VRAI PROJET ANDROID
+
+Retours appareil du 31/10 sur v0.204.4 (logs
+`codeide-logs-2026-10-30-124450.zip`, moto g06) : « On avance
+sérieusement. Mais il y a encore beaucoup d'incohérences, de retard dans
+les suggestions de complétion, les suggestions doivent être précises
+dépendamment d'où je suis (import, classe, membre, etc.), exactement
+comme Android Studio. Pour résoudre ces problèmes, je propose que tu
+crées un test projet android complet (avec de vrais jar, aar) et testé
+les fonctionnalités. »
+
+#### Le banc PROJET ANDROID RÉEL (v1.1.5, côté moteur)
+
+Mandat exécuté dans code-lsp (INTEGRATION-CODEIDE §13) : réplique du
+projet monip (AppCompatActivity, ActivityMainBinding data binding,
+Greeter, layout `<layout>`) + sources générées simulées à leur
+emplacement AGP + `android.jar` 34-ext12 et **16 AARs/jars réels**
+(appcompat 1.7.0, material 1.12.0, constraintlayout, core, fragment,
+activity 1.8.2, lifecycle, savedstate, viewbinding,
+databinding-runtime…), fermeture transitive vérifiée classe par classe.
+`BancProjetAndroidReelTest` (20 tests) rejoue la timeline appareil au
+protocole : didOpen avant sync → diagnostics du cache → sync →
+LIVE-REPUBLISH → chaque famille de complétion.
+
+#### Cinq correctifs de précision (les écarts du premier run, 12/18)
+
+1. **qualifier IMBRIQUÉ** — `R.layout.a|` propose ses constantes
+   (chaînage des segments en imbriqués `$`, sonde binaire du membre
+   statique en forme pointée) ;
+2. **auto-import en `additionalTextEdits`** — le type ET l'édition
+   d'import au point d'insertion des imports, jamais si inutile (déjà
+   présent, paquet courant, `java.lang`) — le geste Android Studio ;
+3. **marqueur de splice interne** (`__codeide_completion__()`) écarté de
+   l'inventaire à préfixe vide ;
+4. **identifiant isolé en corps de méthode = contexte NOM** — la locale
+   en TÊTE du popup, les types suivent (ECJ parse l'identifiant nu en
+   SingleTypeReference de recovery ; sans ancre dans une méthode
+   concrète, le contexte est NOM) ;
+5. **classpath du banc à fermeture transitive réelle** (miroir du
+   montage hôte).
+
+Validation moteur : banc 20/20, 521 tests verts, baseline benchQualite
+signée intacte (recall/top-1/MRR 1,000, p95 36,7 ms), complétion chaude
+p95 119 ms / frappe pire 82 ms. Chaîne : code-lsp v1.1.5 (Publication
+41107739288 verte, artefacts vérifiés) → codeide-lsp 1.23.5 (CI
+41108581612 + Publication 41108581509 vertes, POM hôte vérifié portant
+`jo-codeide-lsp-java:1.1.5` + `ecj-art:1.1.5`).
+
+#### Passe appareil attendue
+
+La précision par position : paquets par niveau après « import »
+(android/androidx → appcompat → AppCompatActivity), constantes après
+`R.layout.`, membres après `.` (binding.textTitre, liaison.saluer),
+locale en tête sur identifiant isolé en corps, auto-import appliqué en
+une validation ; les écarts éventuels restants se lisent côté HÔTE
+(nourrissage du cache à l'ouverture, délai de la première sync — le banc
+S01/S02 du projet Android réel en est la sonde de parité exacte).
+
 ## [0.204.4] – 2026-10-30
 
 ### Montée codeide-lsp 1.23.3 → 1.23.4 (pin moteur 1.1.4) — LE RÉGIME PLEIN REVIENT SUR L'APPAREIL : LA PLATEFORME SUIT ANDROID.JAR
