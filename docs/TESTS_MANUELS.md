@@ -1951,3 +1951,73 @@ v0.201.0, bornes).
    identifiant répété : les occurrences s'allument, la recherche
    ouverte prend la place, refermée elles reviennent (montée
    précédente, non-régression).
+
+## Bascule du moteur LSP Java — codeide-lsp 1.23.0 / moteur RÉÉCRIT 1.1.0 (bump-frère → v0.203.0, codeide-lsp 1.23.0)
+
+Écran : éditeur, projet Android RÉEL multi-modules avec data binding
+(p. ex. le projet des logs du 30/10 — application avec
+`ActivityMainBinding`), appareil d'entrée de gamme (moto g06 classe —
+c'est là que le churn E4 a été mesuré). Le moteur qui répond aux
+requêtes LSP Java CHANGE (moteur RÉÉCRIT `jo.codeide.lsp.java:1.1.0`
+transporté par l'hôte 1.23.0) ; le protocole sur le fil est préservé —
+ces scénarios valident le branchement effectif et les écarts E1–E4 des
+logs du 30/10 (INTEGRATION-CODEIDE §1 du dépôt code-lsp). Suivre le
+logcat de la session (préparation en tête de document) pendant toute
+la passe.
+
+1. **Témoin de branchement (critère 1 — le témoin de la bascule)** —
+   ouvrir le projet puis un fichier Java : chaque ligne « LSP Java
+   connecté » du logcat doit porter le témoin `serverInfo` version
+   **1.1.0** (nom `lspjava`) ; le témoin apparaît à CHAQUE connexion
+   (re-connexion incluse). AVANT la bascule il était absent
+   (INTEGRATION-CODEIDE §1.3) — c'est LE témoin que le moteur neuf
+   est en service.
+2. **Capacités sans action morte (critère 2)** — dans le fichier Java :
+   complétion sur `.` (déclencheur unique du moteur neuf), diagnostics
+   au fil, quick-fix (kinds quickfix seuls), définition, surcharge
+   d'aide de signature : tout répond. `source.organizeImports` n'est
+   PAS servi au fil : l'entrée d'action correspondante ne doit PAS
+   apparaître (ou rester désactivée) dans le menu d'actions — pas
+   d'action morte ; la coloration syntaxique de REPLI reste active
+   (semanticTokens non annoncé — aucun fil d'attente silencieuse).
+3. **Extensions expérimentales (critère 3, écarts E2/E3)** — après
+   sync complète : go-to sur un type binaire (p. ex. `String`) : la
+   définition résout vers `jdt://decompiled/java.lang.String`, le
+   tampon lecture seule s'ouvre avec la source décompilée ; idem avec
+   « aller à la super-classe/définition » (superDefinition) : le
+   picker montre libellé + position exactes. Pendant la fenêtre de
+   pré-synchronisation (session pas encore configurée), une demande
+   de décompilation ne doit plus tomber sur un WARN muet « pas de
+   projet LSP » — file d'attente/retry ou message explicite côté
+   client.
+4. **Go-to source générée databinding (critère 4, écart E1)** — dans
+   un layout avec binding, go-to sur la référence
+   `ActivityMainBinding` (ou un champ de vue lié) : la cible
+   `app/build/generated/…/databinding/…Binding.java` est RÉSOLUE par
+   le moteur (le WARN « cible de go-to introuvable dans l'arbre » est
+   une limite CONNUE de l'indexation client — le repli « ouvrir hors
+   arbre » ou l'indexation du généré reste à traiter côté CodeIDE,
+   reclassé limite documentée).
+5. **Cycle de vie sans churn (critère 6, écart E4)** — laisser la
+   session vivre, déclencher des re-sources (édition + sync
+   Gradle) : UNE session LSP Java vivante par projet — plus les
+   rafales « 10 × LSP Java connecté en 1,4 s » des logs du 30/10 ;
+   plus de « caches d'arbre libérés (pression mémoire) » en régime
+   normal ; les reconfigurations de langues (Java → Java+Kotlin →
+   Java+Kotlin+XML) reconfigurent À CHAUD sans re-initialize.
+6. **Live-republish après sync** — avec des diagnostics affichés dans
+   un fichier Java OUVERT, déclencher une re-sync Gradle qui change
+   le classpath (p. ex. ajouter une dépendance) : les diagnostics du
+   fichier ouvert se REPUBLIENT (ils ne se figent pas sur l'état
+   d'avant-sync — motif ContextListener, scénario D1 du harnais).
+7. **Non-régression moteur (critère 8, fiches 004/010/039)** —
+   dérouler la passe appareil de la bascule (fiches 004 diagnostics /
+   010 navigation / 039 complétion du kit-bascule du dépôt code-lsp)
+   sur le projet réel : le procès-verbal d'appareil est consigné côté
+   code-lsp (I5) — écarts restants classés (E1 limite connue).
+8. **Périmètre intact — Kotlin et XML (garde du plan)** — les
+   sessions LSP Kotlin et XML vivent comme avant (mêmes lignes de
+   log « session LSP Kotlin ouverte » / « session LSP XML ouverte »,
+   complétion/navigation opérationnelles) : ils restent servis par le
+   frère codeide-lsp, inchangés par la bascule (habitat unique Java
+   seulement — instruction propriétaire du 30/10/2026).
