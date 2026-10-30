@@ -1,5 +1,80 @@
 # Journal des modifications
 
+## [0.204.3] – 2026-10-30
+
+### Montée codeide-lsp 1.23.2 → 1.23.3 (pin moteur 1.1.3) — SUPERDEFINITION RECONNU, SIGNAUX « UNUSED » ÉLARGIS ET STABLES, DÉCLENCHEUR @
+
+Retour appareil du 30/10 au soir sur v0.204.2 (logs
+`codeide-logs-2026-10-30-025629.zip`) : « grand progrès » — la chaîne
+de consommation est FRANCHIE (complétion `import com.` à 58 items reçus,
+diagnostics de syntaxe publiés et affichés, sévérités correctes) mais
+l'utilisateur signale deux familles muettes : pas de suggestions de
+paquet aux imports, et aucun signal « unused ». Diagnostic mesuré sur
+les logs + reproduction verrouillée côté moteur
+(`Repro20261030AppareilTest`, 11 tests).
+
+#### Corrigé (côté moteur — v1.1.3, INTEGRATION-CODEIDE §10.5)
+
+- **`textDocument/superDefinition` RECONNU** : le moteur enregistrait
+  l'extension maison sous son nom NU (`superDefinition`) alors que le
+  client cel-lsp (`CodeIdeLanguageServer`) l'appelle par son nom COMPLET
+  — le journal appareil porte
+  `Unsupported request method: textDocument/superDefinition` au GO TO
+  Super. Noms explicites alignés sur le fil du vendord : le GO TO
+  « Super » et la source décompilée (`textDocument/decompiledSource`)
+  répondent désormais.
+- **Signaux « unused » ÉLARGIS ET STABLES** (« le fichier des imports
+  non utilisés, variables non utilisées et autres, il ne les affiche
+  pas ») : trois tables ecj — analytique (import inutilisé + locale
+  inutilisée + champ/méthode/type privé inutilisé, diagnose complet),
+  rapide (locale inutilisée seule — corps hôte intact, les usages d'une
+  locale vivent dans SA méthode : aucun fallacieux, fiche 014), stricte
+  (passes masquées). PORTAGE HORS CORPS pendant la frappe
+  (`portablesHorsCorps`) : l'import et le membre privé inutilisés
+  RESTENT affichés pendant qu'on tape dans un corps — la passe rapide
+  ne peut pas les recalculer honnêtement (le masquage des autres corps
+  casserait leur analyse d'usages, piège fiche 014). Fraîcheur bornée
+  documentée : un signal apparaît/révoque au prochain diagnose complet
+  (caret hors de tout corps, édition structurelle, sauvegarde).
+- **Déclencheurs de complétion « . » ET « @ »** — miroir EXACT du
+  vendord (`ServerCapabilitiesProvider` : `List.of(".", "@")`) : la
+  complétion d'annotation (`@Ov|` → `@Override`) s'arme à la frappe.
+  TABLE_JAVA de parité L0 de l'hôte alignée (`déclencheurs .@`).
+
+#### Vérifié (complétion d'import au fil, côté moteur)
+
+- « `import ` » (préfixe vide) rend les paquets de premier niveau
+  (com/java/javax/org + paquets projet) ; « `import com.` » rend les
+  sous-paquets DONT le paquet du projet (« exemple » attendu par
+  l'utilisateur) ; « `import com.exemple.` » rend « monip ». Les labels
+  sont des SEGMENTS (compatibles avec le re-filtrage local de cel-lsp).
+  Après « `import ` » + espace, l'ouverture automatique dépend de la
+  POLITIQUE cel-lsp (préfixe vide = caractère déclencheur requis) : les
+  suggestions arrivent à la première LETTRE tapée (debounce 80 ms),
+  après « . », ou via le bouton Cmplt/Ctrl+Espace — comportement cel-lsp
+  inchangé (identique au vendord).
+
+#### Chaîne
+
+- code-lsp tag v1.1.3 (CI verte 41027683205 + Publication verte
+  41027683332, artefacts vérifiés sur maven.pkg.github.com/jjoblab/
+  code-lsp ; 494 tests moteur verts dont Repro20261030AppareilTest —
+  boucle LSP4J réelle + miroir cel-lsp aux noms complets) → codeide-lsp
+  release 1.23.3 (pin seul + TABLE_JAVA de test ; 258 tests d'hôte
+  verts contre le moteur 1.1.3 ; guide MISE-A-JOUR §1.23.3) → CE bump
+  (catalogue : codeide-lsp = 1.23.3 + codeide-lsp-java = 1.1.3,
+  miroir ; version 0.204.3 / 20403).
+
+#### Attendu (passe appareil)
+
+- Dans un fichier avec import inutilisé + locale inutilisée + champ
+  privé inutilisé : (a) à l'ouverture, les TROIS avertissements
+  s'affichent (sévérité 2, tag `Unnecessary` sur l'import, rendu
+  estompé) ; (b) en tapant DANS une méthode, les signaux RESTENT
+  affichés (portage hors corps) ; (c) GO TO Super sur une redéfinition
+  → le picker répond (plus de « Unsupported request method ») ; (d)
+  taper `@` en tête d'annotation → la complétion s'arme.
+
 ## [0.204.2] – 2026-10-30
 
 ### Montée codeide-lsp 1.23.1 → 1.23.2 (pin moteur 1.1.2) — LA PANNE « Internal error. » SUR TOUTE REQUÊTE CORRIGÉE
