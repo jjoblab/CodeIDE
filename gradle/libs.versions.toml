@@ -344,6 +344,31 @@ codeide-tooling = "1.0.0"
 # d'indexation multi-moteurs, ADR 0146), 1.7.0 (v0.179.0 — GO TO
 # symétrique, ADR 0208–0210), 1.5.0 (C4 — ADR 0143, ligne d'annotation
 # @Preview).
+# MONTÉE 1.16.0 → 1.23.0 (2026-10-30, « le chaînon restant franchi » —
+# LA BASCULE DU MOTEUR LSP JAVA) : :lsp:host consomme le moteur Java
+# RÉÉCRIT (jo.codeide.lsp.java:1.1.0 + compagnon ecj-art runtimeOnly,
+# option B — routeur multi-modules AU PROTOCOLE : une session LSP Java
+# vivante par projet, moteurs résolus PAR REQUÊTE, invariant ADR 0211
+# « nourrissage moteur unique par sync » préservé à travers les
+# reconfigurations à chaud, fiche 066 du moteur). Le moteur vendored
+# :lsp:java du frère est ARCHIVÉ (ADR 0233 : gelé, plus consommé par
+# AUCUN module — retrait physique après « 2 versions sans régression »).
+# Surface publique hôte INTACTE (SessionLsp/CapaciteLsp inchangées, JSON
+# NavigationTarget repris à l'identique par NavigationCible — le client
+# cel-lsp est consommé TEL QUEL) ; extensions maison
+# superDefinition/decompiledSource annoncées en experimental (miroir du
+# vendord — les entrées UI restent vivantes) ; live-republish des
+# documents ouverts après chaque remplacement de contexte. Deux deltas
+# assumés à surveiller côté consommation : semanticTokens NON annoncé
+# (coloration de repli conservée, aucune attente silencieuse) et
+# source.organizeImports PAS encore servi au fil LSP (API moteur seule
+# — l'action ne doit pas apparaître morte côté UI). Témoin attendu au
+# premier lancement : serverInfo = lspjava 1.1.0 consigné à CHAQUE
+# connexion LSP Java. Guide de passage : docs/MISE-A-JOUR-CODEIDE.md du
+# frère ; retour arrière = substitution inverse (descendre à 1.22.1).
+# Publication GitHub Packages v1.23.0 vérifiée ; CI verte (baseline de
+# parité du corpus régénérée pour absorber les 10 fichiers .kt du
+# chaînon — grammaire SANS changement).
 # MONTÉE 1.15.0 → 1.16.0 (2026-10-28, « lance tous les chantiers ») :
 # le moteur ECJ gagne les variantes réparées de l'aide de signature
 # (appels non refermés add( / add(1, / chaînes ouvertes / arguments à
@@ -358,17 +383,22 @@ codeide-tooling = "1.0.0"
 # changement de protocole ni de SPI. Artefacts : publication GitHub
 # Packages v1.16.0 SUCCÈS ; CI main : incident réseau Maven Central
 # transitoire (résolution gson) au premier passage, re-lancé.
-codeide-lsp = "1.16.0"
+codeide-lsp = "1.23.0"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
-# jjoblab/code-lsp) : publication GitHub Packages 1.0.0 (workflow
-# publish.yml sur tag v*). RAILS SEULEMENT pour l'instant : aucun module
-# de CodeIDE ne consomme la coordonnée — la dépendance moteur vit dans
-# le POM de l'hôte vendored (jjoblab/codeide-lsp:lsp/host), dont
-# l'adaptation à la façade neuve (jo.codeide.lsp.java.*) est le
-# chaînon restant (docs/BASCULE-CODEIDE.md §3.2.2 du dépôt code-lsp).
-# Mise à jour future = bump ici + tag v* côté code-lsp.
-codeide-lsp-java = "1.0.0"
+# jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
+# publish.yml). PIN MIROIR du catalogue du frère codeide-lsp (0ca7e7b) :
+# la dépendance moteur vit dans le POM de l'hôte (host 1.23.0 la déclare
+# api + compagnon ecj-art runtimeOnly) — AUCUN module de CodeIDE ne
+# consomme la coordonnée directement, ce pin documente la version du
+# moteur que l'hôte transporte (v1.1.0 : régime vivant au protocole,
+# cheminDeUri double forme file:/path, live-republish, contrat
+# superDefinition {path, start, end, label} miroir du vendord).
+# Résolution : rails settings.gradle.kts posés en 8450bb7 (mavenLocal
+# filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
+# le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
+# codeide-lsp + tag v* côté code-lsp.
+codeide-lsp-java = "1.1.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,

@@ -1,5 +1,70 @@
 # Journal des modifications
 
+## [0.203.0] – 2026-10-30
+
+### Montée codeide-lsp 1.16.0 → 1.23.0 — LA BASCULE DU MOTEUR LSP JAVA : l'hôte adapté consomme le moteur RÉÉCRIT v1.1.0 (le chaînon restant franchi)
+
+#### Ajouté
+
+- **Le moteur qui sert les requêtes LSP Java de CodeIDE CHANGE** (objectif
+  propriétaire du 30/10/2026 : « l'intégration complète du nouveau
+  lsp-java, que toutes les fonctionnalités soient bien connectées et
+  fonctionnent, cohérentes ») : `:lsp:host` du frère codeide-lsp
+  consomme désormais le moteur Java réécrit du dépôt `jjoblab/code-lsp`
+  (`jo.codeide.lsp.java:jo-codeide-lsp-java:1.1.0` + compagnon
+  `ecj-art` en runtimeOnly, publiés sur GitHub Packages). Le moteur
+  vendored est ARCHIVÉ côté frère (ADR 0233 : gelé, plus consommé par
+  AUCUN module) — `code-lsp` est l'habitat unique du LSP Java.
+  Conditions de publication vérifiées : tag `v1.23.0`, CI verte (2
+  passages : tag + main), publication GitHub Packages en succès, pin
+  moteur miroir `1.1.0` dans le catalogue (la dépendance vit dans le
+  POM de l'hôte — aucun module CodeIDE ne la consomme directement).
+- **Architecture « session vivante »** (option B — routeur
+  multi-modules au protocole, l'arbitrage tranché par le critère 6
+  d'acceptation) : UNE session LSP Java par projet, les moteurs sont
+  résolus PAR REQUÊTE via le routeur fichier → module, l'invariant
+  ADR 0211 (« nourrissage moteur unique par sync ») est préservé à
+  travers les reconfigurations à chaud — la réponse directe au churn
+  E4 mesuré sur appareil (10 ouvertures de session en 1,4 s pour 2
+  modules, 3 libérations de caches sous pression mémoire).
+- **Live-republish** : chaque remplacement EFFECTIF de contexte
+  (re-sync) republie les diagnostics des documents OUVERTS du module
+  remplacé (motif `ContextListener` du vendored — le popup de
+  diagnostics ne se fige plus après une sync).
+
+#### Inchangé (vérifié)
+
+- **La consommation cel-lsp est TELLE QUELLE** : surface publique de
+  l'hôte intacte (`SessionLsp`/`CapaciteLsp`), contrat de sérialisation
+  `superDefinition` repris À L'IDENTIQUE par `NavigationCible`
+  ({path, start, end, label} — le picker ne perd ni offsets ni
+  libellé), extensions maison `superDefinition`/`decompiledSource`
+  annoncées en `experimental` (les boutons restent vivants). 257 tests
+  d'hôte verts côté frère contre la façade neuve (dont les scénarios
+  E2E stdio D1–D5), 631 tests moteur + banc de parité croisée vert.
+- **Le retour arrière reste une ligne** : substitution inverse
+  (`codeide-lsp = "1.22.1"`) — le vendord archivé reste au build du
+  frère et publiable jusqu'au retrait physique (règle « 2 versions
+  sans régression »).
+
+#### Deltas assumés (à surveiller côté consommation)
+
+- **semanticTokens NON annoncé** par le moteur neuf (règle de la
+  matrice ADR 0015) : la requête est tolérante vide — le client garde
+  sa coloration syntaxique de repli, aucune attente silencieuse.
+- **`source.organizeImports` PAS encore servi au fil LSP** (l'API
+  moteur §7.17 du `USAGE.md` existe seule) : l'action ne doit pas
+  apparaître morte côté UI.
+
+#### Attendu (protocole I5 — passe appareil)
+
+- **Témoin de branchement** : `serverInfo = { "name": "lspjava",
+  "version": "1.1.0" }` consigné côté client à CHAQUE connexion LSP
+  Java (la ligne « LSP Java connecté » des logs doit le gagner).
+  Procédure détaillée dans `docs/TESTS_MANUELS.md` (B1–B8) ; re-vérif
+  des écarts E1–E4 des logs du 30/10 (go-to source générée databinding,
+  décompilée avant session prête, churn de sessions).
+
 ## [0.201.0] – 2026-10-28
 
 ### Montée code-editor 4.5.1 → 4.9.1 — popup de complétion deux lignes, plancher fusionné, aide de signature redessinée, repli neutre réel (bump-frère)
