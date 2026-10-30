@@ -1,5 +1,66 @@
 # Journal des modifications
 
+## [0.204.6] – 2026-10-31
+
+### Montée codeide-lsp 1.23.5 → 1.23.6 (pin moteur 1.1.6) — L'INVENTAIRE DES ÉCARTS + LES TROIS URGENCES DE LA COMPLÉTION
+
+Retours appareil du 31/10 au soir sur v0.204.5 (moto g06) : « J'ai testé
+sur l'appareil, des progrès minuscules. Listé les écarts du serveur qui
+avaient été mis pour plus tard ou pas encore étudié. Le problème le plus
+urgent c'est la complétion, le moteur n'est pas intelligent du tout.
+Dépendamment où l'utilisateur est en train de taper, il doit savoir où
+il est et proposer des suggestions précises de ce que l'utilisateur veut
+faire… si en tapant l'utilisateur veut utiliser l'une des méthodes de
+ses classes, il doit voir ces méthodes dans les suggestions de
+complétion et même dans l'aide signature. Regarde attentivement comment
+fait Android Studio. Il y a toujours un retard avant que les suggestions
+arrivent. »
+
+Mandat exécuté dans code-lsp (INTEGRATION-CODEIDE §14) — l'inventaire
+demandé vit désormais à part : `docs/ECARTS-SERVEUR.md` (corrigés
+v1.1.6, moteur, **hôte — la cause racine des retards ressentis :
+fenêtre des 2 minutes de cache à l'ouverture, complétions 11–12 s
+post-sync, churn de sessions, arbre `build/generated` non indexé**,
+client, décisions).
+
+Trois correctifs moteur (v1.1.6) :
+
+1. **mots-clés de top level** (l'écart consigné §13.4) — `i|`, `im|`
+   AVANT l'espace rendaient 0 item là où Android Studio propose
+   `import`/`interface` : genre TOP_NIVEAU en repli de la cascade
+   (profondeur d'accolades zéro, gardes tête de
+   déclaration/littéraux/point), mots-clés légaux hors corps de type,
+   `extends`/`implements`/`permits` compris ;
+2. **aide de signature niveau 4 réparée** — la virgule traînante
+   `repeter("monip", ` (méthode à DEUX paramètres du Greeter du PROJET)
+   rendait RIEN : la fermeture de la liste d'arguments s'insère
+   désormais AVANT l'accolade du bloc englobant (l'ancienne queue la
+   plaçait après les `}`) — signatures des méthodes du projet, noms de
+   paramètres servis depuis la SOURCE, paramètre actif exact ;
+3. **latence** — la résolution marquée se réduit par `SourceFocuser`
+   (seuil 2 000 caractères) : le coût de frappe cesse d'être linéaire à
+   la taille du fichier.
+
+Validation moteur : banc projet Android réel **22/22** (S19/S20
+nouveaux au fil LSP), `:java:test` 534/0/0 gates ouvertes, baseline
+benchQualite signée intacte (recall/top-1/MRR 1,000, p95 ≈ 37 ms,
+0 saut). Chaîne : code-lsp v1.1.6 (CI verte sur f15b738, Publication
+41135515100 verte, artefacts vérifiés : POM sans ecj,
+`version.properties=1.1.6`, bytecode 17, compagnon EPL-2.0 — 942
+entrées) → codeide-lsp 1.23.6 (CI 41136150523 + Publication
+41137147520 vertes, POM hôte vérifié portant `jo-codeide-lsp-java:1.1.6`
++ `ecj-art:1.1.6`) → CodeIDE 0.204.6.
+
+#### Passe appareil attendue
+
+`im|` avant l'espace propose `import` ; la virgule traînante d'un appel
+de méthode du projet sert l'aide de signature (paramètre actif exact) ;
+la frappe dans les grands fichiers ne ralentit plus avec la taille du
+fichier. Les « progrès minuscules » ressentis sur 0.204.5 se liront
+désormais dans les écarts HÔTE de l'inventaire (H1 fenêtre des 2 minutes
+de cache, H2 complétions 11–12 s post-sync, H3 churn de sessions, H4
+arbre `build/generated`) — à traiter côté codeide-lsp/CodeIDE.
+
 ## [0.204.5] – 2026-10-31
 
 ### Montée codeide-lsp 1.23.4 → 1.23.5 (pin moteur 1.1.5) — LA PRÉCISION ANDROID STUDIO DE LA COMPLÉTION, ÉPROUVÉE SUR UN VRAI PROJET ANDROID
