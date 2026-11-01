@@ -429,7 +429,20 @@ codeide-tooling = "1.0.0"
 # changement de protocole ni de SPI. Artefacts : publication GitHub
 # Packages v1.16.0 SUCCÈS ; CI main : incident réseau Maven Central
 # transitoire (résolution gson) au premier passage, re-lancé.
-codeide-lsp = "1.23.6"
+# MONTÉE 1.23.6 → 1.24.0 (2026-11-01, montée MINEURE du frère —
+# l'accumulé moteur 1.1.6 → 1.12.0, jamais propagé depuis la chaîne
+# 1.1.6/1.23.6/0.204.6 du 31/10) : l'hôte ne change pas d'une ligne
+# de MAIN — la façade jo.codeide.lsp.java.* est restée compatible
+# (258 tests d'hôte verts ; garde-fou L0 TABLE_JAVA mis à jour pour
+# les DEUX capacités nouvelles : actions de code multi-kinds + jetons
+# sémantiques légende 8 types ; baseline de parité du dépôt
+# régénérée, 309 fichiers). Ce que la montée transporte : pin
+# codeide-lsp-java ci-dessous + docs/MISE-A-JOUR-CODEIDE.md §1.24.0
+# du frère (rupture annoncée references non confiné — capability
+# x-codeide.usages à consommer ; opportunités semanticTokens /
+# usagesGroupes / kinds source|refactor). Publication v1.24.0 du
+# frère vérifiée sur le registre (maven-metadata host).
+codeide-lsp = "1.24.0"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -491,12 +504,33 @@ codeide-lsp = "1.23.6"
 # traînante repeter("monip", rendait RIEN — signatures PROJET servies,
 # noms de paramètres depuis la source, paramètre actif exact),
 # réduction SourceFocuser de la résolution marquée (coût de frappe
-# délié de la taille du fichier) — INTEGRATION-CODEIDE §14).
+# délié de la taille du fichier) — INTEGRATION-CODEIDE §14) ;
+# v1.12.0 : l'accumulé « niveau Android Studio » (vagues V-B à V-A2,
+# publié d'un bloc — le moteur a vécu 1.3.0→1.12.0 sans propagation,
+# à la demande du propriétaire) : references MULTI-FICHIERS +
+# capability versionnée x-codeide.usages + RPC maison
+# textDocument/usagesGroupes (Find Usages arborescent, déclaration en
+# racine de groupe, plafond honnête 2 000), documentHighlight kinds
+# Write complets (affectations composées et incréments), actions de
+# code MULTI-KINDS (source.organizeImports, source.generate,
+# refactor.extract/inline/rewrite — les DEUX deltas assumés de la
+# bascule 1.23.0 sont SOLDÉS), semanticTokens COMPLÈTE (légende 8
+# types — la règle « PAS de jetons sémantiques » de la matrice ADR
+# 0015 est LEVÉE), codeAction/resolve réel, workDoneProgress,
+# willRenameFiles, inspections + lint Android NewApi sur base
+# api-versions CIDX, complétion smart/typedef/second appel/chaîne/
+# statement, classes light R/BuildConfig/ViewBinding/DataBinding +
+# navigation R.* vers le XML exact, rename depuis un document XML
+# (propagation code+XML), budgets d'octets + onTrimMemory (V-F),
+# corpus réel Android + gates P3/P4/P7 et divergences ecj-javac
+# mesurées (V-A2 : 6 FP sur 111 700 lignes, rappel rename 0,991,
+# 28 renommages sûrs / 0 cassé) — INTEGRATION-CODEIDE §15-§16 du
+# moteur, tag v1.12.0 run Publication 41328300278.
 # Résolution : rails settings.gradle.kts posés en 8450bb7 (mavenLocal
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.1.6"
+codeide-lsp-java = "1.12.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,

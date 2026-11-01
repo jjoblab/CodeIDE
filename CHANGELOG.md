@@ -1,5 +1,71 @@
 # Journal des modifications
 
+## [0.205.0] – 2026-11-01
+
+### Montée codeide-lsp 1.23.6 → 1.24.0 (pin moteur 1.1.6 → 1.12.0) — L'ACCUMULÉ « NIVEAU ANDROID STUDIO » : semanticTokens, multi-kinds, usagesGroupes, refactorings lourds
+
+Le moteur Java réécrit (`jjoblab/code-lsp`) a vécu les vagues V-B à V-A2
+de la mission « niveau Android Studio » (versions de dépôt 1.3.0 →
+1.12.0) SANS propagation vers CodeIDE — à la demande du propriétaire
+(INTEGRATION-CODEIDE §15 : « Publication artefact 1.3.0 : à la chaîne
+habituelle — NON jouée »). Cette montée publie l'accumulé D'UN BLOC :
+moteur **1.12.0** (tag v1.12.0, run Publication 41328300278, artefacts
+vérifiés : POM sans ecj, `version.properties=1.12.0`, compagnon
+EPL-2.0 — 929 `org/eclipse/jdt`) puis hôte **1.24.0** (façade
+`jo.codeide.lsp.java.*` inchangée : `:lsp:host` compile et passe ses
+258 tests sans toucher une ligne de MAIN — la montée est purement
+coordinative ; le garde-fou L0 `TABLE_JAVA` suit les deux capacités
+nouvelles, la baseline de parité du frère est régénérée, 309 fichiers).
+
+Ce que la montée transporte côté client (contrats : `USAGE.md` du
+moteur §7.16/§7.20–§7.27, §9.3–§9.5 ; guide de passage :
+`docs/MISE-A-JOUR-CODEIDE.md` §1.24.0 du frère) :
+
+1. **`references` MULTI-FICHIERS (rupture annoncée)** — la réponse
+   n'est plus confinée au document interrogé : usages de TOUT le
+   projet, ordre trié chemin+offset. La liste à plat continue de
+   fonctionner ; la rupture est annoncée par la capability versionnée
+   **`x-codeide.usages`** (`{version: 1, multiFichiers: true,
+   groupes: true, plafondRendu: 2000}`).
+2. **`textDocument/usagesGroupes`** — la vue arborescente « Find
+   Usages » : un groupe par fichier porteur, déclaration TOUJOURS
+   incluse et signalée (`estDeclaration`), offsets ABSOLUS, plafond
+   honnête 2 000 (`total`/`rendus`/`plafond`/`tronque` — afficher le
+   total quand `tronque`).
+3. **`textDocument/semanticTokens/full`** — légende 8 types : la règle
+   « PAS de jetons sémantiques » de la matrice ADR 0015 est LEVÉE, le
+   client peut remplacer sa coloration de repli.
+4. **Actions de code MULTI-KINDS** — `source.organizeImports`,
+   `source.generate`, `refactor.extract` (variable/constante/
+   fonction), `refactor.inline`, `refactor.rewrite` (delete/
+   signature) + `codeAction/resolve` réel : les deux deltas assumés
+   de la bascule 1.23.0 (« semanticTokens non annoncé »,
+   « organizeImports pas encore servi ») sont SOLDÉS.
+5. **Refactorings lourds** — extractions sur sélection, inline
+   (variable, constante, multi-fichiers), safe delete hiérarchique,
+   change signature, création de champ/méthode contextuelle, rename
+   de ressource ; **rename depuis un document XML** (propagation
+   code+XML) ; `willRenameFiles` (rename de fichier Java).
+6. **Qualité et complétion** — moteur d'inspections + profil de
+   sévérités ; lint Android NewApi sur base api-versions CIDX
+   (seconde passe asynchrone) ; complétion smart/typedef, second
+   appel, chaîne, statement, `R.*` ; `documentHighlight` kinds `Write`
+   complets ; diagnostics enrichis `codeDescription.href`.
+7. **Android et mémoire** — classes light R/BuildConfig/ViewBinding/
+   DataBinding, navigation `R.*` vers le XML exact ; budgets d'octets,
+   `onTrimMemory`, double-tampon et époques, plage prioritaire
+   `$/codeide/plageVisible`.
+8. **Robustesse prouvée sur corpus réel** — manifestes de classpath,
+   gates P3/P4/P7, divergences ecj↔javac mesurées (6 FP sur
+   111 700 lignes = 0,054/1 000, rappel rename 0,991, 28 renommages
+   sûrs / 0 cassé).
+
+Aucune adaptation client REQUISE (témoin attendu au premier lancement :
+`serverInfo.version` = **1.12.0**) ; la consommation des opportunités
+ci-dessus (coloration sémantique, vue groupée des usages, actions
+refactor.*) se fait au rythme du client. Retour arrière : descendre le
+catalogue à `codeide-lsp = "1.23.6"` + pin miroir `1.1.6`.
+
 ## [0.204.6] – 2026-10-31
 
 ### Montée codeide-lsp 1.23.5 → 1.23.6 (pin moteur 1.1.6) — L'INVENTAIRE DES ÉCARTS + LES TROIS URGENCES DE LA COMPLÉTION
