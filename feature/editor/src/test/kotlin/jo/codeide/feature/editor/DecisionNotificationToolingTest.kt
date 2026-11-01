@@ -148,4 +148,47 @@ class DecisionNotificationToolingTest {
 
         assertEquals(DecisionNotificationTooling.EnCours(CanalTooling.SYNC), decision)
     }
+
+    @Test
+    fun `sync reussie puis build echoue marques - la notification finale suit le build (INC-01)`() {
+        val etat =
+            EtatGradle(
+                synchronisationReussie =
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 194_000),
+                sequenceResultatSync = 1,
+                statutBuild = StatutBuild.ECHOUE,
+                dureeBuildMs = 36_000,
+                messageEchecBuild = "compileKotlin a échoué",
+                sequenceResultatBuild = 2,
+            )
+
+        assertEquals(
+            DecisionNotificationTooling.Resultat(
+                canal = CanalTooling.BUILD,
+                reussi = false,
+                dureeMs = 36_000,
+                messageEchec = "compileKotlin a échoué",
+            ),
+            decisionNotificationTooling(etat),
+        )
+    }
+
+    @Test
+    fun `build echoue puis sync reussie marquees - la notification finale suit la sync (INC-01)`() {
+        val etat =
+            EtatGradle(
+                statutBuild = StatutBuild.ECHOUE,
+                dureeBuildMs = 36_000,
+                messageEchecBuild = "compileKotlin a échoué",
+                sequenceResultatBuild = 1,
+                synchronisationReussie =
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 8_000),
+                sequenceResultatSync = 2,
+            )
+
+        assertEquals(
+            DecisionNotificationTooling.Resultat(canal = CanalTooling.SYNC, reussi = true, dureeMs = 8_000),
+            decisionNotificationTooling(etat),
+        )
+    }
 }
