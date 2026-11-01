@@ -442,7 +442,7 @@ codeide-tooling = "1.0.0"
 # x-codeide.usages à consommer ; opportunités semanticTokens /
 # usagesGroupes / kinds source|refactor). Publication v1.24.0 du
 # frère vérifiée sur le registre (maven-metadata host).
-codeide-lsp = "1.24.0"
+codeide-lsp = "1.24.1"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -530,7 +530,7 @@ codeide-lsp = "1.24.0"
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.12.0"
+codeide-lsp-java = "1.12.1"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,

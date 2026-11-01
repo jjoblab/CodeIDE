@@ -1,5 +1,59 @@
 # Journal des modifications
 
+## [0.205.1] – 2026-11-01
+
+### Montées codeide-lsp 1.24.1 + pin moteur 1.12.1 — HOTFIX RETOURS APPAREIL : fin du serveur figé en pleine frappe
+
+Retours appareil du 01/11/2026 sur v0.205.0 (moto g06, logs
+codeide-logs-2026-11-01-144401.zip) : « la complétion ne fonctionne pas
+correctement et bien d'autres problèmes ». Le journal montre un serveur
+FIGÉ en pleine frappe — 38 complétions, 47 surbrillances et 29 inlay en
+timeout (borne client 5 s), plus AUCUN publishDiagnostics après une 2e
+invocation de complétion à la même ancre ; le serveur ne récupérait
+jamais (tué à la reconnexion).
+
+Cause racine (établie par bancs dans code-lsp, V-A3) : les coûts FROIDS
+du chemin de complétion — l'annuaire du classpath (le android.jar seul
+porte ~40 000 entrées) et le LookupEnvironment ecj — étaient payés PAR
+LA PREMIÈRE REQUÊTE qui les touche, SOUS le verrou de compilation : la
+diagnose du publicateur s'empilait derrière, la borne client explosait.
+Le moteur 1.12.1 pose trois garde-fous :
+
+1. **Pré-chauffe du classpath** — plateforme + annuaire + sonde ecj
+   chaude, jouée par le réchauffeur du double-tampon ET à la première
+   pose asynchrone de chaque moteur ; construction paresseuse HORS du
+   verrou global (les autres modules ne se bloquent plus derrière une
+   naissance). Plus JAMAIS de scan de classpath sur le fil de requête.
+2. **Budget d'horloge de complétion** — 3 s (sous la borne client de
+   5 s) : à l'expiration, les boucles d'élargissement coupent et livrent
+   le PARTIEL honnête déjà collecté (propriété
+   `jo.codeide.lsp.java.completion.budgetms`).
+3. **Chien de garde des requêtes lentes** — toute requête (complétion,
+   surbrillance, inlay, survol, signature, diagnose) qui dépasse 2 s
+   publie `window/logMessage` Warning, que cel-lsp RELAIE dans le
+   journal applicatif (« server/logMessage: lspjava lenteur : … ») : le
+   point de lenteur devient VISIBLE sur l'appareil (propriété
+   `jo.codeide.lsp.java.lenteur.seuilms`).
+
+Aucune adaptation CodeIDE requise (façade inchangée, le garde-fou L0 et
+la baseline du frère restent valables). Consigné au passage : les « I/O
+cannot be resolved to a type » + « Name clash » des logs viennent du
+FICHIER (signature générique héritée copiée avec ses variables de type —
+javac dirait pareil) ; le « connect: SUCCESS — server ready, version=0 »
+est un label cel-lsp trompeur (il imprime la version du DOCUMENT —
+cosmétique, dépôt code-editor).
+
+Chaîne : code-lsp v1.12.1 (949 tests / 0 échec dont 4 repros appareil,
+build strict VERT, run CI + Publication verts, registre vérifié) →
+codeide-lsp 1.24.1 (258 tests hôte / 0 échec avec le pin 1.12.1) →
+CodeIDE 0.205.1.
+
+Passe appareil attendue : la frappe ne figure plus le serveur — les
+complétions répondent (au pire un partiel honnête à 3 s, jamais un
+timeout en cascade), les diagnostics continuent de couler PENDANT les
+complétions ; si quelque chose reste lent, le journal applicatif montre
+le POINT exact (« lspjava lenteur : … »). Retour arrière : catalogue
+`codeide-lsp = "1.24.0"` + pin miroir `codeide-lsp-java = "1.12.0"`.
 ## [0.205.0] – 2026-11-01
 
 ### Montée codeide-lsp 1.23.6 → 1.24.0 (pin moteur 1.1.6 → 1.12.0) — L'ACCUMULÉ « NIVEAU ANDROID STUDIO » : semanticTokens, multi-kinds, usagesGroupes, refactorings lourds
