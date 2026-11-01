@@ -1,5 +1,38 @@
 # Journal des modifications
 
+## [Non intégré — branche fix/tooling-coherence] — volet C « cohérence du tooling » (prompt du 2026-10-31)
+
+### INC-01 — le « dernier résultat » tooling est l'activité terminée la PLUS RÉCENTE
+
+Constat reproduit par test avant correctif (5 scénarios rouges sur le code
+de `main`) : `EtatGradle.canalDernierResultat` renvoyait `SYNC` dès que
+`synchronisationReussie != null || messageEchecSync != null`, avant même de
+regarder le build — et `suivreBuild` ne remettait jamais ces champs à
+`null`. Après une sync réussie suivie d'un build échoué (le scénario du
+propriétaire : sync ✓ puis trois builds ✗), l'en-tête au repos affichait
+« Synchronisé en … » avec sa coche verte, et la notification finale
+annonçait la sync réussie.
+
+- `EtatGradle` porte désormais un **repère d'ordre par canal**
+  (`sequenceResultatSync` / `sequenceResultatBuild`, compteur croissant posé
+  à chaque conclusion, `0` = jamais conclue) : `canalDernierResultat` suit
+  l'activité terminée la plus récente. Sans repère (état construit
+  directement, hors service), le départage historique sync-puis-build
+  s'applique — aucun test existant n'a changé.
+- `GradleService` numérote chaque conclusion : `publierResultatSync`
+  (chaque verdict — « le dernier verdict gagne », même sémantique que la
+  conclusion de console de l'ADR 0079) et `publierEtatBuild` (transition
+  en cours → terminal uniquement : une republication du même verdict ne
+  vole pas la place d'une sync conclue entre-temps).
+- Les trois consommateurs — en-tête (`PresentationTooling`), contrôleur du
+  panneau, notification finale (`DecisionNotificationTooling`) — dérivant
+  du même `canalDernierResultat`, le correctif les aligne d'un coup ;
+  `CoherenceDernierResultatTest` vérifie la table des scénarios du prompt
+  (§6.1) et le verdict croisé de bout en bout.
+- L'option « remise à `null` du canal opposé au départ d'une activité » est
+  écartée : l'INC-02 (dérivation unique `CanalAffiche`) exigera les deux
+  résultats vivants (chip, icône, statut, consoles).
+
 ## [0.204.6] – 2026-10-31
 
 ### Montée codeide-lsp 1.23.5 → 1.23.6 (pin moteur 1.1.6) — L'INVENTAIRE DES ÉCARTS + LES TROIS URGENCES DE LA COMPLÉTION

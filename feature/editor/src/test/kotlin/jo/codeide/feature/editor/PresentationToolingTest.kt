@@ -402,6 +402,52 @@ class PresentationToolingTest {
     }
 
     @Test
+    fun `l entete au repos suit le dernier resultat marque - sync puis build echoue (INC-01)`() {
+        // Le scénario du propriétaire : sync réussie (194 s) puis build
+        // échoué — l'en-tête au repos porte l'échec du BUILD, plus la
+        // coche verte de la sync. Les repères d'ordre sont ceux que le
+        // service pose à chaque conclusion.
+        val etat =
+            EtatGradle(
+                synchronisationReussie =
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 194_000),
+                sequenceResultatSync = 1,
+                statutBuild = StatutBuild.ECHOUE,
+                dureeBuildMs = 36_000,
+                messageEchecBuild = "compileKotlin a échoué",
+                sequenceResultatBuild = 2,
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(StatutEntete.ECHOUE, entete.statut)
+        assertEquals(jo.codeide.core.ui.R.color.codeide_canal_build, entete.couleur)
+        assertEquals(TexteTooling.Brut("compileKotlin a échoué"), entete.titre)
+        assertEquals(36_000L, entete.dureeFigeeMs)
+    }
+
+    @Test
+    fun `l entete au repos suit le dernier resultat marque - build puis sync reussie (INC-01)`() {
+        // Ordre inverse : la sync conclue APRÈS le build reprend l'en-tête.
+        val etat =
+            EtatGradle(
+                statutBuild = StatutBuild.ECHOUE,
+                dureeBuildMs = 36_000,
+                messageEchecBuild = "compileKotlin a échoué",
+                sequenceResultatBuild = 1,
+                synchronisationReussie =
+                ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 8_000),
+                sequenceResultatSync = 2,
+            )
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(StatutEntete.SUCCES, entete.statut)
+        assertEquals(jo.codeide.core.ui.R.color.codeide_canal_sync, entete.couleur)
+        assertEquals(8_000L, entete.dureeFigeeMs)
+    }
+
+    @Test
     fun `la sync reussie avec taches montre le compte et une progression pleine`() {
         val etat =
             EtatGradle(
