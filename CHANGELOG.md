@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.205.2] – 2026-11-02
+
+### Montées codeide-lsp 1.24.2 + pin moteur 1.12.2 — complément V-A2 : le repli lexical Kotlin n'invente plus de classes finales
+
+Montée de maintenance (aucune adaptation CodeIDE) : le moteur 1.12.2
+corrige ce que la passe SANS build du corpus AnySoftKeyboard (complément
+V-A2, PV `mesures/2026-11-02-va2-complement-repli-lexical.txt` côté
+code-lsp) a exposé — un cas que le montage canonique (classes Kotlin
+compilées) masque : quand les classes Kotlin d'un projet mixte ne sont
+PAS encore compilées (première ouverture, avant tout build), le repli
+lexical de l'ADR 0022 synthétisait toute classe Kotlin FINALE — une
+classe Java qui étend une `open class` Kotlin était accusée à tort
+« cannot subclass the final class » (cas réel : PackBroadcastReceiverBase
+du corpus). Désormais `DeclarationsKotlin` capte open/abstract/sealed/
+data/value : finale par défaut SAUF classe ouverte, jamais pour une
+interface ; object/enum class et facades restent finales. Sur cette
+passe, FP/1 000 lignes mesuré 0,843 → 0,0444 (le restant = limite
+documentée des MEMBRES d'object Kotlin, périmètre ADR 0022, arbitrage
+différé — un appel de membre d'object avant compilation reste signalé
+jusqu'aux classes compilées).
+
+Chaîne : code-lsp v1.12.2 (949 tests / 0 échec dont les 2 régressions
+DeclarationsKotlinTest, CI verte sur le commit tagué 6f2d2df,
+Publication run 12 VERTE — moteur 1.12.2 + compagnon ecj-art publiés)
+→ codeide-lsp 1.24.2 (258 tests / 0 échec avec le pin 1.12.2,
+plateforme android-37.2 + local.properties sdk.dir posés — même contrat
+que la CI) → CodeIDE 0.205.2. Retour arrière : catalogue codeide-lsp =
+"1.24.1" + pin miroir codeide-lsp-java = "1.12.1".
+
 ## [0.205.1] – 2026-11-01
 
 ### Montées codeide-lsp 1.24.1 + pin moteur 1.12.1 — HOTFIX RETOURS APPAREIL : fin du serveur figé en pleine frappe
