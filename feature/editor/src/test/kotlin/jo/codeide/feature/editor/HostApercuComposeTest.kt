@@ -11,6 +11,7 @@ import jo.codeeditor.view.EditorView
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.testing.TestDispatcherProvider
 import jo.codeide.lsp.kotlin.api.PreviewKotlin
+import jo.codeide.lsp.kotlin.parse.kt.PlageTexte
 import jo.codeide.preview.compose.EtatPreviewCompose
 import jo.codeide.preview.compose.EvenementTactileCompose
 import jo.codeide.preview.compose.GenreNoeudCompose
@@ -592,10 +593,10 @@ class HostApercuComposeTest {
     private fun previewKotlin(nom: String, ligneAnnotation: Int): PreviewKotlin = PreviewKotlin(
         nom = nom,
         paquet = null,
-        debutNom = 0,
-        finNom = 0,
+        plageNom = PlageTexte(debut = 0, fin = 0),
         parametres = emptyList(),
         corps = emptyList(),
+        coupureBudget = false,
         ligneAnnotation = ligneAnnotation,
     )
 

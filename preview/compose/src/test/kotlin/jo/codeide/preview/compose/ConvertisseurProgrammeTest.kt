@@ -6,6 +6,7 @@ import jo.codeide.lsp.kotlin.api.ExpressionNonInterpreteeKotlin
 import jo.codeide.lsp.kotlin.api.GenreArgumentAppelKotlin
 import jo.codeide.lsp.kotlin.api.GenreInlineKotlin
 import jo.codeide.lsp.kotlin.api.PreviewKotlin
+import jo.codeide.lsp.kotlin.parse.kt.PlageTexte
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -19,17 +20,18 @@ import org.junit.Test
  */
 class ConvertisseurProgrammeTest {
     /** Une preview au corps composé des appels posés. */
-    private fun previewTexte(vararg appels: AppelFonctionKotlin) = PreviewKotlin(
+    private fun previewTexte(vararg appels: AppelFonctionKotlin, coupureBudget: Boolean = false) = PreviewKotlin(
         nom = "ApercuCarte",
         paquet = "com.exemple",
-        debutNom = 0,
-        finNom = 0,
+        plageNom = PlageTexte(debut = 0, fin = 0),
         parametres = emptyList(),
         corps = appels.toList(),
+        coupureBudget = coupureBudget,
+        ligneAnnotation = 0,
     )
 
-    private fun texte(chaine: String): AppelFonctionKotlin = AppelFonctionKotlin(
-        nom = "Text",
+    private fun texte(chaine: String, nom: String = "Text"): AppelFonctionKotlin = AppelFonctionKotlin(
+        nom = nom,
         recepteur = null,
         ligne = 7,
         arguments =
@@ -37,6 +39,7 @@ class ConvertisseurProgrammeTest {
             ArgumentAppelKotlin(nom = "text", genre = GenreArgumentAppelKotlin.LITTERAL, texte = chaine),
         ),
         contenu = emptyList(),
+        genreInline = GenreInlineKotlin.AUCUN,
     )
 
     @Test
@@ -74,6 +77,7 @@ class ConvertisseurProgrammeTest {
                     ligne = 7,
                     arguments = emptyList(),
                     contenu = emptyList(),
+                    genreInline = GenreInlineKotlin.AUCUN,
                 ),
                 AppelFonctionKotlin(
                     nom = "LinearProgressIndicator",
@@ -81,6 +85,7 @@ class ConvertisseurProgrammeTest {
                     ligne = 8,
                     arguments = emptyList(),
                     contenu = emptyList(),
+                    genreInline = GenreInlineKotlin.AUCUN,
                 ),
             ),
         )
@@ -100,6 +105,7 @@ class ConvertisseurProgrammeTest {
                 ligne = 10,
                 arguments = emptyList(),
                 contenu = listOf(texte("\"A\""), texte("\"B\"")),
+                genreInline = GenreInlineKotlin.AUCUN,
             )
         val (programme, erreurs) = ConvertisseurProgramme.convertir(previewTexte(colonne))
         assertEquals(GenreNoeudCompose.COLONNE, programme.racine.single().genre)
@@ -115,7 +121,7 @@ class ConvertisseurProgrammeTest {
     @Test
     fun `composable inconnu - pastille typée COMPOSABLE_INCONNU`() {
         val (programme, erreurs) =
-            ConvertisseurProgramme.convertir(previewTexte(texte("\"A\"").copy(nom = "CartePersonnalisee")))
+            ConvertisseurProgramme.convertir(previewTexte(texte("\"A\"", nom = "CartePersonnalisee")))
         assertEquals(GenreNoeudCompose.INCONNU, programme.racine.single().genre)
         assertEquals(1, erreurs.size)
         assertEquals(GenreErreurCompose.COMPOSABLE_INCONNU, erreurs.single().genre)
@@ -163,10 +169,11 @@ class ConvertisseurProgrammeTest {
             PreviewKotlin(
                 nom = "ApercuListe",
                 paquet = null,
-                debutNom = 0,
-                finNom = 0,
+                plageNom = PlageTexte(debut = 0, fin = 0),
                 parametres = emptyList(),
                 corps = listOf(ExpressionNonInterpreteeKotlin(texte = "val x = 1 + 2", ligne = 3)),
+                coupureBudget = false,
+                ligneAnnotation = 0,
             )
         val (programme, erreurs) = ConvertisseurProgramme.convertir(preview)
         assertEquals(GenreNoeudCompose.ERREUR_EXPRESSION, programme.racine.single().genre)
@@ -192,6 +199,7 @@ class ConvertisseurProgrammeTest {
                     ArgumentAppelKotlin(nom = "visible", genre = GenreArgumentAppelKotlin.LITTERAL, texte = "true"),
                 ),
                 contenu = emptyList(),
+                genreInline = GenreInlineKotlin.AUCUN,
             )
         val (programme, erreurs) = ConvertisseurProgramme.convertir(previewTexte(espace))
         val arguments = programme.racine.single().arguments
@@ -225,6 +233,7 @@ class ConvertisseurProgrammeTest {
                     ),
                 ),
                 contenu = emptyList(),
+                genreInline = GenreInlineKotlin.AUCUN,
             )
         val (programme, erreurs) = ConvertisseurProgramme.convertir(previewTexte(bouton))
         assertEquals(
@@ -250,7 +259,7 @@ class ConvertisseurProgrammeTest {
 
     @Test
     fun `coupure amont du LSP - propagée`() {
-        val preview = previewTexte(texte("\"A\"")).copy(coupureBudget = true)
+        val preview = previewTexte(texte("\"A\""), coupureBudget = true)
         val (programme, erreurs) = ConvertisseurProgramme.convertir(preview)
         assertTrue(programme.coupureBudget)
         assertTrue(erreurs.any { it.genre == GenreErreurCompose.BUDGET_INTERPRETATION })
@@ -283,6 +292,7 @@ class ConvertisseurProgrammeTest {
                 ),
             ),
             contenu = emptyList(),
+            genreInline = GenreInlineKotlin.AUCUN,
         )
 
     @Test
