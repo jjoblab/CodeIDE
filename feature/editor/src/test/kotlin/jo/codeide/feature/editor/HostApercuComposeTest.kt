@@ -10,13 +10,13 @@ import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.testing.TestDispatcherProvider
+import jo.codeide.lsp.kotlin.api.PreviewKotlin
 import jo.codeide.preview.compose.EtatPreviewCompose
 import jo.codeide.preview.compose.EvenementTactileCompose
 import jo.codeide.preview.compose.GenreNoeudCompose
 import jo.codeide.preview.compose.InfoNoeudCompose
 import jo.codeide.preview.compose.MetriquesRenduCompose
 import jo.codeide.preview.compose.RenduPreviewCompose
-import jo.lspkotlin.api.PreviewKotlin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

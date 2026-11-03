@@ -104,6 +104,7 @@ dependencyResolutionManagement {
                 includeGroup("com.github.jjoblab.codeide-tooling")
                 includeGroup("com.github.jjoblab.codeide-lsp")
                 includeGroup("jo.codeide.lsp.java")
+                includeGroup("jo.codeide.lsp.kotlin")
             }
         }
         if (jetonPackages != null) {
@@ -140,7 +141,10 @@ dependencyResolutionManagement {
             // (docs/BASCULE-CODEIDE.md §3.2.2 du dépôt code-lsp).
             maven {
                 url = uri("https://maven.pkg.github.com/jjoblab/code-lsp")
-                content { includeGroup("jo.codeide.lsp.java") }
+                content {
+                    includeGroup("jo.codeide.lsp.java")
+                    includeGroup("jo.codeide.lsp.kotlin")
+                }
                 credentials {
                     username = "jjoblab"
                     password = jetonPackages

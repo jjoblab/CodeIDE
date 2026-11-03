@@ -1206,7 +1206,7 @@ constructor(
                     val sessionKotlin = sessionLspKotlinInterne.value
                     val modele = session.modele.value
                     if (sessionKotlin != null && modele != null) {
-                        sessionKotlin.appliquerModele(modele, session.vueClasspathKotlin())
+                        sessionKotlin.appliquerModele(modele)
                     }
                 }
             }
@@ -2123,7 +2123,7 @@ constructor(
         // v0.178.0 (ADR 0145) : fenêtres Kotlin/XML visibles.
         fenetrerNourrissage(fenetreIndexationKotlinInterne) {
             withContext(dispatcheurs.io) {
-                sessionLspKotlinInterne.value?.appliquerClasspath(brut, session.vueClasspathKotlin())
+                sessionLspKotlinInterne.value?.appliquerClasspath(brut)
             }
         }
         // XE1 : la même cascade côté XML — la vue de NOMS vit
@@ -2162,7 +2162,7 @@ constructor(
         // VISIBLE même en régime projet seul (miroir des cascades).
         fenetrerNourrissage(fenetreIndexationKotlinInterne) {
             withContext(dispatcheurs.io) {
-                sessionKotlin.appliquerClasspath(brut, vue = null)
+                sessionKotlin.appliquerClasspath(brut)
             }
         }
         journal.i(TAG) {
@@ -2189,7 +2189,7 @@ constructor(
         // v0.178.0 (ADR 0145) : fenêtre Kotlin visible (miroir).
         fenetrerNourrissage(fenetreIndexationKotlinInterne) {
             withContext(dispatcheurs.io) {
-                sessionKotlin.appliquerModele(persiste.projet, vue = null)
+                sessionKotlin.appliquerModele(persiste.projet)
             }
         }
         journal.i(TAG) {

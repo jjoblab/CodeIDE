@@ -4,10 +4,10 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.test.core.app.ApplicationProvider
 import jo.codeide.core.testing.TestDispatcherProvider
-import jo.lspkotlin.api.AppelFonctionKotlin
-import jo.lspkotlin.api.ArgumentAppelKotlin
-import jo.lspkotlin.api.GenreArgumentAppelKotlin
-import jo.lspkotlin.api.PreviewKotlin
+import jo.codeide.lsp.kotlin.api.AppelFonctionKotlin
+import jo.codeide.lsp.kotlin.api.ArgumentAppelKotlin
+import jo.codeide.lsp.kotlin.api.GenreArgumentAppelKotlin
+import jo.codeide.lsp.kotlin.api.PreviewKotlin
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher

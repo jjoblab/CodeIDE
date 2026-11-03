@@ -1,12 +1,12 @@
 package jo.codeide.preview.compose
 
-import jo.lspkotlin.api.AppelFonctionKotlin
-import jo.lspkotlin.api.ArgumentAppelKotlin
-import jo.lspkotlin.api.ExpressionNonInterpreteeKotlin
-import jo.lspkotlin.api.GenreArgumentAppelKotlin
-import jo.lspkotlin.api.GenreInlineKotlin
-import jo.lspkotlin.api.NoeudAppelKotlin
-import jo.lspkotlin.api.PreviewKotlin
+import jo.codeide.lsp.kotlin.api.AppelFonctionKotlin
+import jo.codeide.lsp.kotlin.api.ArgumentAppelKotlin
+import jo.codeide.lsp.kotlin.api.ExpressionNonInterpreteeKotlin
+import jo.codeide.lsp.kotlin.api.GenreArgumentAppelKotlin
+import jo.codeide.lsp.kotlin.api.GenreInlineKotlin
+import jo.codeide.lsp.kotlin.api.NoeudAppelKotlin
+import jo.codeide.lsp.kotlin.api.PreviewKotlin
 
 /**
  * Conversion de l'arbre d'appels NEUTRE du LSP Kotlin en PROGRAMME

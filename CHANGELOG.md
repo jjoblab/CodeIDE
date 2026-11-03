@@ -1,5 +1,57 @@
 # Journal des modifications
 
+## [0.206.0] – 2026-11-03
+
+### Bascule Kotlin ADR 0136 : le moteur Kotlin RÉÉCRIT entre en service + montées codeide-lsp 1.25.0 / moteurs 1.13.0
+
+**Le LSP Kotlin servi par CodeIDE change de moteur** : le pack langue
+Kotlin réécrit de [`jjoblab/code-lsp`](https://github.com/jjoblab/code-lsp)
+(`jo.codeide.lsp.kotlin:jo-codeide-lsp-kotlin:1.13.0`, première
+publication — Q-K4 tranché le 03/11/2026, miroir du mécanisme Java)
+remplace le moteur vendored de `codeide-lsp` (gelé, plus consommé par
+l'hôte). L'hôte `:lsp:host` 1.25.0 sert désormais le
+`ServeurLangageKotlin` du pack (serveur LSP4J in-process, 19 capacités
+annoncées et servies, 7 absentes honnêtes, serverInfo `lspkotlin` à la
+version réelle du descripteur D6) ; les sessions naissent du SPI du pack
+et le classpath est confié au moteur par le guichet ADR 0211 (une fois
+par synchronisation).
+
+Chaîne : code-lsp v1.13.0 (moteur Java V-H « répartiteur au protocole »
++ pack Kotlin publié dans le MÊME run) → codeide-lsp 1.25.0 (le chaînon
+Kotlin franchi : 121 tests hôte verts, KH1–KH4 au transport stdio réel,
+deltas assumés consignés à son CHANGELOG) → CodeIDE 0.206.0.
+
+Adaptations CodeIDE :
+- Catalogue : `codeide-lsp = "1.25.0"`, pin miroir
+  `codeide-lsp-java = "1.13.0"`, pin pack `codeide-lsp-kotlin = "1.13.0"`
+  (l'entrée `lsp-kotlin` du preview Compose pointe le pack — le modèle
+  neutre `PreviewKotlin`/arbre d'appels y vit, contrat inchangé) ;
+- Rails `settings.gradle.kts` : mavenLocal filtré + GitHub Packages
+  `jjoblab/code-lsp` étendus au groupe `jo.codeide.lsp.kotlin` ;
+- `EditorViewModel` : `appliquerClasspath(brut)` sans la vue d'index
+  fusion (le pack décode ses propres jars — la couture
+  `vueClasspathKotlin` est retirée côté hôte 1.25.0) ;
+- `HostApercuCompose` / `preview:compose` : le modèle neutre du pack
+  (imports `jo.codeide.lsp.kotlin.api.*`).
+
+Deltas VISIBLES assumés (ADR 0136 étape B — les capacités reviennent au
+fil des vagues, chaque vague mesurée au gabarit 07) :
+- l'entrée « Go to Super » côté Kotlin disparaît (extension propre
+  Java, non annoncée par le pack) ;
+- pas de progression fine d'indexation Kotlin (fenêtre honnête :
+  l'écran multi-moteurs sous-rapporte ; annulation/reprise inopérantes
+  côté Kotlin — no-ops honnêtes) ;
+- pas de republication spontanée des diagnostics sur modifications
+  externes de fichiers (le scan se rafraîchit, la republication part à
+  l'édition suivante) ;
+- `isIncomplete=false` sur les complétions Kotlin (l'ancien posait
+  `true` permanent).
+
+Retour arrière : catalogue codeide-lsp = "1.24.2" + pins miroirs
+codeide-lsp-java = "1.12.2" / lsp-kotlin = com.github.jjoblab.codeide-
+lsp:kotlin:1.24.2 (l'ancien module reste PUBLIÉ — packs coexistants,
+ADR 0118).
+
 ## [0.205.2] – 2026-11-02
 
 ### Montées codeide-lsp 1.24.2 + pin moteur 1.12.2 — complément V-A2 : le repli lexical Kotlin n'invente plus de classes finales
