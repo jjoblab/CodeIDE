@@ -3,7 +3,7 @@ package jo.codeide.preview.compose
 import android.content.Context
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
-import jo.lspkotlin.api.PreviewKotlin
+import jo.codeide.lsp.kotlin.api.PreviewKotlin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow

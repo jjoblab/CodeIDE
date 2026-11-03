@@ -11,12 +11,12 @@ import jo.codeeditor.view.EditorView
 import jo.codeeditor.view.preview.EditorPreviewHost
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.lsp.host.SessionLspKotlin
+import jo.codeide.lsp.kotlin.api.PreviewKotlin
 import jo.codeide.preview.compose.EtatPreviewCompose
 import jo.codeide.preview.compose.EvenementTactileCompose
 import jo.codeide.preview.compose.MoteurPreviewCompose
 import jo.codeide.preview.compose.RenduPreviewCompose
 import jo.codeide.preview.compose.RequeteRenduCompose
-import jo.lspkotlin.api.PreviewKotlin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged

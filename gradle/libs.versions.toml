@@ -442,7 +442,7 @@ codeide-tooling = "1.0.0"
 # x-codeide.usages à consommer ; opportunités semanticTokens /
 # usagesGroupes / kinds source|refactor). Publication v1.24.0 du
 # frère vérifiée sur le registre (maven-metadata host).
-codeide-lsp = "1.24.2"
+codeide-lsp = "1.25.0"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -530,7 +530,15 @@ codeide-lsp = "1.24.2"
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.12.2"
+codeide-lsp-java = "1.13.0"
+
+# Moteur Kotlin LSP RÉÉCRIT — pack langue (bascule ADR 0136 du
+# 03/11/2026, Q-K4 : miroir :java, façade unique). PREMIÈRE PUBLICATION
+# du pack (tag v1.13.0 côté code-lsp, MÊME run que le moteur Java).
+# PIN MIROIR du catalogue du frère codeide-lsp — le preview Compose
+# consomme le modèle neutre (PreviewKotlin + arbre d'appels) par cette
+# coordonnée.
+codeide-lsp-kotlin = "1.13.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
@@ -665,7 +673,10 @@ tooling-api = { group = "com.github.jjoblab.codeide-tooling", name = "api", vers
 tooling-server = { group = "com.github.jjoblab.codeide-tooling", name = "server", version.ref = "codeide-tooling" }
 tooling-testing = { group = "com.github.jjoblab.codeide-tooling", name = "testing", version.ref = "codeide-tooling" }
 lsp-host = { group = "com.github.jjoblab.codeide-lsp", name = "host", version.ref = "codeide-lsp" }
-lsp-kotlin = { group = "com.github.jjoblab.codeide-lsp", name = "kotlin", version.ref = "codeide-lsp" }
+# Bascule ADR 0136 (03/11/2026) : le module vendored kotlin de codeide-lsp
+# est GELÉ (plus consommé par :host) — le modèle neutre du preview vit
+# dans le PACK LANGUE du dépôt code-lsp.
+lsp-kotlin = { group = "jo.codeide.lsp.kotlin", name = "jo-codeide-lsp-kotlin", version.ref = "codeide-lsp-kotlin" }
 # Bascule §8.5 (30/10/2026) — moteur Java réécrit + compagnon ecj
 # (runtime compileOnly : « l'hôte fournit le jar »). RAILS : consommateur
 # à venir = l'hôte LSP (adaptation façade neuve, cf. section versions).
