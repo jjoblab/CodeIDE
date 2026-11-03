@@ -7,7 +7,9 @@ import jo.codeide.core.testing.TestDispatcherProvider
 import jo.codeide.lsp.kotlin.api.AppelFonctionKotlin
 import jo.codeide.lsp.kotlin.api.ArgumentAppelKotlin
 import jo.codeide.lsp.kotlin.api.GenreArgumentAppelKotlin
+import jo.codeide.lsp.kotlin.api.GenreInlineKotlin
 import jo.codeide.lsp.kotlin.api.PreviewKotlin
+import jo.codeide.lsp.kotlin.parse.kt.PlageTexte
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -73,11 +75,10 @@ class MoteurPreviewComposeTest {
         override fun close() = Unit
     }
 
-    private fun previewTexte(nom: String, chaine: String): PreviewKotlin = PreviewKotlin(
+    private fun previewTexte(nom: String, chaine: String, ligneAnnotation: Int = 0): PreviewKotlin = PreviewKotlin(
         nom = nom,
         paquet = "com.exemple",
-        debutNom = 0,
-        finNom = 0,
+        plageNom = PlageTexte(debut = 0, fin = 0),
         parametres = emptyList(),
         corps =
         listOf(
@@ -94,8 +95,11 @@ class MoteurPreviewComposeTest {
                     ),
                 ),
                 contenu = emptyList(),
+                genreInline = GenreInlineKotlin.AUCUN,
             ),
         ),
+        coupureBudget = false,
+        ligneAnnotation = ligneAnnotation,
     )
 
     @Test
@@ -128,8 +132,8 @@ class MoteurPreviewComposeTest {
         val moteur = moteur(dispatcher, transport)
         moteur.brancher("file:///a.kt") {
             listOf(
-                previewTexte("ApercuUn", "Un").copy(ligneAnnotation = 4),
-                previewTexte("ApercuDeux", "Deux").copy(ligneAnnotation = 9),
+                previewTexte("ApercuUn", "Un", ligneAnnotation = 4),
+                previewTexte("ApercuDeux", "Deux", ligneAnnotation = 9),
             )
         }
         advanceUntilIdle()
