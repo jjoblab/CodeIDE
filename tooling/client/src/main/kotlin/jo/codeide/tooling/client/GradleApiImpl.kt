@@ -195,6 +195,20 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
         ConcurrentHashMap<String, AccumulateurLatence>()
 
     /**
+     * Latence TRANSPORT des sorties de SYNC, par projet (INC-44, Phase 1
+     * — la sync n'avait NI ligne de durée NI latence, angle mort n°4 du
+     * prompt) : même accumulateur que [latencesTransport], appliqué aux
+     * `SyncOutput` — l'écart entre l'émission côté orchestrateur
+     * (`SyncOutput.timestampMs`) et la réception ICI. Le résumé part au
+     * terme de la sync (terminal du flux), lu avec celui de la
+     * PUBLICATION (GradleService) : la sync de 194 s du journal du
+     * propriétaire pourra enfin dire OÙ son retard s'est formé.
+     * Nettoyé à la fin de la sync (et à la fermeture de session).
+     */
+    private val latencesSyncTransport =
+        ConcurrentHashMap<String, AccumulateurLatence>()
+
+    /**
      * Flux de synchronisation COMPLET et ORDONNÉ — canal borné, envoi
      * suspendant (v0.48.0, ADR 0079 ; il fut le canal des seules étapes
      * en v3) : [EvenementSyncFlux.Debut], [EvenementSyncFlux.Ligne] au
@@ -456,6 +470,10 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
         tachesParBuild.values.forEach { canal -> runCatching { canal.close() } }
         tachesParBuild.clear()
         etats.clear()
+        // INC-44 : les accumulateurs de latence de sync d'une session morte
+        // ne fuient pas vers la suivante (une sync conclue par la rupture
+        // n'a pas de résumé — son flux est déjà conclu en échec local).
+        latencesSyncTransport.clear()
     }
 
     /**
@@ -519,6 +537,25 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
     }
 
     /**
+     * Résumé de latence TRANSPORT de la sync conclue (INC-44, Phase 1) —
+     * le miroir exact du résumé des builds ([pomperFin]) : mêmes
+     * accumulateurs, même étiquette `ConsoleLatence`, lu avec le résumé de
+     * PUBLICATION de GradleService pour isoler la moitié cliente. Une sync
+     * sans AUCUNE ligne de sortie ne journalise rien (rien mesuré, rien
+     * inventé — interdit n°1) ; un `PartialSyncResult` ne porte pas de
+     * durée serveur : le résumé dit juste « sans durée ».
+     */
+    private fun conclureLatenceSync(projectDir: String, dureeMs: Long?) {
+        latencesSyncTransport.remove(projectDir)?.let { latence ->
+            journal.i(TAG_LATENCE) {
+                val dureeTexte = dureeMs?.let { ", sync $it ms" } ?: ""
+                "sorties de la sync $projectDir reçues : ${latence.description()} " +
+                    "(émission orchestrateur → réception client$dureeTexte)"
+            }
+        }
+    }
+
+    /**
      * Routage des événements de synchronisation (étape 32, ADR 0057 ;
      * v0.48.0, ADR 0079 : suspendu — chaque événement traverse le canal
      * ORDONNÉ avant de toucher à la promesse) : le départ annoncé PAR le
@@ -543,6 +580,7 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
                 // SyncResult tardif (délai d'inactivité dépassé côté
                 // client puis serveur conclut quand même) conclut
                 // aussi : chronologie honnête, le dernier verdict gagne.
+                conclureLatenceSync(evenement.projectDir, evenement.durationMs)
                 flusSync.send(EvenementSyncFlux.Terminal(AppResult.Success(evenement.versResultatDomaine())))
                 promesses.remove(evenement.id)?.complete(evenement)
             }
@@ -550,6 +588,7 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
             is PartialSyncResult -> {
                 syncsEnVol.remove(evenement.id)
                 sync.value = EtatSyncTooling(enCours = false, projectDir = evenement.projectDir)
+                conclureLatenceSync(evenement.projectDir, dureeMs = null)
                 flusSync.send(EvenementSyncFlux.Terminal(AppResult.Success(evenement.versResultatDomaine())))
                 promesses.remove(evenement.id)?.complete(evenement)
             }
@@ -728,11 +767,20 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
             // v4 (§3.1) : tout événement de sync est un signe de vie,
             // mesuré à la RÉCEPTION — le délai d'inactivité ne peut
             // plus mourir derrière une console sync lente.
+            // INC-44 (Phase 1) : une LIGNE de sync porte SA latence de
+            // transport, comme les builds — l'angle mort n°4 se referme.
+            is SyncOutput -> {
+                derniereActiviteSyncMs.set(System.currentTimeMillis())
+                latencesSyncTransport
+                    .computeIfAbsent(evenement.projectDir) { AccumulateurLatence() }
+                    .enregistrer(System.currentTimeMillis() - evenement.timestampMs)
+                deposer(voieSync, profondeurSync, "sync", evenement)
+            }
+
             is SyncStarted,
             is SyncResult,
             is PartialSyncResult,
             is SyncProgress,
-            is SyncOutput,
             -> {
                 derniereActiviteSyncMs.set(System.currentTimeMillis())
                 deposer(voieSync, profondeurSync, "sync", evenement)
@@ -1421,10 +1469,27 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
         // lire avec le résumé de PUBLICATION de GradleService : la
         // difference entre les deux maxima mesure la moitié cliente
         // (canaux, pompe, zone texte).
-        latencesTransport.remove(evenement.buildId)?.let { latence ->
+        // Phase 1 (ADR 0152) : le résumé T3 détaillé du fil lecteur
+        // (lecture/décodage/routage par frame) est PRIS dans la foulée —
+        // les trois phases internes du fil complètent la latence
+        // d'arrivée ; absent si la session n'a pas de sonde ou si
+        // aucune frame n'a été traitée depuis le dernier résumé.
+        val resumeTransport = latencesTransport.remove(evenement.buildId)?.description()
+        val resumeLecteur = session?.sondeLecture?.prendreResume()
+        if (resumeTransport != null || resumeLecteur != null) {
             journal.i(TAG_LATENCE) {
-                "sorties du build ${evenement.buildId} reçues : ${latence.description()} " +
-                    "(émission orchestrateur → réception client, build ${evenement.durationMs} ms)"
+                buildString {
+                    if (resumeTransport != null) {
+                        append(
+                            "sorties du build ${evenement.buildId} reçues : $resumeTransport " +
+                                "(émission orchestrateur → réception client, build ${evenement.durationMs} ms)",
+                        )
+                    }
+                    if (resumeLecteur != null) {
+                        if (isNotEmpty()) append(" ; ")
+                        append(resumeLecteur)
+                    }
+                }
             }
         }
         etat(evenement.buildId).value =
