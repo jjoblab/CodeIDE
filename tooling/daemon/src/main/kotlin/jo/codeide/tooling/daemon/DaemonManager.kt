@@ -384,13 +384,39 @@ internal constructor(
     private fun brancherSorties(process: ManagedProcess, portee: CoroutineScope): List<Job> = listOf(
         process
             .stderrLines()
-            .onEach { ligne -> journal.w(TAG_PROCESSUS) { ligne } }
+            .onEach { ligne -> journaliserLigneServeur(ligne) }
             .launchIn(portee),
         process
             .stdoutLines()
             .onEach { ligne -> journal.i(TAG_PROCESSUS) { ligne } }
             .launchIn(portee),
     )
+
+    /**
+     * Journalise une ligne du serveur à SON niveau (INC-40, volet C du
+     * prompt « retard d'affichage des sorties de build » §6.5) : le
+     * [Journal] du serveur préfixe chaque ligne de stderr de
+     * « [gradle-server] [NIVEAU] » — l'ancien code envoyait TOUT en
+     * `WARN` : l'export de logs et l'écran Diagnostic croulaient
+     * d'avertissements factices (« [gradle-server] [INFO] handshake
+     * accepté » au niveau WARN) et les VRAIS avertissements ne se
+     * distinguaient plus. Le préfixe redondant est retiré, une trace
+     * JVM sans préfixe part en ERROR, une ligne nue en INFO.
+     */
+    private fun journaliserLigneServeur(ligne: String) {
+        // INC-41 : les trois avertissements « SLF4J(W): No SLF4J
+        // providers were found / NOP logger » du shadowJar sans
+        // fournisseur polluent chaque connexion — filtrés à la source
+        // (la décision documentée « fournisseur no-op explicite » reste
+        // possible côté serveur, voir docs/PLAN-AMELIORATIONS.md).
+        val analysee = analyserLigneServeur(ligne) ?: return
+        when (analysee.niveau) {
+            NiveauLigneServeur.ERREUR -> journal.e(TAG_PROCESSUS) { analysee.message }
+            NiveauLigneServeur.AVERTISSEMENT -> journal.w(TAG_PROCESSUS) { analysee.message }
+            NiveauLigneServeur.INFO -> journal.i(TAG_PROCESSUS) { analysee.message }
+            NiveauLigneServeur.DEBUG -> journal.d(TAG_PROCESSUS) { analysee.message }
+        }
+    }
 
     /**
      * Nettoyage d'une tentative sans connexion établie : tue le process,
