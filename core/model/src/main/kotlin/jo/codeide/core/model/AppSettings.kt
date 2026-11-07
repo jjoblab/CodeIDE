@@ -112,6 +112,31 @@ public data class AppSettings(
      *  projets (mission « Exécuter » R2, ADR 0103) — par défaut ACTIVE ;
      *  les journaux des apps exécutées arrivent dans l'onglet Logcat. */
     public val injectionAppLog: Boolean = true,
+    /** Instrumentation de latence du transport (Phase 1 du diagnostic
+     *  « retard d'affichage », ADR 0152) : arme la sonde du fil lecteur
+     *  (T3 détaillé), la mesure de la vue (T5/T6) et passe
+     *  `--instru-transport` au serveur de build au prochain démarrage —
+     *  la sortie rejoint le journal applicatif (exportable depuis
+     *  l'écran Diagnostic), aucun changement de comportement visible. */
+    public val instrumentationTransport: Boolean = false,
+    /** Banc « socket seul » (Phase 1, §3.1b) : au prochain démarrage, le
+     *  serveur de build émet la séquence du banc SANS Gradle — les quatre
+     *  paramètres suivants voyagent par drapeaux de ligne de commande
+     *  (`--banc-socket-seul`, `--banc-lignes`, `--banc-cadence-ms`,
+     *  `--banc-longueur-ligne`, `--banc-contenu`), chacun lu et honoré
+     *  par le serveur. Réglage de DIAGNOSTIC : coupé par défaut. */
+    public val bancSocketSeul: Boolean = false,
+    /** Lignes émises par le banc (défaut 60 — le profil du journal du
+     *  propriétaire ; X9 : 10 000 / 50 000 / 200 000). */
+    public val bancLignes: Int = 60,
+    /** Cadence d'émission du banc en ms (0 = rafale ; 50 ≈ 20 lignes/s ;
+     *  200 ≈ 5 lignes/s). */
+    public val bancCadenceMs: Int = 0,
+    /** Longueur des lignes émises par le banc (40 / 200 / 2000). */
+    public val bancLongueurLigne: Int = 80,
+    /** Contenu des lignes du banc : `plain`, `ansi`, `utf8` ou `multi`
+     *  (traces d'exception multi-lignes) — repli `plain` à la lecture. */
+    public val bancContenu: String = "plain",
     /** Rétention de l'historique local en jours calendaires (mission
      *  « Historique local » H6, ADR 0105) — lue à CHAQUE purge
      *  d'entretien (ouverture du projet) : un changement s'applique à

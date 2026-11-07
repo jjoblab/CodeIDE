@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
@@ -150,6 +151,15 @@ public class SettingsDataStore(private val dataStore: DataStore<Preferences>, pr
             stringPreferencesKey("tooling_extra_args")
         internal val INJECTION_APPLOG: Preferences.Key<Boolean> =
             booleanPreferencesKey("tooling_applog_injection")
+        internal val INSTRUMENTATION_TRANSPORT: Preferences.Key<Boolean> =
+            booleanPreferencesKey("tooling_transport_instrumentation")
+        internal val BANC_SOCKET_SEUL: Preferences.Key<Boolean> =
+            booleanPreferencesKey("tooling_banc_socket_seul")
+        internal val BANC_LIGNES: Preferences.Key<Int> = intPreferencesKey("tooling_banc_lignes")
+        internal val BANC_CADENCE_MS: Preferences.Key<Int> = intPreferencesKey("tooling_banc_cadence_ms")
+        internal val BANC_LONGUEUR_LIGNE: Preferences.Key<Int> =
+            intPreferencesKey("tooling_banc_longueur_ligne")
+        internal val BANC_CONTENU: Preferences.Key<String> = stringPreferencesKey("tooling_banc_contenu")
         internal val RETENTION_HISTORIQUE: Preferences.Key<String> =
             stringPreferencesKey("local_history_retention_days")
         internal val ASSISTANT_TERMINE: Preferences.Key<Boolean> = booleanPreferencesKey("setup_completed")
@@ -183,69 +193,111 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings = toB
  * [defaults] (les réglages de l'aperçu XML sont appliqués ensuite par
  * [toAppSettings] via [AppSettings.copy]).
  *
- * Exemption detekt ciblée (règle 16 du prompt maître) :
- * CyclomaticComplexMethod — une branche par champ persisté (25 réglages,
- * ADR 0059 + PE7c), chacune retombant sur son défaut : c'est une projection
- * plate, l'éclater en sous-fonctions déplacerait le problème sans rien
- * clarifier.
+ * Exemptions detekt ciblées (règle 16 du prompt maître) :
+ * CyclomaticComplexMethod et LongMethod — une branche par champ persisté
+ * (31 réglages, ADR 0059 + PE7c + Phase 1/ADR 0152), chacune retombant sur
+ * son défaut : c'est une projection plate, l'éclater en sous-fonctions
+ * déplacerait le problème sans rien clarifier (les paramètres du banc,
+ * extraits, restent la SEULE famille à bornes de lecture).
  */
-@Suppress("CyclomaticComplexMethod")
-private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings = AppSettings(
-    themeMode =
-    ThemeMode.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.MODE_THEME] }
-        ?: defaults.themeMode,
-    useDynamicColor = this[SettingsDataStore.Cles.COULEURS_DYNAMIQUES] ?: defaults.useDynamicColor,
-    paletteCouleur =
-    PaletteCouleur.depuisNom(this[SettingsDataStore.Cles.PALETTE])
-        ?: defaults.paletteCouleur,
-    languageTag = this[SettingsDataStore.Cles.LANGUE] ?: defaults.languageTag,
-    notificationsSync = this[SettingsDataStore.Cles.NOTIFICATIONS_SYNC] ?: defaults.notificationsSync,
-    notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
-    sonNotifications = this[SettingsDataStore.Cles.SON_NOTIFICATIONS] ?: defaults.sonNotifications,
-    editorRetourLigne = this[SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE] ?: defaults.editorRetourLigne,
-    editorThemeEditeur =
-    ThemeEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_THEME])
-        ?: defaults.editorThemeEditeur,
-    editorMinimap = this[SettingsDataStore.Cles.EDITEUR_MINIMAP] ?: defaults.editorMinimap,
-    editorCaracteresNonImprimables =
-    this[SettingsDataStore.Cles.EDITEUR_CARACTERES_NON_IMPRIMABLES]
-        ?: defaults.editorCaracteresNonImprimables,
-    editorLigatures = this[SettingsDataStore.Cles.EDITEUR_LIGATURES] ?: defaults.editorLigatures,
-    editorChipsDiagnostics =
-    this[SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC] ?: defaults.editorChipsDiagnostics,
-    editorSauvegardeAuto = this[SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO] ?: defaults.editorSauvegardeAuto,
-    editorTaillePolice =
-    TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
-        ?: defaults.editorTaillePolice,
-    editorTailleTabulation =
-    TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION])
-        ?: defaults.editorTailleTabulation,
-    styleCurseurTerminal =
-    StyleCurseurTerminal.depuisNom(this[SettingsDataStore.Cles.STYLE_CURSEUR])
-        ?: defaults.styleCurseurTerminal,
-    copieSelectionAuto = this[SettingsDataStore.Cles.COPIE_SELECTION] ?: defaults.copieSelectionAuto,
-    workspace = emplacementTravail() ?: defaults.workspace,
-    authorName = this[SettingsDataStore.Cles.NOM_AUTEUR] ?: defaults.authorName,
-    defaultLicense =
-    this[SettingsDataStore.Cles.LICENCE]
-        ?.let(License.Companion::fromPersistedName)
-        ?: defaults.defaultLicense,
-    logLevel =
-    LogVerbosity.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.VERBOSITE] }
-        ?: defaults.logLevel,
-    taillePoliceTerminal =
-    TaillePoliceTerminal.depuisNom(this[SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL])
-        ?: defaults.taillePoliceTerminal,
-    toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
-    toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
-    toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
-    injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
-    retentionHistorique =
-    this[SettingsDataStore.Cles.RETENTION_HISTORIQUE]
-        ?.let(RetentionHistorique.Companion::fromPersistedName)
-        ?: defaults.retentionHistorique,
-    isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
+@Suppress("CyclomaticComplexMethod", "LongMethod")
+private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings {
+    val banc = parametresBanc(defaults)
+    return AppSettings(
+        themeMode =
+        ThemeMode.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.MODE_THEME] }
+            ?: defaults.themeMode,
+        useDynamicColor = this[SettingsDataStore.Cles.COULEURS_DYNAMIQUES] ?: defaults.useDynamicColor,
+        paletteCouleur =
+        PaletteCouleur.depuisNom(this[SettingsDataStore.Cles.PALETTE])
+            ?: defaults.paletteCouleur,
+        languageTag = this[SettingsDataStore.Cles.LANGUE] ?: defaults.languageTag,
+        notificationsSync = this[SettingsDataStore.Cles.NOTIFICATIONS_SYNC] ?: defaults.notificationsSync,
+        notificationsBuild = this[SettingsDataStore.Cles.NOTIFICATIONS_BUILD] ?: defaults.notificationsBuild,
+        sonNotifications = this[SettingsDataStore.Cles.SON_NOTIFICATIONS] ?: defaults.sonNotifications,
+        editorRetourLigne = this[SettingsDataStore.Cles.EDITEUR_RETOUR_LIGNE] ?: defaults.editorRetourLigne,
+        editorThemeEditeur =
+        ThemeEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_THEME])
+            ?: defaults.editorThemeEditeur,
+        editorMinimap = this[SettingsDataStore.Cles.EDITEUR_MINIMAP] ?: defaults.editorMinimap,
+        editorCaracteresNonImprimables =
+        this[SettingsDataStore.Cles.EDITEUR_CARACTERES_NON_IMPRIMABLES]
+            ?: defaults.editorCaracteresNonImprimables,
+        editorLigatures = this[SettingsDataStore.Cles.EDITEUR_LIGATURES] ?: defaults.editorLigatures,
+        editorChipsDiagnostics =
+        this[SettingsDataStore.Cles.EDITEUR_CHIPS_DIAGNOSTIC] ?: defaults.editorChipsDiagnostics,
+        editorSauvegardeAuto = this[SettingsDataStore.Cles.EDITEUR_SAUVEGARDE_AUTO] ?: defaults.editorSauvegardeAuto,
+        editorTaillePolice =
+        TaillePoliceEditeur.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_POLICE])
+            ?: defaults.editorTaillePolice,
+        editorTailleTabulation =
+        TailleTabulation.depuisNom(this[SettingsDataStore.Cles.EDITEUR_TAILLE_TABULATION])
+            ?: defaults.editorTailleTabulation,
+        styleCurseurTerminal =
+        StyleCurseurTerminal.depuisNom(this[SettingsDataStore.Cles.STYLE_CURSEUR])
+            ?: defaults.styleCurseurTerminal,
+        copieSelectionAuto = this[SettingsDataStore.Cles.COPIE_SELECTION] ?: defaults.copieSelectionAuto,
+        workspace = emplacementTravail() ?: defaults.workspace,
+        authorName = this[SettingsDataStore.Cles.NOM_AUTEUR] ?: defaults.authorName,
+        defaultLicense =
+        this[SettingsDataStore.Cles.LICENCE]
+            ?.let(License.Companion::fromPersistedName)
+            ?: defaults.defaultLicense,
+        logLevel =
+        LogVerbosity.entries.firstOrNull { it.name == this[SettingsDataStore.Cles.VERBOSITE] }
+            ?: defaults.logLevel,
+        taillePoliceTerminal =
+        TaillePoliceTerminal.depuisNom(this[SettingsDataStore.Cles.TAILLE_POLICE_TERMINAL])
+            ?: defaults.taillePoliceTerminal,
+        toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
+        toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
+        toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
+        injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
+        instrumentationTransport =
+        this[SettingsDataStore.Cles.INSTRUMENTATION_TRANSPORT] ?: defaults.instrumentationTransport,
+        bancSocketSeul = this[SettingsDataStore.Cles.BANC_SOCKET_SEUL] ?: defaults.bancSocketSeul,
+        bancLignes = banc.lignes,
+        bancCadenceMs = banc.cadenceMs,
+        bancLongueurLigne = banc.longueurLigne,
+        bancContenu = banc.contenu,
+        retentionHistorique =
+        this[SettingsDataStore.Cles.RETENTION_HISTORIQUE]
+            ?.let(RetentionHistorique.Companion::fromPersistedName)
+            ?: defaults.retentionHistorique,
+        isSetupCompleted = this[SettingsDataStore.Cles.ASSISTANT_TERMINE] ?: defaults.isSetupCompleted,
+    )
+}
+
+/**
+ * Paramètres du banc « socket seul » lus des préférences, BORNÉS (Phase 1,
+ * ADR 0152) : une valeur aberrante (édition externe du DataStore, migration)
+ * ne peut pas armer un banc déluge de 2^31 lignes ni une cadence négative —
+ * le ViewModel resserre à la saisie et le serveur valide aussi de son côté,
+ * la borne à la lecture est la troisième ligne de défense.
+ */
+private fun Preferences.parametresBanc(defaults: AppSettings): ParametresBancLus = ParametresBancLus(
+    lignes = (this[SettingsDataStore.Cles.BANC_LIGNES] ?: defaults.bancLignes).coerceIn(1, BANC_LIGNES_MAX),
+    cadenceMs = (this[SettingsDataStore.Cles.BANC_CADENCE_MS] ?: defaults.bancCadenceMs).coerceIn(
+        0,
+        BANC_CADENCE_MS_MAX,
+    ),
+    longueurLigne =
+    (this[SettingsDataStore.Cles.BANC_LONGUEUR_LIGNE] ?: defaults.bancLongueurLigne)
+        .coerceIn(1, BANC_LONGUEUR_LIGNE_MAX),
+    contenu = this[SettingsDataStore.Cles.BANC_CONTENU] ?: defaults.bancContenu,
 )
+
+/** Projection privée des paramètres du banc bornés (voir [parametresBanc]). */
+private data class ParametresBancLus(val lignes: Int, val cadenceMs: Int, val longueurLigne: Int, val contenu: String)
+
+/** Bornes de lecture des paramètres du banc (Phase 1, ADR 0152). */
+private const val BANC_LIGNES_MAX: Int = 200_000
+
+/** Cadence maximale du banc (60 s entre deux lignes — au-delà, le banc n'a plus de sens). */
+private const val BANC_CADENCE_MS_MAX: Int = 60_000
+
+/** Longueur maximale d'une ligne du banc (2000 caractères, taille maximale du prompt §3.1a). */
+private const val BANC_LONGUEUR_LIGNE_MAX: Int = 2_000
 
 /** Reconstitue l'emplacement du dossier de travail, ou `null` si incomplet. */
 private fun Preferences.emplacementTravail(): StorageLocation? {
@@ -289,6 +341,12 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.TOOLING_HORS_LIGNE, reglage.toolingHorsLigne)
     set(SettingsDataStore.Cles.TOOLING_ARGUMENTS, reglage.toolingArguments)
     set(SettingsDataStore.Cles.INJECTION_APPLOG, reglage.injectionAppLog)
+    set(SettingsDataStore.Cles.INSTRUMENTATION_TRANSPORT, reglage.instrumentationTransport)
+    set(SettingsDataStore.Cles.BANC_SOCKET_SEUL, reglage.bancSocketSeul)
+    set(SettingsDataStore.Cles.BANC_LIGNES, reglage.bancLignes)
+    set(SettingsDataStore.Cles.BANC_CADENCE_MS, reglage.bancCadenceMs)
+    set(SettingsDataStore.Cles.BANC_LONGUEUR_LIGNE, reglage.bancLongueurLigne)
+    set(SettingsDataStore.Cles.BANC_CONTENU, reglage.bancContenu)
     set(SettingsDataStore.Cles.RETENTION_HISTORIQUE, reglage.retentionHistorique.name)
     set(SettingsDataStore.Cles.ASSISTANT_TERMINE, reglage.isSetupCompleted)
     set(SettingsDataStore.Cles.APERCU_BULLE_FIXE, reglage.apercuBulleFixe)
