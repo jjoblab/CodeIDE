@@ -419,8 +419,18 @@ class PresentationToolingTest {
 
         val entete = PresentationTooling.etatEntete(etat)
 
+        // INC-16 : taille localisée (Formatter), compteur à pluriels,
+        // élément brut — plus de « Mo » ni « élément(s) » codés en dur.
         assertEquals(
-            TexteTooling.Brut("42 Mo · 3 élément(s) · kotlin-stdlib.jar"),
+            TexteTooling.Compose(
+                listOf(
+                    TexteTooling.Taille(44_040_192L),
+                    TexteTooling.Brut(" · "),
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_detail_elements, 3),
+                    TexteTooling.Brut(" · "),
+                    TexteTooling.Brut("kotlin-stdlib.jar"),
+                ),
+            ),
             entete.sousTitre,
         )
         assertEquals(R.string.editor_console_etape_dependances_modele, entete.libelleEtape)
@@ -553,7 +563,7 @@ class PresentationToolingTest {
         val entete = PresentationTooling.etatEntete(etat)
 
         assertEquals(
-            TexteTooling.Ressource(R.string.editor_tooling_entete_succes_taches, listOf("2")),
+            TexteTooling.Pluriel(R.plurals.editor_tooling_taches_disponibles, 2),
             entete.sousTitre,
         )
         assertEquals(1f, entete.progression)
@@ -585,9 +595,14 @@ class PresentationToolingTest {
                 ),
             )
         assertEquals(
-            TexteTooling.Ressource(
-                R.string.editor_tooling_entete_succes_detail_a_jour,
-                listOf("3", "1"),
+            TexteTooling.Compose(
+                listOf(
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_modules, 3),
+                    TexteTooling.Brut(" · "),
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_taches, 1),
+                    TexteTooling.Brut(" · "),
+                    TexteTooling.Ressource(R.string.editor_tooling_entete_succes_a_jour),
+                ),
             ),
             PresentationTooling.etatEntete(aJour).sousTitre,
         )
@@ -607,9 +622,14 @@ class PresentationToolingTest {
                 ),
             )
         assertEquals(
-            TexteTooling.Ressource(
-                R.string.editor_tooling_entete_succes_detail_classpaths,
-                listOf("3", "1"),
+            TexteTooling.Compose(
+                listOf(
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_modules, 3),
+                    TexteTooling.Brut(" · "),
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_taches, 1),
+                    TexteTooling.Brut(" · "),
+                    TexteTooling.Ressource(R.string.editor_tooling_entete_succes_classpaths),
+                ),
             ),
             PresentationTooling.etatEntete(froide).sousTitre,
         )

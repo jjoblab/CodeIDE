@@ -362,12 +362,26 @@
          detailed success "modules · tasks · …". -->
     <string name="editor_tooling_entete_sync_etape">Gradle synchronization · step %1$s/%2$s</string>
     <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
-    <string name="editor_tooling_entete_succes_taches">Tasks available: %1$s</string>
-    <!-- v0.39.x (CI lint PluralsCandidate): compact status line with TWO
-         quantities (like Android Studio's Build view), not a sentence —
-         same documented exemption as wizard_indicateur_etape. -->
-    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$s modules · %2$s tasks · no downloads</string>
-    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$s modules · %2$s tasks · classpaths ready</string>
+    <!-- INC-16 (volet C): real plurals — no more "1 modules · 1 tasks",
+         sizes go through Formatter.formatShortFileSize. -->
+    <string name="editor_tooling_entete_succes_a_jour">nothing to download</string>
+    <string name="editor_tooling_entete_succes_classpaths">classpaths ready</string>
+    <plurals name="editor_tooling_detail_elements">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <plurals name="editor_tooling_modules">
+        <item quantity="one">%d module</item>
+        <item quantity="other">%d modules</item>
+    </plurals>
+    <plurals name="editor_tooling_taches">
+        <item quantity="one">%d task</item>
+        <item quantity="other">%d tasks</item>
+    </plurals>
+    <plurals name="editor_tooling_taches_disponibles">
+        <item quantity="one">Task available: %d</item>
+        <item quantity="other">Tasks available: %d</item>
+    </plurals>
 
     <!-- Task lines of the console (v3 — one line per task, updated in
          place when it finishes, like Android Studio's Build view) and

@@ -22,6 +22,15 @@ internal sealed interface TexteTooling {
 
     /** Libellé composé : chaque partie résolue puis concaténée. */
     data class Compose(val parties: List<TexteTooling>) : TexteTooling
+
+    /** Taille de fichier localisée (INC-16) : résolue par
+     *  `Formatter.formatShortFileSize` — « 42 Mo » / « 42 MB » selon la
+     *  locale, plus d'unité codée en dur dans le présentateur. */
+    data class Taille(val octets: Long) : TexteTooling
+
+    /** Libellé à PLURIELS (INC-16) : « 1 élément » / « 3 éléments » selon
+     *  la quantité ET la locale — ressource `plurals`. */
+    data class Pluriel(val id: Int, val quantite: Int) : TexteTooling
 }
 
 /**
@@ -49,7 +58,19 @@ internal fun TexteTooling.resoudre(contexte: Context): String = when (this) {
     is TexteTooling.Compose -> {
         parties.joinToString(separator = "") { partie -> partie.resoudre(contexte) }
     }
+
+    is TexteTooling.Taille -> {
+        android.text.format.Formatter.formatShortFileSize(contexte, octets)
+    }
+
+    is TexteTooling.Pluriel -> {
+        contexte.resources.getQuantityString(id, quantite, quantite)
+    }
 }
+
+/** Séparateur des parties d'un détail composé (INC-16) — ponctuation
+ *  typographique, invariante par locale. */
+private const val SEPARATEUR_PARTIES = " · "
 
 /**
  * Statut VISUEL de l'en-tête tooling (v4, §3.3 ; INC-15 : ANNULE) : pilote
@@ -145,11 +166,13 @@ internal object DetailsEtapesSync {
         ?.takeIf { etat.synchronisationEnCours && !it.terminee }
         ?.let { LibellesEtapesSync.libelle(EtapeConsoleSync.dePhase(it.etape)) }
 
-    /** Sous-titre : détail brut de l'étape courante (« 42 Mo · 3 · artefact »). */
+    /** Sous-titre : détail de l'étape courante, LOCALISÉ (INC-16 —
+     *  « 42 Mo · 3 éléments · artefact » : la taille passe par
+     *  [TexteTooling.Taille], le compteur par [TexteTooling.Pluriel],
+     *  plus d'unité ni de pluriel codés en dur). */
     fun sousTitre(etat: EtatGradle): TexteTooling? = etat.etapeCourante
         ?.takeIf { etat.synchronisationEnCours && !it.terminee }
         ?.let(::detail)
-        ?.let { TexteTooling.Brut(it) }
 
     /** Progression déterminée : octets reçus / total quand les deux sont connus. */
     fun progression(etat: EtatGradle): Float? = etat.etapeCourante
@@ -158,20 +181,27 @@ internal object DetailsEtapesSync {
         ?.let { courante -> courante.octetsRecus.toFloat() / courante.octetsTotal!! }
         ?.coerceIn(0f, 1f)
 
-    /** Détail lisible d'une étape : octets reçus (Mo), compteur, élément. */
-    private fun detail(etape: EtapeSyncAffichee): String? {
-        val parties = mutableListOf<String>()
+    /** Détail lisible d'une étape (INC-16 : parties localisées) :
+     *  taille reçue, compteur, élément — `null` si rien à dire. */
+    private fun detail(etape: EtapeSyncAffichee): TexteTooling? {
+        val parties = mutableListOf<TexteTooling>()
         if (etape.octetsRecus > 0) {
-            parties += "${etape.octetsRecus / OCTETS_PAR_MO} Mo"
+            parties += TexteTooling.Taille(etape.octetsRecus)
         }
-        if (etape.compteur != null && etape.compteur > 0) {
-            parties += "${etape.compteur} élément(s)"
+        val compteur = etape.compteur
+        if (compteur != null && compteur > 0) {
+            parties += TexteTooling.Pluriel(R.plurals.editor_tooling_detail_elements, compteur)
         }
-        etape.element?.take(TAILLE_ELEMENT_MAX)?.let { element -> parties += element }
-        return if (parties.isEmpty()) null else parties.joinToString(" · ")
+        etape.element?.take(TAILLE_ELEMENT_MAX)?.let { element -> parties += TexteTooling.Brut(element) }
+        if (parties.isEmpty()) {
+            return null
+        }
+        return TexteTooling.Compose(
+            parties.flatMap { partie ->
+                listOf(TexteTooling.Brut(SEPARATEUR_PARTIES), partie)
+            }.drop(1),
+        )
     }
-
-    private const val OCTETS_PAR_MO = 1_024L * 1_024L
 
     private const val TAILLE_ELEMENT_MAX = 28
 }
@@ -324,8 +354,9 @@ internal object PresentationTooling {
         }
     }
 
-    /** Sous-titre de succès (v5, aperçu) : « modules · tâches · … » quand
-     *  le compte des modules est connu (compteur final de CLASSPATHS),
+    /** Sous-titre de succès (v5, aperçu ; INC-16 : PLURIELS — plus de
+     *  « 1 modules · 1 tâches ») : « modules · tâches · … » quand le
+     *  compte des modules est connu (compteur final de CLASSPATHS),
      *  sinon le compte des tâches seul — repli défensif, la sync réussie
      *  conclut toujours CLASSPATHS avec son compteur. */
     private fun sousTitreSucces(etat: EtatGradle, nbTaches: Int): TexteTooling {
@@ -335,17 +366,23 @@ internal object PresentationTooling {
                 ?.compteur
         return if (modules != null) {
             val sansTelechargement = etat.etapesAffichees.none { it.octetsRecus > 0 }
-            ressource(
-                if (sansTelechargement) {
-                    R.string.editor_tooling_entete_succes_detail_a_jour
-                } else {
-                    R.string.editor_tooling_entete_succes_detail_classpaths
-                },
-                "$modules",
-                "$nbTaches",
+            TexteTooling.Compose(
+                listOf(
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_modules, modules),
+                    TexteTooling.Brut(SEPARATEUR_PARTIES),
+                    TexteTooling.Pluriel(R.plurals.editor_tooling_taches, nbTaches),
+                    TexteTooling.Brut(SEPARATEUR_PARTIES),
+                    ressource(
+                        if (sansTelechargement) {
+                            R.string.editor_tooling_entete_succes_a_jour
+                        } else {
+                            R.string.editor_tooling_entete_succes_classpaths
+                        },
+                    ),
+                ),
             )
         } else {
-            ressource(R.string.editor_tooling_entete_succes_taches, "$nbTaches")
+            TexteTooling.Pluriel(R.plurals.editor_tooling_taches_disponibles, nbTaches)
         }
     }
 

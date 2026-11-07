@@ -146,9 +146,11 @@ class PresentationToolingLocalisationFrTest {
         )
         val libelleEtape = entete.libelleEtape?.let { contexte.getString(it) }
         assertEquals("Dépendances et modèle IDE", libelleEtape)
-        assertEquals("42 Mo · 3 élément(s)", entete.sousTitre?.resoudre(contexte))
+        // INC-16 : unités SI décimales (44 Mo), comme le reste d'Android
+        // (l'ancien calcul binaire codé en dur affichait « 42 Mo »).
+        assertEquals("44\u202fMo · 3 éléments", entete.sousTitre?.resoudre(contexte))
         assertEquals(
-            "Dépendances et modèle IDE — 42 Mo · 3 élément(s)",
+            "Dépendances et modèle IDE — 44\u202fMo · 3 éléments",
             libelleEtape?.let { libelle ->
                 entete.sousTitre?.let { detail ->
                     contexte.getString(
@@ -176,7 +178,7 @@ class PresentationToolingLocalisationFrTest {
                 ),
             )
 
-        assertEquals("Tâches disponibles : 1", entete.sousTitre?.resoudre(contexte))
+        assertEquals("Tâche disponible : 1", entete.sousTitre?.resoudre(contexte))
     }
 }
 
@@ -309,9 +311,9 @@ class PresentationToolingLocalisationEnTest {
         )
         val libelleEtape = entete.libelleEtape?.let { contexte.getString(it) }
         assertEquals("Dependencies and IDE model", libelleEtape)
-        assertEquals("42 Mo · 3 élément(s)", entete.sousTitre?.resoudre(contexte))
+        assertEquals("44 MB · 3 items", entete.sousTitre?.resoudre(contexte))
         assertEquals(
-            "Dependencies and IDE model — 42 Mo · 3 élément(s)",
+            "Dependencies and IDE model — 44 MB · 3 items",
             libelleEtape?.let { libelle ->
                 entete.sousTitre?.let { detail ->
                     contexte.getString(
@@ -339,6 +341,6 @@ class PresentationToolingLocalisationEnTest {
                 ),
             )
 
-        assertEquals("Tasks available: 1", entete.sousTitre?.resoudre(contexte))
+        assertEquals("Task available: 1", entete.sousTitre?.resoudre(contexte))
     }
 }

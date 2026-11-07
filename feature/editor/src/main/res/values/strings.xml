@@ -401,12 +401,31 @@
          détail ; succès détaillé « modules · tâches · … ». -->
     <string name="editor_tooling_entete_sync_etape">Synchronisation Gradle · étape %1$s/%2$s</string>
     <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
-    <string name="editor_tooling_entete_succes_taches">Tâches disponibles : %1$s</string>
-    <!-- v0.39.x (CI lint PluralsCandidate) : ligne d'état compacte à DEUX
-         quantités (comme la vue Build d'Android Studio), pas une phrase —
-         même exemption documentée que wizard_indicateur_etape. -->
-    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$s modules · %2$s tâches · aucun téléchargement</string>
-    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$s modules · %2$s tâches · classpaths prêts</string>
+    <!-- INC-16 (volet C) : pluriels réels — plus de « 1 modules ·
+         1 tâches » ni d'unité codée en dur ; la taille passe par
+         Formatter.formatShortFileSize (TexteTooling.Taille). -->
+    <string name="editor_tooling_entete_succes_a_jour">aucun téléchargement</string>
+    <string name="editor_tooling_entete_succes_classpaths">classpaths prêts</string>
+    <plurals name="editor_tooling_detail_elements">
+        <item quantity="one">%d élément</item>
+        <item quantity="many">%d éléments</item>
+        <item quantity="other">%d éléments</item>
+    </plurals>
+    <plurals name="editor_tooling_modules">
+        <item quantity="one">%d module</item>
+        <item quantity="many">%d modules</item>
+        <item quantity="other">%d modules</item>
+    </plurals>
+    <plurals name="editor_tooling_taches">
+        <item quantity="one">%d tâche</item>
+        <item quantity="many">%d tâches</item>
+        <item quantity="other">%d tâches</item>
+    </plurals>
+    <plurals name="editor_tooling_taches_disponibles">
+        <item quantity="one">Tâche disponible : %d</item>
+        <item quantity="many">Tâches disponibles : %d</item>
+        <item quantity="other">Tâches disponibles : %d</item>
+    </plurals>
 
     <!-- Lignes de tâches de la console (v3 — une ligne par tâche, mise à
          jour en place à sa fin, comme la vue Build d'Android Studio) et
