@@ -83,6 +83,50 @@ constructor(
         viewModelScope.launch { persister { it.copy(toolingArguments = arguments.trim()) } }
     }
 
+    /**
+     * Instrumentation de latence du transport (Phase 1, ADR 0152) — arme
+     * la sonde du fil lecteur (T3), la mesure de la vue (T5/T6) et le
+     * drapeau `--instru-transport` du serveur : s'applique à la prochaine
+     * vie du process orchestrateur, dit tel quel dans l'écran.
+     */
+    fun definirInstrumentationTransport(active: Boolean) {
+        viewModelScope.launch { persister { it.copy(instrumentationTransport = active) } }
+    }
+
+    /** Banc « socket seul » (Phase 1, §3.1b) — mêmes règles d'application. */
+    fun definirBancSocketSeul(active: Boolean) {
+        viewModelScope.launch { persister { it.copy(bancSocketSeul = active) } }
+    }
+
+    /** Lignes du banc (bornées à la lecture côté DataStore, resserrées ici). */
+    fun definirBancLignes(lignes: Int) {
+        viewModelScope.launch { persister { it.copy(bancLignes = lignes.coerceIn(1, BANC_LIGNES_MAX)) } }
+    }
+
+    /** Cadence du banc en ms (0 = rafale). */
+    fun definirBancCadenceMs(cadenceMs: Int) {
+        viewModelScope.launch { persister { it.copy(bancCadenceMs = cadenceMs.coerceIn(0, BANC_CADENCE_MS_MAX)) } }
+    }
+
+    /** Longueur des lignes du banc. */
+    fun definirBancLongueurLigne(longueur: Int) {
+        viewModelScope.launch {
+            persister { it.copy(bancLongueurLigne = longueur.coerceIn(1, BANC_LONGUEUR_LIGNE_MAX)) }
+        }
+    }
+
+    /**
+     * Contenu des lignes du banc — `plain`, `ansi`, `utf8` ou `multi` ;
+     * toute autre valeur retombe sur `plain` (le serveur valide aussi,
+     * l'app ne lui envoie rien d'invraisemblable).
+     */
+    fun definirBancContenu(contenu: String) {
+        val valeur = contenu.trim().lowercase()
+        viewModelScope.launch {
+            persister { it.copy(bancContenu = if (valeur in CONTENUS_BANC) valeur else "plain") }
+        }
+    }
+
     /** Transformation atomique du réglage, échec journalisé (règle 15 :
      *  identifiants seulement, le contenu des arguments n'y paraît pas). */
     private suspend fun persister(transformation: (AppSettings) -> AppSettings) {
@@ -100,5 +144,13 @@ constructor(
 
     private companion object {
         const val TAG = "ConfigTooling"
+
+        /** Valeurs de contenu acceptées par le drapeau `--banc-contenu`. */
+        val CONTENUS_BANC = setOf("plain", "ansi", "utf8", "multi")
+
+        /** Bornes de saisie des paramètres du banc (miroir des bornes de lecture du DataStore). */
+        const val BANC_LIGNES_MAX = 200_000
+        const val BANC_CADENCE_MS_MAX = 60_000
+        const val BANC_LONGUEUR_LIGNE_MAX = 2_000
     }
 }

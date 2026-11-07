@@ -492,6 +492,21 @@
     <string name="editor_config_connexion_echoue">Échec</string>
     <string name="editor_config_etat_tas">Mémoire de l\'orchestrateur</string>
     <string name="editor_config_tas_format">%1$d Mo utilisés sur %2$d Mo</string>
+    <!-- Phase 1 (ADR 0152) : carte Diagnostic — instrumentation de latence
+         et banc « socket seul », le minimum obligatoire de l'INC-32. -->
+    <string name="editor_config_diagnostic">Diagnostic</string>
+    <string name="editor_config_instru_transport">Instrumentation de latence</string>
+    <string name="editor_config_instru_transport_desc" tools:ignore="TypographyDashes">Mesure le trajet des lignes (serveur de build, réception, rendu de la console) et l\'annule à l\'écran : aucun changement de comportement. Les chiffres vont au journal applicatif, exporté depuis l\'écran Diagnostic. S\'applique au prochain démarrage du serveur de build.</string>
+    <string name="editor_config_banc">Banc « socket seul »</string>
+    <string name="editor_config_banc_desc" tools:ignore="TypographyDashes">Au prochain démarrage, le serveur de build émet une séquence de test sans Gradle (matrice X1–X10 du diagnostic). À couper après la séance de mesures — la console affiche la séquence comme un build.</string>
+    <string name="editor_config_banc_lignes">Lignes du banc</string>
+    <string name="editor_config_banc_lignes_aide" tools:ignore="TypographyDashes">60 = profil du journal ; 10 000 / 50 000 / 200 000 = déluge</string>
+    <string name="editor_config_banc_cadence">Cadence (ms)</string>
+    <string name="editor_config_banc_cadence_aide" tools:ignore="TypographyDashes">0 = rafale ; 50 ≈ 20 lignes/s ; 200 ≈ 5 lignes/s</string>
+    <string name="editor_config_banc_longueur">Longueur des lignes</string>
+    <string name="editor_config_banc_longueur_aide" tools:ignore="TypographyDashes">40 / 200 / 2000 caractères</string>
+    <string name="editor_config_banc_contenu">Contenu</string>
+    <string name="editor_config_banc_contenu_aide" tools:ignore="TypographyDashes">plain, ansi, utf8 ou multi (traces multi-lignes)</string>
     <string name="editor_config_note_console" tools:ignore="TypographyDashes">La sortie Gradle est toujours forcée en mode texte (--console=plain) : aucune séquence ANSI n\'abîmera la console.</string>
 
     <!-- Service de notification du tooling (étape 32, ADR 0057) : mêmes

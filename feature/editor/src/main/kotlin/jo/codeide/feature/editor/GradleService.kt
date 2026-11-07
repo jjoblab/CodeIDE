@@ -395,6 +395,18 @@ constructor(
      */
     private val latencesPublication = ConcurrentHashMap<String, AccumulateurLatence>()
 
+    /**
+     * Latence de PUBLICATION des lignes de SYNC (INC-44, Phase 1 — la
+     * sync n'avait aucune mesure, angle mort n°4) : miroir CLIENT du
+     * résumé de TRANSPORT de sync de GradleApiImpl — la DIFFÉRENCE des
+     * maxima localise la moitié cliente, comme pour les builds. UNE
+     * instance (les syncs se succèdent, ne se chevauchent pas — une
+     * seule session orchestrateur) : remplacée à chaque départ de sync
+     * ([marquerSyncEnCours]), lue à la conclusion
+     * ([conclureConsoleSync]).
+     */
+    private var latencesPublicationSync = AccumulateurLatence()
+
     /** État observable du tooling. */
     val etat: StateFlow<EtatGradle> = etatInterne.asStateFlow()
 
@@ -476,6 +488,9 @@ constructor(
         if (!etatInterne.value.synchronisationEnCours) {
             viderZoneTexte(CanalTooling.SYNC)
             cleConclusionSync = null
+            // INC-44 : l'accumulateur de publication repart vierge — les
+            // lignes de la sync précédente ne pèsent pas sur la suivante.
+            latencesPublicationSync = AccumulateurLatence()
         }
         maj { courant ->
             if (courant.synchronisationEnCours) {
@@ -543,7 +558,47 @@ constructor(
         val cle = cleConclusion(resultat)
         if (cle == cleConclusionSync) return
         cleConclusionSync = cle
+        // INC-44 (Phase 1) : la sync conclue laisse SES mesures dans le
+        // journal applicatif — publication (miroir client du résumé de
+        // transport de GradleApiImpl) puis récapitulatif des phases
+        // annoncées : la sync de 194 s du journal du propriétaire pourra
+        // enfin dire où son temps est allé. Une sync sans ligne publiée
+        // ne journalise que les phases.
+        journal.i(TAG) {
+            "zone texte de la sync alimentée : ${latencesPublicationSync.description()} " +
+                "(émission orchestrateur → publication console)"
+        }
+        journal.i(TAG) { recapitulatifPhasesSync(resultat) }
         lignesConclusionSync(resultat).forEach { ligne -> zoneTexteInterne.tryEmit(ligne) }
+    }
+
+    /**
+     * Récapitulatif des phases de la sync conclue (INC-44) — texte du
+     * JOURNAL APPLICATIF (identifiants et durées seulement, règle 15),
+     * jamais de l'UI : les étapes annoncées par le serveur
+     * (`etatInterne.value.etapesSync`) avec leur durée mesurée, dans
+     * l'ordre d'annonce. Une sync sans phase annoncée (cache restitué,
+     * échec local avant requête) le DIT — « aucune » est une information,
+     * pas un échec de mesure.
+     */
+    private fun recapitulatifPhasesSync(resultat: AppResult<ResultatSynchronisation>): String {
+        val verdict = when {
+            resultat is AppResult.Success && resultat.value.reussie -> "réussie"
+            resultat is AppResult.Success -> "échouée"
+            else -> "interrompue"
+        }
+        val duree = (resultat as? AppResult.Success)?.value?.dureeMs
+        val phases = etatInterne.value.etapesSync
+        val detailPhases =
+            if (phases.isEmpty()) {
+                "aucune phase annoncée"
+            } else {
+                phases.joinToString(separator = " ; ") { etape ->
+                    "${etape.etape.name} ${etape.dureeMs} ms"
+                }
+            }
+        val dureeTexte = duree?.let { " en $it ms" } ?: ""
+        return "sync $verdict$dureeTexte — phases : $detailPhases"
     }
 
     /** Lignes de conclusion d'une sync : réussie (durée à la clé) OU
@@ -605,6 +660,10 @@ constructor(
      * sync, la conclusion jamais AVANT les lignes qu'elle conclut.
      */
     fun ajouterLigneSync(ligne: LigneSortieSync) {
+        // INC-44 (Phase 1) : écart émission serveur → publication console
+        // (transport + moitié cliente incluse) — même accumulateur que les
+        // builds, lu à la conclusion.
+        latencesPublicationSync.enregistrer(horloge.nowMillis() - ligne.horodatageMs)
         zoneTexteInterne.tryEmit(
             EvenementConsoleTexte.Ligne(
                 canal = CanalTooling.SYNC,
