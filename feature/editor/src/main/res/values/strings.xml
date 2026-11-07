@@ -383,6 +383,9 @@
          jamais tourné (sélecteur INC-20) — libellé honnête, pas une activité
          fantôme. -->
     <string name="editor_tooling_sync_jamais">Aucune synchronisation lancée</string>
+    <!-- INC-15 (volet C) : verdict court localisé de l'en-tête/statut — même libellé
+         que la notification (tooling_service_sync_echouee) : un seul vocabulaire. -->
+    <string name="editor_tooling_sync_echouee">Synchronisation échouée</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build en cours…</string>
     <string name="editor_tooling_taches_en_cours">Chargement des tâches…</string>

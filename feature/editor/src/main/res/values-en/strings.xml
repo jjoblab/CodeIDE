@@ -344,6 +344,9 @@
     <!-- INC-04 (volet C) : canal Sync consultable sans qu'aucune sync n'ait
          jamais tourné (sélecteur INC-20) — libellé honnête. -->
     <string name="editor_tooling_sync_jamais">No synchronization run yet</string>
+    <!-- INC-15 (volet C) : short localized verdict — same wording as the
+         notification (tooling_service_sync_echouee). -->
+    <string name="editor_tooling_sync_echouee">Synchronization failed</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build running…</string>
     <string name="editor_tooling_taches_en_cours">Loading tasks…</string>

@@ -243,9 +243,9 @@ internal class PanneauToolingController(
 
     // ---- Pastille de canal (§3.3) ---------------------------------------
 
-    /** Pastille : fond teinté (canal harmonisé / succès / échec), icône
-     *  blanche en repos (coche de succès, croix d'échec, glyphe du canal),
-     *  SPINNER animé en vol. */
+    /** Pastille : fond teinté (canal harmonisé / succès / échec / annulé),
+     *  icône blanche en repos (coche de succès, croix d'échec, carré
+     *  d'arrêt pour un annulé — INC-15), SPINNER animé en vol. */
     private fun rendrePastille(entete: EtatEnteteTooling, canal: CanalTooling) {
         liaison.pastilleCanalTooling.backgroundTintList =
             ColorStateList.valueOf(couleurStatut(entete.statut, entete.couleur))
@@ -257,6 +257,7 @@ internal class PanneauToolingController(
                 when (entete.statut) {
                     StatutEntete.SUCCES -> jo.codeide.core.ui.R.drawable.ic_fait
                     StatutEntete.ECHOUE -> jo.codeide.core.ui.R.drawable.ic_fermer_onglet
+                    StatutEntete.ANNULE -> R.drawable.ic_arreter_build
                     StatutEntete.EN_VOL, StatutEntete.NEUTRE -> canal.icone
                 }
             liaison.iconeCanalTooling.setImageResource(icone)
@@ -264,8 +265,9 @@ internal class PanneauToolingController(
     }
 
     /** Couleur de la pastille selon le statut visuel : canal harmonisé en
-     *  vol/au repos, vert de succès, rouge d'échec (rôles sémantiques
-     *  ADR 0059 — suivent les 8 palettes et la nuit). */
+     *  vol/au repos, vert de succès, rouge d'échec, AVERTISSEMENT pour un
+     *  annulé (INC-15 — distinct de l'échec, rôles sémantiques ADR 0059,
+     *  suivent les 8 palettes et la nuit). */
     private fun couleurStatut(statut: StatutEntete, couleurCanal: Int): Int = when (statut) {
         StatutEntete.SUCCES -> {
             MaterialColors.getColor(liaison.root, jo.codeide.core.ui.R.attr.colorSucces)
@@ -273,6 +275,10 @@ internal class PanneauToolingController(
 
         StatutEntete.ECHOUE -> {
             MaterialColors.getColor(liaison.root, androidx.appcompat.R.attr.colorError)
+        }
+
+        StatutEntete.ANNULE -> {
+            MaterialColors.getColor(liaison.root, jo.codeide.core.ui.R.attr.colorAvertissement)
         }
 
         StatutEntete.EN_VOL, StatutEntete.NEUTRE -> {

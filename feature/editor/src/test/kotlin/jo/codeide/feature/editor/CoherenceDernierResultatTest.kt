@@ -174,7 +174,10 @@ class CoherenceDernierResultatTest {
         val entete = PresentationTooling.etatEntete(etat)
         assertEquals(StatutEntete.ECHOUE, entete.statut)
         assertEquals(jo.codeide.core.ui.R.color.codeide_canal_build, entete.couleur)
-        assertEquals(TexteTooling.Brut("compileKotlin a échoué"), entete.titre)
+        // INC-15 : verdict COURT en titre, message du serveur en sous-titre
+        // (le titre singleLine ne tronque plus un message multi-lignes).
+        assertEquals(TexteTooling.Ressource(R.string.editor_sortie_build_echoue), entete.titre)
+        assertEquals(TexteTooling.Brut("compileKotlin a échoué"), entete.sousTitre)
         assertEquals(36_000L, entete.dureeFigeeMs)
         assertEquals(
             DecisionNotificationTooling.Resultat(

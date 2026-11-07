@@ -566,6 +566,36 @@ class GradleServiceTest {
     }
 
     @Test
+    fun `un echec de sync figure aussi sa duree - INC-15`() {
+        service.marquerSyncEnCours()
+        instant += 36_000
+
+        service.publierResultatSync(
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté")),
+        )
+
+        assertEquals(
+            "INC-15 : l'échec porte l'écoulé du chrono — durée figée de l'en-tête",
+            36_000L,
+            service.etat.value.dureeSyncMs,
+        )
+    }
+
+    @Test
+    fun `une nouvelle sync remet la duree figee a null - INC-15`() {
+        service.marquerSyncEnCours()
+        instant += 36_000
+        service.publierResultatSync(
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté")),
+        )
+
+        service.marquerSyncEnCours()
+
+        assertEquals(null, service.etat.value.dureeSyncMs)
+        assertEquals(true, service.etat.value.synchronisationEnCours)
+    }
+
+    @Test
     fun `le canal actif est BUILD pendant un build et retombe a null apres`() {
         assertNull(service.etat.value.canalActif)
 

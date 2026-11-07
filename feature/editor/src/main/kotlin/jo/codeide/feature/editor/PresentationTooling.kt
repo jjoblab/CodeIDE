@@ -52,9 +52,10 @@ internal fun TexteTooling.resoudre(contexte: Context): String = when (this) {
 }
 
 /**
- * Statut VISUEL de l'en-tête tooling (v4, §3.3) : pilote la pastille —
- * spinner sur couleur de canal en vol, coche verte de succès, croix
- * rouge d'échec. L'état reste pur, la couleur se résout au rendu.
+ * Statut VISUEL de l'en-tête tooling (v4, §3.3 ; INC-15 : ANNULE) : pilote
+ * la pastille — spinner sur couleur de canal en vol, coche verte de
+ * succès, croix rouge d'échec, carré d'arrêt sur couleur d'avertissement
+ * pour un build annulé. L'état reste pur, la couleur se résout au rendu.
  */
 internal enum class StatutEntete {
     /** Activité en vol : couleur de canal + spinner. */
@@ -65,6 +66,11 @@ internal enum class StatutEntete {
 
     /** Dernier résultat échoué : rouge + croix. */
     ECHOUE,
+
+    /** Dernier résultat ANNULÉ par l'utilisateur (INC-15) : avertissement
+     *  + carré d'arrêt — distinct de l'échec, partagé avec la notification
+     *  qui porte déjà l'indicateur `annulé`. */
+    ANNULE,
 
     /** Aucun résultat tranchant : couleur de canal + icône de canal. */
     NEUTRE,
@@ -212,7 +218,7 @@ internal object PresentationTooling {
         return EtatEnteteTooling(
             titre = titreEntete(etat, canal),
             libelleEtape = DetailsEtapesSync.libelleEtape(etat),
-            sousTitre = sousTitre(etat),
+            sousTitre = sousTitre(etat, canal),
             progression =
             when {
                 enVol -> DetailsEtapesSync.progression(etat)
@@ -251,9 +257,10 @@ internal object PresentationTooling {
         }
     }
 
-    /** Statut visuel de la pastille (§3.3) : en vol, puis le verdict du
-     *  dernier résultat du canal — l'échec de sync prime le succès
-     *  PARTIEL (même cascade que le titre : l'en-tête ne mente jamais). */
+    /** Statut visuel de la pastille (§3.3 ; INC-15 : ANNULE distinct de
+     *  l'échec) : en vol, puis le verdict du dernier résultat du canal —
+     *  l'échec de sync prime le succès PARTIEL (même cascade que le
+     *  titre : l'en-tête ne mente jamais). */
     private fun statutVisuel(enVol: Boolean, canal: CanalTooling?, etat: EtatGradle): StatutEntete = when {
         enVol -> {
             StatutEntete.EN_VOL
@@ -271,6 +278,7 @@ internal object PresentationTooling {
             when (etat.statutBuild) {
                 StatutBuild.REUSSI -> StatutEntete.SUCCES
                 StatutBuild.ECHOUE -> StatutEntete.ECHOUE
+                StatutBuild.ANNULE -> StatutEntete.ANNULE
                 else -> StatutEntete.NEUTRE
             }
         }
@@ -280,28 +288,39 @@ internal object PresentationTooling {
         }
     }
 
-    /** Sous-titre (§3.3 ; v5 — aperçu) : détail de l'étape courante en vol
-     *  de sync, compte « modules · tâches · … » au succès (le compte des
-     *  modules vient du compteur CLASSPATHS, l'honnêteté du détail distingue
-     *  une sync qui n'a rien téléchargé) — `null` sinon. */
-    private fun sousTitre(etat: EtatGradle): TexteTooling? {
+    /** Sous-titre (§3.3 ; v5 — aperçu ; INC-15 : PAR CANAL — l'ancienne
+     *  version sans canal mélangeait le détail de succès de la sync sous
+     *  un titre de build) : en vol de sync, détail de l'étape courante ;
+     *  au repos, la CAUSE COURTE du verdict du canal (message du serveur
+     *  pour un échec) ou le compte « modules · tâches · … » du succès de
+     *  sync — `null` sinon. Le message COMPLET vit dans le bandeau de la
+     *  console et dans le flux (ADR 0078 : jamais aux deux). */
+    private fun sousTitre(etat: EtatGradle, canal: CanalTooling?): TexteTooling? {
         if (etat.synchronisationEnCours) {
             return DetailsEtapesSync.sousTitre(etat)
         }
-        val reussie = etat.synchronisationReussie
-        val taches = etat.tachesDisponibles
-        return when {
-            etat.messageEchecSync != null -> {
-                null
+        return when (canal) {
+            null -> null
+
+            CanalTooling.SYNC -> {
+                val reussie = etat.synchronisationReussie
+                val taches = etat.tachesDisponibles
+                when {
+                    etat.messageEchecSync != null -> TexteTooling.Brut(etat.messageEchecSync)
+
+                    reussie?.reussie == true && taches?.isNotEmpty() == true -> {
+                        sousTitreSucces(etat, taches.size)
+                    }
+
+                    else -> null
+                }
             }
 
-            reussie?.reussie == true && taches?.isNotEmpty() == true -> {
-                sousTitreSucces(etat, taches.size)
+            CanalTooling.BUILD -> {
+                etat.messageEchecBuild?.let { TexteTooling.Brut(it) }
             }
 
-            else -> {
-                null
-            }
+            CanalTooling.TACHES -> null
         }
     }
 
@@ -330,9 +349,13 @@ internal object PresentationTooling {
         }
     }
 
-    /** Durée figée du dernier résultat (chrono arrêté). */
+    /** Durée figée du dernier résultat (chrono arrêté — INC-15 : TOUT
+     *  résultat terminal porte sa durée, un échec de sync autant qu'un
+     *  échec de build ; [EtatGradle.dureeSyncMs] est posé à chaque
+     *  conclusion, réussie ou échouée). Le repli sur la durée du résultat
+     *  réussi couvre les états construits sans le champ figé. */
     private fun dureeFigee(etat: EtatGradle, canal: CanalTooling?): Long? = when (canal) {
-        CanalTooling.SYNC -> etat.synchronisationReussie?.dureeMs
+        CanalTooling.SYNC -> etat.dureeSyncMs ?: etat.synchronisationReussie?.dureeMs
         CanalTooling.BUILD -> etat.dureeBuildMs
         else -> null
     }
@@ -413,7 +436,11 @@ internal object PresentationTooling {
         }
 
         etat.messageEchecSync != null -> {
-            TexteTooling.Brut(etat.messageEchecSync)
+            // INC-15 : verdict LOCALISÉ ET COURT — le message brut du
+            // serveur (souvent multi-lignes, technique) va dans le
+            // SOUS-TITRE, le bandeau et la console, pas dans un titre
+            // singleLine tronqué.
+            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee)
         }
 
         etat.synchronisationReussie != null -> {
@@ -448,7 +475,9 @@ internal object PresentationTooling {
         }
 
         etat.statutBuild == StatutBuild.ECHOUE -> {
-            echoueBuild(etat)
+            // INC-15 : verdict court localisé — le message du serveur vit
+            // dans le sous-titre, le bandeau et la console.
+            TexteTooling.Ressource(R.string.editor_sortie_build_echoue)
         }
 
         etat.statutBuild == StatutBuild.ANNULE -> {
@@ -473,10 +502,6 @@ internal object PresentationTooling {
         R.string.editor_sortie_build_reussi,
         DureesLisibles.formater(etat.dureeBuildMs ?: 0L),
     )
-
-    /** Échec de build : le message du serveur, sinon le libellé générique. */
-    private fun echoueBuild(etat: EtatGradle): TexteTooling = etat.messageEchecBuild?.let { TexteTooling.Brut(it) }
-        ?: TexteTooling.Ressource(R.string.editor_sortie_build_echoue)
 
     /** Ressource avec arguments de format (chaînes). */
     private fun ressource(id: Int, vararg args: String): TexteTooling = TexteTooling.Ressource(id, args.toList())

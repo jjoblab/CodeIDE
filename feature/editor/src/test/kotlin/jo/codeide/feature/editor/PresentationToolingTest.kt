@@ -39,12 +39,20 @@ class PresentationToolingTest {
     }
 
     @Test
-    fun `l activite sync echouee affiche le message brut du serveur`() {
+    fun `l activite sync echouee affiche le verdict court - le message va en sous-titre`() {
         val etat = EtatGradle(messageEchecSync = "connexion Gradle impossible")
 
-        val libelle = PresentationTooling.libelleActivite(etat, CanalTooling.SYNC)
-
-        assertEquals(TexteTooling.Brut("connexion Gradle impossible"), libelle)
+        // INC-15 : verdict LOCALISÉ ET COURT en titre — le message brut
+        // du serveur (multi-lignes, technique) vit dans le SOUS-TITRE, le
+        // bandeau et la console, pas dans un titre singleLine tronqué.
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
+            PresentationTooling.libelleActivite(etat, CanalTooling.SYNC),
+        )
+        assertEquals(
+            TexteTooling.Brut("connexion Gradle impossible"),
+            PresentationTooling.etatEntete(etat).sousTitre,
+        )
     }
 
     @Test
@@ -92,12 +100,17 @@ class PresentationToolingTest {
 
         assertEquals(
             TexteTooling.Brut("modèle IdeaProject indisponible"),
-            PresentationTooling.libelleActivite(etat, CanalTooling.SYNC),
+            PresentationTooling.etatEntete(etat).sousTitre,
         )
         assertEquals(
-            "INC-22 : le statut de console montre l'échec, comme l'en-tête",
-            TexteTooling.Brut("modèle IdeaProject indisponible"),
+            "INC-22 : le statut de console montre le verdict court de l'échec, comme l'en-tête (INC-15)",
+            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
             PresentationTooling.libelleStatut(etat, CanalTooling.SYNC),
+        )
+        assertEquals(
+            "INC-15 : le titre de l'en-tête est le verdict court, pas le message brut",
+            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
+            PresentationTooling.libelleActivite(etat, CanalTooling.SYNC),
         )
     }
 
@@ -155,19 +168,49 @@ class PresentationToolingTest {
     }
 
     @Test
-    fun `l activite build echoue affiche le message sinon le libelle generique`() {
+    fun `l activite build echoue affiche le verdict court - le message va en sous-titre`() {
         val avecMessage =
             EtatGradle(statutBuild = StatutBuild.ECHOUE, messageEchecBuild = "tache compileKotlin echouee")
         val sansMessage = EtatGradle(statutBuild = StatutBuild.ECHOUE)
 
+        // INC-15 : verdict court localisé dans TOUTES les cascades — le
+        // message du serveur vit dans le sous-titre (et le bandeau).
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_sortie_build_echoue),
+            PresentationTooling.libelleActivite(avecMessage, CanalTooling.BUILD),
+        )
         assertEquals(
             TexteTooling.Brut("tache compileKotlin echouee"),
-            PresentationTooling.libelleActivite(avecMessage, CanalTooling.BUILD),
+            PresentationTooling.etatEntete(avecMessage).sousTitre,
         )
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_build_echoue),
             PresentationTooling.libelleActivite(sansMessage, CanalTooling.BUILD),
         )
+        assertEquals(
+            "sans message serveur, pas de sous-titre",
+            null,
+            PresentationTooling.etatEntete(sansMessage).sousTitre,
+        )
+    }
+
+    @Test
+    fun `un echec de sync porte aussi sa duree figee - INC-15`() {
+        val etat = EtatGradle(messageEchecSync = "non connecté", dureeSyncMs = 36_000)
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(36_000L, entete.dureeFigeeMs)
+    }
+
+    @Test
+    fun `un build annule a son propre statut visuel - INC-15`() {
+        val etat = EtatGradle(statutBuild = StatutBuild.ANNULE, dureeBuildMs = 4_000)
+
+        val entete = PresentationTooling.etatEntete(etat)
+
+        assertEquals(StatutEntete.ANNULE, entete.statut)
+        assertEquals(4_000L, entete.dureeFigeeMs)
     }
 
     @Test
@@ -207,7 +250,7 @@ class PresentationToolingTest {
             PresentationTooling.libelleStatut(EtatGradle(synchronisationEnCours = true), CanalTooling.SYNC),
         )
         assertEquals(
-            TexteTooling.Brut("échec réseau"),
+            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
             PresentationTooling.libelleStatut(EtatGradle(messageEchecSync = "échec réseau"), CanalTooling.SYNC),
         )
         assertEquals(
@@ -449,7 +492,9 @@ class PresentationToolingTest {
 
         assertEquals(StatutEntete.ECHOUE, entete.statut)
         assertEquals(jo.codeide.core.ui.R.color.codeide_canal_build, entete.couleur)
-        assertEquals(TexteTooling.Brut("compileKotlin a échoué"), entete.titre)
+        // INC-15 : verdict COURT en titre, message du serveur en sous-titre.
+        assertEquals(TexteTooling.Ressource(R.string.editor_sortie_build_echoue), entete.titre)
+        assertEquals(TexteTooling.Brut("compileKotlin a échoué"), entete.sousTitre)
         assertEquals(36_000L, entete.dureeFigeeMs)
     }
 

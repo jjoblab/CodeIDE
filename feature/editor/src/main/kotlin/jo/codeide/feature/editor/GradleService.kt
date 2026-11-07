@@ -243,6 +243,13 @@ data class EtatGradle(
     val synchronisationReussie: ResultatSynchronisation? = null,
     val messageEchecSync: String? = null,
 
+    /** Durée figée du dernier résultat de sync (INC-15, volet C) — posée à
+     *  CHAQUE conclusion, réussie (durée du résultat) comme ÉCHOUÉE
+     *  (écoulée depuis le départ du chrono) : l'en-tête affiche la durée
+     *  de TOUT résultat terminal, un échec de sync autant qu'un échec de
+     *  build. Remise à `null` au départ d'une nouvelle sync. */
+    val dureeSyncMs: Long? = null,
+
     /** Repère d'ordre de la dernière conclusion de sync (INC-01) — voir
      *  la propriété dans le KDoc de la classe. */
     val sequenceResultatSync: Long = 0,
@@ -526,6 +533,9 @@ constructor(
                     synchronisationEnCours = true,
                     debutSyncMs = horloge.nowMillis(),
                     messageEchecSync = null,
+                    // INC-15 : le chrono repart, la durée figée du résultat
+                    // précédent ne doit plus s'afficher.
+                    dureeSyncMs = null,
                     // v4 (§3.2) : une nouvelle sync invalide les tâches
                     // connues — elles seront remplies à la fin.
                     tachesDisponibles = null,
@@ -565,16 +575,22 @@ constructor(
                         synchronisationEnCours = false,
                         synchronisationReussie = resultat.value,
                         messageEchecSync = resultat.value.messageEchec,
+                        dureeSyncMs = resultat.value.dureeMs,
                         sequenceResultatSync = sequence,
                     )
                 }
             }
 
             is AppResult.Failure -> {
+                // INC-15 : un échec porte AUSSI sa durée — l'écoulé du
+                // chrono (l'échec local n'a pas de durée serveur).
+                val maintenant = horloge.nowMillis()
                 maj {
                     it.copy(
                         synchronisationEnCours = false,
                         messageEchecSync = messageDEchec(resultat),
+                        dureeSyncMs = it.debutSyncMs
+                            ?.let { depart -> (maintenant - depart).coerceAtLeast(0L) },
                         sequenceResultatSync = sequence,
                     )
                 }

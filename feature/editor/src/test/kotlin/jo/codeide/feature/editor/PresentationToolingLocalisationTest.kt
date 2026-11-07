@@ -85,6 +85,17 @@ class PresentationToolingLocalisationFrTest {
     }
 
     @Test
+    fun `le verdict court d echec de sync se resout en francais - INC-15`() {
+        assertEquals(
+            "Synchronisation échouée",
+            PresentationTooling.libelleStatut(
+                EtatGradle(messageEchecSync = "connexion perdue"),
+                CanalTooling.SYNC,
+            ).resoudre(contexte),
+        )
+    }
+
+    @Test
     fun `le libelle honnete du canal sync jamais vecu se resout en francais`() {
         assertEquals(
             "Aucune synchronisation lancée",
@@ -233,6 +244,17 @@ class PresentationToolingLocalisationEnTest {
             PresentationTooling.libelleStatut(
                 EtatGradle(statutBuild = StatutBuild.ANNULE),
                 CanalTooling.BUILD,
+            ).resoudre(contexte),
+        )
+    }
+
+    @Test
+    fun `le verdict court d echec de sync se resout en anglais - INC-15`() {
+        assertEquals(
+            "Synchronization failed",
+            PresentationTooling.libelleStatut(
+                EtatGradle(messageEchecSync = "connection lost"),
+                CanalTooling.SYNC,
             ).resoudre(contexte),
         )
     }
