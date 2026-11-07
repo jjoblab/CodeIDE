@@ -69,6 +69,13 @@ import java.util.UUID
  * @param lectureInjectionAppLog decision (suspend) du réglage utilisateur :
  * lue à CHAQUE lancement du process, le serveur reçoit `--applog-repo`
  * seulement si elle est vraie.
+ * @param lectureInstru paramètres d'instrumentation (Phase 1, ADR 0152),
+ * lus à CHAQUE lancement du process : drapeau `--instru-transport` et
+ * drapeaux du banc « socket seul » — un changement s'applique à la
+ * prochaine vie de l'orchestrateur, dit tel quel dans l'écran des
+ * réglages.
+ * @param sondeLecture sonde T3 détaillée du fil lecteur (Phase 1) —
+ * `null` en test : aucune mesure posée sur les sessions acceptées.
  */
 @Suppress("LongParameterList")
 class DaemonManager
@@ -87,6 +94,8 @@ internal constructor(
     private val delaiRelanceMs: Long = DELAI_RELANC_E_MS,
     private val deployeurAppLog: DepotAppLogDeployer? = null,
     private val lectureInjectionAppLog: suspend () -> Boolean = { true },
+    private val lectureInstru: suspend () -> ParametresInstru = { ParametresInstru.INACTIFS },
+    private val sondeLecture: SondeLecteurTransport? = null,
 ) {
     /** Surveillance en cours (null = daemon arrêté). */
     private var surveillance: Job? = null
@@ -250,11 +259,19 @@ internal constructor(
         val secret = GenerateurSecret.nouveau()
         hote.ouvrir()
 
+        // Phase 1 (ADR 0152) : réglages d'instrumentation lus à CHAQUE
+        // lancement — la sonde du fil lecteur suit le MÊME drapeau que le
+        // serveur (`--instru-transport`) : une seule vérité, client et
+        // serveur armés ensemble.
+        val parametresInstru = lectureInstru()
+        sondeLecture?.activer(parametresInstru.instrumentationTransport)
+
         val process =
             lanceur.launch(
                 command =
                 fabriqueCommande(java, jar, hote.cheminSocket, secret) +
-                    argumentsAppLog(deciderDepotAppLog()),
+                    argumentsAppLog(deciderDepotAppLog()) +
+                    argumentsInstru(parametresInstru),
                 extraEnv = emptyMap(),
                 workingDir = null,
             )
@@ -588,6 +605,36 @@ internal fun commandeParDefaut(): (java: File, jar: File, cheminSocket: File, se
  */
 internal fun argumentsAppLog(depot: File?): List<String> =
     depot?.let { listOf("--applog-repo", it.absolutePath) } ?: emptyList()
+
+/**
+ * Arguments d'instrumentation de la commande du process orchestrateur
+ * (Phase 1, ADR 0152) : `--instru-transport` quand le réglage l'arme, puis
+ * les drapeaux du banc « socket seul » quand celui-ci est activé — chacun
+ * LU ET HONORÉ par le serveur (`ServerConfig`), aucun drapeau décoratif
+ * (interdit n°7 : aucune option que le serveur ne lit pas).
+ *
+ * Le banc s'exécute SANS Gradle : l'orchestrateur émet
+ * `BuildStarted` → N `BuildOutput` → `BuildFinished` par la vraie pile
+ * serveur, puis reprend sa boucle normale — c'est le crochet de lancement
+ * annoncé par `DIAGNOSTIC-LOGS.md` §7 : la séance de mesures de la matrice
+ * X1–X10 se lance depuis l'écran de configuration, sans adb.
+ */
+internal fun argumentsInstru(parametres: ParametresInstru): List<String> = buildList {
+    if (parametres.instrumentationTransport) {
+        add("--instru-transport")
+    }
+    if (parametres.bancSocketSeul) {
+        add("--banc-socket-seul")
+        add("--banc-lignes")
+        add(parametres.bancLignes.toString())
+        add("--banc-cadence-ms")
+        add(parametres.bancCadenceMs.toString())
+        add("--banc-longueur-ligne")
+        add(parametres.bancLongueurLigne.toString())
+        add("--banc-contenu")
+        add(parametres.bancContenu)
+    }
+}
 
 /**
  * Tas maximum du process orchestrateur (Mio) — TOUJOURS apposé avec son
