@@ -6,6 +6,7 @@ import android.text.SpannableString
 import android.text.SpannableStringBuilder
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
+import android.view.Choreographer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,12 +15,16 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.AppLogger
+import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import javax.inject.Inject
 
 /**
  * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4, §3.3 :
@@ -52,8 +57,17 @@ import kotlinx.coroutines.flow.onEach
  * intégrée), chaque fonction a son écouteur ou son rappel.
  */
 @Suppress("TooManyFunctions")
+@AndroidEntryPoint
 class PanneauConsoleFragment : Fragment() {
     private var liaisonAmorce: FragmentPanneauConsoleBinding? = null
+
+    /** Journal applicatif (Phase 1, ADR 0152 : sonde T5/T6 de la vue). */
+    @Inject
+    lateinit var journal: AppLogger
+
+    /** Réglages (Phase 1 : le drapeau d'instrumentation arme la sonde de vue). */
+    @Inject
+    lateinit var observerReglages: ObserveSettingsUseCase
 
     /** Liaison de la vue courante (correctif n°9 : plus de `!!` — un accès
      *  après destruction de la vue échoue avec un diagnostic lisible). */
@@ -94,6 +108,25 @@ class PanneauConsoleFragment : Fragment() {
     /** Retour système pendant l'affichage de la configuration (§3.3) : la
      *  referme avant de remonter au retour de l'espace. */
     private lateinit var retourConfiguration: OnBackPressedCallback
+
+    // ---- Phase 1 (ADR 0152) : sonde T5/T6 de la vue ---------------------
+
+    /** Sonde de la vue (T5 lots, T6 images) — armée par le réglage
+     *  `instrumentationTransport`, coupée par défaut (règle 10). */
+    private val sondeVue by lazy { SondeConsoleVue(journal) }
+
+    /** La boucle d'images du Choreographer est-elle posée ? */
+    private var imagesSuivies = false
+
+    /** Rappel d'image (T6) — se retire de lui-même dès que la sonde est coupée. */
+    private val rappelImages =
+        object : Choreographer.FrameCallback {
+            override fun doFrame(tempsNs: Long) {
+                if (!imagesSuivies) return
+                sondeVue.image(tempsNs / NANOS_PAR_MILLI)
+                Choreographer.getInstance().postFrameCallback(this)
+            }
+        }
 
     override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentPanneauConsoleBinding.inflate(inflateur, conteneur, false)
@@ -181,6 +214,15 @@ class PanneauConsoleFragment : Fragment() {
             .launchIn(viewLifecycleOwner.lifecycleScope)
 
         viewModel.etatGradle.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
+
+        // Phase 1 (ADR 0152) : le drapeau d'instrumentation arme la sonde
+        // de vue (T5 : lots de la console ; T6 : images du fil principal) —
+        // réglage persisté, lu à l'attache de la vue et suivi en direct :
+        // coupé, la vue ne paie RIEN (aucune mesure, aucune ligne).
+        observerReglages()
+            .collectWithLifecycle(viewLifecycleOwner) { reglages ->
+                armerSondeVue(reglages.instrumentationTransport)
+            }
     }
 
     override fun onSaveInstanceState(etat: Bundle) {
@@ -194,8 +236,30 @@ class PanneauConsoleFragment : Fragment() {
         vidagePlanifie = false
         defilementPlanifie = false
         evenementsEnAttente.clear()
+        // Phase 1 : la boucle d'images meurt avec la vue (un rappel déjà
+        // en vol s'arrête de lui-même au drapeau).
+        imagesSuivies = false
+        sondeVue.active = false
         liaisonAmorce = null
         super.onDestroyView()
+    }
+
+    /**
+     * Arme ou coupe la sonde de vue (Phase 1, ADR 0152) — idempotent :
+     * armer deux fois ne pose pas deux boucles d'images (le rappel se
+     * retirerait de lui-même, mais la garde évite le double comptage
+     * pendant une image).
+     */
+    private fun armerSondeVue(active: Boolean) {
+        if (imagesSuivies == active) {
+            sondeVue.active = active
+            return
+        }
+        imagesSuivies = active
+        sondeVue.active = active
+        if (active) {
+            Choreographer.getInstance().postFrameCallback(rappelImages)
+        }
     }
 
     /** v0.41.1 : envoie le texte du champ de saisie au build en cours (stdin). */
@@ -346,6 +410,10 @@ class PanneauConsoleFragment : Fragment() {
             majEtatVide()
             return
         }
+        // T5 (Phase 1, ADR 0152) : le vidage est chronométré SEULEMENT si la
+        // sonde est armée — ouverture et conclusion hors des branches du
+        // vidage (complexité), le chemin sans sonde est l'identique d'avant.
+        val mesureLot = ouvrirMesureLot()
         val suivreBasSync = action == FiltreCanalConsole.SYNC && estAuBas(vue.defilementConsoleSync)
         val suivreBasBuild = action == FiltreCanalConsole.BUILD && estAuBas(vue.defilementConsoleBuild)
         val vidageSync = evenementsEnAttente.any { it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.SYNC }
@@ -367,6 +435,38 @@ class PanneauConsoleFragment : Fragment() {
             if (suivreBasBuild) suivreLeBas(vue.defilementConsoleBuild)
         }
         majEtatVide()
+        conclureMesureLot(mesureLot, vue)
+    }
+
+    /** Mesure T5 d'un lot ouvert (Phase 1, ADR 0152) — [ouvrirMesureLot]. */
+    private class MesureLot(val debut: Long, val lignes: Int)
+
+    /**
+     * Ouvre la mesure T5 du lot (Phase 1, ADR 0152) : chronomètre et
+     * lignes du lot — `null` quand la sonde est coupée (aucune mesure,
+     * aucun comptage, la vue ne paie rien).
+     */
+    private fun ouvrirMesureLot(): MesureLot? {
+        if (!sondeVue.active) return null
+        return MesureLot(
+            debut = System.nanoTime(),
+            lignes = evenementsEnAttente.count { it is EvenementConsoleTexte.Ligne },
+        )
+    }
+
+    /**
+     * Conclut la mesure T5 du lot : durées et longueurs du texte APRÈS
+     * application (la variable de X9 — coût par ligne vs lignes déjà
+     * affichées) partent au journal `ConsoleVue`. Sonde coupée : rien.
+     */
+    private fun conclureMesureLot(mesure: MesureLot?, vue: FragmentPanneauConsoleBinding) {
+        if (mesure == null) return
+        sondeVue.lot(
+            lignes = mesure.lignes,
+            dureeNs = System.nanoTime() - mesure.debut,
+            longueurTexteSync = vue.texteConsoleSync.text?.length ?: 0,
+            longueurTexteBuild = vue.texteConsoleBuild.text?.length ?: 0,
+        )
     }
 
     /** Stylise et accumule les LIGNES du lot en attente pour un canal. */
@@ -568,6 +668,9 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     private companion object {
+        /** Nanosecondes par milliseconde (T6 : uptime Choreographer → ms). */
+        const val NANOS_PAR_MILLI = 1_000_000L
+
         /** Étiquette de la page de configuration (anti-doublon). */
         const val ETIQUETTE_CONFIG = "config-tooling"
 
