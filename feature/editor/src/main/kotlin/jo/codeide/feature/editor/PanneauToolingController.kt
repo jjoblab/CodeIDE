@@ -92,6 +92,43 @@ internal class PanneauToolingController(
     /** Ticker du chrono en vol (annulé au prochain rendre ou à la destruction). */
     private var travailMinuteur: Job? = null
 
+    /** Dernier état d'en-tête rendu (INC-14 : dédoublonnage STRUCTUREL —
+     *  la collecte de l'état Gradle ENTIER re-rend l'en-tête à chaque
+     *  émission ; un état identique ne refait plus le travail). */
+    private var dernierEntete: EtatEnteteTooling? = null
+
+    /** Dernier canal rendu (complète la clé de dédoublonnage : la ligne
+     *  active dépend du canal, pas seulement de l'en-tête). */
+    private var dernierCanal: CanalTooling? = null
+
+    /** Dernier départ de chrono rendu (INC-14 : le ticker n'est ANNULÉ et
+     *  relancé que si le départ CHANGE — plus de coroutine recréée à
+     *  chaque émission d'un téléchargement). */
+    private var dernierDepartChrono: Long? = null
+
+    /** Dernière progression DÉTERMINÉE appliquée à la barre (INC-14). */
+    private var derniereProgressionRendue: Float? = null
+
+    /** Instant de la dernière mise à jour de progression (INC-14 : bornée
+     *  à ~10/s — la rafale des événements de téléchargement ne repeint
+     *  plus le fil principal pour chaque octet). */
+    private var derniereMajProgressionMs: Long = 0
+
+    /** Rendus EFFECTIFS de l'en-tête (INC-14 : observabilité test — une
+     *  rafale d'états identiques ne doit produire qu'UN rendu). */
+    var nbRendusEntete: Int = 0
+        private set
+
+    /** Relances du ticker du chrono (INC-14 : observabilité test — le
+     *  chrono n'est relancé qu'au CHANGEMENT de départ). */
+    var nbRelancesChrono: Int = 0
+        private set
+
+    /** Mises à jour EFFECTIVES de la valeur de progression (INC-14 :
+     *  observabilité test — bornées à ~10/s, bornes 0/1 toujours). */
+    var nbMajProgression: Int = 0
+        private set
+
     /**
      * Hauteur de CONTENU du sheet replié SANS l'inset de barre de
      * navigation (v0.185.0) : première section sur Problèmes/Journal,
@@ -128,6 +165,19 @@ internal class PanneauToolingController(
     fun rendre(etat: EtatGradle) {
         val entete = PresentationTooling.etatEntete(etat)
         val canal = etat.canalActif ?: etat.canalDernierResultat
+        // INC-14 : un en-tête structurellement IDENTIQUE au dernier rendu
+        // ne refait AUCUN travail — la collecte de l'état Gradle ENTIER
+        // (téléchargements, lignes de build, étapes) émettait à chaque
+        // événement : chaque appel relançait la coroutine du chrono,
+        // réaffectait les visibilités et rappelait setProgressCompat
+        // (animate = true) — charge inutile du fil principal et risque de
+        // scintillement de la bande.
+        if (entete == dernierEntete && canal == dernierCanal) {
+            return
+        }
+        dernierEntete = entete
+        dernierCanal = canal
+        nbRendusEntete++
         ligneActivee = canal != null
         if (canal != null) {
             rendrePastille(entete, canal)
@@ -144,11 +194,18 @@ internal class PanneauToolingController(
         rendreProgression(entete, etat)
         liaison.boutonArreterTooling.isVisible = entete.arret
         // Chrono : en vol il TICHE (demi-seconde), terminé il fige la
-        // durée du résultat — jamais de temps figé qui ment.
-        travailMinuteur?.cancel()
-        travailMinuteur = null
+        // durée du résultat — jamais de temps figé qui ment. INC-14 : le
+        // ticker n'est annulé/relancé que si le DÉPART change.
         val depart = entete.chronoMs
-        travailMinuteur = depart?.let(::lancerMinuteur)
+        if (depart != dernierDepartChrono) {
+            travailMinuteur?.cancel()
+            travailMinuteur = null
+            travailMinuteur = depart?.let(::lancerMinuteur)
+            dernierDepartChrono = depart
+            if (depart != null) {
+                nbRelancesChrono++
+            }
+        }
         if (depart == null) {
             liaison.minuteurTooling.text = entete.dureeFigeeMs?.let(DureesLisibles::formater) ?: ""
         }
@@ -314,7 +371,9 @@ internal class PanneauToolingController(
      *  couleur de canal harmonisée, vert au succès. Material exige de
      *  MASQUER l'indicateur pour basculer de mode. v0.80.2 : la visibilité
      *  mémorisée ([progressionVisiblee]) est distincte de la visibilité
-     *  effective (Console uniquement). */
+     *  effective (Console uniquement). INC-14 : la VALEUR de la barre est
+     *  bornée à ~10 mises à jour/s (les bornes 0 et 1 passent toujours,
+     *  tout comme le retour du mode indéterminé). */
     private fun rendreProgression(entete: EtatEnteteTooling, etat: EtatGradle) {
         val indicateur = liaison.progressionTooling
         progressionVisiblee = etat.activiteEnCours || entete.statut == StatutEntete.SUCCES
@@ -322,10 +381,23 @@ internal class PanneauToolingController(
         indicateur.isVisible = false
         val progression = entete.progression
         if (progression != null) {
-            if (indicateur.isIndeterminate) {
+            val repasseDeterminee = indicateur.isIndeterminate
+            if (repasseDeterminee) {
                 indicateur.isIndeterminate = false
             }
-            indicateur.setProgressCompat((progression.coerceIn(0f, 1f) * POURCENT_MAX).roundToInt(), true)
+            val maintenant = horloge.nowMillis()
+            if (
+                repasseDeterminee || progression == 1f ||
+                (
+                    progression != derniereProgressionRendue &&
+                        maintenant - derniereMajProgressionMs >= SEUIL_MAJ_PROGRESSION_MS
+                    )
+            ) {
+                indicateur.setProgressCompat((progression.coerceIn(0f, 1f) * POURCENT_MAX).roundToInt(), true)
+                derniereProgressionRendue = progression
+                derniereMajProgressionMs = maintenant
+                nbMajProgression++
+            }
         } else {
             indicateur.isIndeterminate = true
         }
@@ -384,6 +456,10 @@ internal class PanneauToolingController(
     private companion object {
         /** Période du chrono de l'en-tête tooling (500 ms). */
         const val PERIODE_MINUTEUR_MS = 500L
+
+        /** Seuil de rafraîchissement de la progression déterminée
+         *  (INC-14 : ~10 mises à jour par seconde au plus). */
+        const val SEUIL_MAJ_PROGRESSION_MS = 100L
 
         /** Hauteur de la bande de progression tooling (dp). */
         const val HAUTEUR_PROGRESSION_TOOLING_DP = 4
