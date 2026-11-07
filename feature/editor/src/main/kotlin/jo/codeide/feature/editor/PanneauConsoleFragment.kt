@@ -234,17 +234,22 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     /**
-     * Rend le statut (balisé de SON canal — v0.32.5), l'annulation, le
-     * bouton Tâches, le bandeau d'échec (message du serveur sinon
-     * libellé générique, « Réessayer » seulement si des tâches existent),
-     * le chip d'action courante (v0.40.1 §3) et la VISIBILITÉ de la
-     * console du canal courant (v0.46.0 : deux `TextView`, le chip
-     * choisit — plus de RecyclerView, plus de rangées à reconstruire).
+     * Rend le statut (balisé de SON canal — v0.32.5 ; INC-02 : le canal
+     * dérive de [PresentationTooling.canalAffiche], PLUS de cascade
+     * locale), l'annulation, le bouton Tâches, le bandeau d'échec
+     * (message du serveur sinon libellé générique, « Réessayer » seulement
+     * si des tâches existent), le chip d'action courante (v0.40.1 §3) et la
+     * VISIBILITÉ de la console du canal courant (v0.46.0 : deux
+     * `TextView`, le chip choisit — plus de RecyclerView, plus de rangées
+     * à reconstruire).
      */
     private fun rendre(etat: EtatGradle) {
+        // INC-02 : UNE dérivation alimente statut, icône et chip — les
+        // trois désignent TOUJOURS le même canal.
+        val canalAffiche = PresentationTooling.canalAffiche(etat, action)
         liaison.statutSortie.text =
-            PresentationTooling.libelleStatut(etat).resoudre(requireContext())
-        baliserCanalStatut(etat)
+            PresentationTooling.libelleStatut(etat, canalAffiche).resoudre(requireContext())
+        baliserCanalStatut(canalAffiche)
         liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
         // Tâches : armé dès que la sync a REMPLI le cache (v4) — v0.39.1
@@ -263,9 +268,12 @@ class PanneauConsoleFragment : Fragment() {
             liaison.boutonReessayerBuild.isVisible = etat.taches.isNotEmpty()
         }
 
-        // v0.40.1 (§3) : chip d'action UNIQUE reflétant l'action courante.
-        // Aucun chip s'il n'y a eu aucune action Gradle (état vierge).
-        rendreChipAction(etat)
+        // v0.40.1 (§3) ; INC-02 : chip du canal AFFICHÉ — la cascade
+        // locale (sync dès qu'une sync a déjà vécu) mentait pendant un
+        // build lancé après une sync réussie : le chip disait « Sync »,
+        // l'icône celle de la sync, pendant que la console du build
+        // tournait. La dérivation unique ne peut plus diverger.
+        rendreChipAction(canalAffiche)
 
         // v0.41.1 : champ de saisie stdin visible pendant un build EN_COURS.
         liaison.champEntreeConsole.isVisible = etat.statutBuild == StatutBuild.EN_COURS
@@ -465,38 +473,24 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     /**
-     * Publie le chip d'action UNIQUE (v0.40.1, prompt de suivi §3) —
-     * reflète l'action Gradle courante (Sync / Build / Tâches / Classpaths…).
-     * NON cliquable. Aucun chip s'il n'y a eu aucune action (état vierge :
-     * aucune sync annoncée, aucun build, aucune tâche).
+     * Publie le chip d'action UNIQUE (v0.40.1, prompt de suivi §3 ; INC-02 :
+     * canal fourni par [PresentationTooling.canalAffiche], plus de cascade
+     * locale) — reflète le canal de la console affichée (Sync / Build).
+     * NON cliquable (jusqu'à l'INC-20). Aucun chip s'il n'y a eu aucune
+     * action (état vierge : aucune sync annoncée, aucun build).
      *
      * Couleur de canal harmonisée (cf. aperçu v3 §6 : bordure et texte
      * en couleur de canal harmonisée, fond teinté 12 %). Le chip n'a
      * PAS d'icône — l'icône vit dans l'en-tête du panneau (pastille de
      * canal, cf. PanneauToolingController).
      */
-    private fun rendreChipAction(etat: EtatGradle) {
-        val canal =
-            when {
-                etat.synchronisationEnCours || etat.synchronisationReussie != null ||
-                    etat.messageEchecSync != null -> CanalTooling.SYNC
-
-                etat.statutBuild != null -> CanalTooling.BUILD
-
-                else -> null
-            }
+    private fun rendreChipAction(canal: CanalTooling?) {
         if (canal == null) {
             // Aucune action Gradle n'a eu lieu — pas de chip.
             liaison.chipActionCourante.isVisible = false
             return
         }
-        val libelle =
-            when (canal) {
-                CanalTooling.SYNC -> R.string.editor_tooling_canal_sync
-                CanalTooling.BUILD -> R.string.editor_tooling_canal_build
-                CanalTooling.TACHES -> R.string.editor_tooling_canal_taches
-            }
-        liaison.chipActionCourante.text = getString(libelle)
+        liaison.chipActionCourante.text = getString(canal.libelle)
         val couleurHarmonisee = ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur)
         liaison.chipActionCourante.chipBackgroundColor =
             android.content.res.ColorStateList.valueOf(
@@ -510,20 +504,13 @@ class PanneauConsoleFragment : Fragment() {
         liaison.chipActionCourante.isVisible = true
     }
 
-    /** Canal du statut (v0.32.5, ADR 0056 décision 5) : l'icône signature
+    /** Canal du statut (v0.32.5, ADR 0056 décision 5 ; INC-02 : canal
+     *  fourni par la dérivation unique [PresentationTooling.canalAffiche],
+     *  la copie locale de cascade est SUPPRIMÉE) : l'icône signature
      *  de la provenance de l'information — Sync quand la ligne parle de
      *  synchronisation, Build quand elle parle du build ; éteinte quand
      *  la console est vide (aucune information, aucun canal). */
-    private fun baliserCanalStatut(etat: EtatGradle) {
-        val canal =
-            when {
-                etat.synchronisationEnCours || etat.synchronisationReussie != null ||
-                    etat.messageEchecSync != null -> CanalTooling.SYNC
-
-                etat.statutBuild != null -> CanalTooling.BUILD
-
-                else -> null
-            }
+    private fun baliserCanalStatut(canal: CanalTooling?) {
         liaison.iconeCanalSortie.isVisible = canal != null
         if (canal != null) {
             liaison.iconeCanalSortie.setImageResource(canal.icone)

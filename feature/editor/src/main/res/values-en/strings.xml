@@ -330,9 +330,7 @@
     <string name="editor_console_entree_hint">Enter input…</string>
     <string name="editor_sortie_annuler_cd">Stop the running build</string>
     <string name="editor_problemes_vide">No problems so far.</string>
-    <string name="editor_sortie_sync_en_cours">Syncing…</string>
     <string name="editor_sortie_sync_reussie">Synced in %1$s</string>
-    <string name="editor_sortie_build_en_cours">Build running…</string>
     <string name="editor_sortie_build_reussi">Build succeeded in %1$s</string>
     <string name="editor_sortie_build_echoue">Build failed</string>
     <string name="editor_sortie_build_annule">Build cancelled</string>
@@ -343,6 +341,9 @@
     <string name="editor_tooling_canal_taches">Tasks</string>
     <string name="editor_tooling_arreter_cd">Stop the running tooling activity</string>
     <string name="editor_tooling_sync_en_cours">Synchronizing project…</string>
+    <!-- INC-04 (volet C) : canal Sync consultable sans qu'aucune sync n'ait
+         jamais tourné (sélecteur INC-20) — libellé honnête. -->
+    <string name="editor_tooling_sync_jamais">No synchronization run yet</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build running…</string>
     <string name="editor_tooling_taches_en_cours">Loading tasks…</string>

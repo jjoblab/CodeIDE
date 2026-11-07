@@ -15,6 +15,12 @@ import org.junit.Test
  * du panneau ([PresentationTooling.libelleActivite]) et le statut de
  * l'onglet Sortie ([PresentationTooling.libelleStatut]).
  *
+ * INC-02/22 (volet C) : le statut prend le CANAL AFFICHÉ en paramètre
+ * ([PresentationTooling.canalAffiche]) et suit la MÊME cascade que
+ * l'en-tête — les tests de statut ci-dessous ont été RÉÉCRITS avec cette
+ * signature (les anciens verrouillaient la priorité sync-puis-build aux
+ * replis divergents, contredite par le prompt §6.3 INC-22).
+ *
  * Ces tests verrouillent la STRUCTURE (identifiant de ressource, arguments,
  * texte brut) — la localisation FR/EN est couverte par
  * [PresentationToolingLocalisationTest]. Cas exigés par le prompt : FR/EN,
@@ -62,11 +68,12 @@ class PresentationToolingTest {
     }
 
     @Test
-    fun `l activite sync partielle montre l echec - l en tete ne mente jamais`() {
-        // Sync partielle : réussie ET message d'échec — l'en-tête garde la
-        // cascade historique (échec d'abord), le statut de console garde la
-        // sienne (réussite d'abord) : les deux comportements VOLONTAIRES
-        // sont verrouillés chacun par son test.
+    fun `l activite sync partielle montre l echec partout - un seul verdict`() {
+        // Sync partielle : réussie ET message d'échec. INC-22 : le statut de
+        // la console suit la MÊME cascade que l'en-tête (échec d'abord) —
+        // l'ancien test verrouillait la divergence VOLONTAIRE
+        // (« Synchronisé » contre un échec affiché), contredite par le
+        // prompt §6.3 INC-22 : un seul verdict par canal.
         val etat =
             EtatGradle(
                 synchronisationReussie =
@@ -88,16 +95,21 @@ class PresentationToolingTest {
             PresentationTooling.libelleActivite(etat, CanalTooling.SYNC),
         )
         assertEquals(
-            TexteTooling.Ressource(R.string.editor_sortie_sync_reussie, listOf("3.0s")),
-            PresentationTooling.libelleStatut(etat),
+            "INC-22 : le statut de console montre l'échec, comme l'en-tête",
+            TexteTooling.Brut("modèle IdeaProject indisponible"),
+            PresentationTooling.libelleStatut(etat, CanalTooling.SYNC),
         )
     }
 
     @Test
-    fun `l activite sync sans resultat affiche la synchronisation en cours`() {
+    fun `le canal sync jamais vecu affiche le libelle honnete - INC-04`() {
+        // INC-04 : l'ancienne branche finale mentait (« Synchronisation du
+        // projet… » alors que rien ne tourne) ; le canal Sync devient
+        // consultable sans qu'aucune sync n'ait jamais tourné (INC-20) —
+        // le libellé honnête remplace l'activité fantôme.
         val libelle = PresentationTooling.libelleActivite(EtatGradle(), CanalTooling.SYNC)
 
-        assertEquals(TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours), libelle)
+        assertEquals(TexteTooling.Ressource(R.string.editor_tooling_sync_jamais), libelle)
     }
 
     // ---- En-tête : canal Build -----------------------------------------
@@ -185,13 +197,18 @@ class PresentationToolingTest {
         assertEquals(TexteTooling.Ressource(R.string.editor_tooling_taches_en_cours), libelle)
     }
 
-    // ---- Statut de l'onglet Sortie --------------------------------------
+    // ---- Statut de l'onglet Sortie (INC-22 : cascade de l'en-tête, sur le
+    // canal affiché par canalAffiche) -------------------------------
 
     @Test
-    fun `le statut priorise la sync en vol puis son resultat puis l echec`() {
+    fun `le statut du canal sync suit la cascade de l en-tete - vol puis echec puis reussite`() {
         assertEquals(
-            TexteTooling.Ressource(R.string.editor_sortie_sync_en_cours),
-            PresentationTooling.libelleStatut(EtatGradle(synchronisationEnCours = true)),
+            TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours),
+            PresentationTooling.libelleStatut(EtatGradle(synchronisationEnCours = true), CanalTooling.SYNC),
+        )
+        assertEquals(
+            TexteTooling.Brut("échec réseau"),
+            PresentationTooling.libelleStatut(EtatGradle(messageEchecSync = "échec réseau"), CanalTooling.SYNC),
         )
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_sync_reussie, listOf("450ms")),
@@ -200,58 +217,68 @@ class PresentationToolingTest {
                     synchronisationReussie =
                     ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 450),
                 ),
+                CanalTooling.SYNC,
+            ),
+        )
+    }
+
+    @Test
+    fun `le statut du canal build suit la cascade de l en-tete - taches en vol puis verdicts`() {
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_tooling_build_taches, listOf(":app:build")),
+            PresentationTooling.libelleStatut(
+                EtatGradle(statutBuild = StatutBuild.EN_COURS, taches = listOf(":app:build")),
+                CanalTooling.BUILD,
             ),
         )
         assertEquals(
-            TexteTooling.Brut("échec réseau"),
-            PresentationTooling.libelleStatut(EtatGradle(messageEchecSync = "échec réseau")),
-        )
-    }
-
-    @Test
-    fun `le statut replie sur le build - en cours sans noms de taches`() {
-        val etat =
-            EtatGradle(
-                statutBuild = StatutBuild.EN_COURS,
-                taches = listOf(":app:build"),
-            )
-
-        val libelle = PresentationTooling.libelleStatut(etat)
-
-        assertEquals(TexteTooling.Ressource(R.string.editor_sortie_build_en_cours), libelle)
-    }
-
-    @Test
-    fun `le statut replie sur le build termine - reussi echoue annule`() {
-        assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_build_reussi, listOf("0ms")),
-            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.REUSSI)),
+            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.REUSSI), CanalTooling.BUILD),
         )
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_build_echoue),
-            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.ECHOUE)),
+            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.ECHOUE), CanalTooling.BUILD),
         )
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_build_annule),
-            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.ANNULE)),
+            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.ANNULE), CanalTooling.BUILD),
         )
     }
 
     @Test
-    fun `le statut signale l orchestrateur deconnecte en dernier recours`() {
-        val etat = EtatGradle(connexion = EtatConnexion.ECHOUEE)
-
-        val libelle = PresentationTooling.libelleStatut(etat)
-
-        assertEquals(TexteTooling.Ressource(R.string.editor_outil_deconnecte), libelle)
-    }
-
-    @Test
-    fun `le statut vierge affiche la sortie vide`() {
+    fun `le statut sans canal replie sur deconnecte puis sortie vide`() {
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_outil_deconnecte),
+            PresentationTooling.libelleStatut(EtatGradle(connexion = EtatConnexion.ECHOUEE), null),
+        )
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_vide),
-            PresentationTooling.libelleStatut(EtatGradle()),
+            PresentationTooling.libelleStatut(EtatGradle(), null),
         )
+    }
+
+    // ---- Canal affiché (INC-02) ----------------------------------------
+
+    @Test
+    fun `le canal affiche suit le choix des que sync ou build a vecu - jamais TACHES`() {
+        // État vierge : rien à sélectionner.
+        assertNull(PresentationTooling.canalAffiche(EtatGradle(), FiltreCanalConsole.SYNC))
+        assertNull(PresentationTooling.canalAffiche(EtatGradle(), FiltreCanalConsole.BUILD))
+
+        // Sync en vol : le choix désigne la console.
+        assertEquals(
+            CanalTooling.SYNC,
+            PresentationTooling.canalAffiche(EtatGradle(synchronisationEnCours = true), FiltreCanalConsole.SYNC),
+        )
+
+        // Dernier résultat build : le choix désigne la console.
+        assertEquals(
+            CanalTooling.BUILD,
+            PresentationTooling.canalAffiche(EtatGradle(statutBuild = StatutBuild.ECHOUE), FiltreCanalConsole.BUILD),
+        )
+
+        // Listage SEUL (INC-03) : pas de console à sélectionner.
+        assertNull(PresentationTooling.canalAffiche(EtatGradle(tachesEnCours = true), FiltreCanalConsole.SYNC))
     }
 
     // ---- Durées (formateur partagé) -------------------------------------

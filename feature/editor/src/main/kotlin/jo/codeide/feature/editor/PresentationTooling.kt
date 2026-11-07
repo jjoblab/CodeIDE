@@ -172,21 +172,19 @@ internal object DetailsEtapesSync {
 
 /**
  * Présentateur UNIQUE du tooling (correctif n°11 du prompt « tooling Gradle
- * professionnel ») : deux cascades dupliquées traduisaient [EtatGradle] en
+ * professionnel » ; INC-02, volet C du prompt « retard d'affichage des
+ * sorties de build ») : deux cascades dupliquées traduisaient [EtatGradle] en
  * libellés — [EditorActivity.libelleActiviteTooling] pour l'en-tête du
  * panneau et [PanneauConsoleFragment.libelleStatutTooling] pour le statut
  * de l'onglet Sortie. Elles vivent désormais ici, pures et testées
  * (FR/EN, échec, annulé, sync, build, listage).
  *
- * Les deux cascades gardent leurs différences VOLONTAIRES (aucun
- * changement visuel au correctif n°11) :
- *
- * - l'en-tête suit SON canal ([CanalTooling]) : échec de sync avant
- *   réussite (une sync partielle reste un échec affiché), noms des tâches
- *   du build, canal Taches en vol ;
- * - le statut de la console est une priorité sync-puis-build avec repli
- *   réussite-avant-échec (une sync partielle reste « synchronisée »),
- *   sans noms de tâches, avec repli « orchestrateur déconnecté ».
+ * INC-02 : les cascades locales du fragment (chip, icône de canal) sont
+ * SUPPRIMÉES — tout écran console dérive du MÊME [canalAffiche] ; le
+ * statut de la console suit la MÊME cascade que l'en-tête
+ * ([libelleActivite] du canal affiché, INC-22) — la contradiction
+ * « Synchronisé » côté console vs échec côté en-tête d'une sync PARTIELLE
+ * disparaît : un seul verdict par canal.
  *
  * Les durées passent par [DureesLisibles] (correctif n°11 : la copie
  * privée de `EditorActivity` est supprimée — un seul formateur).
@@ -339,6 +337,33 @@ internal object PresentationTooling {
         else -> null
     }
 
+    /**
+     * Canal affiché par les écrans console (INC-02, volet C) : chip,
+     * icône de canal, ligne de statut et console VISIBLE dérivent de cette
+     * SEULE dérivation — plus jamais d'une copie de cascade locale.
+     *
+     * Règle : le choix d'affichage ([FiltreCanalConsole] — poussé par
+     * l'action qui démarre, INC-20 : choisi par l'utilisateur ensuite)
+     * désigne la console montrée ; la dérivation rend `null` quand NI la
+     * sync NI le build n'ont jamais vécu (état vierge — rien à
+     * sélectionner, le chip et l'icône disparaissent, le statut replie sur
+     * son état vide). Le canal [CanalTooling.TACHES] n'est JAMAIS renvoyé
+     * : transitoire de l'EN-TÊTE uniquement (INC-03 — le listage se
+     * conclut par son sélecteur, pas par une console).
+     *
+     * L'en-tête du panneau, lui, suit l'ACTIVITÉ
+     * (`canalActif ?: canalDernierResultat`) : pendant que l'utilisateur
+     * consulte la console Sync, un build lancé entre-temps reste annoncé
+     * par l'en-tête — les deux rôles ne se mélangent pas.
+     */
+    fun canalAffiche(etat: EtatGradle, choix: FiltreCanalConsole): CanalTooling? {
+        val canalVecu =
+            etat.canalActif == CanalTooling.SYNC ||
+                etat.canalActif == CanalTooling.BUILD ||
+                etat.canalDernierResultat != null
+        return if (canalVecu) choix.canal else null
+    }
+
     /** Activité courante de l'en-tête, sur SON canal. */
     fun libelleActivite(etat: EtatGradle, canal: CanalTooling): TexteTooling = when (canal) {
         CanalTooling.SYNC -> {
@@ -355,42 +380,28 @@ internal object PresentationTooling {
         }
     }
 
-    /** Statut de l'onglet Sortie (priorité sync, puis build, puis repli). */
-    fun libelleStatut(etat: EtatGradle): TexteTooling = when {
-        etat.synchronisationEnCours -> {
-            TexteTooling.Ressource(R.string.editor_sortie_sync_en_cours)
-        }
+    /**
+     * Statut de la console (INC-22 : MÊME cascade que l'en-tête, sur le
+     * canal affiché [canalAffiche]) — l'ancienne priorité sync-puis-build
+     * aux replis différents racontait un autre verdict que l'en-tête pour
+     * un même état (sync partielle : « Synchronisé » contre un échec
+     * affiché) ; un seul verdict par canal désormais. Replis de l'état
+     * vierge : orchestrateur déconnecté, sinon sortie vide.
+     */
+    fun libelleStatut(etat: EtatGradle, canal: CanalTooling?): TexteTooling = when (canal) {
+        null ->
+            when {
+                etat.connexion == EtatConnexion.ECHOUEE -> {
+                    TexteTooling.Ressource(R.string.editor_outil_deconnecte)
+                }
 
-        etat.synchronisationReussie != null -> {
-            reussieSync(etat)
-        }
-
-        etat.messageEchecSync != null -> {
-            TexteTooling.Brut(etat.messageEchecSync)
-        }
-
-        etat.statutBuild == StatutBuild.EN_COURS -> {
-            TexteTooling.Ressource(R.string.editor_sortie_build_en_cours)
-        }
-
-        etat.statutBuild == StatutBuild.REUSSI -> {
-            reussiBuild(etat)
-        }
-
-        etat.statutBuild == StatutBuild.ECHOUE -> {
-            echoueBuild(etat)
-        }
-
-        etat.statutBuild == StatutBuild.ANNULE -> {
-            TexteTooling.Ressource(R.string.editor_sortie_build_annule)
-        }
-
-        etat.connexion == EtatConnexion.ECHOUEE -> {
-            TexteTooling.Ressource(R.string.editor_outil_deconnecte)
-        }
+                else -> {
+                    TexteTooling.Ressource(R.string.editor_sortie_vide)
+                }
+            }
 
         else -> {
-            TexteTooling.Ressource(R.string.editor_sortie_vide)
+            libelleActivite(etat, canal)
         }
     }
 
@@ -410,7 +421,13 @@ internal object PresentationTooling {
         }
 
         else -> {
-            TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours)
+            // INC-04 : cette branche mentait (« Synchronisation du projet… »
+            // alors que rien ne tourne). Inatteignable par les états publiés
+            // par le service (un canal SYNC y implique un verdict sync) —
+            // mais l'INC-20 rend le canal Sync consultable sans qu'aucune
+            // sync n'ait jamais tourné : le libellé honnête est alors
+            // « Aucune synchronisation lancée », pas une activité fantôme.
+            TexteTooling.Ressource(R.string.editor_tooling_sync_jamais)
         }
     }
 
