@@ -5,6 +5,7 @@ import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.ResultatSynchronisation
 import jo.codeide.core.domain.StatutBuild
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -298,6 +299,67 @@ class PresentationToolingTest {
             TexteTooling.Ressource(R.string.editor_sortie_vide),
             PresentationTooling.libelleStatut(EtatGradle(), null),
         )
+    }
+
+    // ---- Bandeau d'échec par canal (INC-21) ----------------------------
+
+    @Test
+    fun `le bandeau d echec porte le verdict du canal affiche - sync ou build`() {
+        val syncEchouee = EtatGradle(messageEchecSync = "non connecté")
+        val buildEchoue = EtatGradle(statutBuild = StatutBuild.ECHOUE, messageEchecBuild = "compileKotlin a échoué")
+        val buildReussi = EtatGradle(statutBuild = StatutBuild.REUSSI)
+
+        // Canal Sync affiché : l'échec de SYNC porte le bandeau (INC-21 :
+        // avant, il n'avait qu'une ligne de statut — sans « Réessayer »).
+        assertEquals(
+            TexteTooling.Brut("non connecté"),
+            PresentationTooling.messageEchecCanal(syncEchouee, CanalTooling.SYNC),
+        )
+        assertTrue(PresentationTooling.reessaiPossible(syncEchouee, CanalTooling.SYNC))
+
+        // Canal Build affiché : le verdict du build — le message du serveur.
+        assertEquals(
+            TexteTooling.Brut("compileKotlin a échoué"),
+            PresentationTooling.messageEchecCanal(buildEchoue, CanalTooling.BUILD),
+        )
+
+        // Un canal qui n'a PAS échoué ne montre rien (même si l'autre a
+        // échoué) — le point d'actualité du sélecteur signale l'autre.
+        assertEquals(null, PresentationTooling.messageEchecCanal(buildReussi, CanalTooling.BUILD))
+        assertEquals(
+            "l'échec du build ne déclenche pas le bandeau de la console Sync",
+            null,
+            PresentationTooling.messageEchecCanal(buildEchoue, CanalTooling.SYNC),
+        )
+        assertEquals(
+            "l'échec de sync ne déclenche pas le bandeau de la console Build",
+            null,
+            PresentationTooling.messageEchecCanal(syncEchouee, CanalTooling.BUILD),
+        )
+    }
+
+    @Test
+    fun `le repli du bandeau est localise par canal - message vide ou absent`() {
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_console_echec_sync_defaut),
+            PresentationTooling.messageEchecCanal(EtatGradle(messageEchecSync = "  "), CanalTooling.SYNC),
+        )
+        assertEquals(
+            TexteTooling.Ressource(R.string.editor_console_echec_defaut),
+            PresentationTooling.messageEchecCanal(EtatGradle(statutBuild = StatutBuild.ECHOUE), CanalTooling.BUILD),
+        )
+    }
+
+    @Test
+    fun `le reessai du build exige des taches - la sync se relance toujours`() {
+        assertFalse(PresentationTooling.reessaiPossible(EtatGradle(taches = emptyList()), CanalTooling.BUILD))
+        assertTrue(
+            PresentationTooling.reessaiPossible(
+                EtatGradle(taches = listOf(":app:assembleDebug")),
+                CanalTooling.BUILD,
+            ),
+        )
+        assertTrue(PresentationTooling.reessaiPossible(EtatGradle(), CanalTooling.SYNC))
     }
 
     // ---- Canal affiché (INC-02) ----------------------------------------

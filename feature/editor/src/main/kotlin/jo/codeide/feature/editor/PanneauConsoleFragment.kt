@@ -220,16 +220,29 @@ class PanneauConsoleFragment : Fragment() {
         liaison.editEntreeConsole.text?.clear()
     }
 
-    /** Bandeau d'échec (§3.3) : « Voir les problèmes » (onglet dédié) et
-     *  « Réessayer » (relance des MÊMES tâches) — plus d'échec muet. */
+    /**
+     * Bandeau d'échec (§3.3 ; INC-21 : PAR CANAL — le bandeau porte le
+     * verdict d'échec du canal AFFICHÉ) : « Voir les problèmes » (onglet
+     * dédié, seulement si des diagnostics existent) et « Réessayer »
+     * (relance la MÊME activité — la sync pour le canal Sync, les mêmes
+     * tâches pour le canal Build) — plus d'échec muet.
+     */
     private fun brancherActionsEchec() {
         liaison.boutonVoirProblemes.setOnClickListener {
             viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(OngletPanneau.PROBLEMES))
         }
-        liaison.boutonReessayerBuild.setOnClickListener {
-            val taches = viewModel.etatGradle.value.taches
-            if (taches.isNotEmpty()) {
-                viewModel.onAction(ActionEditor.ExecuterTaches(taches))
+        liaison.boutonReessayerCanal.setOnClickListener {
+            when (action) {
+                FiltreCanalConsole.SYNC -> {
+                    viewModel.onAction(ActionEditor.Synchroniser)
+                }
+
+                FiltreCanalConsole.BUILD -> {
+                    val taches = viewModel.etatGradle.value.taches
+                    if (taches.isNotEmpty()) {
+                        viewModel.onAction(ActionEditor.ExecuterTaches(taches))
+                    }
+                }
             }
         }
         // « Expliquer » (mission IA, lot IA-5, spec E3) : la sortie du
@@ -273,13 +286,20 @@ class PanneauConsoleFragment : Fragment() {
         // retente le listage via l'orchestrateur (cf. `ouvrirSelecteurTaches`).
         liaison.boutonTachesSortie.isEnabled = etat.tachesDisponibles != null
 
-        val echoue = etat.statutBuild == StatutBuild.ECHOUE
-        liaison.bandeauEchecBuild.isVisible = echoue
-        if (echoue) {
-            liaison.messageEchecBuild.text =
-                etat.messageEchecBuild
-                    ?: getString(R.string.editor_console_echec_defaut)
-            liaison.boutonReessayerBuild.isVisible = etat.taches.isNotEmpty()
+        // Bandeau d'échec PAR CANAL (§3.3 ; INC-21) : dérivation du
+        // présentateur — celui du canal AFFICHÉ ; l'échec de l'autre canal
+        // est signalé par le point d'actualité du sélecteur (INC-20) et
+        // l'en-tête. Un échec de sync a les MÊMES actions qu'un échec
+        // de build.
+        val echecCanal = PresentationTooling.messageEchecCanal(etat, canalAffiche)
+        liaison.bandeauEchecCanal.isVisible = echecCanal != null
+        if (echecCanal != null) {
+            liaison.messageEchecCanal.text = echecCanal.resoudre(requireContext())
+            liaison.boutonReessayerCanal.isVisible =
+                PresentationTooling.reessaiPossible(etat, canalAffiche)
+            // « Voir les problèmes » : seulement si des diagnostics
+            // existent (INC-21 — pas d'onglet vide promis).
+            liaison.boutonVoirProblemes.isVisible = etat.problemesTotal > 0
         }
 
         // v0.40.1 (§3) ; INC-02 : sélecteur du canal AFFICHÉ — la cascade

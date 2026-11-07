@@ -390,6 +390,8 @@
     <string name="editor_console_echec_voir_problemes">See problems</string>
     <string name="editor_console_echec_reessayer">Retry</string>
     <string name="editor_console_echec_defaut">Build failed</string>
+    <!-- INC-21 (volet C): default message of the Sync channel failure banner. -->
+    <string name="editor_console_echec_sync_defaut">Synchronization failed</string>
     <string name="editor_console_synthese_annule">Build cancelled</string>
     <string name="editor_console_synthese_sync_terminee">Sync complete — tasks are available.</string>
     <string name="editor_console_synthese_sync_a_jour">Project up to date, nothing to download — tasks are available.</string>

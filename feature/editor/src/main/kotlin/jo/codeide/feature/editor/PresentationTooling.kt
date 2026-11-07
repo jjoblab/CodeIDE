@@ -361,6 +361,45 @@ internal object PresentationTooling {
     }
 
     /**
+     * Message d'échec du BANDEAU de la console (INC-21, volet C) : celui
+     * du canal AFFICHÉ — `null` quand ce canal n'a pas échoué (l'échec de
+     * l'AUTRE canal est signalé par le point d'actualité du sélecteur
+     * INC-20 et par l'en-tête). Un échec de sync a enfin un message
+     * tranchant, pas seulement une ligne de statut ; le message vide
+     * replie sur le verdict localisé du canal.
+     */
+    fun messageEchecCanal(etat: EtatGradle, canal: CanalTooling?): TexteTooling? = when (canal) {
+        CanalTooling.SYNC ->
+            etat.messageEchecSync?.let { echec ->
+                if (echec.isNotBlank()) {
+                    TexteTooling.Brut(echec)
+                } else {
+                    TexteTooling.Ressource(R.string.editor_console_echec_sync_defaut)
+                }
+            }
+
+        CanalTooling.BUILD ->
+            when (etat.statutBuild) {
+                StatutBuild.ECHOUE ->
+                    etat.messageEchecBuild?.let { TexteTooling.Brut(it) }
+                        ?: TexteTooling.Ressource(R.string.editor_console_echec_defaut)
+
+                else -> null
+            }
+
+        CanalTooling.TACHES, null -> null
+    }
+
+    /**
+     * Le « Réessayer » du bandeau est-il actionnable (INC-21) ? La sync
+     * se relance toujours ; un build seulement si des tâches existent.
+     */
+    fun reessaiPossible(etat: EtatGradle, canal: CanalTooling?): Boolean = when (canal) {
+        CanalTooling.SYNC -> true
+        else -> etat.taches.isNotEmpty()
+    }
+
+    /**
      * Canal affiché par les écrans console (INC-02, volet C) : chip,
      * icône de canal, ligne de statut et console VISIBLE dérivent de cette
      * SEULE dérivation — plus jamais d'une copie de cascade locale.

@@ -430,6 +430,8 @@
     <string name="editor_console_echec_voir_problemes">Voir les problèmes</string>
     <string name="editor_console_echec_reessayer">Réessayer</string>
     <string name="editor_console_echec_defaut">Échec du build</string>
+    <!-- INC-21 (volet C) : message par défaut du bandeau d'échec du canal Sync. -->
+    <string name="editor_console_echec_sync_defaut">Échec de la synchronisation</string>
     <string name="editor_console_synthese_annule">Build annulé</string>
     <string name="editor_console_synthese_sync_terminee">Synchronisation terminée — les tâches sont disponibles.</string>
     <string name="editor_console_synthese_sync_a_jour">Projet à jour, rien à télécharger — les tâches sont disponibles.</string>

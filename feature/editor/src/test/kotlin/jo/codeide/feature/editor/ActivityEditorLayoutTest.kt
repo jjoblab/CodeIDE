@@ -494,8 +494,8 @@ class ActivityEditorLayoutTest {
             "bouton Tâches éteint par défaut — le cache de la sync est vide (§3.3)",
             (boutonTaches as android.widget.Button).isEnabled,
         )
-        val bandeau = console.findViewById<View>(R.id.bandeau_echec_build)
-        assertNotNull("bandeau d'échec du build (§3.3)", bandeau)
+        val bandeau = console.findViewById<View>(R.id.bandeau_echec_canal)
+        assertNotNull("bandeau d'échec du canal affiché (§3.3, INC-21)", bandeau)
         assertEquals("bandeau d'échec masqué par défaut (§3.3)", View.GONE, bandeau.visibility)
         assertNotNull(
             "action « Voir les problèmes » du bandeau (§3.3)",
@@ -503,7 +503,7 @@ class ActivityEditorLayoutTest {
         )
         assertNotNull(
             "action « Réessayer » du bandeau (§3.3)",
-            console.findViewById<View>(R.id.bouton_reessayer_build),
+            console.findViewById<View>(R.id.bouton_reessayer_canal),
         )
     }
 
