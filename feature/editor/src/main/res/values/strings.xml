@@ -378,6 +378,10 @@
     <string name="editor_tooling_canal_build">Build</string>
     <string name="editor_tooling_canal_taches">Tâches</string>
     <string name="editor_tooling_arreter_cd">Arrêter l\'activité tooling en cours</string>
+    <!-- INC-12 (volet C) : honnêteté — la synchronisation ne peut pas être
+         annulée (l'annulation RÉELLE est un arbitrage propriétaire, chiffrée
+         dans docs/PLAN-AMELIORATIONS.md du dépôt codeide-tooling). -->
+    <string name="editor_tooling_sync_non_annulable">Sync non annulable</string>
     <!-- INC-17 (volet C) : la zone d\'appui de la ligne tooling bascule le
          sheet — rôle et étiquette annoncés à TalkBack. -->
     <string name="editor_ligne_tooling_cd">Ouvrir ou fermer le panneau de la console</string>
@@ -459,6 +463,10 @@
     <string name="editor_console_synthese_annule">Build annulé</string>
     <string name="editor_console_synthese_sync_terminee">Synchronisation terminée — les tâches sont disponibles.</string>
     <string name="editor_console_synthese_sync_a_jour">Projet à jour, rien à télécharger — les tâches sont disponibles.</string>
+    <!-- INC-05/24 (volet C) : sync restituée du cache (empreinte identique) — la
+         console Sync dit l'origine, elle ne reste pas vide. -->
+    <string name="editor_console_synthese_sync_restituee">Synchronisation restituée du cache — les tâches sont disponibles.</string>
+    <string name="editor_console_synthese_sync_restituee_duree">Synchronisation restituée du cache (dernière : %1$s) — les tâches sont disponibles.</string>
 
     <!-- Synthèse de fin de build — comptes des tâches (v0.39.1, correctif n°4) :
          mêmes libellés que la console d'Android Studio, restitution honnête
@@ -506,7 +514,6 @@
     <string name="editor_config_tooling_libelle">Configuration</string>
     <string name="editor_config_fermer_cd">Fermer la configuration du tooling</string>
     <string name="editor_config_tooling_cd">Configurer le tooling Gradle</string>
-    <string name="editor_config_affichage">Affichage de la console</string>
     <string name="editor_config_execution">Exécution</string>
     <string name="editor_config_hors_ligne">Mode hors ligne</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>

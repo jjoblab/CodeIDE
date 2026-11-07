@@ -545,6 +545,30 @@ constructor(
         }
     }
 
+    /**
+     * Publie une sync RESTITUÉE du cache (INC-05/24, volet C) : l'état
+     * « Synchronisé » et les tâches sont republiés depuis sync-state.json
+     * (empreinte Gradle identique — voir
+     * `EditorViewModel.restaurerEtatSyncSiEmpreinteIdentique`), et la
+     * console Sync reçoit la conclusion qui dit l'ORIGINE — plus de
+     * console vide derrière un en-tête qui annonce un succès. Le repère
+     * d'ordre (INC-01) est posé comme toute conclusion.
+     */
+    fun publierSyncRestituee(resultat: ResultatSynchronisation) {
+        val sequence = ++sequenceResultats
+        maj {
+            it.copy(
+                synchronisationEnCours = false,
+                synchronisationReussie = resultat,
+                dureeSyncMs = resultat.dureeMs,
+                sequenceResultatSync = sequence,
+            )
+        }
+        LignesConsoleTexte.conclusionSyncRestituee(resultat.dureeMs).forEach { ligne ->
+            zoneTexteInterne.tryEmit(ligne)
+        }
+    }
+
     /** Publie le résultat d'une synchronisation — l'état porte le canal
      *  Sync (résultat, message) ; le rendu localise et balise.
      *  v0.46.0 : une sync RÉUSSIE conclut aussi la CONSOLE (canal Sync)

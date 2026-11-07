@@ -530,6 +530,22 @@
                         android:textColor="?attr/colorOnSurfaceVariant"
                         tools:text="12,3 s" />
 
+                    <!-- INC-12 : honnêteté — pendant une sync (non
+                         annulable), l'emplacement du bouton Arrêter dit
+                         POURQUOI il n'y en a pas, au lieu d'un silence. -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/note_non_annulable"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:text="@string/editor_tooling_sync_non_annulable"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/bouton_arreter_tooling"
                         style="@style/Widget.CodeIDE.Button.Icon"

@@ -340,6 +340,10 @@
     <string name="editor_tooling_canal_build">Build</string>
     <string name="editor_tooling_canal_taches">Tasks</string>
     <string name="editor_tooling_arreter_cd">Stop the running tooling activity</string>
+    <!-- INC-12 (volet C): honesty — sync cannot be cancelled (real
+         cancellation is an owner decision, costed in codeide-tooling's
+         docs/PLAN-AMELIORATIONS.md). -->
+    <string name="editor_tooling_sync_non_annulable">Sync can\'t be stopped</string>
     <!-- INC-17 (volet C): the tooling line touch target toggles the
          sheet — role and label announced to TalkBack. -->
     <string name="editor_ligne_tooling_cd">Open or close the console panel</string>
@@ -414,6 +418,9 @@
     <string name="editor_console_synthese_annule">Build cancelled</string>
     <string name="editor_console_synthese_sync_terminee">Sync complete — tasks are available.</string>
     <string name="editor_console_synthese_sync_a_jour">Project up to date, nothing to download — tasks are available.</string>
+    <!-- INC-05/24 (volet C): restored-from-cache conclusion lines. -->
+    <string name="editor_console_synthese_sync_restituee">Synchronization restored from cache — tasks are available.</string>
+    <string name="editor_console_synthese_sync_restituee_duree">Synchronization restored from cache (last: %1$s) — tasks are available.</string>
 
     <!-- Build summary — task counts (v0.39.1, fix #4): same wording as
          Android Studio\'s console, honest restitution of Gradle\'s last
@@ -459,7 +466,6 @@
     <string name="editor_config_tooling_libelle">Settings</string>
     <string name="editor_config_fermer_cd">Close tooling configuration</string>
     <string name="editor_config_tooling_cd">Configure Gradle tooling</string>
-    <string name="editor_config_affichage">Console display</string>
     <string name="editor_config_execution">Execution</string>
     <string name="editor_config_hors_ligne">Offline mode</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>

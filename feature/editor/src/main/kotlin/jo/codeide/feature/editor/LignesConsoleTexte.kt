@@ -141,6 +141,33 @@ internal object LignesConsoleTexte {
     }
 
     /**
+     * Conclusion d'une sync RESTITUÉE du cache (INC-05/24, volet C) :
+     * l'état a été republié depuis sync-state.json (empreinte Gradle
+     * identique) — la console Sync ne reste PAS vide derrière un en-tête
+     * qui annonce « Synchronisé » : une ligne SYNTHESE dit l'origine
+     * (cache) et la durée de la DERNIÈRE vraie sync.
+     */
+    fun conclusionSyncRestituee(dureeMs: Long?): List<EvenementConsoleTexte.Ligne> {
+        val duree = dureeMs?.let(DureesLisibles::formater)
+        val conclusion =
+            if (duree != null) {
+                TexteTooling.Ressource(
+                    R.string.editor_console_synthese_sync_restituee_duree,
+                    listOf(duree),
+                )
+            } else {
+                TexteTooling.Ressource(R.string.editor_console_synthese_sync_restituee)
+            }
+        return listOf(
+            EvenementConsoleTexte.Ligne(
+                canal = CanalTooling.SYNC,
+                libelle = conclusion,
+                style = StyleLigne.SYNTHESE,
+            ),
+        )
+    }
+
+    /**
      * Lignes de conclusion d'une synchronisation ÉCHOUÉE (v0.48.0, ADR
      * 0079) : « Synchronisation échouée » PUIS le message du serveur en
      * ligne d'erreur — parité « SYNC FAILED » d'Android Studio, qui
@@ -151,6 +178,7 @@ internal object LignesConsoleTexte {
      * mesurée (échec de résolution) ; un échec LOCAL (garde JDK, dossier,
      * transport) n'en a pas.
      */
+
     fun conclusionSyncEchouee(dureeMs: Long?, message: String?): List<EvenementConsoleTexte.Ligne> {
         val lignes =
             mutableListOf(

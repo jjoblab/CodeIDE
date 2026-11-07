@@ -251,6 +251,10 @@ internal class PanneauToolingController(
         }
         rendreProgression(entete, etat)
         liaison.boutonArreterTooling.isVisible = entete.arret
+        // INC-12 : honnêteté — pendant une sync (non annulable),
+        // l'emplacement du bouton Arrêter explique son absence, au lieu
+        // d'un silence de 3 minutes (vécu : sync de 194 s).
+        liaison.noteNonAnnulable.isVisible = etat.canalActif == CanalTooling.SYNC
         // Chrono : en vol il TICHE (demi-seconde), terminé il fige la
         // durée du résultat — jamais de temps figé qui ment. INC-14 : le
         // ticker n'est annulé/relancé que si le DÉPART change.

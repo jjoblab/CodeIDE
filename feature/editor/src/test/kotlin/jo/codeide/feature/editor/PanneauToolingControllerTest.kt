@@ -69,6 +69,24 @@ class PanneauToolingControllerTest {
     }
 
     @Test
+    fun `la note sync non annulable apparait pendant une sync - INC-12`() {
+        controleur.definirOnglet(OngletPanneau.CONSOLE)
+
+        // Sync en vol : l'emplacement du bouton Arrêter explique son
+        // absence — plus de silence de trois minutes.
+        controleur.rendre(EtatGradle(synchronisationEnCours = true, debutSyncMs = 1_000L))
+        org.junit.Assert.assertTrue(
+            "INC-12 : la note honnête remplace le bouton absent pendant une sync",
+            controleurBinding().noteNonAnnulable.isVisible,
+        )
+
+        // Build en vol : le bouton Arrêter EST là, pas de note.
+        controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 2_000L))
+        org.junit.Assert.assertFalse(controleurBinding().noteNonAnnulable.isVisible)
+        org.junit.Assert.assertTrue(controleurBinding().boutonArreterTooling.isVisible)
+    }
+
+    @Test
     fun `l indicateur compact est present hors de la ligne enrichie - INC-10`() {
         val etat = EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L)
 

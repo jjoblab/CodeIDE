@@ -1118,16 +1118,16 @@ constructor(
         // Empreinte identique : on publie immédiatement l'état « Synchronisé »
         // et les tâches, puis on lance la revalidation silencieuse.
         journal.i(TAG) { "empreinte identique — état sync restitué (projet ${identifiantSuivi()})" }
-        serviceGradle.publierResultatSync(
-            AppResult.Success(
-                ResultatSynchronisation(
-                    projectDir = cheminProjet ?: "",
-                    reussie = true,
-                    dureeMs = state.dureeMs,
-                    // v0.47.0 : les tâches restituées traversent AVEC le
-                    // résultat — même contrat que la sync en direct.
-                    taches = state.taches,
-                ),
+        // INC-05/24 : la conclusion de console dit l'ORIGINE (cache) —
+        // la console Sync n'est plus vide derrière l'en-tête « Synchronisé ».
+        serviceGradle.publierSyncRestituee(
+            ResultatSynchronisation(
+                projectDir = cheminProjet ?: "",
+                reussie = true,
+                dureeMs = state.dureeMs,
+                // v0.47.0 : les tâches restituées traversent AVEC le
+                // résultat — même contrat que la sync en direct.
+                taches = state.taches,
             ),
         )
         if (state.taches.isNotEmpty()) {
