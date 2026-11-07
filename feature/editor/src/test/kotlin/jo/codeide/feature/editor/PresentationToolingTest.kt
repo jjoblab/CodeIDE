@@ -104,7 +104,8 @@ class PresentationToolingTest {
             PresentationTooling.etatEntete(etat).sousTitre,
         )
         assertEquals(
-            "INC-15/22 : l'en-tête (ligne enrichie et indicateurs compacts) porte le verdict court, pas le message brut",
+            "INC-15/22 : l'en-tête (ligne enrichie et indicateurs compacts) " +
+                "porte le verdict court, pas le message brut",
             TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
             PresentationTooling.libelleActivite(etat, CanalTooling.SYNC),
         )

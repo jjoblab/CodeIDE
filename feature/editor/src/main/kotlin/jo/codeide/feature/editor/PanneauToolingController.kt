@@ -204,32 +204,8 @@ internal class PanneauToolingController(
         ligneActivee = canal != null
         activiteCourante = etat.canalActif != null
 
-        // INC-13 : flash SYMÉTRIQUE au verdict terminal (~1,5 s, succès
-        // vert / échec rouge / annulé avertissement) puis masquage — plus
-        // de bande pleine permanente au succès ni de disparition
-        // immédiate à l'échec. Une activité qui (re)démarre éteint le
-        // flash en cours.
-        if (activiteCourante) {
-            travailFlash?.cancel()
-            flashVerdict = false
-        } else if (entete.statut == StatutEntete.SUCCES ||
-            entete.statut == StatutEntete.ECHOUE ||
-            entete.statut == StatutEntete.ANNULE
-        ) {
-            if (entete.statut != dernierStatutFlashe || entete.dureeFigeeMs != derniereDureeFlashee) {
-                dernierStatutFlashe = entete.statut
-                derniereDureeFlashee = entete.dureeFigeeMs
-                travailFlash?.cancel()
-                flashVerdict = true
-                travailFlash = activite.lifecycleScope.launch {
-                    activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                        delay(DUREE_FLASH_VERDICT_MS)
-                        flashVerdict = false
-                        majVisibiliteBande()
-                    }
-                }
-            }
-        }
+        // INC-13 : flash SYMÉTRIQUE au verdict terminal puis masquage.
+        majFlashVerdict(entete)
 
         if (canal != null) {
             rendrePastille(entete, canal)
@@ -249,7 +225,7 @@ internal class PanneauToolingController(
             // l'état a été nettoyé par `attacher()`).
             reinitialiserEntete()
         }
-        rendreProgression(entete, etat)
+        rendreProgression(entete)
         liaison.boutonArreterTooling.isVisible = entete.arret
         // INC-12 : honnêteté — pendant une sync (non annulable),
         // l'emplacement du bouton Arrêter explique son absence, au lieu
@@ -361,6 +337,40 @@ internal class PanneauToolingController(
         // même étendue (retour d'activité pendant l'extension). INC-13 :
         // visible en vol ou pendant le flash de verdict, JAMAIS au repos.
         majVisibiliteBande()
+    }
+
+    /**
+     * Flash SYMÉTRIQUE au verdict terminal (INC-13 : ~1,5 s, succès vert /
+     * échec rouge / annulé avertissement) puis masquage — plus de bande
+     * pleine permanente au succès ni de disparition immédiate à l'échec.
+     * Une activité qui (re)démarre éteint le flash en cours ; un NOUVEAU
+     * verdict (statut ou durée différente du dernier flaché) le relance.
+     */
+    private fun majFlashVerdict(entete: EtatEnteteTooling) {
+        if (activiteCourante) {
+            travailFlash?.cancel()
+            flashVerdict = false
+            return
+        }
+        val verdictTerminal =
+            entete.statut == StatutEntete.SUCCES ||
+                entete.statut == StatutEntete.ECHOUE ||
+                entete.statut == StatutEntete.ANNULE
+        val nouveauVerdict =
+            entete.statut != dernierStatutFlashe || entete.dureeFigeeMs != derniereDureeFlashee
+        if (verdictTerminal && nouveauVerdict) {
+            dernierStatutFlashe = entete.statut
+            derniereDureeFlashee = entete.dureeFigeeMs
+            travailFlash?.cancel()
+            flashVerdict = true
+            travailFlash = activite.lifecycleScope.launch {
+                activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                    delay(DUREE_FLASH_VERDICT_MS)
+                    flashVerdict = false
+                    majVisibiliteBande()
+                }
+            }
+        }
     }
 
     /** Visibilité de la bande de progression (INC-13) : en vol ou au
@@ -485,7 +495,7 @@ internal class PanneauToolingController(
      *  effective (Console uniquement). INC-14 : la VALEUR de la barre est
      *  bornée à ~10 mises à jour/s (les bornes 0 et 1 passent toujours,
      *  tout comme le retour du mode indéterminé). */
-    private fun rendreProgression(entete: EtatEnteteTooling, etat: EtatGradle) {
+    private fun rendreProgression(entete: EtatEnteteTooling) {
         val indicateur = liaison.progressionTooling
         val couleurBarre = couleurStatut(entete.statut, entete.couleur)
         indicateur.isVisible = false
@@ -498,13 +508,7 @@ internal class PanneauToolingController(
                 indicateur.isIndeterminate = false
             }
             val maintenant = horloge.nowMillis()
-            if (
-                flashVerdict || repasseDeterminee || progression == 1f ||
-                (
-                    progression != derniereProgressionRendue &&
-                        maintenant - derniereMajProgressionMs >= SEUIL_MAJ_PROGRESSION_MS
-                    )
-            ) {
+            if (majProgressionAutorisee(progression, repasseDeterminee, maintenant)) {
                 val valeur = progression ?: 1f
                 indicateur.setProgressCompat((valeur.coerceIn(0f, 1f) * POURCENT_MAX).roundToInt(), true)
                 derniereProgressionRendue = progression
@@ -570,6 +574,19 @@ internal class PanneauToolingController(
             surPeekChange()
         }
     }
+
+    /** La nouvelle valeur de progression est-elle APPLIABLE (INC-13/14) :
+     *  au flash de verdict, au retour du mode indéterminé, à la finale
+     *  (1f) — toujours — sinon seulement si la valeur a changé ET que le
+     *  seuil de ~10 mises à jour/s est attendu. */
+    private fun majProgressionAutorisee(progression: Float?, repasseDeterminee: Boolean, maintenant: Long): Boolean =
+        flashVerdict ||
+            repasseDeterminee ||
+            progression == 1f ||
+            (
+                progression != derniereProgressionRendue &&
+                    maintenant - derniereMajProgressionMs >= SEUIL_MAJ_PROGRESSION_MS
+                )
 
     private companion object {
         /** Période du chrono de l'en-tête tooling (500 ms). */
