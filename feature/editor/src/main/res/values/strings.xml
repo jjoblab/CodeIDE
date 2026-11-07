@@ -421,6 +421,9 @@
          canal, bouton Tâches, bandeau d\'échec, détails de téléchargement,
          pied de conclusion de la sync. -->
     <string name="editor_console_taches_indisponible">Tâches — disponible après la synchronisation</string>
+    <!-- Sélecteur de canaux de la console (INC-20, volet C) : description
+         d'accessibilité du groupe de chips Sync | Build. -->
+    <string name="editor_console_selecteur_canal_cd">Choisir la console affichée : synchronisation ou build</string>
     <string name="editor_console_echec_voir_problemes">Voir les problèmes</string>
     <string name="editor_console_echec_reessayer">Réessayer</string>
     <string name="editor_console_echec_defaut">Échec du build</string>

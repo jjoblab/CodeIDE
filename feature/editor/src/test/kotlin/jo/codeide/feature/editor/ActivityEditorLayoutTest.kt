@@ -463,18 +463,30 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `la console enrichie porte ses chips son bouton taches et son bandeau d echec`() {
+    fun `la console enrichie porte son selecteur de canaux son bouton taches et son bandeau d echec`() {
         val console = gonfler(R.layout.fragment_panneau_console)
 
-        // v0.40.1 (prompt de suivi §3) : UN SEUL chip d'action reflète
-        // l'action Gradle courante, NON cliquable — plus de ChipGroup à
-        // deux chips Sync/Build. La bascule est automatique (Sync vers
-        // Build quand un build démarre), pilotée par le ViewModel.
-        val chipAction = console.findViewById<com.google.android.material.chip.Chip>(R.id.chip_action_courante)
-        assertNotNull("chip d'action unique (v0.40.1 §3)", chipAction)
-        assertFalse(
-            "chip d'action NON cliquable — pas de bascule utilisateur (v0.40.1 §3)",
-            chipAction.isClickable,
+        // INC-20 (volet C, prompt « retard d'affichage » §6.3) : le chip
+        // unique NON cliquable (v0.40.1 §3) devient un SÉLECTEUR SEGMENTÉ
+        // Sync | Build — la sortie de la sync reste consultable pendant un
+        // build, comme les onglets Sync/Build de la fenêtre Build d'Android
+        // Studio. L'ancien test verrouillait la non-cliquabilité (v0.40.1),
+        // contredite par le prompt : réécrit avec justification.
+        val groupe = console.findViewById<View>(R.id.groupe_canaux_console)
+        assertNotNull("sélecteur de canaux Sync | Build (INC-20)", groupe)
+        val chipSync =
+            console.findViewById<com.google.android.material.chip.Chip>(R.id.chip_canal_sync)
+        assertNotNull("chip du canal Sync (INC-20)", chipSync)
+        assertTrue(
+            "chip du canal Sync CLIQUABLE — bascule utilisateur (INC-20)",
+            chipSync.isClickable,
+        )
+        val chipBuild =
+            console.findViewById<com.google.android.material.chip.Chip>(R.id.chip_canal_build)
+        assertNotNull("chip du canal Build (INC-20)", chipBuild)
+        assertTrue(
+            "chip du canal Build CLIQUABLE — bascule utilisateur (INC-20)",
+            chipBuild.isClickable,
         )
         val boutonTaches = console.findViewById<View>(R.id.bouton_taches_sortie)
         assertNotNull("bouton Tâches de la barre d'outils (§3.3)", boutonTaches)

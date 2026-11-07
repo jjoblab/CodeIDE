@@ -381,6 +381,9 @@
     <!-- Enriched tooling console (v4, §3.3): channel filter, Tasks
          button, failure banner, download details. -->
     <string name="editor_console_taches_indisponible">Tasks — available after synchronization</string>
+    <!-- Canal selector of the console (INC-20, volet C): accessibility
+         description of the Sync | Build chip group. -->
+    <string name="editor_console_selecteur_canal_cd">Choose the visible console: sync or build</string>
     <string name="editor_console_echec_voir_problemes">See problems</string>
     <string name="editor_console_echec_reessayer">Retry</string>
     <string name="editor_console_echec_defaut">Build failed</string>

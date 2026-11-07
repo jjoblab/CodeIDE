@@ -1494,6 +1494,7 @@ constructor(
         when (action) {
             is ActionEditor.ChangerEtatPanneau -> changerEtatPanneau(action.etat)
             is ActionEditor.SelectionnerOngletPanneau -> selectionnerOngletPanneau(action.onglet)
+            is ActionEditor.SelectionnerCanalConsole -> selectionnerFiltreConsole(action.filtre)
             is ActionEditor.BasculerFiltreJournal -> basculerFiltreJournal(action.niveau)
             ActionEditor.OuvrirJournalComplet -> canalEffets.trySend(EffetEditor.OuvrirJournalComplet)
             is ActionEditor.SauterVersLigneSource -> sauterVersLigneSource(action)
@@ -5427,10 +5428,14 @@ constructor(
     }
 
     /**
-     * Persiste et publie l'action courante (v0.40.1, prompt de suivi §3).
-     * Le chip d'action unique est NON cliquable — plus de `Basculer
-     * FiltreConsole`. La bascule est poussée par `synchroniserProjet
-     * Gradle` (vers SYNC) et `executerTachesGradle` (vers BUILD).
+     * Sélectionne la console affichée (v0.40.1, prompt de suivi §3 ; INC-20,
+     * volet C : le sélecteur redevient UTILISATEUR en plus d'automatique).
+     * La bascule automatique reste poussée par `synchroniserProjetGradle`
+     * (vers SYNC) et `executerTachesGradle` (vers BUILD) ; le clic sur un
+     * chip du sélecteur ([ActionEditor.SelectionnerCanalConsole]) choisit
+     * l'autre console en pleine activité — le choix persiste jusqu'à la
+     * prochaine action. Les deux consoles s'accumulent en parallèle :
+     * basculer ne perd rien.
      */
     private fun selectionnerFiltreConsole(filtre: FiltreCanalConsole) {
         if (etatInterne.value.filtreConsole == filtre) return

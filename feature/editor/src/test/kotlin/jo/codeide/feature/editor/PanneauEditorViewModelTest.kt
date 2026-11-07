@@ -197,6 +197,37 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
         assertEquals(setOf(LogLevel.ERROR), second.etat.value.filtresJournal)
     }
 
+    @Test
+    fun `la selection utilisateur de la console se propage et se persiste - INC-20`() = runTest {
+        val alpha = ajouterProjet("Alpha")
+        val sauvegarde =
+            SavedStateHandle(mapOf(ClesEditor.EXTRA_PROJECT_ID to alpha.value))
+        val viewModel = viewModel(alpha, sauvegarde)
+        advanceUntilIdle()
+
+        // Choix utilisateur : consulter la console du build (le filtre par
+        // défaut est SYNC).
+        viewModel.onAction(ActionEditor.SelectionnerCanalConsole(FiltreCanalConsole.BUILD))
+        assertEquals(FiltreCanalConsole.BUILD, viewModel.etat.value.filtreConsole)
+
+        // Rejouer la sélection courante (réconciliation du sélecteur) :
+        // sans effet, pas d'aller-retour.
+        viewModel.onAction(ActionEditor.SelectionnerCanalConsole(FiltreCanalConsole.BUILD))
+        assertEquals(FiltreCanalConsole.BUILD, viewModel.etat.value.filtreConsole)
+
+        // Revenir à la console de sync : la sortie de la sync redevient
+        // consultable en pleine activité — basculer ne perd rien.
+        viewModel.onAction(ActionEditor.SelectionnerCanalConsole(FiltreCanalConsole.SYNC))
+        assertEquals(FiltreCanalConsole.SYNC, viewModel.etat.value.filtreConsole)
+
+        // Persisté pour la rotation (clé du SavedStateHandle).
+        viewModel.onAction(ActionEditor.SelectionnerCanalConsole(FiltreCanalConsole.BUILD))
+        assertEquals(
+            FiltreCanalConsole.BUILD.name,
+            sauvegarde.get<String>(ClesEditor.CLE_FILTRE_CONSOLE),
+        )
+    }
+
     /** Fabrique une entrée de journal minimale. */
     private fun entree(horodatage: Long, niveau: LogLevel, etiquette: String, message: String): LogEntry = LogEntry(
         timestampMillis = horodatage,

@@ -474,6 +474,15 @@ sealed interface ActionEditor {
     data class SelectionnerOngletPanneau(val onglet: OngletPanneau) : ActionEditor
 
     /**
+     * Sélectionne la console affichée — Sync ou Build (INC-20, volet C du
+     * prompt « retard d'affichage des sorties de build » §6.3) : choix
+     * UTILISATEUR qui persiste jusqu'à la prochaine action Gradle (celle-ci
+     * sélectionne automatiquement son canal). Les deux consoles continuent
+     * de s'accumuler en parallèle : basculer ne perd rien, ne rejoue rien.
+     */
+    data class SelectionnerCanalConsole(val filtre: FiltreCanalConsole) : ActionEditor
+
+    /**
      * Bascule un niveau du filtre du journal applicatif (vide = tous les
      * niveaux — même règle que l'écran Diagnostic, étape 12).
      */

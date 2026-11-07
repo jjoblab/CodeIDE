@@ -1,5 +1,6 @@
 package jo.codeide.feature.editor
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.SpannableString
@@ -14,6 +15,8 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.chip.Chip
+import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
@@ -35,9 +38,10 @@ import kotlinx.coroutines.flow.onEach
  * plus de rangées structurées : l'information vit dans le flux ou dans
  * l'en-tête du panneau — jamais aux deux.
  *
- * Deux `TextView` (un par canal) s'accumulent EN PARALLÈLE : le chip
- * Sync/Build ne fait que choisir lequel est VISIBLE — basculer ne perd
- * rien, ne rejoue rien, ne reconstruit rien. L'application des lignes est
+ * Deux `TextView` (un par canal) s'accumulent EN PARALLÈLE : le SÉLECTEUR
+ * Sync/Build (INC-20, volet C : redevenu cliquable) choisit lequel est
+ * VISIBLE — basculer ne perd rien, ne rejoue rien, ne reconstruit rien.
+ * L'application des lignes est
  * LOTIE PAR TRAME (un seul `append` par frame, O(1) par ligne — la leçon
  * de l'ADR 0074 reste : jamais de reconstruction, jamais de DiffUtil).
  *
@@ -67,13 +71,15 @@ class PanneauConsoleFragment : Fragment() {
     private val viewModel: EditorViewModel by activityViewModels()
 
     /**
-     * Action courante (v0.40.1, prompt de suivi §3) : la vérité vit dans
-     * [EditorViewModel] via `EtatEditor.filtreConsole` — le fragment ne
-     * fait que LIRE l'état pour publier le chip et la vue correspondante.
-     * Plus de bascule utilisateur — le chip est NON cliquable. La
-     * sauvegarde locale [CLE_ACTION_COURANTE] reste pour la continuité
-     * de cycle entre l'instance du fragment et le ViewModel (re-création
-     * du ViewModel avant le onCreateView).
+     * Console affichée (v0.40.1 : pilotée par le ViewModel via
+     * `EtatEditor.filtreConsole` ; INC-20, volet C : le sélecteur de
+     * la barre d'outils est redevenu CLIQUABLE — Sync | Build). La vérité
+     * vit dans [EditorViewModel] : l'action qui démarre pousse son canal,
+     * le clic utilisateur choisit l'autre console en pleine activité et
+     * persiste jusqu'à la prochaine action. La sauvegarde locale
+     * [CLE_ACTION_COURANTE] reste pour la continuité de cycle entre
+     * l'instance du fragment et le ViewModel (re-création du ViewModel
+     * avant le onCreateView).
      */
     private var action: FiltreCanalConsole = FiltreCanalConsole.SYNC
 
@@ -140,15 +146,23 @@ class PanneauConsoleFragment : Fragment() {
         )
 
         // v0.40.1 : l'action courante vit dans le ViewModel — on l'observe
-        // pour que le chip se mette à jour quand un build ou une sync
+        // pour que le sélecteur se mette à jour quand un build ou une sync
         // démarre (la bascule est poussée par `executerTachesGradle` /
-        // `synchroniserProjetGradle`). Plus de bascule utilisateur — le
-        // chip est NON cliquable.
+        // `synchroniserProjetGradle`). INC-20 : le clic utilisateur passe
+        // par la MÊME source — ActionEditor.SelectionnerCanalConsole.
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
             if (action != etat.filtreConsole) {
                 action = etat.filtreConsole
                 rendre(viewModel.etatGradle.value)
             }
+        }
+        // INC-20 : sélecteur segmenté Sync | Build — le clic choisit la
+        // console affichée (les deux s'accumulent, basculer ne perd rien).
+        liaison.chipCanalSync.setOnClickListener {
+            viewModel.onAction(ActionEditor.SelectionnerCanalConsole(FiltreCanalConsole.SYNC))
+        }
+        liaison.chipCanalBuild.setOnClickListener {
+            viewModel.onAction(ActionEditor.SelectionnerCanalConsole(FiltreCanalConsole.BUILD))
         }
         // v0.41.1 : champ de saisie stdin — visible pendant un build
         // EN_COURS. L'utilisateur tape, appuie sur Entrée, le texte est
@@ -268,12 +282,12 @@ class PanneauConsoleFragment : Fragment() {
             liaison.boutonReessayerBuild.isVisible = etat.taches.isNotEmpty()
         }
 
-        // v0.40.1 (§3) ; INC-02 : chip du canal AFFICHÉ — la cascade
+        // v0.40.1 (§3) ; INC-02 : sélecteur du canal AFFICHÉ — la cascade
         // locale (sync dès qu'une sync a déjà vécu) mentait pendant un
         // build lancé après une sync réussie : le chip disait « Sync »,
         // l'icône celle de la sync, pendant que la console du build
         // tournait. La dérivation unique ne peut plus diverger.
-        rendreChipAction(canalAffiche)
+        rendreSelecteurCanaux(etat, canalAffiche)
 
         // v0.41.1 : champ de saisie stdin visible pendant un build EN_COURS.
         liaison.champEntreeConsole.isVisible = etat.statutBuild == StatutBuild.EN_COURS
@@ -473,35 +487,84 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     /**
-     * Publie le chip d'action UNIQUE (v0.40.1, prompt de suivi §3 ; INC-02 :
-     * canal fourni par [PresentationTooling.canalAffiche], plus de cascade
-     * locale) — reflète le canal de la console affichée (Sync / Build).
-     * NON cliquable (jusqu'à l'INC-20). Aucun chip s'il n'y a eu aucune
-     * action (état vierge : aucune sync annoncée, aucun build).
-     *
-     * Couleur de canal harmonisée (cf. aperçu v3 §6 : bordure et texte
-     * en couleur de canal harmonisée, fond teinté 12 %). Le chip n'a
-     * PAS d'icône — l'icône vit dans l'en-tête du panneau (pastille de
-     * canal, cf. PanneauToolingController).
+     * Publie le SÉLECTEUR de canaux (INC-20, volet C : le chip unique
+     * v0.40.1 devient un sélecteur segmenté Sync | Build CLIQUABLE) —
+     * la sélection suit [action] (choix utilisateur + bascule
+     * automatique de l'action qui démarre, source unique
+     * `EtatEditor.filtreConsole`), le canal d'existence vient de la
+     * dérivation [PresentationTooling.canalAffiche] (INC-02). Chaque chip
+     * garde sa couleur de canal harmonisée ; le canal NON affiché qui a du
+     * neuf (activité en vol) ou un échec porte un point d'actualité — la
+     * sortie de la sync de 194 s reste consultable pendant un build, comme
+     * les onglets Sync/Build de la fenêtre Build d'Android Studio.
      */
-    private fun rendreChipAction(canal: CanalTooling?) {
+    private fun rendreSelecteurCanaux(etat: EtatGradle, canal: CanalTooling?) {
+        liaison.groupeCanauxConsole.isVisible = canal != null
         if (canal == null) {
-            // Aucune action Gradle n'a eu lieu — pas de chip.
-            liaison.chipActionCourante.isVisible = false
+            // Aucune action Gradle n'a eu lieu — pas de sélecteur.
             return
         }
-        liaison.chipActionCourante.text = getString(canal.libelle)
+        liaison.chipCanalSync.isChecked = action == FiltreCanalConsole.SYNC
+        liaison.chipCanalBuild.isChecked = action == FiltreCanalConsole.BUILD
+        teinterChipCanal(liaison.chipCanalSync, CanalTooling.SYNC)
+        teinterChipCanal(liaison.chipCanalBuild, CanalTooling.BUILD)
+        rendrePointActualite(
+            liaison.chipCanalSync,
+            etat,
+            CanalTooling.SYNC,
+            affiche = action == FiltreCanalConsole.SYNC,
+        )
+        rendrePointActualite(
+            liaison.chipCanalBuild,
+            etat,
+            CanalTooling.BUILD,
+            affiche =
+            action == FiltreCanalConsole.BUILD,
+        )
+    }
+
+    /** Teinte un chip du sélecteur aux couleurs de SON canal (harmonisées
+     *  avec le primaire du thème, fond teinté 12 % — même discipline que
+     *  l'ancien chip unique v0.40.1). */
+    private fun teinterChipCanal(chip: Chip, canal: CanalTooling) {
         val couleurHarmonisee = ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur)
-        liaison.chipActionCourante.chipBackgroundColor =
-            android.content.res.ColorStateList.valueOf(
-                androidx.core.graphics.ColorUtils
-                    .setAlphaComponent(couleurHarmonisee, ALPHA_FOND_TINTE_CHIP),
+        chip.chipBackgroundColor =
+            ColorStateList.valueOf(
+                androidx.core.graphics.ColorUtils.setAlphaComponent(couleurHarmonisee, ALPHA_FOND_TINTE_CHIP),
             )
-        liaison.chipActionCourante.chipStrokeColor =
-            android.content.res.ColorStateList
-                .valueOf(couleurHarmonisee)
-        liaison.chipActionCourante.setTextColor(couleurHarmonisee)
-        liaison.chipActionCourante.isVisible = true
+        chip.chipStrokeColor = ColorStateList.valueOf(couleurHarmonisee)
+        chip.setTextColor(couleurHarmonisee)
+    }
+
+    /**
+     * Point d'actualité (INC-20) : sur le canal NON affiché seulement —
+     * couleur de canal harmonisée pendant une activité en vol, couleur
+     * d'erreur pour un échec ; consulter la console (la sélectionner)
+     * efface le point.
+     */
+    private fun rendrePointActualite(chip: Chip, etat: EtatGradle, canal: CanalTooling, affiche: Boolean) {
+        val enVol = etat.canalActif == canal
+        val echoue =
+            when (canal) {
+                CanalTooling.SYNC -> etat.messageEchecSync != null
+                CanalTooling.BUILD -> etat.statutBuild == StatutBuild.ECHOUE
+                CanalTooling.TACHES -> false
+            }
+        val point = !affiche && (enVol || echoue)
+        chip.isChipIconVisible = point
+        if (point) {
+            chip.chipIcon = androidx.core.content.ContextCompat.getDrawable(
+                requireContext(),
+                R.drawable.point_actualite_canal,
+            )
+            val couleur =
+                if (echoue) {
+                    MaterialColors.getColor(liaison.root, androidx.appcompat.R.attr.colorError)
+                } else {
+                    ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur)
+                }
+            chip.chipIconTint = ColorStateList.valueOf(couleur)
+        }
     }
 
     /** Canal du statut (v0.32.5, ADR 0056 décision 5 ; INC-02 : canal
@@ -576,9 +639,9 @@ class PanneauConsoleFragment : Fragment() {
         const val TOLERANCE_BAS_DP = 16f
 
         /**
-         * Alpha du fond teinté du chip d'action (v0.40.1, prompt de suivi
-         * §6 — `color-mix(in srgb, var(--c) 12%, transparent)` dans l'aperçu
-         * v3). 12 % de 255 ≈ 31.
+         * Alpha du fond teinté des chips du sélecteur (v0.40.1, prompt de
+         * suivi §6 — `color-mix(in srgb, var(--c) 12%, transparent)` dans
+         * l'aperçu v3). 12 % de 255 ≈ 31.
          */
         const val ALPHA_FOND_TINTE_CHIP = 31
     }

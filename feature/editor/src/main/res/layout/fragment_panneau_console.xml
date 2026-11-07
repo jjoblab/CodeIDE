@@ -30,25 +30,40 @@
         android:paddingHorizontal="@dimen/spacing_md_compact"
         android:paddingVertical="@dimen/spacing_xs">
 
-        <!-- Chip d'action unique (v0.40.1, prompt de suivi §3) : reflète
-             l'action Gradle courante (Sync / Build / Tâches / Classpaths…).
-             NON cliquable — pas de bascule utilisateur. La console montre
-             toujours l'action courante (ou la dernière exécutée).
-             Aucun chip s'il n'y a eu aucune action. Couleur de canal
-             harmonisée via chipBackgroundColor + chipStrokeColor au
-             rendu. -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_action_courante"
-            style="@style/Widget.CodeIDE.Chip.Assist"
+        <!-- Sélecteur de canal (INC-20, volet C du prompt « retard
+             d'affichage des sorties de build » §6.3) : SEGMENTÉ Sync |
+             Build, CLIQUABLE — la sélection manuelle persiste jusqu'à la
+             prochaine action Gradle (qui sélectionne automatiquement son
+             canal). Point d'actualité sur le canal non affiché qui a du
+             neuf (activité en vol) ou un échec. Aucun sélecteur s'il n'y
+             a eu aucune action (état vierge). Couleurs de canal posées au
+             rendu (harmonisées), comme l'ancien chip unique v0.40.1. -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/groupe_canaux_console"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:clickable="false"
-            android:focusable="false"
-            android:text="@string/editor_tooling_canal_sync"
+            android:contentDescription="@string/editor_console_selecteur_canal_cd"
             android:visibility="gone"
-            app:chipBackgroundColor="?attr/colorSurfaceVariant"
-            app:chipStrokeWidth="1dp"
-            tools:visibility="visible" />
+            app:selectionRequired="true"
+            app:singleLine="true"
+            app:singleSelection="true"
+            tools:visibility="visible">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_canal_sync"
+                style="@style/Widget.CodeIDE.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/editor_tooling_canal_sync" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_canal_build"
+                style="@style/Widget.CodeIDE.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_tooling_canal_build" />
+        </com.google.android.material.chip.ChipGroup>
 
         <Space
             android:layout_width="0dp"
