@@ -443,27 +443,21 @@ internal object PresentationTooling {
     }
 
     /**
-     * Statut de la console (INC-22 : MÊME cascade que l'en-tête, sur le
-     * canal affiché [canalAffiche]) — l'ancienne priorité sync-puis-build
-     * aux replis différents racontait un autre verdict que l'en-tête pour
-     * un même état (sync partielle : « Synchronisé » contre un échec
-     * affiché) ; un seul verdict par canal désormais. Replis de l'état
-     * vierge : orchestrateur déconnecté, sinon sortie vide.
+     * Statut de la ligne de la console (INC-22, finale avec l'INC-10 :
+     * l'activité et le verdict vivent dans l'EN-TÊTE du sheet — la ligne
+     * enrichie sur Console replié, les indicateurs compacts partout
+     * ailleurs — ADR 0078 : jamais aux deux). Elle ne porte plus que
+     * l'état VIERGE : orchestrateur déconnecté, sinon sortie vide. La
+     * vue ne la montre d'ailleurs que déconnectée (l'état vide a déjà sa
+     * vue dédiée dans le corps de la console).
      */
-    fun libelleStatut(etat: EtatGradle, canal: CanalTooling?): TexteTooling = when (canal) {
-        null ->
-            when {
-                etat.connexion == EtatConnexion.ECHOUEE -> {
-                    TexteTooling.Ressource(R.string.editor_outil_deconnecte)
-                }
-
-                else -> {
-                    TexteTooling.Ressource(R.string.editor_sortie_vide)
-                }
-            }
+    fun libelleStatut(etat: EtatGradle): TexteTooling = when {
+        etat.connexion == EtatConnexion.ECHOUEE -> {
+            TexteTooling.Ressource(R.string.editor_outil_deconnecte)
+        }
 
         else -> {
-            libelleActivite(etat, canal)
+            TexteTooling.Ressource(R.string.editor_sortie_vide)
         }
     }
 

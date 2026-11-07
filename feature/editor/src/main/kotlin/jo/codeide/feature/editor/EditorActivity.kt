@@ -2038,7 +2038,9 @@ class EditorActivity :
             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
         }
 
-        // v0.80.1 : ligne tooling = en-tête de l'onglet Console.
+        // v0.80.1 : ligne tooling = en-tête de l'onglet Console (INC-17 :
+        // rôle annoncé par le contentDescription du layout, état tenu à
+        // jour par marquerSheetEtendu).
         liaison.ligneTooling.setOnClickListener {
             val cible =
                 if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
@@ -3019,6 +3021,16 @@ class EditorActivity :
     private fun marquerSheetEtendu(etendu: Boolean) {
         if (etendu == sheetEtenduStable) return
         sheetEtenduStable = etendu
+        // INC-17 : l'état de la zone d'appui suit la position — « Ouvrir »
+        // replié, « Fermer » sinon (le rôle est posé par le layout).
+        liaison.ligneTooling.contentDescription =
+            getString(
+                if (etendu) {
+                    R.string.editor_ligne_tooling_fermer_cd
+                } else {
+                    R.string.editor_ligne_tooling_ouvrir_cd
+                },
+            )
         controleurTooling?.definirSheetEtendu(etendu)
         majVisibiliteEntetePanneau()
     }

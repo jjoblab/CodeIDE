@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.test.core.app.ApplicationProvider
 import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.StatutBuild
@@ -40,6 +41,12 @@ class PanneauToolingControllerTest {
 
     private lateinit var controleur: PanneauToolingController
 
+    /** Liaison de la MÊME racine que celle du contrôleur (il ne
+     *  l'expose pas — les vues sont identiques). */
+    private fun controleurBinding(): jo.codeide.feature.editor.databinding.ActivityEditorBinding = liaisonLiee
+
+    private lateinit var liaisonLiee: jo.codeide.feature.editor.databinding.ActivityEditorBinding
+
     @Before
     fun monter() {
         val base = ApplicationProvider.getApplicationContext<Context>()
@@ -50,14 +57,53 @@ class PanneauToolingControllerTest {
         val activiteControleur = Robolectric.buildActivity(AppCompatActivity::class.java)
         activiteControleur.get().setTheme(RUi.style.Theme_CodeIDE)
         val activite = activiteControleur.setup().get()
+        liaisonLiee = jo.codeide.feature.editor.databinding.ActivityEditorBinding.bind(racine)
         controleur =
             PanneauToolingController(
                 activite = activite,
-                liaison = jo.codeide.feature.editor.databinding.ActivityEditorBinding.bind(racine),
+                liaison = liaisonLiee,
                 horloge = TimeProvider { instant },
                 surArret = {},
                 surPeekChange = {},
             )
+    }
+
+    @Test
+    fun `l indicateur compact est present hors de la ligne enrichie - INC-10`() {
+        val etat = EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L)
+
+        // Onglet Problèmes (première section porte l'indicateur compact).
+        controleur.definirOnglet(OngletPanneau.PROBLEMES)
+        controleur.rendre(etat)
+        org.junit.Assert.assertTrue(
+            "INC-10 : la première section porte l'indicateur compact sur les autres onglets",
+            controleurBinding().indicateurCompactEntete.root.isVisible,
+        )
+        org.junit.Assert.assertFalse(
+            "INC-10 : le rang des onglets ne le porte que sheet étendu",
+            controleurBinding().indicateurCompactOnglets.root.isVisible,
+        )
+
+        // Sheet étendu : le rang des onglets prend le relais. La première
+        // section est cachée par l'ACTIVITÉ à l'extension (hors contrôleur)
+        // — simulé ici pour vérifier le relais.
+        controleur.definirSheetEtendu(true)
+        controleurBinding().entetePanneau.isVisible = false
+        org.junit.Assert.assertTrue(
+            "INC-10 : le rang des onglets porte l'indicateur compact sheet étendu",
+            controleurBinding().indicateurCompactOnglets.root.isVisible,
+        )
+        controleur.definirSheetEtendu(false)
+        org.junit.Assert.assertFalse(
+            "replié, l'indicateur compact du rang disparaît (la première section reprend)",
+            controleurBinding().indicateurCompactOnglets.root.isVisible,
+        )
+
+        // État vierge : aucun indicateur, aucune ligne.
+        controleur.definirSheetEtendu(false)
+        controleur.rendre(EtatGradle())
+        org.junit.Assert.assertFalse(controleurBinding().indicateurCompactEntete.root.isVisible)
+        org.junit.Assert.assertFalse(controleurBinding().indicateurCompactOnglets.root.isVisible)
     }
 
     @Test
@@ -120,6 +166,49 @@ class PanneauToolingControllerTest {
             controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 90_000L))
         }
         assertEquals(2, controleur.nbRelancesChrono)
+    }
+
+    @Test
+    fun `la bande flashe au verdict terminal puis se masque - INC-13`() {
+        controleur.definirOnglet(OngletPanneau.CONSOLE)
+
+        // Build en vol : bande visible (indéterminée).
+        controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L))
+        org.junit.Assert.assertTrue(
+            "en vol, la bande est visible",
+            controleurBinding().progressionTooling.isVisible,
+        )
+
+        // Verdict RÉUSSI : flash — la bande reste visible (pleine, verte)
+        // bien que l'activité soit terminée ; plus de bande permanente.
+        controleur.rendre(EtatGradle(statutBuild = StatutBuild.REUSSI, dureeBuildMs = 4_000))
+        org.junit.Assert.assertTrue(
+            "INC-13 : au verdict, la bande flashe (succès comme échec)",
+            controleurBinding().progressionTooling.isVisible,
+        )
+        org.junit.Assert.assertFalse(
+            "INC-13 : la bande n'est plus indéterminée au verdict — pleine",
+            controleurBinding().progressionTooling.isIndeterminate,
+        )
+    }
+
+    @Test
+    fun `le peek de la console ne bouge plus entre vol et verdict - INC-18`() {
+        controleur.definirOnglet(OngletPanneau.CONSOLE)
+
+        controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L))
+        val enVol = controleur.peekContenuPx
+
+        controleur.rendre(
+            EtatGradle(statutBuild = StatutBuild.ECHOUE, dureeBuildMs = 36_000, messageEchecBuild = "boom"),
+        )
+        val auRepos = controleur.peekContenuPx
+
+        assertEquals(
+            "INC-18 : la fin d'une activité ne retire plus la ligne ni l'emplacement de la bande du peek",
+            enVol,
+            auRepos,
+        )
     }
 
     @Test

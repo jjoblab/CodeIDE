@@ -11,6 +11,7 @@ import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
+import jo.codeide.feature.editor.databinding.IndicateurToolingCompactBinding
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -129,6 +130,24 @@ internal class PanneauToolingController(
     var nbMajProgression: Int = 0
         private set
 
+    /** Une activité tourne-t-elle (INC-13 : alimente la visibilité de la
+     *  bande avec le flash de verdict, indépendamment du rendu). */
+    private var activiteCourante = false
+
+    /** Flash de verdict en cours (INC-13 : la bande s’allume ~1,5 s au
+     *  verdict terminal — succès OU échec, symétrique — puis se masque,
+     *  plus de bande verte pleine permanente au repos). */
+    private var flashVerdict = false
+
+    /** Travail du masquage du flash (annulé au verdict suivant ou au
+     *  redémarrage d’une activité). */
+    private var travailFlash: Job? = null
+
+    /** Dernier verdict flaché (statut + durée) : un NOUVEAU verdict
+     *  re-flashe, une ré-émission identique non. */
+    private var dernierStatutFlashe: StatutEntete? = null
+    private var derniereDureeFlashee: Long? = null
+
     /**
      * Hauteur de CONTENU du sheet replié SANS l'inset de barre de
      * navigation (v0.185.0) : première section sur Problèmes/Journal,
@@ -144,10 +163,14 @@ internal class PanneauToolingController(
         private set
 
     init {
-        // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de
-        // l'en-tête — visible seulement pendant un build (la
-        // synchronisation ne s'annule pas).
+        // Arrêt de l'activité tooling en cours (v0.32.5 ; INC-11 : UNE
+        // seule action, un seul libellé — le bouton de la ligne enrichie,
+        // ceux des DEUX indicateurs compacts et celui de la console y
+        // délèguent tous ; visible seulement pendant un build, la
+        // synchronisation ne s'annule pas — INC-12).
         liaison.boutonArreterTooling.setOnClickListener { surArret() }
+        liaison.indicateurCompactEntete.boutonArreterCompact.setOnClickListener { surArret() }
+        liaison.indicateurCompactOnglets.boutonArreterCompact.setOnClickListener { surArret() }
     }
 
     /**
@@ -179,10 +202,45 @@ internal class PanneauToolingController(
         dernierCanal = canal
         nbRendusEntete++
         ligneActivee = canal != null
+        activiteCourante = etat.canalActif != null
+
+        // INC-13 : flash SYMÉTRIQUE au verdict terminal (~1,5 s, succès
+        // vert / échec rouge / annulé avertissement) puis masquage — plus
+        // de bande pleine permanente au succès ni de disparition
+        // immédiate à l'échec. Une activité qui (re)démarre éteint le
+        // flash en cours.
+        if (activiteCourante) {
+            travailFlash?.cancel()
+            flashVerdict = false
+        } else if (entete.statut == StatutEntete.SUCCES ||
+            entete.statut == StatutEntete.ECHOUE ||
+            entete.statut == StatutEntete.ANNULE
+        ) {
+            if (entete.statut != dernierStatutFlashe || entete.dureeFigeeMs != derniereDureeFlashee) {
+                dernierStatutFlashe = entete.statut
+                derniereDureeFlashee = entete.dureeFigeeMs
+                travailFlash?.cancel()
+                flashVerdict = true
+                travailFlash = activite.lifecycleScope.launch {
+                    activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        delay(DUREE_FLASH_VERDICT_MS)
+                        flashVerdict = false
+                        majVisibiliteBande()
+                    }
+                }
+            }
+        }
+
         if (canal != null) {
             rendrePastille(entete, canal)
             liaison.activiteTooling.text = entete.titre.resoudre(activite)
             rendreSousTitre(entete)
+            // INC-10 : les DEUX indicateurs compacts reçoivent le MÊME
+            // état d'en-tête (la dérivation reste unique, INC-02) — la
+            // première section les porte sur les autres onglets, le rang
+            // des onglets quand le sheet est étendu.
+            rendreIndicateurCompact(liaison.indicateurCompactEntete, entete, canal)
+            rendreIndicateurCompact(liaison.indicateurCompactOnglets, entete, canal)
         } else {
             // v0.39.1 : pas d'état tooling — on RE-REND un en-tête VIDE
             // (pastille masquée, titres effacés) pour qu'aucun résidu d'un
@@ -207,7 +265,10 @@ internal class PanneauToolingController(
             }
         }
         if (depart == null) {
-            liaison.minuteurTooling.text = entete.dureeFigeeMs?.let(DureesLisibles::formater) ?: ""
+            val figee = entete.dureeFigeeMs?.let(DureesLisibles::formater) ?: ""
+            liaison.minuteurTooling.text = figee
+            liaison.indicateurCompactEntete.minuteurCompact.text = figee
+            liaison.indicateurCompactOnglets.minuteurCompact.text = figee
         }
 
         // Le peek suit la composition de l'en-tête (v0.80.1) : première
@@ -285,17 +346,63 @@ internal class PanneauToolingController(
                 alphaCourant > SEUIL_FONDU_VISIBLE -> View.VISIBLE
                 else -> View.INVISIBLE
             }
-        // La progression tooling suit la même règle d'onglet (v0.80.2) :
+        // INC-10 : l'indicateur COMPACT prend le relais partout où la
+        // ligne enrichie ne s'affiche pas. Celui de la première section
+        // n'a pas d'autres portes (son parent est GONE sur Console et à
+        // l'extension) ; celui du rang des onglets ne vit qu'étendu.
+        liaison.indicateurCompactEntete.root.isVisible = ligneActivee
+        liaison.indicateurCompactOnglets.root.isVisible = ligneActivee && sheetEtendu
+        // La progression tooling suit la règle d'onglet (v0.80.2) :
         // bande d'activité réservée à la Console — mais elle reste VISIBLE
-        // même étendue (retour d'activité pendant l'extension).
+        // même étendue (retour d'activité pendant l'extension). INC-13 :
+        // visible en vol ou pendant le flash de verdict, JAMAIS au repos.
+        majVisibiliteBande()
+    }
+
+    /** Visibilité de la bande de progression (INC-13) : en vol ou au
+     *  flash de verdict — jamais de bande morte permanente au repos. */
+    private fun majVisibiliteBande() {
+        progressionVisiblee = activiteCourante || flashVerdict
         liaison.progressionTooling.isVisible =
             progressionVisiblee && ongletCourant == OngletPanneau.CONSOLE
     }
 
-    /** Arrêt propre du ticker (destruction de la vue de l'activité). */
+    /** Arrêt propre du ticker et du flash (destruction de la vue). */
     fun detruire() {
         travailMinuteur?.cancel()
         travailMinuteur = null
+        travailFlash?.cancel()
+        travailFlash = null
+    }
+
+    // ---- Indicateur compact (INC-10) ------------------------------------
+
+    /** Rend UN indicateur compact (INC-10) : le MÊME état d'en-tête que
+     *  la ligne enrichie — pastille + spinner en vol, titre court,
+     *  durée figée, bouton Arrêter. La dérivation reste unique
+     *  (INC-02) : seule l'instance de vue change. */
+    private fun rendreIndicateurCompact(
+        indicateur: IndicateurToolingCompactBinding,
+        entete: EtatEnteteTooling,
+        canal: CanalTooling,
+    ) {
+        indicateur.pastilleCanalCompact.backgroundTintList =
+            ColorStateList.valueOf(couleurStatut(entete.statut, entete.couleur))
+        val enVol = entete.statut == StatutEntete.EN_VOL
+        indicateur.spinnerCanalCompact.isVisible = enVol
+        indicateur.iconeCanalCompact.isVisible = !enVol
+        if (!enVol) {
+            val icone =
+                when (entete.statut) {
+                    StatutEntete.SUCCES -> jo.codeide.core.ui.R.drawable.ic_fait
+                    StatutEntete.ECHOUE -> jo.codeide.core.ui.R.drawable.ic_fermer_onglet
+                    StatutEntete.ANNULE -> R.drawable.ic_arreter_build
+                    StatutEntete.EN_VOL, StatutEntete.NEUTRE -> canal.icone
+                }
+            indicateur.iconeCanalCompact.setImageResource(icone)
+        }
+        indicateur.activiteCompact.text = entete.titre.resoudre(activite)
+        indicateur.boutonArreterCompact.isVisible = entete.arret
     }
 
     // ---- Pastille de canal (§3.3) ---------------------------------------
@@ -376,24 +483,26 @@ internal class PanneauToolingController(
      *  tout comme le retour du mode indéterminé). */
     private fun rendreProgression(entete: EtatEnteteTooling, etat: EtatGradle) {
         val indicateur = liaison.progressionTooling
-        progressionVisiblee = etat.activiteEnCours || entete.statut == StatutEntete.SUCCES
         val couleurBarre = couleurStatut(entete.statut, entete.couleur)
         indicateur.isVisible = false
         val progression = entete.progression
-        if (progression != null) {
+        if (progression != null || flashVerdict) {
+            // INC-13 : au flash de verdict sans valeur déterminée (échec,
+            // annulé), la bande est PLEINE — pas une animation sans fin.
             val repasseDeterminee = indicateur.isIndeterminate
             if (repasseDeterminee) {
                 indicateur.isIndeterminate = false
             }
             val maintenant = horloge.nowMillis()
             if (
-                repasseDeterminee || progression == 1f ||
+                flashVerdict || repasseDeterminee || progression == 1f ||
                 (
                     progression != derniereProgressionRendue &&
                         maintenant - derniereMajProgressionMs >= SEUIL_MAJ_PROGRESSION_MS
                     )
             ) {
-                indicateur.setProgressCompat((progression.coerceIn(0f, 1f) * POURCENT_MAX).roundToInt(), true)
+                val valeur = progression ?: 1f
+                indicateur.setProgressCompat((valeur.coerceIn(0f, 1f) * POURCENT_MAX).roundToInt(), true)
                 derniereProgressionRendue = progression
                 derniereMajProgressionMs = maintenant
                 nbMajProgression++
@@ -402,7 +511,6 @@ internal class PanneauToolingController(
             indicateur.isIndeterminate = true
         }
         indicateur.setIndicatorColor(couleurBarre)
-        indicateur.isVisible = progressionVisiblee && ongletCourant == OngletPanneau.CONSOLE
     }
 
     // ---- Chrono ----------------------------------------------------------
@@ -416,7 +524,10 @@ internal class PanneauToolingController(
         activite.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (isActive) {
                 val ecoule = (horloge.nowMillis() - depart).coerceAtLeast(0L)
-                liaison.minuteurTooling.text = DureesLisibles.formater(ecoule)
+                val texte = DureesLisibles.formater(ecoule)
+                liaison.minuteurTooling.text = texte
+                liaison.indicateurCompactEntete.minuteurCompact.text = texte
+                liaison.indicateurCompactOnglets.minuteurCompact.text = texte
                 delay(PERIODE_MINUTEUR_MS)
             }
         }
@@ -440,9 +551,12 @@ internal class PanneauToolingController(
         }
         if (ligneActivee && ongletCourant == OngletPanneau.CONSOLE) {
             peek += activite.resources.getDimensionPixelSize(R.dimen.editor_entete_tooling_hauteur)
-            if (liaison.progressionTooling.isVisible) {
-                peek += (HAUTEUR_PROGRESSION_TOOLING_DP * activite.resources.displayMetrics.density).toInt()
-            }
+            // INC-18 : l'emplacement de la bande (4 dp) est RÉSERVÉ tant
+            // que la ligne est comptée — le démarrage et la fin d'une
+            // activité ne déplacent plus l'éditeur (la bande elle-même
+            // flashe au verdict puis se masque, INC-13, sans bouger le
+            // peek).
+            peek += (HAUTEUR_PROGRESSION_TOOLING_DP * activite.resources.displayMetrics.density).toInt()
         }
         if (ongletCourant == OngletPanneau.CONSOLE) {
             peek += activite.resources.getDimensionPixelSize(R.dimen.editor_panneau_onglets_hauteur)
@@ -460,6 +574,10 @@ internal class PanneauToolingController(
         /** Seuil de rafraîchissement de la progression déterminée
          *  (INC-14 : ~10 mises à jour par seconde au plus). */
         const val SEUIL_MAJ_PROGRESSION_MS = 100L
+
+        /** Durée du flash de verdict de la bande de progression (INC-13 :
+         *  bref, symétrique succès/échec, puis masquage). */
+        const val DUREE_FLASH_VERDICT_MS = 1_500L
 
         /** Hauteur de la bande de progression tooling (dp). */
         const val HAUTEUR_PROGRESSION_TOOLING_DP = 4

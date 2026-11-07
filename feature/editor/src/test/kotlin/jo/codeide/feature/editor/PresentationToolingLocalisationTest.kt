@@ -44,7 +44,7 @@ class PresentationToolingLocalisationFrTest {
         )
         assertEquals(
             "Synchronisation du projet…",
-            PresentationTooling.libelleStatut(
+            PresentationTooling.libelleActivite(
                 EtatGradle(synchronisationEnCours = true),
                 CanalTooling.SYNC,
             ).resoudre(contexte),
@@ -77,7 +77,7 @@ class PresentationToolingLocalisationFrTest {
         )
         assertEquals(
             "Build annulé",
-            PresentationTooling.libelleStatut(
+            PresentationTooling.libelleActivite(
                 EtatGradle(statutBuild = StatutBuild.ANNULE),
                 CanalTooling.BUILD,
             ).resoudre(contexte),
@@ -88,7 +88,7 @@ class PresentationToolingLocalisationFrTest {
     fun `le verdict court d echec de sync se resout en francais - INC-15`() {
         assertEquals(
             "Synchronisation échouée",
-            PresentationTooling.libelleStatut(
+            PresentationTooling.libelleActivite(
                 EtatGradle(messageEchecSync = "connexion perdue"),
                 CanalTooling.SYNC,
             ).resoudre(contexte),
@@ -99,7 +99,7 @@ class PresentationToolingLocalisationFrTest {
     fun `le libelle honnete du canal sync jamais vecu se resout en francais`() {
         assertEquals(
             "Aucune synchronisation lancée",
-            PresentationTooling.libelleStatut(EtatGradle(), CanalTooling.SYNC).resoudre(contexte),
+            PresentationTooling.libelleActivite(EtatGradle(), CanalTooling.SYNC).resoudre(contexte),
         )
     }
 
@@ -115,12 +115,11 @@ class PresentationToolingLocalisationFrTest {
             "Outils Gradle non connectés",
             PresentationTooling.libelleStatut(
                 EtatGradle(connexion = EtatConnexion.ECHOUEE),
-                null,
             ).resoudre(contexte),
         )
         assertEquals(
             "La sortie du build apparaîtra ici.",
-            PresentationTooling.libelleStatut(EtatGradle(), null).resoudre(contexte),
+            PresentationTooling.libelleStatut(EtatGradle()).resoudre(contexte),
         )
     }
 
@@ -208,7 +207,7 @@ class PresentationToolingLocalisationEnTest {
         )
         assertEquals(
             "Synchronizing project…",
-            PresentationTooling.libelleStatut(
+            PresentationTooling.libelleActivite(
                 EtatGradle(synchronisationEnCours = true),
                 CanalTooling.SYNC,
             ).resoudre(contexte),
@@ -241,7 +240,7 @@ class PresentationToolingLocalisationEnTest {
         )
         assertEquals(
             "Build cancelled",
-            PresentationTooling.libelleStatut(
+            PresentationTooling.libelleActivite(
                 EtatGradle(statutBuild = StatutBuild.ANNULE),
                 CanalTooling.BUILD,
             ).resoudre(contexte),
@@ -252,7 +251,7 @@ class PresentationToolingLocalisationEnTest {
     fun `le verdict court d echec de sync se resout en anglais - INC-15`() {
         assertEquals(
             "Synchronization failed",
-            PresentationTooling.libelleStatut(
+            PresentationTooling.libelleActivite(
                 EtatGradle(messageEchecSync = "connection lost"),
                 CanalTooling.SYNC,
             ).resoudre(contexte),
@@ -263,7 +262,7 @@ class PresentationToolingLocalisationEnTest {
     fun `le libelle honnete du canal sync jamais vecu se resout en anglais`() {
         assertEquals(
             "No synchronization run yet",
-            PresentationTooling.libelleStatut(EtatGradle(), CanalTooling.SYNC).resoudre(contexte),
+            PresentationTooling.libelleActivite(EtatGradle(), CanalTooling.SYNC).resoudre(contexte),
         )
     }
 
@@ -279,12 +278,11 @@ class PresentationToolingLocalisationEnTest {
             "Gradle tools not connected",
             PresentationTooling.libelleStatut(
                 EtatGradle(connexion = EtatConnexion.ECHOUEE),
-                null,
             ).resoudre(contexte),
         )
         assertEquals(
             "Build output will appear here.",
-            PresentationTooling.libelleStatut(EtatGradle(), null).resoudre(contexte),
+            PresentationTooling.libelleStatut(EtatGradle()).resoudre(contexte),
         )
     }
 

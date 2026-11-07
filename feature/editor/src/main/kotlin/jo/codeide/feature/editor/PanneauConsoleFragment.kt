@@ -17,6 +17,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.chip.Chip
 import com.google.android.material.color.MaterialColors
+import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
@@ -271,12 +272,21 @@ class PanneauConsoleFragment : Fragment() {
      * à reconstruire).
      */
     private fun rendre(etat: EtatGradle) {
-        // INC-02 : UNE dérivation alimente statut, icône et chip — les
-        // trois désignent TOUJOURS le même canal.
+        // INC-02 : UNE dérivation alimente sélecteur, console visible et
+        // bandeau — le canal affiché.
         val canalAffiche = PresentationTooling.canalAffiche(etat, action)
-        liaison.statutSortie.text =
-            PresentationTooling.libelleStatut(etat, canalAffiche).resoudre(requireContext())
-        baliserCanalStatut(canalAffiche)
+        // INC-22 (finale, avec l'INC-10) : l'activité et le verdict vivent
+        // dans l'EN-TÊTE du sheet (ligne enrichie sur Console replié,
+        // indicateurs compacts partout ailleurs) — la ligne de statut de
+        // la console n'apparaît PLUS que pour l'état que l'en-tête ne
+        // porte pas : l'orchestrateur déconnecté avant toute activité.
+        // ADR 0078 : l'information vit dans le flux ou dans l'en-tête —
+        // jamais aux deux.
+        liaison.statutSortie.isVisible = canalAffiche == null && etat.connexion == EtatConnexion.ECHOUEE
+        if (liaison.statutSortie.isVisible) {
+            liaison.statutSortie.text =
+                PresentationTooling.libelleStatut(etat).resoudre(requireContext())
+        }
         liaison.boutonAnnulerBuild.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
         // Tâches : armé dès que la sync a REMPLI le cache (v4) — v0.39.1
@@ -584,25 +594,6 @@ class PanneauConsoleFragment : Fragment() {
                     ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur)
                 }
             chip.chipIconTint = ColorStateList.valueOf(couleur)
-        }
-    }
-
-    /** Canal du statut (v0.32.5, ADR 0056 décision 5 ; INC-02 : canal
-     *  fourni par la dérivation unique [PresentationTooling.canalAffiche],
-     *  la copie locale de cascade est SUPPRIMÉE) : l'icône signature
-     *  de la provenance de l'information — Sync quand la ligne parle de
-     *  synchronisation, Build quand elle parle du build ; éteinte quand
-     *  la console est vide (aucune information, aucun canal). */
-    private fun baliserCanalStatut(canal: CanalTooling?) {
-        liaison.iconeCanalSortie.isVisible = canal != null
-        if (canal != null) {
-            liaison.iconeCanalSortie.setImageResource(canal.icone)
-            // Couleur de marque du canal : harmonisée avec le primaire du
-            // thème courant (ADR 0059 — se rapproche du fond d'écran en
-            // couleurs dynamiques).
-            liaison.iconeCanalSortie.setColorFilter(
-                ThemeHarmonizer.harmoniserAvecPrimaire(requireContext(), canal.couleur),
-            )
         }
     }
 

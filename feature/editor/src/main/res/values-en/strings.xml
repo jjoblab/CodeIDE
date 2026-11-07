@@ -340,6 +340,11 @@
     <string name="editor_tooling_canal_build">Build</string>
     <string name="editor_tooling_canal_taches">Tasks</string>
     <string name="editor_tooling_arreter_cd">Stop the running tooling activity</string>
+    <!-- INC-17 (volet C): the tooling line touch target toggles the
+         sheet — role and label announced to TalkBack. -->
+    <string name="editor_ligne_tooling_cd">Open or close the console panel</string>
+    <string name="editor_ligne_tooling_ouvrir_cd">Open the console panel</string>
+    <string name="editor_ligne_tooling_fermer_cd">Close the console panel</string>
     <string name="editor_tooling_sync_en_cours">Synchronizing project…</string>
     <!-- INC-04 (volet C) : canal Sync consultable sans qu'aucune sync n'ait
          jamais tourné (sélecteur INC-20) — libellé honnête. -->

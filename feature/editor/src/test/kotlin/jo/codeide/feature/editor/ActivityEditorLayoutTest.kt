@@ -346,15 +346,36 @@ class ActivityEditorLayoutTest {
         )
         val ordre = (panneau as LinearLayout)
         assertEquals(
-            "ordre du sheet : en-tête → ligne tooling → progression → onglets → conteneur",
+            "ordre du sheet : en-tête → ligne tooling → progression → rang des onglets → conteneur (INC-10)",
             listOf(
                 R.id.entete_panneau,
                 R.id.ligne_tooling,
                 R.id.progression_tooling,
-                R.id.onglets_panneau,
+                R.id.rang_onglets_panneau,
                 R.id.conteneur_fragments_panneau,
             ),
             (0 until ordre.childCount).map { ordre.getChildAt(it).id },
+        )
+        // INC-10 : le rang des onglets PORT l'indicateur compact (sheet
+        // étendu) et la première section en porte un autre (autres
+        // onglets) — le retour d'activité tooling est toujours présent.
+        val rangOnglets = racine.findViewById<View>(R.id.rang_onglets_panneau)
+        assertNotNull(
+            "indicateur compact du rang des onglets (INC-10)",
+            racine.findViewById<View>(R.id.indicateur_compact_onglets),
+        )
+        assertNotNull(
+            "indicateur compact de la première section (INC-10)",
+            racine.findViewById<View>(R.id.indicateur_compact_entete),
+        )
+        assertTrue(
+            "les onglets vivent dans le rang (INC-10)",
+            rangOnglets.findViewById<View>(R.id.onglets_panneau) != null,
+        )
+        // INC-17 : la zone d'appui de la ligne tooling a un rôle annoncé.
+        assertNotNull(
+            "contentDescription de la ligne tooling (INC-17)",
+            ligneTooling.contentDescription,
         )
     }
 
@@ -425,11 +446,11 @@ class ActivityEditorLayoutTest {
         )
 
         val console = gonfler(R.layout.fragment_panneau_console)
+        // INC-22 (finale) : la ligne de statut ne porte plus que l'état
+        // vierge (déconnecté) — l'icône de canal a disparu AVEC le double
+        // discours : l'activité et le verdict vivent dans l'en-tête du
+        // sheet (ligne enrichie + indicateurs compacts, INC-10).
         assertNotNull("statut de la sortie (v0.32.4)", console.findViewById<View>(R.id.statut_sortie))
-        assertNotNull(
-            "canal du statut — l'information porte sa provenance (v0.32.5)",
-            console.findViewById<View>(R.id.icone_canal_sortie),
-        )
         // v0.46.0 (ADR 0078) : console FLUX BRUT — DEUX TextView monospace
         // (un PAR canal), le chip choisit la visible.
         assertNotNull(

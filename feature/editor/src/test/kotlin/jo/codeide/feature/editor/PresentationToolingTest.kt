@@ -104,12 +104,7 @@ class PresentationToolingTest {
             PresentationTooling.etatEntete(etat).sousTitre,
         )
         assertEquals(
-            "INC-22 : le statut de console montre le verdict court de l'échec, comme l'en-tête (INC-15)",
-            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
-            PresentationTooling.libelleStatut(etat, CanalTooling.SYNC),
-        )
-        assertEquals(
-            "INC-15 : le titre de l'en-tête est le verdict court, pas le message brut",
+            "INC-15/22 : l'en-tête (ligne enrichie et indicateurs compacts) porte le verdict court, pas le message brut",
             TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
             PresentationTooling.libelleActivite(etat, CanalTooling.SYNC),
         )
@@ -241,63 +236,22 @@ class PresentationToolingTest {
         assertEquals(TexteTooling.Ressource(R.string.editor_tooling_taches_en_cours), libelle)
     }
 
-    // ---- Statut de l'onglet Sortie (INC-22 : cascade de l'en-tête, sur le
-    // canal affiché par canalAffiche) -------------------------------
+    // ---- Statut de la console (INC-22 finale : état vierge uniquement) --
 
     @Test
-    fun `le statut du canal sync suit la cascade de l en-tete - vol puis echec puis reussite`() {
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours),
-            PresentationTooling.libelleStatut(EtatGradle(synchronisationEnCours = true), CanalTooling.SYNC),
-        )
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_tooling_sync_echouee),
-            PresentationTooling.libelleStatut(EtatGradle(messageEchecSync = "échec réseau"), CanalTooling.SYNC),
-        )
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_sortie_sync_reussie, listOf("450ms")),
-            PresentationTooling.libelleStatut(
-                EtatGradle(
-                    synchronisationReussie =
-                    ResultatSynchronisation(projectDir = "/p", reussie = true, dureeMs = 450),
-                ),
-                CanalTooling.SYNC,
-            ),
-        )
-    }
-
-    @Test
-    fun `le statut du canal build suit la cascade de l en-tete - taches en vol puis verdicts`() {
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_tooling_build_taches, listOf(":app:build")),
-            PresentationTooling.libelleStatut(
-                EtatGradle(statutBuild = StatutBuild.EN_COURS, taches = listOf(":app:build")),
-                CanalTooling.BUILD,
-            ),
-        )
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_sortie_build_reussi, listOf("0ms")),
-            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.REUSSI), CanalTooling.BUILD),
-        )
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_sortie_build_echoue),
-            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.ECHOUE), CanalTooling.BUILD),
-        )
-        assertEquals(
-            TexteTooling.Ressource(R.string.editor_sortie_build_annule),
-            PresentationTooling.libelleStatut(EtatGradle(statutBuild = StatutBuild.ANNULE), CanalTooling.BUILD),
-        )
-    }
-
-    @Test
-    fun `le statut sans canal replie sur deconnecte puis sortie vide`() {
+    fun `le statut de la console ne porte plus que l etat vierge - INC-22 finale`() {
+        // INC-22 (avec l'INC-10) : l'activité et le verdict vivent dans
+        // l'EN-TÊTE du sheet (ligne enrichie sur Console replié,
+        // indicateurs compacts ailleurs) — la ligne de statut ne montre
+        // plus que ce que l'en-tête ne porte pas : l'orchestrateur
+        // déconnecté avant toute activité (l'état vide a sa vue dédiée).
         assertEquals(
             TexteTooling.Ressource(R.string.editor_outil_deconnecte),
-            PresentationTooling.libelleStatut(EtatGradle(connexion = EtatConnexion.ECHOUEE), null),
+            PresentationTooling.libelleStatut(EtatGradle(connexion = EtatConnexion.ECHOUEE)),
         )
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_vide),
-            PresentationTooling.libelleStatut(EtatGradle(), null),
+            PresentationTooling.libelleStatut(EtatGradle()),
         )
     }
 

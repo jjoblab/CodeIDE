@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Indicateur tooling COMPACT (INC-10, volet C du prompt « retard
+     d'affichage des sorties de build » §6.2) : le retour d'activité
+     tooling devient TOUJOURS présent dans l'en-tête du sheet — la ligne
+     enrichie (sous-titre d'étape, détail) reste réservée à l'onglet
+     Console replié. Deux instances partagent CE layout : dans la
+     première section (autres onglets, replié) et à côté des onglets
+     (sheet étendu). Pastille de canal + spinner en vol, titre court,
+     chrono, bouton Arrêter (INC-11 : toujours accessible tant qu'une
+     activité annulable tourne) — pilotés par PanneauToolingController
+     avec le MÊME EtatEnteteTooling que la ligne enrichie (INC-02 : une
+     seule dérivation). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <!-- Pastille du canal (même discipline que la ligne enrichie : fond
+         arrondi teinté au rendu, icône blanche en repos, spinner en vol). -->
+    <FrameLayout
+        android:id="@+id/pastille_canal_compact"
+        android:layout_width="@dimen/editor_indicateur_compact_pastille_taille"
+        android:layout_height="@dimen/editor_indicateur_compact_pastille_taille"
+        android:background="@drawable/pastille_canal_tooling">
+
+        <ImageView
+            android:id="@+id/icone_canal_compact"
+            android:layout_width="@dimen/editor_indicateur_compact_icone_taille"
+            android:layout_height="@dimen/editor_indicateur_compact_icone_taille"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            app:tint="?attr/colorOnPrimary"
+            tools:src="@drawable/ic_synchroniser" />
+
+        <com.google.android.material.progressindicator.CircularProgressIndicator
+            android:id="@+id/spinner_canal_compact"
+            style="@style/Widget.CodeIDE.CircularProgressIndicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorSize="@dimen/editor_indicateur_compact_icone_taille"
+            app:indicatorColor="?attr/colorOnPrimary"
+            app:trackColor="@android:color/transparent"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <!-- Titre court (l'activité ou le verdict — INC-15 : verdict localisé,
+         jamais le message brut du serveur). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/activite_compact"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:ellipsize="end"
+        android:maxWidth="@dimen/editor_indicateur_compact_titre_largeur"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="Build en cours…" />
+
+    <!-- Chrono en vol / durée figée du verdict (INC-15). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/minuteur_compact"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_xs"
+        android:fontFamily="monospace"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        tools:text="12,3 s" />
+
+    <!-- Arrêt (INC-11) : la MÊME action que le bouton de la ligne
+         enrichie et que celui de la console — visible tant qu'une
+         activité annulable tourne (build ; la sync ne s'annule pas,
+         INC-12). -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/bouton_arreter_compact"
+        style="@style/Widget.CodeIDE.Button.Icon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/editor_tooling_arreter_cd"
+        android:minWidth="@dimen/touch_target_min"
+        android:minHeight="@dimen/touch_target_min"
+        android:visibility="gone"
+        app:icon="@drawable/ic_arreter_build"
+        tools:visibility="visible" />
+</LinearLayout>

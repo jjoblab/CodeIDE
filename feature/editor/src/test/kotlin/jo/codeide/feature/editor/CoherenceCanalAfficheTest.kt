@@ -74,8 +74,9 @@ class CoherenceCanalAfficheTest {
         // Le statut suit la MÊME cascade que l'en-tête, sur CE canal :
         // « Build en cours… », plus jamais « Synchronisé en X ».
         assertEquals(
+            "l'en-tête (et les indicateurs compacts) annonce le build en vol",
             TexteTooling.Ressource(R.string.editor_tooling_build_en_cours),
-            PresentationTooling.libelleStatut(etat, canal),
+            PresentationTooling.libelleActivite(etat, canal!!),
         )
         // L'icône du canal (baliserCanalStatut) dérive du même canal.
         assertEquals(CanalTooling.BUILD, canal)
@@ -99,8 +100,9 @@ class CoherenceCanalAfficheTest {
             canal,
         )
         assertEquals(
+            "l'en-tête (et les indicateurs compacts) annonce la sync en vol",
             TexteTooling.Ressource(R.string.editor_tooling_sync_en_cours),
-            PresentationTooling.libelleStatut(etat, canal),
+            PresentationTooling.libelleActivite(etat, canal!!),
         )
     }
 
@@ -146,7 +148,7 @@ class CoherenceCanalAfficheTest {
         assertNull(PresentationTooling.canalAffiche(etat, FiltreCanalConsole.BUILD))
         assertEquals(
             TexteTooling.Ressource(R.string.editor_sortie_vide),
-            PresentationTooling.libelleStatut(etat, null),
+            PresentationTooling.libelleStatut(etat),
         )
     }
 
@@ -173,10 +175,18 @@ class CoherenceCanalAfficheTest {
                 canal == null || canal == CanalTooling.SYNC || canal == CanalTooling.BUILD,
             )
 
-            // Le statut parle du MÊME canal que le chip/icône : la
-            // résolution passe par la cascade de l'en-tête sur ce canal.
-            val statut = PresentationTooling.libelleStatut(etat, canal)
-            assertTrue("$nom : statut résolu", statut is TexteTooling.Ressource || statut is TexteTooling.Brut)
+            // L'en-tête (ligne enrichie et indicateurs compacts, INC-10)
+            // parle du MÊME canal que le sélecteur : la cascade
+            // libelleActivite se résout sur CE canal (INC-22 : la ligne
+            // de statut de la console, elle, ne porte plus que l'état
+            // vierge — plus de double discours).
+            if (canal != null) {
+                val activite = PresentationTooling.libelleActivite(etat, canal)
+                assertTrue(
+                    "$nom : activité de l'en-tête résolue",
+                    activite is TexteTooling.Ressource || activite is TexteTooling.Brut,
+                )
+            }
 
             // Cohérence en-tête/console SANS dérogation utilisateur et SANS
             // listage en vol : l'en-tête suit l'activité (ou le dernier

@@ -128,37 +128,23 @@
             tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- Canal du statut (v0.32.5) : l'icône signature de la provenance
-         (Sync teal / Build bleu) — l'information affichée ici porte
-         TOUJOURS son canal, comme chaque ligne et chaque entrée d'en-tête. -->
-    <LinearLayout
+    <!-- Ligne de statut (v0.32.5 ; INC-22 finale : l'activité et le
+         verdict vivent dans l'en-tête du sheet — ligne enrichie sur
+         Console replié, indicateurs compacts ailleurs, INC-10) : elle
+         n'apparaît plus que pour l'état que l'en-tête ne porte pas,
+         l'orchestrateur déconnecté avant toute activité. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/statut_sortie"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:paddingHorizontal="@dimen/spacing_md_compact"
-        android:paddingVertical="@dimen/spacing_xs">
-
-        <ImageView
-            android:id="@+id/icone_canal_sortie"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:contentDescription="@null"
-            tools:src="@drawable/ic_executer" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/statut_sortie"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_sm"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:paddingBottom="@dimen/spacing_xs"
-            android:singleLine="true"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="Build en cours" />
-    </LinearLayout>
+        android:paddingBottom="@dimen/spacing_xs"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="Outils Gradle non connectés"
+        tools:visibility="visible" />
 
     <!-- Bandeau d'échec DU CANAL AFFICHÉ (§3.3 ; INC-21, volet C : parité
          sync/build — un échec de sync avait seulement une ligne de statut,
