@@ -1,5 +1,67 @@
 # Journal des modifications
 
+## [0.208.0] – 2026-11-09
+
+Lot **L0 — audit confirmé et conception** du chantier « Refonte du
+générateur de projets et des écrans Nouveau projet » (aucun code de
+production : documentation et maquettes seulement, en attente du « GO L1 »).
+
+### Ajouté
+
+- **Plan d'exécution du chantier** (`docs/NEWPROJECT_GENERATEUR_PLAN.md`) :
+  rapport L0 complet — 25 constats du prompt re-vérifiés sur le code au
+  commit `d9b0c615` avec preuves fichier:ligne (24 confirmés, 1 partiel :
+  les aides de bibliothèques existent et s'affichent — B3 ; nuances B1/B2.1/
+  C4 documentées), tableaux de cohérence cibles par modèle, parcours
+  adaptatif par famille, choix argumenté « évolution encadrée » du module
+  `feature/newproject`, liste chiffrée de 16 nouveaux paramètres/extras,
+  réponses recommandées aux 9 questions à trancher, plan des lots L1-L6.
+- **Six ADR** (docs/adr/) :
+  - `0153` — contraintes déclaratives entre paramètres : `enabledWhen` +
+    `disabledReasonKey` (état désactivé avec raison), règles de projet
+    `constraints` (ERREUR/AVERTISSEMENT/INFO) au mini-langage existant,
+    `autoDefinit` (dépendances implicites), variable automatique
+    `plateformeMajeure` (catalogue ADR 0089), `schemaVersion: 1` maintenu
+    (champs optionnels rétro-compatibles), revalidation dans
+    `CreateProjectUseCase` ;
+  - `0154` — contrat d'affichage déclaratif : libellés/sous-titres/
+    descriptions/icônes **par choix** via convention de clés i18n, indice de
+    composant `rendu`, groupes de paramètres et zone « Avancé », registre
+    d'icônes vectorielles maison dans `core:ui` (ADR 0021 amendé ;
+    suppression des 5 registres de `RenduParametres` + `libelleValeur`) ;
+  - `0155` — parcours de création adaptatif : étapes déclarées par le
+    manifeste (bloc `wizard`), socle imposé (Modèle · [étapes du modèle] ·
+    Identité · Fichiers · Récapitulatif), `CalculeParcoursUseCase` dans le
+    domaine, valeurs des étapes disparues conservées mais exclues,
+    préréglages `presets`, aperçu en direct feuille basse/panneau latéral
+    (ADR 0020 amendé : `ETAPES_WIZARD` cesse d'être une constante) ;
+  - `0156` — mutualisation des fichiers communs (`assets/templates/
+    _commun/` + préfixe `commun:` résolu par les deux implémentations du
+    port, gardes identiques) : ≈ 428 Ko d'APK économisés, 8 copies du
+    `gradle-wrapper.jar` ramenées à une, deux fichiers orphelins soldés ;
+  - `0157` — outil `:tools:generateur` : cinq commandes (`lister`,
+    `generer`, `matrice` — dérivée des manifestes, stratégies
+    `exhaustif`/`paires`/`bornes` —, `valider-manifestes`, `determinisme`),
+    protocole `PROTOCOLE=2`, script `verify-templates.sh` refondu (rapport
+    Markdown + JUnit XML, message explicite si l'outillage manque) ;
+  - `0158` — manifestes homogènes : `group` renseigné partout et enfin
+    exploité (étape Fichiers, récapitulatif), 7ᵉ fonction dérivée
+    `appNameFromNom` (chaîne nom → appName → packageName → applicationId),
+    composition de manifestes kotlin-jvm/java écartée.
+- **Maquettes L0** (`docs/mockups/ui/newproject-flux-adaptatif.html`) :
+  parcours par famille (téléphone), états désactivé-avec-raison,
+  avertissement, erreur bloquante, récapitulatif fidèle, tablette
+  deux colonnes avec aperçu en direct et différentiel.
+
+### Divers
+
+- `version.properties` 0.207.0 → 0.208.0 (bump de lot, docs seulement).
+- Constat d'environnement (signalé, sans contournement) : JDK 17, Maven, SDK
+  Android et clone frère `../LayoutLib` absents de la sandbox de travail —
+  la chaîne Gradle locale n'a pas pu être exécutée ;
+  `scripts/modules-touches.sh` ne renvoie aucun module (changement
+  `docs/**`), la CI GitHub porte la vérification complète au push.
+
 ## [0.207.0] – 2026-11-08
 
 Phase 2 du diagnostic « retard d'affichage » côté app, sur le verdict

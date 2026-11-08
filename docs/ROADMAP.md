@@ -1,12 +1,27 @@
 # CodeIDE — Roadmap
 
-> Dernière mise à jour : 2026-10-24
-> Version courante : **0.178.0** (source de vérité : `version.properties`)
+> Dernière mise à jour : 2026-11-09
+> Version courante : **0.208.0** (source de vérité : `version.properties`)
 > Historique complet des 235 livraisons : `CHANGELOG.md`. Cette feuille
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## État actuel (v0.166.1 — mission UI close (UI-1→UI-7) + lot familles de parents PE12 (docs))
+## Chantier ouvert — Refonte du générateur de projets et des écrans « Nouveau projet »
+
+Plan opérationnel : `docs/NEWPROJECT_GENERATEUR_PLAN.md` · ADR **0153**-**0158** ·
+maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
+
+| Lot | Contenu | État |
+|---|---|---|
+| **L0** | Audit confirmé (25 constats re-vérifiés avec preuves), conception (contraintes déclaratives, contrat d'affichage, parcours adaptatif, mutualisation, outil/matrice, manifestes homogènes), maquettes téléphone/tablette | ✅ v0.208.0 — en attente du « GO » |
+| **L1** | Socle moteur : schéma étendu rétro-compatible, évaluation des contraintes (`EvaluateTemplateFormUseCase`), revalidation (`CreateProjectUseCase`), libellés de choix déclaratifs, groupes, `appNameFromNom` | ⏳ |
+| **L2** | Outil et matrice : `lister`/`generer`/`matrice`/`valider-manifestes`/`determinisme`, script refondu, doc outil | ⏳ |
+| **L3** | Modèles hors Android (spring-boot langage/build/JDK + câblage JPA/Security/Actuator/Validation, JVM, KMP, plugin) + mutualisation `_commun/` | ⏳ |
+| **L4** | Modèles Android (câblage complet des 5 dépendances, targetSdk ≤ 36, icône/thème/backup, appName dérivé) | ⏳ |
+| **L5** | Écrans « Nouveau projet » : parcours adaptatif (L5a socle, L5b étapes communes, L5c étapes par famille, L5d aperçu + tablette + mode rapide) | ⏳ |
+| **L6** | Finitions : dette `checkUiTokens` du module réduite, docs, `docs/consommes/` | ⏳ |
+
+## État actuel (v0.208.0 — lot L0 du chantier générateur/Nouveau projet + Phase 2 tooling)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -14,7 +29,7 @@
 - **Dépôts frères en binaire** (v0.134.41 → v0.134.44) : séparation des dépôts, publication de 18 paquets publics sur GitHub Packages, consommation **binaire par défaut** (mavenLocal puis Packages, `scripts/bump-frere.sh`), composite en opt-in `-Pfreres.sources`, CI sans clone + garde-fou composite nocturne
 - **Console hybride** (v0.42.0, ADR 0074) : zone structurée + zone texte — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln, installer/lancer un APK sans adb (ADR 0102)
-- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable
+- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable — **refonte en cours** (chantier ci-dessus, ADR 0153–0158)
 - **Installation** (Phase R, E1–E6, v0.55.0 → v0.65.0) : JDK 17/21 + outils Android installés sur l'appareil, orchestration quatre phases, migration des installations
 - **Terminal** (ADR 0035/0036/0053) : Termux, sessions, tiroir, pont SAF/FUSE, cartes d'aperçu
 - **Historique local** (ADR 0104–0106) : blobs, index atomique, étiquettes, capture de ports
