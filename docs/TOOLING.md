@@ -315,6 +315,41 @@ construire l'app en mode composite** (`-Pfreres.sources`) avec
 porter les drapeaux du banc. Coupé (défaut) : aucun compteur, aucune ligne,
 aucun changement de comportement (règle 10).
 
+## Phase 2 du diagnostic « retard d'affichage » — correctifs de transport, cache d'empreinte, écran de configuration complété (2026-11-08, tooling 1.2.0)
+
+Le verdict est RENDU (`codeide-tooling/docs/DIAGNOSTIC-LOGS.md` §8, trois
+captures appareil du propriétaire) : le retard d'affichage était
+l'interblocage des flux `Channels` du JDK 17 dans le JAR orchestrateur —
+corrigé en 1.1.1, latence résiduelle mesurée 14–102 ms. La Phase 2
+s'ouvre sur SES chiffres ; côté app :
+
+- **T-F2 (lecture tamponnée)** : le fil lecteur de la session lit à
+  travers un `BufferedInputStream` de 64 Kio posé par l'hôte AVANT le
+  handshake — le handshake et les frames partagent le MÊME tampon (les
+  octets de la première frame ne peuvent pas être volés par un
+  read-ahead), une rafale d'événements se draine en un appel système.
+  Avec la moitié protocole de codeide-tooling 1.2.0 (en-tête lu en UN
+  `read` bouclé), le client ne se réveille plus qu'une fois par rafale.
+- **INC-31 (arguments de sync séparés)** : champ « Arguments de
+  synchronisation » dans la carte Exécution — vides, la sync retombe sur
+  les arguments généraux (comportement d'avant) ; renseignés, ils les
+  REMPLACENT (le mode hors ligne y est ré-inclus). Le champ
+  `argumentsSync` du `SyncRequest` est toléré par les orchestrateurs
+  anciens (`ignoreUnknownKeys`) : la matrice de compatibilité tient.
+- **INC-32 (niveau de journal du serveur)** : champ « Niveau de journal
+  du serveur » (INFO, WARN, ERROR — repli INFO) dans la carte Diagnostic,
+  passé par `--log-level` à CHAQUE lancement du process (le réglage
+  quitte le code du daemon où il était codé en dur).
+- **INC-33 (redémarrage à la demande)** : bouton « Redémarrer » dans la
+  carte État — le process orchestrateur est tué puis relancé
+  immédiatement SANS consommer de tentative de reconnexion ; les
+  réglages « à la prochaine vie du process » (journal, instrumentation,
+  banc) s'appliquent À LA DEMANDE, l'état de connexion de la carte le
+  montre en direct.
+- **E1 côté app (bénéfice)** : la réouverture d'un projet inchangé ne
+  re-paye plus la sync — l'orchestrateur 1.2.0 restitue son cache
+  d'empreinte (une ligne honnête s'affiche dans la console Sync).
+
 ## Ce que la CI garantit (ADR 0037)
 
 Chaîne complète from-scratch à chaque poussée : `spotlessCheck detekt

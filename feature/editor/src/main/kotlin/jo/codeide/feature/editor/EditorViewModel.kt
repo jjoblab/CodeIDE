@@ -1242,7 +1242,7 @@ constructor(
     private suspend fun revaliderSyncSilencieusement() {
         if (jdkAbsent()) return
         val dossier = dossierProjetOuEchec() ?: return
-        val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
+        val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild(), optionsTooling.argumentsSync())
         // En cas de succès, on met à jour l'état ET le sync-state.json
         // (l'empreinte ne change pas — la sync n'a rien modifié —
         // mais l'instant de la dernière sync est rafraîchi).
@@ -2376,7 +2376,7 @@ constructor(
             // v4 (§3.1) : les arguments réglés (`--offline`, arguments
             // libres) s'appliquent À la sync — mêmes règles que le build
             // (l'orchestrateur garde la main sur `--console=plain`).
-            val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild())
+            val resultat = synchroniserProjet(dossier, optionsTooling.argumentsBuild(), optionsTooling.argumentsSync())
             // v0.48.0 (ADR 0079) : le RÉSULTAT SERVEUR est publié par la
             // vidange process-wide (terminal du flux ordonné) — dans
             // l'ordre, APRÈS les dernières lignes et étapes, et même si

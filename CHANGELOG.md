@@ -1,5 +1,48 @@
 # Journal des modifications
 
+## [0.207.0] – 2026-11-08
+
+Phase 2 du diagnostic « retard d'affichage » côté app, sur le verdict
+rendu par les trois captures appareil (tooling 1.2.0, ADR 0152 pour le
+socle) : correctif de lecture T-F2, écran de configuration du tooling
+COMPLÉTÉ (INC-31/32/33) et bump du frère `codeide-tooling` en 1.2.0.
+
+### Transport (T-F2)
+
+- Le fil lecteur de la session lit à travers un `BufferedInputStream`
+  64 Kio partagé avec le handshake (posé par l'hôte AVANT la première
+  lecture) : une rafale de frames se draine en un appel système, le fil
+  ne se réveille qu'une fois par rafale — octets du fil inchangés.
+
+### Écran de configuration du tooling (INC-31/32/33)
+
+- **Arguments de synchronisation** (INC-31) : champ séparé dans la carte
+  Exécution — vides : retour aux arguments généraux (comportement
+  d'avant) ; renseignés : ils les remplacent, mode hors ligne
+  ré-inclus. Champ `argumentsSync` du protocole toléré par les
+  orchestrateurs anciens.
+- **Niveau de journal du serveur** (INC-32) : INFO/WARN/ERROR (repli
+  INFO, borné à la lecture comme à l'écriture), passé par `--log-level`
+  à chaque lancement du process — plus de niveau codé en dur dans le
+  daemon.
+- **Redémarrer le serveur de build** (INC-33) : bouton dans la carte
+  État — le process est relancé sans consommer de tentative (un
+  redémarrage demandé n'est pas une panne), les réglages « à la
+  prochaine vie » s'appliquent aussitôt.
+
+### Divers
+
+- `codeide-tooling` 1.2.0 (bump-frère) : T-F1/T-F3 (un appel système par
+  frame ou par groupe côté serveur), T-F8 (durée Gradle lue sur les
+  builds ÉCHOUÉS), E1/E2/E3 (cache d'empreinte persisté — la
+  réouverture d'un projet inchangé ne re-paye plus la sync —,
+  dépendances servies du cache, journal de sync serveur).
+- Tests : OptionsToolingTest (3), ConfigToolingViewModelTest (+3),
+  GradleUseCasesTest (+1), SettingsDataStoreTest (aller-retour des deux
+  réglages), DaemonManagerTest (commande sans `--log-level` codé dur +
+  paire `--log-level`).
+
+
 ## [intégrée dans main le 2026-11-08 — branche mesure/instrumentation-logs] — volet A côté app : l'instrumentation cliente de la Phase 1 (session du 2026-11-08)
 
 Miroir client de l'instrumentation serveur livrée dans `codeide-tooling`

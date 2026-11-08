@@ -156,4 +156,46 @@ class ConfigToolingViewModelTest {
         advanceUntilIdle()
         assertEquals("plain", depotReglages.reglages.bancContenu)
     }
+
+    // ---- Phase 2 (INC-31/32/33) : arguments de sync, niveau de journal,
+    // redémarrage à la demande.
+
+    @Test
+    fun `Phase 2 - definirArgumentsSync persiste rogne - vide = retour aux arguments generaux`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.definirArgumentsSync("  --info  ")
+        advanceUntilIdle()
+        assertEquals("--info", depotReglages.reglages.toolingArgumentsSync)
+
+        viewModel.definirArgumentsSync("   ")
+        advanceUntilIdle()
+        assertEquals("", depotReglages.reglages.toolingArgumentsSync)
+    }
+
+    @Test
+    fun `Phase 2 - definirNiveauJournal valide INFO WARN ERROR - repli INFO`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.definirNiveauJournal("WARN")
+        advanceUntilIdle()
+        assertEquals("WARN", depotReglages.reglages.niveauJournalServeur)
+
+        viewModel.definirNiveauJournal("ERROR")
+        advanceUntilIdle()
+        assertEquals("ERROR", depotReglages.reglages.niveauJournalServeur)
+
+        viewModel.definirNiveauJournal("n'importe-quoi")
+        advanceUntilIdle()
+        assertEquals("INFO", depotReglages.reglages.niveauJournalServeur)
+    }
+
+    @Test
+    fun `Phase 2 - redemarrerServeur demande le redemarrage a l orchestrateur`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.redemarrerServeur()
+
+        assertEquals(1, tooling.redemarragesDemandes)
+    }
 }

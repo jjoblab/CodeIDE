@@ -148,7 +148,14 @@ class GradleSocketServer(
                 porteeAccept.cancel()
             }
 
-        val session = SessionSocketAndroid(canal, sondeLecture)
+        // T-F2 (Phase 2) : le tampon de 64 Kio vit ICI, AVANT la première
+        // lecture — le handshake et le fil lecteur de la session partagent
+        // le MÊME flux tamponné : les octets de la première frame ne
+        // peuvent pas être volés par un read-ahead du tampon, et une
+        // rafale d'événements se draine en un appel système.
+        val entreeTamponnee =
+            java.io.BufferedInputStream(canal.inputStream, SessionSocketAndroid.TAILLE_TAMPON_LECTURE)
+        val session = SessionSocketAndroid(canal, sondeLecture, entreeTamponnee)
 
         // Première frame : obligatoirement le HelloRequest de
         // l'orchestrateur — consommée SANS passer par le flux d'événements
@@ -158,7 +165,7 @@ class GradleSocketServer(
                 ProtocolJson.decoderMessage(
                     String(
                         withContext(Dispatchers.IO) {
-                            FrameCodec.readFrame(canal.inputStream)
+                            FrameCodec.readFrame(entreeTamponnee)
                         },
                         Charsets.UTF_8,
                     ),

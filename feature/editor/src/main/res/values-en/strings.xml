@@ -476,6 +476,13 @@
     <string name="editor_config_injection_applog_desc" tools:ignore="TypographyDashes">Adds a debug library to your debug builds: logs of the launched app arrive in the Logcat tab (no permission, no extra dependency). Applies at the next build server start.</string>
     <string name="editor_config_arguments">Extra Gradle arguments</string>
     <string name="editor_config_arguments_aide" tools:ignore="TypographyDashes">Space-separated — e.g. --stacktrace --info</string>
+    <string name="editor_config_arguments_sync">Sync-only arguments</string>
+    <string name="editor_config_arguments_sync_aide">Sync only — empty: general arguments</string>
+    <string name="editor_config_niveau_journal">Server log level</string>
+    <string name="editor_config_niveau_journal_aide">INFO, WARN or ERROR — next server lifetime</string>
+    <string name="editor_config_redemarrer">Restart the build server</string>
+    <string name="editor_config_redemarrer_desc">Applies “next lifetime” settings at once (log level, instrumentation, bench)</string>
+    <string name="editor_config_redemarrer_bouton">Restart</string>
     <string name="editor_config_etat">Orchestrator</string>
     <string name="editor_config_etat_connexion">Connection</string>
     <string name="editor_config_connexion_connecte">Connected</string>

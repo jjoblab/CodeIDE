@@ -108,6 +108,15 @@ public data class AppSettings(
     public val toolingAfficherTaches: Boolean = true,
     public val toolingHorsLigne: Boolean = false,
     public val toolingArguments: String = "",
+    /** Arguments Gradle RÉSERVÉS à la synchronisation (INC-31, Phase 2) :
+     *  VIDES → la sync retombe sur [toolingArguments] (comportement
+     *  d'avant, identique pour qui ne sépare pas). */
+    public val toolingArgumentsSync: String = "",
+    /** Niveau de journal de l'orchestrateur (INC-32, Phase 2) : `INFO`,
+     *  `WARN` ou `ERROR` — passé par `--log-level` à CHAQUE lancement du
+     *  process (défaut `INFO`, identique à l'ancien comportement codé en
+     *  dur côté daemon). */
+    public val niveauJournalServeur: String = "INFO",
     /** Injection de la bibliothèque applog-runtime dans les builds debug des
      *  projets (mission « Exécuter » R2, ADR 0103) — par défaut ACTIVE ;
      *  les journaux des apps exécutées arrivent dans l'onglet Logcat. */

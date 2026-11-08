@@ -149,6 +149,10 @@ public class SettingsDataStore(private val dataStore: DataStore<Preferences>, pr
             booleanPreferencesKey("tooling_offline")
         internal val TOOLING_ARGUMENTS: Preferences.Key<String> =
             stringPreferencesKey("tooling_extra_args")
+        internal val TOOLING_ARGUMENTS_SYNC: Preferences.Key<String> =
+            stringPreferencesKey("tooling_sync_args")
+        internal val NIVEAU_JOURNAL_SERVEUR: Preferences.Key<String> =
+            stringPreferencesKey("tooling_server_log_level")
         internal val INJECTION_APPLOG: Preferences.Key<Boolean> =
             booleanPreferencesKey("tooling_applog_injection")
         internal val INSTRUMENTATION_TRANSPORT: Preferences.Key<Boolean> =
@@ -252,6 +256,10 @@ private fun Preferences.toBaseAppSettings(defaults: AppSettings): AppSettings {
         toolingAfficherTaches = this[SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES] ?: defaults.toolingAfficherTaches,
         toolingHorsLigne = this[SettingsDataStore.Cles.TOOLING_HORS_LIGNE] ?: defaults.toolingHorsLigne,
         toolingArguments = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS] ?: defaults.toolingArguments,
+        toolingArgumentsSync = this[SettingsDataStore.Cles.TOOLING_ARGUMENTS_SYNC] ?: defaults.toolingArgumentsSync,
+        niveauJournalServeur = niveauJournalServeurBorne(
+            this[SettingsDataStore.Cles.NIVEAU_JOURNAL_SERVEUR] ?: defaults.niveauJournalServeur,
+        ),
         injectionAppLog = this[SettingsDataStore.Cles.INJECTION_APPLOG] ?: defaults.injectionAppLog,
         instrumentationTransport =
         this[SettingsDataStore.Cles.INSTRUMENTATION_TRANSPORT] ?: defaults.instrumentationTransport,
@@ -289,6 +297,18 @@ private fun Preferences.parametresBanc(defaults: AppSettings): ParametresBancLus
 
 /** Projection privée des paramètres du banc bornés (voir [parametresBanc]). */
 private data class ParametresBancLus(val lignes: Int, val cadenceMs: Int, val longueurLigne: Int, val contenu: String)
+
+/**
+ * Niveau de journal de l'orchestrateur BORNÉ (INC-32, Phase 2) : une
+ * valeur aberrante (édition externe, migration) retombe sur `INFO` — le
+ * serveur valide aussi de son côté (`ServerConfig.analyser`), la borne à
+ * la lecture est la deuxième ligne de défense.
+ */
+private fun niveauJournalServeurBorne(valeur: String): String =
+    if (valeur in NIVEAUX_JOURNAL_SERVEUR) valeur else "INFO"
+
+/** Niveaux acceptés par le drapeau `--log-level` du serveur. */
+private val NIVEAUX_JOURNAL_SERVEUR = setOf("INFO", "WARN", "ERROR")
 
 /** Bornes de lecture des paramètres du banc (Phase 1, ADR 0152). */
 private const val BANC_LIGNES_MAX: Int = 200_000
@@ -340,6 +360,8 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.TOOLING_AFFICHER_TACHES, reglage.toolingAfficherTaches)
     set(SettingsDataStore.Cles.TOOLING_HORS_LIGNE, reglage.toolingHorsLigne)
     set(SettingsDataStore.Cles.TOOLING_ARGUMENTS, reglage.toolingArguments)
+    set(SettingsDataStore.Cles.TOOLING_ARGUMENTS_SYNC, reglage.toolingArgumentsSync)
+    set(SettingsDataStore.Cles.NIVEAU_JOURNAL_SERVEUR, niveauJournalServeurBorne(reglage.niveauJournalServeur))
     set(SettingsDataStore.Cles.INJECTION_APPLOG, reglage.injectionAppLog)
     set(SettingsDataStore.Cles.INSTRUMENTATION_TRANSPORT, reglage.instrumentationTransport)
     set(SettingsDataStore.Cles.BANC_SOCKET_SEUL, reglage.bancSocketSeul)

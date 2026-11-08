@@ -139,6 +139,32 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
     val dernierPongMs = MutableStateFlow(0L)
 
     /**
+     * Crochet de redémarrage du serveur de build (INC-33, Phase 2) :
+     * posé au montage par le daemon (ModuleDaemon) qui SEUL sait tuer
+     * et relancer le process — cette classe ne fait qu'exposer la
+     * demande au port du domaine. `null` (tests, montage partiel) :
+     * [redemarrerOrchestrateur] journalise et ne fait rien.
+     */
+    @Volatile
+    var demandeRedemarrage: (() -> Unit)? = null
+
+    /**
+     * Redémarre le serveur de build À LA DEMANDE (INC-33, Phase 2 —
+     * écran de configuration) : le process est tué puis relancé
+     * immédiatement par le daemon, qui relit les drapeaux à chaque
+     * lancement (niveau de journal, instrumentation, banc).
+     */
+    override fun redemarrerOrchestrateur() {
+        val demande = demandeRedemarrage
+        if (demande == null) {
+            journal.w("ConfigTooling") { "redémarrage demandé sans daemon monté — ignoré" }
+        } else {
+            journal.i("ConfigTooling") { "redémarrage du serveur de build demandé" }
+            demande()
+        }
+    }
+
+    /**
      * Valeur courante de l'état de connexion — accès direct (sans flux)
      * pour le daemon et les tests : [observeConnectionState] reste la
      * voie d'abonnement de l'UI.
@@ -978,7 +1004,11 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
     // Opérations (§5.3).
     // ------------------------------------------------------------------
 
-    override suspend fun synchroniser(projectDir: File, arguments: List<String>): AppResult<ResultatSynchronisation> {
+    override suspend fun synchroniser(
+        projectDir: File,
+        arguments: List<String>,
+        argumentsSync: List<String>,
+    ): AppResult<ResultatSynchronisation> {
         val reponse =
             echangerAvecInactivite(
                 SyncRequest(
@@ -986,6 +1016,10 @@ constructor(private val journal: AppLogger) : GradleToolingRepository {
                     protocolVersion = GradleProtocol.PROTOCOL_VERSION,
                     projectDir = projectDir.canonicalPath,
                     arguments = arguments,
+                    // INC-31 (Phase 2) : VIDE = le serveur retombe sur les
+                    // arguments généraux — un orchestrateur ANCIEN ignore
+                    // le champ (ignoreUnknownKeys), la matrice tient.
+                    argumentsSync = argumentsSync,
                 ),
             ) ?: return echecConnexion()
         return when (reponse) {

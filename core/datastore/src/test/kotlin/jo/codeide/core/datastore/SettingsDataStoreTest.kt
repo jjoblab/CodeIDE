@@ -264,6 +264,27 @@ class SettingsDataStoreTest {
         assertEquals(true, emissions.last().isSetupCompleted)
         assertEquals("Jo", emissions.last().authorName)
     }
+
+    @Test
+    fun `Phase 2 - arguments de sync et niveau de journal font l aller-retour exact - borne INFO`() = runTest {
+        val source = nouvelleSource()
+
+        source.update {
+            it.copy(
+                toolingArgumentsSync = "--info",
+                niveauJournalServeur = "WARN",
+            )
+        }
+
+        val relu = source.current().succes()
+        assertEquals("--info", relu.toolingArgumentsSync)
+        assertEquals("WARN", relu.niveauJournalServeur)
+
+        // Valeur aberrante : repli INFO à la lecture (le serveur valide
+        // aussi de son côté, la borne DataStore est la deuxième ligne).
+        source.update { it.copy(niveauJournalServeur = "n'importe-quoi") }
+        assertEquals("INFO", source.current().succes().niveauJournalServeur)
+    }
 }
 
 /** Valeur d'un succès, ou échec du test avec le message d'erreur. */

@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
 import java.io.IOException
+import java.io.InputStream
 import kotlin.concurrent.thread
 
 /**
@@ -92,11 +94,21 @@ interface SessionTooling {
  * réveille à l'arrivée des octets ; aucune saturation du scheduler (le
  * pool `Dispatchers.IO` est partagé avec le travail LSP/diagnostics de
  * l'app) ne peut plus retarder la lecture, EOF = fin de flux.
+ *
+ * T-F2 (Phase 2) : la lecture passe par un tampon ≥ 64 Kio POSÉ PAR
+ * L'HÔTE ([GradleSocketServer] — le handshake lit le MÊME tampon : les
+ * octets de la première frame ne peuvent pas être volés par un
+ * read-ahead) : une rafale de frames se draine en UN appel système, le
+ * fil ne se réveille qu'une fois par rafale au lieu d'une fois par
+ * frame. Les octets du fil sont inchangés — seule la FRONTIÈRE des
+ * appels système bouge.
  */
 internal class SessionSocketAndroid(
     private val socket: android.net.LocalSocket,
     /** Sonde T3 détaillée du fil lecteur (Phase 1, ADR 0152) — `null` : aucune mesure. */
     private val sonde: SondeLectureSocket? = null,
+    /** Flux d'entrée TAMPONNÉ par l'hôte — handshake et frames le partagent (T-F2). */
+    private val entree: InputStream = BufferedInputStream(socket.inputStream, TAILLE_TAMPON_LECTURE),
 ) : SessionTooling {
     private val verrouEcriture = Mutex()
 
@@ -149,7 +161,7 @@ internal class SessionSocketAndroid(
                             // nanoTime de plus par frame sinon, jamais d'autre
                             // effet).
                             val debutLecture = if (sonde != null) System.nanoTime() else 0L
-                            val payload = FrameCodec.readFrame(socket.inputStream)
+                            val payload = FrameCodec.readFrame(entree)
                             val apresLecture = if (sonde != null) System.nanoTime() else 0L
                             val evenement =
                                 ProtocolJson.decoderEvenement(String(payload, Charsets.UTF_8))
@@ -195,8 +207,17 @@ internal class SessionSocketAndroid(
         runCatching { socket.close() }
     }
 
-    private companion object {
+    companion object {
         /** Nom du fil de lecture dédié (journaux de terrain, v0.50.0). */
         const val NOM_FIL_LECTURE = "tooling-lecteur"
+
+        /**
+         * Taille du tampon de lecture (T-F2, Phase 2) : 64 Kio — assez
+         * pour vider une rafale complète de sortie de build en un appel
+         * système (les frames font quelques centaines d'octets). L'hôte
+         * ([GradleSocketServer]) pose le tampon pour le handshake ET la
+         * session : même frontière d'appels système partout.
+         */
+        const val TAILLE_TAMPON_LECTURE = 64 * 1024
     }
 }

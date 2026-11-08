@@ -61,6 +61,14 @@ class PanneauConfigToolingFragment : Fragment() {
      *  distinguent — plus jamais de drapeau armé par le rendu). */
     private val saisieArguments = SaisieArguments()
 
+    // ---- Phase 2 (INC-31/INC-32) : champs de la sync et du niveau de
+    // journal, même discipline de saisie (persistés à la perte de focus /
+    // « Terminé », jamais par frappe).
+
+    private val saisieArgumentsSync = SaisieArguments()
+
+    private val saisieNiveauJournal = SaisieArguments()
+
     // ---- Phase 1 (ADR 0152) : champs du banc, même discipline de saisie
     // (persistés à la perte de focus / « Terminé », jamais par frappe).
 
@@ -133,6 +141,20 @@ class PanneauConfigToolingFragment : Fragment() {
             }
         }
 
+        // Phase 2 (INC-31) : arguments RÉSERVÉS à la sync — même discipline
+        // que les arguments généraux (écrit au repos, jamais par frappe).
+        brancherChampBanc(liaison.saisieArgumentsSync, saisieArgumentsSync) { valeur ->
+            viewModel.definirArgumentsSync(valeur)
+        }
+        // Phase 2 (INC-32) : niveau de journal du serveur.
+        brancherChampBanc(liaison.saisieNiveauJournal, saisieNiveauJournal) { valeur ->
+            viewModel.definirNiveauJournal(valeur.trim().uppercase())
+        }
+        // Phase 2 (INC-33) : redémarrage à la demande — les réglages « à la
+        // prochaine vie » s'appliquent aussitôt, la carte État montre la
+        // reconnexion en direct.
+        liaison.boutonRedemarrer.setOnClickListener { viewModel.redemarrerServeur() }
+
         viewModel.reglages.collectWithLifecycle(viewLifecycleOwner) { rendreReglages(it) }
         viewModel.etatVivant.collectWithLifecycle(viewLifecycleOwner) { rendreEtatVivant(it) }
     }
@@ -159,6 +181,12 @@ class PanneauConfigToolingFragment : Fragment() {
             // utilisateur en train de taper serait le pire des rendus.
             if (saisieArguments.renduPeutReecrire()) {
                 liaison.saisieArguments.setText(reglages.toolingArguments)
+            }
+            if (saisieArgumentsSync.renduPeutReecrire()) {
+                liaison.saisieArgumentsSync.setText(reglages.toolingArgumentsSync)
+            }
+            if (saisieNiveauJournal.renduPeutReecrire()) {
+                liaison.saisieNiveauJournal.setText(reglages.niveauJournalServeur)
             }
             if (saisieBancLignes.renduPeutReecrire()) {
                 liaison.saisieBancLignes.setText(

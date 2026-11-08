@@ -279,8 +279,15 @@ class DaemonManagerTest {
         assertEquals("aucune relance après un arrêt demandé", 1, lanceur.lancements.size)
     }
 
+    // INC-32 (Phase 2) : le test historique `la commande par defaut porte
+    // ... et journalisation` est MODIFIÉ avec justification — le niveau de
+    // journal ne vit PLUS dans la commande de base (codé en dur INFO) mais
+    // dans les ARGUMENTS additionnels lus à chaque lancement
+    // ([argumentsNiveauJournal]) : même ligne de commande finale pour le
+    // réglage par défaut, mais un changement de niveau s'applique sans
+    // reconstruire l'app.
     @Test
-    fun `la commande par defaut porte java tas jar socket secret et journalisation`() = runBlocking {
+    fun `la commande par defaut porte java tas jar socket et secret`() = runBlocking {
         val commande =
             commandeParDefaut().invoke(
                 File("/outils/jdk/bin/java"),
@@ -298,11 +305,16 @@ class DaemonManagerTest {
                 "/donnees/files/run/gradle.sock",
                 "--secret",
                 "secret-de-test",
-                "--log-level",
-                "INFO",
             ),
             commande,
         )
+    }
+
+    @Test
+    fun `INC-32 - le niveau de journal voyage par argumentsNiveauJournal`() {
+        assertEquals(listOf("--log-level", "WARN"), argumentsNiveauJournal("WARN"))
+        assertEquals(listOf("--log-level", "INFO"), argumentsNiveauJournal("INFO"))
+        assertEquals(listOf("--log-level", "ERROR"), argumentsNiveauJournal("ERROR"))
     }
 
     // ------------------------------------------------------------------

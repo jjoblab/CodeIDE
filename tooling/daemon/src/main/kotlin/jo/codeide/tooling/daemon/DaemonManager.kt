@@ -76,8 +76,14 @@ import java.util.UUID
  * réglages.
  * @param sondeLecture sonde T3 détaillée du fil lecteur (Phase 1) —
  * `null` en test : aucune mesure posée sur les sessions acceptées.
+ *
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions — chaque fonction
+ * est une PIÈCE du cycle de vie du process (démarrer, arrêter,
+ * redémarrer à la demande INC-33, tenter, attendre, surveiller) ; le
+ * découper casserait la machine d'états qu'elles partagent (même
+ * justification que le BuildHandler du serveur).
  */
-@Suppress("LongParameterList")
+@Suppress("LongParameterList", "TooManyFunctions")
 class DaemonManager
 internal constructor(
     private val lanceur: NativeProcessLauncher,
@@ -95,6 +101,12 @@ internal constructor(
     private val deployeurAppLog: DepotAppLogDeployer? = null,
     private val lectureInjectionAppLog: suspend () -> Boolean = { true },
     private val lectureInstru: suspend () -> ParametresInstru = { ParametresInstru.INACTIFS },
+    /**
+     * Niveau de journal du serveur (INC-32, Phase 2), lu à CHAQUE
+     * lancement du process : `INFO`, `WARN` ou `ERROR` — passé par
+     * `--log-level` (le serveur valide aussi, la borne DataStore aussi).
+     */
+    private val lectureNiveauJournal: suspend () -> String = { "INFO" },
     private val sondeLecture: SondeLecteurTransport? = null,
 ) {
     /** Surveillance en cours (null = daemon arrêté). */
@@ -103,6 +115,21 @@ internal constructor(
     /** Arrêt demandé par [arreter] — coupe la boucle de relances. */
     @Volatile
     private var arretDemande = false
+
+    /** Process courant d'une tentative en vie (pour [redemarrer]). */
+    @Volatile
+    private var processCourant: ManagedProcess? = null
+
+    /**
+     * Redémarrage DEMANDÉ par l'écran de configuration (INC-33, Phase 2) :
+     * le process vivant est tué, la boucle de relance repart SANS
+     * consommer de tentative (un redémarrage demandé n'est pas une
+     * panne) et sans back-off — le nouveau process relit les drapeaux
+     * à son lancement (niveau de journal, instrumentation, banc : les
+     * réglages « à la prochaine vie » s'appliquent À LA DEMANDE).
+     */
+    @Volatile
+    private var redemarrageDemande = false
 
     /**
      * Garde-fou anti-plantage (ADR 0063) : un échec NON PRÉVU d'une
@@ -153,6 +180,34 @@ internal constructor(
         surveillance = null
     }
 
+    /**
+     * Redémarre le serveur de build À LA DEMANDE (INC-33, Phase 2 —
+     * écran de configuration) : le process vivant est tué (le `kill`
+     * est SYNCHRONE et NON SUSPENDANT, même discipline que [arreter]),
+     * la boucle de relance repart immédiatement SANS consommer de
+     * tentative — le nouveau process relit les drapeaux à son lancement
+     * (niveau de journal, instrumentation, banc).
+     *
+     * No-op honnête : daemon non démarré (rien à tuer, la boucle n'est
+     * pas là) — le prochain `demarrer` lira les réglages de toute façon.
+     */
+    fun redemarrer() {
+        if (surveillance?.isActive != true) {
+            journal.w(TAG) { "redémarrage demandé sans surveillance active — ignoré" }
+            return
+        }
+        redemarrageDemande = true
+        val process = processCourant
+        if (process != null) {
+            runCatching { process.kill(force = true) }
+        } else {
+            // Pas encore de process (fenêtre de déploiement/écoute) : la
+            // tentative en cours se terminera d'elle-même, le drapeau
+            // suffit à repartir proprement.
+            journal.i(TAG) { "redémarrage demandé pendant la fenêtre de lancement" }
+        }
+    }
+
     // ------------------------------------------------------------------
     // Boucle de vie.
     // ------------------------------------------------------------------
@@ -194,8 +249,18 @@ internal constructor(
                 }
                 // Tentative complète qui se termine SANS échec définitif
                 // (process mort ou connexion perdue) : consomme une
-                // tentative, sauf arrêt demandé (terminaison propre).
+                // tentative — SAUF redémarrage demandé (INC-33 : ce n'est
+                // pas une panne, le compteur et le back-off repartent à
+                // zéro, la relance est immédiate).
                 if (arretDemande) return
+                if (redemarrageDemande) {
+                    redemarrageDemande = false
+                    tentatives = 0
+                    relance = delaiRelanceMs
+                    journal.i(TAG) { "redémarrage demandé — relance immédiate du serveur de build" }
+                    api.marquerEnConnexion()
+                    continue
+                }
                 tentatives++
                 if (tentatives >= GradleProtocol.MAX_RECONNECT_ATTEMPTS) break
                 journal.w(TAG) {
@@ -266,15 +331,22 @@ internal constructor(
         val parametresInstru = lectureInstru()
         sondeLecture?.activer(parametresInstru.instrumentationTransport)
 
+        // INC-32 (Phase 2) : niveau de journal lu à CHAQUE lancement —
+        // un changement s'applique à la prochaine vie du process, et
+        // l'action « Redémarrer le serveur de build » la PROVOQUE.
+        val niveauJournal = lectureNiveauJournal()
+
         val process =
             lanceur.launch(
                 command =
                 fabriqueCommande(java, jar, hote.cheminSocket, secret) +
                     argumentsAppLog(deciderDepotAppLog()) +
-                    argumentsInstru(parametresInstru),
+                    argumentsInstru(parametresInstru) +
+                    argumentsNiveauJournal(niveauJournal),
                 extraEnv = emptyMap(),
                 workingDir = null,
             )
+        processCourant = process
         journal.d(TAG) { "orchestrateur lancé (pid ${process.pid}) sur ${hote.cheminSocket}" }
 
         val porteeTentative = CoroutineScope(SupervisorJob() + dispatchers.default + gardeImprevu)
@@ -302,6 +374,7 @@ internal constructor(
             surveillanceSante.cancel()
             // Nettoyage SYNCHRONE (leçon T2) : kill/fermer/fermerSession
             // ne suspendent jamais — la coroutine peut être annulée.
+            processCourant = null
             process.kill(force = true)
             hote.fermer()
             api.fermerSession()
@@ -591,10 +664,16 @@ internal fun commandeParDefaut(): (java: File, jar: File, cheminSocket: File, se
             cheminSocket.absolutePath,
             "--secret",
             secret,
-            "--log-level",
-            "INFO",
         )
     }
+
+/**
+ * Arguments du niveau de journal du serveur (INC-32, Phase 2) : lus à
+ * CHAQUE lancement du process — le niveau vit dans les réglages
+ * (défaut `INFO`, IDENTIQUE à l'ancien `--log-level INFO` codé en dur,
+ * désormais portable sans reconstruire l'app).
+ */
+internal fun argumentsNiveauJournal(niveau: String): List<String> = listOf("--log-level", niveau)
 
 /**
  * Arguments d'injection applog de la commande du process orchestrateur
