@@ -22,7 +22,9 @@ import javax.inject.Inject
 
 /**
  * ViewModel de l'écran de configuration du tooling (v3) — ouvert par
- * l'engrenage de l'onglet Sortie, scopé au dialogue qui l'héberge.
+ * l'engrenage de l'onglet Console, scopé au fragment enfant que la
+ * console héberge (INC-25/36 : glossaire — « Console » partout, plus de
+ * « Sortie », et c'est un FRAGMENT, pas un dialogue).
  *
  * Réglages **persistés à l'instant** (même contrat que les sections des
  * Paramètres, ADR 0059) : chaque bascule/interrupteur écrit le champ dans

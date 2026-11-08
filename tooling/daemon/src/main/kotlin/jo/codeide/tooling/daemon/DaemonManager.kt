@@ -384,7 +384,9 @@ internal constructor(
     private fun brancherSorties(process: ManagedProcess, portee: CoroutineScope): List<Job> = listOf(
         process
             .stderrLines()
-            .onEach { ligne -> journal.w(TAG_PROCESSUS) { ligne } }
+            // INC-40/41 : niveau PARSÉ du préfixe du Journal du serveur,
+            // avertissements SLF4J filtrés — voir AnalyseLigneServeur.kt.
+            .onEach { ligne -> journaliserLigneServeur(journal, ligne) }
             .launchIn(portee),
         process
             .stdoutLines()
@@ -479,9 +481,6 @@ internal constructor(
     private companion object {
         /** Tag du journal applicatif pour le daemon lui-même. */
         const val TAG = "ToolingDaemon"
-
-        /** Tag du journal pour les lignes du process orchestrateur. */
-        const val TAG_PROCESSUS = "gradle-server"
 
         /** Arguments invalides du process (ServerMain.CODE_ARGUMENTS). */
         const val CODE_ARGUMENTS_INVALIDES = 2

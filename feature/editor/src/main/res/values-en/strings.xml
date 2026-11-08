@@ -330,9 +330,7 @@
     <string name="editor_console_entree_hint">Enter input…</string>
     <string name="editor_sortie_annuler_cd">Stop the running build</string>
     <string name="editor_problemes_vide">No problems so far.</string>
-    <string name="editor_sortie_sync_en_cours">Syncing…</string>
     <string name="editor_sortie_sync_reussie">Synced in %1$s</string>
-    <string name="editor_sortie_build_en_cours">Build running…</string>
     <string name="editor_sortie_build_reussi">Build succeeded in %1$s</string>
     <string name="editor_sortie_build_echoue">Build failed</string>
     <string name="editor_sortie_build_annule">Build cancelled</string>
@@ -342,7 +340,22 @@
     <string name="editor_tooling_canal_build">Build</string>
     <string name="editor_tooling_canal_taches">Tasks</string>
     <string name="editor_tooling_arreter_cd">Stop the running tooling activity</string>
+    <!-- INC-12 (volet C): honesty — sync cannot be cancelled (real
+         cancellation is an owner decision, costed in codeide-tooling's
+         docs/PLAN-AMELIORATIONS.md). -->
+    <string name="editor_tooling_sync_non_annulable">Sync can\'t be stopped</string>
+    <!-- INC-17 (volet C): the tooling line touch target toggles the
+         sheet — role and label announced to TalkBack. -->
+    <string name="editor_ligne_tooling_cd">Open or close the console panel</string>
+    <string name="editor_ligne_tooling_ouvrir_cd">Open the console panel</string>
+    <string name="editor_ligne_tooling_fermer_cd">Close the console panel</string>
     <string name="editor_tooling_sync_en_cours">Synchronizing project…</string>
+    <!-- INC-04 (volet C) : canal Sync consultable sans qu'aucune sync n'ait
+         jamais tourné (sélecteur INC-20) — libellé honnête. -->
+    <string name="editor_tooling_sync_jamais">No synchronization run yet</string>
+    <!-- INC-15 (volet C) : short localized verdict — same wording as the
+         notification (tooling_service_sync_echouee). -->
+    <string name="editor_tooling_sync_echouee">Synchronization failed</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build running…</string>
     <string name="editor_tooling_taches_en_cours">Loading tasks…</string>
@@ -353,12 +366,26 @@
          detailed success "modules · tasks · …". -->
     <string name="editor_tooling_entete_sync_etape">Gradle synchronization · step %1$s/%2$s</string>
     <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
-    <string name="editor_tooling_entete_succes_taches">Tasks available: %1$s</string>
-    <!-- v0.39.x (CI lint PluralsCandidate): compact status line with TWO
-         quantities (like Android Studio's Build view), not a sentence —
-         same documented exemption as wizard_indicateur_etape. -->
-    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$s modules · %2$s tasks · no downloads</string>
-    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$s modules · %2$s tasks · classpaths ready</string>
+    <!-- INC-16 (volet C): real plurals — no more "1 modules · 1 tasks",
+         sizes go through Formatter.formatShortFileSize. -->
+    <string name="editor_tooling_entete_succes_a_jour">nothing to download</string>
+    <string name="editor_tooling_entete_succes_classpaths">classpaths ready</string>
+    <plurals name="editor_tooling_detail_elements">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <plurals name="editor_tooling_modules">
+        <item quantity="one">%d module</item>
+        <item quantity="other">%d modules</item>
+    </plurals>
+    <plurals name="editor_tooling_taches">
+        <item quantity="one">%d task</item>
+        <item quantity="other">%d tasks</item>
+    </plurals>
+    <plurals name="editor_tooling_taches_disponibles">
+        <item quantity="one">Task available: %d</item>
+        <item quantity="other">Tasks available: %d</item>
+    </plurals>
 
     <!-- Task lines of the console (v3 — one line per task, updated in
          place when it finishes, like Android Studio's Build view) and
@@ -380,12 +407,20 @@
     <!-- Enriched tooling console (v4, §3.3): channel filter, Tasks
          button, failure banner, download details. -->
     <string name="editor_console_taches_indisponible">Tasks — available after synchronization</string>
+    <!-- Canal selector of the console (INC-20, volet C): accessibility
+         description of the Sync | Build chip group. -->
+    <string name="editor_console_selecteur_canal_cd">Choose the visible console: sync or build</string>
     <string name="editor_console_echec_voir_problemes">See problems</string>
     <string name="editor_console_echec_reessayer">Retry</string>
     <string name="editor_console_echec_defaut">Build failed</string>
+    <!-- INC-21 (volet C): default message of the Sync channel failure banner. -->
+    <string name="editor_console_echec_sync_defaut">Synchronization failed</string>
     <string name="editor_console_synthese_annule">Build cancelled</string>
     <string name="editor_console_synthese_sync_terminee">Sync complete — tasks are available.</string>
     <string name="editor_console_synthese_sync_a_jour">Project up to date, nothing to download — tasks are available.</string>
+    <!-- INC-05/24 (volet C): restored-from-cache conclusion lines. -->
+    <string name="editor_console_synthese_sync_restituee">Synchronization restored from cache — tasks are available.</string>
+    <string name="editor_console_synthese_sync_restituee_duree">Synchronization restored from cache (last: %1$s) — tasks are available.</string>
 
     <!-- Build summary — task counts (v0.39.1, fix #4): same wording as
          Android Studio\'s console, honest restitution of Gradle\'s last
@@ -431,7 +466,6 @@
     <string name="editor_config_tooling_libelle">Settings</string>
     <string name="editor_config_fermer_cd">Close tooling configuration</string>
     <string name="editor_config_tooling_cd">Configure Gradle tooling</string>
-    <string name="editor_config_affichage">Console display</string>
     <string name="editor_config_execution">Execution</string>
     <string name="editor_config_hors_ligne">Offline mode</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passes --offline to builds: nothing is downloaded, everything must already be cached.</string>

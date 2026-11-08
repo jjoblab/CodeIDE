@@ -207,6 +207,14 @@ data class GroupeProblemes(val fichier: String, val nomFichier: String, val prob
  * @property debutSyncMs instant de départ de la synchronisation (chrono).
  * @property synchronisationReussie dernier résultat de synchronisation.
  * @property messageEchecSync message de l'échec de synchronisation.
+ * @property sequenceResultatSync repère d'ordre de la dernière CONCLUSION
+ *           de sync (INC-01, volet C) : numéro croissant posé par
+ *           [GradleService.publierResultatSync] ; `0` = jamais conclue
+ *           (ou état construit directement, hors service).
+ * @property sequenceResultatBuild repère d'ordre de la dernière CONCLUSION
+ *           de build (INC-01) : numéro croissant posé par
+ *           [GradleService.publierEtatBuild] à la transition vers un
+ *           statut terminal ; `0` = jamais conclu.
  * @property tachesEnCours le listage des tâches est en vol (étape 32).
  * @property debutTachesMs instant de départ du listage (chrono).
  * @property projetsParCanal identité du projet DONT l'activité de chaque
@@ -234,6 +242,20 @@ data class EtatGradle(
     val debutSyncMs: Long? = null,
     val synchronisationReussie: ResultatSynchronisation? = null,
     val messageEchecSync: String? = null,
+
+    /** Durée figée du dernier résultat de sync (INC-15, volet C) — posée à
+     *  CHAQUE conclusion, réussie (durée du résultat) comme ÉCHOUÉE
+     *  (écoulée depuis le départ du chrono) : l'en-tête affiche la durée
+     *  de TOUT résultat terminal, un échec de sync autant qu'un échec de
+     *  build. Remise à `null` au départ d'une nouvelle sync. */
+    val dureeSyncMs: Long? = null,
+
+    /** Repère d'ordre de la dernière conclusion de sync (INC-01) — voir
+     *  la propriété dans le KDoc de la classe. */
+    val sequenceResultatSync: Long = 0,
+
+    /** Repère d'ordre de la dernière conclusion de build (INC-01). */
+    val sequenceResultatBuild: Long = 0,
     val tachesEnCours: Boolean = false,
     val debutTachesMs: Long? = null,
     /** Tâches du projet connues sans aller-retour (v4, §3.2 — remplies à
@@ -271,14 +293,29 @@ data class EtatGradle(
         get() = canalActif != null
 
     /** Dernière activité terminée visible (libellé de résultat dans
-     *  l'en-tête) : le canal du dernier résultat connu, Sync ou Build —
-     *  le listage des tâches se conclut par son sélecteur, pas par une
-     *  ligne de résultat (le canal Taches est un indicateur de vol). */
+     *  l'en-tête) : l'activité terminée la PLUS RÉCENTE, Sync ou Build —
+     *  le repère d'ordre ([sequenceResultatSync] / [sequenceResultatBuild])
+     *  décide, pas une priorité fixe de canal (INC-01, volet C : une sync
+     *  réussie suivie d'un build échoué montrait la coche verte de la
+     *  sync au repos — le scénario du propriétaire). Sans repère (état
+     *  construit directement, hors service), le départage historique
+     *  sync-puis-build s'applique. Le listage des tâches ne compte
+     *  jamais : il se conclut par son sélecteur, pas par une ligne de
+     *  résultat (le canal Taches est un indicateur de vol). */
     val canalDernierResultat: CanalTooling?
         get() =
             when {
+                sequenceResultatSync > 0 && sequenceResultatBuild > 0 ->
+                    if (sequenceResultatSync >= sequenceResultatBuild) {
+                        CanalTooling.SYNC
+                    } else {
+                        CanalTooling.BUILD
+                    }
+
                 synchronisationReussie != null || messageEchecSync != null -> CanalTooling.SYNC
+
                 statutBuild != null -> CanalTooling.BUILD
+
                 else -> null
             }
 
@@ -386,6 +423,17 @@ constructor(
     private var cleConclusionSync: String? = null
 
     /**
+     * Compteur global des CONCLUSIONS d'activités (INC-01, volet C) : un
+     * numéro croissant par résultat terminal publié — sync comme build.
+     * Il ordonne [EtatGradle.canalDernierResultat] : « dernier résultat »
+     * = l'activité terminée la plus récente, pas une priorité fixe de
+     * canal. Même discipline que [cleConclusionSync] : champ privé du
+     * service, incrémenté HORS de `maj` (la transformation d'état ne
+     * doit pas porter d'effet de bord).
+     */
+    private var sequenceResultats = 0L
+
+    /**
      * Latence de PUBLICATION des lignes, par build (v0.43.0 — mesure
      * de la console lente) : écart entre l'émission côté orchestrateur
      * (`LigneSortieBuild.horodatageMs`) et l’arrivée dans la zone
@@ -485,12 +533,39 @@ constructor(
                     synchronisationEnCours = true,
                     debutSyncMs = horloge.nowMillis(),
                     messageEchecSync = null,
+                    // INC-15 : le chrono repart, la durée figée du résultat
+                    // précédent ne doit plus s'afficher.
+                    dureeSyncMs = null,
                     // v4 (§3.2) : une nouvelle sync invalide les tâches
                     // connues — elles seront remplies à la fin.
                     tachesDisponibles = null,
                     etapesSync = emptyList(),
                 )
             }
+        }
+    }
+
+    /**
+     * Publie une sync RESTITUÉE du cache (INC-05/24, volet C) : l'état
+     * « Synchronisé » et les tâches sont republiés depuis sync-state.json
+     * (empreinte Gradle identique — voir
+     * `EditorViewModel.restaurerEtatSyncSiEmpreinteIdentique`), et la
+     * console Sync reçoit la conclusion qui dit l'ORIGINE — plus de
+     * console vide derrière un en-tête qui annonce un succès. Le repère
+     * d'ordre (INC-01) est posé comme toute conclusion.
+     */
+    fun publierSyncRestituee(resultat: ResultatSynchronisation) {
+        val sequence = ++sequenceResultats
+        maj {
+            it.copy(
+                synchronisationEnCours = false,
+                synchronisationReussie = resultat,
+                dureeSyncMs = resultat.dureeMs,
+                sequenceResultatSync = sequence,
+            )
+        }
+        LignesConsoleTexte.conclusionSyncRestituee(resultat.dureeMs).forEach { ligne ->
+            zoneTexteInterne.tryEmit(ligne)
         }
     }
 
@@ -512,6 +587,11 @@ constructor(
      *  (SyncResult tardif après un délai d'inactivité) s'écrit : la
      *  chronologie reste honnête, le dernier verdict gagne. */
     fun publierResultatSync(resultat: AppResult<ResultatSynchronisation>) {
+        // INC-01 : chaque verdict terminal reçoit son repère d'ordre —
+        // une sync conclue APRÈS un build reprend le « dernier résultat »,
+        // et réciproquement (chronologie honnête, le dernier verdict
+        // gagne — même sémantique que la conclusion de console ADR 0079).
+        val sequence = ++sequenceResultats
         when (resultat) {
             is AppResult.Success -> {
                 maj {
@@ -519,12 +599,25 @@ constructor(
                         synchronisationEnCours = false,
                         synchronisationReussie = resultat.value,
                         messageEchecSync = resultat.value.messageEchec,
+                        dureeSyncMs = resultat.value.dureeMs,
+                        sequenceResultatSync = sequence,
                     )
                 }
             }
 
             is AppResult.Failure -> {
-                maj { it.copy(synchronisationEnCours = false, messageEchecSync = messageDEchec(resultat)) }
+                // INC-15 : un échec porte AUSSI sa durée — l'écoulé du
+                // chrono (l'échec local n'a pas de durée serveur).
+                val maintenant = horloge.nowMillis()
+                maj {
+                    it.copy(
+                        synchronisationEnCours = false,
+                        messageEchecSync = messageDEchec(resultat),
+                        dureeSyncMs = it.debutSyncMs
+                            ?.let { depart -> (maintenant - depart).coerceAtLeast(0L) },
+                        sequenceResultatSync = sequence,
+                    )
+                }
             }
         }
         conclureConsoleSync(resultat)
@@ -707,6 +800,14 @@ constructor(
                 }
             }
         }
+        // INC-01 : un statut TERMINAL du build suivi reçoit un repère
+        // d'ordre (numérotation partagée avec les conclusions de sync).
+        val sequenceTerminal =
+            if (etat.statut != StatutBuild.EN_COURS && etat.buildId == etatInterne.value.buildId) {
+                ++sequenceResultats
+            } else {
+                0L
+            }
         maj { courant ->
             if (etat.buildId != courant.buildId) {
                 courant
@@ -733,6 +834,16 @@ constructor(
                     tachesActionnablesBuild = etat.tachesActionnables,
                     tachesExecuteesBuild = etat.tachesExecutees,
                     tachesAJourBuild = etat.tachesAJour,
+                    // INC-01 : le repère d'ordre ne bouge qu'à la
+                    // TRANSITION vers un statut terminal — une
+                    // republication du même verdict ne vole pas la place
+                    // d'une sync conclue entre-temps.
+                    sequenceResultatBuild = when {
+                        etat.statut != StatutBuild.EN_COURS &&
+                            courant.statutBuild == StatutBuild.EN_COURS -> sequenceTerminal
+
+                        else -> courant.sequenceResultatBuild
+                    },
                 )
             }
         }

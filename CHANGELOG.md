@@ -1,5 +1,104 @@
 # Journal des modifications
 
+## [intégrée dans main le 2026-11-08 — branche fix/tooling-coherence] — volet C « cohérence du tooling », suite (session du 2026-11-08)
+
+Suite de la session du 2026-11-01 (INC-01 ci-dessous) — le même interdit
+s'applique : **aucun changement de comportement visible n'est mentionné
+partout** ; tout est listé ici. ADR 0151 (« source unique de l'état
+tooling ») documente l'architecture d'ensemble.
+
+### INC-02/03/04/22 — une seule dérivation `canalAffiche` (ADR 0151)
+
+Constat reproduit par test : quatre cascades décidaient « quel canal
+afficher ? » (chip et icône : sync dès qu'une sync avait vécu ; statut :
+priorité sync-puis-build aux replis divergents ; console : filtre poussé
+par l'action). Pendant un build lancé après une sync réussie, le chip
+disait « Sync » et le statut « Synchronisé en X » alors que la console du
+build tournait. Correctif : `PresentationTooling.canalAffiche(etat, choix)`
+— le chip, l'icône, le statut et la console visible dérivent de CETTE
+fonction (`baliserCanalStatut` supprimée) ; le canal TACHES reste un
+transitoire de l'en-tête (INC-03) ; la branche finale menteuse de la
+cascade sync est remplacée par le libellé honnête « Aucune synchronisation
+lancée » (INC-04). Test croisé : `CoherenceCanalAfficheTest` (table §6.1).
+
+### INC-20 — le chip devient sélecteur segmenté Sync | Build (cliquable)
+
+Constat : chip non cliquable, KDoc contradictoire (« basculer ne perd
+rien »). La sortie de la sync de 194 s redevient consultable pendant un
+build, comme les onglets Sync/Build de la fenêtre Build d'Android Studio :
+`ActionEditor.SelectionnerCanalConsole` (persisté, survit à la rotation),
+point d'actualité sur le canal non affiché qui a du neuf ou un échec.
+
+### INC-15 — verdicts courts localisés, durée figée de tout terminal, statut ANNULE
+
+Constat : titre d'échec = message brut du serveur tronqué ; échec de sync
+sans durée ; build annulé indistinguable du neutre. Correctif : verdicts
+localisés (« Synchronisation échouée », « Échec du build », « Build
+annulé »), message en sous-titre PAR CANAL, `EtatGradle.dureeSyncMs` posé
+à CHAQUE conclusion, `StatutEntete.ANNULE` (avertissement + icône d'arrêt).
+
+### INC-14 — l'en-tête ne re-rend que ce qui change
+
+Constat : chaque émission de l'état Gradle ENTIER relançait la coroutine
+du chrono, réaffectait les visibilités et rappelait setProgressCompat.
+Correctif : dédoublonnage structurel (data class), chrono relancé au seul
+changement de départ, progression bornée à ~10 mises à jour/s — compteurs
+d'observabilité testés (20 émissions identiques → 1 rendu).
+
+### INC-21 — bandeau d'échec par canal
+
+Constat : le bandeau n'existait que pour le build. Un échec de sync a
+désormais « Réessayer » (relance la sync) et « Voir les problèmes » (si
+des diagnostics existent) — dérivation pure `messageEchecCanal` /
+`reessaiPossible`.
+
+### INC-10/11/13/17/18 — indicateur compact toujours présent, flash de verdict, peek stable, a11y
+
+Constat : aucune activité tooling visible hors onglet Console replié ;
+deux boutons Annuler aux règles différentes ; bande de progression
+permanente au succès ; saut de hauteur du sheet ; zone d'appui muette.
+Correctif : indicateur compact dans la première section ET dans le rang
+des onglets (sheet étendu), une seule action d'arrêt partout, flash
+symétrique ~1,5 s au verdict puis masquage, emplacement de bande réservé
+dans le peek (plus de saut entre vol et verdict — le premier démarrage
+d'activité reste le seul saut résiduel, signalé), contentDescription +
+état « Ouvrir »/« Fermer » annoncés.
+
+### INC-40/41 — lignes du serveur journalisées à LEUR niveau (tooling:daemon)
+
+Constat (journal du propriétaire, F5) : chaque ligne de stderr en WARN —
+« [gradle-server] [INFO] handshake accepté » en avertissement factice ;
+trois lignes SLF4J(W) par connexion. Correctif : `analyserLigneServeur`
+(pure, testée) parse le préfixe du Journal du serveur, retire le préfixe
+redondant, trace JVM en ERROR, filtre SLF4J(W).
+
+### INC-16 — pluriels et tailles localisés
+
+Constat : « … Mo » et « … élément(s) » en français brut (le test anglais
+attendait du français), « 1 modules · 1 tâches ». Correctif :
+`TexteTooling.Taille` (Formatter.formatShortFileSize — unités SI,
+typographie de la locale) et `TexteTooling.Pluriel` (ressources plurals
+FR/EN) ; note : l'affichage passe des Mo binaires aux Mo SI (42 → 44 Mo
+pour 44 040 192 octets), cohérent avec Android.
+
+### INC-05/12/24/25 — sync restituée dite, honnêteté « sync non annulable », glossaire
+
+Constat : console Sync vide derrière un en-tête « Synchronisé » restitué
+du cache ; silence de 3 min pendant une sync non annulable ; chaîne morte
+et vocabulaire « Sortie »/« dialogue ». Correctif : ligne SYNTHESE
+« Synchronisation restituée du cache (dernière : X) », étiquette
+« Sync non annulable » à l'emplacement du bouton Arrêter (l'annulation
+RÉELLE reste un arbitrage propriétaire — chiffrage dans
+docs/PLAN-AMELIORATIONS.md du dépôt codeide-tooling), chaîne morte
+supprimée, KDoc alignés sur « Console ».
+
+### Chaîne locale (session du 2026-11-08)
+
+:feature:editor 515 tests / 0 échec ; :tooling:daemon tests verts ;
+spotlessApply appliqué à chaque commit. La chaîne RACINE complète
+(detekt racine, checkModuleDependencies, checkUiTokens, spotlessCheck)
+est exécutée avant le push — durées dans le rapport de session.
+
 ## [0.206.0] – 2026-11-03
 
 ### Bascule Kotlin ADR 0136 : le moteur Kotlin RÉÉCRIT entre en service + montées codeide-lsp 1.25.0 / moteurs 1.13.0
@@ -200,6 +299,39 @@ Aucune adaptation client REQUISE (témoin attendu au premier lancement :
 ci-dessus (coloration sémantique, vue groupée des usages, actions
 refactor.*) se fait au rythme du client. Retour arrière : descendre le
 catalogue à `codeide-lsp = "1.23.6"` + pin miroir `1.1.6`.
+
+## [intégrée dans main le 2026-11-08 — branche fix/tooling-coherence] — volet C « cohérence du tooling » (prompt du 2026-10-31)
+
+### INC-01 — le « dernier résultat » tooling est l'activité terminée la PLUS RÉCENTE
+
+Constat reproduit par test avant correctif (5 scénarios rouges sur le code
+de `main`) : `EtatGradle.canalDernierResultat` renvoyait `SYNC` dès que
+`synchronisationReussie != null || messageEchecSync != null`, avant même de
+regarder le build — et `suivreBuild` ne remettait jamais ces champs à
+`null`. Après une sync réussie suivie d'un build échoué (le scénario du
+propriétaire : sync ✓ puis trois builds ✗), l'en-tête au repos affichait
+« Synchronisé en … » avec sa coche verte, et la notification finale
+annonçait la sync réussie.
+
+- `EtatGradle` porte désormais un **repère d'ordre par canal**
+  (`sequenceResultatSync` / `sequenceResultatBuild`, compteur croissant posé
+  à chaque conclusion, `0` = jamais conclue) : `canalDernierResultat` suit
+  l'activité terminée la plus récente. Sans repère (état construit
+  directement, hors service), le départage historique sync-puis-build
+  s'applique — aucun test existant n'a changé.
+- `GradleService` numérote chaque conclusion : `publierResultatSync`
+  (chaque verdict — « le dernier verdict gagne », même sémantique que la
+  conclusion de console de l'ADR 0079) et `publierEtatBuild` (transition
+  en cours → terminal uniquement : une republication du même verdict ne
+  vole pas la place d'une sync conclue entre-temps).
+- Les trois consommateurs — en-tête (`PresentationTooling`), contrôleur du
+  panneau, notification finale (`DecisionNotificationTooling`) — dérivant
+  du même `canalDernierResultat`, le correctif les aligne d'un coup ;
+  `CoherenceDernierResultatTest` vérifie la table des scénarios du prompt
+  (§6.1) et le verdict croisé de bout en bout.
+- L'option « remise à `null` du canal opposé au départ d'une activité » est
+  écartée : l'INC-02 (dérivation unique `CanalAffiche`) exigera les deux
+  résultats vivants (chip, icône, statut, consoles).
 
 ## [0.204.6] – 2026-10-31
 

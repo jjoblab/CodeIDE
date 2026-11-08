@@ -3,6 +3,21 @@ package jo.codeide.feature.editor
 import jo.codeide.core.domain.EtapeSync
 
 /**
+ * Canal de la console désigné par un choix d'affichage (INC-02, volet C
+ * du prompt « retard d'affichage des sorties de build ») — pont pur entre
+ * le sélecteur d'affichage ([FiltreCanalConsole], deux valeurs) et le
+ * canal tooling des écrans console. La correspondance est TOTALE et
+ * testée : le canal TACHES n'a pas de console (INC-03 — transitoire de
+ * l'en-tête uniquement).
+ */
+val FiltreCanalConsole.canal: CanalTooling
+    get() =
+        when (this) {
+            FiltreCanalConsole.SYNC -> CanalTooling.SYNC
+            FiltreCanalConsole.BUILD -> CanalTooling.BUILD
+        }
+
+/**
  * Filtre de canal de la console du tooling (v4, §3.3 ; v5 — aperçu ;
  * v0.46.0 — console flux brut, ADR 0078) : les chips Sync / Build de la
  * barre d'outils choisissent la console VISIBLE — SYNC montre les lignes

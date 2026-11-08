@@ -245,6 +245,45 @@ lieu du rouge d'erreur de stderr — l'utilisateur n'est pas alarmé pour un
 diagnostic bénin (`GradleService`, constante
 `AVERTISSEMENT_DAEMON_BENIN`, testé dans `GradleServiceTest`).
 
+## Cohérence de l'état tooling (volet C du prompt « retard d'affichage », 2026-11-08)
+
+L'ADR 0151 (« source unique de l'état tooling ») est la référence de ce
+chantier : **une dérivation par concept dans `PresentationTooling`, zéro
+cascade dans les vues**. Ses effets concrets :
+
+- le canal des écrans console dérive de `PresentationTooling.canalAffiche`
+  (choix d'affichage — poussé par l'action qui démarre, choisi par
+  l'utilisateur via le sélecteur segmenté Sync | Build — INC-02/20) ;
+- l'en-tête du sheet suit l'ACTIVITÉ (`canalActif ?: canalDernierResultat`,
+  chronologie par repères d'ordre — INC-01) : ligne enrichie sur Console
+  replié, indicateurs compacts partout ailleurs, y compris sheet étendu
+  (INC-10) ;
+- la ligne de statut de la console ne porte plus que l'état vierge
+  (orchestrateur déconnecté) — l'activité et le verdict vivent dans
+  l'en-tête, le message complet dans le bandeau et le flux (ADR 0078) ;
+- une seule action d'arrêt (INC-11), un bandeau d'échec PAR canal avec
+  « Réessayer » adapté (INC-21), des verdicts courts localisés et une
+  durée figée pour TOUT résultat terminal (INC-15) ;
+- la sync restituée du cache se dit dans la console (INC-05/24) et
+  l'impossibilité d'annuler une sync est affichée à l'emplacement du
+  bouton (INC-12 — l'annulation réelle est un arbitrage propriétaire,
+  chiffrée dans `docs/PLAN-AMELIORATIONS.md` du dépôt codeide-tooling).
+
+### Glossaire des libellés visibles (INC-25/36)
+
+| Terme visible | Sens | Interdits (journaux internes seulement) |
+|---|---|---|
+| **Console** | l'onglet du panneau inférieur (flux Sync et Build) | « Sortie » |
+| **Build** | l'exécution de tâches Gradle | — |
+| **Sync** | la synchronisation Gradle du projet | « Synchronisation du projet » dans l'UI courte |
+| **Tâches** | le sélecteur/l'indicateur de listage des tâches | — |
+| **Serveur de build** | le processus orchestrateur JVM (gradle-server.jar) | « Orchestrateur », « outil » |
+| **Daemon Gradle** | le daemon Gradle hébergé par le serveur de build | — |
+
+Les chaînes utilisateur vivent en ressources FR **et** EN ; les identifiants
+historiques `editor_sortie_*` restent pour la compatibilité, les nouveaux
+libellés suivent le glossaire.
+
 ## Journalisation
 
 stderr/stdout du process orchestrateur → `AppLogger` tag **`gradle-server`**

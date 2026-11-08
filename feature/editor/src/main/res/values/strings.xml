@@ -365,9 +365,7 @@
     <string name="editor_console_entree_hint">Saisir une entrée…</string>
     <string name="editor_sortie_annuler_cd">Arrêter le build en cours</string>
     <string name="editor_problemes_vide">Aucun problème pour le moment.</string>
-    <string name="editor_sortie_sync_en_cours">Synchronisation en cours…</string>
     <string name="editor_sortie_sync_reussie">Synchronisé en %1$s</string>
-    <string name="editor_sortie_build_en_cours">Build en cours…</string>
     <string name="editor_sortie_build_reussi">Build réussi en %1$s</string>
     <string name="editor_sortie_build_echoue">Échec du build</string>
     <string name="editor_sortie_build_annule">Build annulé</string>
@@ -380,7 +378,23 @@
     <string name="editor_tooling_canal_build">Build</string>
     <string name="editor_tooling_canal_taches">Tâches</string>
     <string name="editor_tooling_arreter_cd">Arrêter l\'activité tooling en cours</string>
+    <!-- INC-12 (volet C) : honnêteté — la synchronisation ne peut pas être
+         annulée (l'annulation RÉELLE est un arbitrage propriétaire, chiffrée
+         dans docs/PLAN-AMELIORATIONS.md du dépôt codeide-tooling). -->
+    <string name="editor_tooling_sync_non_annulable">Sync non annulable</string>
+    <!-- INC-17 (volet C) : la zone d\'appui de la ligne tooling bascule le
+         sheet — rôle et étiquette annoncés à TalkBack. -->
+    <string name="editor_ligne_tooling_cd">Ouvrir ou fermer le panneau de la console</string>
+    <string name="editor_ligne_tooling_ouvrir_cd">Ouvrir le panneau de la console</string>
+    <string name="editor_ligne_tooling_fermer_cd">Fermer le panneau de la console</string>
     <string name="editor_tooling_sync_en_cours">Synchronisation du projet…</string>
+    <!-- INC-04 (volet C) : canal Sync consultable sans qu\'aucune sync n\'ait
+         jamais tourné (sélecteur INC-20) — libellé honnête, pas une activité
+         fantôme. -->
+    <string name="editor_tooling_sync_jamais">Aucune synchronisation lancée</string>
+    <!-- INC-15 (volet C) : verdict court localisé de l'en-tête/statut — même libellé
+         que la notification (tooling_service_sync_echouee) : un seul vocabulaire. -->
+    <string name="editor_tooling_sync_echouee">Synchronisation échouée</string>
     <string name="editor_tooling_build_taches">Build — %1$s</string>
     <string name="editor_tooling_build_en_cours">Build en cours…</string>
     <string name="editor_tooling_taches_en_cours">Chargement des tâches…</string>
@@ -391,12 +405,31 @@
          détail ; succès détaillé « modules · tâches · … ». -->
     <string name="editor_tooling_entete_sync_etape">Synchronisation Gradle · étape %1$s/%2$s</string>
     <string name="editor_tooling_entete_sous_titre">%1$s — %2$s</string>
-    <string name="editor_tooling_entete_succes_taches">Tâches disponibles : %1$s</string>
-    <!-- v0.39.x (CI lint PluralsCandidate) : ligne d'état compacte à DEUX
-         quantités (comme la vue Build d'Android Studio), pas une phrase —
-         même exemption documentée que wizard_indicateur_etape. -->
-    <string name="editor_tooling_entete_succes_detail_a_jour" tools:ignore="PluralsCandidate">%1$s modules · %2$s tâches · aucun téléchargement</string>
-    <string name="editor_tooling_entete_succes_detail_classpaths" tools:ignore="PluralsCandidate">%1$s modules · %2$s tâches · classpaths prêts</string>
+    <!-- INC-16 (volet C) : pluriels réels — plus de « 1 modules ·
+         1 tâches » ni d'unité codée en dur ; la taille passe par
+         Formatter.formatShortFileSize (TexteTooling.Taille). -->
+    <string name="editor_tooling_entete_succes_a_jour">aucun téléchargement</string>
+    <string name="editor_tooling_entete_succes_classpaths">classpaths prêts</string>
+    <plurals name="editor_tooling_detail_elements">
+        <item quantity="one">%d élément</item>
+        <item quantity="many">%d éléments</item>
+        <item quantity="other">%d éléments</item>
+    </plurals>
+    <plurals name="editor_tooling_modules">
+        <item quantity="one">%d module</item>
+        <item quantity="many">%d modules</item>
+        <item quantity="other">%d modules</item>
+    </plurals>
+    <plurals name="editor_tooling_taches">
+        <item quantity="one">%d tâche</item>
+        <item quantity="many">%d tâches</item>
+        <item quantity="other">%d tâches</item>
+    </plurals>
+    <plurals name="editor_tooling_taches_disponibles">
+        <item quantity="one">Tâche disponible : %d</item>
+        <item quantity="many">Tâches disponibles : %d</item>
+        <item quantity="other">Tâches disponibles : %d</item>
+    </plurals>
 
     <!-- Lignes de tâches de la console (v3 — une ligne par tâche, mise à
          jour en place à sa fin, comme la vue Build d'Android Studio) et
@@ -419,12 +452,21 @@
          canal, bouton Tâches, bandeau d\'échec, détails de téléchargement,
          pied de conclusion de la sync. -->
     <string name="editor_console_taches_indisponible">Tâches — disponible après la synchronisation</string>
+    <!-- Sélecteur de canaux de la console (INC-20, volet C) : description
+         d'accessibilité du groupe de chips Sync | Build. -->
+    <string name="editor_console_selecteur_canal_cd">Choisir la console affichée : synchronisation ou build</string>
     <string name="editor_console_echec_voir_problemes">Voir les problèmes</string>
     <string name="editor_console_echec_reessayer">Réessayer</string>
     <string name="editor_console_echec_defaut">Échec du build</string>
+    <!-- INC-21 (volet C) : message par défaut du bandeau d'échec du canal Sync. -->
+    <string name="editor_console_echec_sync_defaut">Échec de la synchronisation</string>
     <string name="editor_console_synthese_annule">Build annulé</string>
     <string name="editor_console_synthese_sync_terminee">Synchronisation terminée — les tâches sont disponibles.</string>
     <string name="editor_console_synthese_sync_a_jour">Projet à jour, rien à télécharger — les tâches sont disponibles.</string>
+    <!-- INC-05/24 (volet C) : sync restituée du cache (empreinte identique) — la
+         console Sync dit l'origine, elle ne reste pas vide. -->
+    <string name="editor_console_synthese_sync_restituee">Synchronisation restituée du cache — les tâches sont disponibles.</string>
+    <string name="editor_console_synthese_sync_restituee_duree">Synchronisation restituée du cache (dernière : %1$s) — les tâches sont disponibles.</string>
 
     <!-- Synthèse de fin de build — comptes des tâches (v0.39.1, correctif n°4) :
          mêmes libellés que la console d'Android Studio, restitution honnête
@@ -472,7 +514,6 @@
     <string name="editor_config_tooling_libelle">Configuration</string>
     <string name="editor_config_fermer_cd">Fermer la configuration du tooling</string>
     <string name="editor_config_tooling_cd">Configurer le tooling Gradle</string>
-    <string name="editor_config_affichage">Affichage de la console</string>
     <string name="editor_config_execution">Exécution</string>
     <string name="editor_config_hors_ligne">Mode hors ligne</string>
     <string name="editor_config_hors_ligne_desc" tools:ignore="TypographyDashes">Passe --offline aux builds : aucune dépendance téléchargée, tout doit déjà être en cache.</string>

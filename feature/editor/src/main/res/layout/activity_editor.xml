@@ -376,6 +376,22 @@
                             tools:visibility="visible" />
                     </LinearLayout>
 
+                    <!-- Indicateur tooling COMPACT (INC-10, volet C) :
+                         retour d'activité TOUJOURS présent — cette
+                         première section le porte sur les onglets
+                         Problèmes/Journal/Logcat repliés ; la ligne
+                         enrichie reste réservée à Console replié, et le
+                         rang des onglets le porte quand le sheet est
+                         étendu. Piloté par PanneauToolingController. -->
+                    <include
+                        android:id="@+id/indicateur_compact_entete"
+                        layout="@layout/indicateur_tooling_compact"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/spacing_xs"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
                     <!-- Badge de compte (nombre d'entrées affichées). -->
                     <com.google.android.material.textview.MaterialTextView
                         android:id="@+id/badge_panneau"
@@ -429,6 +445,7 @@
                     android:id="@+id/ligne_tooling"
                     android:layout_width="match_parent"
                     android:layout_height="@dimen/editor_entete_tooling_hauteur"
+                    android:contentDescription="@string/editor_ligne_tooling_cd"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="@dimen/spacing_md"
@@ -513,6 +530,22 @@
                         android:textColor="?attr/colorOnSurfaceVariant"
                         tools:text="12,3 s" />
 
+                    <!-- INC-12 : honnêteté — pendant une sync (non
+                         annulable), l'emplacement du bouton Arrêter dit
+                         POURQUOI il n'y en a pas, au lieu d'un silence. -->
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/note_non_annulable"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/spacing_xs"
+                        android:ellipsize="end"
+                        android:singleLine="true"
+                        android:text="@string/editor_tooling_sync_non_annulable"
+                        android:textAppearance="?attr/textAppearanceLabelSmall"
+                        android:textColor="?attr/colorOnSurfaceVariant"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/bouton_arreter_tooling"
                         style="@style/Widget.CodeIDE.Button.Icon"
@@ -538,36 +571,59 @@
                     android:visibility="gone"
                     tools:visibility="visible" />
 
-                <!-- Trois onglets (chrome de l'hôte, v0.32.4) : la sélection
-                     commute les fragments du conteneur ci-dessous. -->
-                <com.google.android.material.tabs.TabLayout
-                    android:id="@+id/onglets_panneau"
+                <!-- Rang des onglets + indicateur compact (INC-10) : quand
+                     le sheet est ÉTENDU, la première section et la ligne
+                     enrichie disparaissent — l'indicateur compact garde le
+                     retour d'activité (titre, chrono, arrêt) au sommet du
+                     sheet, à côté des onglets. -->
+                <LinearLayout
+                    android:id="@+id/rang_onglets_panneau"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                    <com.google.android.material.tabs.TabItem
+                    <!-- Trois onglets (chrome de l'hôte, v0.32.4) : la sélection
+                         commute les fragments du conteneur ci-dessous. -->
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/onglets_panneau"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <com.google.android.material.tabs.TabItem
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/editor_panneau_console" />
+
+                        <com.google.android.material.tabs.TabItem
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/editor_panneau_problemes" />
+
+                        <com.google.android.material.tabs.TabItem
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/editor_panneau_journal" />
+
+                        <!-- Mission « Exécuter » R3 (ADR 0103) : journaux des
+                             applications exécutées, sans adb. L'ordre des
+                             TabItem suit STRICTEMENT l'enum OngletPanneau. -->
+                        <com.google.android.material.tabs.TabItem
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/editor_panneau_logcat" />
+                    </com.google.android.material.tabs.TabLayout>
+
+                    <include
+                        android:id="@+id/indicateur_compact_onglets"
+                        layout="@layout/indicateur_tooling_compact"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/editor_panneau_console" />
-
-                    <com.google.android.material.tabs.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/editor_panneau_problemes" />
-
-                    <com.google.android.material.tabs.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/editor_panneau_journal" />
-
-                    <!-- Mission « Exécuter » R3 (ADR 0103) : journaux des
-                         applications exécutées, sans adb. L'ordre des
-                         TabItem suit STRICTEMENT l'enum OngletPanneau. -->
-                    <com.google.android.material.tabs.TabItem
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/editor_panneau_logcat" />
-                </com.google.android.material.tabs.TabLayout>
+                        android:layout_marginEnd="@dimen/spacing_xs"
+                        android:visibility="gone"
+                        tools:visibility="visible" />
+                </LinearLayout>
 
                 <!-- Contenu des onglets (v0.32.4, ADR 0055) : fragments
                      Journal / Sortie / Problèmes, ajoutés une fois par

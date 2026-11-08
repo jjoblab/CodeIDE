@@ -15,6 +15,7 @@ import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.testing.FakeAppLogger
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -30,6 +31,7 @@ import org.junit.Test
  * les tâches ne produisent plus rien : Gradle écrit les siennes sur
  * stdout, les dupliquer était le problème « deux endroits »).
  */
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class GradleServiceTest {
     /** Horloge pilotable : les instants de départ (v0.32.5) avancent
      *  à la main — les chronos se vérifient sans cadre Android. */
@@ -563,6 +565,66 @@ class GradleServiceTest {
         )
         assertFalseEnCours()
         assertEquals("non connecté", service.etat.value.messageEchecSync)
+    }
+
+    @Test
+    fun `une sync restituee du cache publie l etat et la ligne d origine - INC-05`() {
+        kotlinx.coroutines.test.runTest {
+            // Service LOCAL : le champ de classe est partagé par tous les
+            // tests et son cache de rejeu (ADR 0078) porterait leurs lignes.
+            val serviceLocal =
+                GradleService(horloge = TimeProvider { instant }, demarreur = demarreur, journal = FakeAppLogger())
+            serviceLocal.publierSyncRestituee(
+                jo.codeide.core.domain.ResultatSynchronisation(
+                    projectDir = "/p",
+                    reussie = true,
+                    dureeMs = 4_500,
+                ),
+            )
+            // État : « Synchronisé », durée figée, repère d'ordre posé (INC-01).
+            assertEquals(true, serviceLocal.etat.value.synchronisationReussie?.reussie)
+            assertEquals(4_500L, serviceLocal.etat.value.dureeSyncMs)
+            org.junit.Assert.assertTrue(serviceLocal.etat.value.sequenceResultatSync > 0)
+            // Console : UNE ligne SYNTHESE sur le canal Sync, qui dit
+            // l'origine — servie par le REJEU du flux (historique borné).
+            val ligne = serviceLocal.lignesBrutes.first { evenement -> evenement is EvenementConsoleTexte.Ligne }
+            assertEquals(CanalTooling.SYNC, (ligne as EvenementConsoleTexte.Ligne).canal)
+            assertEquals(StyleLigne.SYNTHESE, ligne.style)
+            assertEquals(
+                TexteTooling.Ressource(R.string.editor_console_synthese_sync_restituee_duree, listOf("4.5s")),
+                (ligne as EvenementConsoleTexte.Ligne).libelle,
+            )
+        }
+    }
+
+    @Test
+    fun `un echec de sync figure aussi sa duree - INC-15`() {
+        service.marquerSyncEnCours()
+        instant += 36_000
+
+        service.publierResultatSync(
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté")),
+        )
+
+        assertEquals(
+            "INC-15 : l'échec porte l'écoulé du chrono — durée figée de l'en-tête",
+            36_000L,
+            service.etat.value.dureeSyncMs,
+        )
+    }
+
+    @Test
+    fun `une nouvelle sync remet la duree figee a null - INC-15`() {
+        service.marquerSyncEnCours()
+        instant += 36_000
+        service.publierResultatSync(
+            AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté")),
+        )
+
+        service.marquerSyncEnCours()
+
+        assertEquals(null, service.etat.value.dureeSyncMs)
+        assertEquals(true, service.etat.value.synchronisationEnCours)
     }
 
     @Test

@@ -23,6 +23,12 @@
     <dimen name="editor_pastille_canal_taille">34dp</dimen>
     <dimen name="editor_icone_canal_taille">20dp</dimen>
 
+    <!-- Indicateur tooling compact (INC-10, volet C) : pastille et icône
+         réduites, largeur maximale du titre court. -->
+    <dimen name="editor_indicateur_compact_pastille_taille">24dp</dimen>
+    <dimen name="editor_indicateur_compact_icone_taille">14dp</dimen>
+    <dimen name="editor_indicateur_compact_titre_largeur">132dp</dimen>
+
     <!-- Arbre d'étapes de la console (§3.3) : marqueurs ✓/spinner/○ des
          rangées d'étape, retrait d'indentation des détails de
          téléchargement sous l'étape active. -->

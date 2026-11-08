@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Point d'actualité du sélecteur de canaux (INC-20, volet C) : petit
+     disque POSÉ en icône de chip sur le canal NON affiché qui a du neuf
+     (activité en vol) ou un échec. Couleur de BASE neutre ici — le
+     fragment teinte (couleur de canal harmonisée en vol, couleur
+     d'erreur pour un échec) via chipIconTint ; même discipline que les
+     pastilles point_probleme_* (ADR 0127 §3). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="16dp"
+    android:height="16dp"
+    android:viewportWidth="16"
+    android:viewportHeight="16">
+    <path
+        android:fillColor="?attr/colorOnSurfaceVariant"
+        android:pathData="M8,8m-5,0a5,5 0 1,0 10,0a5,5 0 1,0 -10,0" />
+</vector>

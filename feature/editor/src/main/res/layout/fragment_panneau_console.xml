@@ -30,25 +30,40 @@
         android:paddingHorizontal="@dimen/spacing_md_compact"
         android:paddingVertical="@dimen/spacing_xs">
 
-        <!-- Chip d'action unique (v0.40.1, prompt de suivi §3) : reflète
-             l'action Gradle courante (Sync / Build / Tâches / Classpaths…).
-             NON cliquable — pas de bascule utilisateur. La console montre
-             toujours l'action courante (ou la dernière exécutée).
-             Aucun chip s'il n'y a eu aucune action. Couleur de canal
-             harmonisée via chipBackgroundColor + chipStrokeColor au
-             rendu. -->
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_action_courante"
-            style="@style/Widget.CodeIDE.Chip.Assist"
+        <!-- Sélecteur de canal (INC-20, volet C du prompt « retard
+             d'affichage des sorties de build » §6.3) : SEGMENTÉ Sync |
+             Build, CLIQUABLE — la sélection manuelle persiste jusqu'à la
+             prochaine action Gradle (qui sélectionne automatiquement son
+             canal). Point d'actualité sur le canal non affiché qui a du
+             neuf (activité en vol) ou un échec. Aucun sélecteur s'il n'y
+             a eu aucune action (état vierge). Couleurs de canal posées au
+             rendu (harmonisées), comme l'ancien chip unique v0.40.1. -->
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/groupe_canaux_console"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:clickable="false"
-            android:focusable="false"
-            android:text="@string/editor_tooling_canal_sync"
+            android:contentDescription="@string/editor_console_selecteur_canal_cd"
             android:visibility="gone"
-            app:chipBackgroundColor="?attr/colorSurfaceVariant"
-            app:chipStrokeWidth="1dp"
-            tools:visibility="visible" />
+            app:selectionRequired="true"
+            app:singleLine="true"
+            app:singleSelection="true"
+            tools:visibility="visible">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_canal_sync"
+                style="@style/Widget.CodeIDE.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/editor_tooling_canal_sync" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_canal_build"
+                style="@style/Widget.CodeIDE.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/editor_tooling_canal_build" />
+        </com.google.android.material.chip.ChipGroup>
 
         <Space
             android:layout_width="0dp"
@@ -113,43 +128,33 @@
             tools:visibility="visible" />
     </LinearLayout>
 
-    <!-- Canal du statut (v0.32.5) : l'icône signature de la provenance
-         (Sync teal / Build bleu) — l'information affichée ici porte
-         TOUJOURS son canal, comme chaque ligne et chaque entrée d'en-tête. -->
-    <LinearLayout
+    <!-- Ligne de statut (v0.32.5 ; INC-22 finale : l'activité et le
+         verdict vivent dans l'en-tête du sheet — ligne enrichie sur
+         Console replié, indicateurs compacts ailleurs, INC-10) : elle
+         n'apparaît plus que pour l'état que l'en-tête ne porte pas,
+         l'orchestrateur déconnecté avant toute activité. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/statut_sortie"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
         android:paddingHorizontal="@dimen/spacing_md_compact"
-        android:paddingVertical="@dimen/spacing_xs">
+        android:paddingBottom="@dimen/spacing_xs"
+        android:singleLine="true"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone"
+        tools:text="Outils Gradle non connectés"
+        tools:visibility="visible" />
 
-        <ImageView
-            android:id="@+id/icone_canal_sortie"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
-            android:contentDescription="@null"
-            tools:src="@drawable/ic_executer" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/statut_sortie"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_sm"
-            android:layout_weight="1"
-            android:ellipsize="end"
-            android:paddingBottom="@dimen/spacing_xs"
-            android:singleLine="true"
-            android:textAppearance="?attr/textAppearanceLabelMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            tools:text="Build en cours" />
-    </LinearLayout>
-
-    <!-- Bandeau d'échec du build (§3.3) : message + actions « Voir les
-         problèmes » (onglet Problèmes) et « Réessayer » (relance les
-         mêmes tâches) — plus d'échec muet. -->
+    <!-- Bandeau d'échec DU CANAL AFFICHÉ (§3.3 ; INC-21, volet C : parité
+         sync/build — un échec de sync avait seulement une ligne de statut,
+         sans « Voir les problèmes » ni « Réessayer ») : message + actions
+         « Voir les problèmes » (onglet Problèmes, si des diagnostics
+         existent) et « Réessayer » (relance la MÊME activité — la sync
+         pour le canal Sync, les mêmes tâches pour le canal Build) — plus
+         d'échec muet. -->
     <LinearLayout
-        android:id="@+id/bandeau_echec_build"
+        android:id="@+id/bandeau_echec_canal"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/spacing_md_compact"
@@ -167,7 +172,7 @@
             android:orientation="horizontal">
 
             <ImageView
-                android:id="@+id/icone_echec_build"
+                android:id="@+id/icone_echec_canal"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:contentDescription="@null"
@@ -176,7 +181,7 @@
                 app:tint="?attr/colorOnErrorContainer" />
 
             <com.google.android.material.textview.MaterialTextView
-                android:id="@+id/message_echec_build"
+                android:id="@+id/message_echec_canal"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_sm"
@@ -203,7 +208,7 @@
                 android:text="@string/editor_console_echec_voir_problemes" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/bouton_reessayer_build"
+                android:id="@+id/bouton_reessayer_canal"
                 style="@style/Widget.CodeIDE.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
