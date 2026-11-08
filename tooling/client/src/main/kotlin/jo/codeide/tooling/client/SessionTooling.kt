@@ -66,6 +66,18 @@ interface SessionTooling {
      */
     fun acheminerVia(chemin: (ToolingEvent) -> Unit): Boolean = false
 
+    /**
+     * Sonde du fil lecteur (Phase 1, T3 détaillé — ADR 0152) : la session
+     * réelle mesure frame par frame la durée de ses trois phases (lecture,
+     * décodage, routage) et l'expose ici pour que la pompe cliente
+     * agrège le résumé au terme de chaque build (ligne `ConsoleLatence`).
+     *
+     * `null` par défaut : sessions factices et sessions non sondées — le
+     * résumé est simplement absent, jamais une erreur.
+     */
+    val sondeLecture: SondeLectureSocket?
+        get() = null
+
     /** Ferme la session (idempotent). */
     fun fermer()
 }
@@ -81,7 +93,11 @@ interface SessionTooling {
  * pool `Dispatchers.IO` est partagé avec le travail LSP/diagnostics de
  * l'app) ne peut plus retarder la lecture, EOF = fin de flux.
  */
-internal class SessionSocketAndroid(private val socket: android.net.LocalSocket) : SessionTooling {
+internal class SessionSocketAndroid(
+    private val socket: android.net.LocalSocket,
+    /** Sonde T3 détaillée du fil lecteur (Phase 1, ADR 0152) — `null` : aucune mesure. */
+    private val sonde: SondeLectureSocket? = null,
+) : SessionTooling {
     private val verrouEcriture = Mutex()
 
     /** Chemin rapide installé par [acheminerVia] — appelé par le fil. */
@@ -91,6 +107,9 @@ internal class SessionSocketAndroid(private val socket: android.net.LocalSocket)
     /** Fil de lecture dédié (démarré à la première collecte, v0.50.0). */
     @Volatile
     private var filLecture: Thread? = null
+
+    override val sondeLecture: SondeLectureSocket?
+        get() = sonde
 
     override suspend fun envoyer(message: ProtocolMessage) {
         val payload = ProtocolJson.encoder(message).encodeToByteArray()
@@ -124,13 +143,26 @@ internal class SessionSocketAndroid(private val socket: android.net.LocalSocket)
                         while (true) {
                             // Lecture DIRECTE, hors de tout dispatcheur : le
                             // fil dort en appel système, réveillé par le noyau.
+                            // T3 détaillé (ADR 0152) : les trois phases du fil
+                            // sont mesurées SEULEMENT si une sonde existe — le
+                            // chemin sans sonde est l'identique d'avant (deux
+                            // nanoTime de plus par frame sinon, jamais d'autre
+                            // effet).
+                            val debutLecture = if (sonde != null) System.nanoTime() else 0L
                             val payload = FrameCodec.readFrame(socket.inputStream)
+                            val apresLecture = if (sonde != null) System.nanoTime() else 0L
                             val evenement =
                                 ProtocolJson.decoderEvenement(String(payload, Charsets.UTF_8))
+                            val apresDecodage = if (sonde != null) System.nanoTime() else 0L
                             // Chemin rapide non suspendant (router) AU POINT
                             // DE LECTURE : pong et latence transport marqués
                             // avant toute file coroutine.
                             runCatching { cheminRapide?.invoke(evenement) }
+                            sonde?.frame(
+                                dureeLectureNs = apresLecture - debutLecture,
+                                dureeDecodageNs = apresDecodage - apresLecture,
+                                dureeRoutageNs = System.nanoTime() - apresDecodage,
+                            )
                             // Le canal ne porte plus que le signal de fin de
                             // flux (et garde le flux froid vivant) : trySend
                             // non borné, jamais bloquant, jamais perdant.

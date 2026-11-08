@@ -60,6 +60,17 @@ class PanneauConfigToolingFragment : Fragment() {
      *  distinguent — plus jamais de drapeau armé par le rendu). */
     private val saisieArguments = SaisieArguments()
 
+    // ---- Phase 1 (ADR 0152) : champs du banc, même discipline de saisie
+    // (persistés à la perte de focus / « Terminé », jamais par frappe).
+
+    private val saisieBancLignes = SaisieArguments()
+
+    private val saisieBancCadence = SaisieArguments()
+
+    private val saisieBancLongueur = SaisieArguments()
+
+    private val saisieBancContenu = SaisieArguments()
+
     override fun onCreateView(inflateur: LayoutInflater, conteneur: ViewGroup?, etat: Bundle?): View {
         liaisonAmorce = FragmentConfigToolingBinding.inflate(inflateur, conteneur, false)
         return liaison.root
@@ -77,6 +88,29 @@ class PanneauConfigToolingFragment : Fragment() {
         // la bibliothèque applog-runtime dans les builds debug des projets.
         liaison.interrupteurInjectionApplog.setOnCheckedChangeListener { _, coche ->
             if (!renduEnCours) viewModel.definirInjectionAppLog(coche)
+        }
+
+        // Phase 1 (ADR 0152) : instrumentation de latence et banc « socket
+        // seul » — s'appliquent à la prochaine vie du process orchestrateur
+        // (redémarrage du serveur de build ou de l'app), dit dans les
+        // descriptions.
+        liaison.interrupteurInstruTransport.setOnCheckedChangeListener { _, coche ->
+            if (!renduEnCours) viewModel.definirInstrumentationTransport(coche)
+        }
+        liaison.interrupteurBanc.setOnCheckedChangeListener { _, coche ->
+            if (!renduEnCours) viewModel.definirBancSocketSeul(coche)
+        }
+        brancherChampBanc(liaison.saisieBancLignes, saisieBancLignes) { valeur ->
+            viewModel.definirBancLignes(valeur.toIntOrNull() ?: viewModel.reglages.value.bancLignes)
+        }
+        brancherChampBanc(liaison.saisieBancCadence, saisieBancCadence) { valeur ->
+            viewModel.definirBancCadenceMs(valeur.toIntOrNull() ?: viewModel.reglages.value.bancCadenceMs)
+        }
+        brancherChampBanc(liaison.saisieBancLongueur, saisieBancLongueur) { valeur ->
+            viewModel.definirBancLongueurLigne(valeur.toIntOrNull() ?: viewModel.reglages.value.bancLongueurLigne)
+        }
+        brancherChampBanc(liaison.saisieBancContenu, saisieBancContenu) { valeur ->
+            viewModel.definirBancContenu(valeur.ifBlank { viewModel.reglages.value.bancContenu })
         }
 
         val saisie = liaison.saisieArguments as TextInputEditText
@@ -116,11 +150,26 @@ class PanneauConfigToolingFragment : Fragment() {
         try {
             liaison.interrupteurHorsLigne.isChecked = reglages.toolingHorsLigne
             liaison.interrupteurInjectionApplog.isChecked = reglages.injectionAppLog
+            liaison.interrupteurInstruTransport.isChecked = reglages.instrumentationTransport
+            liaison.interrupteurBanc.isChecked = reglages.bancSocketSeul
+            liaison.parametresBanc.isVisible = reglages.bancSocketSeul
 
             // Le champ ne se réécrit QUE hors saisie : effacer le texte d'un
             // utilisateur en train de taper serait le pire des rendus.
             if (saisieArguments.renduPeutReecrire()) {
                 liaison.saisieArguments.setText(reglages.toolingArguments)
+            }
+            if (saisieBancLignes.renduPeutReecrire()) {
+                liaison.saisieBancLignes.setText(reglages.bancLignes.toString())
+            }
+            if (saisieBancCadence.renduPeutReecrire()) {
+                liaison.saisieBancCadence.setText(reglages.bancCadenceMs.toString())
+            }
+            if (saisieBancLongueur.renduPeutReecrire()) {
+                liaison.saisieBancLongueur.setText(reglages.bancLongueurLigne.toString())
+            }
+            if (saisieBancContenu.renduPeutReecrire()) {
+                liaison.saisieBancContenu.setText(reglages.bancContenu)
             }
         } finally {
             renduEnCours = false
@@ -144,6 +193,30 @@ class PanneauConfigToolingFragment : Fragment() {
     private fun validerSaisie(saisie: TextInputEditText) {
         if (saisieArguments.consommerPourValidation()) {
             viewModel.definirArguments(saisie.text?.toString().orEmpty())
+        }
+    }
+
+    /**
+     * Branche UN champ du banc (Phase 1) : même discipline que le champ
+     * d'arguments — écrit au repos (perte de focus / « Terminé »), jamais
+     * par frappe, le rendu ne réarme pas la validation.
+     */
+    private fun brancherChampBanc(saisie: TextInputEditText, etatSaisie: SaisieArguments, valider: (String) -> Unit) {
+        saisie.doAfterTextChanged { _ ->
+            etatSaisie.surChangementTexte(pendantRendu = renduEnCours)
+        }
+        saisie.setOnFocusChangeListener { _, aLeFocus ->
+            if (!aLeFocus && etatSaisie.consommerPourValidation()) {
+                valider(saisie.text?.toString().orEmpty())
+            }
+        }
+        saisie.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                saisie.clearFocus()
+                true
+            } else {
+                false
+            }
         }
     }
 

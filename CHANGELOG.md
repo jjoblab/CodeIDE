@@ -1,5 +1,52 @@
 # Journal des modifications
 
+## [intégrée dans main le 2026-11-08 — branche mesure/instrumentation-logs] — volet A côté app : l'instrumentation cliente de la Phase 1 (session du 2026-11-08)
+
+Miroir client de l'instrumentation serveur livrée dans `codeide-tooling`
+(branche du même nom, `DIAGNOSTIC-LOGS.md` §7) : ce que la séance de mesures
+appareil (matrice X1–X10) attend de l'app, rien d'autre — **aucun chiffre
+n'est inventé** (interdit n°1), le verdict reste au §8 du diagnostic. ADR
+0152 (« instrumentation client du transport ») documente l'ensemble
+(branche miroir intégrée dans main le 2026-11-08).
+
+### Crochet de lancement du banc + drapeau d'instrumentation (INC-32, minimum obligatoire)
+
+Carte **Diagnostic** dans la configuration du tooling : interrupteur
+« Instrumentation de latence » (arme le drapeau `--instru-transport` du
+serveur ET les sondes clientes, passé par le daemon à chaque lancement du
+process — même contrat que l'injection applog : « s'applique au prochain
+démarrage du serveur de build »), interrupteur « Banc "socket seul" » et ses
+quatre paramètres (lignes, cadence, longueur, contenu — chacun lu et honoré
+par `ServerConfig`, borné à la saisie). La séance X1–X10 se lance depuis
+l'écran, sans adb ; l'export des mesures reste celui de l'écran Diagnostic.
+
+### T3 détaillé — la sonde du fil lecteur
+
+`SessionTooling.sondeLecture` : le fil dédié (ADR 0081) mesure lecture,
+décodage et routage par frame ; le résumé (`SondeLecteurTransport`,
+agrégation sans verrou, consommée à la prise) rejoint la ligne
+`ConsoleLatence` de chaque build. Sans sonde : chemin identique d'avant.
+
+### T5/T6 — la vue entre enfin dans la mesure
+
+`SondeConsoleVue` (câblée par le fragment console, même drapeau) : durée,
+lignes et longueur du texte de chaque `viderLot` (tag `ConsoleVue`) ;
+images du fil principal par boucle `Choreographer` (estimation 60 Hz
+assumée, résumé borné toutes les 5 s).
+
+### INC-44 — la sync obtient ses mesures (angle mort n°4)
+
+Latence de transport par projet (routeur, résumé au `SyncResult`), latence
+de publication (zone texte, résumé dédupliqué à la conclusion) et
+récapitulatif des phases au journal — miroirs exacts du chemin build,
+mêmes accumulateurs, mêmes étiquettes.
+
+### Signaux système consolidés (F6)
+
+`SondesSysteme` : chaque `onTrimMemory` significatif part au journal avec
+availMem, seuil et MemAvailable/Cached (tag `PressionMemoire`, lecture
+hors fil principal).
+
 ## [intégrée dans main le 2026-11-08 — branche fix/tooling-coherence] — volet C « cohérence du tooling », suite (session du 2026-11-08)
 
 Suite de la session du 2026-11-01 (INC-01 ci-dessous) — le même interdit

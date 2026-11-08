@@ -12,9 +12,15 @@ import java.util.concurrent.CopyOnWriteArrayList
  * Session factice (§7.3 — « SocketClient fake ») : les messages reçus
  * sont enregistrés puis confiés à un script de réaction qui émet les
  * événements simulés de l'orchestrateur.
+ *
+ * [sonde] (Phase 1, ADR 0152) : sonde de lecture exposée telle quelle —
+ * les tests du résumé T3 l'installent comme le fait le daemon en
+ * production ; `null` par défaut, comme une session non sondée.
  */
-internal class SessionFactice(private var reagir: suspend (ProtocolMessage, SessionFactice) -> Unit = { _, _ -> }) :
-    SessionTooling {
+internal class SessionFactice(
+    private val sonde: SondeLectureSocket? = null,
+    private var reagir: suspend (ProtocolMessage, SessionFactice) -> Unit = { _, _ -> },
+) : SessionTooling {
     /** Messages reçus, dans l'ordre d'envoi. */
     val messages = CopyOnWriteArrayList<ProtocolMessage>()
 
@@ -43,6 +49,10 @@ internal class SessionFactice(private var reagir: suspend (ProtocolMessage, Sess
     }
 
     override val evenements: Flow<ToolingEvent> = bus.receiveAsFlow()
+
+    /** Sonde installée à la construction (Phase 1, ADR 0152) — `null` sinon. */
+    override val sondeLecture: SondeLectureSocket?
+        get() = sonde
 
     /** Simule un événement émis par l'orchestrateur. */
     suspend fun emettre(evenement: ToolingEvent) {

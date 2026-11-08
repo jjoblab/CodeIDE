@@ -45,7 +45,13 @@ import java.io.IOException
  * dans son hôte de socket (cette classe reste la seule à parler
  * `LocalSocket`) — ses méthodes sont le contrat d'écoute.
  */
-class GradleSocketServer(private val dossierSocket: File, private val versionApp: String) {
+class GradleSocketServer(
+    private val dossierSocket: File,
+    private val versionApp: String,
+    /** Sonde T3 détaillée du fil lecteur (Phase 1, ADR 0152) — `null` par
+     *  défaut : aucune mesure posée sur les sessions acceptées. */
+    private val sondeLecture: SondeLectureSocket? = null,
+) {
     private var porteur: android.net.LocalSocket? = null
     private var serveur: android.net.LocalServerSocket? = null
 
@@ -142,7 +148,7 @@ class GradleSocketServer(private val dossierSocket: File, private val versionApp
                 porteeAccept.cancel()
             }
 
-        val session = SessionSocketAndroid(canal)
+        val session = SessionSocketAndroid(canal, sondeLecture)
 
         // Première frame : obligatoirement le HelloRequest de
         // l'orchestrateur — consommée SANS passer par le flux d'événements

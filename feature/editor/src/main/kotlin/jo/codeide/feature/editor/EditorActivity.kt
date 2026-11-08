@@ -163,6 +163,11 @@ class EditorActivity :
     @Inject
     lateinit var horloge: TimeProvider
 
+    /** Signaux système consolidés (Phase 1, ADR 0152 : la pression mémoire
+     *  part au journal AVEC son contexte app + système). */
+    @Inject
+    lateinit var sondesSysteme: SondesSysteme
+
     /** Fabrique du fragment Terminal du tiroir (v0.32.2, ADR 0053) :
      * le rendu réel des sessions vit dans `feature:terminal` — la
      * fabrique seule traverse la frontière (les features ne se
@@ -2814,6 +2819,9 @@ class EditorActivity :
     override fun onTrimMemory(niveau: Int) {
         super.onTrimMemory(niveau)
         if (niveau >= SEUIL_TRIM_MEMORY_CACHES) {
+            // Phase 1 (ADR 0152) : le signal part avec son CONTEXTE mémoire
+            // (app + système) — le fait F6 du journal de terrain était nu.
+            sondesSysteme.signalerTrimMemory(niveau)
             viewModel.onAction(ActionEditor.LibererMemoire)
         }
     }

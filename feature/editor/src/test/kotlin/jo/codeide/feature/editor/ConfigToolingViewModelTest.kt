@@ -94,4 +94,66 @@ class ConfigToolingViewModelTest {
         // L'échec ne casse rien : le réglage courant reste celui du dépôt.
         assertEquals(AppSettings().toolingHorsLigne, depotReglages.reglages.toolingHorsLigne)
     }
+
+    // ------------------------------------------------------------------
+    // Phase 1 (ADR 0152) : instrumentation + banc « socket seul ».
+    // ------------------------------------------------------------------
+
+    @Test
+    fun `Phase 1 - definirInstrumentationTransport et definirBancSocketSeul persistent a l instant`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.definirInstrumentationTransport(true)
+        viewModel.definirBancSocketSeul(true)
+        advanceUntilIdle()
+
+        assertEquals(true, depotReglages.reglages.instrumentationTransport)
+        assertEquals(true, depotReglages.reglages.bancSocketSeul)
+    }
+
+    @Test
+    fun `Phase 1 - les parametres du banc persistent et se bornent`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.definirBancLignes(10_000)
+        viewModel.definirBancCadenceMs(50)
+        viewModel.definirBancLongueurLigne(200)
+        advanceUntilIdle()
+
+        assertEquals(10_000, depotReglages.reglages.bancLignes)
+        assertEquals(50, depotReglages.reglages.bancCadenceMs)
+        assertEquals(200, depotReglages.reglages.bancLongueurLigne)
+
+        // Bornage : une valeur aberrante ne peut pas armer un déluge de
+        // 2^31 lignes ni une cadence négative.
+        viewModel.definirBancLignes(999_999_999)
+        viewModel.definirBancCadenceMs(-5)
+        advanceUntilIdle()
+
+        assertEquals(200_000, depotReglages.reglages.bancLignes)
+        assertEquals(0, depotReglages.reglages.bancCadenceMs)
+    }
+
+    @Test
+    fun `Phase 1 - le contenu du banc valide les quatre valeurs admises - repli plain`() = runTest {
+        val viewModel = viewModel()
+
+        viewModel.definirBancContenu("  ANSI ")
+        advanceUntilIdle()
+        assertEquals("ansi", depotReglages.reglages.bancContenu)
+
+        viewModel.definirBancContenu("utf8")
+        advanceUntilIdle()
+        assertEquals("utf8", depotReglages.reglages.bancContenu)
+
+        viewModel.definirBancContenu("multi")
+        advanceUntilIdle()
+        assertEquals("multi", depotReglages.reglages.bancContenu)
+
+        // Valeur inconnue : repli honnête sur plain (le serveur valide
+        // aussi de son côté).
+        viewModel.definirBancContenu("n'importe-quoi")
+        advanceUntilIdle()
+        assertEquals("plain", depotReglages.reglages.bancContenu)
+    }
 }

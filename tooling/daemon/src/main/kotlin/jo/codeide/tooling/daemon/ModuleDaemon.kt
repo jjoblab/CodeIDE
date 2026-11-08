@@ -43,11 +43,22 @@ internal object ModuleDaemon {
      * Hôte de l'écoute production : `GradleSocketServer` de tooling:client
      * sur `filesDir/run` (ADR 0041) — la version annoncée au handshake est
      * celle du paquet installé (informationnelle, jamais décisionnelle).
+     * La sonde T3 détaillée du fil lecteur (Phase 1, ADR 0152) est posée
+     * SUR les sessions acceptées : son activation suit le réglage
+     * utilisateur, lu à chaque lancement du process par le daemon.
      */
     @Provides
     @Singleton
-    internal fun hoteSocket(@ApplicationContext context: Context): HoteSocketTooling =
-        HoteSocketAndroid(GradleSocketServer(dossierSocket(context), versionApp(context)))
+    internal fun hoteSocket(
+        @ApplicationContext context: Context,
+        sondeLecture: SondeLecteurTransport,
+    ): HoteSocketTooling =
+        HoteSocketAndroid(GradleSocketServer(dossierSocket(context), versionApp(context), sondeLecture))
+
+    /** Sonde T3 détaillée du fil lecteur (Phase 1, ADR 0152) — singleton process. */
+    @Provides
+    @Singleton
+    internal fun sondeLecture(): SondeLecteurTransport = SondeLecteurTransport()
 
     /** Source du JAR orchestrateur : les assets de l'app (ADR 0040). */
     @Provides
@@ -98,6 +109,7 @@ internal object ModuleDaemon {
         parametres: SettingsRepository,
         journal: AppLogger,
         dispatchers: DispatcherProvider,
+        sondeLecture: SondeLecteurTransport,
     ): DaemonManager = DaemonManager(
         lanceur = lanceur,
         outilchain = outilchain,
@@ -112,6 +124,22 @@ internal object ModuleDaemon {
         // (redémarrage de l'app ou de la chaîne d'outils) — dit tel
         // quel dans l'écran des réglages.
         lectureInjectionAppLog = { parametres.observeSettings().first().injectionAppLog },
+        // Phase 1 (ADR 0152) : mêmes règles de lecture que l'injection
+        // applog — drapeau d'instrumentation et banc « socket seul »
+        // passés à la ligne de commande du serveur, sonde du fil lecteur
+        // armée en même temps que `--instru-transport`.
+        lectureInstru = {
+            val reglages = parametres.observeSettings().first()
+            ParametresInstru(
+                instrumentationTransport = reglages.instrumentationTransport,
+                bancSocketSeul = reglages.bancSocketSeul,
+                bancLignes = reglages.bancLignes,
+                bancCadenceMs = reglages.bancCadenceMs,
+                bancLongueurLigne = reglages.bancLongueurLigne,
+                bancContenu = reglages.bancContenu,
+            )
+        },
+        sondeLecture = sondeLecture,
     )
 
     /** Répertoire privé `filesDir/run` (socket, supprimé du cache). */

@@ -292,6 +292,29 @@ comme tout producteur applicatif (règle 14/ADR 0040). Aucune donnée
 personnelle : les chemins de projets n'y figurent jamais (règle 15 —
 journalisation identifiante, `LogRedactor` à l'écriture).
 
+## Instrumentation de latence — Phase 1 du diagnostic « retard d'affichage » (ADR 0152, branche `mesure/instrumentation-logs`)
+
+Le miroir client de l'instrumentation serveur du dépôt `codeide-tooling`
+(`DIAGNOSTIC-LOGS.md`, même branche) : UN réglage
+(`instrumentationTransport`, carte Diagnostic de la configuration du tooling)
+arme ensemble le drapeau `--instru-transport` du serveur (passé par le daemon
+à CHAQUE lancement, comme l'injection applog) et les sondes clientes —
+**T3 détaillé** (durées lecture/décodage/routage par frame du fil lecteur,
+résumé accollé à la ligne `ConsoleLatence` de chaque build), **T5** (lots de
+la console : lignes, durée, longueur du texte — la variable de X9, tag
+`ConsoleVue`) et **T6** (images du fil principal, estimation 60 Hz, résumé
+toutes les 5 s). Le banc « socket seul » (`--banc-socket-seul` et ses quatre
+paramètres) se règle dans la même carte : c'est le crochet de lancement de la
+matrice X1–X10, sans adb. **INC-44** : la sync obtient latence de transport
+(`ConsoleLatence`, au `SyncResult`), latence de publication et récapitulatif
+de phases au journal. Les signaux système (pression mémoire + availMem +
+MemAvailable) partent sous le tag `PressionMemoire`. Tout passe par le
+journal applicatif — donc par l'export de l'écran Diagnostic. **Pour mesurer,
+construire l'app en mode composite** (`-Pfreres.sources`) avec
+`codeide-tooling` sur `mesure/instrumentation-logs` : le JAR des assets doit
+porter les drapeaux du banc. Coupé (défaut) : aucun compteur, aucune ligne,
+aucun changement de comportement (règle 10).
+
 ## Ce que la CI garantit (ADR 0037)
 
 Chaîne complète from-scratch à chaque poussée : `spotlessCheck detekt

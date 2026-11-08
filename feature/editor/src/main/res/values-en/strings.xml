@@ -484,6 +484,21 @@
     <string name="editor_config_connexion_echoue">Failed</string>
     <string name="editor_config_etat_tas">Orchestrator memory</string>
     <string name="editor_config_tas_format">%1$d MB used of %2$d MB</string>
+    <!-- Phase 1 (ADR 0152): Diagnostic card — latency instrumentation and
+         "socket only" bench, the mandatory minimum of INC-32. -->
+    <string name="editor_config_diagnostic">Diagnostics</string>
+    <string name="editor_config_instru_transport">Latency instrumentation</string>
+    <string name="editor_config_instru_transport_desc" tools:ignore="TypographyDashes">Measures the path of every line (build server, reception, console rendering) with no on-screen change. Figures go to the app log, exported from the Diagnostics screen. Applies to the next build server start.</string>
+    <string name="editor_config_banc">"Socket only" bench</string>
+    <string name="editor_config_banc_desc" tools:ignore="TypographyDashes">On the next start, the build server emits a test sequence without Gradle (X1–X10 diagnostic matrix). Turn it off after the measurement session — the console shows the sequence like a build.</string>
+    <string name="editor_config_banc_lignes">Bench lines</string>
+    <string name="editor_config_banc_lignes_aide" tools:ignore="TypographyDashes">60 = journal profile; 10,000 / 50,000 / 200,000 = flood</string>
+    <string name="editor_config_banc_cadence">Pace (ms)</string>
+    <string name="editor_config_banc_cadence_aide" tools:ignore="TypographyDashes">0 = burst; 50 ≈ 20 lines/s; 200 ≈ 5 lines/s</string>
+    <string name="editor_config_banc_longueur">Line length</string>
+    <string name="editor_config_banc_longueur_aide" tools:ignore="TypographyDashes">40 / 200 / 2000 characters</string>
+    <string name="editor_config_banc_contenu">Content</string>
+    <string name="editor_config_banc_contenu_aide" tools:ignore="TypographyDashes">plain, ansi, utf8 or multi (multi-line traces)</string>
     <string name="editor_config_note_console" tools:ignore="TypographyDashes">Gradle output is always forced to plain text (--console=plain): no ANSI sequence will corrupt the console.</string>
 
     <!-- Tooling notification service (step 32, ADR 0057): same tokens as
