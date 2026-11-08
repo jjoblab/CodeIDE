@@ -14,6 +14,7 @@ import jo.codeide.core.domain.EtatConnexion
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentConfigToolingBinding
+import java.util.Locale
 
 /**
  * Écran de configuration du tooling Gradle (v3 ; v4, §3.3 : INTÉGRÉ au
@@ -160,13 +161,19 @@ class PanneauConfigToolingFragment : Fragment() {
                 liaison.saisieArguments.setText(reglages.toolingArguments)
             }
             if (saisieBancLignes.renduPeutReecrire()) {
-                liaison.saisieBancLignes.setText(reglages.bancLignes.toString())
+                liaison.saisieBancLignes.setText(
+                    String.format(Locale.ROOT, "%d", reglages.bancLignes),
+                )
             }
             if (saisieBancCadence.renduPeutReecrire()) {
-                liaison.saisieBancCadence.setText(reglages.bancCadenceMs.toString())
+                liaison.saisieBancCadence.setText(
+                    String.format(Locale.ROOT, "%d", reglages.bancCadenceMs),
+                )
             }
             if (saisieBancLongueur.renduPeutReecrire()) {
-                liaison.saisieBancLongueur.setText(reglages.bancLongueurLigne.toString())
+                liaison.saisieBancLongueur.setText(
+                    String.format(Locale.ROOT, "%d", reglages.bancLongueurLigne),
+                )
             }
             if (saisieBancContenu.renduPeutReecrire()) {
                 liaison.saisieBancContenu.setText(reglages.bancContenu)
