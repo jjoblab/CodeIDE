@@ -351,7 +351,7 @@ layoutlib = "3.7.0"
 # documentée). Version = PIN du ref git attendu (tags v1.0.0) en
 # composite, de la publication en binaire ; la substitution ignore la
 # version déclarée — la mise à jour = bump ici + ref du clonage CI.
-codeide-tooling = "1.0.0"
+codeide-tooling = "1.1.0"
 # MONTÉE 1.8.0 (v0.180.0) : v1.8.0 livre les CINQ demandes du chantier
 # indexation transmises par docs/DEMANDES_CODEIDE_LSP.md (ADR 0211–0214 —
 # D1 supplier de connexion sans E/S + cache mémoire des segments, D2 filet
