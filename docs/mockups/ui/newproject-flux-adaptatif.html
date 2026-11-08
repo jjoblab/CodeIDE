@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nouveau projet — parcours adaptatif (chantier générateur, ADR 0153-0155)</title>
+<!--
+  Maquettes L0 du chantier « Refonte du générateur de projets et des écrans
+  Nouveau projet » : parcours par famille (téléphone), états désactivé,
+  avertissement et erreur, tablette deux colonnes avec aperçu en direct.
+  Jetons : mêmes variables que docs/mockups/ui/composants-partages.html.
+  Aucun logo officiel : icônes = formes maison (ADR 0154 §4).
+-->
+<style>
+:root{--primary:#43559E;--on-primary:#FFF;--pc:#DCE1FF;--on-pc:#001159;--bg:#F9F9FF;--on-bg:#1A1B21;--sv:#E2E1EC;--on-sv:#46464F;--outline:#767680;--ov:#C6C5D0;--ok:#2E7D32;--ok-c:#DDEFE0;--warn:#9A6700;--warn-c:#F6E7C1;--err:#BA1A1A;--err-c:#FFDAD6}
+.dark{--primary:#BAC4FF;--on-primary:#0C2264;--pc:#293D8F;--on-pc:#DCE1FF;--bg:#111318;--on-bg:#E2E1E9;--sv:#46464F;--on-sv:#C6C5D0;--outline:#90909A;--ov:#46464F;--ok:#81C995;--ok-c:#1F3A1F;--warn:#FDD663;--warn-c:#5A3D56;--err:#FFB4AB;--err-c:#93000A}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--on-bg);font:14px/1.4 system-ui,sans-serif}
+h1{font-size:18px;margin:0 0 2px}h2{font-size:15px;margin:26px 0 8px;border-top:1px solid var(--ov);padding-top:14px}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}.top p{margin:0;color:var(--on-sv);font-size:12px}
+.tg{border:1px solid var(--outline);background:none;color:var(--on-bg);border-radius:16px;padding:4px 12px;font:inherit;cursor:pointer}
+.wrap{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:6px}.cap{font-size:12px;font-weight:600;color:var(--on-sv)}
+.ds{width:340px;border:2px solid var(--outline);border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg);min-height:520px}
+.sec{font-weight:600;font-size:12px;color:var(--on-sv)}
+.card{border:1px solid var(--ov);border-radius:12px;padding:8px;background:var(--bg)}
+.note{font-size:11px;color:var(--on-sv)}
+/* Hôte : barre d'outils + indicateur + barre d'actions (ADR 0020, conservé). */
+.tb{display:flex;align-items:center;gap:8px}.tb .x{font-size:16px;color:var(--on-sv)}.tb b{font-size:14px}
+.ind{margin:2px 0 4px}.ind .lb{font-size:12px;color:var(--on-sv);margin-bottom:4px}
+.bar{height:6px;border-radius:3px;background:var(--sv)}.bar i{display:block;height:6px;border-radius:3px;background:var(--primary)}
+.acts{display:flex;justify-content:space-between;margin-top:auto}
+.btn{border:1px solid var(--outline);background:none;color:var(--primary);border-radius:18px;padding:7px 14px;font:12px system-ui;display:inline-block}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.btn.t{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.btn:disabled{opacity:.38}
+/* Étape Modèle : sections + filtres + icônes maison. */
+.chiprow{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--ov);color:var(--on-sv);border-radius:8px;padding:3px 10px;font-size:12px}.chip.on{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.mod{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid var(--ov);border-radius:12px}
+.mod.on{border:2px solid var(--primary);background:var(--pc)}
+.ico{width:40px;height:40px;border-radius:10px;background:var(--pc);color:var(--on-pc);display:flex;align-items:center;justify-content:center;font-size:18px;flex:none}
+.mod .t{flex:1;min-width:0}.mod .t b{display:block;font-size:13px}.mod .t span{display:block;font-size:11px;color:var(--on-sv)}
+.pts{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}.pt{font-size:10px;border:1px solid var(--ov);border-radius:6px;padding:1px 6px;color:var(--on-sv)}
+/* Tuiles segmentées / cartes radio / interrupteurs. */
+.seg{display:flex;gap:6px}.seg>div{flex:1;text-align:center;border:1px solid var(--ov);border-radius:10px;padding:8px 4px;font-size:12px}
+.seg>div.on{border:2px solid var(--primary);background:var(--pc);color:var(--on-pc);font-weight:600}
+.seg>div.off{opacity:.45}
+.rw{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 4px}
+.rw+.rw{border-top:1px solid var(--ov)}
+.rw .t{flex:1;min-width:0}.rw .t b{display:block;font-size:13px;font-weight:600}.rw .t span{display:block;font-size:11px;color:var(--on-sv)}
+.rw.off{opacity:.45}
+.sw{width:36px;height:20px;border-radius:10px;background:var(--sv);position:relative;flex:none}.sw:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--outline)}
+.sw.on{background:var(--primary)}.sw.on:after{left:auto;right:3px;background:var(--on-primary)}
+/* Bibliothèques : cartes sélectionnables + mentions. */
+.lib{border:1px solid var(--ov);border-radius:12px;padding:8px}
+.lib.on{border:2px solid var(--primary);background:var(--pc)}
+.lib .hd{display:flex;align-items:center;gap:8px}.lib .hd .t{flex:1}.lib .hd b{font-size:13px}
+.aa{font-size:10px;border-radius:6px;padding:1px 6px;background:var(--sv);color:var(--on-sv)}
+.msg{border-radius:10px;padding:7px 10px;font-size:11px;display:flex;gap:6px;align-items:flex-start}
+.msg.w{background:var(--warn-c);color:var(--warn)}.msg.i{background:var(--sv);color:var(--on-sv)}.msg.e{background:var(--err-c);color:var(--err)}
+.msg b{font-weight:600}
+.puces{display:flex;gap:6px;flex-wrap:wrap}.puce{font-size:11px;border:1px solid var(--ov);border-radius:8px;padding:2px 8px;color:var(--on-sv)}
+/* Récapitulatif. */
+.grp b{font-size:12px;color:var(--on-sv);display:block;margin:4px 0 2px}
+.vl{font-size:12px;padding:2px 0}.vl span{color:var(--on-sv)}
+/* Tablette : deux colonnes + aperçu. */
+.tab{width:640px;border:2px solid var(--outline);border-radius:22px;padding:12px;background:var(--bg);display:flex;gap:12px;min-height:420px}
+.tab .gauche{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tab .droite{width:260px;border-left:1px solid var(--ov);padding-left:12px;display:flex;flex-direction:column;gap:8px}
+.arb{font-family:ui-monospace,monospace;font-size:11px;line-height:1.55}
+.arb .add{color:var(--ok)}.arb .rm{color:var(--err);text-decoration:line-through}
+.diff{display:flex;gap:6px}.diff span{font-size:11px;border-radius:6px;padding:1px 8px}.diff .a{background:var(--ok-c);color:var(--ok)}.diff .r{background:var(--err-c);color:var(--err)}
+</style>
+</head>
+<body>
+<div class="top"><div><h1>Nouveau projet — parcours adaptatif</h1><p>Chantier générateur · ADR 0153-0155 · maquettes L0 · socle ADR 0020 conservé · sombre = valeurs night</p></div>
+<button class="tg" onclick="document.body.classList.toggle('dark')">Clair / Sombre</button></div>
+
+<h2>1. Étape Modèle — sections par catégorie, vraies icônes, points forts (B-3)</h2>
+<div class="wrap">
+<div class="col"><div class="cap">Téléphone — filtres par category, 7 modèles</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 1 sur 7 · Modèle</div><div class="bar"><i style="width:14%"></i></div></div>
+ <input placeholder="Rechercher un modèle…" style="border:1px solid var(--ov);border-radius:10px;padding:8px;font:inherit;background:none;color:var(--on-bg)">
+ <div class="chiprow"><span class="chip on">Tous</span><span class="chip">Android</span><span class="chip">JVM</span><span class="chip">Multiplateforme</span><span class="chip">Outils Gradle</span></div>
+ <div class="sec">Android</div>
+ <div class="mod on"><div class="ico">▣</div><div class="t"><b>Application Android</b><span>AGP 9.4.1 · Material 3 · ViewBinding</span><div class="pts"><span class="pt">Kotlin/Java</span><span class="pt">5 bibliothèques</span><span class="pt">Tiroir Material</span></div></div></div>
+ <div class="mod"><div class="ico">▤</div><div class="t"><b>Bibliothèque Android</b><span>.aar · module :library</span><div class="pts"><span class="pt">consumer-rules</span></div></div></div>
+ <div class="sec">JVM</div>
+ <div class="mod"><div class="ico">⬢</div><div class="t"><b>Kotlin JVM</b><span>Gradle/Maven/sans · JDK 17-21</span></div></div>
+ <div class="mod"><div class="ico">☕</div><div class="t"><b>Java</b><span>Gradle/Maven/sans · JDK 17-21</span></div></div>
+ <div class="acts"><span class="btn" disabled>Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">L'icône est un drawable vectoriel maison (nom logique iconKey) — la pastille texte 40 dp/16 sp est retirée (débordement « android » constaté). L'état « aucun résultat » est conservé.</p>
+</div></div>
+
+<div class="col"><div class="cap">Préréglages déclarés (B-8) — posés d'un geste, jamais figés</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 1 sur 7 · Modèle — « Application Android » sélectionné</div><div class="bar"><i style="width:14%"></i></div></div>
+ <div class="sec">Démarrage rapide</div>
+ <div class="chiprow">
+  <span class="chip on">MVVM — Hilt + Room + Navigation</span>
+  <span class="chip">Minimal — un écran</span>
+  <span class="chip">Réseau — Retrofit + Coroutines</span>
+ </div>
+ <p class="note">Préréglages déclarés dans le manifeste (presets) : posent plusieurs options cohérentes d'un coup. Les champs dérivés restent resynchronisables ; rien n'est figé. Équivalent « mode rapide » en L5d : préréglage → récapitulatif.</p>
+ <div class="sec">Modèle sélectionné</div>
+ <div class="mod on"><div class="ico">▣</div><div class="t"><b>Application Android</b><span>Le parcours s'adapte au modèle : 6 étapes de configuration au lieu de 1</span></div></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+</div></div>
+</div>
+
+<h2>2. Famille Android application — étapes qui réagissent aux options</h2>
+<div class="wrap">
+<div class="col"><div class="cap">Étape « Démarrage » — option désactivée avec raison + info (ADR 0153)</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 2 sur 7 · Démarrage</div><div class="bar"><i style="width:28%"></i></div></div>
+ <div class="sec">Type de projet</div>
+ <div class="seg"><div class="on">Écran vide</div><div>Sans écran</div><div>Écran + tiroir</div></div>
+ <div class="sec">Langage</div>
+ <div class="seg"><div class="on">Kotlin</div><div>Java</div></div>
+ <div class="msg i"><b>ℹ</b><div>Coroutines ne s'applique qu'à Kotlin : l'option est masquée en Java.</div></div>
+ <div class="sec">Bibliothèques — aperçu des conséquences</div>
+ <div class="rw off"><div class="t"><b>Navigation</b><span>Désactivée : un projet sans écran n'a pas de destination à afficher</span></div><span class="sw off"></span></div>
+ <div class="rw"><div class="t"><b>Retrofit</b><span>Appels HTTP typés</span></div><span class="sw on"></span></div>
+ <div class="msg w"><b>▲</b><div>Retrofit sans Coroutines : les appels bloqueront le fil. Suggestion : cocher Coroutines.</div></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">Désactivé ≠ masqué : l'option reste visible, grise, sa raison est annoncée à TalkBack. Un avertissement s'affiche à l'endroit du choix (règle de projet INFO/AVERTISSEMENT). Aucun identifiant brut nulle part.</p>
+</div></div>
+
+<div class="col"><div class="cap">Étape « Plateforme » — zone Avancé repliée + valeurs lisibles (B-2)</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 3 sur 7 · Plateforme</div><div class="bar"><i style="width:42%"></i></div></div>
+ <div class="sec">Version minimale</div>
+ <div class="seg"><div>24</div><div class="on">API 26 · Android 8.0</div><div>29</div><div>34</div></div>
+ <div class="card"><div class="sec" style="cursor:pointer">Avancé ▸</div>
+  <div class="rw"><div class="t"><b>SDK cible</b><span>API 36 · Android 16 — aligné sur le catalogue de l'appareil</span></div><span class="v">36 ›</span></div>
+  <div class="rw"><div class="t"><b>Identifiant d'application</b><span>Dérivé du package · fr.monapplication.carnet</span></div><span class="v">✎</span></div>
+ </div>
+ <div class="msg i"><b>ℹ</b><div>Room et Hilt utilisent KSP : le plugin sera ajouté automatiquement à la génération.</div></div>
+ <div class="puces"><span class="puce">Écran vide</span><span class="puce">Kotlin</span><span class="puce">API 26 · Android 8.0</span><span class="puce">API 36 · Android 16</span></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">Les puces récapitulatives affichent des valeurs lisibles (plus jamais « empty-activity », « 26 », « 37 »). La zone Avancé regroupe ce qui change rarement. Une règle ERREUR bloquerait « Suivant » si minSdk > targetSdk.</p>
+</div></div>
+
+<div class="col"><div class="cap">Étape « Bibliothèques » — cartes, compteur, dépendance implicite</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 4 sur 7 · Bibliothèques</div><div class="bar"><i style="width:56%"></i></div></div>
+ <div class="sec">3 sélectionnées</div>
+ <div class="lib on"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">⟳</div><div class="t"><b>Coroutines</b><div class="note">Usage câblé : chargement asynchrone d'exemple</div></div><span class="sw on"></span></div></div>
+ <div class="lib on"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">☁</div><div class="t"><b>Retrofit</b><div class="note">Service d'exemple + permission INTERNET</div></div><span class="sw on"></span></div>
+  <div class="note" style="margin-top:6px">URL de base <b>https://api.exemple.dev/</b> (modifiable)</div></div>
+ <div class="lib"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">⌘</div><div class="t"><b>Navigation</b><div class="note">Graphe + NavHost, intégré au tiroir</div></div><span class="sw"></span></div></div>
+ <div class="lib on"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">▦</div><div class="t"><b>Room <span class="aa">KSP ajouté automatiquement</span></b><div class="note">Base d'exemple instanciée et utilisée</div></div><span class="sw on"></span></div></div>
+ <div class="lib on"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">⬡</div><div class="t"><b>Hilt</b><div class="note">@AndroidEntryPoint + module + une injection réelle</div></div><span class="sw on"></span></div></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">Chaque bibliothèque décrit son EFFET dans le projet généré (plus d'option « dépendance seule »). La mention de dépendance implicite vient de autoDefinit (ADR 0153).</p>
+</div></div>
+</div>
+
+<h2>3. Familles Spring Boot, JVM, KMP, plugin Gradle</h2>
+<div class="wrap">
+<div class="col"><div class="cap">Spring Boot — « Langage et build » puis « Modules »</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 2 sur 6 · Langage et build</div><div class="bar"><i style="width:33%"></i></div></div>
+ <div class="sec">Langage</div>
+ <div class="seg"><div class="on">Kotlin</div><div>Java</div></div>
+ <div class="sec">Système de build</div>
+ <div class="seg"><div class="on">Gradle</div><div>Maven</div></div>
+ <div class="sec">JDK</div>
+ <div class="seg"><div>17</div><div class="on">21</div></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <div class="sec" style="margin-top:8px">Étape suivante — Modules</div>
+ <div class="rw"><div class="t"><b>JPA + H2</b><span>Entité et repository Spring Data, datasource configurée</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Sécurité</b><span>SecurityFilterChain explicite — accueil public, API protégée</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Actuator</b><span>/actuator/health exposé, cohérent avec la sécurité</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Validation</b><span>DTO validé + test du cas invalide</span></div><span class="sw"></span></div>
+</div></div>
+
+<div class="col"><div class="cap">JVM (kotlin-jvm / java) — 5 étapes, proche du parcours actuel</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 2 sur 5 · Type et build</div><div class="bar"><i style="width:40%"></i></div></div>
+ <div class="sec">Type de projet</div>
+ <div class="seg"><div class="on">Application</div><div>Bibliothèque</div></div>
+ <div class="sec">Système de build</div>
+ <div class="card">
+  <div class="rw"><div class="t"><b>Gradle (Kotlin DSL)</b><span>Wrapper sommé, build conventionnel</span></div><span class="sw on"></span></div>
+  <div class="rw"><div class="t"><b>Maven</b><span>pom.xml complet, exécution exec:java</span></div><span class="sw"></span></div>
+  <div class="rw"><div class="t"><b>Sans build</b><span>Compilation directe javac / kotlinc</span></div><span class="sw"></span></div>
+ </div>
+ <div class="sec">Qualité et outillage</div>
+ <div class="rw"><div class="t"><b>Tests JUnit</b><span>GreeterTest généré et vérifié</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Wrapper Gradle</b><span>Distribution 9.7.1 + SHA-256</span></div><span class="sw on"></span></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">Avec buildSystem = « Sans build », les paramètres sans objet (JDK, groupId, artifactId, wrapper) disparaissent — visibleWhen conservé. L'étape suivante est l'IDENTITÉ (nom, description, emplacement).</p>
+</div></div>
+
+<div class="col"><div class="cap">KMP — « Cibles et bibliothèques » · plugin Gradle — 3 étapes</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 2 sur 5 · Cibles et bibliothèques</div><div class="bar"><i style="width:40%"></i></div></div>
+ <div class="sec">Bibliothèques (câblées — contre-exemple actuel conservé)</div>
+ <div class="rw"><div class="t"><b>Sérialisation</b><span>ConfigurationSalutation.kt générée</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Coroutines</b><span>DelaisSalutation.kt générée</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Horodatage</b><span>HorodatageSalutation.kt générée</span></div><span class="sw"></span></div>
+ <div class="sec" style="margin-top:8px">Plugin Gradle (3 étapes)</div>
+ <div class="card"><div class="sec">Étape « Identifiants du plugin »</div>
+  <div class="vl"><span>pluginId</span> — dérivé de l'artifactId, éditable</div>
+  <div class="vl"><span>artifactId</span> — dérivé du nom du projet</div>
+  <div class="vl"><span>Qualité</span> — tests TestKit + publication maven locale</div>
+ </div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">Un modèle simple tient en 3 étapes (plugin Gradle : Modèle → Identifiants → IDENTITÉ…), un modèle riche en 6-7 (Android application). L'indicateur « Étape N sur M » suit la liste effective.</p>
+</div></div>
+</div>
+
+<h2>4. Récapitulatif fidèle, états d'erreur, tablette et aperçu en direct</h2>
+<div class="wrap">
+<div class="col"><div class="cap">Récapitulatif — valeurs réelles, par étape parcourue, « Modifier » (B-4)</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 7 sur 7 · Récapitulatif</div><div class="bar"><i style="width:100%"></i></div></div>
+ <div class="card grp"><b>Démarrage <span class="btn" style="padding:1px 8px;float:right">Modifier</span></b>
+  <div class="vl"><span>Type</span> Écran vide · <span>Langage</span> Kotlin</div></div>
+ <div class="card grp"><b>Plateforme</b>
+  <div class="vl"><span>Minimum</span> API 26 · Android 8.0 · <span>Cible</span> API 36 · Android 16</div>
+  <div class="vl"><span>Identifiant</span> fr.monapplication.carnet</div></div>
+ <div class="card grp"><b>Bibliothèques (4)</b>
+  <div class="vl">Coroutines · Retrofit · Room · Hilt <span class="aa">KSP ajouté automatiquement</span></div></div>
+ <div class="card grp"><b>Identité</b>
+  <div class="vl"><span>Nom</span> Mon carnet · <span>Emplacement</span> Workspace/Carnet</div></div>
+ <div class="card grp"><b>Fichiers</b>
+  <div class="vl">31 fichiers · README · .gitignore · licence MIT</div>
+  <div class="vl"><span>Contenu</span> Français</div></div>
+ <div class="msg w"><b>▲</b><div>Room sans Hilt n'est pas un blocage : l'injection manuelle de la base reste possible.</div></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Créer le projet</span></div>
+ <p class="note">Valeurs (pas libellés), langue en clair, avertissements restants, « Modifier » par étape réellement parcourue — les étapes disparues n'apparaissent pas et leurs valeurs sont exclues de la génération.</p>
+</div></div>
+
+<div class="col"><div class="cap">États d'erreur — règle bloquante et plan en échec</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 3 sur 7 · Plateforme — combinaison bloquée</div><div class="bar"><i style="width:42%"></i></div></div>
+ <div class="sec">Version minimale</div>
+ <div class="seg"><div>24</div><div>26</div><div>29</div><div class="on">34</div></div>
+ <div class="sec">SDK cible</div>
+ <div class="seg"><div class="on">API 34 · Android 14</div><div>API 36 · Android 16</div></div>
+ <div class="msg e"><b>✕</b><div><b>SDK cible inférieur à la version minimale (34).</b> Corrigez l'une des deux valeurs pour continuer.</div></div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn" disabled>Suivant</span></div>
+ <div class="sec" style="margin-top:8px">Aperçu en échec (feuille basse)</div>
+ <div class="card"><div class="vs" style="text-align:center;padding:12px;color:var(--on-sv);font-size:12px"><span style="font-size:24px">⚠</span><b style="display:block;color:var(--on-bg);font-size:13px">Plan indisponible</b>Le dossier de destination n'est plus accessible.<span class="btn" style="margin-top:6px">Réessayer</span></div></div>
+ <p class="note">Règle ERREUR : « Suivant » désactivé, message au bon endroit, jamais d'impasse (Réessayer replanifie). L'aperçu en feuille basse gère erreur/annulation et reste hors du fil principal (antirebond ~300 ms).</p>
+</div></div>
+
+<div class="col"><div class="cap">Tablette sw600dp — parcours à gauche, aperçu en direct à droite (B-5)</div>
+<div class="tab">
+ <div class="gauche">
+  <div class="tb"><span class="x">✕</span><b>Nouveau projet</b><span style="margin-left:auto;color:var(--on-sv);font-size:12px">Étape 4 sur 7 · Bibliothèques</span></div>
+  <div class="bar"><i style="width:56%"></i></div>
+  <div class="lib on"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">▦</div><div class="t"><b>Room <span class="aa">KSP ajouté automatiquement</span></b><div class="note">Base d'exemple instanciée</div></div><span class="sw on"></span></div></div>
+  <div class="lib on"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">⬡</div><div class="t"><b>Hilt</b><div class="note">Module + injection réelle</div></div><span class="sw on"></span></div></div>
+  <div class="lib"><div class="hd"><div class="ico" style="width:28px;height:28px;font-size:14px">⌘</div><div class="t"><b>Navigation</b><div class="note">Graphe + NavHost</div></div><span class="sw"></span></div></div>
+  <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ </div>
+ <div class="droite">
+  <div class="sec">Aperçu en direct <span class="diff"><span class="a">+ 7</span><span class="r">− 1</span></span></div>
+  <div class="arb">
+   MonCarnet/<br>
+   ├─ app/<br>
+   │&nbsp;&nbsp;├─ build.gradle.kts <span class="add">+ deps Room/Hilt</span><br>
+   │&nbsp;&nbsp;├─ src/main/AndroidManifest.xml<br>
+   │&nbsp;&nbsp;├─ src/main/java/…/CarnetApplication.kt <span class="add">+ nouveau</span><br>
+   │&nbsp;&nbsp;├─ src/main/java/…/BddLocale.kt <span class="add">+ nouveau</span><br>
+   │&nbsp;&nbsp;└─ src/main/res/…<br>
+   ├─ gradle/wrapper/…<br>
+   └─ .codeide/project.json
+  </div>
+  <div class="note">34 fichiers · différentiel depuis l'option précédente (Room coché : +2, Navigation décochée : −1). Antirebond ~300 ms, annulable, jamais sur le fil principal.</div>
+ </div>
+</div>
+<p class="note" style="max-width:640px">Téléphone : le même aperçu vit en feuille basse. Navigation robuste : si une étape remplie disparaît (dernière bibliothèque décochée → étape « Bibliothèques »), ses valeurs sont conservées mais exclues de la génération et du récapitulatif ; l'utilisateur est ramené à la dernière étape effective valide ; reprise après mort du processus inchangée (SavedStateHandle).</p>
+</div>
+</div>
+</body>
+</html>
