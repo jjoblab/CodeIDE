@@ -197,8 +197,13 @@ class ClasspathLspUseCasesTest {
         override suspend fun synchroniser(
             projectDir: File,
             arguments: List<String>,
+            argumentsSync: List<String>,
         ): AppResult<ResultatSynchronisation> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
+
+        override fun redemarrerOrchestrateur() {
+            // No-op : ce faux ne teste que le classpath LSP.
+        }
 
         override fun observeSyncState(): Flow<EtatSyncTooling> = MutableStateFlow(EtatSyncTooling())
 

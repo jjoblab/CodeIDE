@@ -28,14 +28,17 @@ constructor(
     /**
      * Synchronise le dossier [dossier] (modèles IDE-like, §5.3) avec les
      * [arguments] Gradle réglés (v4 : `--offline` et arguments libres
-     * s'appliquent À la configuration du build).
+     * s'appliquent À la configuration du build) et les
+     * [argumentsSync] RÉSERVÉS à la sync (INC-31, Phase 2 — vides :
+     * le serveur retombe sur [arguments]).
      */
     public suspend operator fun invoke(
         dossier: File,
         arguments: List<String> = emptyList(),
+        argumentsSync: List<String> = emptyList(),
     ): AppResult<ResultatSynchronisation> = withContext(dispatchers.io) {
         journal.i(TAG) { "synchronisation demandée" }
-        tooling.synchroniser(dossier, arguments)
+        tooling.synchroniser(dossier, arguments, argumentsSync)
     }
 }
 

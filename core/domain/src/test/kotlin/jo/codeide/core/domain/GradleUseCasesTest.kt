@@ -45,6 +45,16 @@ class GradleUseCasesTest {
     }
 
     @Test
+    fun `Phase 2 - la synchronisation relaye les arguments reserves a la sync (INC-31)`() = runTest {
+        val casUsage = SynchroniserProjetUseCase(tooling, journal, TestDispatcherProvider(repartiteur.dispatcher))
+
+        casUsage(dossier, listOf("--offline"), listOf("--offline", "--info"))
+
+        assertEquals(listOf("--offline"), tooling.argumentsSynchronisation)
+        assertEquals(listOf("--offline", "--info"), tooling.argumentsSyncSynchronisation)
+    }
+
+    @Test
     fun `la synchronisation relaye l echec typé`() = runTest {
         tooling.prochaineSynchronisation =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
@@ -93,6 +103,12 @@ class GradleUseCasesTest {
 
     /** Faux du port tooling — enregistre les appels, répond à la carte. */
     private class FauxTooling : GradleToolingRepository {
+        var argumentsSyncSynchronisation: List<String> = emptyList()
+            private set
+
+        var redemarragesDemandes = 0
+            private set
+
         var prochaineSynchronisation: AppResult<ResultatSynchronisation> =
             AppResult.Failure(AppError.Tooling(AppError.ToolingReason.ConnectionLost, "non connecté"))
 
@@ -124,10 +140,16 @@ class GradleUseCasesTest {
         override suspend fun synchroniser(
             projectDir: File,
             arguments: List<String>,
+            argumentsSync: List<String>,
         ): AppResult<ResultatSynchronisation> {
             dossierSynchronise = projectDir
             argumentsSynchronisation = arguments
+            argumentsSyncSynchronisation = argumentsSync
             return prochaineSynchronisation
+        }
+
+        override fun redemarrerOrchestrateur() {
+            redemarragesDemandes++
         }
 
         override suspend fun taches(projectDir: File): AppResult<List<InfoTache>> {

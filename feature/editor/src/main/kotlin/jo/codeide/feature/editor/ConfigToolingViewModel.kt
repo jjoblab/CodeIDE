@@ -33,14 +33,21 @@ import javax.inject.Inject
  *
  * L'état vivant de l'orchestrateur (connexion, tas) complète le réglage :
  * l'utilisateur voit QUI il configure, pas seulement CE qu'il règle.
+ *
+ * Exemption detekt ciblée (règle 16) : TooManyFunctions — une fonction
+ * PAR réglage de l'écran (hors ligne, injection, arguments, arguments
+ * sync, niveau de journal, instrumentation, banc × 5, redémarrage) : la
+ * façade d'un écran de réglages EST sa liste de setters, les regrouper
+ * en classes artificielles casserait le contrat idempotent partagé.
  */
 @HiltViewModel
+@Suppress("TooManyFunctions")
 class ConfigToolingViewModel
 @Inject
 constructor(
     observerReglages: ObserveSettingsUseCase,
     private val majReglages: UpdateSettingsUseCase,
-    tooling: GradleToolingRepository,
+    private val tooling: GradleToolingRepository,
     private val journal: AppLogger,
 ) : ViewModel() {
     /** Réglages courants (retour du DataStore — source de vérité,
@@ -83,6 +90,25 @@ constructor(
     /** Arguments Gradle libres (séparés par des espaces). */
     fun definirArguments(arguments: String) {
         viewModelScope.launch { persister { it.copy(toolingArguments = arguments.trim()) } }
+    }
+
+    /**
+     * Arguments Gradle RÉSERVÉS à la synchronisation (INC-31, Phase 2) :
+     * vides → la sync retombe sur les arguments généraux (comportement
+     * d'avant). S'applique à la PROCHAINE synchronisation.
+     */
+    fun definirArgumentsSync(arguments: String) {
+        viewModelScope.launch { persister { it.copy(toolingArgumentsSync = arguments.trim()) } }
+    }
+
+    /**
+     * Niveau de journal de l'orchestrateur (INC-32, Phase 2) : `INFO`,
+     * `WARN` ou `ERROR` — toute autre valeur retombe sur `INFO`. S'applique
+     * à la prochaine vie du process (l'action « Redémarrer » la provoque).
+     */
+    fun definirNiveauJournal(niveau: String) {
+        val valeur = if (niveau in NIVEAUX_JOURNAL) niveau else "INFO"
+        viewModelScope.launch { persister { it.copy(niveauJournalServeur = valeur) } }
     }
 
     /**
@@ -129,6 +155,16 @@ constructor(
         }
     }
 
+    /**
+     * Redémarre le serveur de build À LA DEMANDE (INC-33, Phase 2) : les
+     * réglages « à la prochaine vie du process » (niveau de journal,
+     * instrumentation, banc) s'appliquent immédiatement — l'état vivant
+     * de la carte État montre la reconnexion EN DIRECT.
+     */
+    fun redemarrerServeur() {
+        tooling.redemarrerOrchestrateur()
+    }
+
     /** Transformation atomique du réglage, échec journalisé (règle 15 :
      *  identifiants seulement, le contenu des arguments n'y paraît pas). */
     private suspend fun persister(transformation: (AppSettings) -> AppSettings) {
@@ -149,6 +185,9 @@ constructor(
 
         /** Valeurs de contenu acceptées par le drapeau `--banc-contenu`. */
         val CONTENUS_BANC = setOf("plain", "ansi", "utf8", "multi")
+
+        /** Niveaux de journal acceptés par le drapeau `--log-level` (INC-32). */
+        val NIVEAUX_JOURNAL = setOf("INFO", "WARN", "ERROR")
 
         /** Bornes de saisie des paramètres du banc (miroir des bornes de lecture du DataStore). */
         const val BANC_LIGNES_MAX = 200_000

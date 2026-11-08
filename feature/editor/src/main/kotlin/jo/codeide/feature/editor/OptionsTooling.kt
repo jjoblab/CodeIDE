@@ -49,6 +49,23 @@ constructor(observerReglages: ObserveSettingsUseCase, dispatchers: DispatcherPro
         return if (courants.toolingHorsLigne) listOf(ARGUMENT_HORS_LIGNE) + libres else libres
     }
 
+    /**
+     * Arguments Gradle RÉSERVÉS à la synchronisation (INC-31, Phase 2) :
+     * VIDE quand aucun argument sync n'est réglé — le serveur retombe
+     * alors sur [argumentsBuild] (comportement d'avant). Quand des
+     * arguments sync EXISTENT, ils REMPLACENT les généraux : le mode
+     * hors ligne y est donc ré-inclus (il s'applique « aux builds, à la
+     * synchronisation et à l'analyse du code »).
+     */
+    internal fun argumentsSync(): List<String> {
+        val libres =
+            courants.toolingArgumentsSync
+                .split(SEPARATEURS)
+                .filter { it.isNotBlank() }
+        if (libres.isEmpty()) return emptyList()
+        return if (courants.toolingHorsLigne) listOf(ARGUMENT_HORS_LIGNE) + libres else libres
+    }
+
     private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
 
     init {

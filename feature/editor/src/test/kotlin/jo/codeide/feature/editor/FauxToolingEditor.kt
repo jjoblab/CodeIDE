@@ -113,7 +113,11 @@ class FauxToolingEditor : GradleToolingRepository {
 
     override fun observeBuildState(buildId: String): Flow<EtatBuild> = etat(buildId)
 
-    override suspend fun synchroniser(projectDir: File, arguments: List<String>): AppResult<ResultatSynchronisation> {
+    override suspend fun synchroniser(
+        projectDir: File,
+        arguments: List<String>,
+        argumentsSync: List<String>,
+    ): AppResult<ResultatSynchronisation> {
         dossierRecu = projectDir
         argumentsRecus = arguments
         nbSynchronisations++
@@ -181,6 +185,14 @@ class FauxToolingEditor : GradleToolingRepository {
     val tasInterne = MutableStateFlow(InstantaneTas(0, 0))
 
     override fun observeHeap(): Flow<InstantaneTas> = tasInterne
+
+    /** INC-33 (Phase 2) : le redémarrage demandé est COMPTÉ par le faux. */
+    var redemarragesDemandes = 0
+        private set
+
+    override fun redemarrerOrchestrateur() {
+        redemarragesDemandes++
+    }
 
     override fun observeConnectionState(): Flow<EtatConnexion> = connexionInterne
 

@@ -55,12 +55,16 @@ public interface GradleToolingRepository {
      * @param arguments arguments Gradle de la synchronisation (v4 : les
      *        réglages tooling `--offline` et arguments libres s'appliquent
      *        À la configuration du build — la sync ne les ignorait pas).
+     * @param argumentsSync arguments Gradle RÉSERVÉS à la sync (INC-31,
+     *        Phase 2) — VIDE : le serveur retombe sur [arguments]
+     *        (comportement d'avant pour un client qui ne sépare pas).
      * @return le résultat de la synchronisation (réussie, partielle ou
      * échouée — jamais une exception pour un échec attendu).
      */
     public suspend fun synchroniser(
         projectDir: File,
         arguments: List<String> = emptyList(),
+        argumentsSync: List<String> = emptyList(),
     ): AppResult<ResultatSynchronisation>
 
     /**
@@ -202,6 +206,17 @@ public interface GradleToolingRepository {
 
     /** État de la liaison avec l'orchestrateur (§5.3, état courant d'abord). */
     public fun observeConnectionState(): Flow<EtatConnexion>
+
+    /**
+     * Redémarre le serveur de build À LA DEMANDE (INC-33, Phase 2 —
+     * écran de configuration du tooling) : le process orchestrateur est
+     * tué puis relancé immédiatement, SANS consommer de tentative de
+     * reconnexion (un redémarrage demandé n'est pas une panne). Le
+     * nouveau process relit les drapeaux à son lancement : niveau de
+     * journal, instrumentation, banc — les réglages « à la prochaine
+     * vie » s'appliquent À LA DEMANDE.
+     */
+    public fun redemarrerOrchestrateur()
 
     /**
      * Diagnostics de code du projet (§6 — onglet Problèmes), groupés par

@@ -139,8 +139,18 @@ internal object ModuleDaemon {
                 bancContenu = reglages.bancContenu,
             )
         },
+        // INC-32 (Phase 2) : niveau de journal du serveur, lu à CHAQUE
+        // lancement du process — l'écran de configuration l'expose et
+        // l'action « Redémarrer le serveur de build » (INC-33) l'applique
+        // à la demande.
+        lectureNiveauJournal = { parametres.observeSettings().first().niveauJournalServeur },
         sondeLecture = sondeLecture,
-    )
+    ).also { daemon ->
+        // INC-33 (Phase 2) : le repository expose le redémarrage, le
+        // daemon l'exécute — le crochet vit ICI, au montage, pour ne
+        // pas ajouter une dépendance circulaire api → daemon.
+        api.demandeRedemarrage = daemon::redemarrer
+    }
 
     /** Répertoire privé `filesDir/run` (socket, supprimé du cache). */
     private fun dossierSocket(context: Context): File = File(context.filesDir, DOSSIER_SOCKET)
