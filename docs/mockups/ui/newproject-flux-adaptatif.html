@@ -195,7 +195,25 @@ h1{font-size:18px;margin:0 0 2px}h2{font-size:15px;margin:26px 0 8px;border-top:
  <p class="note">Avec buildSystem = « Sans build », les paramètres sans objet (JDK, groupId, artifactId, wrapper) disparaissent — visibleWhen conservé. L'étape suivante est l'IDENTITÉ (nom, description, emplacement).</p>
 </div></div>
 
-<div class="col"><div class="cap">KMP — « Cibles et bibliothèques » · plugin Gradle — 3 étapes</div><div class="ds">
+<div class="col"><div class="cap">Bibliothèque Android — parcours compact (4 étapes) · KMP — « Cibles et bibliothèques »</div><div class="ds">
+ <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
+ <div class="ind"><div class="lb">Étape 2 sur 4 · Bibliothèque</div><div class="bar"><i style="width:50%"></i></div></div>
+ <div class="sec">Version minimale</div>
+ <div class="seg"><div>24</div><div class="on">API 26 · Android 8.0</div><div>29</div><div>34</div></div>
+ <div class="sec">Qualité et outillage</div>
+ <div class="rw"><div class="t"><b>Tests unitaires</b><span>JUnit 4, testDebugUnitTest vérifié</span></div><span class="sw on"></span></div>
+ <div class="rw"><div class="t"><b>Wrapper Gradle</b><span>Distribution 9.7.1 + SHA-256</span></div><span class="sw on"></span></div>
+ <div class="sec">Publication</div>
+ <div class="card">
+  <div class="vl"><span>Nom de l'application</span> — dérivé du nom du projet, resynchronisable</div>
+  <div class="vl"><span>Package</span> com.example.mabibliotheque <span>(dérivé)</span></div>
+  <div class="vl"><span>consumer-rules.pro</span> — règles consommateur incluses</div>
+ </div>
+ <div class="acts"><span class="btn">Retour</span><span class="btn p">Suivant</span></div>
+ <p class="note">Aucun applicationId ni écran : ce qui n'a pas de sens pour une .aar n'est pas proposé. L'orphelin proguard-rules.pro est soldé en L4 (ADR 0156/0158). Étapes suivantes : Identité → Fichiers → Récapitulatif. appName devient dérivé du nom du projet (ADR 0158).</p>
+</div></div>
+
+<div class="col"><div class="cap">KMP — « Cibles et bibliothèques » (options déjà câblées) · plugin Gradle — 3 étapes</div><div class="ds">
  <div class="tb"><span class="x">✕</span><b>Nouveau projet</b></div>
  <div class="ind"><div class="lb">Étape 2 sur 5 · Cibles et bibliothèques</div><div class="bar"><i style="width:40%"></i></div></div>
  <div class="sec">Bibliothèques (câblées — contre-exemple actuel conservé)</div>
