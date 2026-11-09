@@ -1,5 +1,113 @@
 # Journal des modifications
 
+## [0.210.0] – 2026-11-09
+
+Lot **L2 — outil et matrice** du chantier « Refonte du générateur de
+projets et des écrans Nouveau projet » (GO propriétaire du 2026-11-09) :
+l'outillage qui sécurise les lots de modèles L3-L5 — la matrice des
+combinaisons est **dérivée des manifestes** par l'outil, plus aucun bloc de
+combinaisons codé à la main dans le script (ADR 0157).
+
+### Ajouté
+
+- **Outil `tools/generateur` multi-commandes (ADR 0157 §1)** — protocole de
+  sortie versionné `PROTOCOLE=2` (première ligne de toute exécution ;
+  protocole historique `OK`/`ECHEC`/`GENERE` conservé, décodeur tolérant
+  aux clés de métadonnées) :
+  - `lister [--modele <id>] [--json]` : l'état réel des manifestes —
+    paramètres (type, défaut, choix, `visibleWhen`, `enabledWhen`, section,
+    groupe, avance, persistance), variables calculées, contraintes,
+    `autoDefinit`, fichiers — plus aucun résumé écrit à la main ;
+  - `generer` en **lot** (`--combos`, historique) ou en **projet unitaire**
+    (`--modele`, `--param k=v`, options communes : nom, description,
+    langue, licence, readme/gitignore/editorconfig, id de sortie) ;
+  - `matrice --strategie exhaustif|paires|bornes` : **dérivation des
+    combinaisons des manifestes** — paramètres énumérables (`BOOLEAN`,
+    `CHOICE`), masquages respectés (un paramètre masqué ou désactivé ne
+    multiplie pas les cas — déduplication par signature d'évaluation),
+    règles `ERREUR` exclues et signalées (JSONL), valeurs effectives
+    émises (les dépendances `autoDefinit` sont appliquées) ; stratégie
+    `exhaustif` bornée par seuil (défaut 64), `paires` glouton maison
+    couvrant toutes les paires atteignables (garde de couverture en fin),
+    `bornes` couvrant chaque valeur (défauts d'abord) ; dérivation
+    déterministe ;
+  - `valider-manifestes` : **lint** du catalogue — clés i18n référencées
+    en `fr` **et** `en` (et jamais d'asymétrie sur les clés optionnelles
+    des choix), expressions évaluables (identifiant inconnu, borne),
+    sources existantes, tout choix `CHOICE` **atteignable** (énumération
+    totale plafonnée) ; code de sortie non nul au moindre écart — c'est la
+    porte des lots L3-L5 ;
+  - `determinisme` : deux générations successives comparées **octet pour
+    octet** (arborescences complètes, SHA-256).
+- **`verify-templates.sh` refondu (ADR 0157 §2)** : la matrice vient de
+  `generateur matrice` (plus aucun bloc Python de combinaisons) ; les
+  **cas nommés de régression** restent écrits à la main dans
+  `scripts/verify-templates-cas-nomes.json` (noms et descriptions
+  hostiles, renommages, langues, licences, dépendances) ; conservés le
+  cache `.verifie` + empreinte des assets, le filtre `CODEIDE_COMBINAISONS`
+  et le code de sortie non nul au moindre échec ; ajoutés le **rapport
+  Markdown** (`rapport.md`) et le **JUnit XML** (`rapport-junit.xml`), le
+  contrôle de déterminisme en pipeline et l'annonce explicite des outils
+  absents (conduite à tenir — les combinaisons concernées échouent, jamais
+  de contournement) ; en-tête réécrit (plus d'affirmation « tous les
+  triplets » globale).
+- **Tests de structure sans compilation sur TOUTES les combinaisons
+  valides (ADR 0157 §3, C-3)** : `InvariantsEffetModelesTest` dérive les
+  matrices réelles (paires + bornes) des **7 modèles embarqués** et
+  génère chaque cas en dry-run — aucun `{{` résiduel, chemins valides sans
+  doublon, déterminisme, et **invariants d'effet** (table tenue dans
+  `docs/TEMPLATES.md`) : `.kt` ssi langage Kotlin, `MainActivity` ssi type
+  avec activité, classe Application ssi Hilt, `BddLocale` ssi Room,
+  wrapper ssi demandé, starters/dépendances câblées ssi cochées ;
+  `MatriceModelesTest` porte les **propriétés du générateur de matrice**
+  (toutes les paires couvertes, masquages, exclusions `ERREUR`, `bornes`,
+  déterminisme, seuil) sur un modèle fixture dédié `fixture-matrice` ;
+  `ValidateurManifestesTest` éprouve le lint (catalogue réel sans écart +
+  un écart précis par défaut injecté) ; 40 tests `:tools:generateur`
+  (12 → 40), 0 échec.
+- **Fournisseur memoïsé** dans l'outil (le catalogue d'assets n'est lu
+  qu'une fois — la matrice évalue 12 500 candidats en quelques secondes).
+
+### Modifié
+
+- **Documentation soldée (ADR 0157 §2/C-4)** : `tools/generateur/README.md`
+  réécrit (cinq commandes, protocole, stratégies, exemples, « si
+  l'outillage manque »), `Module.md` à jour, KDoc de `Combinaisons.kt`
+  (entrée de matrice ou cas nommé, champ `etiquette`),
+  `docs/TEMPLATES.md` (matrice dérivée, invariants d'effet avec les
+  invariants **attendus en L4** : permission `INTERNET` ssi Retrofit,
+  `NavHostFragment` ssi Navigation, section « Si l'outillage manque »,
+  i18n `fr` requis dès qu'un paramètre existe), ADR 0157 (statut
+  « implémenté L2 » + amendements d'implémentation documentés).
+- **API du module `:tools:generateur`** : point d'entrée
+  `GenerateurModeles.executer(args)` (multi-commandes, ADR 0157) ;
+  `Combinaison` enrichi du champ `etiquette` (défaut vide — rétro-
+  compatible) ; tests existants mis à jour au nouveau protocole.
+
+### Vérifié
+
+- Chaîne locale VERTE : `spotlessApply`/`spotlessCheck`, `detekt`,
+  `checkModuleDependencies`, `checkUiTokens`, `:tools:generateur:test`
+  (40 tests, 0 échec) ; `scripts/modules-touches.sh` → `:tools:generateur`.
+- **Preuve par build réel** (`verify-templates.sh`, stratégie `paires`) :
+  **45 combinaisons vertes** — gradle-plugin 6/6, spring-boot 8/8,
+  kotlin-multiplatform 8/8, kotlin-jvm 13/13, java 10/10 — soit 100 % des
+  cas constructibles de la matrice dérivée (35) et des cas nommés (10) ;
+  génération `GENERE 65/65` et déterminisme `DETERMINISME 65/65` sur la
+  matrice complète, dont android **30/30 générés et déterministes**.
+- **Écart signalé (sans contournement)** : builds réels `android-app`/
+  `android-library` impossibles localement — l'audit L0 l'avait confirmé
+  (A2.5 : `compileSdk = 36` des templates vs `core-ktx 1.19.0` qui exige
+  37 ; le SDK 37.2 est installé, ce sont les templates qui verrouillent
+  36) ; correction planifiée **L4** (« compileSdk verrouillé — règle 13 »,
+  `AlignementCatalogueTemplatesTest`). Les cas android restent couverts en
+  L2 par génération, structure, déterminisme et invariants (dry-run).
+- **Écart environnement** (comme L1) : Maven Central répond **HTTP 429** de
+  façon rafale depuis la sandbox — certaines combinaisons ont exigé des
+  relances (le cache `.verifie` rend chaque relance gratuite) ; aucune
+  vérification désactivée, aucune version devinée ; JDK 17 (Temurin) et
+  Maven 3.9.16 installés localement pour la preuve (absents au départ).
+
 ## [0.209.0] – 2026-11-09
 
 Lot **L1 — socle moteur** du chantier « Refonte du générateur de projets

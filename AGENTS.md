@@ -1420,6 +1420,40 @@ conflit, la plus récente prime.
       SessionLsp attend l'arrêt EFFECTIF borné 2 s + garde ensureActive
       avant écriture de segment + baseline parité XE5 régénérée —
       directive AGENTS.md régénération avant push).
+- v0.210.0 : **chantier « Refonte du générateur de projets et des écrans
+      Nouveau projet » — lot L2 (outil et matrice, GO propriétaire)** :
+      l'outillage qui sécurise les lots de modèles L3-L5 (ADR 0157) ;
+      **outil `tools/generateur` multi-commandes** (protocole `PROTOCOLE=2`)
+      — `lister` (état réel des manifestes), `generer` (lot historique +
+      projet unitaire par arguments), `matrice` (**dérivation des
+      combinaisons des manifestes** : paramètres énumérables, masquages
+      respectés — un paramètre masqué ou désactivé ne multiplie pas les cas
+      —, règles `ERREUR` exclues et signalées, stratégies exhaustif ≤ 64 /
+      paires glouton propriété-testée / bornes, dérivation déterministe),
+      `valider-manifestes` (**lint** : i18n fr+en référencé, jamais
+      d'asymétrie, expressions évaluables, sources existantes, choix tous
+      atteignables — code non nul au moindre écart), `determinisme` (deux
+      générations comparées octet pour octet) ; **`verify-templates.sh`
+      refondu** : matrice dérivée par l'outil (plus aucun bloc Python de
+      combinaisons), cas nommés de régression déplacés dans
+      `scripts/verify-templates-cas-nomes.json`, cache `.verifie` +
+      `CODEIDE_COMBINAISONS` conservés, rapports Markdown + JUnit XML,
+      annonce explicite des outils absents (jamais de contournement) ;
+      **tests de structure sans compilation sur TOUTES les combinaisons
+      valides** (dry-run + invariants d'effet — table dans
+      `docs/TEMPLATES.md`) et **propriétés du générateur de matrice**
+      (toutes les paires couvertes, masquages, exclusions) — 40 tests
+      `:tools:generateur` (12 → 40), 0 échec ; documentation soldée
+      (README/Module.md/KDoc/TEMPLATES.md/ADR 0157) ; preuve par build
+      réel : **45 combinaisons vertes** (plugin 6/6, Spring 8/8, KMP 8/8,
+      Kotlin 13/13, Java 10/10 — 100 % des cas constructibles) ;
+      **écarts signalés sans contournement** : builds android impossibles
+      localement (A2.5 confirmé en L0 : compileSdk 36 des templates vs
+      core-ktx exigeant 37 — correction L4 ; génération 30/30 et
+      déterminisme 30/30 prouvés) et Maven Central 429 rafale (relances
+      gratuites par le cache `.verifie`) ;
+      [Fournisseur memoïsé dans l'outil : 12 500 candidats évalués en
+      quelques secondes.]
 - v0.209.0 : **chantier « Refonte du générateur de projets et des écrans
       Nouveau projet » — lot L1 (socle moteur, GO propriétaire)** : le
       contrat déclaratif des ADR 0153/0154/0158 vit dans `core:model` et
@@ -2529,9 +2563,10 @@ conflit, la plus récente prime.
       ApparenceIntegrationTest (app), chaîne verte sur les modules
       touchés (core:ui, app, feature:settings), 69 tests app/0 échec.
 - Prochaine : chantier « Refonte du générateur de projets et des écrans
-      Nouveau projet » — lot L1 livré (v0.209.0 : socle moteur ADR
-      0153/0154/0158 côté core:model/core:domain), en attente du « GO L2 »
-      (outil et matrice — ADR 0157). Missions antérieures : lot L0
+      Nouveau projet » — lots L0 (v0.208.0, conception) et L1 (v0.209.0,
+      socle moteur) et L2 (v0.210.0, outil et matrice — ADR 0157) livrés,
+      en attente du « GO L3 » (modèles hors Android — ADR 0156 et plan §
+      L3). Missions antérieures : lot L0
       (v0.208.0, ADR 0153-0158, docs/NEWPROJECT_GENERATEUR_PLAN.md) ;
       Phase 2 du diagnostic
       « retard d'affichage » côté app (v0.207.0) ; la refonte du parcours
