@@ -2,6 +2,16 @@
 <resources>
     <string name="core_ui_retry">Retry</string>
 
+    <!-- Centre de sorties levels (localized names carried by the level
+         pills — ADR 0162, lot L2). -->
+    <string name="sorties_niveau_verbeux">Verbose</string>
+    <string name="sorties_niveau_debogage">Debug</string>
+    <string name="sorties_niveau_info">Info</string>
+    <string name="sorties_niveau_avertissement">Warning</string>
+    <string name="sorties_niveau_erreur">Error</string>
+    <string name="sorties_niveau_assert">Fatal</string>
+    <string name="sorties_niveau_indefini">No severity</string>
+
     <!-- Composants partagés ADR 0127 (lot UI-1). -->
     <string name="core_ui_bientot">Soon</string>
     <string name="core_ui_chargement">Loading</string>

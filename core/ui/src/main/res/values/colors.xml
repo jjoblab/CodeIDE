@@ -176,4 +176,24 @@
 
     <!-- Gris doux du tiroir du terminal (pas d'équivalent explorateur). -->
     <color name="codeide_tiroir_terminal_gris_doux">#249E9E9E</color>
+
+    <!-- Niveaux du Centre de sorties (ADR 0162, lot L2) : teinte PLEINE
+         (lettre de la pastille) + rôle CONTENEUR (fond de la pastille).
+         Jour — même famille que les jetons logcat_niveau_* (feature:editor,
+         migrés au lot L4) ; nuit dans values-night/. -->
+    <color name="sorties_niveau_verbeux">#7A8492</color>
+    <color name="sorties_niveau_verbeux_conteneur">#EDEFF2</color>
+    <color name="sorties_niveau_debogage">#1E6EC8</color>
+    <color name="sorties_niveau_debogage_conteneur">#DCE8F8</color>
+    <color name="sorties_niveau_info">#2E7D38</color>
+    <color name="sorties_niveau_info_conteneur">#DDEFE0</color>
+    <color name="sorties_niveau_avertissement">#9A6700</color>
+    <color name="sorties_niveau_avertissement_conteneur">#F6E7C1</color>
+    <color name="sorties_niveau_erreur">#C6362D</color>
+    <color name="sorties_niveau_erreur_conteneur">#FFDAD6</color>
+    <color name="sorties_niveau_assert">#8B2D55</color>
+    <color name="sorties_niveau_assert_conteneur">#F5DCE7</color>
+    <color name="sorties_niveau_indefini">#5F6672</color>
+    <color name="sorties_niveau_indefini_conteneur">#ECEEF1</color>
 </resources>
+
