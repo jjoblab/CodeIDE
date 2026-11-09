@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.211.1] – 2026-11-09
+
+Correctif du lot L3 — le CI de v0.211.0 était rouge (18 tests Robolectric
+de `:app` en échec) et la release APK ne pouvait générer aucun des cinq
+modèles hors Android migrés vers la source partagée.
+
+### Corrigé
+
+- **`_commun/` absent des assets emballés** (ADR 0156 amendé §4) : le
+  motif par défaut d'AAPT2 contient le jeton `<dir>_*` — tout répertoire
+  d'assets commençant par un underscore est exclu du paquet **en
+  silence**. Le répertoire de source partagée `assets/templates/_commun/`
+  (mutualisation L3) n'existait donc ni dans l'APK ni dans les assets
+  fusionnés des tests Robolectric : toute génération
+  spring-boot/kotlin-jvm/java/kotlin-multiplatform/gradle-plugin dans
+  l'app échouait (« source « commun:… » introuvable »). L'outil
+  `generateur`, qui lit le disque directement, ne voyait rien — d'où la
+  chaîne locale verte de v0.211.0. Correctif :
+  `androidResources.ignoreAssetsPattern` recouvert dans
+  `app/build.gradle.kts` avec le motif par défaut **sans `<dir>_*`**
+  (l'affectation remplace le défaut — motif recopié en clair avec
+  commentaire de maintenance) ; vérifié par la présence de `templates/`
+  `_commun/` dans `mergeDebugAssets` et par les tests.
+- **`TemplatesIntegrationTest`** : le test du catalogue assert désormais
+  que le listage **brut** contient `_commun` en plus des 7 modèles (il
+  passait sur v0.211.0 **parce que** le défaut d'emballage le cachait) ;
+  le catalogue du fournisseur reste à 7.
+- **`ModelesEmbarquesTest`** : ancre de `templateVersion` de `kotlin-jvm`
+  alignée sur le manifeste (1.0.0 → **1.1.0**, incrément L3 non répercuté
+  dans le test).
+- **`core:model` Kover < 80 %** (78,94 %) : les 57 lignes du schéma
+  `wizard` (ADR 0155 §1 — `etapesWizard`/`presets`,
+  `TemplateEtapeWizard`, `TemplatePreset`) n'étaient couvertes par aucun
+  test du module ; trois tests ajoutés (bloc wizard absent, données
+  portées, égalité par valeur) → **88,34 %**.
+
+### Vérifié
+
+- Chaîne locale verte : `spotlessCheck`, `detekt`,
+  `checkModuleDependencies`, `testDebugUnitTest` (tous modules),
+  `koverVerify`, `:tools:generateur:test` ; `mergeDebugAssets` contient
+  `templates/_commun/` (6 fichiers) ; classes de modèles `:app` (93
+  tests) vertes sur le harnais Robolectric — l'écart « tests `:app` non
+  exécutés localement » du lot L3 est soldé.
+
 ## [0.211.0] – 2026-11-09
 
 Lot **L3 — modèles hors Android** du chantier « Refonte du générateur de

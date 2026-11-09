@@ -120,8 +120,14 @@ class TemplatesIntegrationTest {
 
         // v0.44.0 : 7 modèles embarqués (phase 3 — android-library et
         // gradle-plugin) — triés, complets.
+        // ADR 0156 (v0.211.0) : le répertoire de source partagée `_commun`
+        // est un candidat de plus du listage BRUT — il n'est pas un modèle
+        // (pas de template.json) et le catalogue du fournisseur plus bas
+        // reste à 7 ; avant le correctif du motif d'assets (`<dir>_*`), il
+        // était absent du paquet et donc invisible ici.
         assertEquals(
             listOf(
+                "_commun",
                 "android-app",
                 "android-library",
                 "gradle-plugin",

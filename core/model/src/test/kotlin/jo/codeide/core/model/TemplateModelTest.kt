@@ -152,4 +152,92 @@ class TemplateModelTest {
         assertNull(evaluation.parameters.single().error)
         assertEquals("true", evaluation.computedValues["estApplication"])
     }
+
+    // -------------------------------------- schéma wizard ADR 0155 §1 (L3)
+
+    @Test
+    fun `un modèle sans bloc wizard n'a ni étape ni préréglage`() {
+        val modele = modeleMinimal()
+
+        assertEquals(emptyList<TemplateEtapeWizard>(), modele.etapesWizard)
+        assertEquals(emptyList<TemplatePreset>(), modele.presets)
+    }
+
+    @Test
+    fun `les étapes wizard et préréglages déclarés portent leurs données`() {
+        val etape =
+            TemplateEtapeWizard(
+                id = "modules",
+                titreKey = "etape.modules.titre",
+                iconeKey = "icone.modules",
+                quand = "includeJpa || includeSecurity",
+                parametres = listOf("includeJpa", "includeSecurity"),
+            )
+        val etapeMinimal =
+            TemplateEtapeWizard(id = "identite", titreKey = "etape.identite.titre", parametres = listOf("packageName"))
+        val preset =
+            TemplatePreset(
+                id = "api-rest-persistance",
+                nomKey = "preset.api.titre",
+                descriptionKey = "preset.api.description",
+                valeurs = mapOf("includeJpa" to "true", "langage" to "kotlin"),
+            )
+        val presetMinimal = TemplatePreset(id = "vide", nomKey = "preset.vide.titre", valeurs = emptyMap())
+        val modele =
+            modeleMinimal().copy(
+                etapesWizard = listOf(etape, etapeMinimal),
+                presets = listOf(preset, presetMinimal),
+            )
+
+        assertEquals(listOf(etape, etapeMinimal), modele.etapesWizard)
+        assertEquals(listOf(preset, presetMinimal), modele.presets)
+        assertEquals("etape.modules.titre", modele.etapesWizard.first().titreKey)
+        assertEquals(listOf("includeJpa", "includeSecurity"), etape.parametres)
+        assertNull(etapeMinimal.iconeKey)
+        assertNull(etapeMinimal.quand)
+        assertEquals("preset.api.description", preset.descriptionKey)
+        assertNull(presetMinimal.descriptionKey)
+        assertEquals("kotlin", preset.valeurs["langage"])
+        // Égalité par valeur et distinction par identité de champs.
+        assertEquals(etape, etape.copy())
+        assertEquals(presetMinimal, presetMinimal.copy())
+    }
+
+    @Test
+    fun `un modèle avec bloc wizard reste égal par valeur`() {
+        val etape =
+            TemplateEtapeWizard(id = "modules", titreKey = "etape.modules.titre", parametres = listOf("includeJpa"))
+        val preset = TemplatePreset(id = "api", nomKey = "preset.api.titre", valeurs = mapOf("includeJpa" to "true"))
+        val avec = modeleMinimal().copy(etapesWizard = listOf(etape), presets = listOf(preset))
+        val pareil = modeleMinimal().copy(etapesWizard = listOf(etape), presets = listOf(preset))
+
+        assertEquals(avec, pareil)
+        assertEquals(avec.hashCode(), pareil.hashCode())
+        assertNotEquals(avec, modeleMinimal())
+    }
+
+    /** Modèle de fixture réduit, hors bloc wizard (défauts ADR 0155 §1). */
+    private fun modeleMinimal(): ProjectTemplate = ProjectTemplate(
+        id = TemplateId("fixture"),
+        templateVersion = "1.0.0",
+        nameKey = "modele.fixture.nom",
+        descriptionKey = "modele.fixture.description",
+        category = "jvm",
+        iconKey = "icone.fixture",
+        tags = listOf("fixture"),
+        parameters =
+        listOf(
+            TemplateParameter(
+                id = "includeJpa",
+                type = TemplateParameterType.BOOLEAN,
+                labelKey = "param.includeJpa.libelle",
+                defaultValue = "false",
+            ),
+        ),
+        computedVariables = listOf(TemplateComputedVariable(name = "estPersistence", expression = "includeJpa")),
+        fichiers =
+        listOf(
+            TemplateFile(chemin = "README.md", source = "readme.tpl"),
+        ),
+    )
 }

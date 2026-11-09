@@ -8,6 +8,22 @@ plugins {
 }
 
 android {
+    // Source partagée des modèles (ADR 0156) : le répertoire
+    // `assets/templates/_commun/` commence par un underscore, que le motif
+    // par défaut d'AAPT2 ignore en Silence (`<dir>_*` — dossier d'assets à
+    // underscore exclu du paquet, comportement documenté d'aapt2). Sans
+    // recouvrement, `_commun/` est absent des assets fusionnés : les cinq
+    // modèles hors Android migrés échouent à la génération
+    // (« source " commun:… " introuvable ») — défaut de production vu au CI
+    // de v0.211.0 (tests Robolectric de l'app), invisible du tool outil qui
+    // lit le disque directement. On reprend le motif par défaut d'AAPT2
+    // SANS le jeton `<dir>_*` (l'affectation REMPLACE le défaut, elle ne
+    // s'y ajoute pas — tout jeton futur du défaut d'AAPT2 devra être
+    // repris ici, d'où la liste complète en clair).
+    androidResources {
+        ignoreAssetsPattern =
+            "!.svn:!.git:!.gitignore:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
     buildFeatures {
         // BuildInfo du système de journalisation : VERSION_NAME/VERSION_CODE
         // alimentent l'en-tête de session et device-info.txt (section 5.7).

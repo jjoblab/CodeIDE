@@ -6,8 +6,9 @@
   `gradle-plugin`) — répertoire `_commun/` créé, préfixe `commun:` résolu
   par les deux implémentations du port (gardes identiques, tests des deux
   côtés), lint étendu (`commun-source-absente`,
-  `redondant-avec-commun`) ; migration des deux modèles Android **et
-  suppression des orphelins** (§2) au lot L4.
+  `redondant-avec-commun`) ; **amendé v0.211.1** (contrainte
+  d'emballage AAPT2 des répertoires à underscore — §4) ; migration des
+  deux modèles Android **et suppression des orphelins** (§2) au lot L4.
 - **S'appuie sur** : ADR 0017 (plan figé), ADR 0019 (port
   `TemplateAssetsSource`, harnais), ADR 0089 (alignement catalogue).
 - **Contexte** : l'audit L0 chiffre la duplication embarquée :
@@ -64,6 +65,34 @@ au gain (≈ 428 Ko d'APK) et à la disparition d'un risque de divergence.
 Le lint `valider-manifestes` (ADR 0157) vérifie l'existence de toute source
 `commun:` et interdit à un modèle de redéfinir un chemin déjà servi par la
 source partagée (pas de doublon sémantique).
+
+### 4. Amendement v0.211.1 — contrainte d'emballage AAPT2 (`<dir>_*`)
+
+Le motif d'ignition **par défaut** d'AAPT2,
+`!.svn:!.git:!.gitignore:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~`,
+contient le jeton `<dir>_*` : tout répertoire d'assets dont le nom commence
+par un underscore est **exclu du paquet en silence** (comportement documenté
+d'aapt2 — c'est l'explication historique des dossiers `_next`/`_framework`
+perdus des apps web embarquées). Le nom `_commun/` choisi au §1 est donc
+invisible du `AssetManager` : constaté au CI de v0.211.0 (18 tests
+Robolectric de `:app` en échec, `source « commun:… » introuvable`) — le
+défaut touchait aussi l'APK réel (les cinq modèles hors Android ne
+généraient plus rien dans l'app), invisible du tool outil qui lit le disque
+directement.
+
+**Décision** : conserver `_commun/` (le nom n'apparaît ni dans les
+manifestes ni dans l'API publique — changer les deux implémentations du
+port coûterait plus que l'override) et **recouvrir le motif** dans
+`app/build.gradle.kts` avec le motif par défaut **sans le jeton
+`<dir>_*`**. Deux précautions maintiennent le correctif :
+
+- l'affectation `androidResources.ignoreAssetsPattern` **remplace** le
+  défaut d'AAPT2 — le motif est recopié EN CLAIR avec un commentaire qui
+  exige de reprendre tout jeton futur du défaut ;
+- le test `TemplatesIntegrationTest` (« le catalogue embarque les 7
+  modèles ») assert désormais que le listage BRUT contient `_commun` en
+  plus des 7 modèles : si une régression d'emballage réapparaît, le test
+  rouge de la CI la détecte avant l'utilisateur.
 
 ## Conséquences
 

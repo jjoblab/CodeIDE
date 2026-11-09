@@ -1446,6 +1446,23 @@ conflit, la plus récente prime.
       4/4, cas nommés 13/13) ; écart signalé sans contournement : tests
       `:app` non exécutés localement (Maven Central 429 persistant sur le
       harnais Robolectric — la CI les porte).
+- v0.211.1 : **correctif du lot L3** — le CI de v0.211.0 était rouge et
+      l'APK ne pouvait générer aucun des cinq modèles hors Android :
+      le motif par défaut d'AAPT2 (`<dir>_*`) exclut **en silence** du
+      paquet tout répertoire d'assets à underscore — `templates/_commun/`
+      n'existait ni dans l'APK ni dans les assets fusionnés Robolectric
+      (18 tests `:app` en échec, « source « commun:… » introuvable » ;
+      invisible du tool outil, qui lit le disque). Correctif :
+      `androidResources.ignoreAssetsPattern` recouvert (motif par défaut
+      sans `<dir>_*`, motif recopié en clair + commentaire de
+      maintenance) ; `TemplatesIntegrationTest` assert désormais
+      `_commun` dans le listage brut (détection d'une régression
+      d'emballage avant l'utilisateur) ; ancre de `templateVersion`
+      `kotlin-jvm` alignée sur 1.1.0 ; **Kover `core:model` < 80 %**
+      (78,94 % — schéma `wizard` ADR 0155 §1 sans test module) réglé par
+      3 tests (`TemplateModelTest`) → 88,34 % ; ADR 0156 amendé (§4).
+      Chaîne locale verte complète — l'écart « tests `:app` non exécutés
+      localement » (429 Robolectric) est soldé (harnais ok via miroir).
 - v0.210.0 : **chantier « Refonte du générateur de projets et des écrans
       Nouveau projet » — lot L2 (outil et matrice, GO propriétaire)** :
       l'outillage qui sécurise les lots de modèles L3-L5 (ADR 0157) ;
@@ -2589,11 +2606,11 @@ conflit, la plus récente prime.
       ApparenceIntegrationTest (app), chaîne verte sur les modules
       touchés (core:ui, app, feature:settings), 69 tests app/0 échec.
 - Prochaine : chantier « Refonte du générateur de projets et des écrans
-      Nouveau projet » — lots L0 (v0.208.0, conception) et L1 (v0.209.0,
+      Nouveau projet » — lots L0 (v0.208.0, conception), L1 (v0.209.0,
       socle moteur), L2 (v0.210.0, outil et matrice — ADR 0157) et L3
-      (v0.211.0, modèles hors Android — ADR 0155/0156) livrés, en attente
-      du « GO L4 » (modèles Android — migration `_commun/` des deux
-      modèles restants, câblage des cinq dépendances, targetSdk ≤ 36).
+      (v0.211.0 + correctif packaging v0.211.1 — ADR 0155/0156) livrés,
+      en attente du « GO L4 » (modèles Android — migration `_commun/` des
+      deux modèles restants, câblage des cinq dépendances, targetSdk ≤ 36).
       Missions antérieures : lot L0
       (v0.208.0, ADR 0153-0158, docs/NEWPROJECT_GENERATEUR_PLAN.md) ;
       Phase 2 du diagnostic

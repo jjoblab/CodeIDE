@@ -435,7 +435,9 @@ class ModelesEmbarquesTest {
 
         assertEquals(1, json.getInt("schemaVersion"))
         assertEquals("kotlin-jvm", json.getString("templateId"))
-        assertEquals("1.0.0", json.getString("templateVersion"))
+        // L3 (v0.211.0) : mutualisation des fichiers communs (ADR 0156) —
+        // templateVersion incrémentée de 1.0.0 à 1.1.0.
+        assertEquals("1.1.0", json.getString("templateVersion"))
         assertEquals("CodeIDE 0.10.0-test", json.getString("generator"))
         val parametres = json.getJSONObject("parameters")
         assertEquals(
