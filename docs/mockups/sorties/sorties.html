@@ -22,6 +22,14 @@
   M11 historique des builds · M12 états et erreurs · M13 réglages ·
   M14 table d'adaptation projet × état · + « Écarts maquette → réalité ».
   Spécification : docs/SORTIES_SPEC.md · ADR 0159–0162.
+
+  RETOUR PROPRIÉTAIRE (2026-11-10) : (1) l'header du BottomSheet est
+  conservé à l'identique — seule évolution « Console » → « Sorties » ; le
+  sélecteur interne ne porte que les sources Gradle (Sync/Build/Tâches/
+  Serveur), Logcat et Journal restent des onglets du header. (2) Chaque
+  dépendance téléchargée porte SA progression à sa ligne (µ-jauge + % si
+  total connu, molette + cumuls sinon, figée à la fin) — animation dans
+  M1 et M4 ; limite Tooling API et demande D2 documentées aux écarts.
 -->
 <style>
 /* ===================== Jetons réels (jour / nuit) ===================== */
@@ -197,6 +205,18 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
 .onglets button{border:none;background:none;color:var(--on-sv);padding:9px 10px;font:12px system-ui;cursor:pointer;border-bottom:2px solid transparent;min-height:36px}
 .onglets button.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
 .onglets .bdg{display:inline-block;min-width:15px;border-radius:8px;background:var(--err-c);color:var(--err);font-size:10px;text-align:center;padding:0 4px;margin-left:3px}
+.onglets .hd-note{margin-left:auto;font-size:10px;color:var(--on-sv);align-self:center;flex:none}
+
+/* téléchargements en vol (retour propriétaire 2026-11-10) : µ-jauge à
+   la ligne, mise à jour EN PLACE — jamais une ligne par tick. */
+.dl{display:inline-flex;align-items:center;gap:6px;margin-left:4px;font:11px ui-monospace,monospace;color:var(--on-sv);flex:none;vertical-align:baseline}
+.dl .mbar{width:58px;height:6px;border-radius:3px;background:var(--sv);overflow:hidden;flex:none}
+.dl .mbar i{display:block;height:100%;width:0%;background:var(--canal-sync);border-radius:3px}
+.dl .tour{width:10px;height:10px;border:2px solid var(--ov);border-top-color:var(--canal-sync);border-radius:50%;flex:none;animation:tourne .9s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+.dl .fin{color:var(--ok);font-weight:700}
+.dl .dl-t{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.dl .tour{animation:none;border-top-color:var(--canal-sync);border-right-color:var(--canal-sync)}}
 
 /* ============================ tablette M8 ============================ */
 .cadre-tb{flex:1;display:flex;min-height:0}
@@ -275,17 +295,18 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
   <button class="tg on" id="tglNuit" onclick="basculerNuit()">Thème clair</button>
 </div>
 <div class="aide">
-  <b>Interactions à essayer :</b> basculer le thème (bouton en haut) · changer de source (Sync | Build | Logcat | Journal) ·
+  <b>Interactions à essayer :</b> basculer le thème (bouton en haut) · changer de source Gradle (Sync | Build | Tâches | Serveur) — Logcat et Journal restent des ONGLETS du header existant ·
   activer/couper les puces de filtre · taper dans la recherche (surlignage + compteur « n/N » + repères) ·
   cliquer l'en-tête d'une tâche Gradle (replier/déplier) · cliquer une ligne d'erreur (saut au source simulé) ·
   Pause puis Reprise (rattrapage incrémental : 3 lignes retenues arrivent) · faire défiler vers le haut (le suivi du bas s'arrête — bandeau « suivre ») ·
-  bouton d'état du panneau M1 (replié → mi-hauteur → étendu) · boutons « Filtres » et « Exporter » (feuilles M9/M10).
+  bouton d'état du panneau M1 (replié → mi-hauteur → étendu) · boutons « Filtres » et « Exporter » (feuilles M9/M10) ·
+  regarder les téléchargements en vol dans M1 et M4 : µ-jauge + pourcentage à la ligne, mise à jour en place, figée à la fin.
 </div>
 <div class="wrap" id="planche">
 <!-- M1 ================================================================ -->
 <div class="col">
-  <div class="cap">M1 · Panneau compact en 3 états + sélecteur de source
-    <small>(replié → mi-hauteur → étendu : bouton d'état dans la barre)</small></div>
+  <div class="cap">M1 · Panneau compact en 3 états — l'header existant est conservé
+    <small>(rang d'onglets du BottomSheet inchangé · seule évolution : « Console » devient « Sorties »)</small></div>
   <div class="ph etat-mi" id="m1">
     <div class="centre">
       <div class="code"><span class="kl">class</span> MainActivity : AppCompatActivity() {
@@ -297,6 +318,7 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
       <div class="onglets">
         <button class="on">Sorties</button><button>Problèmes <span class="bdg">3</span></button>
         <button>Journal</button><button>Logcat</button>
+        <span class="hd-note">← header existant, inchangé</span>
       </div>
       <div class="sheet">
         <div class="peigne" onclick="cycleEtat('m1')">
@@ -308,8 +330,8 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
           <div class="sel" data-groupe="m1">
             <button class="on" data-pane="m1-sync" onclick="choisirSource('m1',this,'Sync')"><span class="pt act" style="background:var(--canal-sync)"></span>Sync</button>
             <button data-pane="m1-build" onclick="choisirSource('m1',this,'Build')"><span class="pt act"></span>Build</button>
-            <button data-pane="m1-logcat" onclick="choisirSource('m1',this,'Logcat')"><span class="pt vide"></span>Logcat</button>
-            <button data-pane="m1-journal" onclick="choisirSource('m1',this,'Journal')"><span class="pt vide"></span>Journal</button>
+            <button data-pane="m1-taches" onclick="choisirSource('m1',this,'Tâches')"><span class="pt vide"></span>Tâches</button>
+            <button data-pane="m1-serveur" onclick="choisirSource('m1',this,'Serveur')"><span class="pt vide"></span>Serveur</button>
           </div>
           <div class="zon" style="position:relative">
             <div class="out" id="m1-sync">
@@ -317,22 +339,25 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
               <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">Distribution · déjà installée ✓ 0,1s</span></div>
               <div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx">Daemon · vivant (pid 13913) ✓ 0,2s</span></div>
               <div class="lg"><span class="gr">4</span><span class="nv I">I</span><span class="tx">Configuration du projet ✓ 1,8s</span></div>
-              <div class="lg"><span class="gr">5</span><span class="nv W">W</span><span class="tx">Dépendances · 34,2 Mo reçus au total ✓ 12,6s</span></div>
-              <div class="lg"><span class="gr">6</span><span class="nv I">I</span><span class="tx">Modèle IDE ✓ 1,1s</span></div>
-              <div class="lg"><span class="gr">7</span><span class="nv I">I</span><span class="tx" style="font-weight:600">Synchronisation terminée en 16,1s — les tâches sont disponibles.</span></div>
+              <div class="lg" id="m1-phase-dep"><span class="gr">5</span><span class="nv I">I</span><span class="tx">Dépendances · en cours 12,6s — <b id="m1-cumul">12 artefacts ✓ · 129,4 Mo reçus · 2 en vol</b></span></div>
+              <div class="lg" id="m1-dl-gson"><span class="gr">6</span><span class="nv I">I</span><span class="tx">⬇ gson-2.10.1.jar<span class="dl"><span class="tour"></span><span class="mbar"><i style="width:0%"></i></span><span class="dl-t">0/2,7 Mo · 0 %</span></span></span></div>
+              <div class="lg" id="m1-dl-stdlib"><span class="gr">7</span><span class="nv I">I</span><span class="tx">⬇ kotlin-stdlib-2.0.0.jar<span class="dl"><span class="tour"></span><span class="dl-t">8,4 Mo cumulés · total inconnu</span></span></span></div>
+              <div class="lg"><span class="gr">8</span><span class="nv I">I</span><span class="tx">Modèle IDE · en attente de la fin des dépendances…</span></div>
             </div>
             <div class="out" id="m1-build" hidden>
               <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">&gt; Task :app:checkDebugAarMetadata</span></div>
               <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">&gt; Task :app:compileDebugKotlin</span></div>
               <div class="lg"><span class="gr">3</span><span class="nv E">E</span><span class="tx err">e: file:///projet/app/MainActivity.kt:42:19: Référence non résolue « boutonValider »</span></div>
             </div>
-            <div class="out" id="m1-logcat" hidden>
-              <div class="lg"><span class="gr">841</span><span class="nv D">D</span><span class="ms">+2,1s</span><span class="tx">MainActivity · onCreate terminé</span></div>
-              <div class="lg"><span class="gr">842</span><span class="nv I">I</span><span class="ms">+2,3s</span><span class="tx">Room · base ouverte en 38 ms</span></div>
+            <div class="out" id="m1-taches" hidden>
+              <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">Listage des tâches — 47 tâches dans 2 projets (cache, 2 ms)</span></div>
+              <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">build : assembleDebug, bundleDebug, compileDebugKotlin…</span></div>
+              <div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx">verification : lintDebug, testDebugUnitTest…</span></div>
             </div>
-            <div class="out" id="m1-journal" hidden>
-              <div class="lg"><span class="gr">57</span><span class="nv I">I</span><span class="ms">14:02</span><span class="tx">ToolingDaemon · orchestrateur prêt (socket Unix)</span></div>
-              <div class="lg"><span class="gr">58</span><span class="nv D">D</span><span class="ms">14:02</span><span class="tx">LspClient · serveur de langue démarré</span></div>
+            <div class="out" id="m1-serveur" hidden>
+              <div class="lg"><span class="gr">57</span><span class="nv I">I</span><span class="tx">gradle-server · orchestrateur prêt (socket Unix)</span></div>
+              <div class="lg"><span class="gr">58</span><span class="nv D">D</span><span class="tx">gradle-server · daemon Gradle 8.9 connecté (pid 13913)</span></div>
+              <div class="lg"><span class="gr">59</span><span class="nv W">W</span><span class="tx">gradle-server · heap 412/512 Mo (poll 30 s)</span></div>
             </div>
           </div>
         </div>
@@ -340,8 +365,8 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
     </div>
     <div class="toast" id="m1-toast"></div>
   </div>
-  <div class="pourquoi">Ce que ça montre : le panneau du bas reste le coup d'œil — en-tête vivant (verdict court + point d'activité), sélecteur de source à quatre puces avec point d'état (vert = en vol, rouge = échec, gris = rien), contenu du lecteur unique sans moteur propre. Le bouton d'état (ou la poignée) fait défiler les trois états du BottomSheet.<br>
-  Pourquoi : ne pas élargir le panneau existant sans décision — il devient une <b>fenêtre sur le même composant</b> que l'éditeur dédié (ADR 0162) ; rien n'est dupliqué.</div>
+  <div class="pourquoi">Ce que ça montre : le header existant du BottomSheet ne disparaît PAS — le rang d'onglets (Sorties · Problèmes · Journal · Logcat) et l'indicateur compact restent ceux d'aujourd'hui (ADR 0029/0118) ; seule évolution : le libellé « Console » devient « Sorties ». Dans l'onglet Sorties, le sélecteur à puces ne porte QUE les sources Gradle (Sync · Build · Tâches · Serveur) — <b>Logcat et Journal ne sont pas dupliqués dedans</b> : ce sont déjà des onglets du header. Le bouton d'état (ou la poignée) fait défiler les trois états du BottomSheet.<br>
+  Pourquoi : UNE navigation par niveau — le header répond « quelle sortie », le sélecteur répond « quel flux Gradle » ; le panneau reste une fenêtre sur le même composant que l'éditeur dédié (ADR 0162). Les dépendances en vol s'affichent À LA LIGNE (µ-jauge ou molette + cumuls, figées à la fin) — voir M4 et « Écarts maquette → réalité ».</div>
 </div>
 
 <!-- M2 ================================================================ -->
@@ -363,6 +388,8 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
         <div class="meta"><span>Tâches : <b>12</b> exécutées · <b>4</b> en cache · <b>31</b> à jour · <b>0</b> sans source</span>
         <span><b style="color:var(--err)">0</b> erreur · <b style="color:var(--warn)">2</b> avertissements</span></div>
       </div>
+      <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">⬇ okhttp-4.12.0.jar<span class="dl"><span class="fin">✓ 0,9 Mo · 0,5s</span></span></span></div>
+      <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">Téléchargé PENDANT le build : ligne ouverte au départ, mise à jour EN PLACE (molette puis µ-jauge — animation dans M1/M4), figée ici à la fin. Jamais une ligne par tick.</span></div>
       <div class="tk"><div class="tk-h" onclick="basculerTache(this)"><span class="chev">▼</span>
         <span class="pth">:app:checkDebugAarMetadata</span><span class="co">◇ cache</span><span class="du">0,1s</span><span class="co">2 l.</span></div>
         <div class="tk-c"><div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx">Task content is not modified — omitted from build.</span></div>
@@ -445,30 +472,31 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
 </div>
 <!-- M4 ================================================================ -->
 <div class="col">
-  <div class="cap">M4 · Sync — phases et durées, flux réel, en-tête collant</div>
+  <div class="cap">M4 · Sync — phases et durées, téléchargements en vol À LA LIGNE, en-tête collant</div>
   <div class="ph" id="m4">
-    <div class="bar"><button class="back">‹</button> Sorties — Sync <span class="sp"></span><span class="pd ok">● Synchronisé</span></div>
-    <div class="chips"><span class="ch on">Phases</span><span class="ch on">Flux</span><span class="ch">Téléchargements (34,2 Mo)</span><span class="ch">Serveur</span></div>
+    <div class="bar"><button class="back">‹</button> Sorties — Sync <span class="sp"></span><span class="pd n">● En cours</span></div>
+    <div class="chips"><span class="ch on">Phases</span><span class="ch on">Flux</span><span class="ch">Téléchargements (129,4 Mo)</span><span class="ch">Serveur</span></div>
     <div class="out">
       <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Outils Gradle — présent ✓ 0,3s</span></div>
       <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Distribution — déjà installée ✓ 0,1s</span></div>
       <div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Daemon — vivant (pid 13913) ✓ 0,2s</span></div>
       <div class="lg"><span class="gr">4</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Configuration du projet ✓ 1,8s</span></div>
-      <div class="tk"><div class="tk-h" style="top:0"><span class="chev">▼</span><span class="pth" style="color:var(--canal-sync)">▸ Dépendances — en cours 12,6s <span class="co">(129,4 Mo reçus)</span></span></div>
+      <div class="tk"><div class="tk-h" style="top:0"><span class="chev">▼</span><span class="pth" style="color:var(--canal-sync)">▸ Dépendances — en cours 12,6s <span class="co" id="m4-cumul">(12 artefacts ✓ · 129,4 Mo · 2 en vol)</span></span></div>
         <div class="tk-c">
-          <div class="lg"><span class="gr">5</span><span class="nv I">I</span><span class="tx">Téléchargé : okio-jvm-3.4.0.jar · 2,4 Mo reçus au total</span></div>
-          <div class="lg"><span class="gr">6</span><span class="nv I">I</span><span class="tx">Téléchargé : kotlinx-datetime-0.4.1.jar · 214 Ko reçus au total</span></div>
-          <div class="lg"><span class="gr">7</span><span class="nv I">I</span><span class="ms" style="margin-right:0"></span><span class="tx">… 11 artefacts terminés, aucun en vol</span></div>
+          <div class="lg" id="m4-dl-gson"><span class="gr">5</span><span class="nv I">I</span><span class="tx">⬇ gson-2.10.1.jar<span class="dl"><span class="tour"></span><span class="mbar"><i style="width:0%"></i></span><span class="dl-t">0/2,7 Mo · 0 %</span></span></span></div>
+          <div class="lg" id="m4-dl-stdlib"><span class="gr">6</span><span class="nv I">I</span><span class="tx">⬇ kotlin-stdlib-2.0.0.jar<span class="dl"><span class="tour"></span><span class="dl-t">8,4 Mo cumulés · total inconnu</span></span></span></div>
+          <div class="lg"><span class="gr">7</span><span class="nv I">I</span><span class="tx">⬇ okio-jvm-3.4.0.jar<span class="dl"><span class="fin">✓ 2,4 Mo · 0,8s</span></span></span></div>
+          <div class="lg"><span class="gr">8</span><span class="nv I">I</span><span class="tx">⬇ androidx-core-ktx-1.13.1.aar<span class="dl"><span class="fin">✓ 0,6 Mo · 0,3s</span></span></span></div>
+          <div class="lg"><span class="gr">9</span><span class="nv I">I</span><span class="tx">… 10 autres artefacts terminés (126,4 Mo) — chaque ligne figée EN PLACE à sa fin</span></div>
         </div>
       </div>
-      <div class="lg"><span class="gr">8</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Modèle IDE ✓ 1,1s</span></div>
-      <div class="lg"><span class="gr">9</span><span class="nv I">I</span><span class="tx" style="font-weight:700">Synchronisation terminée en 16,1s — les tâches sont disponibles.</span></div>
-      <div class="lg"><span class="gr">10</span><span class="nv V">V</span><span class="tx">Flux brut du câble (—console=plain) consultable : basculer « Phases » sur « Flux » — une seule liste, deux projections, jamais les deux à l'écran (ADR 0079).</span></div>
+      <div class="lg"><span class="gr">10</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Modèle IDE · en attente de la fin des dépendances…</span></div>
+      <div class="lg"><span class="gr">11</span><span class="nv V">V</span><span class="tx">Flux brut du câble (—console=plain) consultable : basculer « Phases » sur « Flux » — une seule liste, deux projections, jamais les deux à l'écran (ADR 0079).</span></div>
     </div>
     <div class="toast" id="m4-toast"></div>
   </div>
-  <div class="pourquoi">Ce que ça montre : les phases réelles du protocole (Outils, Distribution, Daemon, Configuration, Dépendances, Modèle) avec durée et volume, l'étape courante en <b>en-tête collant</b>, le détail des téléchargements sous leur phase.<br>
-  Pourquoi : la fenêtre d'étapes de l'en-tête porte déjà le VIVANT (ADR 0151) ; la console garde l'HISTORIQUE — les phases ne réécrivent pas le flux, elles le concluent (comportement existant conservé, zéro duplication).</div>
+  <div class="pourquoi">Ce que ça montre : les phases réelles du protocole (Outils, Distribution, Daemon, Configuration, Dépendances, Modèle) avec durée et volume, l'étape courante en <b>en-tête collant</b>, et — retour propriétaire — chaque dépendance téléchargée porte <b>SA progression à sa ligne</b> : molette + cumuls, µ-jauge + pourcentage quand le total est connu (sonde <code>.part</code>), figée à la fin (taille + durée).<br>
+  Pourquoi : la fenêtre d'étapes de l'en-tête porte déjà le VIVANT (ADR 0151) ; la console garde l'HISTORIQUE — les lignes de téléchargement se mettent à jour en place (≤ 5 événements/s, throttle serveur), jamais une ligne par tick : ni duplication, ni inondation. La phase Distribution d'une PREMIÈRE sync affiche un vrai pourcentage (sonde .part, 500 ms) sur le même principe.</div>
 </div>
 
 <!-- M5 ================================================================ -->
@@ -870,6 +898,8 @@ mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;pad
     <li><b>Recherche.</b> Le surlignage est instantané sur ~50 lignes de maquette ; la vraie recherche porte sur 100 000 lignes hors thread principal, annulable, avec compteur et repères (budgets § 8 de la spec).</li>
     <li><b>Panneau M1.</b> Le cycle d'états simule le BottomSheet Material 3 (REPLIE / MI_HAUTEUR / ETENDU, ADR 0029/0118) : les vrais insets, la poignée système et le clavier ne sont pas maquettés.</li>
     <li><b>Sync M4.</b> La maquette montre la projection « phases » ; le flux réel du câble reste disponible (projection « brut ») — les deux projections ne sont jamais empilées (ADR 0078/0079).</li>
+    <li><b>Progression des téléchargements.</b> La maquette anime la µ-jauge par artefact ; en réalité, la Tooling API ne livre les octets d'une dépendance <b>QU'À SA FIN</b> (vérifié par <code>javap</code>, <code>docs/TOOLING.md</code> § v4). En vol : molette + compteurs cumulés garantis (throttle 5 événements/s par élément) ; µ-jauge + pourcentage RÉELS seulement quand le total est connu (sonde des fichiers <code>.part</code>, comme la phase Distribution d'une première sync) — la généralisation par artefact est demandée au dépôt frère (<code>DEMANDES_CODEIDE_TOOLING.md</code> D2). En attendant, dégradation propre : jamais de pourcentage inventé.</li>
+    <li><b>Header du panneau M1.</b> Le rang d'onglets et l'indicateur compact existants sont conservés à l'identique (ADR 0029/0118) ; la maquette ne les re-dessine pas — seule évolution : libellé « Console » → « Sorties » (ADR 0162 § 5). Le sélecteur interne ne porte que les sources Gradle.</li>
     <li><b>Feuilles M9/M10.</b> Les champs de saisie sont des maquettes : la validation (motif regex invalide affiché en ligne) est spécifiée dans la spec, pas démontrée.</li>
     <li><b>Ce que la maquette ne peut pas montrer :</b> la latence réelle émission→pixel (instrumentation ADR 0152, PV du banc), la consommation mémoire à 100 000 lignes, TalkBack, l'échelle de police 200 %, les couleurs dynamiques (Material You) harmonisées à l'exécution, et le comportement multi-fenêtres / pliable.</li>
     <li><b>Densité.</b> Cadres 390 px ≈ 390 dp téléphone ; tablette 880 px ≈ 880 dp. Les cibles tactiles respectent 48 dp ; la lisibilité plein soleil est couverte par les jetons jour réels (non harmonisés pour la sévérité — règle core/ui).</li>
@@ -901,7 +931,7 @@ function cycleEtat(id){
   f.classList.add(ETATS[i]);
   const b=f.querySelector('.peigne .tg'); if(b) b.textContent=LIB[i];
   if(id==='m1') document.getElementById('m1ti').textContent=
-    i===0?'Build · :app:compileDebugKotlin en cours… (dernières lignes)':(i===1?'Build · :app:compileDebugKotlin en cours…':'Build · 12 480 lignes · recherche et filtres disponibles');
+    i===0?'Sync · Dépendances — en vol… (dernières lignes)':(i===1?'Sync · Dépendances — en vol…':'Sync · 132 lignes · recherche et filtres disponibles');
 }
 function choisirSource(g,btn,nom){
   btn.closest('.sel').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
@@ -1000,6 +1030,51 @@ setInterval(()=>{
   if(out._enPause){ (out._retenues=out._retenues||[]).push(lg); }
   else { out.appendChild(lg); if(out._suivre!==false) out.scrollTop=out.scrollHeight; }
 },3800);
+/* Téléchargements en vol (retour propriétaire 2026-11-10) : chaque
+   dépendance ouvre SA ligne au départ et la met à jour EN PLACE —
+   jamais une ligne par tick. En vol : molette + cumuls garantis ;
+   µ-jauge + pourcentage seulement quand le total est connu (sonde
+   .part — demande D2 au dépôt frère : les octets d'un artefact ne
+   sont connus QU'À SA FIN par la Tooling API). À la fin, la ligne
+   FIGE (taille + durée) : c'est la ligne d'historique, unique. */
+function fmtMo(x){return x.toLocaleString('fr-FR',{maximumFractionDigits:1})}
+function animerTelechargements(){
+  const frames=['m1','m4'].map(p=>({
+    gson:document.getElementById(p+'-dl-gson'),
+    stdlib:document.getElementById(p+'-dl-stdlib'),
+    cumul:document.getElementById(p+'-cumul'),
+    fr:p,
+  })).filter(f=>f.gson&&f.stdlib);
+  if(!frames.length) return;
+  let gson=0, stdlib=8.4, artefacts=12, total=129.4;
+  const tid=setInterval(()=>{
+    gson=Math.min(2.7,gson+0.14); stdlib+=0.19; total+=0.14;
+    const pct=Math.round(gson/2.7*100);
+    frames.forEach(f=>{
+      const bar=f.gson.querySelector('.mbar i'); if(bar) bar.style.width=pct+'%';
+      const gt=f.gson.querySelector('.dl-t'); if(gt) gt.textContent=fmtMo(gson)+'/2,7 Mo · '+pct+' %';
+      const st=f.stdlib.querySelector('.dl-t'); if(st) st.textContent=fmtMo(stdlib)+' Mo cumulés · total inconnu';
+      if(f.cumul){
+        const t=artefacts+' artefacts ✓ · '+fmtMo(total)+' Mo reçus · 2 en vol';
+        f.cumul.textContent=(f.cumul.id==='m4-cumul')?('('+t+')'):t;
+      }
+    });
+    const m1ti=document.getElementById('m1ti'); if(m1ti) m1ti.textContent='Sync · Dépendances — 2 en vol…';
+    if(gson>=2.7){
+      clearInterval(tid);
+      frames.forEach(f=>{
+        const dl=f.gson.querySelector('.dl'); if(dl) dl.innerHTML='<span class="fin">✓ 2,7 Mo · 1,1s</span>';
+        if(f.cumul){
+          const t=(artefacts+1)+' artefacts ✓ · '+fmtMo(total)+' Mo reçus · 1 en vol';
+          f.cumul.textContent=(f.cumul.id==='m4-cumul')?('('+t+')'):t;
+        }
+      });
+      const m1ti=document.getElementById('m1ti'); if(m1ti) m1ti.textContent='Sync · Dépendances — 1 en vol…';
+      toast('m1','Fin du téléchargement : la ligne FIGE en place (taille + durée) — c\'est la ligne d\'historique, aucune nouvelle ligne');
+      toast('m4','Fin du téléchargement : la ligne FIGE en place (taille + durée) — jamais une ligne par tick');
+    }
+  },700);
+}
 /* feuilles */
 function ouvrirFeuille(fr,origine){const v=document.getElementById(fr+'-voile'); if(v) v.hidden=false; if(origine) v.dataset.origine=origine;}
 function fermerFeuille(fr){const v=document.getElementById(fr+'-voile'); if(v) v.hidden=true;}
@@ -1016,6 +1091,7 @@ function montrerEtat(v){
 window.addEventListener('load',()=>{
   const m2=document.getElementById('m2-marq');
   if(m2) m2.innerHTML='<span class="pm w" style="top:26%"></span><span class="pm w" style="top:30%"></span>';
+  animerTelechargements();
 });
 </script>
 </div>

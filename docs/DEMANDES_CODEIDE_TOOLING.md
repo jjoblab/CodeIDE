@@ -57,8 +57,55 @@ En attendant la livraison, CodeIDE affiche « sautée » sans désagréger
 le modèle `LigneSortie`) avec tolérance de version (un serveur plus
 ancien reste compris) ; le résumé désagrège quand le champ existe.
 
+## D2 — Ticks d'octets par artefact en vol : µ-jauge honnête sur la ligne de téléchargement ⏳
+
+**Preuve** : les téléchargements traversent déjà (v4 §6,
+`EcouteurProgressionCommun` — FILE_DOWNLOAD, débit borné à
+5 événements/s par élément) et le client les expose
+(`GradleApiImpl.pomperTelechargement`,
+`tooling/client/.../GradleApiImpl.kt:685-703` →
+`observeTelechargementsBuild`, `GradleToolingPort.kt:161`) avec
+`TelechargementBuild(element, octetsRecus, octetsTotal, termine,
+dureeMs, compteur)` (`GradleToolingPort.kt:475-490`). Or la Tooling API
+ne livre les octets d'une dépendance **qu'à sa FIN** —
+`FileDownloadResult.getBytesDownloaded()` n'existe qu'à la fin et le
+descripteur d'opération ne porte que l'URI (vérifié par `javap` sur
+l'API 9.7.1, tableau § v4 de `docs/TOOLING.md`). En vol, le total
+d'artefacts et les octets cumulés sont garantis, mais PAS la répartition
+par artefact : la µ-jauge avec pourcentage promise par le propriétaire
+(retour du 2026-11-10, maquette M1/M4, `docs/SORTIES_SPEC.md` § 4.7)
+ne peut pas être honnête par artefact avec ces seules données.
+
+**Conséquence** : en vol, CodeIDE affiche molette + compteurs cumulés
+(n artefacts, X Mo) — jamais un pourcentage inventé (règle 14 /
+honnêteté d'interface). Seule la phase Distribution d'une première sync
+a un vrai pourcentage aujourd'hui (sonde des fichiers `.part` toutes
+les 500 ms, côté serveur).
+
+**Demande** (par ordre de préférence) :
+- **D2-a** : généraliser la sonde `.part` aux téléchargements de
+  dépendances — pendant chaque FILE_DOWNLOAD en vol, sonder la taille
+  du fichier partiel correspondant (cache Gradle
+  `modules-2/files-2.1/…/*.part`) au même rythme que le throttle
+  actuel (≤ 5 événements/s par élément) et remplir
+  `DetailTelechargement.octetsRecus` / `octetsTotal` MID-FLIGHT.
+  ADDITIF : un serveur antérieur laisse ces champs à 0/null en vol et
+  le client dégrade (molette + cumuls) sans changement de protocole.
+- **D2-b** : à défaut de sonde fiable (empêchements de cache),
+  renseigner `octetsTotal` à l'ÉVÉNEMENT DE DÉBUT d'un artefact quand
+  le Content-Length HTTP est connu (Gradle le possède avant le
+  transfert) — la µ-jauge reste en octets reçus cumulés par artefact,
+  déjà plus parlante qu'une molette seule.
+
+**Côté CodeIDE** : L2 consomme les champs dès qu'ils existent (µ-jauge +
+« 1,2/2,7 Mo · 45 % » à la ligne de l'artefact, mise à jour en place) ;
+tolérance de version intégrale — le rendu dégrade vers molette + cumuls
+sans aucun changement de code côté client (le test de non-régression du
+corpus couvre les deux formes).
+
 ## Journal des demandes
 
 | # | Demande | Statut | Livré dans |
 |---|---|---|---|
 | D1 | Granularité des statuts de saut (UP-TO-DATE / FROM-CACHE / NO-SOURCE) | ⏳ demandé (2026-11-10) | — |
+| D2 | Ticks d'octets par artefact en vol (sonde `.part` généralisée ou Content-Length au début) | ⏳ demandé (2026-11-10) | — |

@@ -130,9 +130,34 @@ seconde liste — ADR 0078).
    session de build sont consultables depuis l'exécution (filtre
    « Serveur ») sans quitter l'éditeur.
 6. **Frontières manquantes** : tout besoin d'événement absent du client
-   s'écrit dans `docs/DEMANDES_CODEIDE_TOOLING.md` (première demande :
-   granularité des statuts de saut) et dégrade proprement sur le texte
-   d'ici là.
+   s'écrit dans `docs/DEMANDES_CODEIDE_TOOLING.md` (D1 : granularité des
+   statuts de saut ; D2 : ticks d'octets par artefact, § 4.7) et dégrade
+   proprement sur le texte d'ici là.
+7. **Téléchargements en vol — la progression à la ligne** (retour
+   propriétaire 2026-11-10) : chaque artefact téléchargé ouvre SA ligne
+   au début et la met à jour EN PLACE — jamais une ligne par tick
+   (throttle serveur : ≤ 5 événements/s par élément, § v4 de
+   `docs/TOOLING.md`). Affichage honnête selon les données réellement
+   disponibles (`TelechargementBuild` : élément, octets reçus, total,
+   terminé, durée, compteur) :
+   - **total connu** → µ-jauge + « 1,2/2,7 Mo · 45 % » ;
+   - **total inconnu** → molette animée + compteurs cumulés de la phase
+     (« n artefacts ✓ · X Mo reçus ») — **jamais de pourcentage
+     inventé** : la Tooling API ne livre les octets d'une dépendance
+     qu'à sa fin (vérifié par `javap`), et la généralisation de la sonde
+     des fichiers `.part` à chaque artefact est demandée au dépôt frère
+     (`DEMANDES_CODEIDE_TOOLING.md` D2) ;
+   - **à la fin, la ligne FIGE** (taille + durée) et devient la ligne
+     d'historique — une seule ligne par artefact, aucune information
+     affichée deux fois (règle 14) ; la règle v0.46.0 « une ligne par
+     artefact terminé » évolue vers « une ligne par artefact, ouverte au
+     départ, conclue en place » (même discipline que les `> Task`
+     conclues en place, G9).
+   Plusieurs téléchargements simultanés = une ligne chacun, ordre
+   d'arrivée des événements. La phase Distribution d'une première sync
+   affiche un vrai pourcentage (sonde `.part`, 500 ms). Dégradation :
+   protocole < v4 (pas de `DetailTelechargement`) → comportement actuel
+   (une ligne à la fin de l'artefact) reste la base.
 
 ## 5. Logcat — parité stricte puis ajouts (M5)
 
@@ -162,6 +187,16 @@ lancement, recherche insensible aux accents, export zip
 1. **Panneau compact** (BottomSheet 3 états, ADR 0029/0118 conservé) :
    en-tête vivant + lecteur en fenêtre — **il n'embarque plus de moteur à
    lui** : c'est une vue bornée sur le même composant.
+   **Chrome existant conservé à l'identique** (retour propriétaire
+   2026-11-10) : le rang d'onglets du BottomSheet (Sorties · Problèmes ·
+   Journal · Logcat), l'indicateur compact et l'en-tête poignée restent
+   ceux d'aujourd'hui — seule évolution, le libellé « Console » devient
+   « Sorties » (question 9 du prompt). Le sélecteur de source interne de
+   l'onglet Sorties ne porte QUE les sources Gradle (Sync · Build ·
+   Tâches · Serveur) : Logcat et Journal ne sont PAS dupliqués dedans —
+   ce sont déjà des onglets du header. Une navigation par niveau : le
+   header répond « quelle sortie », le sélecteur répond « quel flux
+   Gradle ».
 2. **Éditeur dédié** : ouvrable en **onglet** de la zone centrale (comme
    un fichier, ADR 0028) et en **plein écran** ; c'est là que vivent la
    recherche, les filtres avancés et l'historique.

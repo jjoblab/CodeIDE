@@ -105,3 +105,51 @@ Commits (branche `agent/sorties-l0-conception`) : listés par
 5. **Un seul banc de mesure JVM** (Java 21, sandbox) : les chiffres
    Kotlin/JVM de L1 peuvent différer ; le banc sera ré-exécuté en L1
    avec le parseur de production.
+
+## 7. Addendum — aller-retour propriétaire du 2026-11-10 (post-relecture de la maquette)
+
+Le propriétaire a relu la maquette et arbitré deux points ; les
+livrables L0 ont été amendés dans le même commit (aucun code de
+production, le lot reste L0).
+
+**Q11 — l'header du panneau** (« il y avait déjà un header pour les
+sorties du tooling, Problèmes, Journal et Logcat — que devient-il ? »)
+- **Arbitrage** : l'header existant du BottomSheet est **conservé à
+  l'identique** — rang d'onglets (`OngletPanneau` : Console, Problèmes,
+  Journal, Logcat), indicateur compact, en-tête poignée (ADR 0029/0118,
+  v0.80.1). Seule évolution : le libellé « Console » devient « Sorties »
+  (Q9). La maquette M1 montrait un sélecteur de source interne doublant
+  Logcat et Journal — **corrigé** : le sélecteur ne porte que les
+  sources Gradle (Sync · Build · Tâches · Serveur) ; Logcat et Journal
+  restent des onglets du header, jamais dupliqués dedans (une
+  navigation par niveau : le header répond « quelle sortie », le
+  sélecteur répond « quel flux Gradle »).
+- **Fichiers amendés** : maquette M1 (légende, sélecteur, panneau
+  Serveur/Tâches), `SORTIES_SPEC.md` § 7.1, ADR 0162 § 2,
+  `SORTIES_QUESTIONS_L0.md` Q11.
+
+**Q12 — progression des téléchargements** (« lors d'un build ou Sync,
+la dépendance en cours de téléchargement affiche une petite progression
+à la ligne même »)
+- **Arbitrage** : OUI — chaque artefact ouvre SA ligne au départ et la
+  met à jour EN PLACE (jamais une ligne par tick, throttle serveur
+  ≤ 5 événements/s) : µ-jauge + pourcentage si le total est connu
+  (sonde `.part`), molette + compteurs cumulés sinon, ligne FIGÉE à la
+  fin (taille + durée) — la règle v0.46.0 « une ligne par artefact
+  terminé » évolue vers « une ligne par artefact, ouverte au départ,
+  conclue en place » (même discipline que les `> Task` conclues en
+  place, G9). Plusieurs téléchargements simultanés = une ligne chacun.
+- **Honnêteté** : la Tooling API ne livre les octets d'une dépendance
+  qu'à sa fin (vérifié `javap`, § v4 de `TOOLING.md`) — un pourcentage
+  par artefact en vol exige la généralisation de la sonde `.part`,
+  demandée au dépôt frère (**D2**, `DEMANDES_CODEIDE_TOOLING.md`) ;
+  d'ici là, dégradation propre (molette + cumuls), jamais de
+  pourcentage inventé.
+- **Fichiers amendés** : maquette M1/M2/M4 (lignes de téléchargement
+  animées, JS sans dépendance, `prefers-reduced-motion` respecté),
+  « Écarts maquette → réalité », `SORTIES_SPEC.md` § 4.7,
+  `SORTIES_QUESTIONS_L0.md` Q12, `DEMANDES_CODEIDE_TOOLING.md` D2.
+
+**Ce qui reste ouvert** : les arbitrages Q1 à Q10 restent attendus pour
+la sortie de L0 ; D1 et D2 attendent la réponse du dépôt frère (le
+chantier dégrade proprement en attendant).

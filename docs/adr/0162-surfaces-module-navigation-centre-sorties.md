@@ -36,6 +36,12 @@ croiser les dépendances `feature:*` (interdites).
 2. **Trois surfaces, un composant** :
    - **panneau compact** (BottomSheet 3 états conservé, ADR 0029/0118) :
      fenêtre bornée sur le composant — il n'embarque plus de moteur ;
+     **le chrome existant reste inchangé** (retour propriétaire du
+     2026-11-10 : rang d'onglets, indicateur compact, en-tête poignée ;
+     seule évolution « Console » → « Sorties ») ; le sélecteur de source
+     interne ne porte que les sources Gradle (Sync · Build · Tâches ·
+     Serveur) — Logcat et Journal restent des onglets du header, jamais
+     dupliqués dans le sélecteur ;
    - **éditeur dédié** en **onglet de la zone centrale** (comme un
      fichier, ADR 0028) et en **plein écran** — la recherche, les
      filtres avancés et l'historique vivent là ;
