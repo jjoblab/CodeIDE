@@ -3,14 +3,24 @@ package jo.codeide.tools.generateur
 import kotlinx.serialization.Serializable
 
 /**
- * Une combinaison à générer sur disque (étape 9, ADR 0019) : entrée du
- * fichier JSON produit par `scripts/verify-templates.sh`.
+ * Une combinaison à générer sur disque (étape 9, ADR 0019 ; enrichie au lot
+ * L2, ADR 0157) : entrée du fichier JSON produit par `generateur matrice`
+ * (matrice dérivée des manifestes) ou écrit à la main pour les **cas nommés
+ * de régression** (`scripts/verify-templates-cas-nomes.json` — noms et
+ * descriptions hostiles, renommages, langues, licences, dépendances).
+ *
+ * Protocole de sortie `PROTOCOLE=2` (ADR 0157 §1) : le décodeur tolère les
+ * clés inconnues — la matrice peut porter des métadonnées additionnelles
+ * ([etiquette]) sans casser la lecture.
  *
  * @property id identifiant du répertoire de sortie (nom court, sans slash).
- * @property templateId modèle embarqué visé (`kotlin-jvm`, `java`).
+ * @property templateId modèle embarqué visé (`kotlin-jvm`, `android-app`…).
  * @property nom nom du projet (entrée utilisateur simulée).
  * @property description description simulée.
- * @property parametres valeurs saisies des paramètres du modèle.
+ * @property parametres valeurs saisies des paramètres du modèle — pour une
+ * entrée de matrice : uniquement les paramètres **énumérables visibles et
+ * actifs** du cas (un paramètre masqué ou désactivé ne figure jamais : il
+ * vaut sa valeur par défaut côté moteur, ADR 0153 §2).
  * @property modifiesManuellement paramètres figés après saisie manuelle —
  * indispensables pour qu'une valeur fournie de `packageName`, `groupId` ou
  * `artifactId` ne soit pas recalculée par dérivation.
@@ -18,6 +28,8 @@ import kotlinx.serialization.Serializable
  * chemin original du nœud, valeur = nouveau nom du segment — éprouve le
  * moteur sur disque comme depuis le wizard.
  * @property options options communes du moteur.
+ * @property etiquette description lisible du cas de la matrice (stratégie et
+ * valeurs couvertes) ; vide pour une entrée écrite à la main.
  */
 @Serializable
 public data class Combinaison(
@@ -29,6 +41,7 @@ public data class Combinaison(
     public val modifiesManuellement: Set<String> = emptySet(),
     public val renommages: Map<String, String> = emptyMap(),
     public val options: OptionsCombinaison = OptionsCombinaison(),
+    public val etiquette: String = "",
 )
 
 /**

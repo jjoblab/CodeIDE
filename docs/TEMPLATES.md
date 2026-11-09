@@ -1,10 +1,11 @@
 # TEMPLATES.md — Format des modèles de projet
 
 Ce document est le **contrat des concepteurs de modèles** de CodeIDE
-(étapes 8-9 — v0.9.0/v0.10.0, ADR 0005, 0018 et 0019). Un modèle est un
+(étapes 8-9 — v0.9.0/v0.10.0, ADR 0005, 0018 et 0019 ; outillage étendu au
+lot L2 — v0.210.0, ADR 0157). Un modèle est un
 répertoire d'assets interprété par le moteur (`core:domain`) : **aucune
 classe Kotlin ne code un modèle en dur**, aucun `when(templateId)`
-n'existe dans le code.
+ n'existe dans le code.
 Ajouter un modèle = ajouter des assets ; un plugin peut en apporter via
 `ProjectTemplateProvider` (multibinding Hilt) sans recompiler le moteur.
 
@@ -14,7 +15,7 @@ Ajouter un modèle = ajouter des assets ; un plugin peut en apporter via
 assets/templates/<id>/
   template.json      manifeste déclaratif (obligatoire, UTF-8)
   i18n/en.json       dictionnaire anglais (obligatoire — repli)
-  i18n/fr.json      dictionnaire français (optionnel)
+  i18n/fr.json      dictionnaire français (requis dès qu'un paramètre existe — lint L2)
   files/…            sources : *.tpl (texte) ou binaires copiés tels quels
 ```
 
@@ -247,19 +248,88 @@ identifiant entre fournisseurs aussi.
 - `./gradlew :core:domain:test` : le fixture `templates/fixture` (répertoire
   `src/test/resources`) éprouve tout le moteur — conditions, i18n, filtres,
   entrées hostiles, sécurité des chemins, déterminisme.
-- Les modèles embarqués (`kotlin-jvm`, `java`) sont éprouvés
-  **exhaustivement** par `ModelesEmbarquesTest` (module `app`) : toutes les
-  combinaisons structurelles (langage × type × build × JDK × tests ×
-  wrapper × langue), options communes, déterminisme, entrées hostiles,
-  écriture complète sur `FakeFileSystem`.
-- L'étape 9 ajoute `scripts/verify-templates.sh` : chaque combinaison
-  d'options d'un modèle embarqué est générée **puis réellement compilée,
-  testée, exécutée et publiée** avec les vrais outils.
+- `tools/generateur` (lot L2, ADR 0157) :
+  - `valider-manifestes` — **lint** du catalogue : clés i18n référencées en
+    `fr` **et** `en` (jamais d'asymétrie sur les clés optionnelles),
+    expressions évaluables, sources existantes, choix `CHOICE` tous
+    atteignables ; **zéro écart attendu à tout instant** — c'est la porte
+    d'entrée des lots de modèles ;
+  - `matrice` — dérivation des combinaisons (voir § suivant) ;
+  - `InvariantsEffetModelesTest` — structure sans compilation (dry-run) de
+    toutes les combinaisons des matrices réelles + **invariants d'effet** ;
+  - `determinisme` — deux générations comparées octet pour octet.
+- Les modèles embarqués sont aussi éprouvés par `ModelesEmbarquesTest`
+  (module `app`) : combinaisons structurelles, options communes,
+  déterminisme, entrées hostiles, écriture complète sur `FakeFileSystem`.
+- `scripts/verify-templates.sh` : chaque combinaison de la matrice
+  dérivée **puis réellement compilée, testée, exécutée et publiée** avec les
+  vrais outils.
+
+## La matrice dérivée des manifestes (lot L2, ADR 0157)
+
+Les combinaisons de couverture ne sont plus écrites à la main :
+`generateur matrice` les **dérive des manifestes** — ajouter une option à un
+modèle signale immédiatement le trou de couverture.
+
+- **Paramètres énumérables** : `BOOLEAN` (false/true) et `CHOICE` (leurs
+  choix) ; les `TEXT` ne multiplient pas les cas (dérivations exercées sur
+  le nom de projet simulé `Projet Verification`).
+- **Masquages respectés** : un paramètre masqué (`visibleWhen` faux) ou
+  désactivé (`enabledWhen` faux) ne multiplie pas les cas — deux candidats
+  ne différant que par lui sont équivalents (même signature d'évaluation).
+- **Règles `ERREUR`** : les candidats qui les déclenchent (ou invalident un
+  paramètre visible) sont **exclus et signalés** (JSONL).
+- **Stratégies** : `exhaustif` (espace ≤ seuil 64), `paires` (toutes les
+  paires de valeurs atteignables — glouton, propriété testée), `bornes`
+  (chaque valeur au moins une fois, défauts d'abord).
+- **Cas nommés de régression** (`scripts/verify-templates-cas-nomes.json`,
+  écrits à la main) : noms et descriptions hostiles, renommages de l'aperçu,
+  couverture des langues et des licences, dépendances toutes cochées — ils
+  s'ajoutent à la matrice dérivée avant le filtre `CODEIDE_COMBINAISONS`.
+- Le protocole de sortie de l'outil est versionné (`PROTOCOLE=2`) : la
+  première ligne de toute exécution ; les rapports nouveaux (lint, matrice,
+  déterminisme) sortent en JSONL.
+
+### Invariants d'effet (C-3, table tenue par `InvariantsEffetModelesTest`)
+
+Pour chaque combinaison générée en dry-run, l'effet de chaque option est
+contrôlé — **aucune option sans effet observable** :
+
+| Modèle | Invariant |
+|---|---|
+| `android-app` | `.kt` présent ssi `language=kotlin` (`.java` en miroir) ; `MainActivity` ssi `projectType != no-activity` ; classe `*Application` ssi `includeHilt` ; `BddLocale` ssi `includeRoom` ; `gradlew` ssi `includeWrapper` ; `src/test` ssi `includeTests` ; Retrofit/Navigation câblées dans `app/build.gradle.kts` ssi cochées |
+| `spring-boot` | starter Actuator/JPA/Security/Validation dans `build.gradle.kts` ssi cochés |
+| `kotlin-multiplatform` | plugin serialization / coroutines / datetime dans `build.gradle.kts` ssi cochés |
+| `kotlin-jvm`, `java` | `build.gradle.kts` ssi `gradle-kts`, `pom.xml` ssi `maven` (jamais les deux) ; `gradlew` ssi gradle **et** `includeWrapper` ; `src/test` ssi `includeTests` |
+| `android-library` | `gradlew` ssi `includeWrapper` ; `src/test` ssi `includeTests` ; `minSdk = <valeur>` écrit tel quel |
+| `gradle-plugin` | `gradlew` ssi `includeWrapper` ; `src/test` ssi `includeTests` |
+
+Invariants **attendus des lots L3/L4** (déclarés ici, activés dans
+`InvariantsEffetModelesTest` quand les modèles les satisfont — le test
+actuel les documente sans les exiger) :
+
+| Modèle | Invariant attendu | Lot |
+|---|---|---|
+| `android-app` | permission `INTERNET` présente ssi `includeRetrofit` (câblage réel : service d'exemple, ADR du plan §A1.1) | L4 |
+| `android-app` | `NavHostFragment` présent ssi `includeNavigation` | L4 |
+
+## Si l'outillage manque
+
+Les outils requis par les modèles (JDK 17/21, Maven, SDK Android, Gradle)
+sont annoncés en tête d'exécution de `verify-templates.sh` avec la conduite
+à tenir ; les combinaisons qui les exigent échouent explicitement et font
+échouer le script — **jamais de contournement, jamais de vérification
+désactivée** (ADR 0157 §2). Les familles vérifiables restent prouvables par
+tranches (`CODEIDE_COMBINAISONS`) ; une impossibilité (ex. réseau bloqué
+vers Maven Central) se **signale dans le rapport**, elle ne se contourne
+pas.
 
 ## Les modèles embarqués (étapes 9, phases 2-4 du roadmap)
 
 Sept modèles vivent sous `assets/templates/`, tous vérifiés par build réel
-via `scripts/verify-templates.sh` (**37 combinaisons**) :
+via `scripts/verify-templates.sh` — la matrice est **dérivée des
+manifestes** (`generateur matrice`, ADR 0157) complétée des cas nommés de
+régression :
 
 | Modèle | Ce qu'il génère | Détails |
 |---|---|---|

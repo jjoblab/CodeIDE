@@ -1,7 +1,9 @@
 # ADR 0157 — Outil `tools/generateur` : commandes multiples et matrice dérivée des manifestes
 
-- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0 ;
-  à implémenter en L2, AVANT les lots de modèles)
+- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0) ;
+  **implémenté au lot L2** (v0.210.0) — cinq commandes, protocole
+  `PROTOCOLE=2`, matrice dérivée, lint, déterminisme, script refondu,
+  cas nommés déplacés dans `scripts/verify-templates-cas-nomes.json`.
 - **S'appuie sur** : ADR 0019 (harnais JVM, plan figé déversé), ADR 0153
   (contraintes), ADR 0155 (étapes), ADR 0156 (`commun:`).
 - **Contexte** : l'audit L0 confirme (C1-C4) que la matrice des 37
@@ -99,3 +101,29 @@ par le script et par la CI.
 - L'API du module `:tools:generateur` (analyse d'arguments, sorties) change :
   tests existants mis à jour, protocole historique maintenu pour la partie
   génération.
+
+## Amendements d'implémentation (L2)
+
+- **Lint i18n** : les clés i18n **référencées** par le manifeste (libellés,
+  aides, messages de règles, groupes, raisons de désactivation) sont
+  obligatoires en `fr` **et** `en` ; les clés optionnelles des choix
+  (`param.<id>.choix.<v>.*`) sont contrôlées en **symétrie** (présente d'un
+  côté → présente des deux) — l'absence même de `libelle` reste permise
+  (repli sur la valeur brute, ADR 0154 §1) tant que l'i18n de choix n'est
+  pas généralisé aux manifestes (lots L3/L4).
+- **Chemins dupliqués** : déjà refusés au chargement du manifeste (parseur,
+  TEMPLATES.md) — le lint n'a rien à redoubler, un catalogue qui arrive à
+  l'évaluation n'en contient pas.
+- **Outils absents** : le script annonce en tête les outils manquants
+  (conduite à tenir) et fait échouer **les combinaisons qui les exigent**
+  (code de sortie non nul) sans bloquer les familles vérifiables —
+  `CODEIDE_COMBINAISONS` découpe les preuves par tranches ; jamais de
+  contournement silencieux.
+- **`generer` unitaire** : au-delà du lot `--combos`, un projet unique se
+  génère par arguments (`--modele`, `--param k=v`, options communes) — même
+  plan figé, même protocole.
+- **Masquage et `autoDefinit`** : la matrice évalue chaque candidat comme un
+  formulaire laissé au moteur (aucun paramètre « modifié à la main ») — les
+  dépendances automatiques peuvent donc forcer leurs cibles, et les
+  combinaisons émises portent les valeurs **effectives** (jamais la valeur
+  choisie d'un paramètre que le moteur a corrigé).

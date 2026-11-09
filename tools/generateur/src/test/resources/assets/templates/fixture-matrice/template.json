@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-matrice",
+  "templateVersion": "1.0.0",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "test",
+  "tags": ["test"],
+  "parameters": [
+    {
+      "id": "mode",
+      "type": "CHOICE",
+      "labelKey": "param.mode.label",
+      "choices": ["simple", "avance"],
+      "default": "simple"
+    },
+    {
+      "id": "avecExtension",
+      "type": "BOOLEAN",
+      "labelKey": "param.ext.label",
+      "default": "false"
+    },
+    {
+      "id": "extras",
+      "type": "CHOICE",
+      "labelKey": "param.extras.label",
+      "choices": ["a", "b"],
+      "default": "a",
+      "visibleWhen": "mode == \"avance\""
+    },
+    {
+      "id": "limite",
+      "type": "CHOICE",
+      "labelKey": "param.limite.label",
+      "choices": ["1", "2"],
+      "default": "1",
+      "enabledWhen": "avecExtension",
+      "disabledReasonKey": "param.limite.raison"
+    },
+    {
+      "id": "packageName",
+      "type": "TEXT",
+      "labelKey": "param.package.label",
+      "defaultFrom": "packageFromNameAndAuthor",
+      "validator": "package-name",
+      "section": "INFORMATION",
+      "persist": true
+    }
+  ],
+  "computed": [
+    { "name": "estAvance", "expression": "mode == \"avance\"" }
+  ],
+  "constraints": [
+    {
+      "when": "estAvance && avecExtension && extras == \"b\"",
+      "severity": "ERREUR",
+      "messageKey": "regle.extras.b.interdit"
+    }
+  ],
+  "autoDefinit": [
+    {
+      "when": "estAvance && !avecExtension",
+      "definit": { "avecExtension": true },
+      "messageKey": "regle.ext.auto"
+    }
+  ],
+  "files": [
+    { "path": "src/{{packageName|packagePath}}/Main.txt", "source": "files/main.txt.tpl" },
+    { "path": "PROJET.txt", "source": "files/projet.txt.tpl" },
+    { "path": "annexe.txt", "source": "files/annexe.txt.tpl", "when": "estAvance" },
+    { "path": "limite.txt", "source": "files/limite.txt.tpl", "when": "avecExtension" }
+  ]
+}

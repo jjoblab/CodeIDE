@@ -1,30 +1,41 @@
 #!/usr/bin/env bash
-# CodeIDE — validation réelle des modèles embarqués (étape 9, section 11).
+# CodeIDE — validation réelle des modèles embarqués (étape 9, section 11 ;
+# refonte L2 ADR 0157 : la matrice est DÉRIVÉE des manifestes par l'outil).
 #
-# Génère sur disque un jeu de projets couvrant les combinaisons d'options
-# (tous les triplets langage × type × build, chaque JDK au moins une fois,
-# avec/sans tests, avec/sans wrapper, les deux langues, plusieurs licences,
-# des noms et descriptions hostiles) via le harnais :tools:generateur,
-# puis COMPILE, TESTE et EXÉCUTE chaque projet avec les vrais outils
-# (Gradle Wrapper, Maven, javac, projet Gradle jetable pour `none`+Kotlin).
+# Pipeline :
+#   1. `generateur matrice` dérive les combinaisons des manifestes (lecture
+#      réelle des `template.json` — stratégies exhaustif/paires/bornes) ;
+#   2. les cas nommés de régression (`scripts/verify-templates-cas-nomes.json`,
+#      écrits à la main : noms et descriptions hostiles, renommages, langues,
+#      licences, dépendances) s'ajoutent à la matrice dérivée ;
+#   3. `generateur generer` déverse chaque combinaison sur disque ;
+#   4. `generateur determinisme` compare deux générations octet pour octet ;
+#   5. chaque projet est vérifié structurellement puis COMPILÉ, TESTÉ et
+#      EXÉCUTÉ avec les vrais outils (Gradle Wrapper, Maven, javac, SDK
+#      Android) — le tableau final et les rapports (Markdown + JUnit XML)
+#      portent le détail combinaison par combinaison.
 #
 # Usage : scripts/verify-templates.sh
-# Surcharge d'environnement (chemins des outils) :
+# Surcharge d'environnement :
 #   CODEIDE_JDK17, CODEIDE_JDK21, CODEIDE_MAVEN, CODEIDE_TRAVAIL,
-#   CODEIDE_ANDROID_SDK (modèles android-app, défaut /home/z/android-sdk)
+#   CODEIDE_ANDROID_SDK (modèles android-*, défaut $ANDROID_HOME)
+#   CODEIDE_STRATEGIE (exhaustif|paires|bornes — défaut paires)
+#   CODEIDE_SEUIL (seuil de la stratégie exhaustive — défaut 64)
 # Filtre optionnel (expression rationnelle sur l'identifiant de combinaison) :
-#   CODEIDE_COMBINAISONS='^(gp|lib|andr)' — vérification ciblée ou par tranches ;
-#   les combinaisons déjà vérifiées (marqueur .verifie + empreinte des assets)
-#   sont sautées à chaque relance, la reprise est donc gratuite.
-# Le tableau « combinaison → résultat » est affiché en fin d'exécution ;
-# le code de sortie est non nul au moindre échec.
+#   CODEIDE_COMBINAISONS='^(mx-android|sb-|andr)' — vérification ciblée ou
+#   par tranches ; les combinaisons déjà vérifiées (marqueur `.verifie` +
+#   empreinte des assets) sont sautées à chaque relance, la reprise est donc
+#   gratuite.
+# Outils absents : annoncés en tête avec la conduite à tenir — les
+#   combinaisons qui les exigent échouent explicitement (code de sortie non
+#   nul) ; JAMAIS de contournement (ADR 0157 §2).
 
 set -euo pipefail
 
 RACINE=$(cd "$(dirname "$0")/.." && pwd)
 TRAVAIL="${CODEIDE_TRAVAIL:-$RACINE/build/verify-templates}"
 JDK17="${CODEIDE_JDK17:-$(compgen -G '/home/z/tools/jdk-17*' | head -1 || true)}"
-JDK21="${CODEIDE_JDK21:-/home/z/tools/jdk-21}"
+JDK21="${CODEIDE_JDK21:-$(compgen -G '/home/z/tools-jdk*' | head -1 || echo /home/z/tools/jdk-21)}"
 MVN_BIN="${CODEIDE_MAVEN:-$(compgen -G '/home/z/tools/apache-maven-*/bin/mvn' | head -1 || command -v mvn || true)}"
 # Distribution Gradle locale (projets générés SANS wrapper : build avec le
 # Gradle système, comme un utilisateur qui n'embarque pas le wrapper).
@@ -33,6 +44,10 @@ GRADLE_DIS="$(compgen -G "$HOME/.gradle/wrapper/dists/gradle-9.7.1-bin/*/gradle-
 # ces combinaisons échouent avec un message explicite (le reste du script,
 # JVM pur, reste exécutable).
 SDK_ANDROID="${CODEIDE_ANDROID_SDK:-${ANDROID_HOME:-/home/z/android-sdk}}"
+STRATEGIE="${CODEIDE_STRATEGIE:-paires}"
+SEUIL="${CODEIDE_SEUIL:-64}"
+FILTRE="${CODEIDE_COMBINAISONS:-}"
+VERSION_CODEIDE=$(sed -n 's/^VERSION_NAME=//p' "$RACINE/version.properties" | head -1)
 
 echec_global=0
 declare -a lignes_tableau=()
@@ -41,14 +56,23 @@ note() { printf '\033[1;34m[verify-templates]\033[0m %s\n' "$*"; }
 echec() { printf '\033[1;31m[verify-templates]\033[0m %s\n' "$*" >&2; }
 
 # ---------------------------------------------------------------------------
-# 0. Outils présents ?
+# 0. Outils présents ? (annoncés — les combinaisons concernées échoueront
+#    explicitement ; aucun contournement, ADR 0157 §2)
 # ---------------------------------------------------------------------------
-[ -d "$JDK17" ] || { echec "JDK 17 introuvable (CODEIDE_JDK17) : $JDK17"; exit 1; }
-[ -d "$JDK21" ] || { echec "JDK 21 introuvable (CODEIDE_JDK21) : $JDK21"; exit 1; }
-[ -n "$MVN_BIN" ] && [ -x "$MVN_BIN" ] || { echec "Maven introuvable (CODEIDE_MAVEN)"; exit 1; }
-note "JDK 17 : $JDK17"
+[ -d "$JDK21" ] || { echec "JDK 21 introuvable (CODEIDE_JDK21) : $JDK21 — requis par le harnais"; exit 1; }
 note "JDK 21 : $JDK21"
-note "Maven  : $MVN_BIN"
+if [ -d "$JDK17" ]; then
+    note "JDK 17 : $JDK17"
+else
+    echec "JDK 17 absent (CODEIDE_JDK17) — les combinaisons jdkVersion=17 échoueront. Conduite à tenir : installer Temurin 17 et/ou exporter CODEIDE_JDK17."
+    echec_global=1
+fi
+if [ -n "$MVN_BIN" ] && [ -x "$MVN_BIN" ]; then
+    note "Maven  : $MVN_BIN"
+else
+    echec "Maven absent (CODEIDE_MAVEN) — les combinaisons buildSystem=maven échoueront. Conduite à tenir : installer Maven 3.9+ et/ou exporter CODEIDE_MAVEN."
+    echec_global=1
+fi
 if [ -n "$GRADLE_DIS" ]; then
     note "Gradle (sans wrapper) : $GRADLE_DIS"
 else
@@ -57,259 +81,106 @@ fi
 if [ -d "$SDK_ANDROID/platforms" ]; then
     note "SDK Android : $SDK_ANDROID"
 else
-    note "SDK Android introuvable (CODEIDE_ANDROID_SDK) : $SDK_ANDROID — les combinaisons andr-* échoueront"
+    echec "SDK Android introuvable (CODEIDE_ANDROID_SDK) : $SDK_ANDROID — les combinaisons android-* échoueront. Conduite à tenir : installer le SDK et/ou exporter CODEIDE_ANDROID_SDK."
+    echec_global=1
 fi
 
 mkdir -p "$TRAVAIL"
 
 # ---------------------------------------------------------------------------
-# 1. Matrice des combinaisons (source unique : le script Python ci-dessous
-#    produit le JSON du harnais ET le tableau pilotant la boucle de build).
+# 1. Matrice dérivée des manifestes (ADR 0157 §1) — plus aucun bloc de
+#    combinaisons codé à la main ici : l'outil lit les template.json.
 # ---------------------------------------------------------------------------
-python3 - "$TRAVAIL" <<'PY'
+note "Matrice dérivée (stratégie $STRATEGIE, seuil $SEUIL) …"
+(cd "$RACINE" && JAVA_HOME="$JDK21" ./gradlew -q -Pfreres.sources :tools:generateur:run \
+    "--args=matrice --assets $RACINE/app/src/main/assets --strategie $STRATEGIE --seuil $SEUIL --sortie $TRAVAIL/combos-base.json" \
+    2>"$TRAVAIL/matrice-exclusions.jsonl") || {
+    echec "matrice : dérivation impossible (voir $TRAVAIL/matrice-exclusions.jsonl)"
+    exit 1
+}
+[ -s "$TRAVAIL/matrice-exclusions.jsonl" ] && note "$(wc -l < "$TRAVAIL/matrice-exclusions.jsonl") candidat(s) exclu(s) par règle ERREUR ou validation (voir $TRAVAIL/matrice-exclusions.jsonl)"
+
+# ---------------------------------------------------------------------------
+# 2. Fusion matrice dérivée + cas nommés de régression, filtre optionnel et
+#    tableau de pilotage des builds (aucune combinaison définie ici).
+# ---------------------------------------------------------------------------
+python3 - "$TRAVAIL" "$RACINE" "$FILTRE" <<'PY'
 import json
+import re
 import sys
 
-travail = sys.argv[1]
+travail, racine, filtre = sys.argv[1], sys.argv[2], sys.argv[3]
 
-# id, template, type, build, jdk, tests, wrapper, langue, licence, nom, description
-AUTEUR = "CodeIDE"
-combos = [
-    # — Tous les triplets langage × type × build, chaque JDK, options variées.
-    ("kt-app-gradle-21", "kotlin-jvm", "application", "gradle-kts", "21", True, True, "fr", "mit",
-     "Projet $ & % \U0001F680 très-long", ""),
-    ("kt-lib-gradle-21", "kotlin-jvm", "library", "gradle-kts", "21", True, True, "en", "apache-2.0",
-     "Bibliotheque Kotlin", "A Kotlin library"),
-    ("kt-app-maven-21", "kotlin-jvm", "application", "maven", "21", True, False, "fr", "gpl-3.0",
-     "Application Maven Kotlin", "Un \"piege\" </project> \\ avec $dollars$"),
-    ("kt-lib-maven-17", "kotlin-jvm", "library", "maven", "17", True, False, "en", "mit",
-     "Bibliotheque Maven", ""),
-    ("kt-app-none", "kotlin-jvm", "application", "none", "", False, False, "fr", "none",
-     "Kotlin Sans Build", ""),
-    ("kt-lib-none", "kotlin-jvm", "library", "none", "", False, False, "en", "bsd-3-clause",
-     "Bibliotheque Sans Build", ""),
-    ("kt-app-gradle-17", "kotlin-jvm", "application", "gradle-kts", "17", True, False, "en", "none",
-     "Kotlin Sans Wrapper", ""),
-    ("kt-lib-gradle-17", "kotlin-jvm", "library", "gradle-kts", "17", False, True, "fr", "apache-2.0",
-     "Bibliotheque Sans Tests", ""),
-    ("jv-app-gradle-21", "java", "application", "gradle-kts", "21", True, True, "en", "mit",
-     "Java Application", ""),
-    ("jv-lib-gradle-17", "java", "library", "gradle-kts", "17", True, True, "fr", "gpl-3.0",
-     "Bibliotheque Java", "Une bibliotheque Java"),
-    ("jv-app-maven-17", "java", "application", "maven", "17", True, False, "en", "none",
-     "Java Maven App", ""),
-    ("jv-lib-maven-21", "java", "library", "maven", "21", True, False, "fr", "bsd-3-clause",
-     "Bibliotheque Java Maven", ""),
-    ("jv-app-none", "java", "application", "none", "", False, False, "en", "none",
-     "Java Sans Build", ""),
-    ("jv-lib-none", "java", "library", "none", "", False, False, "fr", "apache-2.0",
-     "Bibliotheque Java Sans Build", ""),
-    ("jv-app-gradle-21b", "java", "application", "gradle-kts", "21", False, False, "fr", "none",
-     "Java Sans Tests Ni Wrapper", ""),
-    ("jv-lib-gradle-21b", "java", "library", "gradle-kts", "21", True, False, "en", "mit",
-     "Bibliotheque Java Sans Wrapper", ""),
-    ("kt-app-gradle-21b", "kotlin-jvm", "application", "gradle-kts", "21", True, True, "en", "none",
-     "Kotlin Hostile", "Description \\ \"hostile\" $ </script> & 'quote'"),
-    ("jv-app-maven-21b", "java", "application", "maven", "21", True, False, "fr", "mit",
-     "Console & CLI % 2026 \U0001F600", "Autre description \"hostile\" \\ $x$"),
-]
+base = json.load(open(f"{travail}/combos-base.json", encoding="utf-8"))
+nomes = json.load(open(f"{racine}/scripts/verify-templates-cas-nomes.json", encoding="utf-8"))
+entrees = base + nomes
 
-# — Modèles v0.43.0 (phase 2 du roadmap, ADR 0075) : Spring Boot, KMP,
-# Android app. Le packageName y est laissé LIBRE pour éprouver la
-# dérivation com.example.<app|artefact> (defaultFrom) ; seuls les
-# interrupteurs et le nom d'app (source de la dérivation Android) sont figés.
-# build : gradle-app (Spring Boot), gradle-kmp, gradle-android.
-nouveaux = [
-    ("sb-fr", "spring-boot", "gradle-app", "17", True, True, "fr", "none",
-     "DemoApi", "Une API de démonstration", {}),
-    ("sb-en-min", "spring-boot", "gradle-app", "17", False, False, "en", "mit",
-     "Web Service", "A Spring service", {}),
-    ("kmp-fr", "kotlin-multiplatform", "gradle-kmp", "21", True, True, "fr", "none",
-     "KmpLib", "Une bibliothèque partagée", {}),
-    ("kmp-en-min", "kotlin-multiplatform", "gradle-kmp", "21", False, False, "en", "apache-2.0",
-     "Multi Lib", "", {}),
-    ("andr-fr", "android-app", "gradle-android", "21", True, True, "fr", "none",
-     "MonApp", "", {"appName": "MonApp"}),
-    ("andr-en-min", "android-app", "gradle-android", "21", False, False, "en", "mit",
-     "My Cool App!", "Description hostile </project> & $x$", {"appName": "My Cool App"}),
-]
+ids = [e["id"] for e in entrees]
+doublons = sorted({i for i in ids if ids.count(i) > 1})
+if doublons:
+    sys.exit(f"identifiants de combinaison en double : {doublons}")
 
-# — Modèles v0.44.0 (phase 3 du roadmap) : variantes de projet Android
-# (projectType / language), bibliothèque .aar et plugin Gradle.
-# build : gradle-android (variantes), gradle-android-lib (aar),
-# gradle-plugin (kotlin-dsl + testkit).
-phase3 = [
-    ("andr-vide-java", "android-app", "gradle-android", "21", True, True, "en", "none",
-     "Java App", "", {"appName": "JavaApp", "projectType": "empty-activity", "language": "java"}),
-    ("andr-sansact-fr", "android-app", "gradle-android", "21", True, True, "fr", "none",
-     "Fondations", "", {"appName": "Fondations", "projectType": "no-activity", "language": "kotlin"}),
-    ("andr-tiroir-fr", "android-app", "gradle-android", "21", True, True, "fr", "none",
-     "App Tiroir", "", {"appName": "Mon Tiroir & Co", "projectType": "basic-activity", "language": "kotlin"}),
-    ("andr-tiroir-java-en", "android-app", "gradle-android", "21", False, False, "en", "mit",
-     "Drawer Java!", "Description hostile </project> & $x$",
-     {"appName": "My Cool App!", "projectType": "basic-activity", "language": "java"}),
-    ("lib-fr", "android-library", "gradle-android-lib", "21", True, True, "fr", "none",
-     "Bibliotheque Android", "Une bibliothèque de test", {"appName": "MaBibliotheque"}),
-    ("lib-en-min", "android-library", "gradle-android-lib", "21", False, False, "en", "apache-2.0",
-     "Utils Kit!", "", {"appName": "Utils Kit!"}),
-    ("gp-fr", "gradle-plugin", "gradle-plugin", "21", True, True, "fr", "none",
-     "Mon Plugin Salutations", "Un plugin de démonstration", {}),
-    ("gp-en-min", "gradle-plugin", "gradle-plugin", "21", False, False, "en", "mit",
-     "Build Utils 2026", "", {}),
-]
+if filtre:
+    motif = re.compile(filtre)
+    entrees = [e for e in entrees if motif.search(e["id"])]
 
-# — Modèles v0.45.0 (phase 4 du roadmap, ADR 0077) : sections Android
-# (minSdk/targetSdk/applicationId), dépendances communes (Android, Spring
-# Boot, KMP) et renommages de l'aperçu. Les renommages passent par le
-# harnais exactement comme depuis le wizard.
-# build : andr-deps (KSP 2.3.12 + Room + Hilt avec le Kotlin intégré AGP),
-# sb-deps (JPA + H2 + Security + Actuator + Validation), kmp-deps
-# (serialization + coroutines + datetime), kt-app-renoms (README renommé).
-phase4 = [
-    ("andr-deps", "android-app", "gradle-android", "21", True, True, "en", "none",
-     "App Deps", "Toutes les dependances",
-     {"appName": "AppDeps", "minSdk": "24", "targetSdk": "37",
-      "includeCoroutines": "true", "includeRetrofit": "true", "includeNavigation": "true",
-      "includeRoom": "true", "includeHilt": "true"}),
-    ("andr-deps-java", "android-app", "gradle-android", "21", True, True, "fr", "none",
-     "Java Deps", "Room et Hilt en Java",
-     {"appName": "JavaDeps", "language": "java", "includeRoom": "true", "includeHilt": "true"}),
-    ("sb-deps", "spring-boot", "gradle-app", "17", True, True, "fr", "none",
-     "Api Deps", "JPA Security Actuator Validation", {"includeJpa": "true", "includeSecurity": "true",
-      "includeActuator": "true", "includeValidation": "true"}),
-    ("kmp-deps", "kotlin-multiplatform", "gradle-kmp", "21", True, True, "fr", "none",
-     "Kmp Deps", "Serialization coroutines datetime",
-     {"includeSerialization": "true", "includeCoroutines": "true", "includeDatetime": "true"}),
-]
+def build_de(entree):
+    modele, params = entree["templateId"], entree["parametres"]
+    if modele in ("kotlin-jvm", "java"):
+        return params.get("buildSystem", "gradle-kts")
+    return {
+        "spring-boot": "gradle-app",
+        "kotlin-multiplatform": "gradle-kmp",
+        "android-app": "gradle-android",
+        "android-library": "gradle-android-lib",
+        "gradle-plugin": "gradle-plugin",
+    }[modele]
 
-# — Renommage de l'aperçu (ADR 0077) sur un projet buildable : README.md
-# devient NOTES.md (le plan écrit sur le disque doit refléter l'aperçu).
-renommages = [
-    ("kt-app-renoms", "kotlin-jvm", "gradle-kts", "21", True, True, "fr", "mit",
-     "Kotlin Renomme", "",
-     {"projectType": "application", "buildSystem": "gradle-kts", "jdkVersion": "21"},
-     {"README.md": "NOTES.md"}),
-]
+def role_de(entree):
+    modele, params = entree["templateId"], entree["parametres"]
+    if modele in ("kotlin-jvm", "java"):
+        return "app" if params.get("projectType", "application") == "application" else "lib"
+    return "lib" if modele in ("android-library", "gradle-plugin") else "app"
 
-# Filtre optionnel de combinaisons (expression rationnelle sur l'identifiant) :
-# CODEIDE_COMBINAISONS='^(sb|kmp|andr)' ne vérifie que les nouveaux modèles,
-# utile pour une vérification ciblée ou une exécution par tranches.
-FILTRE = __import__("os").environ.get("CODEIDE_COMBINAISONS", "")
-if FILTRE:
-    import re as _re
-    _motif = _re.compile(FILTRE)
-    combos = [c for c in combos if _motif.search(c[0])]
-    nouveaux = [c for c in nouveaux if _motif.search(c[0])]
-    phase3 = [c for c in phase3 if _motif.search(c[0])]
-    phase4 = [c for c in phase4 if _motif.search(c[0])]
-    renommages = [c for c in renommages if _motif.search(c[0])]
-
-entrees = []
-tsv = []
-for (cid, template, type_, build, jdk, tests, wrapper, langue, licence, nom, desc) in combos:
-    parametres = {"projectType": type_, "buildSystem": build}
-    manuels = ["projectType", "buildSystem"]
-    if build != "none":
-        parametres["jdkVersion"] = jdk
-        parametres["includeTests"] = "true" if tests else "false"
-        manuels += ["jdkVersion", "includeTests"]
-        parametres["packageName"] = f"io.codeide.verification.{cid.replace('-', '')}"
-        parametres["groupId"] = "io.codeide.verification"
-        parametres["artifactId"] = cid
-        parametres["version"] = "0.1.0"
-        manuels += ["packageName", "groupId", "artifactId", "version"]
-    if build == "gradle-kts":
-        parametres["includeWrapper"] = "true" if wrapper else "false"
-        manuels += ["includeWrapper"]
-    entrees.append({
-        "id": cid,
-        "templateId": template,
-        "nom": nom,
-        "description": desc,
-        "parametres": parametres,
-        "modifiesManuellement": sorted(manuels),
-        "options": {
-            "license": licence,
-            "contentLanguage": langue,
-        },
-    })
-    tsv.append("\t".join([
-        cid, template, type_, build, jdk or "-",
-        "tests" if tests else "notests",
-        "wrapper" if wrapper else "nowrapper",
-        langue, licence,
-        "app" if type_ == "application" else "lib",
+lignes = []
+for entree in entrees:
+    params, options = entree["parametres"], entree["options"]
+    build = build_de(entree)
+    lignes.append("\t".join([
+        entree["id"],
+        entree["templateId"],
+        build,
+        params.get("jdkVersion", "21") if build != "none" else "-",
+        "tests" if params.get("includeTests", "true") == "true" else "notests",
+        "wrapper" if params.get("includeWrapper", "true") == "true" else "nowrapper",
+        options.get("contentLanguage", "en"),
+        options.get("license", "none"),
+        role_de(entree),
     ]))
 
-for (cid, template, build, jdk, tests, wrapper, langue, licence, nom, desc, fixes) in nouveaux + phase3 + phase4:
-    parametres = dict(fixes)
-    manuels = list(fixes)
-    parametres["includeTests"] = "true" if tests else "false"
-    manuels.append("includeTests")
-    parametres["includeWrapper"] = "true" if wrapper else "false"
-    manuels.append("includeWrapper")
-    entrees.append({
-        "id": cid,
-        "templateId": template,
-        "nom": nom,
-        "description": desc,
-        "parametres": parametres,
-        "modifiesManuellement": sorted(manuels),
-        "options": {
-            "license": licence,
-            "contentLanguage": langue,
-        },
-    })
-    tsv.append("\t".join([
-        cid, template, "application", build, jdk or "-",
-        "tests" if tests else "notests",
-        "wrapper" if wrapper else "nowrapper",
-        langue, licence, "app",
-    ]))
-
-for (cid, template, build, jdk, tests, wrapper, langue, licence, nom, desc, fixes, renoms) in renommages:
-    parametres = dict(fixes)
-    manuels = list(fixes)
-    parametres["includeTests"] = "true" if tests else "false"
-    manuels.append("includeTests")
-    parametres["includeWrapper"] = "true" if wrapper else "false"
-    manuels.append("includeWrapper")
-    entrees.append({
-        "id": cid,
-        "templateId": template,
-        "nom": nom,
-        "description": desc,
-        "parametres": parametres,
-        "modifiesManuellement": sorted(manuels),
-        "renommages": renoms,
-        "options": {
-            "license": licence,
-            "contentLanguage": langue,
-        },
-    })
-    tsv.append("\t".join([
-        cid, template, "application", build, jdk or "-",
-        "tests" if tests else "notests",
-        "wrapper" if wrapper else "nowrapper",
-        langue, licence, "app",
-    ]))
-
-with open(f"{travail}/combos.json", "w", encoding="utf-8") as f:
-    json.dump(entrees, f, ensure_ascii=False, indent=2)
-with open(f"{travail}/matrix.tsv", "w", encoding="utf-8") as f:
-    f.write("\n".join(tsv) + "\n")
-print(f"{len(entrees)} combinaisons écrites")
+with open(f"{travail}/combos.json", "w", encoding="utf-8") as flot:
+    json.dump(entrees, flot, ensure_ascii=False, indent=2)
+with open(f"{travail}/matrix.tsv", "w", encoding="utf-8") as flot:
+    flot.write("\n".join(lignes) + "\n")
+print(f"{len(entrees)} combinaisons (matrice dérivée + cas nommés)")
 PY
 
 # ---------------------------------------------------------------------------
-# 2. Génération sur disque (harnais JVM — ADR 0019).
+# 3. Génération sur disque (harnais JVM — ADR 0019) puis déterminisme.
 # ---------------------------------------------------------------------------
 note "Génération des projets dans $TRAVAIL/modeles …"
-(cd "$RACINE" && JAVA_HOME="$JDK21" ./gradlew -q :tools:generateur:run \
-    "--args=--assets $RACINE/app/src/main/assets --sortie $TRAVAIL/modeles --combos $TRAVAIL/combos.json --annee 2026 --auteur CodeIDE --generateur 0.10.0")
+(cd "$RACINE" && JAVA_HOME="$JDK21" ./gradlew -q -Pfreres.sources :tools:generateur:run \
+    "--args=generer --assets $RACINE/app/src/main/assets --sortie $TRAVAIL/modeles --combos $TRAVAIL/combos.json --annee 2026 --auteur CodeIDE --generateur $VERSION_CODEIDE")
+
+note "Déterminisme (deux générations comparées octet pour octet) …"
+(cd "$RACINE" && JAVA_HOME="$JDK21" ./gradlew -q -Pfreres.sources :tools:generateur:run \
+    "--args=determinisme --assets $RACINE/app/src/main/assets --combos $TRAVAIL/combos.json --sortie $TRAVAIL/determinisme --annee 2026 --auteur CodeIDE --generateur $VERSION_CODEIDE") || {
+    echec "déterminisme : une divergence octet pour octet a été détectée"
+    exit 1
+}
 
 # ---------------------------------------------------------------------------
-# 3. Vérifications structurelles + builds réels, combinaison par combinaison.
+# 4. Vérifications structurelles + builds réels, combinaison par combinaison.
 # ---------------------------------------------------------------------------
 SOMME_WRAPPER=$(sha256sum "$RACINE/gradle/wrapper/gradle-wrapper.jar" | cut -d' ' -f1)
 PREMIERE_LIGNE_FR="Bonjour, Ada!"
@@ -370,11 +241,11 @@ gradle_cmd_pour() { # $1 projet
 }
 
 combinaison_ko() {
-    lignes_tableau+=("$(printf '%-22s | %s' "$1" "KO — $2")")
+    lignes_tableau+=("$(printf '%-24s | %s' "$1" "KO — $2")")
     echec_global=1
 }
 combinaison_ok() {
-    lignes_tableau+=("$(printf '%-22s | %s' "$1" "OK")")
+    lignes_tableau+=("$(printf '%-24s | %s' "$1" "OK")")
 }
 
 # Empreinte des assets : un marqueur ne vaut que pour les assets qui l'ont produit.
@@ -382,21 +253,31 @@ EMPREINTE_ASSETS=$( (find "$RACINE/app/src/main/assets/templates" -type f | sort
     sha256sum "$RACINE/gradle/wrapper/gradle-wrapper.jar") 2>/dev/null | sha256sum | cut -d' ' -f1)
 
 note "Builds réels ($(wc -l < "$TRAVAIL/matrix.tsv") combinaisons) — ceci prend plusieurs minutes…"
-while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licence role; do
+mkdir -p "$TRAVAIL/junit"
+while IFS=$'\t' read -r cid template build jdk tests wrapper langue licence role; do
     projet="$TRAVAIL/modeles/$cid"
     erreur=""
+    debut=$(date +%s%3N)
     marqueur="$projet/.verifie"
     if [ -f "$marqueur" ] && [ "$(cat "$marqueur")" = "$EMPREINTE_ASSETS" ]; then
         combinaison_ok "$cid"
         note "OK   $cid (déjà vérifié)"
         continue
     fi
-    if ! verifier_structure "$projet"; then
-        erreur="structure"
-    fi
 
     jdk_home="$JDK21"
-    [ "$jdk" = "17" ] && jdk_home="$JDK17"
+    if [ "$jdk" = "17" ]; then
+        if [ -d "$JDK17" ]; then jdk_home="$JDK17"; else erreur="JDK 17 absent (CODEIDE_JDK17) — installer Temurin 17"; fi
+    fi
+    if [ -z "$erreur" ] && [ "$build" = "maven" ] && { [ -z "$MVN_BIN" ] || [ ! -x "$MVN_BIN" ]; }; then
+        erreur="Maven absent (CODEIDE_MAVEN) — installer Maven 3.9+"
+    fi
+
+    if [ -z "$erreur" ]; then
+        if ! verifier_structure "$projet"; then
+            erreur="structure"
+        fi
+    fi
 
     if [ -z "$erreur" ]; then
         case "$build" in
@@ -426,7 +307,8 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
                         erreur="sortie application inattendue (en)"
                     fi
                 fi
-                # Phase 4 — renommage : l'aperçu ne ment pas, le disque suit.
+                # Renommage de l'aperçu (ADR 0077) : l'aperçu ne ment pas, le
+                # disque suit — assertion des cas nommés *-renoms.
                 if [ -z "$erreur" ] && [[ "$cid" == *-renoms ]]; then
                     if [ ! -f "$projet/NOTES.md" ]; then
                         erreur="README renommé introuvable (NOTES.md)"
@@ -519,7 +401,7 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
             elif [ "$langue" = "en" ] && ! grep -rq "Hello" "$projet/src/main/kotlin"; then
                 erreur="contenu Spring non traduit (en)"
             fi
-            # Phase 4 — dépendances Spring toutes activées.
+            # Dépendances Spring toutes activées (cas nommé sb-deps).
             if [ -z "$erreur" ] && [ "$cid" = "sb-deps" ]; then
                 for attendu in data.jpa "runtimeOnly(libs.h2)" starter.security starter.actuator starter.validation; do
                     if ! grep -q "$attendu" "$projet/build.gradle.kts"; then
@@ -545,7 +427,7 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
             elif [ "$langue" = "en" ] && ! grep -q "Hello, Ada" "$TRAVAIL/$cid.sortie"; then
                 erreur="salutation JVM inattendue (en)"
             fi
-            # Phase 4 — dépendances KMP : plugin serialization + fichiers d'usage.
+            # Dépendances KMP : plugin serialization + fichiers d'usage (cas nommé kmp-deps).
             if [ -z "$erreur" ] && [ "$cid" = "kmp-deps" ]; then
                 if ! grep -q "kotlin.serialization" "$projet/build.gradle.kts"; then
                     erreur="plugin serialization absent (KMP)"
@@ -560,8 +442,8 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
             ;;
         gradle-android)
             # Android app : assembleDebug + tests unitaires de :app avec le SDK
-            # local (CODEIDE_ANDROID_SDK), APK contrôlé (ADR 0075). Phase 3 :
-            # contrôle aussi la variante (langage, type de projet).
+            # local (CODEIDE_ANDROID_SDK), APK contrôlé (ADR 0075). Les cas
+            # nommés contrôlent aussi les variantes (langage, type de projet).
             cmd=$(gradle_cmd_pour "$projet")
             if [ ! -d "$SDK_ANDROID/platforms" ]; then
                 erreur="SDK Android introuvable (CODEIDE_ANDROID_SDK)"
@@ -590,8 +472,8 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
             if [ -z "$erreur" ] && [[ "$projet" == *tiroir* ]] && [ ! -f "$projet/app/src/main/res/menu/tiroir.xml" ]; then
                 erreur="menu du tiroir absent"
             fi
-            # Phase 4 — dépendances : Application Hilt + base Room présentes
-            # et câblées (KSP dans le build, nom dans le manifeste).
+            # Dépendances : Application Hilt + base Room présentes et câblées
+            # (KSP dans le build, nom dans le manifeste) — cas nommés andr-deps*.
             if [ -z "$erreur" ] && [[ "$cid" == andr-deps* ]]; then
                 case "$cid" in
                 andr-deps)
@@ -611,7 +493,7 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
             fi
             ;;
         gradle-android-lib)
-            # Bibliothèque Android (phase 3) : :library:assembleRelease produit
+            # Bibliothèque Android : :library:assembleRelease produit
             # le .aar, tests unitaires du module — aucun APK attendu.
             cmd=$(gradle_cmd_pour "$projet")
             if [ ! -d "$SDK_ANDROID/platforms" ]; then
@@ -631,7 +513,7 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
             fi
             ;;
         gradle-plugin)
-            # Plugin Gradle (phase 3) : build (validatePlugins inclus) +
+            # Plugin Gradle : build (validatePlugins inclus) +
             # tests ProjectBuilder ; publication maven locale et marqueur
             # de plugin contrôlés quand les tests sont demandés.
             cmd=$(gradle_cmd_pour "$projet")
@@ -652,30 +534,57 @@ while IFS=$'\t' read -r cid template type_ build jdk tests wrapper langue licenc
         esac
     fi
 
+    duree=$(( $(date +%s%3N) - debut ))
     if [ -z "$erreur" ]; then
         combinaison_ok "$cid"
         printf '%s' "$EMPREINTE_ASSETS" > "$marqueur"
-        note "OK   $cid"
+        note "OK   $cid (${duree} ms)"
+        printf '%s\n' "<testcase name=\"$cid\" classname=\"verify-templates\" time=\"$(awk "BEGIN{printf \"%.3f\", $duree/1000}")\" />" >> "$TRAVAIL/junit/cases.xml.part"
     else
         combinaison_ko "$cid" "$erreur"
         echec "KO   $cid : $erreur (journal : $TRAVAIL/$cid.log)"
+        printf '%s\n' "<testcase name=\"$cid\" classname=\"verify-templates\" time=\"$(awk "BEGIN{printf \"%.3f\", $duree/1000}")\"><failure message=\"$(printf '%s' "$erreur" | sed 's/&/\&amp;/g; s/</\&lt;/g; s/>/\&gt;/g; s/"/\&quot;/g')\">$erreur</failure></testcase>" >> "$TRAVAIL/junit/cases.xml.part"
     fi
 done < "$TRAVAIL/matrix.tsv"
 
 # ---------------------------------------------------------------------------
-# 4. Tableau final.
+# 5. Tableau final + rapports Markdown et JUnit XML (CI).
 # ---------------------------------------------------------------------------
 echo
 echo "═══ Validation réelle des modèles — tableau combinaison → résultat ═══"
-printf '%-22s | %s\n' "combinaison" "résultat"
-printf '%s\n' "-----------------------+-------------------------------------------"
+printf '%-24s | %s\n' "combinaison" "résultat"
+printf '%s\n' "-------------------------+-------------------------------------------"
 for ligne in "${lignes_tableau[@]}"; do
     echo "$ligne"
 done
 echo "--------------------------------------------------------------------------"
 
+{
+    echo "# Rapport verify-templates"
+    echo
+    echo "- Version CodeIDE : \`$VERSION_CODEIDE\`"
+    echo "- Stratégie de matrice : \`$STRATEGIE\` (seuil $SEUIL) — dérivée des manifestes par \`generateur matrice\` (ADR 0157)"
+    echo "- Combinaisons : $(wc -l < "$TRAVAIL/matrix.tsv") (matrice dérivée + cas nommés \`scripts/verify-templates-cas-nomes.json\`)"
+    echo
+    echo "| combinaison | résultat |"
+    echo "|---|---|"
+    for ligne in "${lignes_tableau[@]}"; do
+        cid="${ligne%% |*}"
+        etat="${ligne#* | }"
+        echo "| $cid | $etat |"
+    done
+} > "$TRAVAIL/rapport.md"
+
+{
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo '<testsuite name="verify-templates" tests="'"$(wc -l < "$TRAVAIL/matrix.tsv")"'" hostname="local">'
+    [ -f "$TRAVAIL/junit/cases.xml.part" ] && cat "$TRAVAIL/junit/cases.xml.part"
+    echo '</testsuite>'
+} > "$TRAVAIL/rapport-junit.xml"
+rm -f "$TRAVAIL/junit/cases.xml.part"
+
 if [ "$echec_global" -ne 0 ]; then
-    echec "AU MOINS UNE COMBINAISON A ÉCHOUÉ (journaux dans $TRAVAIL)"
+    echec "AU MOINS UNE COMBINAISON A ÉCHOUÉ (journaux dans $TRAVAIL — rapports : rapport.md, rapport-junit.xml)"
     exit 1
 fi
-note "Toutes les combinaisons sont vertes."
+note "Toutes les combinaisons sont vertes. Rapports : $TRAVAIL/rapport.md, $TRAVAIL/rapport-junit.xml"

@@ -1,14 +1,19 @@
 # tools/generateur
 
-Outil Kotlin JVM en ligne de commande : harnais de génération sur disque
-(étape 9, ADR 0019). Produit de vrais projets depuis les assets embarqués du
-dépôt (`app/src/main/assets`) en réutilisant le moteur de templates de
-`core:domain` — plan figé de `PlanProjectCreationUseCase` déversé sur disque.
-Piloté par `scripts/verify-templates.sh`.
+Outil Kotlin JVM en ligne de commande des modèles de projet (ADR 0019 ;
+multi-commandes au lot L2, ADR 0157) : `lister` (état réel des manifestes),
+`generer` (génération sur disque en lot ou unitaire), `matrice` (dérivation
+des combinaisons des manifestes — stratégies exhaustif/paires/bornes),
+`valider-manifestes` (lint i18n/expressions/sources/choix atteignables) et
+`determinisme` (deux générations comparées octet pour octet). Protocole de
+sortie `PROTOCOLE=2` ; piloté par `scripts/verify-templates.sh`, qui ajoute
+les cas nommés de régression puis compile, teste et exécute chaque projet
+généré avec les vrais outils.
 
-Étape 9 : création du module avec la validation réelle des modèles `kotlin-jvm`
-et `java` (builds Gradle/Maven, exécution, publication).
+Les sept modèles embarqués (`kotlin-jvm`, `java`, `spring-boot`,
+`kotlin-multiplatform`, `android-app`, `android-library`, `gradle-plugin`)
+sont couverts par sa matrice dérivée et ses tests d'invariants d'effet.
 
 Contenu détaillé : voir `README.md` du module.
 
-Statut : étape 9 (v0.10.0).
+Statut : lot L2 du chantier générateur/Nouveau projet (v0.210.0, ADR 0157).

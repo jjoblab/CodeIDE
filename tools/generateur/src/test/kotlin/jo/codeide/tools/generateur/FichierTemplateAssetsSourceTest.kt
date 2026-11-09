@@ -17,7 +17,10 @@ class FichierTemplateAssetsSourceTest {
     fun `le répertoire des modèles est listé`() {
         val repertoires = kotlinx.coroutines.runBlocking { source.listTemplateDirectories() }
 
-        assertEquals(listOf("fixture"), (repertoires as jo.codeide.core.model.AppResult.Success).value)
+        assertEquals(
+            listOf("fixture", "fixture-matrice"),
+            (repertoires as jo.codeide.core.model.AppResult.Success).value,
+        )
     }
 
     @Test

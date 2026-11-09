@@ -1,0 +1,17 @@
+{
+  "template.name": "Fixture Matrice",
+  "template.description": "Modèle de test pour la matrice dérivée",
+  "param.mode.label": "Mode",
+  "param.mode.choix.simple.libelle": "Simple",
+  "param.mode.choix.avance.libelle": "Avancé",
+  "param.ext.label": "Extension",
+  "param.extras.label": "Extras",
+  "param.extras.choix.a.libelle": "Alpha",
+  "param.extras.choix.b.libelle": "Beta",
+  "param.extras.choix.b.sousTitre": "Sous-titre Beta",
+  "param.limite.label": "Limite",
+  "param.limite.raison": "Activez d'abord l'extension",
+  "param.package.label": "Package",
+  "regle.extras.b.interdit": "extras b interdit avec l'extension en mode avancé",
+  "regle.ext.auto": "l'extension est ajoutée automatiquement en mode avancé"
+}

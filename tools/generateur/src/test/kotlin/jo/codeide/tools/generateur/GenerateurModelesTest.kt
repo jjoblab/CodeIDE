@@ -5,13 +5,17 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.PrintStream
 
 /**
- * Test de bout en bout du harnais (étape 9, ADR 0019) : le vrai pipeline
- * (assets du disque, moteur de core:domain, plan figé, déversement) est
- * exercé sur le modèle *fixture* de test — exactement comme
- * `verify-templates.sh` l'exerce sur les modèles embarqués.
+ * Tests de bout en bout du harnais (étape 9, ADR 0019 ; multi-commandes au
+ * lot L2, ADR 0157) : le vrai pipeline (assets du disque, moteur de
+ * core:domain, plan figé, déversement) est exercé sur les modèles *fixture*
+ * — exactement comme `verify-templates.sh` l'exerce sur les modèles
+ * embarqués. Le protocole `PROTOCOLE=2` et les deux modes de `generer`
+ * (lot `--combos`, projet unitaire `--modele`) sont éprouvés.
  */
 class GenerateurModelesTest {
     @get:Rule
@@ -37,20 +41,15 @@ class GenerateurModelesTest {
         )
 
         val code =
-            GenerateurModeles().generer(
+            GenerateurModeles().executer(
                 arrayOf(
-                    "--assets",
-                    racineAssets.absolutePath,
-                    "--sortie",
-                    sortie.absolutePath,
-                    "--combos",
-                    combos.absolutePath,
-                    "--annee",
-                    "2026",
-                    "--auteur",
-                    "Ada Lovelace",
-                    "--generateur",
-                    "0.10.0",
+                    "generer",
+                    "--assets", racineAssets.absolutePath,
+                    "--sortie", sortie.absolutePath,
+                    "--combos", combos.absolutePath,
+                    "--annee", "2026",
+                    "--auteur", "Ada Lovelace",
+                    "--generateur", "0.10.0",
                 ),
             )
 
@@ -69,10 +68,76 @@ class GenerateurModelesTest {
     }
 
     @Test
-    fun `des arguments invalides renvoient le code d usage`() {
-        val code = GenerateurModeles().generer(arrayOf("--assets"))
+    fun `le protocole de sortie commence par sa version`() {
+        val sortie = dossierTemporaire.newFolder("sortie-protocole")
+        val combos = dossierTemporaire.newFile("combos-protocole.json")
+        combos.writeText("""[{"id": "cas-p", "templateId": "fixture", "nom": "Projet P"}]""")
 
-        assertEquals(2, code)
+        val sortieStandard = System.out
+        val capture = ByteArrayOutputStream()
+        System.setOut(PrintStream(capture, true, Charsets.UTF_8))
+        val code =
+            try {
+                GenerateurModeles().executer(
+                    arrayOf(
+                        "generer",
+                        "--assets", racineAssets.absolutePath,
+                        "--sortie", sortie.absolutePath,
+                        "--combos", combos.absolutePath,
+                        "--annee", "2026",
+                        "--auteur", "Ada",
+                        "--generateur", "0.10.0",
+                    ),
+                )
+            } finally {
+                System.out.flush()
+                System.setOut(sortieStandard)
+            }
+
+        assertEquals(0, code)
+        assertEquals("PROTOCOLE=2", capture.toString(Charsets.UTF_8).lineSequence().first())
+    }
+
+    @Test
+    fun `un projet unitaire est généré par arguments`() {
+        val sortie = dossierTemporaire.newFolder("sortie-unitaire")
+
+        val code =
+            GenerateurModeles().executer(
+                arrayOf(
+                    "generer",
+                    "--assets", racineAssets.absolutePath,
+                    "--modele", "fixture",
+                    "--sortie", sortie.absolutePath,
+                    "--annee", "2026",
+                    "--auteur", "Ada Lovelace",
+                    "--generateur", "0.10.0",
+                    "--nom", "Api Démo",
+                    "--langue", "fr",
+                    "--licence", "mit",
+                ),
+            )
+
+        assertEquals(0, code)
+        val main = File(sortie, "fixture/src/adalovelace/apidemo/Main.txt")
+        assertTrue("projet unitaire généré", main.isFile)
+        assertEquals(
+            "package adalovelace.apidemo\nproject Api Démo\n",
+            main.readText(),
+        )
+    }
+
+    @Test
+    fun `des arguments invalides renvoient le code d usage`() {
+        assertEquals(2, GenerateurModeles().executer(arrayOf("generer", "--assets")))
+        assertEquals(2, GenerateurModeles().executer(arrayOf()))
+        assertEquals(2, GenerateurModeles().executer(arrayOf("commande-inconnue")))
+        assertEquals(
+            2,
+            GenerateurModeles().executer(
+                arrayOf("generer", "--assets", racineAssets.absolutePath, "--combos", "a", "--modele", "fixture"),
+            ),
+        )
     }
 
     @Test
@@ -82,20 +147,15 @@ class GenerateurModelesTest {
         combos.writeText("""[{"id": "cas-vide", "templateId": "inconnu", "nom": "X"}]""")
 
         val code =
-            GenerateurModeles().generer(
+            GenerateurModeles().executer(
                 arrayOf(
-                    "--assets",
-                    racineAssets.absolutePath,
-                    "--sortie",
-                    sortie.absolutePath,
-                    "--combos",
-                    combos.absolutePath,
-                    "--annee",
-                    "2026",
-                    "--auteur",
-                    "Ada",
-                    "--generateur",
-                    "0.10.0",
+                    "generer",
+                    "--assets", racineAssets.absolutePath,
+                    "--sortie", sortie.absolutePath,
+                    "--combos", combos.absolutePath,
+                    "--annee", "2026",
+                    "--auteur", "Ada",
+                    "--generateur", "0.10.0",
                 ),
             )
 
