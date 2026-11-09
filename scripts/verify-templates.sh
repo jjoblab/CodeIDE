@@ -254,6 +254,7 @@ EMPREINTE_ASSETS=$( (find "$RACINE/app/src/main/assets/templates" -type f | sort
 
 note "Builds réels ($(wc -l < "$TRAVAIL/matrix.tsv") combinaisons) — ceci prend plusieurs minutes…"
 mkdir -p "$TRAVAIL/junit"
+rm -f "$TRAVAIL/junit/cases.xml.part"
 while IFS=$'\t' read -r cid template build jdk tests wrapper langue licence role; do
     projet="$TRAVAIL/modeles/$cid"
     erreur=""
