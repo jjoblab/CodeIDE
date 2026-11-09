@@ -2,16 +2,34 @@
   {
     "id": "kt-app-gradle-21",
     "templateId": "kotlin-jvm",
-    "nom": "Projet $ & % \uD83D\uDE80 très-long",
+    "nom": "Projet $ & % 🚀 très-long",
     "description": "",
     "parametres": {
-      "projectType": "application", "buildSystem": "gradle-kts", "jdkVersion": "21",
-      "includeTests": "true", "includeWrapper": "true",
-      "packageName": "io.codeide.verification.ktappgradle21", "groupId": "io.codeide.verification",
-      "artifactId": "kt-app-gradle-21", "version": "0.1.0"
+      "projectType": "application",
+      "buildSystem": "gradle-kts",
+      "jdkVersion": "21",
+      "includeTests": "true",
+      "includeWrapper": "true",
+      "packageName": "io.codeide.verification.ktappgradle21",
+      "groupId": "io.codeide.verification",
+      "artifactId": "kt-app-gradle-21",
+      "version": "0.1.0"
     },
-    "modifiesManuellement": ["projectType", "buildSystem", "jdkVersion", "includeTests", "includeWrapper", "packageName", "groupId", "artifactId", "version"],
-    "options": { "license": "mit", "contentLanguage": "fr" },
+    "modifiesManuellement": [
+      "projectType",
+      "buildSystem",
+      "jdkVersion",
+      "includeTests",
+      "includeWrapper",
+      "packageName",
+      "groupId",
+      "artifactId",
+      "version"
+    ],
+    "options": {
+      "license": "mit",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · nom hostile, fr, MIT, wrapper + tests"
   },
   {
@@ -20,37 +38,78 @@
     "nom": "Application Maven Kotlin",
     "description": "Un \"piege\" </project> \\ avec $dollars$",
     "parametres": {
-      "projectType": "application", "buildSystem": "maven", "jdkVersion": "21",
+      "projectType": "application",
+      "buildSystem": "maven",
+      "jdkVersion": "21",
       "includeTests": "true",
-      "packageName": "io.codeide.verification.ktappmaven21", "groupId": "io.codeide.verification",
-      "artifactId": "kt-app-maven-21", "version": "0.1.0"
+      "packageName": "io.codeide.verification.ktappmaven21",
+      "groupId": "io.codeide.verification",
+      "artifactId": "kt-app-maven-21",
+      "version": "0.1.0"
     },
-    "modifiesManuellement": ["projectType", "buildSystem", "jdkVersion", "includeTests", "packageName", "groupId", "artifactId", "version"],
-    "options": { "license": "gpl-3.0", "contentLanguage": "fr" },
+    "modifiesManuellement": [
+      "projectType",
+      "buildSystem",
+      "jdkVersion",
+      "includeTests",
+      "packageName",
+      "groupId",
+      "artifactId",
+      "version"
+    ],
+    "options": {
+      "license": "gpl-3.0",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · description hostile XML, fr, GPL-3.0, Maven"
   },
   {
     "id": "kt-lib-none",
     "templateId": "kotlin-jvm",
     "nom": "Bibliotheque Sans Build",
-    "parametres": { "projectType": "library", "buildSystem": "none" },
-    "modifiesManuellement": ["projectType", "buildSystem"],
-    "options": { "license": "bsd-3-clause", "contentLanguage": "en" },
+    "parametres": {
+      "projectType": "library",
+      "buildSystem": "none"
+    },
+    "modifiesManuellement": [
+      "projectType",
+      "buildSystem"
+    ],
+    "options": {
+      "license": "bsd-3-clause",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · sans build, en, BSD-3-Clause"
   },
   {
     "id": "jv-app-maven-21b",
     "templateId": "java",
-    "nom": "Console & CLI % 2026 \uD83D\uDE00",
+    "nom": "Console & CLI % 2026 😀",
     "description": "Autre description \"hostile\" \\ $x$",
     "parametres": {
-      "projectType": "application", "buildSystem": "maven", "jdkVersion": "21",
+      "projectType": "application",
+      "buildSystem": "maven",
+      "jdkVersion": "21",
       "includeTests": "true",
-      "packageName": "io.codeide.verification.jvappmaven21b", "groupId": "io.codeide.verification",
-      "artifactId": "jv-app-maven-21b", "version": "0.1.0"
+      "packageName": "io.codeide.verification.jvappmaven21b",
+      "groupId": "io.codeide.verification",
+      "artifactId": "jv-app-maven-21b",
+      "version": "0.1.0"
     },
-    "modifiesManuellement": ["projectType", "buildSystem", "jdkVersion", "includeTests", "packageName", "groupId", "artifactId", "version"],
-    "options": { "license": "mit", "contentLanguage": "fr" },
+    "modifiesManuellement": [
+      "projectType",
+      "buildSystem",
+      "jdkVersion",
+      "includeTests",
+      "packageName",
+      "groupId",
+      "artifactId",
+      "version"
+    ],
+    "options": {
+      "license": "mit",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · nom et description hostiles, fr, MIT, Maven"
   },
   {
@@ -58,14 +117,34 @@
     "templateId": "kotlin-jvm",
     "nom": "Kotlin Renomme",
     "parametres": {
-      "projectType": "application", "buildSystem": "gradle-kts", "jdkVersion": "21",
-      "includeTests": "true", "includeWrapper": "true",
-      "packageName": "io.codeide.verification.ktapprenoms", "groupId": "io.codeide.verification",
-      "artifactId": "kt-app-renoms", "version": "0.1.0"
+      "projectType": "application",
+      "buildSystem": "gradle-kts",
+      "jdkVersion": "21",
+      "includeTests": "true",
+      "includeWrapper": "true",
+      "packageName": "io.codeide.verification.ktapprenoms",
+      "groupId": "io.codeide.verification",
+      "artifactId": "kt-app-renoms",
+      "version": "0.1.0"
     },
-    "modifiesManuellement": ["projectType", "buildSystem", "jdkVersion", "includeTests", "includeWrapper", "packageName", "groupId", "artifactId", "version"],
-    "renommages": { "README.md": "NOTES.md" },
-    "options": { "license": "mit", "contentLanguage": "fr" },
+    "modifiesManuellement": [
+      "projectType",
+      "buildSystem",
+      "jdkVersion",
+      "includeTests",
+      "includeWrapper",
+      "packageName",
+      "groupId",
+      "artifactId",
+      "version"
+    ],
+    "renommages": {
+      "README.md": "NOTES.md"
+    },
+    "options": {
+      "license": "mit",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · renommage de l'aperçu (ADR 0077), fr, MIT"
   },
   {
@@ -73,9 +152,26 @@
     "templateId": "spring-boot",
     "nom": "Api Deps",
     "description": "JPA Security Actuator Validation",
-    "parametres": { "includeJpa": "true", "includeSecurity": "true", "includeActuator": "true", "includeValidation": "true", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["includeJpa", "includeSecurity", "includeActuator", "includeValidation", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "includeJpa": "true",
+      "includeSecurity": "true",
+      "includeActuator": "true",
+      "includeValidation": "true",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "includeJpa",
+      "includeSecurity",
+      "includeActuator",
+      "includeValidation",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · les quatre dépendances Spring, fr"
   },
   {
@@ -83,27 +179,62 @@
     "templateId": "kotlin-multiplatform",
     "nom": "Kmp Deps",
     "description": "Serialization coroutines datetime",
-    "parametres": { "includeSerialization": "true", "includeCoroutines": "true", "includeDatetime": "true", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["includeSerialization", "includeCoroutines", "includeDatetime", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "includeSerialization": "true",
+      "includeCoroutines": "true",
+      "includeDatetime": "true",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "includeSerialization",
+      "includeCoroutines",
+      "includeDatetime",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · les trois dépendances KMP, fr"
   },
   {
     "id": "kmp-en-min",
     "templateId": "kotlin-multiplatform",
     "nom": "Multi Lib",
-    "parametres": { "includeTests": "false", "includeWrapper": "false" },
-    "modifiesManuellement": ["includeTests", "includeWrapper"],
-    "options": { "license": "apache-2.0", "contentLanguage": "en" },
+    "parametres": {
+      "includeTests": "false",
+      "includeWrapper": "false"
+    },
+    "modifiesManuellement": [
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "apache-2.0",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · en, Apache-2.0, sans tests ni wrapper"
   },
   {
     "id": "andr-fr",
     "templateId": "android-app",
     "nom": "MonApp",
-    "parametres": { "appName": "MonApp", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["appName", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "appName": "MonApp",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · fr, sans licence"
   },
   {
@@ -111,36 +242,92 @@
     "templateId": "android-app",
     "nom": "My Cool App!",
     "description": "Description hostile </project> & $x$",
-    "parametres": { "appName": "My Cool App", "includeTests": "false", "includeWrapper": "false" },
-    "modifiesManuellement": ["appName", "includeTests", "includeWrapper"],
-    "options": { "license": "mit", "contentLanguage": "en" },
+    "parametres": {
+      "appName": "My Cool App",
+      "includeTests": "false",
+      "includeWrapper": "false"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "mit",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · description hostile, en, MIT"
   },
   {
     "id": "andr-vide-java",
     "templateId": "android-app",
     "nom": "Java App",
-    "parametres": { "appName": "JavaApp", "projectType": "empty-activity", "language": "java", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["appName", "projectType", "language", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "en" },
+    "parametres": {
+      "appName": "JavaApp",
+      "projectType": "empty-activity",
+      "language": "java",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "projectType",
+      "language",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · variante Java sans source .kt"
   },
   {
     "id": "andr-sansact-fr",
     "templateId": "android-app",
     "nom": "Fondations",
-    "parametres": { "appName": "Fondations", "projectType": "no-activity", "language": "kotlin", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["appName", "projectType", "language", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "appName": "Fondations",
+      "projectType": "no-activity",
+      "language": "kotlin",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "projectType",
+      "language",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · variante sans activité"
   },
   {
     "id": "andr-tiroir-fr",
     "templateId": "android-app",
     "nom": "App Tiroir",
-    "parametres": { "appName": "Mon Tiroir & Co", "projectType": "basic-activity", "language": "kotlin", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["appName", "projectType", "language", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "appName": "Mon Tiroir & Co",
+      "projectType": "basic-activity",
+      "language": "kotlin",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "projectType",
+      "language",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · variante tiroir Material, nom hostile"
   },
   {
@@ -149,12 +336,33 @@
     "nom": "App Deps",
     "description": "Toutes les dependances",
     "parametres": {
-      "appName": "AppDeps", "minSdk": "24", "targetSdk": "37",
-      "includeCoroutines": "true", "includeRetrofit": "true", "includeNavigation": "true",
-      "includeRoom": "true", "includeHilt": "true", "includeTests": "true", "includeWrapper": "true"
+      "appName": "AppDeps",
+      "minSdk": "24",
+      "targetSdk": "37",
+      "includeCoroutines": "true",
+      "includeRetrofit": "true",
+      "includeNavigation": "true",
+      "includeRoom": "true",
+      "includeHilt": "true",
+      "includeTests": "true",
+      "includeWrapper": "true"
     },
-    "modifiesManuellement": ["appName", "minSdk", "targetSdk", "includeCoroutines", "includeRetrofit", "includeNavigation", "includeRoom", "includeHilt", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "en" },
+    "modifiesManuellement": [
+      "appName",
+      "minSdk",
+      "targetSdk",
+      "includeCoroutines",
+      "includeRetrofit",
+      "includeNavigation",
+      "includeRoom",
+      "includeHilt",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · les cinq dépendances Android (Kotlin), KSP"
   },
   {
@@ -162,9 +370,26 @@
     "templateId": "android-app",
     "nom": "Java Deps",
     "description": "Room et Hilt en Java",
-    "parametres": { "appName": "JavaDeps", "language": "java", "includeRoom": "true", "includeHilt": "true", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["appName", "language", "includeRoom", "includeHilt", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "appName": "JavaDeps",
+      "language": "java",
+      "includeRoom": "true",
+      "includeHilt": "true",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "language",
+      "includeRoom",
+      "includeHilt",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · Room + Hilt en Java (KSP)"
   },
   {
@@ -172,18 +397,40 @@
     "templateId": "android-library",
     "nom": "Bibliotheque Android",
     "description": "Une bibliothèque de test",
-    "parametres": { "appName": "MaBibliotheque", "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["appName", "includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "appName": "MaBibliotheque",
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · bibliothèque Android, fr"
   },
   {
     "id": "lib-en-min",
     "templateId": "android-library",
     "nom": "Utils Kit!",
-    "parametres": { "appName": "Utils Kit!", "includeTests": "false", "includeWrapper": "false" },
-    "modifiesManuellement": ["appName", "includeTests", "includeWrapper"],
-    "options": { "license": "apache-2.0", "contentLanguage": "en" },
+    "parametres": {
+      "appName": "Utils Kit!",
+      "includeTests": "false",
+      "includeWrapper": "false"
+    },
+    "modifiesManuellement": [
+      "appName",
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "apache-2.0",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · bibliothèque Android, en, Apache-2.0, nom hostile"
   },
   {
@@ -191,18 +438,57 @@
     "templateId": "gradle-plugin",
     "nom": "Mon Plugin Salutations",
     "description": "Un plugin de démonstration",
-    "parametres": { "includeTests": "true", "includeWrapper": "true" },
-    "modifiesManuellement": ["includeTests", "includeWrapper"],
-    "options": { "license": "none", "contentLanguage": "fr" },
+    "parametres": {
+      "includeTests": "true",
+      "includeWrapper": "true"
+    },
+    "modifiesManuellement": [
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "none",
+      "contentLanguage": "fr"
+    },
     "etiquette": "cas-nommé · plugin Gradle, fr"
   },
   {
     "id": "gp-en-min",
     "templateId": "gradle-plugin",
     "nom": "Build Utils 2026",
-    "parametres": { "includeTests": "false", "includeWrapper": "false" },
-    "modifiesManuellement": ["includeTests", "includeWrapper"],
-    "options": { "license": "mit", "contentLanguage": "en" },
+    "parametres": {
+      "includeTests": "false",
+      "includeWrapper": "false"
+    },
+    "modifiesManuellement": [
+      "includeTests",
+      "includeWrapper"
+    ],
+    "options": {
+      "license": "mit",
+      "contentLanguage": "en"
+    },
     "etiquette": "cas-nommé · plugin Gradle, en, MIT"
+  },
+  {
+    "id": "kt-app-sans-attributs",
+    "templateId": "kotlin-jvm",
+    "nom": "Projet Sans Attributs",
+    "description": "Option commune includeGitattributes=false (plan A-3 #11)",
+    "parametres": {
+      "projectType": "application",
+      "buildSystem": "none"
+    },
+    "modifiesManuellement": [
+      "projectType",
+      "buildSystem"
+    ],
+    "renommages": {},
+    "options": {
+      "includeGitattributes": false,
+      "license": "none",
+      "contentLanguage": "en"
+    },
+    "etiquette": "cas-nommé · .gitattributes désactivé (option commune, build none)"
   }
 ]

@@ -1,9 +1,18 @@
 package {{packageName}}
 
+{{#if avecValidation}}
+import jakarta.validation.Valid
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
+{{#else}}
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+{{/if}}
 
 /**
  * {{t:controller.kdoc}}
@@ -22,11 +31,23 @@ class GreeterController(
     /**
      * {{t:controller.salutations.kdoc}}
      */
+{{#if avecValidation}}
+    @PostMapping("/salutations")
+    fun saluer(
+        @Valid
+        @RequestBody
+        demande: DemandeSalutation,
+    ): Map<String, String> {
+        val salutation = greeter.enregistrer(demande.nom)
+        return mapOf("id" to salutation.id.toString(), "message" to salutation.message)
+    }
+{{#else}}
     @PostMapping("/salutations")
     fun saluer(@RequestParam(defaultValue = "") name: String): Map<String, String> {
         val salutation = greeter.enregistrer(name)
         return mapOf("id" to salutation.id.toString(), "message" to salutation.message)
     }
+{{/if}}
 
     /**
      * {{t:controller.historique.kdoc}}

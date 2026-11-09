@@ -18,11 +18,11 @@ import kotlinx.serialization.json.put
  * Listing de l'état réel des manifestes `lister` (lot L2, ADR 0157 §1) :
  * modèles, paramètres (type, défaut, choix, visibilité, activité, section,
  * groupe, avance, persistance), variables calculées, contraintes,
- * dépendances automatiques et fichiers — plus aucun résumé écrit à la main.
+ * dépendances automatiques, étapes de modèle et préréglages du bloc
+ * `wizard` (schéma lu dès L3 — ADR 0155) et fichiers — plus aucun résumé
+ * écrit à la main.
  *
- * Les étapes du wizard et les préréglages entreront ici avec leur schéma
- * déclaratif (lot L5, ADR 0155) ; le listing reste extensible sans rupture
- * de protocole (`PROTOCOLE=2`).
+ * Le listing est extensible sans rupture de protocole (`PROTOCOLE=2`).
  */
 public class ListeurModeles(private val fournisseur: ProjectTemplateProvider) {
     /**
@@ -66,6 +66,7 @@ public class ListeurModeles(private val fournisseur: ProjectTemplateProvider) {
         put("calculees", calculeesJson(template))
         put("contraintes", contraintesJson(template))
         put("autoDefinit", autoDefinitJson(template))
+        put("wizard", wizardJsonDe(template))
         put("fichiers", fichiersJson(template))
     }
 
@@ -164,6 +165,17 @@ public class ListeurModeles(private val fournisseur: ProjectTemplateProvider) {
         template.autoDefinit.forEach { regle ->
             appendLine("  autoDefinit ${regle.quand} → ${regle.definit}")
         }
+        if (template.etapesWizard.isNotEmpty()) {
+            appendLine(
+                "  wizard etapes : " +
+                    template.etapesWizard.joinToString(", ") { etape ->
+                        "${etape.id}(${etape.parametres.joinToString("|")})"
+                    },
+            )
+        }
+        if (template.presets.isNotEmpty()) {
+            appendLine("  wizard presets : ${template.presets.joinToString(", ") { it.id }}")
+        }
         appendLine("  fichiers : ${template.fichiers.size}")
     }
 
@@ -189,3 +201,37 @@ public class ListeurModeles(private val fournisseur: ProjectTemplateProvider) {
 
 /** Tableau JSON de chaînes. */
 private fun chaine(valeurs: List<String>): JsonArray = JsonArray(valeurs.map(::JsonPrimitive))
+
+private fun wizardJsonDe(template: ProjectTemplate): JsonElement = buildJsonObject {
+    put(
+        "etapes",
+        buildJsonArray {
+            template.etapesWizard.forEach { etape ->
+                add(
+                    buildJsonObject {
+                        put("id", etape.id)
+                        put("titreKey", etape.titreKey)
+                        etape.iconeKey?.let { put("iconeKey", it) }
+                        etape.quand?.let { put("when", it) }
+                        put("parametres", chaine(etape.parametres))
+                    },
+                )
+            }
+        },
+    )
+    put(
+        "presets",
+        buildJsonArray {
+            template.presets.forEach { preset ->
+                add(
+                    buildJsonObject {
+                        put("id", preset.id)
+                        put("nomKey", preset.nomKey)
+                        preset.descriptionKey?.let { put("descriptionKey", it) }
+                        put("valeurs", JsonObject(preset.valeurs.mapValues { JsonPrimitive(it.value) }))
+                    },
+                )
+            }
+        },
+    )
+}

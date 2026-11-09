@@ -80,7 +80,7 @@ class TemplateManifestParserTest {
         )
         assertEquals(6, charge.template.parameters.size)
         assertEquals(1, charge.template.computedVariables.size)
-        assertEquals(7, charge.template.fichiers.size)
+        assertEquals(8, charge.template.fichiers.size)
     }
 
     @Test

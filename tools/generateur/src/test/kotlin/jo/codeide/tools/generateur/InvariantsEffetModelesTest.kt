@@ -171,30 +171,103 @@ class InvariantsEffetModelesTest {
     }
 
     @Test
-    fun `les invariants d effet spring boot tiennent sur toute la matrice`() = runBlocking {
+    fun `les invariants spring boot suivent le langage et le build`() = runBlocking {
         for (combinaison in matricePaires("spring-boot")) {
             val plan = planDe(combinaison)
-            val build = contenu(plan, "build.gradle.kts")
+            val chemins = plan.fichiers.map { it.chemin }
             val params = combinaison.parametres
+            val kotlin = params.getValue("langage") == "kotlin"
+            val maven = params.getValue("buildSystem") == "maven"
+            val build = if (maven) contenu(plan, "pom.xml") else contenu(plan, "build.gradle.kts")
+
+            // Le build suit le système demandé — et aucun fichier de
+            // l'autre système ne traîne.
+            assertEquals("gradle/${combinaison.id}", !maven, "build.gradle.kts" in chemins)
+            assertEquals("maven/${combinaison.id}", maven, "pom.xml" in chemins)
+            // Le langage décide du répertoire de sources.
             assertEquals(
-                "actuator/${combinaison.id}",
-                params["includeActuator"] == "true",
-                build.contains("actuator", ignoreCase = true),
+                "sources kotlin/${combinaison.id}",
+                kotlin,
+                chemins.any { it.contains("src/main/kotlin/") },
             )
             assertEquals(
-                "jpa/${combinaison.id}",
+                "sources java/${combinaison.id}",
+                !kotlin,
+                chemins.any { it.contains("src/main/java/") },
+            )
+            // Le JDK demandé pilote la toolchain (Gradle) ou java.version (Maven).
+            assertTrue(
+                "jdk ${params.getValue("jdkVersion")}/${combinaison.id}",
+                build.contains(params.getValue("jdkVersion")),
+            )
+            // Profils dev/prod réels, toujours générés.
+            assertEquals(
+                "profils/${combinaison.id}",
+                setOf(
+                    "src/main/resources/application.yml",
+                    "src/main/resources/application-dev.yml",
+                    "src/main/resources/application-prod.yml",
+                ),
+                chemins.filter { it.startsWith("src/main/resources/") }.toSet(),
+            )
+            // Wrapper ssi Gradle ET demandé (masqué — donc absent — en Maven).
+            assertEquals(
+                "gradlew/${combinaison.id}",
+                !maven && params["includeWrapper"] == "true",
+                "gradlew" in chemins,
+            )
+        }
+    }
+
+    @Test
+    fun `les invariants spring boot suivent les modules cochés`() = runBlocking {
+        for (combinaison in matricePaires("spring-boot")) {
+            val plan = planDe(combinaison)
+            val chemins = plan.fichiers.map { it.chemin }
+            val params = combinaison.parametres
+            val maven = params.getValue("buildSystem") == "maven"
+            val build = if (maven) contenu(plan, "pom.xml") else contenu(plan, "build.gradle.kts")
+
+            // JPA : entité + starter data-jpa + datasource — et le dépôt
+            // mémoire est remplacé.
+            assertEquals(
+                "entite/${combinaison.id}",
                 params["includeJpa"] == "true",
-                build.contains("data.jpa") || build.contains("jpa", ignoreCase = true),
+                chemins.any { it.contains("EntiteSalutation") },
             )
+            assertEquals(
+                "depot entites/${combinaison.id}",
+                params["includeJpa"] == "true",
+                build.contains("data.jpa") || build.contains("data-jpa"),
+            )
+            assertEquals(
+                "datasource/${combinaison.id}",
+                params["includeJpa"] == "true",
+                contenu(plan, "src/main/resources/application.yml").contains("datasource"),
+            )
+            // Security : chaîne de filtres explicite ssi cochée.
             assertEquals(
                 "security/${combinaison.id}",
                 params["includeSecurity"] == "true",
-                build.contains("security", ignoreCase = true),
+                chemins.any { it.contains("SecuriteConfiguration") },
             )
+            // Actuator : exposition configurée ssi cochée.
             assertEquals(
-                "validation/${combinaison.id}",
+                "actuator/${combinaison.id}",
+                params["includeActuator"] == "true",
+                contenu(plan, "src/main/resources/application.yml").contains("management"),
+            )
+            // Validation : DTO ssi cochée.
+            assertEquals(
+                "dto/${combinaison.id}",
                 params["includeValidation"] == "true",
-                build.contains("validation", ignoreCase = true),
+                chemins.any { it.contains("DemandeSalutation") },
+            )
+            // Tests ssi demandés.
+            assertEquals(
+                "tests/${combinaison.id}",
+                params["includeTests"] == "true",
+                chemins.any { it.contains("src/test") },
             )
         }
     }

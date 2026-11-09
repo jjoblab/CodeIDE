@@ -17,10 +17,39 @@ class FichierTemplateAssetsSourceTest {
     fun `le répertoire des modèles est listé`() {
         val repertoires = kotlinx.coroutines.runBlocking { source.listTemplateDirectories() }
 
+        // `_commun` est listé comme répertoire candidat (source partagée,
+        // ADR 0156) — sans template.json, le fournisseur embarqué le saute :
+        // ce n'est jamais un modèle. L'ordre brut suit le système de fichiers
+        // : la comparaison est triée.
         assertEquals(
-            listOf("fixture", "fixture-matrice"),
-            (repertoires as jo.codeide.core.model.AppResult.Success).value,
+            sortedSetOf("_commun", "fixture", "fixture-matrice").toList(),
+            (repertoires as jo.codeide.core.model.AppResult.Success).value.sorted(),
         )
+    }
+
+    @Test
+    fun `une source partagée commun est résolue dans _commun (ADR 0156)`() {
+        val octets =
+            kotlinx.coroutines.runBlocking {
+                source.readTemplateFile("fixture", "commun:commun.txt")
+            }
+
+        val contenu = String((octets as jo.codeide.core.model.AppResult.Success).value, Charsets.UTF_8)
+        assertTrue(contenu.contains("FICHIER PARTAGÉ"))
+    }
+
+    @Test
+    fun `une source partagée absente ou traversante est NotFound`() {
+        val refus =
+            kotlinx.coroutines.runBlocking {
+                listOf(
+                    source.readTemplateFile("fixture", "commun:absente.txt"),
+                    source.readTemplateFile("fixture", "commun:../licenses/mit.txt"),
+                    source.readTemplateFile("fixture", "commun:"),
+                ).all { it is jo.codeide.core.model.AppResult.Failure }
+            }
+
+        assertTrue(refus)
     }
 
     @Test

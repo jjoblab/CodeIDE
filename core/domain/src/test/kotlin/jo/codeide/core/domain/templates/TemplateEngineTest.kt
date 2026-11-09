@@ -206,13 +206,15 @@ class TemplateEngineTest {
     fun `le plan par défaut contient exactement les fichiers attendus`() = runTest {
         val plan = planOuErreur(moteur().planifier(FixtureModele.charge(), requete()))
 
-        // Ordre du manifeste (Main, App — estApplication —, README, data.bin,
-        // hostile.txt) puis métadonnées ; ni Lib ni EXTRA (conditions fausses).
+        // Ordre du manifeste (Main, App — estApplication —, README,
+        // .gitattributes — includeGitattributes —, data.bin, hostile.txt) puis
+        // métadonnées ; ni Lib ni EXTRA (conditions fausses).
         assertEquals(
             listOf(
                 "src/jeanne/demoeclair/Main.txt",
                 "src/jeanne/demoeclair/App.txt",
                 "README.md",
+                ".gitattributes",
                 "data.bin",
                 "hostile.txt",
                 ".codeide/project.json",
@@ -220,7 +222,7 @@ class TemplateEngineTest {
             plan.fichiers.map { it.chemin },
         )
         assertEquals(TemplateFileGroup.README, plan.fichiers[2].group)
-        assertTrue(plan.fichiers[3].contenu is PlannedContent.Binaire)
+        assertTrue(plan.fichiers[4].contenu is PlannedContent.Binaire)
     }
 
     @Test
@@ -276,6 +278,22 @@ class TemplateEngineTest {
             )
         assertTrue(bibliotheque.fichiers.any { it.chemin.endsWith("Lib.txt") })
         assertTrue(bibliotheque.fichiers.none { it.chemin.endsWith("App.txt") })
+    }
+
+    @Test
+    fun `includeGitattributes pilote le fichier d attributs (défaut vrai, plan A-3 #11)`() = runTest {
+        val parDefaut =
+            planOuErreur(moteur().planifier(FixtureModele.charge(), requete()))
+        assertTrue(parDefaut.fichiers.any { it.chemin == ".gitattributes" })
+
+        val sansAttributs =
+            planOuErreur(
+                moteur().planifier(
+                    FixtureModele.charge(),
+                    requete(options = TemplateOptions(includeGitattributes = false)),
+                ),
+            )
+        assertTrue(sansAttributs.fichiers.none { it.chemin == ".gitattributes" })
     }
 
     @Test

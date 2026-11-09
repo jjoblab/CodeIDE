@@ -42,6 +42,7 @@ assets/templates/<id>/
   "computed": [ { "name": "estApplication", "expression": "…" } ],
   "constraints": [ { "when": "…", "severity": "ERREUR", "messageKey": "…" } ],
   "autoDefinit": [ { "when": "…", "definit": { "avecKsp": true }, "messageKey": "…" } ],
+  "wizard": { "etapes": [ … ], "presets": [ … ] },
   "files": [ … ]
 }
 ```
@@ -56,7 +57,8 @@ valeurs) :
 - `nameKey`/`descriptionKey`/`iconKey` : clés i18n (`^[a-zA-Z0-9_.-]+$`),
   résolues dans `i18n/<langue>.json` avec repli anglais.
 - Bornes : 32 paramètres, 32 variables calculées, 32 contraintes,
-  32 `autoDefinit`, 256 fichiers, 12 tags.
+  32 `autoDefinit`, 12 étapes de modèle, 12 préréglages, 256 fichiers,
+  12 tags.
 
 ### Paramètres
 
@@ -97,15 +99,55 @@ au dictionnaire i18n (fr **et** en obligatoires pour `libelle`) :
 | `param.<id>.choix.<valeur>.icone` | nom logique d'icône (`IconesModele` de `core:ui`) (optionnel) |
 | `groupe.<groupe>.titre` | titre du groupe d'affichage (optionnel — repli identifiant) |
 
+### Bloc `wizard` — étapes de modèle et préréglages (ADR 0155 §1, schéma lu dès L3)
+
+Bloc **optionnel** : sans lui, le parcours de modèle est une seule étape
+« Configuration » regroupant tous les paramètres `CONFIGURATION`
+(comportement historique, consommé par le calcul de parcours — L5a).
+
+```json
+"wizard": {
+  "etapes": [
+    { "id": "langage-build", "titreKey": "etape.langage-build.titre",
+      "when": "buildSystem == \"gradle\"",
+      "parametres": ["langage", "buildSystem"] }
+  ],
+  "presets": [
+    { "id": "api-rest-jpa", "nomKey": "preset.api-rest.nom",
+      "descriptionKey": "preset.api-rest.description",
+      "valeurs": { "includeJpa": true, "includeValidation": true } }
+  ]
+}
+```
+
+- Étape : `id` `^[a-z][a-z0-9-]*$` unique, jamais un identifiant du socle
+  (MODELE, IDENTITE, FICHIERS, RECAPITULATIF — réservés par l'application) ;
+  `titreKey` obligatoire (fr **et** en), `iconeKey` optionnel, `when`
+  optionnel (mini-langage — une étape dont `when` est faux **n'existe
+  pas**) ; `parametres` non vide, chaque identifiant cité est un paramètre
+  `CONFIGURATION` existant cité **au plus une fois** ; un paramètre non
+  rangé rejoindra l'étape par défaut « Configuration » au calcul du
+  parcours (L5a) — jamais d'écran vide.
+- Préréglage : `id` unique, `nomKey` (fr **et** en), `descriptionKey`
+  optionnel, `valeurs` visant des paramètres existants (`true`/`false`
+  pour un `BOOLEAN`, valeur dans les `choices` pour un `CHOICE`, texte
+  validé pour un `TEXT`) — même sémantique que `autoDefinit`, rien n'est
+  figé.
+
 ### Fichiers
 
 | Champ | Rôle |
 |---|---|
 | `path` | chemin relatif **templatisable** (`{{packageName|packagePath}}/Main.kt`) — contrôlé après substitution (garde de sécurité) |
-| `source` | chemin dans le répertoire du modèle (`files/main.kt.tpl`) — jamais de `..`, jamais absolu |
+| `source` | chemin dans le répertoire du modèle (`files/main.kt.tpl`) — jamais de `..`, jamais absolu ; **préfixe `commun:<x>`** (ADR 0156) : le fichier est lu dans `templates/_commun/<x>` (wrapper Gradle, `gradlew*`, `.gitattributes`, `.editorconfig` — une seule copie pour les 7 modèles, ≈ 428 Ko d'APK économisés ; le lint refuse une copie locale d'un fichier servi par la source partagée et toute source `commun:` absente) |
 | `binary` | `true` : copie octet pour octet (icônes, polices…) |
 | `when` | expression conditionnant l'inclusion |
 | `group` | `core`, `readme`, `gitignore`, `editorconfig`, `license` — piloté par les options communes |
+
+Un **même chemin de sortie statique** ne peut apparaître qu'une fois ; un
+chemin **templatisé** peut être visé par plusieurs entrées à condition que
+leurs `when` soient mutuellement exclusifs (variantes `langage`,
+`avecJpa`…).
 
 ## Mini-langage d'expressions (ADR 0018, amendé L1)
 
@@ -191,9 +233,12 @@ Les fins de ligne sont normalisées en LF (CRLF pour `.bat`).
 
 Rendues à l'étape « Fichiers » du wizard pour tous les modèles :
 `includeReadme`, `includeGitignore`, `includeEditorconfig`,
-`license` (`none`, `mit`, `apache-2.0`, `gpl-3.0`, `bsd-3-clause` —
-le fichier officiel SPDX est copié, MIT/BSD substituent année et auteur),
-`contentLanguage` (`fr`|`en`, défaut = langue de l'application).
+`includeGitattributes` (plan A-3 #11 — `.gitattributes` choisissable,
+défaut `true`) ; les quatre pilotent des variables du même nom dans le
+mini-langage (`when` des fichiers) ; `license` (`none`, `mit`,
+`apache-2.0`, `gpl-3.0`, `bsd-3-clause` — le fichier officiel SPDX est
+copié, MIT/BSD substituent année et auteur), `contentLanguage`
+(`fr`|`en`, défaut = langue de l'application).
 
 ## Métadonnées `.codeide/project.json`
 
@@ -298,13 +343,14 @@ contrôlé — **aucune option sans effet observable** :
 | Modèle | Invariant |
 |---|---|
 | `android-app` | `.kt` présent ssi `language=kotlin` (`.java` en miroir) ; `MainActivity` ssi `projectType != no-activity` ; classe `*Application` ssi `includeHilt` ; `BddLocale` ssi `includeRoom` ; `gradlew` ssi `includeWrapper` ; `src/test` ssi `includeTests` ; Retrofit/Navigation câblées dans `app/build.gradle.kts` ssi cochées |
-| `spring-boot` | starter Actuator/JPA/Security/Validation dans `build.gradle.kts` ssi cochés |
+| `spring-boot` | `build.gradle.kts` ssi `buildSystem=gradle`, `pom.xml` ssi `maven` (jamais les deux) ; `src/main/kotlin` ssi `langage=kotlin` (`.java` en miroir) ; JDK demandé inscrit dans la toolchain (`jvmToolchain`) ou le pom (`java.version`) ; profils `application-dev.yml`/`application-prod.yml` toujours générés ; entité `EntiteSalutation` + starter `data-jpa` + `datasource` H2 ssi `includeJpa` ; `SecuriteConfiguration` ssi `includeSecurity` ; exposition `management:` ssi `includeActuator` ; DTO `DemandeSalutation` ssi `includeValidation` ; `gradlew` ssi gradle **et** `includeWrapper` (masqué en Maven) ; `src/test` ssi `includeTests` |
 | `kotlin-multiplatform` | plugin serialization / coroutines / datetime dans `build.gradle.kts` ssi cochés |
 | `kotlin-jvm`, `java` | `build.gradle.kts` ssi `gradle-kts`, `pom.xml` ssi `maven` (jamais les deux) ; `gradlew` ssi gradle **et** `includeWrapper` ; `src/test` ssi `includeTests` |
 | `android-library` | `gradlew` ssi `includeWrapper` ; `src/test` ssi `includeTests` ; `minSdk = <valeur>` écrit tel quel |
 | `gradle-plugin` | `gradlew` ssi `includeWrapper` ; `src/test` ssi `includeTests` |
+| tous | `.gitattributes` présent ssi l'option commune `includeGitattributes` (défaut vrai — cas nommé `kt-app-sans-attributs` pour le faux) |
 
-Invariants **attendus des lots L3/L4** (déclarés ici, activés dans
+Invariants **attendus du lot L4** (déclarés ici, activés dans
 `InvariantsEffetModelesTest` quand les modèles les satisfont — le test
 actuel les documente sans les exiger) :
 
@@ -336,7 +382,7 @@ régression :
 | `kotlin-jvm` | projet JVM Kotlin (app/biblio, Gradle/Maven/none, JDK 17/21) | étape 9 — Greeter + Main + GreeterTest, `-Werror` |
 | `java` | projet JVM Java (mêmes axes) | étape 9 — `-Xlint:all -Werror` |
 | `android-app` | application Android (AGP 9.4.1, Material 3) | phases 2-4 — `projectType` (`empty-activity`/`no-activity`/`basic-activity` tiroir Material), `language` (`kotlin`/`java`), `minSdk` 24-34, `targetSdk` 34-37, `applicationId` dérivé, package `com.example.<appName>`, ViewBinding, 5 dépendances au choix (Coroutines, Retrofit, Navigation, Room, Hilt) |
-| `spring-boot` | service REST Boot 4.1.1 (Kotlin 2.2.21) | phases 2+4 — repository, tests de contexte, `application.yml`, 4 dépendances au choix (JPA+H2, Security, Actuator, Validation) |
+| `spring-boot` | service REST Boot 4.1.1 — Kotlin **ou** Java, Gradle **ou** Maven, JDK 17/21 (L3, v2.0.0) | L3 — port `DepotSalutations` (dépôt mémoire ssi !JPA, sinon Spring Data + entité + H2), profils `dev`/`prod`, SecurityFilterChain explicite (health ouvert ssi Actuator), DTO validé ssi Validation, tests de contexte et d'effets générés, 3 étapes wizard + préréglage « API REST avec persistance » |
 | `kotlin-multiplatform` | bibliothèque KMP (Kotlin 2.2.21) | phases 2+4 — `expect`/`actual` câblé, `jvmTest`, tâche `run`, 3 dépendances au choix (serialization, coroutines, datetime) |
 | `android-library` | bibliothèque Android (.aar) | phases 3+4 — module `:library`, `consumer-rules.pro`, package `com.example.<nom>`, `minSdk` 24-34 |
 | `gradle-plugin` | plugin Gradle en Kotlin | phase 3 — `kotlin-dsl` (compilateur **embarqué** dans la distribution : Gradle 9.7.1 livre Kotlin 2.4.0, incompatible avec un KGP externe 2.2.21 sur `gradleApi()`), `pluginId`/`packageName` dérivés de l'`artifactId`, testkit ProjectBuilder (ADR 0076) |

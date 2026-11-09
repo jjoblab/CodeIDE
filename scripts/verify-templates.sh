@@ -128,13 +128,16 @@ def build_de(entree):
     modele, params = entree["templateId"], entree["parametres"]
     if modele in ("kotlin-jvm", "java"):
         return params.get("buildSystem", "gradle-kts")
+    if modele == "spring-boot":
+        # spring-boot 2.0.0 : buildSystem gradle|maven (L3) — le build Maven
+        # d'un service Boot n'exécute pas exec:java (serveur web).
+        return "maven-spring" if params.get("buildSystem", "gradle") == "maven" else "gradle-app"
     return {
-        "spring-boot": "gradle-app",
         "kotlin-multiplatform": "gradle-kmp",
         "android-app": "gradle-android",
         "android-library": "gradle-android-lib",
         "gradle-plugin": "gradle-plugin",
-    }[modele]
+    }.get(modele, "none")
 
 def role_de(entree):
     modele, params = entree["templateId"], entree["parametres"]
@@ -169,6 +172,13 @@ PY
 # 3. Génération sur disque (harnais JVM — ADR 0019) puis déterminisme.
 # ---------------------------------------------------------------------------
 note "Génération des projets dans $TRAVAIL/modeles …"
+# Les répertoires des combinaisons (re)générées sont purgés AVANT : un lot
+# qui change le jeu de fichiers d'un cas (ex. Gradle → Maven) ne doit jamais
+# hériter des fichiers de l'exécution précédente ; le cache `.verifie` des
+# autres combinaisons est conservé.
+while IFS=$'\t' read -r cid _; do
+    rm -rf "$TRAVAIL/modeles/$cid"
+done < "$TRAVAIL/matrix.tsv"
 (cd "$RACINE" && JAVA_HOME="$JDK21" ./gradlew -q -Pfreres.sources :tools:generateur:run \
     "--args=generer --assets $RACINE/app/src/main/assets --sortie $TRAVAIL/modeles --combos $TRAVAIL/combos.json --annee 2026 --auteur CodeIDE --generateur $VERSION_CODEIDE")
 
@@ -189,13 +199,16 @@ PREMIERE_LIGNE_EN="Hello, Ada!"
 verifier_structure() {
     local projet="$1"
     local restants
-    restants=$(grep -rIl --exclude=".verifie" '{{' "$projet" || true)
+    # Les artefacts de build (.gradle/, build/, target/) sont exclus : un
+    # projet généré qui a déjà été construit les porte, et un binaire
+    # Gradle peut contenir la séquence « {{ » par hasard.
+    restants=$(grep -rIl --exclude=".verifie" --exclude-dir=.gradle --exclude-dir=build --exclude-dir=target '{{' "$projet" || true)
     if [ -n "$restants" ]; then
         echec "marqueur {{ résiduel : $restants"
         return 1
     fi
     local boms
-    boms=$(grep -rIl --exclude=".verifie" $'\xef\xbb\xbf' "$projet" || true)
+    boms=$(grep -rIl --exclude=".verifie" --exclude-dir=.gradle --exclude-dir=build --exclude-dir=target $'\xef\xbb\xbf' "$projet" || true)
     if [ -n "$boms" ]; then
         echec "BOM UTF-8 interdit : $boms"
         return 1
@@ -278,6 +291,12 @@ while IFS=$'\t' read -r cid template build jdk tests wrapper langue licence role
         if ! verifier_structure "$projet"; then
             erreur="structure"
         fi
+    fi
+
+    # Option commune includeGitattributes (L3, plan A-3 #11) : le cas nommé
+    # *sans-attributs* ne doit produire aucun .gitattributes.
+    if [ -z "$erreur" ] && [ "$cid" = "kt-app-sans-attributs" ] && [ -f "$projet/.gitattributes" ]; then
+        erreur=".gitattributes présent alors que l'option est désactivée"
     fi
 
     if [ -z "$erreur" ]; then
@@ -388,18 +407,23 @@ while IFS=$'\t' read -r cid template build jdk tests wrapper langue licence role
         gradle-app)
             # Spring Boot : build + tests — @SpringBootTest démarre le contexte,
             # le repository et le contrôleur sont couverts (ADR 0075).
-            # Phase 4 : les quatre dépendances doivent être câblées (JPA+H2,
-            # Security, Actuator, Validation) — le contexte charge avec elles.
+            # L3 (spring-boot 2.0.0) : langage/buildSystem/jdkVersion et les
+            # quatre dépendances câblées (JPA+H2, Security, Actuator,
+            # Validation) — le contexte charge avec elles, dans les deux
+            # langages (src/main/kotlin ou src/main/java).
             cmd=$(gradle_cmd_pour "$projet")
             if [ -z "$cmd" ]; then
                 erreur="ni wrapper ni Gradle système"
             elif ! (cd "$projet" && JAVA_HOME="$jdk_home" "$cmd" --no-daemon --console=plain -q build >/dev/null 2>"$TRAVAIL/$cid.log"); then
                 erreur="gradle (build spring)"
-            elif [ "$tests" = "tests" ] && [ ! -f "$projet/build/reports/tests/test/index.html" ]; then
+            fi
+            if [ -z "$erreur" ] && [ "$tests" = "tests" ] && [ ! -f "$projet/build/reports/tests/test/index.html" ]; then
                 erreur="rapport de tests Spring absent"
-            elif [ "$langue" = "fr" ] && ! grep -rq "Bonjour" "$projet/src/main/kotlin"; then
+            fi
+            if [ -z "$erreur" ] && [ "$langue" = "fr" ] && ! grep -rq "Bonjour" "$projet/src/main"; then
                 erreur="contenu Spring non traduit (fr)"
-            elif [ "$langue" = "en" ] && ! grep -rq "Hello" "$projet/src/main/kotlin"; then
+            fi
+            if [ -z "$erreur" ] && [ "$langue" = "en" ] && ! grep -rq "Hello" "$projet/src/main"; then
                 erreur="contenu Spring non traduit (en)"
             fi
             # Dépendances Spring toutes activées (cas nommé sb-deps).
@@ -409,6 +433,33 @@ while IFS=$'\t' read -r cid template build jdk tests wrapper langue licence role
                         erreur="dépendance Spring absente ($attendu)"
                     fi
                 done
+            fi
+            # JDK exigé par le manifeste (jvmToolchain / JavaLanguageVersion).
+            if [ -z "$erreur" ] && [ -f "$projet/build.gradle.kts" ] && ! grep -q "$jdk" "$projet/build.gradle.kts"; then
+                erreur="toolchain JDK $jdk absente du build généré"
+            fi
+            ;;
+        maven-spring)
+            # Spring Boot sous Maven (L3, buildSystem=maven) : verify (tests
+            # inclus) — pas d'exec:java (le service démarre un serveur web).
+            if ! (cd "$projet" && JAVA_HOME="$jdk_home" "$MVN_BIN" -q verify >"$TRAVAIL/$cid.log" 2>&1); then
+                erreur="maven (verify spring)"
+            fi
+            if [ -z "$erreur" ] && [ "$tests" = "tests" ]; then
+                rapports=$(ls "$projet"/target/surefire-reports/*.txt 2>/dev/null | head -1 || true)
+                if [ -z "$rapports" ] || ! grep -q "Tests run" "$rapports"; then
+                    erreur="tests Maven Spring non exécutés"
+                fi
+            fi
+            if [ -z "$erreur" ] && [ "$langue" = "fr" ] && ! grep -rq "Bonjour" "$projet/src/main"; then
+                erreur="contenu Spring non traduit (fr)"
+            fi
+            if [ -z "$erreur" ] && [ "$langue" = "en" ] && ! grep -rq "Hello" "$projet/src/main"; then
+                erreur="contenu Spring non traduit (en)"
+            fi
+            # Le pom exige le JDK du manifeste (java.version).
+            if [ -z "$erreur" ] && ! grep -q "<java.version>$jdk</java.version>" "$projet/pom.xml"; then
+                erreur="java.version $jdk absente du pom généré"
             fi
             ;;
         gradle-kmp)

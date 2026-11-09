@@ -6,14 +6,20 @@
   "descriptionKey": "template.description",
   "category": "test",
   "iconKey": "template.icon",
-  "tags": ["test", "jvm"],
+  "tags": [
+    "test",
+    "jvm"
+  ],
   "parameters": [
     {
       "id": "projectType",
       "type": "CHOICE",
       "labelKey": "param.type.label",
       "helpKey": "param.type.help",
-      "choices": ["application", "library"],
+      "choices": [
+        "application",
+        "library"
+      ],
       "default": "application",
       "section": "CONFIGURATION",
       "persist": true
@@ -64,7 +70,10 @@
     }
   ],
   "computed": [
-    { "name": "estApplication", "expression": "projectType == \"application\"" }
+    {
+      "name": "estApplication",
+      "expression": "projectType == \"application\""
+    }
   ],
   "files": [
     {
@@ -91,6 +100,11 @@
       "source": "files/readme.md.tpl",
       "when": "includeReadme",
       "group": "readme"
+    },
+    {
+      "path": ".gitattributes",
+      "source": "files/gitattributes.tpl",
+      "when": "includeGitattributes"
     },
     {
       "path": "data.bin",

@@ -1,7 +1,16 @@
 # ADR 0155 — Parcours de création adaptatif : étapes déclarées par le modèle, liste effective calculée par le domaine
 
-- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0 ;
-  à implémenter en L5, sous-lots L5a-L5d)
+- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0) ;
+  **schéma du manifeste implémenté au lot L3 (v0.211.0)** — bloc `wizard`
+  (étapes + préréglages) analysé et validé par le parseur, porté dans
+  `ProjectTemplate.etapesWizard`/`presets`, lint des clés i18n, `lister`
+  étendu ; les cinq modèles hors Android déclarent leurs étapes. Le
+  **consommateur** (`CalculeParcoursUseCase`, état du wizard, écrans)
+  reste au lot L5 (L5a-L5d). Amendement L3 : la clé de condition d'une
+  étape s'écrit **`when`** (alignée sur la convention du manifeste —
+  `files`/`constraints`/`autoDefinit`), l'exemple du §1 disait `quand` ;
+  les identifiants d'étapes et de préréglages suivent
+  `^[a-z][a-z0-9-]*$` (tirets admis).
 - **Amende** : ADR 0020 (le cadre hôte/enfants/état partagé est conservé ;
   `ETAPES_WIZARD` cesse d'être une constante) — ADR 0021/0023 inchangés
   dans leurs invariants.

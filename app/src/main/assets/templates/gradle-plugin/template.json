@@ -1,12 +1,17 @@
 {
   "schemaVersion": 1,
   "id": "gradle-plugin",
-  "templateVersion": "1.0.0",
+  "templateVersion": "1.1.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "jvm",
   "iconKey": "template.icon",
-  "tags": ["Gradle", "Plugin", "Kotlin", "JVM"],
+  "tags": [
+    "Gradle",
+    "Plugin",
+    "Kotlin",
+    "JVM"
+  ],
   "parameters": [
     {
       "id": "artifactId",
@@ -55,7 +60,8 @@
       "helpKey": "param.includeTests.help",
       "default": "true",
       "section": "CONFIGURATION",
-      "persist": true
+      "persist": true,
+      "groupe": "qualite"
     },
     {
       "id": "includeWrapper",
@@ -64,31 +70,116 @@
       "helpKey": "param.includeWrapper.help",
       "default": "true",
       "section": "CONFIGURATION",
-      "persist": true
+      "persist": true,
+      "groupe": "qualite"
     }
   ],
   "computed": [
-    {"name": "gradle", "expression": "true"},
-    {"name": "maven", "expression": "false"},
-    {"name": "avecTests", "expression": "includeTests"},
-    {"name": "avecWrapper", "expression": "includeWrapper"}
+    {
+      "name": "gradle",
+      "expression": "true"
+    },
+    {
+      "name": "maven",
+      "expression": "false"
+    },
+    {
+      "name": "avecTests",
+      "expression": "includeTests"
+    },
+    {
+      "name": "avecWrapper",
+      "expression": "includeWrapper"
+    }
   ],
   "files": [
-    {"path": ".gitattributes", "source": "files/gitattributes.tpl"},
-    {"path": ".gitignore", "source": "files/gitignore.tpl", "when": "includeGitignore"},
-    {"path": ".editorconfig", "source": "files/editorconfig.tpl", "when": "includeEditorconfig"},
-    {"path": "README.md", "source": "files/readme.md.tpl", "when": "includeReadme"},
-    {"path": "settings.gradle.kts", "source": "files/settings.gradle.kts.tpl"},
-    {"path": "build.gradle.kts", "source": "files/build.gradle.kts.tpl"},
-    {"path": "gradle/libs.versions.toml", "source": "files/libs.versions.toml.tpl"},
-    {"path": "gradle.properties", "source": "files/gradle.properties.tpl"},
-    {"path": "gradle/wrapper/gradle-wrapper.properties", "source": "files/wrapper.properties.tpl", "when": "avecWrapper"},
-    {"path": "gradlew", "source": "files/gradlew.tpl", "when": "avecWrapper"},
-    {"path": "gradlew.bat", "source": "files/gradlew.bat.tpl", "when": "avecWrapper"},
-    {"path": "gradle/wrapper/gradle-wrapper.jar", "source": "files/gradle-wrapper.jar", "when": "avecWrapper", "binary": true},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/{{projectName|resourceName}}Plugin.kt", "source": "files/src/plugin.kt.tpl"},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/GreetingExtension.kt", "source": "files/src/extension.kt.tpl"},
-    {"path": "src/main/kotlin/{{packageName|packagePath}}/GreetTask.kt", "source": "files/src/tache.kt.tpl"},
-    {"path": "src/test/kotlin/{{packageName|packagePath}}/PluginTest.kt", "source": "files/src/testplugin.kt.tpl", "when": "avecTests"}
-  ]
+    {
+      "path": ".gitattributes",
+      "source": "commun:gitattributes.tpl",
+      "when": "includeGitattributes"
+    },
+    {
+      "path": ".gitignore",
+      "source": "files/gitignore.tpl",
+      "when": "includeGitignore",
+      "group": "gitignore"
+    },
+    {
+      "path": ".editorconfig",
+      "source": "commun:editorconfig.tpl",
+      "when": "includeEditorconfig"
+    },
+    {
+      "path": "README.md",
+      "source": "files/readme.md.tpl",
+      "when": "includeReadme",
+      "group": "readme"
+    },
+    {
+      "path": "settings.gradle.kts",
+      "source": "files/settings.gradle.kts.tpl"
+    },
+    {
+      "path": "build.gradle.kts",
+      "source": "files/build.gradle.kts.tpl"
+    },
+    {
+      "path": "gradle/libs.versions.toml",
+      "source": "files/libs.versions.toml.tpl"
+    },
+    {
+      "path": "gradle.properties",
+      "source": "files/gradle.properties.tpl"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.properties",
+      "source": "commun:gradle/wrapper/wrapper.properties.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew",
+      "source": "commun:gradlew.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradlew.bat",
+      "source": "commun:gradlew.bat.tpl",
+      "when": "avecWrapper"
+    },
+    {
+      "path": "gradle/wrapper/gradle-wrapper.jar",
+      "source": "commun:gradle/wrapper/gradle-wrapper.jar",
+      "when": "avecWrapper",
+      "binary": true
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/{{projectName|resourceName}}Plugin.kt",
+      "source": "files/src/plugin.kt.tpl"
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/GreetingExtension.kt",
+      "source": "files/src/extension.kt.tpl"
+    },
+    {
+      "path": "src/main/kotlin/{{packageName|packagePath}}/GreetTask.kt",
+      "source": "files/src/tache.kt.tpl"
+    },
+    {
+      "path": "src/test/kotlin/{{packageName|packagePath}}/PluginTest.kt",
+      "source": "files/src/testplugin.kt.tpl",
+      "when": "avecTests"
+    }
+  ],
+  "wizard": {
+    "etapes": [
+      {
+        "id": "qualite",
+        "titreKey": "etape.qualite.titre",
+        "parametres": [
+          "includeTests",
+          "includeWrapper"
+        ]
+      }
+    ]
+  }
 }

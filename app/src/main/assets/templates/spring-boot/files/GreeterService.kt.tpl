@@ -7,14 +7,14 @@ import org.springframework.stereotype.Service
  */
 @Service
 class GreeterService(
-    private val repository: GreeterRepository,
+    private val depot: DepotSalutations,
 ) {
     fun greet(name: String): String {
         val destinataire = name.ifBlank { "{{t:greeter.world}}" }
         return "{{t:app.greeting}}, $destinataire!"
     }
 
-    fun enregistrer(name: String): Salutation = repository.sauver(greet(name))
+    fun enregistrer(name: String): Salutation = depot.sauver(greet(name))
 
-    fun historique(): List<Salutation> = repository.lister()
+    fun historique(): List<Salutation> = depot.lister()
 }

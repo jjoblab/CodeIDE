@@ -30,5 +30,7 @@
   "gitignore.maven": "Maven",
   "gitignore.commun": "IDE et fichiers système",
   "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)",
-  "tache.pasCacheable": "La tâche n'affiche que dans la console - rien à mettre en cache."
+  "tache.pasCacheable": "La tâche n'affiche que dans la console - rien à mettre en cache.",
+  "groupe.qualite.titre": "Qualité",
+  "etape.qualite.titre": "Qualité et outillage"
 }

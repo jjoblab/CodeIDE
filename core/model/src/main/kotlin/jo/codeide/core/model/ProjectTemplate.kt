@@ -31,6 +31,13 @@ package jo.codeide.core.model
  * @property autoDefinit dépendances implicites déclaratives (ADR 0153 §4) :
  * une règle vraie positionne des paramètres `BOOLEAN` jamais écrasés s'ils
  * ont été figés à la main.
+ * @property etapesWizard étapes de modèle déclarées par le bloc `wizard` du
+ * manifeste (ADR 0155 §1 — schéma lu dès le lot L3, consommé par le
+ * parcours adaptatif en L5a) ; vide = une seule étape « Configuration »
+ * regroupant tous les paramètres `CONFIGURATION`.
+ * @property presets préréglages déclarés par le manifeste (ADR 0155 §1,
+ * B-8) : jeux de valeurs cohérents posés en un geste sur la première étape
+ * de modèle ; vide = aucun préréglage.
  * @property fichiers fichiers du projet généré, dans l'ordre déclaré.
  */
 public data class ProjectTemplate(
@@ -45,6 +52,8 @@ public data class ProjectTemplate(
     public val computedVariables: List<TemplateComputedVariable>,
     public val constraints: List<TemplateRegleProjet> = emptyList(),
     public val autoDefinit: List<TemplateAutoDefinition> = emptyList(),
+    public val etapesWizard: List<TemplateEtapeWizard> = emptyList(),
+    public val presets: List<TemplatePreset> = emptyList(),
     public val fichiers: List<TemplateFile>,
 )
 
@@ -89,6 +98,54 @@ public data class TemplateAutoDefinition(
     public val quand: String,
     public val definit: Map<String, Boolean>,
     public val messageKey: String? = null,
+)
+
+/**
+ * Étape de modèle déclarée par le bloc `wizard` du manifeste (ADR 0155 §1).
+ *
+ * Une étape dont [quand] est faux **n'existe pas** dans le parcours effectif
+ * — jamais d'écran vide ni de « Suivant » inutile. Chaque paramètre
+ * `CONFIGURATION` cité apparaît dans **exactement une** étape (contrôlé au
+ * chargement) ; un paramètre non rangé rejoindra l'étape par défaut
+ * « Configuration » (matérialisée par le calcul de parcours, L5a — le
+ * manifeste ne la déclare pas).
+ *
+ * @property id identifiant d'étape (identifiant Java/Kotlin valide, unique
+ * dans le manifeste ; jamais un identifiant du socle — MODELE, IDENTITE,
+ * FICHIERS, RECAPITULATIF sont réservés par l'application).
+ * @property titreKey clé i18n du titre (fr **et** en).
+ * @property iconeKey clé i18n de l'icône maison, ou `null`.
+ * @property quand condition d'apparition (mini-langage ADR 0018), ou `null`
+ * = toujours présente.
+ * @property parametres identifiants des paramètres `CONFIGURATION` de
+ * l'étape, dans l'ordre de rendu.
+ */
+public data class TemplateEtapeWizard(
+    public val id: String,
+    public val titreKey: String,
+    public val iconeKey: String? = null,
+    public val quand: String? = null,
+    public val parametres: List<String>,
+)
+
+/**
+ * Préréglage déclaré par le manifeste (ADR 0155 §1, B-8) : pose un jeu de
+ * valeurs cohérent en un geste. Il s'appuie sur la même sémantique que
+ * `autoDefinit` (ADR 0153) et ne fige rien ([modifiesManuellement] du
+ * wizard reste inchangé).
+ *
+ * @property id identifiant du préréglage (unique dans le manifeste).
+ * @property nomKey clé i18n du nom affiché (fr **et** en).
+ * @property descriptionKey clé i18n de la description courte, ou `null`.
+ * @property valeurs valeurs posées (clé = identifiant de paramètre
+ * existant, valeur `true`/`false` pour un `BOOLEAN`, valeur dans les
+ * `choices` pour un `CHOICE`, texte validé pour un `TEXT`).
+ */
+public data class TemplatePreset(
+    public val id: String,
+    public val nomKey: String,
+    public val descriptionKey: String? = null,
+    public val valeurs: Map<String, String>,
 )
 
 /**

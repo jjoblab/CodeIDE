@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "java",
-  "templateVersion": "1.0.0",
+  "templateVersion": "1.1.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "jvm",
@@ -22,6 +22,7 @@
         "library"
       ],
       "default": "application",
+      "groupe": "plateforme",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -36,6 +37,7 @@
         "none"
       ],
       "default": "gradle-kts",
+      "groupe": "plateforme",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -50,6 +52,7 @@
       ],
       "default": "21",
       "visibleWhen": "buildSystem != \"none\"",
+      "groupe": "plateforme",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -60,6 +63,7 @@
       "helpKey": "param.includeTests.help",
       "default": "true",
       "visibleWhen": "buildSystem != \"none\"",
+      "groupe": "qualite",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -70,6 +74,7 @@
       "helpKey": "param.includeWrapper.help",
       "default": "true",
       "visibleWhen": "buildSystem == \"gradle-kts\"",
+      "groupe": "plateforme",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -143,10 +148,26 @@
       "expression": "buildSystem == \"gradle-kts\" && includeWrapper"
     }
   ],
+  "wizard": {
+    "etapes": [
+      {
+        "id": "type-build",
+        "titreKey": "etape.type-build.titre",
+        "parametres": [
+          "projectType",
+          "buildSystem",
+          "jdkVersion",
+          "includeTests",
+          "includeWrapper"
+        ]
+      }
+    ]
+  },
   "files": [
     {
       "path": ".gitattributes",
-      "source": "files/gitattributes.tpl"
+      "source": "commun:gitattributes.tpl",
+      "when": "includeGitattributes"
     },
     {
       "path": ".gitignore",
@@ -156,7 +177,7 @@
     },
     {
       "path": ".editorconfig",
-      "source": "files/editorconfig.tpl",
+      "source": "commun:editorconfig.tpl",
       "when": "includeEditorconfig",
       "group": "editorconfig"
     },
@@ -188,22 +209,22 @@
     },
     {
       "path": "gradle/wrapper/gradle-wrapper.properties",
-      "source": "files/wrapper.properties.tpl",
+      "source": "commun:gradle/wrapper/wrapper.properties.tpl",
       "when": "avecWrapper"
     },
     {
       "path": "gradlew",
-      "source": "files/gradlew.tpl",
+      "source": "commun:gradlew.tpl",
       "when": "avecWrapper"
     },
     {
       "path": "gradlew.bat",
-      "source": "files/gradlew.bat.tpl",
+      "source": "commun:gradlew.bat.tpl",
       "when": "avecWrapper"
     },
     {
       "path": "gradle/wrapper/gradle-wrapper.jar",
-      "source": "files/gradle-wrapper.jar",
+      "source": "commun:gradle/wrapper/gradle-wrapper.jar",
       "when": "avecWrapper",
       "binary": true
     },

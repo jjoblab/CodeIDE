@@ -43,11 +43,26 @@ constructor(
             .sorted()
     }
 
+    @Suppress("ReturnCount") // Clauses de garde du port (règle 16) : gardes, source partagée, lecture.
     public override suspend fun readTemplateFile(templateId: String, cheminRelatif: String): AppResult<ByteArray> {
         if (!idModeleSur(templateId) || !cheminInterne(cheminRelatif)) {
             return AppResult.Failure(
                 AppError.Storage(AppError.StorageReason.NotFound, "$templateId/$cheminRelatif"),
             )
+        }
+        // Source partagée (ADR 0156) : « commun:<chemin> » → _commun/<chemin>.
+        // La garde est déjà passée sur le chemin complet ; elle est rejouée
+        // sur le chemin résolu, dans le répertoire de source partagée.
+        if (cheminRelatif.startsWith(PREFIXE_SOURCE_COMMUNE)) {
+            val cheminSource = cheminRelatif.removePrefix(PREFIXE_SOURCE_COMMUNE)
+            if (!cheminInterne(cheminSource)) {
+                return AppResult.Failure(
+                    AppError.Storage(AppError.StorageReason.NotFound, cheminRelatif),
+                )
+            }
+            return lire { assets ->
+                assets.open("$REPERTOIRE_MODELES/$REPERTOIRE_COMMUN/$cheminSource").use { it.readBytes() }
+            }
         }
         return lire { assets ->
             assets.open("$REPERTOIRE_MODELES/$templateId/$cheminRelatif").use { it.readBytes() }
@@ -92,5 +107,18 @@ constructor(
 
         /** Racine des licences de référence. */
         const val REPERTOIRE_LICENCES = "licenses"
+
+        /**
+         * Préfixe de schéma d'une source partagée (ADR 0156) — copie
+         * documentée et testée à l'identique des deux côtés du port
+         * (implémentation Android et implémentation outil).
+         */
+        const val PREFIXE_SOURCE_COMMUNE = "commun:"
+
+        /**
+         * Répertoire de source partagée sous `templates/` (ADR 0156) —
+         * copie documentée et testée à l'identique des deux côtés du port.
+         */
+        const val REPERTOIRE_COMMUN = "_commun"
     }
 }

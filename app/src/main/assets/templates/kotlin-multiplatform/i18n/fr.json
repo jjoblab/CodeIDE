@@ -49,5 +49,8 @@
   "readme.dep.datetime": "kotlinx-datetime — dates et instants multiplateformes (voir `HorodatageSalutation`)",
   "configuration.kdoc": "Configuration sérialisable : exemple de data class @Serializable commune.",
   "delai.kdoc": "Salue après un délai : exemple de fonction suspendue commune.",
-  "horodatage.kdoc": "Analyse un instant ISO-8601 : exemple multiplateforme (API kotlin.time expérimentale)."
+  "horodatage.kdoc": "Analyse un instant ISO-8601 : exemple multiplateforme (API kotlin.time expérimentale).",
+  "groupe.bibliotheques.titre": "Bibliothèques",
+  "groupe.qualite.titre": "Qualité",
+  "etape.bibliotheques.titre": "Cibles et bibliothèques"
 }

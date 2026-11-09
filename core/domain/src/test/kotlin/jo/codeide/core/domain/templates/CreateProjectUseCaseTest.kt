@@ -85,9 +85,9 @@ class CreateProjectUseCaseTest {
         assertEquals(CreationProgress.Preparation, evenements.first())
         assertTrue(evenements[1] is CreationProgress.CreationDossierRacine)
         val generations = evenements.filterIsInstance<CreationProgress.GenerationFichier>()
-        assertEquals(6, generations.size) // 6 fichiers dans le plan par défaut
+        assertEquals(7, generations.size) // 7 fichiers dans le plan par défaut
         assertEquals(1, generations.first().index)
-        assertEquals(6, generations.last().index)
+        assertEquals(7, generations.last().index)
         assertTrue(evenements.contains(CreationProgress.Enregistrement))
         val terminal = evenements.last() as CreationProgress.Termine
         assertTrue(terminal.result is AppResult.Success)

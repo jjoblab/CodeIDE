@@ -13,6 +13,9 @@ package jo.codeide.core.model
  * @property includeReadme générer le README du modèle.
  * @property includeGitignore générer le `.gitignore` du modèle.
  * @property includeEditorconfig générer le `.editorconfig` du modèle.
+ * @property includeGitattributes générer le `.gitattributes` du modèle
+ * (fins de ligne déterministes — plan A-3 #11 : l'option devient
+ * choisissable ; défaut `true`, comportement historique).
  * @property license licence à générer (fichier `assets/licenses/` officiel
  * SPDX ; MIT et BSD incluent auteur et année).
  * @property contentLanguage langue du **contenu généré** (README, KDoc,
@@ -22,6 +25,7 @@ public data class TemplateOptions(
     public val includeReadme: Boolean = true,
     public val includeGitignore: Boolean = true,
     public val includeEditorconfig: Boolean = true,
+    public val includeGitattributes: Boolean = true,
     public val license: License = License.NONE,
     public val contentLanguage: String = LANGUE_DEFAUT,
 ) {

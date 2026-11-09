@@ -16,14 +16,18 @@ import jo.codeide.core.model.TemplateParameterType
  *
  * Contrôles :
  * - **i18n** : chaque clé i18n **référencée** (modèle, libellés et aides des
- *   paramètres, règles, groupes, raisons de désactivation) existe dans
+ *   paramètres, règles, groupes, raisons de désactivation, titres et icônes
+ *   des étapes wizard, noms des préréglages — ADR 0155) existe dans
  *   `i18n/en.json` **et** `i18n/fr.json` ; les clés optionnelles présentes
  *   d'un côté le sont de l'autre (jamais d'asymétrie linguistique) ;
  * - **expressions** : chaque `visibleWhen`/`enabledWhen`/`when` des règles
  *   et variables calculées évalue sans erreur (identifiant inconnu, type
  *   inattendu, borne dépassée → écart) ;
  * - **sources** : chaque `source` déclaré existe dans le répertoire du
- *   modèle (`commun:` — ADR 0156 — entrera ici à son implémentation L3/L4) ;
+ *   modèle, et toute source partagée `commun:<x>` (ADR 0156) existe dans
+ *   `_commun/<x>` ; un modèle qui utilise la source partagée ne peut pas
+ *   garder une copie locale d'un fichier servi par `_commun/` (pas de
+ *   doublon sémantique) ;
  * - **chemins dupliqués** : déjà refusés au **chargement** du manifeste
  *   (contrôle du parseur — échec explicite du catalogue, surfaced par la
  *   commande) ; le lint n'a rien à redoubler ;
@@ -95,8 +99,8 @@ public class ValidateurManifestes(
         // Clés RÉFÉRENCÉES par le manifeste : obligatoires en fr et en.
         // Clés optionnelles des choix : dès qu'une existe, elle existe des deux
         // côtés (jamais d'asymétrie) — l'absence même de `libelle` reste permise
-        // (repli sur la valeur brute, ADR 0154 §1) tant que l'i18n de choix
-        // n'est pas généralisé aux manifestes (lots L3/L4).
+        // (repli sur la valeur brute, ADR 0154 §1) tant qu'un modèle n'a pas
+        // généralisé son i18n de choix.
         val obligatoires = mutableListOf(template.nameKey, template.descriptionKey)
         val optionnelles = mutableListOf<String>()
         for (parametre in template.parameters) {
@@ -108,6 +112,7 @@ public class ValidateurManifestes(
         }
         template.constraints.forEach { obligatoires += it.messageKey }
         template.autoDefinit.forEach { regle -> regle.messageKey?.let(obligatoires::add) }
+        obligatoires += clesWizard(template)
         for (cle in obligatoires) {
             if (cle !in anglais) {
                 ecarts += EcartManifeste(charge.template.id.value, "i18n", "clé absente de en : $cle")
@@ -129,6 +134,18 @@ public class ValidateurManifestes(
             }
         }
         return ecarts
+    }
+
+    /** Clés i18n des étapes de modèle et préréglages du bloc `wizard` (ADR 0155). */
+    private fun clesWizard(template: jo.codeide.core.model.ProjectTemplate): List<String> = buildList {
+        template.etapesWizard.forEach { etape ->
+            add(etape.titreKey)
+            etape.iconeKey?.let(::add)
+        }
+        template.presets.forEach { preset ->
+            add(preset.nomKey)
+            preset.descriptionKey?.let(::add)
+        }
     }
 
     /** Clés optionnelles des choix d'un paramètre (`CHOICE`), symétriques fr/en. */
@@ -182,14 +199,34 @@ public class ValidateurManifestes(
     }
 
     /**
-     * Chaque source déclaré existe dans le répertoire du modèle — les
-     * chemins de sortie dupliqués sont, eux, refusés au chargement du
-     * manifeste (parseur) : un catalogue qui arrive ici n'en contient pas.
+     * Chaque source déclaré existe — dans le répertoire du modèle, ou dans
+     * `_commun/` pour une source partagée `commun:<x>` (ADR 0156). Un modèle
+     * qui utilise la source partagée ne garde aucune copie locale d'un
+     * fichier servi par `_commun/` (pas de doublon sémantique) ; les chemins
+     * de sortie dupliqués sont, eux, refusés au chargement du manifeste
+     * (parseur) : un catalogue qui arrive ici n'en contient pas.
      */
     private suspend fun validerSources(charge: LoadedTemplate): List<EcartManifeste> {
         val ecarts = mutableListOf<EcartManifeste>()
+        var utiliseCommun = false
         for (fichier in charge.template.fichiers) {
-            if (fichier.source.startsWith("commun:")) continue // ADR 0156 — implémentation L3/L4.
+            if (fichier.source.startsWith(PREFIXE_COMMUN)) {
+                utiliseCommun = true
+                val lecture = assets.readTemplateFile(
+                    REPERTOIRE_COMMUN,
+                    fichier.source.removePrefix(PREFIXE_COMMUN),
+                )
+                if (lecture is AppResult.Failure &&
+                    (lecture.error as? AppError.Storage)?.reason == AppError.StorageReason.NotFound
+                ) {
+                    ecarts += EcartManifeste(
+                        charge.template.id.value,
+                        "commun-source-absente",
+                        "« ${fichier.source} » (vers « ${fichier.chemin} ») introuvable dans _commun/",
+                    )
+                }
+                continue
+            }
             val lecture = assets.readTemplateFile(charge.template.id.value, fichier.source)
             if (lecture is AppResult.Failure &&
                 (lecture.error as? AppError.Storage)?.reason == AppError.StorageReason.NotFound
@@ -201,6 +238,32 @@ public class ValidateurManifestes(
                 )
             }
         }
+        if (utiliseCommun) {
+            ecarts += copiesLocalesRedondantes(charge)
+        }
+        return ecarts
+    }
+
+    /**
+     * Copies locales redondantes avec `_commun/` : pour un modèle migré
+     * (il référence au moins une source `commun:`), toute source locale dont
+     * le fichier existe aussi dans `_commun/` est un doublon sémantique —
+     * la copie doit être supprimée au profit de la source partagée.
+     */
+    private suspend fun copiesLocalesRedondantes(charge: LoadedTemplate): List<EcartManifeste> {
+        val ecarts = mutableListOf<EcartManifeste>()
+        for (fichier in charge.template.fichiers) {
+            if (fichier.source.startsWith(PREFIXE_COMMUN)) continue
+            val relatif = fichier.source.removePrefix("files/")
+            val lecture = assets.readTemplateFile(REPERTOIRE_COMMUN, relatif)
+            if (lecture is AppResult.Success) {
+                ecarts += EcartManifeste(
+                    charge.template.id.value,
+                    "redondant-avec-commun",
+                    "« ${fichier.source} » existe aussi dans _commun/$relatif — utilisez commun:$relatif",
+                )
+            }
+        }
         return ecarts
     }
 
@@ -208,6 +271,14 @@ public class ValidateurManifestes(
     private fun dedupliquer(ecarts: List<EcartManifeste>): List<EcartManifeste> {
         val vus = mutableSetOf<String>()
         return ecarts.filter { ecart -> vus.add("${ecart.templateId}#${ecart.regle}#${ecart.detail}") }
+    }
+
+    private companion object {
+        /** Préfixe de schéma d'une source partagée (ADR 0156). */
+        const val PREFIXE_COMMUN = "commun:"
+
+        /** Répertoire de source partagée sous `templates/` (ADR 0156). */
+        const val REPERTOIRE_COMMUN = "_commun"
     }
 }
 

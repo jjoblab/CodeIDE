@@ -51,5 +51,22 @@
   "gitignore.gradle": "Gradle",
   "gitignore.maven": "Maven",
   "gitignore.commun": "IDE and system files",
-  "gitattributes.entete": "Deterministic line endings (see .editorconfig)"
+  "gitattributes.entete": "Deterministic line endings (see .editorconfig)",
+  "param.projectType.choix.application.libelle": "Console application",
+  "param.projectType.choix.application.sousTitre": "Main entry point, optional publishing",
+  "param.projectType.choix.library.libelle": "Library",
+  "param.projectType.choix.library.sousTitre": "Reusable jar without an entry point",
+  "param.buildSystem.choix.gradle-kts.libelle": "Gradle (Kotlin DSL)",
+  "param.buildSystem.choix.gradle-kts.sousTitre": "Checksummed wrapper, libs.versions.toml catalog",
+  "param.buildSystem.choix.maven.libelle": "Maven",
+  "param.buildSystem.choix.maven.sousTitre": "pom.xml, no wrapper included",
+  "param.buildSystem.choix.none.libelle": "Sources only",
+  "param.buildSystem.choix.none.sousTitre": "No build — compile manually",
+  "param.jdkVersion.choix.17.libelle": "JDK 17 (LTS)",
+  "param.jdkVersion.choix.17.sousTitre": "Kotlin 2.2 / Maven compiler baseline",
+  "param.jdkVersion.choix.21.libelle": "JDK 21 (LTS)",
+  "param.jdkVersion.choix.21.sousTitre": "Recommended — latest optimizations",
+  "groupe.plateforme.titre": "Platform",
+  "groupe.qualite.titre": "Quality",
+  "etape.type-build.titre": "Type and build"
 }

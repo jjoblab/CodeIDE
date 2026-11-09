@@ -1,7 +1,13 @@
 # ADR 0156 — Mutualisation des fichiers communs des modèles (source partagée)
 
-- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0 ;
-  à implémenter en L3/L4 selon le lot qui touche le premier les modèles)
+- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0) ;
+  **implémenté au lot L3 (v0.211.0) pour les cinq modèles hors Android**
+  (`spring-boot`, `kotlin-jvm`, `java`, `kotlin-multiplatform`,
+  `gradle-plugin`) — répertoire `_commun/` créé, préfixe `commun:` résolu
+  par les deux implémentations du port (gardes identiques, tests des deux
+  côtés), lint étendu (`commun-source-absente`,
+  `redondant-avec-commun`) ; migration des deux modèles Android **et
+  suppression des orphelins** (§2) au lot L4.
 - **S'appuie sur** : ADR 0017 (plan figé), ADR 0019 (port
   `TemplateAssetsSource`, harnais), ADR 0089 (alignement catalogue).
 - **Contexte** : l'audit L0 chiffre la duplication embarquée :

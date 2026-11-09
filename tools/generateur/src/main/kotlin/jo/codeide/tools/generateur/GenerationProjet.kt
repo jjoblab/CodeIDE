@@ -68,6 +68,7 @@ internal suspend fun genererUnitaire(
                 includeReadme = arguments.drapeauBooleen("readme", defaut = true),
                 includeGitignore = arguments.drapeauBooleen("gitignore", defaut = true),
                 includeEditorconfig = arguments.drapeauBooleen("editorconfig", defaut = true),
+                includeGitattributes = arguments.drapeauBooleen("gitattributes", defaut = true),
                 license = arguments.valeur("licence") ?: "none",
                 contentLanguage = arguments.valeur("langue") ?: "en",
             ),

@@ -1,7 +1,8 @@
 # tools/generateur — Outil des modèles : matrice, génération, lint, déterminisme
 
 > Statut : créé à l'étape 9 (v0.10.0, ADR 0019) ; multi-commandes au lot L2
-> (v0.210.0, ADR 0157).
+> (v0.210.0, ADR 0157) ; lint des sources partagées + listing du bloc
+> `wizard` + option `--gitattributes` au lot L3 (v0.211.0, ADR 0156/0155).
 
 Outil Kotlin JVM en ligne de commande, **hors application Android** : il
 lit les **vrais** assets embarqués du dépôt (`app/src/main/assets`) en
@@ -17,11 +18,11 @@ de sortie, ADR 0157 §1). Codes de sortie : `0` succès, `1` échec explicite,
 
 | Commande | Rôle | Sortie |
 |---|---|---|
-| `lister [--modele <id>] [--json]` | l'état réel des manifestes : paramètres (type, défaut, choix, `visibleWhen`, `enabledWhen`, section, groupe, avance, persistance), variables calculées, contraintes, `autoDefinit`, fichiers | JSON (tableau, `--json`) ou texte lisible |
+| `lister [--modele <id>] [--json]` | l'état réel des manifestes : paramètres (type, défaut, choix, `visibleWhen`, `enabledWhen`, section, groupe, avance, persistance), variables calculées, contraintes, `autoDefinit`, bloc `wizard` (étapes de modèle + préréglages, ADR 0155), fichiers | JSON (tableau, `--json`) ou texte lisible |
 | `generer --combos <fichier.json> …` | génération sur disque d'un **lot** de combinaisons | `OK <id> (n fichiers)` / `ECHEC <id> : <détail>`, puis `GENERE <ok>/<total>` (protocole historique conservé) |
-| `generer --modele <id> [--param k=v]… …` | génération d'un **projet unitaire** par arguments | `OK` / `ECHEC` |
+| `generer --modele <id> [--param k=v]… …` | génération d'un **projet unitaire** par arguments (options communes : `--readme`, `--gitignore`, `--editorconfig`, `--gitattributes` — plan A-3 #11) | `OK` / `ECHEC` |
 | `matrice [--strategie exhaustif\|paires\|bornes] [--sortie combos.json]` | **dérivation des combinaisons depuis les manifestes** (ADR 0157 §1) : paramètres énumérables (`BOOLEAN`, `CHOICE`), masquages respectés (un paramètre masqué ou désactivé ne multiplie pas les cas), règles `ERREUR` exclues et signalées | JSON des combinaisons (fichier ou sortie standard) ; exclusions en JSONL sur la sortie d'erreur ; ligne résumé `MATRICE <modeles> <candidats> <retenues> <exclues>` |
-| `valider-manifestes` | **lint** : clés i18n référencées en `fr` **et** `en` (et jamais d'asymétrie), expressions évaluables (identifiants inconnus, bornes), sources existantes, choix `CHOICE` tous atteignables | JSONL des écarts + `VALIDATION <modeles> <ecarts>` ; code non nul au moindre écart |
+| `valider-manifestes` | **lint** : clés i18n référencées en `fr` **et** `en` (et jamais d'asymétrie — titres d'étapes et préréglages compris), expressions évaluables (identifiants inconnus, bornes), sources existantes **dans le modèle ou dans `_commun/`** (`commun:` — ADR 0156 ; une copie locale d'un fichier servi par la source partagée est un écart), choix `CHOICE` tous atteignables | JSONL des écarts + `VALIDATION <modeles> <ecarts>` ; code non nul au moindre écart |
 | `determinisme --combos <fichier.json> --sortie <dir>` | deux générations successives comparées **octet pour octet** (arborescences complètes) | JSONL des bilans + `DETERMINISME <ok>/<total>` |
 
 La lecture des combinaisons tolère les clés inconnues (`PROTOCOLE=2`) :

@@ -72,7 +72,7 @@ internal data class EvaluationParametres(
  * - les variables automatiques (`projectName`, `description`, `author`,
  *   `year`, `slug`, `packagePath`, `contentLanguage`, `plateformeMajeure`)
  *   et les options communes (`includeReadme`, `includeGitignore`,
- *   `includeEditorconfig`, `license`) alimentent le contexte comme n'importe
+ *   `includeEditorconfig`, `includeGitattributes`, `license`) alimentent le contexte comme n'importe
  *   quel paramètre ;
  * - toute défaillance (variable inconnue, clé i18n manquante, chemin
  *   interdit) échoue explicitement — jamais de `{{…}}` résiduel.
@@ -786,6 +786,7 @@ constructor(private val assets: TemplateAssetsSource) {
         contexte[NOM_OPTION_README] = ExpressionValue.Booleen(requete.options.includeReadme)
         contexte[NOM_OPTION_GITIGNORE] = ExpressionValue.Booleen(requete.options.includeGitignore)
         contexte[NOM_OPTION_EDITORCONFIG] = ExpressionValue.Booleen(requete.options.includeEditorconfig)
+        contexte[NOM_OPTION_GITATTRIBUTES] = ExpressionValue.Booleen(requete.options.includeGitattributes)
         contexte[NOM_OPTION_LICENCE] = ExpressionValue.Chaine(requete.options.license.codeTemplate())
         return contexte
     }
@@ -887,6 +888,7 @@ constructor(private val assets: TemplateAssetsSource) {
         private const val NOM_OPTION_README = "includeReadme"
         private const val NOM_OPTION_GITIGNORE = "includeGitignore"
         private const val NOM_OPTION_EDITORCONFIG = "includeEditorconfig"
+        private const val NOM_OPTION_GITATTRIBUTES = "includeGitattributes"
         private const val NOM_OPTION_LICENCE = "license"
 
         /**

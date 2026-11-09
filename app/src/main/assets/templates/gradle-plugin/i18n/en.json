@@ -30,5 +30,7 @@
   "gitignore.maven": "Maven",
   "gitignore.commun": "IDE and system files",
   "gitattributes.entete": "Deterministic line endings (see .editorconfig)",
-  "tache.pasCacheable": "The task only prints to the console - nothing to cache."
+  "tache.pasCacheable": "The task only prints to the console - nothing to cache.",
+  "groupe.qualite.titre": "Quality",
+  "etape.qualite.titre": "Quality and tooling"
 }

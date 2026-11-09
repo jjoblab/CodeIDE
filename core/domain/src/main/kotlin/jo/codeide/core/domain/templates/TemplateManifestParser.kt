@@ -5,11 +5,13 @@ import jo.codeide.core.model.RenduParametre
 import jo.codeide.core.model.SeveriteRegle
 import jo.codeide.core.model.TemplateAutoDefinition
 import jo.codeide.core.model.TemplateComputedVariable
+import jo.codeide.core.model.TemplateEtapeWizard
 import jo.codeide.core.model.TemplateFile
 import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateParameter
 import jo.codeide.core.model.TemplateParameterType
+import jo.codeide.core.model.TemplatePreset
 import jo.codeide.core.model.TemplateRegleProjet
 import jo.codeide.core.model.TemplateSection
 
@@ -64,6 +66,7 @@ internal object TemplateManifestParser {
             "includeReadme",
             "includeGitignore",
             "includeEditorconfig",
+            "includeGitattributes",
             "license",
         )
 
@@ -177,6 +180,10 @@ internal object TemplateManifestParser {
         }
         for (regle in manifeste.autoDefinit) {
             val probleme = validerAutoDefinit(regle, manifeste.parameters)
+            if (probleme != null) return probleme
+        }
+        manifeste.wizard?.let { bloc ->
+            val probleme = ValidateurBlocWizard.valide(bloc, manifeste.parameters)
             if (probleme != null) return probleme
         }
 
@@ -396,6 +403,25 @@ internal object TemplateManifestParser {
                 quand = regle.quand,
                 definit = regle.definit,
                 messageKey = regle.messageKey,
+            )
+        },
+        etapesWizard =
+        manifeste.wizard?.etapes.orEmpty().map { etape ->
+            TemplateEtapeWizard(
+                id = etape.id,
+                titreKey = etape.titreKey,
+                iconeKey = etape.iconeKey,
+                quand = etape.quand,
+                parametres = etape.parametres,
+            )
+        },
+        presets =
+        manifeste.wizard?.presets.orEmpty().map { preset ->
+            TemplatePreset(
+                id = preset.id,
+                nomKey = preset.nomKey,
+                descriptionKey = preset.descriptionKey,
+                valeurs = preset.valeurs.mapValues { (_, valeur) -> valeur.content },
             )
         },
         fichiers =

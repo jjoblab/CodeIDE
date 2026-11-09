@@ -3,6 +3,7 @@ package jo.codeide.core.domain.templates
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
 
 /**
  * DTO du manifeste déclaratif `assets/templates/<id>/template.json`
@@ -19,8 +20,10 @@ import kotlinx.serialization.json.Json
  * `validator`, `visibleWhen`, `enabledWhen`, `disabledReasonKey`, `rendu`,
  * `groupe`, `avance`, `section`, `persist`), `computed` (`name`,
  * `expression`), `constraints` (`when`, `severity`, `messageKey`),
- * `autoDefinit` (`when`, `definit`, `messageKey`), `files` (`path`,
- * `source`, `binary`, `when`, `group`).
+ * `autoDefinit` (`when`, `definit`, `messageKey`), `wizard` (`etapes` —
+ * `id`, `titreKey`, `iconeKey`, `quand`, `parametres` ; `presets` — `id`,
+ * `nomKey`, `descriptionKey`, `valeurs` — ADR 0155, schéma lu dès L3),
+ * `files` (`path`, `source`, `binary`, `when`, `group`).
  */
 @Serializable
 internal data class ManifesteTemplateJson(
@@ -36,6 +39,7 @@ internal data class ManifesteTemplateJson(
     val computed: List<VariableCalculeeJson> = emptyList(),
     val constraints: List<RegleProjetJson> = emptyList(),
     val autoDefinit: List<AutoDefinitJson> = emptyList(),
+    val wizard: BlocWizardJson? = null,
     val files: List<FichierTemplateJson> = emptyList(),
 )
 
@@ -75,6 +79,33 @@ internal data class AutoDefinitJson(
     val quand: String,
     val definit: Map<String, Boolean> = emptyMap(),
     val messageKey: String? = null,
+)
+
+/** Bloc `wizard` du manifeste (ADR 0155 §1) : étapes de modèle et préréglages. */
+@Serializable
+internal data class BlocWizardJson(
+    val etapes: List<EtapeWizardJson> = emptyList(),
+    val presets: List<PresetWizardJson> = emptyList(),
+)
+
+/** Étape de modèle déclarée (`quand` = mini-langage, `null` = toujours). */
+@Serializable
+internal data class EtapeWizardJson(
+    val id: String,
+    val titreKey: String,
+    val iconeKey: String? = null,
+    @SerialName("when")
+    val quand: String? = null,
+    val parametres: List<String> = emptyList(),
+)
+
+/** Préréglage déclaré (B-8) : valeurs posées en un geste, rien figé. */
+@Serializable
+internal data class PresetWizardJson(
+    val id: String,
+    val nomKey: String,
+    val descriptionKey: String? = null,
+    val valeurs: Map<String, JsonPrimitive> = emptyMap(),
 )
 
 @Serializable

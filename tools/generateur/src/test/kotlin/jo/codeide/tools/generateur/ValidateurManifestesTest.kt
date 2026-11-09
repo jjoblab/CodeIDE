@@ -164,6 +164,62 @@ class ValidateurManifestesTest {
         assertTrue(ecarts.any { it.regle == "expression" && it.detail.contains("identifiantFantome") })
     }
 
+    // ---------------------------------------------- source partagée (ADR 0156)
+
+    @Test
+    fun `une source commun absente de _commun est un écart`() = runBlocking {
+        val assets = assetsCassees(
+            i18nFr = """{"template.name":"Cassé","param.mode.label":"Mode"}""",
+            i18nEn = """{"template.name":"Broken","param.mode.label":"Mode"}""",
+            parametre = """{"id":"mode","type":"CHOICE","labelKey":"param.mode.label","choices":["a"],"default":"a"}""",
+            fichiers = """[{"path":"gradlew","source":"commun:gradlew.tpl"}]""",
+        )
+
+        val ecarts = validateur(assets).valider(listOf(TemplateId("fixture-casse")), options)
+
+        assertTrue(
+            ecarts.any { it.regle == "commun-source-absente" && it.detail.contains("commun:gradlew.tpl") },
+        )
+    }
+
+    @Test
+    fun `une source commun présente dans _commun est acceptée`() = runBlocking {
+        val assets = assetsCassees(
+            i18nFr = """{"template.name":"Cassé","param.mode.label":"Mode"}""",
+            i18nEn = """{"template.name":"Broken","param.mode.label":"Mode"}""",
+            parametre = """{"id":"mode","type":"CHOICE","labelKey":"param.mode.label","choices":["a"],"default":"a"}""",
+            fichiers = """[{"path":"sortie.txt","source":"commun:partage.txt"}]""",
+            communFichiers = mapOf("partage.txt" to "contenu partagé {{mode}}\n"),
+        )
+
+        val ecarts = validateur(assets).valider(listOf(TemplateId("fixture-casse")), options)
+
+        assertEquals(emptyList<EcartManifeste>(), ecarts)
+    }
+
+    @Test
+    fun `une copie locale d un fichier servi par _commun est un écart`() = runBlocking {
+        val assets = assetsCassees(
+            i18nFr = """{"template.name":"Cassé","param.mode.label":"Mode"}""",
+            i18nEn = """{"template.name":"Broken","param.mode.label":"Mode"}""",
+            parametre = """{"id":"mode","type":"CHOICE","labelKey":"param.mode.label","choices":["a"],"default":"a"}""",
+            fichiers =
+            """[{"path":"gradlew","source":"commun:gradlew.tpl"},""" +
+                """{"path":"old.txt","source":"files/gradlew.tpl"}]""",
+            communFichiers = mapOf("gradlew.tpl" to "#!/bin/sh\n"),
+            fichiersLocaux = mapOf("gradlew.tpl" to "#!/bin/sh\n"),
+        )
+
+        val ecarts = validateur(assets).valider(listOf(TemplateId("fixture-casse")), options)
+
+        assertTrue(
+            ecarts.any {
+                it.regle == "redondant-avec-commun" && it.detail.contains("files/gradlew.tpl") &&
+                    it.detail.contains("_commun/gradlew.tpl")
+            },
+        )
+    }
+
     // ------------------------------------------------------------- bâtisseur
 
     /**
@@ -171,18 +227,26 @@ class ValidateurManifestesTest {
      * dont les morceaux (i18n, paramètre, fichiers, contrainte) sont
      * injectés — chaque test déclare exactement le défaut qu'il éprouve.
      */
+    @Suppress("LongParameterList") // Bâtisseur de fixtures : chaque test déclare exactement son défaut.
     private fun assetsCassees(
         i18nFr: String?,
         i18nEn: String,
         parametre: String,
         fichiers: String = """[{"path":"sortie.txt","source":"files/main.txt.tpl"}]""",
         contrainte: String? = null,
+        communFichiers: Map<String, String> = emptyMap(),
+        fichiersLocaux: Map<String, String> = emptyMap(),
     ): File {
         val racine = dossierTemporaire.newFolder("assets")
         val modele = File(racine, "templates/fixture-casse").apply { mkdirs() }
         File(modele, "i18n").mkdirs()
         File(modele, "files").mkdirs()
         File(modele, "files/main.txt.tpl").writeText("contenu {{mode}}\n")
+        fichiersLocaux.forEach { (chemin, contenu) -> File(modele, "files/$chemin").writeText(contenu) }
+        if (communFichiers.isNotEmpty()) {
+            val commun = File(racine, "templates/_commun").apply { mkdirs() }
+            communFichiers.forEach { (chemin, contenu) -> File(commun, chemin).writeText(contenu) }
+        }
         File(modele, "i18n/en.json").writeText(i18nEn)
         i18nFr?.let { File(modele, "i18n/fr.json").writeText(it) }
         val contraintes = contrainte?.let { ",\"constraints\":[$it]" } ?: ""

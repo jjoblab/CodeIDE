@@ -364,7 +364,7 @@ public class GenerateurModeles {
                       [--nom <nom>] [--description <texte>] [--param k=v]…
                       [--langue fr|en] [--licence none|mit|apache-2.0|gpl-3.0|bsd-3-clause]
                       [--readme true|false] [--gitignore true|false] [--editorconfig true|false]
-                      [--id <id-sortie>]
+                      [--gitattributes true|false] [--id <id-sortie>]
               matrice --assets <dir> [--strategie exhaustif|paires|bornes] [--modele <id>]
                       [--seuil <n>] [--plafond <n>] [--nom <nom>] [--langue fr|en]
                       [--licence <code>] [--sortie combos.json]
@@ -403,6 +403,7 @@ internal fun requeteDe(combinaison: Combinaison): CreateProjectRequest = CreateP
         includeReadme = combinaison.options.includeReadme,
         includeGitignore = combinaison.options.includeGitignore,
         includeEditorconfig = combinaison.options.includeEditorconfig,
+        includeGitattributes = combinaison.options.includeGitattributes,
         license = GenerateurModeles.licence(combinaison.options.license),
         contentLanguage = combinaison.options.contentLanguage,
     ),

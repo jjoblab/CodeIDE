@@ -51,12 +51,15 @@ public data class Combinaison(
  * @property license code de licence (`none`, `mit`, `apache-2.0`, `gpl-3.0`,
  * `bsd-3-clause`).
  * @property contentLanguage langue du contenu généré (`fr` ou `en`).
+ * @property includeGitattributes générer le `.gitattributes` du modèle
+ * (défaut `true`, comportement historique — plan A-3 #11).
  */
 @Serializable
 public data class OptionsCombinaison(
     public val includeReadme: Boolean = true,
     public val includeGitignore: Boolean = true,
     public val includeEditorconfig: Boolean = true,
+    public val includeGitattributes: Boolean = true,
     public val license: String = "none",
     public val contentLanguage: String = "en",
 )

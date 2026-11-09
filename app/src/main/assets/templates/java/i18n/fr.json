@@ -51,5 +51,22 @@
   "gitignore.gradle": "Gradle",
   "gitignore.maven": "Maven",
   "gitignore.commun": "IDE et fichiers système",
-  "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)"
+  "gitattributes.entete": "Fins de ligne déterministes (voir .editorconfig)",
+  "param.projectType.choix.application.libelle": "Application console",
+  "param.projectType.choix.application.sousTitre": "Point d'entrée Main, publication optionnelle",
+  "param.projectType.choix.library.libelle": "Bibliothèque",
+  "param.projectType.choix.library.sousTitre": "Jar réutilisable sans point d'entrée",
+  "param.buildSystem.choix.gradle-kts.libelle": "Gradle (Kotlin DSL)",
+  "param.buildSystem.choix.gradle-kts.sousTitre": "Wrapper sommé, catalogue libs.versions.toml",
+  "param.buildSystem.choix.maven.libelle": "Maven",
+  "param.buildSystem.choix.maven.sousTitre": "pom.xml, wrapper non inclus",
+  "param.buildSystem.choix.none.libelle": "Sources uniquement",
+  "param.buildSystem.choix.none.sousTitre": "Pas de build — compilation à la main",
+  "param.jdkVersion.choix.17.libelle": "JDK 17 (LTS)",
+  "param.jdkVersion.choix.17.sousTitre": "Plancher Kotlin 2.2 / Maven compiler",
+  "param.jdkVersion.choix.21.libelle": "JDK 21 (LTS)",
+  "param.jdkVersion.choix.21.sousTitre": "Recommandé — dernières optimisations",
+  "groupe.plateforme.titre": "Plateforme",
+  "groupe.qualite.titre": "Qualité",
+  "etape.type-build.titre": "Type et build"
 }

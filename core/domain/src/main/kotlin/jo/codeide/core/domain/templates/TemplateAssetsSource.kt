@@ -14,6 +14,14 @@ import jo.codeide.core.model.AppResult
  * [readTemplateFile] et à `assets/licenses/` pour [readLicenseFile] ; toute
  * tentative de sortir du répertoire (`..`, absolu) est refusée par
  * l'implémentation. Les erreurs sont typées comme celles du [jo.codeide.core.domain.FileSystem].
+ *
+ * Source partagée (ADR 0156) : un manifeste référence un fichier commun aux
+ * modèles par le **préfixe de schéma** `commun:` — [readTemplateFile]
+ * reçoit alors `commun:<chemin>` et résout `_commun/<chemin>` sous
+ * `templates/` (ex. `commun:gradlew.tpl` → `templates/_commun/gradlew.tpl`).
+ * La résolution vit dans **chaque** implémentation du port, avec les mêmes
+ * gardes qu'une lecture ordinaire ; le répertoire `_commun/` n'a pas de
+ * `template.json` et n'est jamais listé comme modèle.
  */
 public interface TemplateAssetsSource {
     /**
