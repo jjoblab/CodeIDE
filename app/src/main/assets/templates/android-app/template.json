@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "android-app",
-  "templateVersion": "1.3.0",
+  "templateVersion": "2.0.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "android",
@@ -19,7 +19,7 @@
       "type": "TEXT",
       "labelKey": "param.appName.label",
       "helpKey": "param.appName.help",
-      "default": "MonApp",
+      "defaultFrom": "appNameFromNom",
       "section": "INFORMATION",
       "persist": true
     },
@@ -54,6 +54,7 @@
         "basic-activity"
       ],
       "default": "empty-activity",
+      "groupe": "demarrage",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -67,6 +68,7 @@
         "java"
       ],
       "default": "kotlin",
+      "groupe": "demarrage",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -82,6 +84,7 @@
         "34"
       ],
       "default": "26",
+      "groupe": "plateforme",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -93,10 +96,10 @@
       "choices": [
         "34",
         "35",
-        "36",
-        "37"
+        "36"
       ],
-      "default": "37",
+      "default": "36",
+      "groupe": "plateforme",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -106,6 +109,8 @@
       "labelKey": "param.includeCoroutines.label",
       "helpKey": "param.includeCoroutines.help",
       "default": "false",
+      "visibleWhen": "language == \"kotlin\"",
+      "groupe": "bibliotheques",
       "section": "CONFIGURATION",
       "persist": false
     },
@@ -115,6 +120,9 @@
       "labelKey": "param.includeRetrofit.label",
       "helpKey": "param.includeRetrofit.help",
       "default": "false",
+      "enabledWhen": "projectType != \"no-activity\"",
+      "disabledReasonKey": "param.includeRetrofit.raison",
+      "groupe": "bibliotheques",
       "section": "CONFIGURATION",
       "persist": false
     },
@@ -124,6 +132,9 @@
       "labelKey": "param.includeNavigation.label",
       "helpKey": "param.includeNavigation.help",
       "default": "false",
+      "enabledWhen": "projectType != \"no-activity\"",
+      "disabledReasonKey": "param.includeNavigation.raison",
+      "groupe": "bibliotheques",
       "section": "CONFIGURATION",
       "persist": false
     },
@@ -133,6 +144,7 @@
       "labelKey": "param.includeRoom.label",
       "helpKey": "param.includeRoom.help",
       "default": "false",
+      "groupe": "bibliotheques",
       "section": "CONFIGURATION",
       "persist": false
     },
@@ -142,6 +154,7 @@
       "labelKey": "param.includeHilt.label",
       "helpKey": "param.includeHilt.help",
       "default": "false",
+      "groupe": "bibliotheques",
       "section": "CONFIGURATION",
       "persist": false
     },
@@ -151,6 +164,7 @@
       "labelKey": "param.includeTests.label",
       "helpKey": "param.includeTests.help",
       "default": "true",
+      "groupe": "qualite",
       "section": "CONFIGURATION",
       "persist": true
     },
@@ -160,6 +174,8 @@
       "labelKey": "param.includeWrapper.label",
       "helpKey": "param.includeWrapper.help",
       "default": "true",
+      "avance": true,
+      "groupe": "qualite",
       "section": "CONFIGURATION",
       "persist": true
     }
@@ -216,12 +232,108 @@
     {
       "name": "avecKsp",
       "expression": "avecRoom || avecHilt"
+    },
+    {
+      "name": "avecModuleBdd",
+      "expression": "avecRoom && avecHilt"
+    },
+    {
+      "name": "sansHilt",
+      "expression": "!avecHilt"
     }
   ],
+  "constraints": [
+    {
+      "when": "minSdk > targetSdk",
+      "severity": "ERREUR",
+      "messageKey": "regle.minSdk.sup.targetSdk"
+    },
+    {
+      "when": "targetSdk > plateformeMajeure",
+      "severity": "ERREUR",
+      "messageKey": "regle.targetSdk.sup.plateforme"
+    },
+    {
+      "when": "includeRetrofit && language == \"kotlin\" && !includeCoroutines",
+      "severity": "AVERTISSEMENT",
+      "messageKey": "hint.retrofit.sans.coroutines"
+    },
+    {
+      "when": "includeRoom && !includeHilt",
+      "severity": "INFO",
+      "messageKey": "hint.room.sans.hilt"
+    }
+  ],
+  "wizard": {
+    "etapes": [
+      {
+        "id": "plateforme",
+        "titreKey": "etape.plateforme.titre",
+        "parametres": [
+          "minSdk",
+          "targetSdk",
+          "includeTests",
+          "includeWrapper"
+        ]
+      },
+      {
+        "id": "demarrage",
+        "titreKey": "etape.demarrage.titre",
+        "parametres": [
+          "projectType",
+          "language"
+        ]
+      },
+      {
+        "id": "bibliotheques",
+        "titreKey": "etape.bibliotheques.titre",
+        "parametres": [
+          "includeCoroutines",
+          "includeRetrofit",
+          "includeNavigation",
+          "includeRoom",
+          "includeHilt"
+        ]
+      },
+      {
+        "id": "identite-application",
+        "titreKey": "etape.identite-application.titre",
+        "parametres": [
+          "applicationId"
+        ]
+      }
+    ],
+    "presets": [
+      {
+        "id": "app-complete",
+        "nomKey": "preset.app-complete.nom",
+        "descriptionKey": "preset.app-complete.description",
+        "valeurs": {
+          "projectType": "basic-activity",
+          "language": "kotlin",
+          "includeCoroutines": true,
+          "includeNavigation": true,
+          "includeRoom": true,
+          "includeHilt": true
+        }
+      },
+      {
+        "id": "app-reseau",
+        "nomKey": "preset.app-reseau.nom",
+        "descriptionKey": "preset.app-reseau.description",
+        "valeurs": {
+          "projectType": "empty-activity",
+          "language": "kotlin",
+          "includeCoroutines": true,
+          "includeRetrofit": true
+        }
+      }
+    ]
+  },
   "files": [
     {
       "path": ".gitattributes",
-      "source": "files/gitattributes.tpl"
+      "source": "commun:gitattributes.tpl"
     },
     {
       "path": ".gitignore",
@@ -230,8 +342,7 @@
     },
     {
       "path": ".editorconfig",
-      "source": "files/editorconfig.tpl",
-      "when": "includeEditorconfig"
+      "source": "commun:editorconfig.tpl"
     },
     {
       "path": "README.md",
@@ -256,22 +367,22 @@
     },
     {
       "path": "gradle/wrapper/gradle-wrapper.properties",
-      "source": "files/wrapper.properties.tpl",
+      "source": "commun:gradle/wrapper/wrapper.properties.tpl",
       "when": "avecWrapper"
     },
     {
       "path": "gradlew",
-      "source": "files/gradlew.tpl",
+      "source": "commun:gradlew.tpl",
       "when": "avecWrapper"
     },
     {
       "path": "gradlew.bat",
-      "source": "files/gradlew.bat.tpl",
+      "source": "commun:gradlew.bat.tpl",
       "when": "avecWrapper"
     },
     {
       "path": "gradle/wrapper/gradle-wrapper.jar",
-      "source": "files/gradle/wrapper/gradle-wrapper.jar",
+      "source": "commun:gradle/wrapper/gradle-wrapper.jar",
       "when": "avecWrapper",
       "binary": true
     },
@@ -305,6 +416,38 @@
       "source": "files/app/themes.xml.tpl"
     },
     {
+      "path": "app/src/main/res/values-night/themes.xml",
+      "source": "files/app/themes_nuit.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/xml/backup_rules.xml",
+      "source": "files/app/backup_rules.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/xml/data_extraction_rules.xml",
+      "source": "files/app/data_extraction_rules.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_launcher_foreground.xml",
+      "source": "files/app/ic_launcher_foreground.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi/ic_launcher.xml",
+      "source": "files/app/ic_launcher.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi/ic_launcher_round.xml",
+      "source": "files/app/ic_launcher.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "source": "files/app/ic_launcher_adaptatif.xml.tpl"
+    },
+    {
+      "path": "app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "source": "files/app/ic_launcher_adaptatif.xml.tpl"
+    },
+    {
       "path": "app/src/main/res/layout/activity_main.xml",
       "source": "files/app/activity_main.xml.tpl",
       "when": "estActiviteVide"
@@ -320,14 +463,29 @@
       "when": "estActiviteTiroir"
     },
     {
+      "path": "app/src/main/res/layout/fragment_bienvenue.xml",
+      "source": "files/app/fragment_bienvenue.xml.tpl",
+      "when": "estActiviteVide && avecNavigation"
+    },
+    {
       "path": "app/src/main/res/menu/tiroir.xml",
       "source": "files/app/tiroir.xml.tpl",
       "when": "estActiviteTiroir"
     },
     {
+      "path": "app/src/main/res/navigation/graphe_principal.xml",
+      "source": "files/app/graphe_principal.xml.tpl",
+      "when": "avecNavigation"
+    },
+    {
       "path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt",
       "source": "files/app/MainActivity.kt.tpl",
-      "when": "langageKotlin && estActiviteVide"
+      "when": "langageKotlin && estActiviteVide && !avecNavigation"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt",
+      "source": "files/app/MainActivityNavigation.kt.tpl",
+      "when": "langageKotlin && estActiviteVide && avecNavigation"
     },
     {
       "path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.kt",
@@ -337,12 +495,27 @@
     {
       "path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.java",
       "source": "files/app/MainActivity.java.tpl",
-      "when": "!langageKotlin && estActiviteVide"
+      "when": "!langageKotlin && estActiviteVide && !avecNavigation"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.java",
+      "source": "files/app/MainActivityNavigation.java.tpl",
+      "when": "!langageKotlin && estActiviteVide && avecNavigation"
     },
     {
       "path": "app/src/main/java/{{packageName|packagePath}}/MainActivity.java",
       "source": "files/app/MainActivityTiroir.java.tpl",
       "when": "!langageKotlin && estActiviteTiroir"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/BienvenueFragment.kt",
+      "source": "files/app/BienvenueFragment.kt.tpl",
+      "when": "langageKotlin && estActiviteVide && avecNavigation"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/BienvenueFragment.java",
+      "source": "files/app/BienvenueFragment.java.tpl",
+      "when": "!langageKotlin && estActiviteVide && avecNavigation"
     },
     {
       "path": "app/src/main/java/{{packageName|packagePath}}/FragmentAccueil.kt",
@@ -365,6 +538,26 @@
       "when": "avecHilt && !langageKotlin"
     },
     {
+      "path": "app/src/main/java/{{packageName|packagePath}}/ModuleApplication.kt",
+      "source": "files/app/ModuleApplication.kt.tpl",
+      "when": "avecHilt && langageKotlin"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/ModuleApplication.java",
+      "source": "files/app/ModuleApplication.java.tpl",
+      "when": "avecHilt && !langageKotlin"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/ModuleDonnees.kt",
+      "source": "files/app/ModuleDonnees.kt.tpl",
+      "when": "avecModuleBdd && langageKotlin"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/ModuleDonnees.java",
+      "source": "files/app/ModuleDonnees.java.tpl",
+      "when": "avecModuleBdd && !langageKotlin"
+    },
+    {
       "path": "app/src/main/java/{{packageName|packagePath}}/BddLocale.kt",
       "source": "files/app/BddLocale.kt.tpl",
       "when": "avecRoom && langageKotlin"
@@ -383,6 +576,16 @@
       "path": "app/src/main/java/{{packageName|packagePath}}/BddLocale.java",
       "source": "files/app/BddLocale.java.tpl",
       "when": "avecRoom && !langageKotlin"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/ServiceCitations.kt",
+      "source": "files/app/ServiceCitations.kt.tpl",
+      "when": "avecRetrofit && langageKotlin"
+    },
+    {
+      "path": "app/src/main/java/{{packageName|packagePath}}/ServiceCitations.java",
+      "source": "files/app/ServiceCitations.java.tpl",
+      "when": "avecRetrofit && !langageKotlin"
     },
     {
       "path": "app/src/main/java/{{packageName|packagePath}}/Greeter.kt",

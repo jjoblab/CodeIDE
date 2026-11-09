@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "android-library",
-  "templateVersion": "1.1.0",
+  "templateVersion": "1.2.0",
   "nameKey": "template.name",
   "descriptionKey": "template.description",
   "category": "android",
@@ -19,7 +19,7 @@
       "type": "TEXT",
       "labelKey": "param.appName.label",
       "helpKey": "param.appName.help",
-      "default": "MaBibliotheque",
+      "defaultFrom": "appNameFromNom",
       "section": "INFORMATION",
       "persist": true
     },

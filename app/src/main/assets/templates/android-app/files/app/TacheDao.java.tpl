@@ -17,4 +17,8 @@ public interface TacheDao {
     /** {{t:dao.ajouter.kdoc}} */
     @Insert
     void ajouter(TacheEntity tache);
+
+    /** {{t:dao.compter.kdoc}} */
+    @Query("SELECT COUNT(*) FROM TacheEntity")
+    int compter();
 }

@@ -20,10 +20,22 @@
             android:elevation="4dp"
             app:title="@string/app_name" />
 
+{{#if avecNavigation}}
+        <!-- Le NavHostFragment héberge les destinations du graphe
+             res/navigation/graphe_principal.xml. -->
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/conteneur_fragments"
+            android:name="androidx.navigation.fragment.NavHostFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:defaultNavHost="true"
+            app:navGraph="@navigation/graphe_principal" />
+{{#else}}
         <androidx.fragment.app.FragmentContainerView
             android:id="@+id/conteneur_fragments"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+{{/if}}
     </LinearLayout>
 
     <com.google.android.material.navigation.NavigationView

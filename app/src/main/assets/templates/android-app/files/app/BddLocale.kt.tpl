@@ -1,11 +1,13 @@
 package {{packageName}}
 
+import android.content.Context
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import androidx.room.Room
 import androidx.room.RoomDatabase
 import kotlinx.coroutines.flow.Flow
 
@@ -29,7 +31,11 @@ interface TacheDao {
 
     /** {{t:dao.ajouter.kdoc}} */
     @Insert
-    suspend fun ajouter(tache: TacheEntity)
+    fun ajouter(tache: TacheEntity)
+
+    /** {{t:dao.compter.kdoc}} */
+    @Query("SELECT COUNT(*) FROM TacheEntity")
+    fun compter(): Int
 }
 
 /**
@@ -39,4 +45,14 @@ interface TacheDao {
 abstract class BddLocale : RoomDatabase() {
     /** {{t:base.dao.kdoc}} */
     abstract fun tacheDao(): TacheDao
+
+    companion object {
+        /**
+         * Instancie la base hors Hilt (sans injection de dépendances) :
+         * un seul accès par activité suffit à l'exemple.
+         */
+        fun creer(contexte: Context): BddLocale =
+            Room.databaseBuilder(contexte, BddLocale::class.java, "{{appName|resourceName}}.db")
+                .build()
+    }
 }

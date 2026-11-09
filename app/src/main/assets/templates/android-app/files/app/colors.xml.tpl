@@ -7,4 +7,6 @@
     <color name="sarcelle_700">#FF018786</color>
     <color name="noir">#FF000000</color>
     <color name="blanc">#FFFFFFFF</color>
+    <color name="ic_launcher_background">#FF6200EE</color>
 </resources>
+

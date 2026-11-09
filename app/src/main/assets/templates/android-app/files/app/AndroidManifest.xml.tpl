@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+{{#if avecRetrofit}}
+    <!-- Le service d'exemple (ServiceCitations) appelle le réseau. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+{{/if}}
 
     <application
 {{#if avecHilt}}
         android:name=".{{appName|resourceName}}Application"
 {{/if}}
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.{{appName|resourceName}}">
