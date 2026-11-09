@@ -2,6 +2,7 @@ package jo.codeide.core.domain.templates
 
 import jo.codeide.core.domain.SettingsRepository
 import jo.codeide.core.domain.TimeProvider
+import jo.codeide.core.domain.ToolchainCatalog
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.CreateProjectRequest
@@ -158,6 +159,7 @@ constructor(private val planificateur: TemplateProjectPlanner) {
                 valeursParametres,
                 modifiesManuellement,
                 langue,
+                planificateur.plateformeMajeure,
             ),
         )
     }
@@ -184,13 +186,20 @@ constructor(private val planificateur: TemplateProjectPlanner) {
 /**
  * Planificateur partagé des créations (étape 8) : trouve le modèle parmi
  * les fournisseurs, assemble les entrées (auteur des paramètres, année de
- * l'horloge injectée, version du générateur) et délègue au moteur.
+ * l'horloge injectée, version du générateur, majeure de la plateforme du
+ * catalogue) et délègue au moteur.
  *
  * `PlanProjectCreationUseCase` (aperçu) et `CreateProjectUseCase` (écriture)
  * partagent exactement ce cheminement — le récapitulatif reflète ce qui sera
  * écrit, à l'octet près. Le type est public car injecté dans les
  * constructeurs publics de ces cas d'usage ; il n'a pas vocation à être
  * consommé au-delà.
+ *
+ * Le catalogue n'a **pas** de valeur par défaut métier : la valeur de
+ * secours du constructeur est l'instance par défaut du catalogue (même
+ * source de vérité que la CI et les tests d'alignement) — elle n'existe
+ * que pour que les constructions manuelles des tests et de l'outil
+ * `tools:generateur` restent littérales ; Hilt injecte le binding réel.
  */
 public class TemplateProjectPlanner
 @Inject
@@ -200,7 +209,16 @@ constructor(
     private val parametres: SettingsRepository,
     private val horloge: TimeProvider,
     private val generateur: GeneratorVersion,
+    private val catalogue: ToolchainCatalog = ToolchainCatalog(),
 ) {
+    /**
+     * Majeure de la plateforme de compilation exposée au moteur comme
+     * variable automatique `plateformeMajeure` (ADR 0153 §3) — source de
+     * vérité unique : le catalogue d'outils.
+     */
+    internal val plateformeMajeure: Int
+        get() = catalogue.plateformeMajeure
+
     /** Cherche un modèle chargé par identifiant. */
     public suspend fun trouver(id: TemplateId): AppResult<LoadedTemplate> {
         for (fournisseur in fournisseurs) {
@@ -233,6 +251,7 @@ constructor(
                 annee = anneeCourante(),
                 versionGenerateur = generateur.value,
                 renommages = requete.cheminsRenommes,
+                plateformeMajeure = plateformeMajeure,
             )
         return moteur.planifier(charge, requeteGeneration)
     }

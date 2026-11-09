@@ -390,4 +390,214 @@ class TemplateManifestParserTest {
             }
         assertTrue(erreur.message!!.contains("fichiers"))
     }
+
+    // --------------------------------------- champs déclaratifs L1 (ADR 0153/0154)
+
+    @Test
+    fun `les champs de paramètre L1 sont convertis`() {
+        val template =
+            analyse(
+                manifesteMinimal
+                    .replace(
+                        "\"id\": \"projectType\",",
+                        "\"id\": \"projectType\", \"enabledWhen\": \"estApp\", " +
+                            "\"disabledReasonKey\": \"param.type.raison\", \"rendu\": \"CARTES_RADIO\", " +
+                            "\"groupe\": \"langageSdk\", \"avance\": true,",
+                    ),
+            )
+
+        val parametre = template.parameters.single()
+        assertEquals("estApp", parametre.enabledWhen)
+        assertEquals("param.type.raison", parametre.disabledReasonKey)
+        assertEquals(jo.codeide.core.model.RenduParametre.CARTES_RADIO, parametre.rendu)
+        assertEquals("langageSdk", parametre.groupe)
+        assertTrue(parametre.avance)
+    }
+
+    @Test
+    fun `les champs L1 absents gardent leurs valeurs par défaut`() {
+        val template = analyse(manifesteMinimal)
+        val parametre = template.parameters.single()
+        assertEquals(null, parametre.enabledWhen)
+        assertEquals(null, parametre.disabledReasonKey)
+        assertEquals(null, parametre.rendu)
+        assertEquals(null, parametre.groupe)
+        assertEquals(false, parametre.avance)
+        assertTrue(template.constraints.isEmpty())
+        assertTrue(template.autoDefinit.isEmpty())
+    }
+
+    @Test
+    fun `les contraintes et autoDefinit sont converties`() {
+        val cible =
+            "{ \"id\": \"avecBiblio\", \"type\": \"BOOLEAN\", " +
+                "\"labelKey\": \"param.biblio\", \"default\": \"false\" },"
+        val regles =
+            "\"autoDefinit\": [{ \"when\": \"estApp && !avecBiblio\", \"definit\": { \"avecBiblio\": true }, " +
+                "\"messageKey\": \"regle.biblio.auto\" }], " +
+                "\"constraints\": [" +
+                "{ \"when\": \"estApp\", \"severity\": \"ERREUR\", \"messageKey\": \"regle.bloquante\" }, " +
+                "{ \"when\": \"estApp\", \"severity\": \"AVERTISSEMENT\", \"messageKey\": \"regle.avertissante\" }" +
+                "], "
+        val template =
+            analyse(
+                manifesteMinimal
+                    .replace("\"parameters\": [", "\"parameters\": [$cible")
+                    .replace("\"files\": [", "$regles\"files\": ["),
+            )
+
+        assertEquals(2, template.constraints.size)
+        assertEquals(jo.codeide.core.model.SeveriteRegle.ERREUR, template.constraints[0].severite)
+        assertEquals("regle.bloquante", template.constraints[0].messageKey)
+        assertEquals("estApp", template.constraints[0].quand)
+        assertEquals(jo.codeide.core.model.SeveriteRegle.AVERTISSEMENT, template.constraints[1].severite)
+        assertEquals(1, template.autoDefinit.size)
+        assertEquals(mapOf("avecBiblio" to true), template.autoDefinit.single().definit)
+        assertEquals("regle.biblio.auto", template.autoDefinit.single().messageKey)
+    }
+
+    @Test
+    fun `un enabledWhen invalide est refusé`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"id\": \"projectType\",",
+                        "\"id\": \"projectType\", \"enabledWhen\": \"&&\",",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("enabledWhen"))
+    }
+
+    @Test
+    fun `une clé disabledReasonKey invalide est refusée`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"id\": \"projectType\",",
+                        "\"id\": \"projectType\", \"disabledReasonKey\": \"raison !\",",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("disabledReasonKey"))
+    }
+
+    @Test
+    fun `un rendu inconnu est refusé`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"id\": \"projectType\",",
+                        "\"id\": \"projectType\", \"rendu\": \"CHOOSE_ONE\",",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("rendu"))
+    }
+
+    @Test
+    fun `un groupe invalide est refusé`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"id\": \"projectType\",",
+                        "\"id\": \"projectType\", \"groupe\": \"1er groupe\",",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("groupe"))
+    }
+
+    @Test
+    fun `une sévérité de contrainte inconnue est refusée`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"files\": [",
+                        "\"constraints\": [{ \"when\": \"estApp\", \"severity\": \"FATALE\", " +
+                            "\"messageKey\": \"regle.x\" }], \"files\": [",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("sévérité"))
+    }
+
+    @Test
+    fun `une contrainte avec expression invalide est refusée`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"files\": [",
+                        "\"constraints\": [{ \"when\": \"estApp &&\", \"severity\": \"INFO\", " +
+                            "\"messageKey\": \"regle.x\" }], \"files\": [",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("contrainte"))
+    }
+
+    @Test
+    fun `une contrainte avec clé i18n invalide est refusée`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"files\": [",
+                        "\"constraints\": [{ \"when\": \"estApp\", \"severity\": \"INFO\", " +
+                            "\"messageKey\": \"\" }], \"files\": [",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("messageKey"))
+    }
+
+    @Test
+    fun `un autoDefinit sans cible est refusé`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"files\": [",
+                        "\"autoDefinit\": [{ \"when\": \"estApp\", \"definit\": {} }], \"files\": [",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("sans cible"))
+    }
+
+    @Test
+    fun `un autoDefinit visant un paramètre inexistant est refusé`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"files\": [",
+                        "\"autoDefinit\": [{ \"when\": \"estApp\", \"definit\": { \"fantome\": true } }], " +
+                            "\"files\": [",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("inexistant"))
+    }
+
+    @Test
+    fun `un autoDefinit visant un paramètre non BOOLEAN est refusé`() {
+        val erreur =
+            assertThrows(TemplateManifestException::class.java) {
+                analyseAvec {
+                    it.replace(
+                        "\"files\": [",
+                        "\"autoDefinit\": [{ \"when\": \"estApp\", \"definit\": { \"projectType\": true } }], " +
+                            "\"files\": [",
+                    )
+                }
+            }
+        assertTrue(erreur.message!!.contains("BOOLEAN"))
+    }
 }

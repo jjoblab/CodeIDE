@@ -16,8 +16,11 @@ import kotlinx.serialization.json.Json
  * Clés du format : `schemaVersion`, `id`, `templateVersion`, `nameKey`,
  * `descriptionKey`, `category`, `iconKey`, `tags`, `parameters` (`id`,
  * `type`, `labelKey`, `helpKey`, `choices`, `default`, `defaultFrom`,
- * `validator`, `visibleWhen`, `section`, `persist`), `computed` (`name`,
- * `expression`), `files` (`path`, `source`, `binary`, `when`, `group`).
+ * `validator`, `visibleWhen`, `enabledWhen`, `disabledReasonKey`, `rendu`,
+ * `groupe`, `avance`, `section`, `persist`), `computed` (`name`,
+ * `expression`), `constraints` (`when`, `severity`, `messageKey`),
+ * `autoDefinit` (`when`, `definit`, `messageKey`), `files` (`path`,
+ * `source`, `binary`, `when`, `group`).
  */
 @Serializable
 internal data class ManifesteTemplateJson(
@@ -31,6 +34,8 @@ internal data class ManifesteTemplateJson(
     val tags: List<String> = emptyList(),
     val parameters: List<ParametreTemplateJson> = emptyList(),
     val computed: List<VariableCalculeeJson> = emptyList(),
+    val constraints: List<RegleProjetJson> = emptyList(),
+    val autoDefinit: List<AutoDefinitJson> = emptyList(),
     val files: List<FichierTemplateJson> = emptyList(),
 )
 
@@ -45,8 +50,31 @@ internal data class ParametreTemplateJson(
     val defaultFrom: String? = null,
     val validator: String? = null,
     val visibleWhen: String? = null,
+    val enabledWhen: String? = null,
+    val disabledReasonKey: String? = null,
+    val rendu: String? = null,
+    val groupe: String? = null,
+    val avance: Boolean = false,
     val section: String = "CONFIGURATION",
     val persist: Boolean = false,
+)
+
+/** Règle de projet du manifeste (`severity` ∈ `ERREUR`/`AVERTISSEMENT`/`INFO`). */
+@Serializable
+internal data class RegleProjetJson(
+    @SerialName("when")
+    val quand: String,
+    val severity: String,
+    val messageKey: String,
+)
+
+/** Dépendance implicite du manifeste (`definit` : paramètre `BOOLEAN` → valeur). */
+@Serializable
+internal data class AutoDefinitJson(
+    @SerialName("when")
+    val quand: String,
+    val definit: Map<String, Boolean> = emptyMap(),
+    val messageKey: String? = null,
 )
 
 @Serializable

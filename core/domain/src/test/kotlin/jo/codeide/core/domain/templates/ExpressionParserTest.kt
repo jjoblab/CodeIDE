@@ -116,6 +116,84 @@ class ExpressionParserTest {
         assertEquals(ExpressionValue.Booleen(true), evalue("  ( true\t&&\n true )  "))
     }
 
+    // ------------------------------------------------------------------ nombres
+
+    @Test
+    fun `lit un littéral nombre entier`() {
+        assertEquals(ExpressionValue.Nombre(36), evalue("36"))
+        assertEquals(ExpressionValue.Nombre(0), evalue("0"))
+    }
+
+    @Test
+    fun `évalue les comparaisons ordonnées sur des nombres`() {
+        assertEquals(ExpressionValue.Booleen(true), evalue("37 > 36"))
+        assertEquals(ExpressionValue.Booleen(false), evalue("36 > 36"))
+        assertEquals(ExpressionValue.Booleen(true), evalue("36 >= 36"))
+        assertEquals(ExpressionValue.Booleen(false), evalue("35 >= 36"))
+        assertEquals(ExpressionValue.Booleen(true), evalue("35 < 36"))
+        assertEquals(ExpressionValue.Booleen(false), evalue("36 < 36"))
+        assertEquals(ExpressionValue.Booleen(true), evalue("36 <= 36"))
+        assertEquals(ExpressionValue.Booleen(false), evalue("37 <= 36"))
+    }
+
+    @Test
+    fun `évalue une comparaison ordonnée sur un identifiant nombre`() {
+        val contexte = mapOf(
+            "targetSdk" to ExpressionValue.Nombre(37),
+            "plateformeMajeure" to ExpressionValue.Nombre(36),
+        )
+        assertEquals(
+            ExpressionValue.Booleen(true),
+            evalue("targetSdk > plateformeMajeure", contexte),
+        )
+    }
+
+    @Test
+    fun `la comparaison ordonnée est moins prioritaire que l égalité`() {
+        // "a" == "a" || 1 < 2 => (égalité) || (comparaison) => true
+        assertEquals(ExpressionValue.Booleen(true), evalue("\"a\" == \"a\" || 1 < 2"))
+        // 1 < 2 && true => (comparaison) && true => true
+        assertEquals(ExpressionValue.Booleen(true), evalue("1 < 2 && true"))
+    }
+
+    @Test
+    fun `une égalité numérique entre nombres est légale`() {
+        assertEquals(ExpressionValue.Booleen(true), evalue("36 == 36"))
+        assertEquals(ExpressionValue.Booleen(true), evalue("36 != 35"))
+    }
+
+    @Test
+    fun `comparaison ordonnée de types mêlés échoue explicitement`() {
+        val contexte = mapOf("targetSdk" to ExpressionValue.Chaine("37"))
+        val erreur =
+            assertThrows(ExpressionException::class.java) {
+                ExpressionEvaluator.evaluer(ExpressionParser.analyser("targetSdk > 36"), contexte)
+            }
+        assertTrue(erreur.message!!.contains("exige deux nombres"))
+    }
+
+    @Test
+    fun `comparaison ordonnée de chaînes échoue jamais lexicographique`() {
+        // « 9 » > « 36 » serait VRAI en lexicographique : interdit — la
+        // comparaison ordonnée exige deux nombres, sans coercition.
+        val contexte = mapOf("a" to ExpressionValue.Chaine("9"), "b" to ExpressionValue.Chaine("36"))
+        assertThrows(ExpressionException::class.java) {
+            ExpressionEvaluator.evaluer(ExpressionParser.analyser("a > b"), contexte)
+        }
+    }
+
+    @Test
+    fun `refuse un mot commençant par un chiffre sans être un nombre`() {
+        val erreur = assertThrows(ExpressionException::class.java) { ExpressionParser.analyser("2go == \"x\"") }
+        assertTrue(erreur.message!!.contains("commencer par un chiffre"))
+    }
+
+    @Test
+    fun `refuse un nombre hors bornes entières 32 bits`() {
+        val erreur = assertThrows(ExpressionException::class.java) { ExpressionParser.analyser("99999999999") }
+        assertTrue(erreur.message!!.contains("hors bornes"))
+    }
+
     // ---------------------------------------------------------------- erreurs
 
     @Test

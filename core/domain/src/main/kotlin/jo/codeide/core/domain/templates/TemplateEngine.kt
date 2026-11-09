@@ -2,10 +2,14 @@ package jo.codeide.core.domain.templates
 
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
+import jo.codeide.core.model.ChoixEvalue
+import jo.codeide.core.model.EtatParametre
+import jo.codeide.core.model.MessageRegle
 import jo.codeide.core.model.PlannedContent
 import jo.codeide.core.model.PlannedFile
 import jo.codeide.core.model.ProjectTemplate
 import jo.codeide.core.model.RaisonValidation
+import jo.codeide.core.model.SeveriteRegle
 import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateFormEvaluation
 import jo.codeide.core.model.TemplateOptions
@@ -38,6 +42,7 @@ internal data class RequeteGeneration(
     val annee: String,
     val versionGenerateur: String,
     val renommages: Map<String, String> = emptyMap(),
+    val plateformeMajeure: Int = 0,
 )
 
 /** Résultat interne de l'évaluation des paramètres. */
@@ -46,6 +51,8 @@ internal data class EvaluationParametres(
     val valeursEffectives: Map<String, String>,
     val erreurs: Map<String, TemplateValidators.EchecValidation>,
     val variablesCalculees: Map<String, ExpressionValue>,
+    val etats: Map<String, EtatParametre>,
+    val messages: List<MessageRegle>,
 )
 
 /**
@@ -55,12 +62,18 @@ internal data class EvaluationParametres(
  * Contrats clés :
  * - le plan inclut le **contenu final** (chemins rendus, textes substitués,
  *   binaires lus) — `CreateProjectUseCase` écrit exactement le plan ;
- * - un paramètre masqué vaut sa valeur par défaut, non validée, non
- *   persistée (section 11) ;
+ * - un paramètre masqué **ou désactivé** (`enabledWhen` faux, ADR 0153 §2)
+ *   vaut sa valeur par défaut, non validée, non persistée ;
+ * - les règles de projet (`constraints`) sont évaluées sur la combinaison
+ *   finale : une règle `ERREUR` rend la combinaison invalide et **refuse la
+ *   planification** (revalidation de `CreateProjectUseCase`, ADR 0153 §5) ;
+ * - les dépendances automatiques (`autoDefinit`) positionnent leurs cibles
+ *   `BOOLEAN` après dérivation, sans jamais écraser un champ figé à la main ;
  * - les variables automatiques (`projectName`, `description`, `author`,
- *   `year`, `slug`, `packagePath`, `contentLanguage`) et les options communes
- *   (`includeReadme`, `includeGitignore`, `includeEditorconfig`, `license`)
- *   alimentent le contexte comme n'importe quel paramètre ;
+ *   `year`, `slug`, `packagePath`, `contentLanguage`, `plateformeMajeure`)
+ *   et les options communes (`includeReadme`, `includeGitignore`,
+ *   `includeEditorconfig`, `license`) alimentent le contexte comme n'importe
+ *   quel paramètre ;
  * - toute défaillance (variable inconnue, clé i18n manquante, chemin
  *   interdit) échoue explicitement — jamais de `{{…}}` résiduel.
  *
@@ -75,8 +88,9 @@ public class TemplateEngine
 @Inject
 constructor(private val assets: TemplateAssetsSource) {
     /**
-     * Évalue le formulaire dynamique (section 12.2) : visibilité, valeurs
-     * effectives (dérivées ou saisies), validité, libellés résolus.
+     * Évalue le formulaire dynamique (section 12.2) : visibilité, état
+     * actif/désactivé, valeurs effectives (dérivées ou saisies), validité,
+     * libellés et choix résolus, messages globaux des règles de projet.
      *
      * @param charge modèle chargé.
      * @param nomProjet nom du projet saisi (source des dérivations).
@@ -86,8 +100,11 @@ constructor(private val assets: TemplateAssetsSource) {
      * @param modifiesManuellement identifiants modifiés à la main — les
      * autres suivent leurs sources.
      * @param langue langue de résolution des libellés (repli anglais).
+     * @param plateformeMajeure majeure de la plateforme de compilation du
+     * catalogue d'outils (variable automatique `plateformeMajeure`, ADR
+     * 0153 §3) — fournie par le planificateur, source de vérité unique.
      */
-    @Suppress("LongParameterList") // Signature du wizard (section 12.2) : cinq entrées indépendantes.
+    @Suppress("LongParameterList") // Signature du wizard (section 12.2) : entrées indépendantes.
     public fun evaluerFormulaire(
         charge: LoadedTemplate,
         nomProjet: String,
@@ -95,9 +112,18 @@ constructor(private val assets: TemplateAssetsSource) {
         valeursParametres: Map<String, String>,
         modifiesManuellement: Set<String>,
         langue: String,
+        plateformeMajeure: Int,
     ): TemplateFormEvaluation {
         val evaluation =
-            evaluerParametres(charge.template, nomProjet, auteur, valeursParametres, modifiesManuellement)
+            evaluerParametres(
+                charge,
+                nomProjet,
+                auteur,
+                valeursParametres,
+                modifiesManuellement,
+                plateformeMajeure,
+                langue,
+            )
         val dictionnaire = charge.dictionnaireEffectif(langue)
         val parametres =
             charge.template.parameters.map { parametre ->
@@ -114,14 +140,45 @@ constructor(private val assets: TemplateAssetsSource) {
                     choices = parametre.choices,
                     derived = parametre.defaultFrom != null,
                     section = parametre.section,
+                    etat = evaluation.etats.getValue(parametre.id),
+                    choix = choixEvalues(parametre, dictionnaire),
+                    rendu = parametre.rendu,
+                    groupe = parametre.groupe,
+                    groupeTitre =
+                    parametre.groupe?.let { groupe ->
+                        dictionnaire["groupe.$groupe.titre"] ?: groupe
+                    } ?: "",
+                    avance = parametre.avance,
                 )
             }
         return TemplateFormEvaluation(
             parameters = parametres,
             computedValues = evaluation.variablesCalculees.mapValues { stringifier(it.value) },
-            isValid = evaluation.erreurs.isEmpty(),
+            messages = evaluation.messages,
+            isValid = evaluation.erreurs.isEmpty() &&
+                evaluation.messages.none { it.severite == SeveriteRegle.ERREUR },
         )
     }
+
+    /** Choix d'un paramètre `CHOICE` avec leurs textes résolus (ADR 0154 §1). */
+    private fun choixEvalues(
+        parametre: jo.codeide.core.model.TemplateParameter,
+        dictionnaire: Map<String, String>,
+    ): List<ChoixEvalue> {
+        if (parametre.type != jo.codeide.core.model.TemplateParameterType.CHOICE) return emptyList()
+        return parametre.choices.map { valeur ->
+            ChoixEvalue(
+                valeur = valeur,
+                libelle = dictionnaire[cleChoix(parametre.id, valeur, "libelle")] ?: valeur,
+                sousTitre = dictionnaire[cleChoix(parametre.id, valeur, "sousTitre")] ?: "",
+                description = dictionnaire[cleChoix(parametre.id, valeur, "description")] ?: "",
+                icone = dictionnaire[cleChoix(parametre.id, valeur, "icone")] ?: "",
+            )
+        }
+    }
+
+    /** Clé i18n d'un texte de choix : `param.<id>.choix.<valeur>.<suffixe>`. */
+    private fun cleChoix(id: String, valeur: String, suffixe: String): String = "param.$id.choix.$valeur.$suffixe"
 
     /**
      * Résume un modèle pour le catalogue (libellés résolus).
@@ -176,15 +233,29 @@ constructor(private val assets: TemplateAssetsSource) {
 
         val evaluation =
             evaluerParametres(
-                template,
+                charge,
                 requete.nom,
                 requete.auteur,
                 requete.valeursParametres,
                 requete.modifiesManuellement,
+                requete.plateformeMajeure,
+                requete.options.contentLanguage,
             )
         if (evaluation.erreurs.isNotEmpty()) {
             val details = evaluation.erreurs.entries.joinToString("; ") { "${it.key} : ${it.value}" }
             return AppResult.Failure(AppError.Validation(details))
+        }
+        // Revalidation des règles de projet (ADR 0153 §5) : une combinaison
+        // contenant une règle ERREUR échoue ici, même si l'UI a été
+        // contournée — CreateProjectUseCase passe par ce plan partagé.
+        val reglesBloquantes = evaluation.messages.filter { it.severite == SeveriteRegle.ERREUR }
+        if (reglesBloquantes.isNotEmpty()) {
+            return AppResult.Failure(
+                AppError.Validation(
+                    "règles de projet bloquantes : " +
+                        reglesBloquantes.joinToString("; ") { "« ${it.cle} » ${it.texte}" },
+                ),
+            )
         }
 
         val contexte = construireContexte(template, requete, evaluation)
@@ -281,10 +352,15 @@ constructor(private val assets: TemplateAssetsSource) {
                 )
         }
 
-        // Métadonnées du projet : toujours présentes (section 11).
+        // Métadonnées du projet : toujours présentes (section 11). Les
+        // paramètres masqués OU désactivés sont exclus (ADR 0153 §2).
         val parametresPersistes =
             template.parameters
-                .filter { it.persist && evaluation.visibilites.getValue(it.id) }
+                .filter {
+                    it.persist &&
+                        evaluation.visibilites.getValue(it.id) &&
+                        evaluation.etats.getValue(it.id) == EtatParametre.Visible
+                }
                 .map { it.id to evaluation.valeursEffectives.getValue(it.id) }
                 .toMap(LinkedHashMap())
         val metadata =
@@ -398,15 +474,60 @@ constructor(private val assets: TemplateAssetsSource) {
 
     // ------------------------------------------------------------ privé
 
-    /** Évalue visibilité, valeurs effectives, validité et variables calculées. */
-    @Suppress("LongMethod", "CyclomaticComplexMethod", "SwallowedException") // Passes documentées.
+    /**
+     * Évalue visibilité, états, valeurs effectives, validité, variables
+     * calculées, dépendances automatiques et règles de projet.
+     *
+     * Passes (ordre contractuel, `docs/TEMPLATES.md`) :
+     * 1. valeurs effectives sans dérivation (défauts et saisies) ;
+     * 2. valeurs dérivées (`defaultFrom`) ;
+     * 3. variables calculées du manifeste ;
+     * 4. dépendances automatiques (`autoDefinit`, ADR 0153 §4) — leur
+     *    condition peut citer les variables calculées, et les visibilités
+     *    doivent voir les cibles repositionnées ; jamais d'écrasement d'un
+     *    champ figé à la main ;
+     * 5. visibilité (`visibleWhen`) ;
+     * 6. état actif/désactivé (`enabledWhen`, ADR 0153 §2) ;
+     * 7. validation des paramètres visibles **et** actifs ;
+     * 8. les masqués **ou désactivés** retombent sur leur valeur par défaut
+     *    (section 11 et ADR 0153 §2 : ignorés — non validés, non persistés) ;
+     * 9. règles de projet (`constraints`, ADR 0153 §3) sur la combinaison
+     *    **finale** — les messages portent leur texte résolu dans [langue].
+     */
+    @Suppress(
+        "LongMethod", // Passes documentées une à une.
+        "CyclomaticComplexMethod",
+        "SwallowedException", // Transformées en échecs explicites du manifeste.
+        "LongParameterList", // Signature du wizard (ADR 0153) : entrées indépendantes.
+    )
     private fun evaluerParametres(
-        template: ProjectTemplate,
+        charge: LoadedTemplate,
         nomProjet: String,
         auteur: String,
         valeurs: Map<String, String>,
         modifiesManuellement: Set<String>,
+        plateformeMajeure: Int,
+        langue: String,
     ): EvaluationParametres {
+        val template = charge.template
+        val dictionnaire = charge.dictionnaireEffectif(langue)
+        val messages = LinkedHashMap<MessageRegle, Unit>()
+        fun annoncer(regle: jo.codeide.core.model.TemplateRegleProjet) {
+            messages[
+                MessageRegle(
+                    regle.severite,
+                    dictionnaire[regle.messageKey] ?: regle.messageKey,
+                    regle.messageKey,
+                ),
+            ] =
+                Unit
+        }
+        fun annoncerInfo(cle: String?) {
+            if (cle != null) {
+                messages[MessageRegle(SeveriteRegle.INFO, dictionnaire[cle] ?: cle, cle)] = Unit
+            }
+        }
+
         // Passe 1 : valeurs effectives sans dérivation (défauts et saisies).
         val effectives = LinkedHashMap<String, String>()
         template.parameters.forEach { parametre ->
@@ -449,7 +570,7 @@ constructor(private val assets: TemplateAssetsSource) {
         // Passe 3 : variables calculées du manifeste (ordre déclaré) —
         // chacune voit les paramètres et les calculées précédentes.
         val calculees = LinkedHashMap<String, ExpressionValue>()
-        val contexteCalcul = contexteBrut(template, nomProjet, effectives, calculees)
+        val contexteCalcul = contexteBrut(template, nomProjet, effectives, calculees, plateformeMajeure)
         template.computedVariables.forEach { variable ->
             val valeur =
                 try {
@@ -463,7 +584,24 @@ constructor(private val assets: TemplateAssetsSource) {
             contexteCalcul[variable.name] = valeur
         }
 
-        // Passe 4 : visibilité (paramètres, automatiques et calculées).
+        // Passe 4 : dépendances automatiques (autoDefinit, ADR 0153 §4) —
+        // après les calculées (leur condition peut les citer), avant la
+        // visibilité ; une seule passe, aucune propagation indirecte.
+        template.autoDefinit.forEach { regle ->
+            if (!evaluerCondition(regle.quand, contexteCalcul, "autoDefinit")) return@forEach
+            regle.definit.forEach { (cible, valeur) ->
+                if (cible !in modifiesManuellement) {
+                    effectives[cible] = valeur.toString()
+                    contexteCalcul[cible] = ExpressionValue.Booleen(valeur)
+                }
+                // Le champ figé à la main n'est jamais écrasé (le champ
+                // modifiesManuellement prime) ; le message INFO l'annonce
+                // dans les deux cas quand la clé est fournie.
+                annoncerInfo(regle.messageKey)
+            }
+        }
+
+        // Passe 5 : visibilité (paramètres, automatiques et calculées).
         val visibilites =
             template.parameters.associate { parametre ->
                 val condition = parametre.visibleWhen
@@ -480,10 +618,34 @@ constructor(private val assets: TemplateAssetsSource) {
                 parametre.id to visible
             }
 
-        // Passe 5 : validation des paramètres visibles uniquement.
+        // Passe 6 : état actif/désactivé (enabledWhen, ADR 0153 §2) —
+        // un paramètre masqué garde VISIBLE (état sans objet : non rendu).
+        val etats =
+            template.parameters.associate { parametre ->
+                val condition = parametre.enabledWhen
+                val etat =
+                    when {
+                        condition == null || !visibilites.getValue(parametre.id) -> EtatParametre.Visible
+
+                        else -> {
+                            val actif =
+                                evaluerCondition(condition, contexteCalcul, "enabledWhen de « ${parametre.id} »")
+                            if (actif) {
+                                EtatParametre.Visible
+                            } else {
+                                val raison = parametre.disabledReasonKey?.let { dictionnaire[it] ?: it } ?: ""
+                                EtatParametre.Desactive(raison)
+                            }
+                        }
+                    }
+                parametre.id to etat
+            }
+
+        // Passe 7 : validation des paramètres visibles et actifs uniquement.
         val erreurs = LinkedHashMap<String, TemplateValidators.EchecValidation>()
         template.parameters.forEach { parametre ->
             if (!visibilites.getValue(parametre.id)) return@forEach
+            if (etats.getValue(parametre.id) is EtatParametre.Desactive) return@forEach
             val valeur = effectives.getValue(parametre.id)
             val erreurType = validerType(parametre, valeur)
             if (erreurType != null) {
@@ -495,15 +657,46 @@ constructor(private val assets: TemplateAssetsSource) {
             if (erreur != null) erreurs[parametre.id] = erreur
         }
 
-        // Les paramètres masqués retombent sur leur valeur par défaut
-        // (section 11 : ignorés — non validés, non persistés).
+        // Passe 8 : les paramètres masqués ou désactivés retombent sur leur
+        // valeur par défaut (section 11 et ADR 0153 §2 : ignorés — non
+        // validés, non persistés ; la saisie du wizard reste de son côté).
         template.parameters.forEach { parametre ->
-            if (!visibilites.getValue(parametre.id)) {
+            if (!visibilites.getValue(parametre.id) || etats.getValue(parametre.id) is EtatParametre.Desactive) {
                 effectives[parametre.id] = parametre.defaultValue ?: defautDeType(parametre)
             }
         }
 
-        return EvaluationParametres(visibilites, effectives, erreurs, calculees)
+        // Passe 9 : règles de projet (ADR 0153 §3) sur la combinaison FINALE
+        // (valeurs de secours comprises) — déclarées dans l'ordre.
+        val contexteFinal = contexteBrut(template, nomProjet, effectives, calculees, plateformeMajeure)
+        template.constraints.forEach { regle ->
+            if (!evaluerCondition(regle.quand, contexteFinal, "contrainte")) return@forEach
+            annoncer(regle)
+        }
+
+        return EvaluationParametres(
+            visibilites,
+            effectives,
+            erreurs,
+            calculees,
+            etats,
+            messages.keys.toList(),
+        )
+    }
+
+    /** Évalue une condition déclarative en exigeant un booléen. */
+    @Suppress("SwallowedException") // Transformée en échec explicite du manifeste (jamais avalée).
+    private fun evaluerCondition(expression: String, contexte: ContexteExpressions, origine: String): Boolean {
+        val valeur =
+            try {
+                ExpressionEvaluator.evaluer(ExpressionParser.analyser(expression), contexte)
+            } catch (erreur: ExpressionException) {
+                throw TemplateManifestException("$origine : ${erreur.message}")
+            }
+        if (valeur !is ExpressionValue.Booleen) {
+            throw TemplateManifestException("$origine doit être booléen (reçu $valeur)")
+        }
+        return valeur.valeur
     }
 
     /** Valeur par défaut d'un type quand le manifeste n'en fournit pas. */
@@ -545,12 +738,17 @@ constructor(private val assets: TemplateAssetsSource) {
         }
     }
 
-    /** Contexte des calculs et de la visibilité (sans les options). */
+    /**
+     * Contexte des calculs, des visibilités, des états et des règles
+     * (sans les options communes) — la variable automatique
+     * `plateformeMajeure` y est injectée comme un nombre (ADR 0153 §3).
+     */
     private fun contexteBrut(
         template: ProjectTemplate,
         nomProjet: String,
         effectives: Map<String, String>,
         calculees: Map<String, ExpressionValue>,
+        plateformeMajeure: Int,
     ): MutableMap<String, ExpressionValue> {
         val contexte = linkedMapOf<String, ExpressionValue>()
         val types = template.parameters.associate { it.id to it.type }
@@ -560,6 +758,7 @@ constructor(private val assets: TemplateAssetsSource) {
         calculees.forEach { (nom, valeur) -> contexte[nom] = valeur }
         contexte[NOM_VARIABLE_NOM] = ExpressionValue.Chaine(nomProjet)
         contexte[NOM_VARIABLE_SLUG] = ExpressionValue.Chaine(TemplateFilters.slug(nomProjet))
+        contexte[NOM_VARIABLE_PLATEFORME] = ExpressionValue.Nombre(plateformeMajeure)
         return contexte
     }
 
@@ -591,12 +790,22 @@ constructor(private val assets: TemplateAssetsSource) {
         return contexte
     }
 
-    /** Un paramètre BOOLEAN est typé booléen dans les expressions. */
+    /**
+     * Typage d'une valeur dans les expressions (ADR 0018 amendé) : un
+     * `BOOLEAN` est booléen ; une valeur **entier canonique** (sans zéro de
+     * tête — « 026 » reste une chaîne, la substitution `{{param}}` ne
+     * muterait pas la saisie) est un nombre, pour les comparaisons
+     * ordonnées des règles de projet ; tout le reste reste une chaîne.
+     */
     private fun valeurTypee(type: jo.codeide.core.model.TemplateParameterType?, valeur: String): ExpressionValue =
-        if (type == jo.codeide.core.model.TemplateParameterType.BOOLEAN) {
-            ExpressionValue.Booleen(valeur.lowercase() == "true")
-        } else {
-            ExpressionValue.Chaine(valeur)
+        when {
+            type == jo.codeide.core.model.TemplateParameterType.BOOLEAN ->
+                ExpressionValue.Booleen(valeur.lowercase() == "true")
+
+            ENTIER_CANONIQUE.matches(valeur) && valeur.toIntOrNull() != null ->
+                ExpressionValue.Nombre(valeur.toInt())
+
+            else -> ExpressionValue.Chaine(valeur)
         }
 
     /** Évalue une expression en exigeant un booléen. */
@@ -635,9 +844,11 @@ constructor(private val assets: TemplateAssetsSource) {
         return if (chemin.endsWith(".bat")) unifie.replace("\n", "\r\n") else unifie
     }
 
+    /** Stringification : un nombre restitue exactement sa saisie canonique. */
     private fun stringifier(valeur: ExpressionValue): String = when (valeur) {
         is ExpressionValue.Chaine -> valeur.valeur
         is ExpressionValue.Booleen -> valeur.valeur.toString()
+        is ExpressionValue.Nombre -> valeur.valeur.toString()
     }
 
     /** Métadonnées `.codeide/project.json` (section 11 — pas de données personnelles). */
@@ -672,10 +883,19 @@ constructor(private val assets: TemplateAssetsSource) {
         private const val NOM_VARIABLE_SLUG = "slug"
         private const val NOM_VARIABLE_CHEMIN_PACKAGE = "packagePath"
         private const val NOM_VARIABLE_LANGUE_CONTENU = "contentLanguage"
+        private const val NOM_VARIABLE_PLATEFORME = "plateformeMajeure"
         private const val NOM_OPTION_README = "includeReadme"
         private const val NOM_OPTION_GITIGNORE = "includeGitignore"
         private const val NOM_OPTION_EDITORCONFIG = "includeEditorconfig"
         private const val NOM_OPTION_LICENCE = "license"
+
+        /**
+         * Entier canonique : sans zéro de tête, signe moins isolé — la
+         * stringification d'un [ExpressionValue.Nombre] restitue exactement
+         * la saisie (la substitution `{{param}}` ne muterait jamais une
+         * valeur).
+         */
+        private val ENTIER_CANONIQUE = Regex("^(0|[1-9][0-9]{0,9}|-([1-9][0-9]{0,9}))$")
 
         /** Nom conventionnel du paramètre de package (variable `packagePath`). */
         private const val NOM_PARAMETRE_PACKAGE = "packageName"

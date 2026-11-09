@@ -25,6 +25,12 @@ package jo.codeide.core.model
  * @property parameters paramètres du formulaire de création.
  * @property computedVariables variables calculées par expression, disponibles
  * dans les conditions et la substitution.
+ * @property constraints règles de projet déclaratives évaluées par le moteur
+ * sur la combinaison complète (ADR 0153 §3) : `ERREUR` bloque, les autres
+ * informent.
+ * @property autoDefinit dépendances implicites déclaratives (ADR 0153 §4) :
+ * une règle vraie positionne des paramètres `BOOLEAN` jamais écrasés s'ils
+ * ont été figés à la main.
  * @property fichiers fichiers du projet généré, dans l'ordre déclaré.
  */
 public data class ProjectTemplate(
@@ -37,7 +43,52 @@ public data class ProjectTemplate(
     public val tags: List<String>,
     public val parameters: List<TemplateParameter>,
     public val computedVariables: List<TemplateComputedVariable>,
+    public val constraints: List<TemplateRegleProjet> = emptyList(),
+    public val autoDefinit: List<TemplateAutoDefinition> = emptyList(),
     public val fichiers: List<TemplateFile>,
+)
+
+/** Sévérité d'une règle de projet (ADR 0153 §3). */
+public enum class SeveriteRegle {
+    /** Bloquante : `isValid = false`, création refusée. */
+    ERREUR,
+
+    /** Avertissement affiché, non bloquant. */
+    AVERTISSEMENT,
+
+    /** Information affichée. */
+    INFO,
+}
+
+/**
+ * Règle de projet déclarative d'un manifeste (ADR 0153 §3).
+ *
+ * @property quand expression du mini-langage évaluée sur la combinaison
+ * complète (paramètres, variables calculées, `plateformeMajeure`).
+ * @property severite sévérité quand [quand] est vrai.
+ * @property messageKey clé i18n du message (fr **et** en).
+ */
+public data class TemplateRegleProjet(
+    public val quand: String,
+    public val severite: SeveriteRegle,
+    public val messageKey: String,
+)
+
+/**
+ * Dépendance implicite déclarative d'un manifeste (ADR 0153 §4) : quand
+ * [quand] est vrai, chaque entrée de [definit] (paramètre `BOOLEAN` déclaré
+ * plus tôt → valeur) est positionnée — sauf paramètre figé à la main.
+ *
+ * @property quand expression du mini-langage évaluée après les dérivations.
+ * @property definit paramètres `BOOLEAN` positionnés (une seule passe,
+ * aucune propagation indirecte).
+ * @property messageKey clé i18n du message « sera ajouté automatiquement »,
+ * ou `null`.
+ */
+public data class TemplateAutoDefinition(
+    public val quand: String,
+    public val definit: Map<String, Boolean>,
+    public val messageKey: String? = null,
 )
 
 /**
@@ -64,6 +115,20 @@ public data class ProjectTemplate(
  * `identifier`, `semver`, `regex:<motif>`) appliqué aux valeurs visibles.
  * @property visibleWhen expression du mini-langage ; `null` = toujours
  * visible.
+ * @property enabledWhen expression du mini-langage ; `null` = toujours
+ * actif. Une expression fausse place le paramètre dans l'état
+ * [EtatParametre.Desactive] : rendu mais grisé, avec sa raison localisée —
+ * côté génération il se comporte comme un paramètre masqué (ADR 0153 §2).
+ * @property disabledReasonKey clé i18n de la raison de désactivation
+ * (fr **et** en), lue quand [enabledWhen] est faux ; `null` = pas de raison
+ * déclarée.
+ * @property rendu indice de composant déclaré (ADR 0154 §2) ; `null` =
+ * repli par traits du wizard (CHOICE → liste, BOOLEAN → interrupteur,
+ * TEXT → champ).
+ * @property groupe identifiant libre du groupe d'affichage (ADR 0154 §3) ;
+ * `null` = hors groupe. Le titre vient de la clé `groupe.<groupe>.titre`.
+ * @property avance le paramètre est rendu dans la zone « Avancé »
+ * repliable de l'étape (ADR 0154 §3).
  * @property section section du wizard (configuration ou information).
  * @property persist la valeur est-elle écrite dans `.codeide/project.json` ?
  */
@@ -77,6 +142,11 @@ public data class TemplateParameter(
     public val defaultFrom: String? = null,
     public val validator: String? = null,
     public val visibleWhen: String? = null,
+    public val enabledWhen: String? = null,
+    public val disabledReasonKey: String? = null,
+    public val rendu: RenduParametre? = null,
+    public val groupe: String? = null,
+    public val avance: Boolean = false,
     public val section: TemplateSection = TemplateSection.CONFIGURATION,
     public val persist: Boolean = false,
 )
@@ -91,6 +161,29 @@ public enum class TemplateParameterType {
 
     /** Choix parmi [TemplateParameter.choices]. */
     CHOICE,
+}
+
+/**
+ * Indice de composant de rendu déclaré par le manifeste (ADR 0154 §2).
+ *
+ * L'UI ne devine plus le composant : le manifeste dit quoi rendre, la vue
+ * exécute. Absent du manifeste → repli par traits du wizard.
+ */
+public enum class RenduParametre {
+    /** Tuiles segmentées (choix compacts côte à côte). */
+    TUILES_SEGMENTEES,
+
+    /** Cartes radio (choix avec description courte). */
+    CARTES_RADIO,
+
+    /** Liste déroulante (repli historique des `CHOICE`). */
+    LISTE_DEROULANTE,
+
+    /** Interrupteur (booléens). */
+    INTERRUPTEUR,
+
+    /** Champ texte (saisies libres). */
+    CHAMP_TEXTE,
 }
 
 /** Section du wizard dans laquelle un paramètre est rendu (section 12.3). */

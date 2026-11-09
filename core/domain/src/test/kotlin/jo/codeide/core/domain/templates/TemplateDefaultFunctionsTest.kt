@@ -10,9 +10,10 @@ import org.junit.Test
  * section 11 : `slug`, `parentPackage`, `packageFromNameAndAuthor` ;
  * phase 2 du roadmap, ADR 0075 : `packageFromAppName`,
  * `packageFromArtifactId` ; phase 4 du roadmap, ADR 0077 :
- * `applicationIdFromPackageName`).
+ * `applicationIdFromPackageName` ; lot L1 du chantier générateur, ADR 0158
+ * : `appNameFromNom`).
  *
- * Le moteur n'évalue **aucun code** du manifeste : seules ces six
+ * Le moteur n'évalue **aucun code** du manifeste : seules ces sept
  * implémentations nommées existent, toute autre est un échec explicite.
  */
 class TemplateDefaultFunctionsTest {
@@ -148,7 +149,7 @@ class TemplateDefaultFunctionsTest {
     }
 
     @Test
-    fun `exactement six fonctions sont enregistrées`() {
+    fun `exactement sept fonctions sont enregistrées`() {
         assertEquals(
             setOf(
                 "slug",
@@ -157,8 +158,57 @@ class TemplateDefaultFunctionsTest {
                 "packageFromAppName",
                 "packageFromArtifactId",
                 "applicationIdFromPackageName",
+                "appNameFromNom",
             ),
             TemplateDefaultFunctions.NOMS,
+        )
+    }
+
+    @Test
+    fun `appNameFromNom capitalise chaque mot du nom du projet`() {
+        assertEquals(
+            "MonAppÉclatante",
+            TemplateDefaultFunctions.appliquer("appNameFromNom", sources),
+        )
+        assertEquals(
+            "MonSuperCarnet",
+            TemplateDefaultFunctions.appliquer(
+                "appNameFromNom",
+                sources.copy(nomProjet = "Mon super carnet"),
+            ),
+        )
+    }
+
+    @Test
+    fun `appNameFromNom capitalise un nom bas de casse`() {
+        assertEquals(
+            "AtelierDeTest",
+            TemplateDefaultFunctions.appliquer(
+                "appNameFromNom",
+                sources.copy(nomProjet = "atelier de test"),
+            ),
+        )
+    }
+
+    @Test
+    fun `appNameFromNom accepte tirets chiffres et accents`() {
+        assertEquals(
+            "Mon2eCafé",
+            TemplateDefaultFunctions.appliquer(
+                "appNameFromNom",
+                sources.copy(nomProjet = "mon_2e café"),
+            ),
+        )
+    }
+
+    @Test
+    fun `appNameFromNom produit la chaîne vide sans mot alphanumérique`() {
+        assertEquals(
+            "",
+            TemplateDefaultFunctions.appliquer(
+                "appNameFromNom",
+                sources.copy(nomProjet = "!!! ---"),
+            ),
         )
     }
 

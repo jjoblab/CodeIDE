@@ -8,16 +8,18 @@ package jo.codeide.core.domain.templates
  * expression  := ou
  * ou           := et ( '||' et )*
  * et           := egalite ( '&&' egalite )*
- * egalite      := unaire ( ('==' | '!=') unaire )*
+ * egalite      := comparaison ( ('==' | '!=') comparaison )*
+ * comparaison  := unaire ( ('>=' | '<=' | '>' | '<') unaire )*
  * unaire       := '!' unaire | primaire
- * primaire     := identifiant | 'true' | 'false' | '"…"' | '(' expression ')'
+ * primaire     := identifiant | nombre | 'true' | 'false' | '"…"' | '(' expression ')'
  * ```
  *
- * Valeurs : chaînes et booléens uniquement. L'évaluation est **totale et
- * stricte** — identifiant inconnu, type inattendu ou expression invalide
- * échouent explicitement avec la position (jamais de `null` silencieux,
- * jamais d'évaluation de code arbitraire — parseur écrit à la main,
- * profondeur et taille bornées).
+ * Valeurs : chaînes, booléens et **nombres entiers** (extension ADR 0018
+ * amendé — comparaisons ordonnées des règles de projet, ADR 0153 §3).
+ * L'évaluation est **totale et stricte** — identifiant inconnu, type
+ * inattendu ou expression invalide échouent explicitement avec la position
+ * (jamais de `null` silencieux, jamais d'évaluation de code arbitraire —
+ * parseur écrit à la main, profondeur et taille bornées).
  *
  * Ce fichier définit l'AST, les valeurs et l'erreur ; l'analyse vit dans
  * [ExpressionParser], l'évaluation dans [ExpressionEvaluator].
@@ -33,6 +35,9 @@ internal sealed interface ExpressionNode {
 
     /** Littéral chaîne (guillemets doubles, échappements `\"` `\\` `\n` `\t`). */
     data class LitteralChaine(val valeur: String, val position: Int) : ExpressionNode
+
+    /** Littéral entier non signé (comparaisons ordonnées, ADR 0018 amendé). */
+    data class LitteralNombre(val valeur: Int, val position: Int) : ExpressionNode
 
     /** Littéral booléen `true` / `false`. */
     data class LitteralBooleen(val valeur: Boolean, val position: Int) : ExpressionNode
@@ -51,6 +56,20 @@ internal sealed interface ExpressionNode {
 
     /** Différence `!=` (types identiques uniquement). */
     data class Different(val gauche: ExpressionNode, val droite: ExpressionNode, val position: Int) : ExpressionNode
+
+    /** Comparaison ordonnée `>` (nombres uniquement). */
+    data class Superieur(val gauche: ExpressionNode, val droite: ExpressionNode, val position: Int) : ExpressionNode
+
+    /** Comparaison ordonnée `>=` (nombres uniquement). */
+    data class SuperieurOuEgal(val gauche: ExpressionNode, val droite: ExpressionNode, val position: Int) :
+        ExpressionNode
+
+    /** Comparaison ordonnée `<` (nombres uniquement). */
+    data class Inferieur(val gauche: ExpressionNode, val droite: ExpressionNode, val position: Int) : ExpressionNode
+
+    /** Comparaison ordonnée `<=` (nombres uniquement). */
+    data class InferieurOuEgal(val gauche: ExpressionNode, val droite: ExpressionNode, val position: Int) :
+        ExpressionNode
 }
 
 /** Valeur d'une expression : chaîne ou booléen (jamais `null`). */
@@ -64,6 +83,17 @@ internal sealed interface ExpressionValue {
     data class Booleen(val valeur: Boolean) : ExpressionValue {
         public override fun toString(): String = "booléen $valeur"
     }
+
+    /**
+     * Valeur numérique entière (ADR 0018 amendé) : littéraux du mini-langage
+     * et paramètres dont la valeur effective est un entier canonique (frappe
+     * par valeur, `docs/TEMPLATES.md`) — les comparaisons ordonnées des
+     * règles de projet (`targetSdk > plateformeMajeure`) comparent ces
+     * nombres, jamais des chaînes.
+     */
+    data class Nombre(val valeur: Int) : ExpressionValue {
+        public override fun toString(): String = "nombre $valeur"
+    }
 }
 
 /** Contexte d'évaluation : identifiants connus (paramètres, variables). */
@@ -76,10 +106,14 @@ internal typealias ContexteExpressions = Map<String, ExpressionValue>
  */
 internal object ExpressionEvaluator {
     /** Évalue [noeud] dans [contexte]. */
-    @Suppress("CyclomaticComplexMethod") // Six opérateurs strictement typés, un par branche.
+    @Suppress("CyclomaticComplexMethod", "LongMethod") // Un opérateur strictement typé par branche (9 au total).
     fun evaluer(noeud: ExpressionNode, contexte: ContexteExpressions): ExpressionValue = when (noeud) {
         is ExpressionNode.LitteralChaine -> {
             ExpressionValue.Chaine(noeud.valeur)
+        }
+
+        is ExpressionNode.LitteralNombre -> {
+            ExpressionValue.Nombre(noeud.valeur)
         }
 
         is ExpressionNode.LitteralBooleen -> {
@@ -136,6 +170,22 @@ internal object ExpressionEvaluator {
         is ExpressionNode.Different -> {
             comparer(noeud.position, noeud.gauche, noeud.droite, contexte, attendu = false)
         }
+
+        is ExpressionNode.Superieur -> {
+            ordonner(noeud.position, noeud.gauche, noeud.droite, contexte) { gauche, droite -> gauche > droite }
+        }
+
+        is ExpressionNode.SuperieurOuEgal -> {
+            ordonner(noeud.position, noeud.gauche, noeud.droite, contexte) { gauche, droite -> gauche >= droite }
+        }
+
+        is ExpressionNode.Inferieur -> {
+            ordonner(noeud.position, noeud.gauche, noeud.droite, contexte) { gauche, droite -> gauche < droite }
+        }
+
+        is ExpressionNode.InferieurOuEgal -> {
+            ordonner(noeud.position, noeud.gauche, noeud.droite, contexte) { gauche, droite -> gauche <= droite }
+        }
     }
 
     /** Comparaison `==`/`!=` : mêmes types uniquement, sinon échec explicite. */
@@ -156,5 +206,28 @@ internal object ExpressionEvaluator {
         }
         val egaux = valeurGauche == valeurDroite
         return ExpressionValue.Booleen(if (attendu) egaux else !egaux)
+    }
+
+    /**
+     * Comparaison ordonnée : deux [ExpressionValue.Nombre] exigés, sinon
+     * échec explicite — jamais de comparaison lexicographique de chaînes
+     * (piège « 9 » > « 36 »), jamais de coercition implicite.
+     */
+    private inline fun ordonner(
+        position: Int,
+        gauche: ExpressionNode,
+        droite: ExpressionNode,
+        contexte: ContexteExpressions,
+        comparer: (Int, Int) -> Boolean,
+    ): ExpressionValue {
+        val valeurGauche = evaluer(gauche, contexte)
+        val valeurDroite = evaluer(droite, contexte)
+        if (valeurGauche !is ExpressionValue.Nombre || valeurDroite !is ExpressionValue.Nombre) {
+            throw ExpressionException(
+                position,
+                "une comparaison ordonnée exige deux nombres, reçu $valeurGauche et $valeurDroite",
+            )
+        }
+        return ExpressionValue.Booleen(comparer(valeurGauche.valeur, valeurDroite.valeur))
     }
 }

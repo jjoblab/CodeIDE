@@ -110,11 +110,7 @@ internal object TemplateRenderer {
                             "variable inconnue « ${noeud.nom} » (disponibles : " +
                                 "${contexte.keys.sorted().joinToString(", ")})",
                         )
-                val brut =
-                    when (valeur) {
-                        is ExpressionValue.Chaine -> valeur.valeur
-                        is ExpressionValue.Booleen -> valeur.valeur.toString()
-                    }
+                val brut = stringifierValeur(valeur)
                 if (noeud.filtre == null) {
                     brut
                 } else {
@@ -151,6 +147,18 @@ internal object TemplateRenderer {
                     ?: throw TemplateRenderException(fichier, noeud.ligne, "clé i18n manquante « ${noeud.cle} »")
             }
         }
+
+    /**
+     * Stringification d'une valeur du contexte pour la substitution :
+     * un [ExpressionValue.Nombre] restitue exactement sa saisie canonique
+     * (l'entier « 026 » est resté une chaîne — la sortie ne mute jamais la
+     * donnée, ADR 0018 amendé).
+     */
+    private fun stringifierValeur(valeur: ExpressionValue): String = when (valeur) {
+        is ExpressionValue.Chaine -> valeur.valeur
+        is ExpressionValue.Booleen -> valeur.valeur.toString()
+        is ExpressionValue.Nombre -> valeur.valeur.toString()
+    }
 
     /** Analyse d'un contenu : curseur, suivi de ligne, imbrication bornée. */
     private class Analyseur(private val source: String, private val fichier: String) {

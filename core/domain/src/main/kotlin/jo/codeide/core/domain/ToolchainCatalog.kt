@@ -107,5 +107,30 @@ public data class ToolchainCatalog(
 
         /** Seuil plancher : 1 Gio (marge pour le JDK seul, 200+ Mio installé). */
         public const val DEFAULT_SPACE_THRESHOLD_BYTES: Long = 1024L * 1024 * 1024
+
+        /** Identifiant de l'exigence de plateforme de compilation dans le catalogue. */
+        private const val ID_COMPOSANT_PLATEFORME = "platform"
     }
+
+    /**
+     * Majeure de la plateforme de compilation exigée par le catalogue —
+     * source de vérité unique de la variable automatique `plateformeMajeure`
+     * du moteur de modèles (ADR 0153 §3) : extraite de l'exigence
+     * `platform@android-36` (majeure **36** aujourd'hui), exactement comme
+     * l'alignement `compileSdk` des templates (ADR 0089).
+     *
+     * Un catalogue sans plateforme (ou illisible) vaut **0** : la valeur
+     * n'expose alors aucune borne — les règles du type
+     * `targetSdk > plateformeMajeure` ne peuvent pas bloquer à tort des
+     * générations pour un catalogue mal renseigné (une telle anomalie est
+     * de toute façon une panne de provisionnement traitée ailleurs).
+     */
+    public val plateformeMajeure: Int
+        get() =
+            requiredComponents
+                .firstOrNull { it.id == ID_COMPOSANT_PLATEFORME }
+                ?.let { exigence ->
+                    Regex("android-(\\d+)").find(exigence.version)?.groupValues?.get(1)?.toIntOrNull()
+                }
+                ?: 0
 }

@@ -1,12 +1,16 @@
 package jo.codeide.core.domain.templates
 
 import jo.codeide.core.model.ProjectTemplate
+import jo.codeide.core.model.RenduParametre
+import jo.codeide.core.model.SeveriteRegle
+import jo.codeide.core.model.TemplateAutoDefinition
 import jo.codeide.core.model.TemplateComputedVariable
 import jo.codeide.core.model.TemplateFile
 import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateParameter
 import jo.codeide.core.model.TemplateParameterType
+import jo.codeide.core.model.TemplateRegleProjet
 import jo.codeide.core.model.TemplateSection
 
 /**
@@ -29,6 +33,8 @@ internal object TemplateManifestParser {
     private const val VARIABLES_CALCULEES_MAX = 32
     private const val FICHIERS_MAX = 256
     private const val TAGS_MAX = 12
+    private const val REGLES_MAX = 32
+    private const val AUTO_DEFINIT_MAX = 32
 
     /** Motif d'un identifiant de modèle (répertoire d'assets). */
     private val MOTIF_ID_MODELE = Regex("^[a-z][a-z0-9-]*$")
@@ -38,6 +44,9 @@ internal object TemplateManifestParser {
 
     /** Motif d'une clé i18n. */
     private val MOTIF_CLE_I18N = Regex("^[a-zA-Z0-9_.-]+$")
+
+    /** Motif d'un identifiant de groupe d'affichage (ADR 0154 §3). */
+    private val MOTIF_GROUPE = Regex("^[a-zA-Z][a-zA-Z0-9_-]{0,63}$")
 
     /**
      * Variables automatiques et options communes du moteur : un paramètre ou
@@ -132,6 +141,8 @@ internal object TemplateManifestParser {
             return "plus de $VARIABLES_CALCULEES_MAX variables calculées"
         }
         if (manifeste.files.size > FICHIERS_MAX) return "plus de $FICHIERS_MAX fichiers"
+        if (manifeste.constraints.size > REGLES_MAX) return "plus de $REGLES_MAX contraintes"
+        if (manifeste.autoDefinit.size > AUTO_DEFINIT_MAX) return "plus de $AUTO_DEFINIT_MAX autoDefinit"
 
         val idsParameters = mutableSetOf<String>()
         for (parametre in manifeste.parameters) {
@@ -160,6 +171,14 @@ internal object TemplateManifestParser {
                 return "expression de « ${variable.name} » invalide : ${erreur.message}"
             }
         }
+        for (regle in manifeste.constraints) {
+            val probleme = validerRegle(regle)
+            if (probleme != null) return probleme
+        }
+        for (regle in manifeste.autoDefinit) {
+            val probleme = validerAutoDefinit(regle, manifeste.parameters)
+            if (probleme != null) return probleme
+        }
 
         val cheminsStatiques = mutableSetOf<String>()
         for (fichier in manifeste.files) {
@@ -175,7 +194,7 @@ internal object TemplateManifestParser {
     }
 
     /** Règles d'un paramètre du manifeste. */
-    @Suppress("ReturnCount", "CyclomaticComplexMethod") // Clauses de garde de validation (règle 16).
+    @Suppress("ReturnCount", "CyclomaticComplexMethod", "LongMethod") // Clauses de garde de validation (règle 16).
     private fun validerParametre(parametre: ParametreTemplateJson): String? {
         if (!MOTIF_IDENTIFIANT.matches(parametre.id)) {
             return "identifiant de paramètre invalide : « ${parametre.id} »"
@@ -225,10 +244,77 @@ internal object TemplateManifestParser {
                 return "visibleWhen de « ${parametre.id} » invalide : ${erreur.message}"
             }
         }
+        if (parametre.enabledWhen != null) {
+            try {
+                ExpressionParser.analyser(parametre.enabledWhen)
+            } catch (erreur: ExpressionException) {
+                return "enabledWhen de « ${parametre.id} » invalide : ${erreur.message}"
+            }
+        }
+        if (parametre.disabledReasonKey != null && !MOTIF_CLE_I18N.matches(parametre.disabledReasonKey)) {
+            return "disabledReasonKey invalide pour « ${parametre.id} » : « ${parametre.disabledReasonKey} »"
+        }
+        if (parametre.rendu != null &&
+            runCatching { RenduParametre.valueOf(parametre.rendu) }.getOrNull() == null
+        ) {
+            return "rendu inconnu « ${parametre.rendu} » pour « ${parametre.id} »"
+        }
+        if (parametre.groupe != null && !MOTIF_GROUPE.matches(parametre.groupe)) {
+            return "groupe invalide pour « ${parametre.id} » : « ${parametre.groupe} »"
+        }
         runCatching { TemplateSection.valueOf(parametre.section) }
             .getOrNull()
             ?: return "section inconnue « ${parametre.section} » pour « ${parametre.id} »"
         return null
+    }
+
+    /** Règles d'une contrainte de projet du manifeste (ADR 0153 §3). */
+    @Suppress("ReturnCount") // Clauses de garde de validation (règle 16).
+    private fun validerRegle(regle: RegleProjetJson): String? {
+        if (!MOTIF_CLE_I18N.matches(regle.messageKey)) {
+            return "messageKey de contrainte invalide : « ${regle.messageKey} »"
+        }
+        if (runCatching { SeveriteRegle.valueOf(regle.severity) }.getOrNull() == null) {
+            return "sévérité de contrainte inconnue « ${regle.severity} » (attendues : ERREUR, AVERTISSEMENT, INFO)"
+        }
+        return try {
+            ExpressionParser.analyser(regle.quand)
+            null
+        } catch (erreur: ExpressionException) {
+            "contrainte « ${regle.quand} » invalide : ${erreur.message}"
+        }
+    }
+
+    /**
+     * Règles d'une dépendance automatique (ADR 0153 §4) : `definit` ne peut
+     * viser qu'un paramètre BOOLEAN déclaré plus tôt — une seule passe, sans
+     * chaîne de propagation.
+     */
+    @Suppress("ReturnCount") // Clauses de garde de validation (règle 16).
+    private fun validerAutoDefinit(
+        regle: AutoDefinitJson,
+        parametres: List<ParametreTemplateJson>,
+    ): String? {
+        if (regle.definit.isEmpty()) return "autoDefinit « ${regle.quand} » sans cible definit"
+        if (regle.messageKey != null && !MOTIF_CLE_I18N.matches(regle.messageKey)) {
+            return "messageKey d'autoDefinit invalide : « ${regle.messageKey} »"
+        }
+        for (cible in regle.definit.keys) {
+            if (!MOTIF_IDENTIFIANT.matches(cible)) {
+                return "cible definit invalide : « $cible »"
+            }
+            val parametre = parametres.firstOrNull { it.id == cible }
+                ?: return "autoDefinit vise « $cible » : paramètre inexistant"
+            if (parametre.type != TemplateParameterType.BOOLEAN.name) {
+                return "autoDefinit vise « $cible » : un paramètre BOOLEAN est requis"
+            }
+        }
+        return try {
+            ExpressionParser.analyser(regle.quand)
+            null
+        } catch (erreur: ExpressionException) {
+            "autoDefinit « ${regle.quand} » invalide : ${erreur.message}"
+        }
     }
 
     /** Règles d'une entrée de fichier du manifeste. */
@@ -259,6 +345,7 @@ internal object TemplateManifestParser {
     }
 
     /** Conversion DTO validé → modèle public. */
+    @Suppress("LongMethod") // Mapping un champ par ligne, aucune logique.
     private fun convertir(manifeste: ManifesteTemplateJson): ProjectTemplate = ProjectTemplate(
         id = TemplateId(manifeste.id),
         templateVersion = manifeste.templateVersion,
@@ -279,6 +366,11 @@ internal object TemplateManifestParser {
                 defaultFrom = parametre.defaultFrom,
                 validator = parametre.validator,
                 visibleWhen = parametre.visibleWhen,
+                enabledWhen = parametre.enabledWhen,
+                disabledReasonKey = parametre.disabledReasonKey,
+                rendu = parametre.rendu?.let { RenduParametre.valueOf(it) },
+                groupe = parametre.groupe,
+                avance = parametre.avance,
                 section = TemplateSection.valueOf(parametre.section),
                 persist = parametre.persist,
             )
@@ -288,6 +380,22 @@ internal object TemplateManifestParser {
             TemplateComputedVariable(
                 name = variable.name,
                 expression = variable.expression,
+            )
+        },
+        constraints =
+        manifeste.constraints.map { regle ->
+            TemplateRegleProjet(
+                quand = regle.quand,
+                severite = SeveriteRegle.valueOf(regle.severity),
+                messageKey = regle.messageKey,
+            )
+        },
+        autoDefinit =
+        manifeste.autoDefinit.map { regle ->
+            TemplateAutoDefinition(
+                quand = regle.quand,
+                definit = regle.definit,
+                messageKey = regle.messageKey,
             )
         },
         fichiers =

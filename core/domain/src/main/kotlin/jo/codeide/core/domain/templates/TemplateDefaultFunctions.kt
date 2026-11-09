@@ -16,7 +16,9 @@ package jo.codeide.core.domain.templates
  * paramètre `artifactId`, convention `com.example.<artefact>` — phase 2 du
  * roadmap, ADR 0075), `applicationIdFromPackageName` (de la valeur du
  * paramètre `packageName` — l'identifiant Android suit le package, phase 4
- * du roadmap, ADR 0077).
+ * du roadmap, ADR 0077), `appNameFromNom` (du nom du projet — la chaîne de
+ * dérivation d'identité devient nom → `appName` → `packageName` →
+ * `applicationId`, ADR 0158 §2).
  */
 internal object TemplateDefaultFunctions {
     /** Noms de fonctions enregistrées. */
@@ -28,6 +30,7 @@ internal object TemplateDefaultFunctions {
             "packageFromAppName",
             "packageFromArtifactId",
             "applicationIdFromPackageName",
+            "appNameFromNom",
         )
 
     /** Identifiant conventionnel du paramètre « nom de l'application » (Android). */
@@ -44,6 +47,9 @@ internal object TemplateDefaultFunctions {
 
     /** Repli d'un segment vide dérivé du nom d'app ou de l'artefact. */
     private const val REPLI_SEGMENT = "app"
+
+    /** Séparateurs reconnus par `appNameFromNom` : tout sauf lettres et chiffres. */
+    private val MOTIF_MOT_APPNAME = Regex("[^\\p{L}\\p{Nd}]+")
 
     /**
      * Sources nécessaires au calcul : nom du projet, auteur, package courant
@@ -90,8 +96,32 @@ internal object TemplateDefaultFunctions {
             applicationIdDepuisPackage(sources.valeursParametres[PARAMETRE_PACKAGE_NAME])
         }
 
+        "appNameFromNom" -> {
+            appNameDepuisNom(sources.nomProjet)
+        }
+
         else -> {
             throw TemplateRenderException(ligne, "fonction defaultFrom inconnue « $nom »")
+        }
+    }
+
+    /**
+     * Nom d'application depuis le nom du projet (ADR 0158 §2) : chaque mot
+     * séparé par un caractère non alphanumérique (espace, tiret, ponctuation)
+     * est capitalisé puis concaténé — « Mon super carnet » → «
+     * MonSuperCarnet ». Les lettres sont conservées telles quelles (accents
+     * compris) ; les gabarits `{{appName|resourceName}}` produisent ensuite
+     * les noms de ressources sûrs (ADR 0075). Un nom sans mot
+     * alphanumérique produit la chaîne vide — défaut de type TEXT le temps
+     * de la saisie, jamais un nom inventé.
+     */
+    private fun appNameDepuisNom(nomProjet: String): String {
+        val mots = nomProjet.split(MOTIF_MOT_APPNAME).filter { it.isNotEmpty() }
+        if (mots.isEmpty()) return ""
+        return mots.joinToString("") { mot ->
+            mot.replaceFirstChar { premiere ->
+                premiere.uppercase()
+            }
         }
     }
 

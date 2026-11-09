@@ -1,7 +1,9 @@
 # ADR 0154 — Contrat d'affichage déclaratif des libellés, composants et groupes
 
-- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0 ;
-  à implémenter en L1 pour le domaine, en L5 pour l'UI)
+- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0) —
+  **côté domaine implémenté en L1** (résolution des choix, `rendu`,
+  groupes, « Avancé » dans `TemplateParameterEvaluation`) ; suppression des
+  registres UI et rendu des `ChoixEvalue` en L5.
 - **Amende** : ADR 0021 (le registre de présentation d'alors devient des
   métadonnées déclaratives ; le repli par traits reste).
 - **Contexte** : l'audit L0 confirme que `RenduParametres.kt` porte cinq

@@ -180,6 +180,14 @@ class TemplateUseCasesTest {
         assertEquals(AppError.StorageReason.NotFound, erreur.reason)
     }
 
+    @Test
+    fun `le planificateur expose la majeure de plateforme du catalogue`() {
+        // Valeur par défaut du catalogue (source de vérité unique, ADR 0153
+        // §3) — verrouillée aussi par ToolchainCatalogPlateformeTest et par
+        // AlignementCatalogueTemplatesTest côté app.
+        assertEquals(36, planificateur().plateformeMajeure)
+    }
+
     // ---------------------------------------------------------------- plan
 
     @Test

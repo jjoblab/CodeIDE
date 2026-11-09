@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "fixture-regles",
+  "templateVersion": "1.0.0",
+  "nameKey": "template.name",
+  "descriptionKey": "template.description",
+  "category": "test",
+  "iconKey": "template.icon",
+  "tags": ["test", "regles"],
+  "parameters": [
+    {
+      "id": "langage",
+      "type": "CHOICE",
+      "labelKey": "param.langage.label",
+      "helpKey": "param.langage.help",
+      "choices": ["kotlin", "java"],
+      "default": "kotlin",
+      "rendu": "TUILES_SEGMENTEES",
+      "groupe": "langageSdk",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "targetSdk",
+      "type": "CHOICE",
+      "labelKey": "param.target.label",
+      "choices": ["34", "35", "36", "37"],
+      "default": "36",
+      "groupe": "langageSdk",
+      "avance": true,
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "avecRoom",
+      "type": "BOOLEAN",
+      "labelKey": "param.room.label",
+      "default": "false",
+      "groupe": "qualite",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "avecKsp",
+      "type": "BOOLEAN",
+      "labelKey": "param.ksp.label",
+      "default": "false",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "includeNavigation",
+      "type": "BOOLEAN",
+      "labelKey": "param.nav.label",
+      "default": "false",
+      "enabledWhen": "langage != \"java\"",
+      "disabledReasonKey": "param.nav.raison",
+      "section": "CONFIGURATION",
+      "persist": true
+    },
+    {
+      "id": "nomApplication",
+      "type": "TEXT",
+      "labelKey": "param.appname.label",
+      "defaultFrom": "appNameFromNom",
+      "section": "INFORMATION",
+      "persist": true
+    }
+  ],
+  "computed": [
+    { "name": "langageKotlin", "expression": "langage == \"kotlin\"" }
+  ],
+  "autoDefinit": [
+    { "when": "avecRoom && !avecKsp", "definit": { "avecKsp": true }, "messageKey": "regle.ksp.auto" }
+  ],
+  "constraints": [
+    { "when": "targetSdk > plateformeMajeure", "severity": "ERREUR", "messageKey": "regle.target.haut" },
+    { "when": "avecRoom && langageKotlin", "severity": "AVERTISSEMENT", "messageKey": "regle.room.kotlin" },
+    { "when": "langage == \"java\"", "severity": "INFO", "messageKey": "regle.java.info" }
+  ],
+  "files": [
+    {
+      "path": "Main.txt",
+      "source": "files/main.txt.tpl"
+    }
+  ]
+}

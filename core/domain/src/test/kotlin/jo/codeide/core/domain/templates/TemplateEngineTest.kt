@@ -52,6 +52,7 @@ class TemplateEngineTest {
         options: TemplateOptions = TemplateOptions(),
         auteur: String = "Jeanne",
         renommages: Map<String, String> = emptyMap(),
+        plateformeMajeure: Int = 36,
     ): RequeteGeneration =
         RequeteGeneration(
             nom = nom,
@@ -63,6 +64,7 @@ class TemplateEngineTest {
             annee = "2026",
             versionGenerateur = "CodeIDE 0.9.0-test",
             renommages = renommages,
+            plateformeMajeure = plateformeMajeure,
         )
 
     /** Extrait le plan ou échoue avec le message d'erreur. */
@@ -87,6 +89,7 @@ class TemplateEngineTest {
                 emptyMap(),
                 emptySet(),
                 "fr",
+                36,
             )
 
         assertTrue(evaluation.isValid)
@@ -106,14 +109,14 @@ class TemplateEngineTest {
 
     @Test
     fun `les libellés sont résolus dans la langue demandée avec repli`() = runTest {
-        val evaluation = moteur().evaluerFormulaire(FixtureModele.charge(), "D", "J", emptyMap(), emptySet(), "fr")
+        val evaluation = moteur().evaluerFormulaire(FixtureModele.charge(), "D", "J", emptyMap(), emptySet(), "fr", 36)
 
         val parId = evaluation.parameters.associateBy { it.parameterId }
         assertEquals("Suppléments", parId.getValue("withExtras").label)
         assertEquals("Paquet", parId.getValue("packageName").label)
         assertEquals("Application ou bibliothèque", parId.getValue("projectType").help)
 
-        val anglais = moteur().evaluerFormulaire(FixtureModele.charge(), "D", "J", emptyMap(), emptySet(), "en")
+        val anglais = moteur().evaluerFormulaire(FixtureModele.charge(), "D", "J", emptyMap(), emptySet(), "en", 36)
         assertEquals(
             "Extras",
             anglais.parameters
@@ -133,6 +136,7 @@ class TemplateEngineTest {
                 mapOf("packageName" to "com.manuel"),
                 setOf("packageName"),
                 "fr",
+                36,
             )
 
         val parId = evaluation.parameters.associateBy { it.parameterId }
@@ -149,6 +153,7 @@ class TemplateEngineTest {
                 mapOf("version" to "1.0", "packageName" to "Com.Maj"),
                 setOf("version", "packageName"),
                 "fr",
+                36,
             )
 
         assertTrue(!evaluation.isValid)
@@ -169,6 +174,7 @@ class TemplateEngineTest {
                 mapOf("projectType" to "library", "withExtras" to "nimporte"),
                 emptySet(),
                 "fr",
+                36,
             )
 
         val parId = evaluation.parameters.associateBy { it.parameterId }
@@ -180,7 +186,7 @@ class TemplateEngineTest {
     @Test
     fun `les variables calculées alimentent le résumé stringifié`() = runTest {
         val evaluation =
-            moteur().evaluerFormulaire(FixtureModele.charge(), "Demo", "J", emptyMap(), emptySet(), "fr")
+            moteur().evaluerFormulaire(FixtureModele.charge(), "Demo", "J", emptyMap(), emptySet(), "fr", 36)
         assertEquals("true", evaluation.computedValues["estApplication"])
     }
 

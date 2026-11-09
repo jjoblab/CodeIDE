@@ -39,6 +39,8 @@ assets/templates/<id>/
   "tags": ["Kotlin · JVM"],
   "parameters": [ … ],
   "computed": [ { "name": "estApplication", "expression": "…" } ],
+  "constraints": [ { "when": "…", "severity": "ERREUR", "messageKey": "…" } ],
+  "autoDefinit": [ { "when": "…", "definit": { "avecKsp": true }, "messageKey": "…" } ],
   "files": [ … ]
 }
 ```
@@ -52,7 +54,8 @@ valeurs) :
   l'application).
 - `nameKey`/`descriptionKey`/`iconKey` : clés i18n (`^[a-zA-Z0-9_.-]+$`),
   résolues dans `i18n/<langue>.json` avec repli anglais.
-- Bornes : 32 paramètres, 32 variables calculées, 256 fichiers, 12 tags.
+- Bornes : 32 paramètres, 32 variables calculées, 32 contraintes,
+  32 `autoDefinit`, 256 fichiers, 12 tags.
 
 ### Paramètres
 
@@ -62,16 +65,36 @@ valeurs) :
 | `type` | `TEXT`, `BOOLEAN` ou `CHOICE` |
 | `labelKey`, `helpKey` | clés i18n affichées par le wizard |
 | `choices`, `default` | pour `CHOICE` (défaut parmi les valeurs) ; `BOOLEAN` accepte `true`/`false` |
-| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`), `applicationIdFromPackageName` (suit le paramètre `packageName`, repli `com.example.app` — chaîne `appName → packageName → applicationId`, ADR 0077) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId`/`applicationId` ; le modèle `gradle-plugin` réutilise `packageFromArtifactId` pour son `pluginId` (ADR 0076) |
+| `defaultFrom` | fonction dérivée **enregistrée** : `slug`, `parentPackage`, `packageFromNameAndAuthor`, `packageFromAppName` (`com.example.<appName>`, ADR 0075), `packageFromArtifactId` (`com.example.<artifactId>`), `applicationIdFromPackageName` (suit le paramètre `packageName`, repli `com.example.app` — chaîne `appName → packageName → applicationId`, ADR 0077), `appNameFromNom` (nom du projet → nom d'application, « Mon super carnet » → « MonSuperCarnet » — la chaîne de dérivation d'identité devient **nom → appName → packageName → applicationId**, ADR 0158 §2) — jamais de code. Une dérivée peut lire la valeur effective des paramètres déclarés AVANT elle (la source précède sa dérivée) : `appName`/`artifactId` avant `packageName`, `packageName` avant `groupId`/`applicationId` ; le modèle `gradle-plugin` réutilise `packageFromArtifactId` pour son `pluginId` (ADR 0076) |
 | `validator` | `project-name`, `package-name`, `identifier`, `semver` ou `regex:<motif>` (correspondance complète) |
 | `visibleWhen` | expression du mini-langage ; absent = toujours visible |
+| `enabledWhen` | expression du mini-langage ; absent = toujours actif. **Faux = désactivé, pas masqué** : le champ reste à l'écran, grisé, avec sa raison localisée annoncée à TalkBack ; côté génération il se comporte comme un paramètre masqué (ADR 0153 §2) |
+| `disabledReasonKey` | clé i18n (fr **et** en) de la raison de désactivation, lue quand `enabledWhen` est faux |
+| `rendu` | indice de composant (ADR 0154 §2) : `TUILES_SEGMENTEES`, `CARTES_RADIO`, `LISTE_DEROULANTE`, `INTERRUPTEUR`, `CHAMP_TEXTE` ; absent = repli par traits du wizard |
+| `groupe` | identifiant de groupe d'affichage (`^[a-zA-Z][a-zA-Z0-9_-]{0,63}$`, ADR 0154 §3) ; titre via la clé `groupe.<groupe>.titre` |
+| `avance` | `true` : le paramètre est rendu dans la zone « Avancé » repliable |
 | `section` | `CONFIGURATION` ou `INFORMATION` (étapes du wizard) |
 | `persist` | la valeur est-elle écrite dans `.codeide/project.json` ? |
 
 Règles d'évaluation (section 12.2) : la valeur **dérivée** (`defaultFrom`)
 suit ses sources tant que l'utilisateur ne modifie pas le champ à la main ;
-un paramètre **masqué** (`visibleWhen` faux) vaut sa valeur par défaut,
-n'est ni validé ni persisté.
+un paramètre **masqué** (`visibleWhen` faux) **ou désactivé** (`enabledWhen`
+faux) vaut sa valeur par défaut, n'est ni validé ni persisté (la saisie
+éventuelle reste conservée dans l'état du wizard pour une réactivation —
+ADR 0153 §2).
+
+#### Libellés de choix déclaratifs (ADR 0154 §1)
+
+`choices` reste une liste de valeurs brutes ; les textes par choix vivent
+au dictionnaire i18n (fr **et** en obligatoires pour `libelle`) :
+
+| Clé | Rôle |
+|---|---|
+| `param.<id>.choix.<valeur>.libelle` | libellé affiché (obligatoire — repli valeur brute, jamais observé sur le catalogue) |
+| `param.<id>.choix.<valeur>.sousTitre` | sous-titre court (optionnel — ex. `targetSdk` « API 36 · Android 15 ») |
+| `param.<id>.choix.<valeur>.description` | explication longue (optionnel) |
+| `param.<id>.choix.<valeur>.icone` | nom logique d'icône (`IconesModele` de `core:ui`) (optionnel) |
+| `groupe.<groupe>.titre` | titre du groupe d'affichage (optionnel — repli identifiant) |
 
 ### Fichiers
 
@@ -83,20 +106,65 @@ n'est ni validé ni persisté.
 | `when` | expression conditionnant l'inclusion |
 | `group` | `core`, `readme`, `gitignore`, `editorconfig`, `license` — piloté par les options communes |
 
-## Mini-langage d'expressions (ADR 0018)
+## Mini-langage d'expressions (ADR 0018, amendé L1)
 
-Pour `visibleWhen`, `when`, `computed` et `{{#if}}` :
+Pour `visibleWhen`, `enabledWhen`, `when`, `computed`, `constraints`,
+`autoDefinit` et `{{#if}}` :
 
 - identifiants (paramètres, variables calculées, variables automatiques) ;
-- littéraux : `"chaîne"` (échappements `\"`, `\\`, `\n`, `\t`), `true`, `false` ;
+- littéraux : `"chaîne"` (échappements `\"`, `\\`, `\n`, `\t`), `true`,
+  `false`, et **entiers** (`36`, 32 bits au maximum) ;
 - opérateurs : `==`, `!=`, `&&`, `||`, `!`, parenthèses — précédence usuelle ;
+- **comparaisons ordonnées** `>`, `>=`, `<`, `<=` (ADR 0018 amendé, lot L1) :
+  deux **nombres** exigés, jamais de comparaison lexicographique de chaînes,
+  jamais de coercition implicite — `"9" > "36"` est une erreur, pas un
+  résultat ;
 - **aucune évaluation de code**, aucune fonction appelable ;
 - bornes : 512 caractères, 128 jetons, 16 de profondeur.
 
+Typage des valeurs du contexte (uniforme, ADR 0018 amendé) : un paramètre
+`BOOLEAN` est booléen ; une valeur **entier canonique** (sans zéro de tête —
+« 026 » reste une chaîne, la substitution `{{param}}` ne mute jamais la
+saisie) est un **nombre** ; tout le reste reste une chaîne. Une égalité avec
+une valeur numérique s'écrit donc `jdkVersion == 21` (littéral nu), pas
+`jdkVersion == "21"`.
+
 Variables **automatiques** (ne peuvent pas être masquées par un paramètre) :
 `projectName`, `description`, `author`, `year`, `slug`, `packagePath`,
-`contentLanguage` et les options communes `includeReadme`,
-`includeGitignore`, `includeEditorconfig`, `license`.
+`contentLanguage`, **`plateformeMajeure`** (majeure du `compileSdk` du
+catalogue d'outils — 36 aujourd'hui, ADR 0153 §3) et les options communes
+`includeReadme`, `includeGitignore`, `includeEditorconfig`, `license`.
+Les contraintes et `autoDefinit` voient les paramètres et les variables
+calculées — pas les options communes (le formulaire ne les connaît pas
+encore à ce stade du wizard).
+
+## Règles de projet et dépendances automatiques (ADR 0153)
+
+Deux blocs optionnels du manifeste, évalués par le moteur sur la
+combinaison complète (l'UI n'évalue **aucune** règle) :
+
+```json
+"constraints": [
+  { "when": "targetSdk > plateformeMajeure", "severity": "ERREUR", "messageKey": "regle.target.sup.compileSdk" },
+  { "when": "avecRoom && !avecHilt", "severity": "INFO", "messageKey": "regle.room.sans.hilt" }
+],
+"autoDefinit": [
+  { "when": "avecRoom && !avecKsp", "definit": { "avecKsp": true }, "messageKey": "regle.ksp.auto" }
+]
+```
+
+- `severity` ∈ `ERREUR` (bloquante : `isValid = false`, « Suivant » refusé,
+  **planification refusée** — `CreateProjectUseCase` revalide toujours via
+  le plan partagé, une UI contournée n'écrit rien), `AVERTISSEMENT`, `INFO`.
+- `messageKey` : clé i18n du manifeste (fr **et** en) ; les messages
+  déclenchés arrivent à l'UI déjà résolus (`MessageRegle`).
+- `autoDefinit` : évaluée après les dérivations, une seule passe ; chaque
+  cible de `definit` est un paramètre `BOOLEAN` déclaré plus tôt, jamais
+  écrasé si l'utilisateur l'a figé à la main ; le `messageKey` optionnel
+  annonce l'ajout automatique (« sera ajouté automatiquement »).
+- Ordre d'évaluation : 1. valeurs, 2. dérivées, 3. calculées,
+  4. `autoDefinit`, 5. `visibleWhen`, 6. `enabledWhen`, 7. validation,
+  8. repli des masqués/désactivés, 9. `constraints`.
 
 ## Substitution (`.tpl`)
 
@@ -136,7 +204,7 @@ Chaque projet généré contient :
   "templateId": "kotlin-jvm",
   "templateVersion": "1.0.0",
   "generator": "CodeIDE 0.9.0",
-  "parameters": { "…seulement les paramètres persist=true et visibles…" }
+  "parameters": { "…seulement les paramètres persist=true, visibles et actifs…" }
 }
 ```
 

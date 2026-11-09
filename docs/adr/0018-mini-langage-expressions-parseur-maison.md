@@ -1,7 +1,9 @@
 # ADR 0018 — Mini-langage d'expressions : parseur maison, borné, sans évaluation de code
 
 - Date : 2026-09-22 (étape 8, v0.9.0)
-- Statut : accepté
+- Statut : accepté — **amendé le 2026-11-09** (lot L1 du chantier
+  générateur : nombres et comparaisons ordonnées, cf. amendement en fin de
+  document ; référencé par l'ADR 0153 §3)
 
 ## Contexte
 
@@ -60,3 +62,28 @@ générique d'évaluation (moteur d'expression en réflexion, `ScriptEngine`,
   grammaire et ses tests exhaustifs — pas par une dépendance externe.
 - Les manifestes des étapes futures (modèles Kotlin/Java, plugins)
   bénéficient d'un contrat stable et vérifié au chargement.
+
+## Amendement (2026-11-09 — lot L1 du chantier générateur)
+
+Les règles de projet déclaratives (ADR 0153 §3) exigent une comparaison
+ordonnée (`targetSdk > plateformeMajeure`). L'extension annoncée ici est
+livrée **dans la grammaire existante**, avec les mêmes garanties :
+
+1. **Littéraux entiers non signés** (lèxème de purs chiffres, 32 bits au
+   maximum) et **opérateurs `>`, `>=`, `<`, `<=`** — nouveau niveau
+   `comparaison` entre l'égalité et l'uninaire ; même parseur maison,
+   mêmes bornes 512/128/16.
+2. **Valeur `Nombre`** (entier 32 bits) dans l'évaluateur : les
+   comparaisons ordonnées exigent **deux nombres** — jamais de comparaison
+   lexicographique de chaînes (piège « 9 » > « 36 »), jamais de coercition
+   implicite ; erreur explicite positionnée sinon.
+3. **Typage du contexte par valeur, uniforme** : un paramètre `BOOLEAN`
+   reste booléen ; une valeur **entier canonique** (sans zéro de tête —
+   « 026 » reste une chaîne pour que `{{param}}` ne mute jamais la saisie)
+   est un nombre ; tout le reste reste une chaîne. Aucune expression
+   existante du catalogue n'est affectée (vérifié : aucune ne compare des
+   valeurs numériques) ; les tests du parseur et du moteur verrouillent la
+   rétrocompatibilité.
+4. Un mot commençant par un chiffre sans être un nombre est refusé au
+   lexique (un identifiant légal n'y commence jamais — erreur explicite au
+   lieu d'un identifiant inconnu à l'évaluation).

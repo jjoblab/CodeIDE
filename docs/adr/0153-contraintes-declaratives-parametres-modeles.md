@@ -1,7 +1,9 @@
 # ADR 0153 — Contraintes déclaratives entre paramètres des modèles
 
 - **Statut** : accepté (chantier « Refonte du générateur de projets et des
-  écrans Nouveau projet » — lot L0 ; à implémenter en L1)
+  écrans Nouveau projet » — lot L0) — **socle moteur implémenté en L1**
+  (schéma, évaluation, revalidation, `plateformeMajeure`, mini-langage
+  amendé ADR 0018) ; adoption déclarative par les manifestes en L3/L4.
 - **S'appuie sur** : ADR 0005 (modèles déclaratifs), ADR 0017 (plan figé),
   ADR 0018 (mini-langage borné), ADR 0089 (catalogue d'outils, compileSdk
   verrouillé), ADR 0031 (`.codeide/project.json`).

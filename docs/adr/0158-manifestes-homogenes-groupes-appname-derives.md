@@ -1,8 +1,8 @@
 # ADR 0158 — Manifestes homogènes : groupes de fichiers exploités et dérivation de `appName`
 
-- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0 ;
-  à implémenter en L1 pour la fonction dérivée, en L3/L4 pour les
-  manifestes, en L5 pour l'écran Fichiers)
+- **Statut** : accepté (chantier générateur/Nouveau projet — lot L0) —
+  **fonction dérivée `appNameFromNom` implémentée en L1** ; adoption par
+  les manifestes Android en L4, écran Fichiers en L5.
 - **S'appuie sur** : ADR 0005, ADR 0075 (phase 2), ADR 0077 (phase 4),
   ADR 0154 (affichage déclaratif).
 - **Contexte** : l'audit L0 confirme (A6) que le champ `group` des fichiers

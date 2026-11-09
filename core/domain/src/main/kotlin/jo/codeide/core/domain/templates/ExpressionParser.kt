@@ -21,6 +21,9 @@ internal object ExpressionParser {
     /** Profondeur maximale d'imbrication (parenthèses et négations). */
     internal const val PROFONDEUR_MAX = 16
 
+    /** Symboles des comparaisons ordonnées (ADR 0018 amendé). */
+    private val OPERATEURS_COMPARAISON = setOf(">", ">=", "<", "<=")
+
     /** Jeton lexical. */
     private sealed interface Jeton {
         val position: Int
@@ -30,6 +33,9 @@ internal object ExpressionParser {
         data class Chaine(val valeur: String, override val position: Int) : Jeton
 
         data class Booleen(val valeur: Boolean, override val position: Int) : Jeton
+
+        /** Entier non signé (extension ADR 0018 amendé). */
+        data class Nombre(val valeur: Int, override val position: Int) : Jeton
 
         data class Operateur(val symbole: String, override val position: Int) : Jeton
 
@@ -60,7 +66,7 @@ internal object ExpressionParser {
     // ---------------------------------------------------------------- lexique
 
     /** Découpe [texte] en jetons ; bornes et caractères inconnus contrôlés. */
-    @Suppress("LongMethod", "CyclomaticComplexMethod") // Une branche par jeton du langage.
+    @Suppress("LongMethod", "CyclomaticComplexMethod", "ThrowsCount") // Une branche par jeton du langage.
     private fun lexique(texte: String): List<Jeton> {
         val jetons = mutableListOf<Jeton>()
         var index = 0
@@ -100,6 +106,12 @@ internal object ExpressionParser {
                     index += 2
                 }
 
+                caractere == '>' || caractere == '<' -> {
+                    val double = texte.getOrNull(index + 1) == '='
+                    jetons += Jeton.Operateur("$caractere" + if (double) "=" else "", index)
+                    index += if (double) 2 else 1
+                }
+
                 caractere == '!' -> {
                     jetons += Jeton.Operateur("!", index)
                     index++
@@ -120,9 +132,29 @@ internal object ExpressionParser {
                     while (index < texte.length && (texte[index].isLetterOrDigit() || texte[index] == '_')) index++
                     val mot = texte.substring(debut, index)
                     jetons +=
-                        when (mot) {
-                            "true" -> Jeton.Booleen(true, debut)
-                            "false" -> Jeton.Booleen(false, debut)
+                        when {
+                            mot == "true" -> Jeton.Booleen(true, debut)
+
+                            mot == "false" -> Jeton.Booleen(false, debut)
+
+                            // Un mot de purs chiffres est un littéral nombre
+                            // (ADR 0018 amendé) ; un mot commençant par un
+                            // chiffre sans être un nombre est refusé ici — un
+                            // identifiant légal n'y commence jamais.
+                            mot[0].isDigit() && mot.all { it.isDigit() } -> {
+                                val valeur = mot.toIntOrNull()
+                                    ?: throw ExpressionException(
+                                        debut,
+                                        "nombre « $mot » hors bornes (entier 32 bits au maximum)",
+                                    )
+                                Jeton.Nombre(valeur, debut)
+                            }
+
+                            mot[0].isDigit() -> throw ExpressionException(
+                                debut,
+                                "identifiant invalide « $mot » : il ne peut pas commencer par un chiffre",
+                            )
+
                             else -> Jeton.Identifiant(mot, debut)
                         }
                 }
@@ -243,19 +275,38 @@ internal object ExpressionParser {
         return gauche
     }
 
-    /** `egalite := unaire ( ('==' | '!=') unaire )*`. */
+    /** `egalite := comparaison ( ('==' | '!=') comparaison )*`. */
     private fun parseEgalite(curseur: Curseur, profondeur: Int): ExpressionNode {
-        var gauche = parseUnaire(curseur, profondeur)
+        var gauche = parseComparaison(curseur, profondeur)
         while (true) {
             val symbole = symboleCourant(curseur)
             if (symbole != "==" && symbole != "!=") break
             val position = curseur.avancer().position
-            val droite = parseUnaire(curseur, profondeur)
+            val droite = parseComparaison(curseur, profondeur)
             gauche =
                 if (symbole == "==") {
                     ExpressionNode.Egal(gauche, droite, position)
                 } else {
                     ExpressionNode.Different(gauche, droite, position)
+                }
+        }
+        return gauche
+    }
+
+    /** `comparaison := unaire ( ('>=' | '<=' | '>' | '<') unaire )*`. */
+    private fun parseComparaison(curseur: Curseur, profondeur: Int): ExpressionNode {
+        var gauche = parseUnaire(curseur, profondeur)
+        while (true) {
+            val symbole = symboleCourant(curseur)
+            if (symbole == null || symbole !in OPERATEURS_COMPARAISON) break
+            val position = curseur.avancer().position
+            val droite = parseUnaire(curseur, profondeur)
+            gauche =
+                when (symbole) {
+                    ">" -> ExpressionNode.Superieur(gauche, droite, position)
+                    ">=" -> ExpressionNode.SuperieurOuEgal(gauche, droite, position)
+                    "<" -> ExpressionNode.Inferieur(gauche, droite, position)
+                    else -> ExpressionNode.InferieurOuEgal(gauche, droite, position)
                 }
         }
         return gauche
@@ -286,6 +337,10 @@ internal object ExpressionParser {
 
             is Jeton.Booleen -> {
                 ExpressionNode.LitteralBooleen(jeton.valeur, jeton.position)
+            }
+
+            is Jeton.Nombre -> {
+                ExpressionNode.LitteralNombre(jeton.valeur, jeton.position)
             }
 
             is Jeton.Chaine -> {
@@ -321,6 +376,7 @@ internal object ExpressionParser {
         is Jeton.Identifiant -> "identifiant « ${jeton.nom} »"
         is Jeton.Chaine -> "littéral chaîne"
         is Jeton.Booleen -> "booléen ${jeton.valeur}"
+        is Jeton.Nombre -> "nombre ${jeton.valeur}"
         is Jeton.Operateur -> "« ${jeton.symbole} »"
         Jeton.Fin -> "fin d'expression"
     }

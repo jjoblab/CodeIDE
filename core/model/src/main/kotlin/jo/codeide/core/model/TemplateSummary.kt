@@ -29,17 +29,23 @@ public data class TemplateSummary(
  * Évaluation d'un formulaire de modèle (étape 8 — `EvaluateTemplateFormUseCase`).
  *
  * Sortie unique du moteur pour piloter le rendu dynamique du wizard
- * (section 12.2) : visibilité, valeurs effectives (dérivées ou saisies),
- * validité de chaque paramètre visible, libellés résolus.
+ * (section 12.2) : visibilité, états actif/désactivé (ADR 0153), valeurs
+ * effectives (dérivées ou saisies), validité de chaque paramètre visible,
+ * libellés résolus, messages globaux des règles de projet.
  *
  * @property parameters évaluation par paramètre, dans l'ordre du manifeste.
  * @property computedValues variables calculées du modèle, stringifiées
  * (`true`/`false` pour les booléennes) — informatives pour le récapitulatif.
- * @property isValid tous les paramètres visibles sont-ils valides ?
+ * @property messages messages globaux des règles déclenchées (contraintes
+ * et dépendances automatiques), dans l'ordre de déclaration — l'UI les
+ * affiche au bon endroit, le récapitulatif compris (ADR 0153 §5).
+ * @property isValid tous les paramètres visibles sont-ils valides **et**
+ * aucune règle `ERREUR` déclenchée ?
  */
 public data class TemplateFormEvaluation(
     public val parameters: List<TemplateParameterEvaluation>,
     public val computedValues: Map<String, String>,
+    public val messages: List<MessageRegle> = emptyList(),
     public val isValid: Boolean,
 )
 
@@ -61,13 +67,28 @@ public data class TemplateFormEvaluation(
  * @property errorReason raison typée correspondant à [error] (étape 10) :
  * l'interface l'affiche via ses ressources localisées au lieu du message
  * développeur ; `null` quand la valeur est valide.
- * @property label libellé résolu pour la langue demandue.
+ * @property label libellé résolu pour la langue demandée.
  * @property help aide contextuelle résolue (vide si absente).
  * @property type type de saisie (métadonnée de rendu).
  * @property choices valeurs possibles (type `CHOICE` uniquement).
  * @property derived le paramètre est dérivable (`defaultFrom`) : son champ
  * suit ses sources tant que l'utilisateur ne l'a pas modifié à la main.
  * @property section section du wizard rendant ce paramètre.
+ * @property etat état actif/désactivé du paramètre (ADR 0153 §2) :
+ * [EtatParametre.Desactive] seulement pour un paramètre **visible** et
+ * rendu grisé ; un paramètre masqué garde [EtatParametre.Visible] (état
+ * sans objet, il n'est pas rendu).
+ * @property choix libellés résolus par valeur (ADR 0154 §1), dans l'ordre
+ * du manifeste ; vide hors type `CHOICE`. Le libellé retombe sur la valeur
+ * brute si la clé manque (repli théorique — testé absent du catalogue).
+ * @property rendu composant déclaré par le manifeste (ADR 0154 §2), ou
+ * `null` pour le repli par traits du wizard.
+ * @property groupe identifiant du groupe d'affichage (ADR 0154 §3), ou
+ * `null` si le paramètre est hors groupe.
+ * @property groupeTitre titre résolu du groupe (`groupe.<groupe>.titre`) ;
+ * vide hors groupe, retombe sur l'identifiant si la clé manque.
+ * @property avance le paramètre est rendu dans la zone « Avancé »
+ * repliable (ADR 0154 §3).
  */
 public data class TemplateParameterEvaluation(
     public val parameterId: String,
@@ -81,4 +102,62 @@ public data class TemplateParameterEvaluation(
     public val choices: List<String> = emptyList(),
     public val derived: Boolean = false,
     public val section: TemplateSection = TemplateSection.CONFIGURATION,
+    public val etat: EtatParametre = EtatParametre.Visible,
+    public val choix: List<ChoixEvalue> = emptyList(),
+    public val rendu: RenduParametre? = null,
+    public val groupe: String? = null,
+    public val groupeTitre: String = "",
+    public val avance: Boolean = false,
 )
+
+/**
+ * État d'un paramètre du formulaire (ADR 0153 §2).
+ *
+ * Désactivé ≠ masqué : le champ reste à l'écran (affordance découverte),
+ * grisé, avec sa raison localisée annoncée à TalkBack ; `visibleWhen` garde
+ * son rôle de masquage pur.
+ */
+public sealed interface EtatParametre {
+    /** Le paramètre est actif : saisie normale. */
+    public data object Visible : EtatParametre
+
+    /**
+     * Le paramètre est rendu grisé : sa saisie éventuelle est conservée
+     * dans l'état du wizard mais exclue de la génération tant que l'état
+     * dure (il retombe sur sa valeur par défaut, non validé, non persisté).
+     *
+     * @property raison texte résolu dans la langue demandée
+     * (`disabledReasonKey`) ; retombe sur la clé brute si elle manque
+     * (repli théorique).
+     */
+    public data class Desactive(public val raison: String) : EtatParametre
+}
+
+/**
+ * Choix d'un paramètre `CHOICE` avec ses textes résolus (ADR 0154 §1).
+ *
+ * @property valeur valeur brute du manifeste (envoyée au moteur).
+ * @property libelle libellé affiché (`param.<id>.choix.<valeur>.libelle`).
+ * @property sousTitre sous-titre court, vide si absent.
+ * @property description explication longue, vide si absente.
+ * @property icone nom logique d'icône (`IconesModele`, core:ui), vide si absent.
+ */
+public data class ChoixEvalue(
+    public val valeur: String,
+    public val libelle: String,
+    public val sousTitre: String,
+    public val description: String,
+    public val icone: String,
+)
+
+/**
+ * Message global résolu d'une règle déclenchée (ADR 0153 §5) : contrainte
+ * de projet ou dépendance automatique. L'UI n'évalue aucune règle — elle
+ * affiche ces messages (récapitulatif compris).
+ *
+ * @property severite sévérité de la règle (`ERREUR` bloquante incluse).
+ * @property texte message résolu dans la langue demandée ; retombe sur
+ * [cle] si la clé manque (repli théorique).
+ * @property cle clé i18n d'origine — traçabilité et tests.
+ */
+public data class MessageRegle(public val severite: SeveriteRegle, public val texte: String, public val cle: String)
