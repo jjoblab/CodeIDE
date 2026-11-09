@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Centre de sorties (ADR 0162, lot L2) : le lecteur unifié, branché sur
+     une source factice uniquement. L'écran de diagnostic « banc sorties »
+     (mesure propriétaire S1/S2/S6, docs/SORTIES_BANC_MESURE.md) est posé
+     dans le lot L2 avec son activité non exportée. -->
+<manifest />

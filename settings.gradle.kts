@@ -376,6 +376,13 @@ include(":feature:settings")
 include(":feature:diagnostics")
 include(":feature:install")
 include(":feature:editor")
+// Centre de sorties (ADR 0162, lot L2) : module du lecteur unifié —
+// composant de lecture virtuel (ADR 0159), contrôleurs, source factice et
+// banc de mesure. feature:editor ouvre son écran de diagnostic banc (lot
+// L2) ; le raccord Gradle (L3) et la migration Logcat/Journal (L4)
+// viendront ensuite. Le trio feature standard suffit (core:ui/domain/
+// model) — aucune arête feature:sorties → autre feature.
+include(":feature:sorties")
 // Terminal T5 : écran plein écran du terminal (prompt Terminal-1, section 5).
 include(":feature:terminal")
 // Previews PE6-0 (maquette docs/mockups/apercu-xml.html § « Activité

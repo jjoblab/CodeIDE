@@ -1,6 +1,5 @@
 package jo.codeide.core.domain
 
-import java.text.Normalizer
 import java.util.regex.Pattern
 
 /**
@@ -144,18 +143,14 @@ public data class FiltreSorties(
     /** Filtre une liste entière — l'entrée n'est jamais copiée en amont. */
     public fun filtrer(lignes: List<LigneSortie>): List<LigneSortie> = lignes.filter(::accepte)
 
-    /** Pliage de recherche : NFD puis suppression des marques puis casse. */
-    private fun plier(texte: String): String {
-        var resultat = texte
-        if (!sensibleAccents) {
-            resultat = Normalizer.normalize(resultat, Normalizer.Form.NFD)
-                .replace(REGEX_MARQUES, "")
-        }
-        if (!sensibleCasse) {
-            resultat = resultat.lowercase()
-        }
-        return resultat
-    }
+    /**
+     * Pliage de recherche : NFD puis suppression des marques puis casse —
+     * la définition canonique vit dans [PliageTexte] (le tampon et le
+     * moteur de recherche du lecteur plient la MÊME façon, lot L2 : une
+     * divergence ferait se croiser les résultats du filtre et de la
+     * recherche).
+     */
+    private fun plier(texte: String): String = PliageTexte.plier(texte, sensibleCasse, sensibleAccents)
 
     /** La contrainte de niveau est-elle satisfaite ? */
     private fun niveauPasse(ligne: LigneSortie): Boolean {
@@ -209,9 +204,4 @@ public data class FiltreSorties(
     /** La contrainte de plage de temps est-elle satisfaite ? */
     private fun plagePasse(ligne: LigneSortie): Boolean = (debutMs == null || ligne.horodatageMs >= debutMs) &&
         (finMs == null || ligne.horodatageMs <= finMs)
-
-    private companion object {
-        /** Marques combinantes (accents) supprimées au pliage NFD. */
-        private val REGEX_MARQUES = Regex("\\p{M}+")
-    }
 }
