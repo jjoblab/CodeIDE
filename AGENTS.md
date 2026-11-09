@@ -1420,6 +1420,35 @@ conflit, la plus récente prime.
       SessionLsp attend l'arrêt EFFECTIF borné 2 s + garde ensureActive
       avant écriture de segment + baseline parité XE5 régénérée —
       directive AGENTS.md régénération avant push).
+- v0.209.0 : **chantier « Refonte du générateur de projets et des écrans
+      Nouveau projet » — lot L1 (socle moteur, GO propriétaire)** : le
+      contrat déclaratif des ADR 0153/0154/0158 vit dans `core:model` et
+      `core:domain`, écrans et manifestes intouchés (rétro-compatibilité
+      totale, 7 manifestes réels re-passés dans le parseur étendu) ;
+      **schéma étendu `schemaVersion: 1` maintenu** — `enabledWhen` +
+      `disabledReasonKey` (désactivé ≠ masqué : repli défaut, non validé,
+      non persisté), `rendu`/`groupe`/`avance` (ADR 0154), blocs
+      `constraints` (ERREUR/AVERTISSEMENT/INFO) et `autoDefinit` (cibles
+      BOOLEAN déclarées plus tôt, jamais d'écrasement d'un champ figé) ;
+      **mini-langage amendé ADR 0018** (nombres + comparaisons ordonnées
+      `>` `>=` `<` `<=`, stricte — jamais lexicographique ni coercition —,
+      frappe du contexte par valeur, même bornes 512/128/16) ;
+      **`plateformeMajeure`** extraite du catalogue d'outils
+      (`ToolchainCatalog.plateformeMajeure`, 36) et injectée par le
+      planificateur ; **sortie unique enrichie** (`TemplateFormEvaluation`
+      .messages + isValid ERREUR, `TemplateParameterEvaluation`.etat/choix/
+      rendu/groupe/groupeTitre/avance — l'UI n'évalue rien) ;
+      **revalidation `CreateProjectUseCase`** : règle ERREUR →
+      `AppError.Validation` à la planification (plan partagé aperçu/créa-
+      tion), désactivés exclus des métadonnées ; **7ᵉ dérivée
+      `appNameFromNom`** (nom → appName → packageName → applicationId,
+      adoption manifestes en L4) ; doc contrat `docs/TEMPLATES.md` étendue
+      (libellés de choix, règles de projet, ordre d'évaluation) ; statuts
+      ADR 0153/0154/0158 mis à jour ; 720 tests core:model+core:domain
+      verts, chaîne RACINE locale verte (spotless, detekt, frontières,
+      checkUiTokens), dépendants vérifiés (`feature:newproject`,
+      `tools:generateur`) ; app tests templates non exécutés en local
+      (limitation 429 Maven Central du bac à sable — CI au push).
 - v0.208.0 : **chantier « Refonte du générateur de projets et des écrans
       Nouveau projet » — lot L0 (audit confirmé et conception, aucun code
       de production)** : 25 constats du prompt re-vérifiés sur le code au
@@ -2500,9 +2529,11 @@ conflit, la plus récente prime.
       ApparenceIntegrationTest (app), chaîne verte sur les modules
       touchés (core:ui, app, feature:settings), 69 tests app/0 échec.
 - Prochaine : chantier « Refonte du générateur de projets et des écrans
-      Nouveau projet » — lot L0 livré (v0.208.0, ADR 0153-0158,
-      docs/NEWPROJECT_GENERATEUR_PLAN.md), en attente du « GO L1 »
-      (socle moteur). Missions antérieures : Phase 2 du diagnostic
+      Nouveau projet » — lot L1 livré (v0.209.0 : socle moteur ADR
+      0153/0154/0158 côté core:model/core:domain), en attente du « GO L2 »
+      (outil et matrice — ADR 0157). Missions antérieures : lot L0
+      (v0.208.0, ADR 0153-0158, docs/NEWPROJECT_GENERATEUR_PLAN.md) ;
+      Phase 2 du diagnostic
       « retard d'affichage » côté app (v0.207.0) ; la refonte du parcours
       d'installation (phase R, E1-E6) est TERMINÉE (v0.55.0 → v0.60.0) ;
       en attente côté dépôt `codeide-tools` : la publication du manifeste

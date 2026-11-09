@@ -1,5 +1,83 @@
 # Journal des modifications
 
+## [0.209.0] – 2026-11-09
+
+Lot **L1 — socle moteur** du chantier « Refonte du générateur de projets
+et des écrans Nouveau projet » (GO propriétaire du 2026-11-09) : le
+contrat déclaratif des ADR 0153/0154/0158 vit désormais dans
+`core:model` et `core:domain`, sans toucher aux écrans ni aux manifestes
+des 7 modèles (rétro-compatibilité totale, vérifiée par test).
+
+### Ajouté
+
+- **Schéma étendu du manifeste (ADR 0153 §1-§4, `schemaVersion: 1`
+  maintenu)** : champs optionnels acceptés par le parseur — paramètre
+  `enabledWhen` + `disabledReasonKey` (état **désactivé ≠ masqué** :
+  rendu grisé avec raison localisée, mais repli sur défaut, non validé et
+  non persisté côté génération) ; paramètres `rendu` (indice de composant :
+  `TUILES_SEGMENTEES`, `CARTES_RADIO`, `LISTE_DEROULANTE`, `INTERRUPTEUR`,
+  `CHAMP_TEXTE`), `groupe` et `avance` (ADR 0154 §2-§3) ; blocs
+  `constraints` (règles de projet `ERREUR`/`AVERTISSEMENT`/`INFO`) et
+  `autoDefinit` (dépendances implicites bornées : cibles `BOOLEAN`
+  déclarées plus tôt, une seule passe, jamais d'écrasement d'un champ figé
+  à la main). Validation au chargement : expressions analysables, sévérités
+  et rendus connus, clés i18n bien formées, cibles `autoDefinit` existantes
+  et booléennes.
+- **Mini-langage amendé (ADR 0018 — amendement 2026-11-09)** : littéraux
+  entiers et comparaisons ordonnées `>` `>=` `<` `<=` (nouveau niveau
+  `comparaison` de la grammaire, mêmes bornes 512/128/16, parseur maison
+  inchangé) ; valeur `Nombre` évaluée **strictement** — deux nombres
+  exigés, jamais de comparaison lexicographique de chaînes ni de coercition
+  implicite ; typage uniforme du contexte **par valeur** (entier canonique
+  sans zéro de tête → nombre, `{{param}}` ne mute jamais la saisie) ; un
+  mot chiffré non numérique est refusé au lexique.
+- **Variable automatique `plateformeMajeure` (ADR 0153 §3)** : majeure du
+  `compileSdk` extraite du catalogue d'outils (`ToolchainCatalog.
+  plateformeMajeure` — 36 aujourd'hui), injectée par
+  `TemplateProjectPlanner` exactement comme `year` par l'horloge (binding
+  Hilt réel, instance par défaut du catalogue pour les constructions
+  littérales de tests et de `tools:generateur`) ; verrouillée par
+  `ToolchainCatalogPlateformeTest`.
+- **Évaluation enrichie — sortie unique `EvaluateTemplateFormUseCase`
+  (ADR 0153 §5, ADR 0154 §1)** : `TemplateFormEvaluation` gagne
+  `messages` (`MessageRegle(severite, texte résolu, clé)`) et `isValid`
+  tient compte des règles `ERREUR` ; `TemplateParameterEvaluation` gagne
+  `etat` (`EtatParametre.Visible` / `Desactive(raison résolue)`), `choix`
+  (`ChoixEvalue(valeur, libelle, sousTitre, description, icone)` résolus du
+  dictionnaire, repli valeur brute théorique), `rendu`, `groupe`,
+  `groupeTitre` (repli identifiant) et `avance` — l'UI n'évalue **aucune**
+  règle et ne lit **aucun** dictionnaire (règle 1).
+- **Revalidation `CreateProjectUseCase` (ADR 0153 §5)** : les contraintes
+  sont évaluées sur la combinaison finale dans `planifier()` (plan partagé
+  aperçu/création) — une règle `ERREUR` échoue avec `AppError.Validation`
+  explicite (« règles de projet bloquantes »), même si l'UI a été
+  contournée ; les paramètres désactivés sont exclus des métadonnées
+  `.codeide/project.json`.
+- **7ᵉ fonction dérivée `appNameFromNom` (ADR 0158 §2)** : nom du projet →
+  nom d'application (« Mon super carnet » → « MonSuperCarnet ») — la chaîne
+  de dérivation d'identité devient nom → `appName` → `packageName` →
+  `applicationId` ; adoption par les manifestes Android en L4.
+- **Ordre d'évaluation contractuel** (documenté `docs/TEMPLATES.md`) :
+  1. valeurs, 2. dérivées, 3. calculées, 4. `autoDefinit`, 5.
+  `visibleWhen`, 6. `enabledWhen`, 7. validation, 8. repli des
+  masqués/désactivés, 9. `constraints`.
+- **Tests** : fixture dédié `fixture-regles` (moteur), +24 tests
+  `TemplateReglesTest` (états, contraintes, `plateformeMajeure`,
+  `autoDefinit`, choix/groupes, persistance des désactivés,
+  `appNameFromNom`), +13 `ExpressionParserTest` (nombres, comparaisons
+  ordonnées, refus explicites), +12 `TemplateManifestParserTest`
+  (nouveaux champs et refus), +5 `TemplateDefaultFunctionsTest`
+  (`appNameFromNom`), `ToolchainCatalogPlateformeTest`,
+  `TemplateUseCasesTest` (majeure exposée) — **720 tests core:model +
+  core:domain verts**, chaîne RACINE locale verte (spotless, detekt,
+  frontières, jetons UI), modules dépendants vérifiés
+  (`feature:newproject`, `tools:generateur`) ; les 7 manifestes réels
+  passent dans le parseur étendu (vérification dédiée).
+- **Doc** : `docs/TEMPLATES.md` — contrat des concepteurs étendu (champs
+  L1, libellés de choix, règles de projet, ordre d'évaluation, frappe par
+  valeur) ; statuts des ADR 0153/0154/0158 mis à jour (implémenté côté
+  moteur).
+
 ## [0.208.0] – 2026-11-09
 
 Lot **L0 — audit confirmé et conception** du chantier « Refonte du

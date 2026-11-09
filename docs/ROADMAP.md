@@ -13,15 +13,15 @@ maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 
 | Lot | Contenu | État |
 |---|---|---|
-| **L0** | Audit confirmé (25 constats re-vérifiés avec preuves), conception (contraintes déclaratives, contrat d'affichage, parcours adaptatif, mutualisation, outil/matrice, manifestes homogènes), maquettes téléphone/tablette | ✅ v0.208.0 — en attente du « GO » |
-| **L1** | Socle moteur : schéma étendu rétro-compatible, évaluation des contraintes (`EvaluateTemplateFormUseCase`), revalidation (`CreateProjectUseCase`), libellés de choix déclaratifs, groupes, `appNameFromNom` | ⏳ |
+| **L0** | Audit confirmé (25 constats re-vérifiés avec preuves), conception (contraintes déclaratives, contrat d'affichage, parcours adaptatif, mutualisation, outil/matrice, manifestes homogènes), maquettes téléphone/tablette | ✅ v0.208.0 |
+| **L1** | Socle moteur : schéma étendu rétro-compatible, évaluation des contraintes (`EvaluateTemplateFormUseCase`), revalidation (`CreateProjectUseCase`), libellés de choix déclaratifs, groupes, `appNameFromNom` | ✅ v0.209.0 |
 | **L2** | Outil et matrice : `lister`/`generer`/`matrice`/`valider-manifestes`/`determinisme`, script refondu, doc outil | ⏳ |
 | **L3** | Modèles hors Android (spring-boot langage/build/JDK + câblage JPA/Security/Actuator/Validation, JVM, KMP, plugin) + mutualisation `_commun/` | ⏳ |
 | **L4** | Modèles Android (câblage complet des 5 dépendances, targetSdk ≤ 36, icône/thème/backup, appName dérivé) | ⏳ |
 | **L5** | Écrans « Nouveau projet » : parcours adaptatif (L5a socle, L5b étapes communes, L5c étapes par famille, L5d aperçu + tablette + mode rapide) | ⏳ |
 | **L6** | Finitions : dette `checkUiTokens` du module réduite, docs, `docs/consommes/` | ⏳ |
 
-## État actuel (v0.208.0 — lot L0 du chantier générateur/Nouveau projet + Phase 2 tooling)
+## État actuel (v0.209.0 — lot L1 du chantier générateur/Nouveau projet : socle moteur livré)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
