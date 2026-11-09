@@ -145,3 +145,12 @@ Commits (branche `agent/sorties-l1-modele-parseur`) : listés par
 4. **`FiltreLogcat` bascule en L4** : jusqu'au lot L4, deux filtres
    coexistent (sémantique dupliquée volontairement, ADR 0160
    « Conséquences ») — ne pas toucher `FiltreLogcat` d'ici là.
+5. **Déclencheur CI corrompu (préexistant, hors lot)** :
+   `.github/workflows/ci.yml` ligne 37 contient `branches: ain]` — le
+   préfixe `[m` de `[main]` a disparu du fichier committé (même famille
+   de corruption littérale que celle observée sur les chaînes de test
+   du lot, § 2) : le filtre de branche du `push` ne matche plus `main`.
+   La CI reste déclenchable par `pull_request` (le chemin utilisé pour
+   ce lot). À réparer dans un lot de maintenance séparé — corrigé ici,
+   ce serait un changement hors périmètre et un risque de conflit avec
+   d'autres branches en vol.
