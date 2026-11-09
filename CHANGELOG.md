@@ -1,5 +1,124 @@
 # Journal des modifications
 
+## [0.211.0] – 2026-11-09
+
+Lot **L3 — modèles hors Android** du chantier « Refonte du générateur de
+projets et des écrans Nouveau projet » (GO propriétaire du 2026-11-09) :
+`spring-boot` repensé (langage/build/JDK + câblage réel des quatre
+options), mutualisation des fichiers communs (ADR 0156), schéma `wizard`
+des manifestes (ADR 0155), option `.gitattributes` choisissable.
+
+### Ajouté
+
+- **`spring-boot` v2.0.0** (refonte du modèle — le lot le plus dense) :
+  - trois nouveaux paramètres `CHOICE` : `langage` (kotlin/java — sources
+    `.kt` **ou** `.java` en miroirs complets : Application, contrôleur,
+    service, dépôt, entité, DTO, sécurité, tests), `buildSystem`
+    (gradle/maven — `build.gradle.kts` + catalogue **ou** `pom.xml` avec le
+    parent Boot), `jdkVersion` (17/21 — `jvmToolchain` Gradle ou
+    `java.version` Maven, défaut 21) ; `includeWrapper` **masqué** en
+    Maven (`visibleWhen`, aucun wrapper Maven fabriqué — documenté dans le
+    README généré) ;
+  - **câblage réel des quatre options** (l'audit A1.6 soldé) :
+    `includeJpa` → port `DepotSalutations` + entité JPA + dépôt Spring
+    Data (le dépôt en mémoire est **remplacé**) + datasource H2 dans
+    `application.yml` ; `includeSecurity` → `SecurityFilterChain`
+    explicite (401 sans identifiants, HTTP Basic), `/actuator/health`
+    **ouvert ssi Actuator**, test MockMvc généré (401 + health 200) ;
+    `includeActuator` → exposition `management.endpoints.web.exposure` ;
+    `includeValidation` → DTO `DemandeSalutation` (`@NotBlank`) sur
+    `POST /salutations` + `@Valid` + test Bean Validation du cas invalide ;
+  - **profils réels** `application-dev.yml` (DEBUG package) et
+    `application-prod.yml` (root WARN) — `spring.profiles.active: dev`
+    n'est plus une promesse vide ;
+  - tests générés sous JUnit Jupiter (Boot 4 : starter-test n'embarque
+    plus JUnit — dépendances `junit-jupiter` + `junit-platform-launcher`
+    explicites ; MockMvc via le nouveau module `spring-boot-webmvc-test`) ;
+    wizard Maven pour Kotlin (`kotlin-maven-plugin` avec exécutions
+    compile/test-compile déclarées + plugins `spring`/`jpa` all-open et
+    no-arg) ;
+  - **3 étapes wizard déclarées** (« Langage et build », « Modules »,
+    « Sécurité et exploitation ») + **préréglage** « API REST avec
+    persistance » (ADR 0155), 4 groupes d'affichage, i18n de choix
+    complet fr/en, règle INFO `hint.jpa.kotlin.maven`.
+- **Mutualisation des fichiers communs (ADR 0156, implémentée pour les
+  cinq modèles hors Android)** : nouveau répertoire
+  `app/src/main/assets/templates/_commun/` (`gradlew.tpl`, `gradlew.bat.tpl`,
+  `gradle/wrapper/wrapper.properties.tpl`, `gitattributes.tpl`,
+  `editorconfig.tpl`, `gradle/wrapper/gradle-wrapper.jar`) ; les manifestes
+  référencent la source partagée par le préfixe **`commun:`** — résolu par
+  les deux implémentations du port (`AssetTemplateAssetsSource` côté app,
+  `FichierTemplateAssetsSource` côté outil, mêmes gardes de sécurité,
+  tests des deux côtés) ; ≈ 428 Ko d'APK économisés et un risque de
+  divergence supprimé (le wrapper embarqué n'existe plus qu'en un
+  exemplaire). Les deux modèles Android migrent en L4 (leurs copies
+  restent, le lint ne les signale pas avant migration).
+- **Schéma `wizard` du manifeste (ADR 0155 §1, lu dès L3, consommé en
+  L5a)** : bloc optionnel `wizard` (`etapes` : id, `titreKey`, `iconeKey`,
+  `when`, `parametres` ; `presets` : id, `nomKey`, `descriptionKey`,
+  `valeurs`) — analysé et validé par le parseur (`ValidateurBlocWizard` :
+  12 étapes/12 préréglages max, identifiants `^[a-z][a-z0-9-]*$` hors
+  socle, paramètres `CONFIGURATION` cités au plus une fois, jamais d'étape
+  vide, valeurs de préréglage valides), porté par
+  `ProjectTemplate.etapesWizard`/`presets` (core:model) ; les cinq modèles
+  hors Android déclarent leurs étapes (kotlin-jvm/java : « Type et build »
+  ; KMP : « Cibles et bibliothèques » ; plugin : « Qualité et outillage »).
+- **Option commune `includeGitattributes`** (plan A-3 #11) : le
+  `.gitattributes` devient choisissable (défaut `true`, comportement
+  historique) — variable du même nom dans le mini-langage, option dans
+  `TemplateOptions`/`OptionsCombinaison`, drapeau `--gitattributes` de
+  `generer`, cas nommé `kt-app-sans-attributs` (build réel : aucun
+  `.gitattributes` produit).
+- **Lint `valider-manifestes` étendu** : toute source `commun:` absente de
+  `_commun/` est un écart (`commun-source-absente`) ; une copie locale
+  d'un fichier servi par la source partagée est un écart
+  (`redondant-avec-commun`) ; titres d'étapes et noms de préréglages
+  exigés en fr **et** en. `lister` montre le bloc `wizard`.
+
+### Modifié
+
+- `kotlin-jvm`/`java` v1.1.0, `kotlin-multiplatform` v1.3.0,
+  `gradle-plugin` v1.1.0 : sources communes via `commun:`, `.gitattributes`
+  conditionné, `group` des fichiers renseigné partout (ADR 0158),
+  groupes d'affichage + i18n de choix fr/en (libellés et sous-titres de
+  chaque valeur — fin du repli sur la valeur brute pour ces modèles),
+  étapes wizard déclarées.
+- **`verify-templates.sh`** : branche **`maven-spring`** (`mvn verify` —
+  pas d'`exec:java`, le service Boot démarre un serveur) ; contrôle du JDK
+  inscrit dans le build généré ; contrôles de contenu Spring généralisés à
+  `src/main` (kotlin **et** java) ; les répertoires des combinaisons
+  regénérées sont **purgés avant génération** (un cas qui change de jeu de
+  fichiers n'hérite plus de l'exécution précédente) ; la recherche de
+  résidus exclut les artefacts de build (`.gradle/`, `build/`, `target/`).
+- `docs/TEMPLATES.md` : bloc `wizard` (contrat complet), préfixe
+  `commun:`, option `includeGitattributes`, table d'invariants spring
+  développée, ligne spring-boot 2.0.0 ; ADR 0155 (statut + amendement
+  `when`) et 0156 (statut implémenté L3) ; README/Module.md de
+  `tools/generateur`.
+
+### Vérification
+
+- **Chaîne locale verte** : spotlessApply/Check, detekt,
+  checkModuleDependencies, checkUiTokens ; tests `:core:model`,
+  `:core:domain`, `:feature:newproject`, `:tools:generateur` (45 tests) ;
+  `:app` compile (sources + tests). Lint `valider-manifestes` →
+  **`VALIDATION 7 0`** ; matrice `paires` → **67 combinaisons** (12 948
+  candidats) ; `determinisme` → **67/67** ; `generer` → 67/67.
+- **Preuve par build réel** (`scripts/verify-templates.sh`, tranches
+  `CODEIDE_COMBINAISONS`) : **51 combinaisons vertes** — spring-boot
+  **10/10** (matrice paires 9/9 incl. Maven+Kotlin et Maven+Java, cas
+  nommé sb-deps), kotlin-jvm 9/9, java 9/9, kotlin-multiplatform 6/6,
+  gradle-plugin 4/4, cas nommés 13/13 (dont le nouveau
+  `kt-app-sans-attributs`). Les combinaisons Android (inchangées) ne sont
+  pas re-vérifiées localement — la CI les porte (empreinte assets
+  déplacée), et L4 les reprend.
+- **Écart signalé sans contournement** : les tests `:app` (Robolectric)
+  n'ont pas pu s'exécuter localement — Maven Central répond **429
+  persistant** pour `android-all-instrumented:14-robolectric-10818077-i7`
+  (même blocage documenté depuis L1) ; `:app` compile et la CI exécute la
+  suite complète.
+
+
 ## [0.210.0] – 2026-11-09
 
 Lot **L2 — outil et matrice** du chantier « Refonte du générateur de

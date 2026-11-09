@@ -1420,6 +1420,32 @@ conflit, la plus récente prime.
       SessionLsp attend l'arrêt EFFECTIF borné 2 s + garde ensureActive
       avant écriture de segment + baseline parité XE5 régénérée —
       directive AGENTS.md régénération avant push).
+- v0.211.0 : **chantier « Refonte du générateur de projets et des écrans
+      Nouveau projet » — lot L3 (modèles hors Android, GO propriétaire)** :
+      `spring-boot` **v2.0.0** — `langage` (kotlin/java, miroirs `.java`
+      complets), `buildSystem` (gradle/maven, `pom.xml` au parent Boot),
+      `jdkVersion` (17/21), `includeWrapper` masqué en Maven, **câblage
+      réel des quatre options** (port `DepotSalutations` + entité JPA + H2
+      ssi JPA — le dépôt mémoire est remplacé ; `SecurityFilterChain`
+      explicite avec `health` ouvert ssi Actuator ; exposition
+      `management:` ssi Actuator ; DTO `@NotBlank` + `@Valid` ssi
+      Validation), profils `dev`/`prod` réels, tests générés JUnit Jupiter
+      (Boot 4 : starter-test sans JUnit, `spring-boot-webmvc-test` pour
+      MockMvc), 3 étapes wizard + préréglage (ADR 0155) ; **mutualisation
+      ADR 0156** : `_commun/` + préfixe `commun:` résolu par les deux
+      implémentations du port (≈ 428 Ko d'APK, cinq modèles hors Android
+      migrés) ; **schéma `wizard`** du manifeste (étapes + préréglages)
+      validé par le parseur et porté par `ProjectTemplate` ; option
+      commune `includeGitattributes` (`.gitattributes` choisissable) ;
+      lint `valider-manifestes` étendu (`commun-source-absente`,
+      `redondant-avec-commun`, i18n wizard) ; `verify-templates.sh`
+      (branche `maven-spring`, purge des combos regénérés, exclusion des
+      artefacts de build) ; chaîne locale verte, `VALIDATION 7 0`, matrice
+      67 combos, déterminisme 67/67, **51 combinaisons vertes en build
+      réel** (spring 10/10, kotlin-jvm 9/9, java 9/9, kmp 6/6, plugin
+      4/4, cas nommés 13/13) ; écart signalé sans contournement : tests
+      `:app` non exécutés localement (Maven Central 429 persistant sur le
+      harnais Robolectric — la CI les porte).
 - v0.210.0 : **chantier « Refonte du générateur de projets et des écrans
       Nouveau projet » — lot L2 (outil et matrice, GO propriétaire)** :
       l'outillage qui sécurise les lots de modèles L3-L5 (ADR 0157) ;
@@ -2564,9 +2590,11 @@ conflit, la plus récente prime.
       touchés (core:ui, app, feature:settings), 69 tests app/0 échec.
 - Prochaine : chantier « Refonte du générateur de projets et des écrans
       Nouveau projet » — lots L0 (v0.208.0, conception) et L1 (v0.209.0,
-      socle moteur) et L2 (v0.210.0, outil et matrice — ADR 0157) livrés,
-      en attente du « GO L3 » (modèles hors Android — ADR 0156 et plan §
-      L3). Missions antérieures : lot L0
+      socle moteur), L2 (v0.210.0, outil et matrice — ADR 0157) et L3
+      (v0.211.0, modèles hors Android — ADR 0155/0156) livrés, en attente
+      du « GO L4 » (modèles Android — migration `_commun/` des deux
+      modèles restants, câblage des cinq dépendances, targetSdk ≤ 36).
+      Missions antérieures : lot L0
       (v0.208.0, ADR 0153-0158, docs/NEWPROJECT_GENERATEUR_PLAN.md) ;
       Phase 2 du diagnostic
       « retard d'affichage » côté app (v0.207.0) ; la refonte du parcours

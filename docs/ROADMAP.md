@@ -16,12 +16,12 @@ maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 | **L0** | Audit confirmé (25 constats re-vérifiés avec preuves), conception (contraintes déclaratives, contrat d'affichage, parcours adaptatif, mutualisation, outil/matrice, manifestes homogènes), maquettes téléphone/tablette | ✅ v0.208.0 |
 | **L1** | Socle moteur : schéma étendu rétro-compatible, évaluation des contraintes (`EvaluateTemplateFormUseCase`), revalidation (`CreateProjectUseCase`), libellés de choix déclaratifs, groupes, `appNameFromNom` | ✅ v0.209.0 |
 | **L2** | Outil et matrice : `lister`/`generer`/`matrice`/`valider-manifestes`/`determinisme`, script refondu, doc outil | ✅ v0.210.0 |
-| **L3** | Modèles hors Android (spring-boot langage/build/JDK + câblage JPA/Security/Actuator/Validation, JVM, KMP, plugin) + mutualisation `_commun/` | ⏳ |
+| **L3** | Modèles hors Android (spring-boot langage/build/JDK + câblage JPA/Security/Actuator/Validation, JVM, KMP, plugin) + mutualisation `_commun/` | ✅ v0.211.0 |
 | **L4** | Modèles Android (câblage complet des 5 dépendances, targetSdk ≤ 36, icône/thème/backup, appName dérivé) | ⏳ |
 | **L5** | Écrans « Nouveau projet » : parcours adaptatif (L5a socle, L5b étapes communes, L5c étapes par famille, L5d aperçu + tablette + mode rapide) | ⏳ |
 | **L6** | Finitions : dette `checkUiTokens` du module réduite, docs, `docs/consommes/` | ⏳ |
 
-## État actuel (v0.210.0 — lot L2 du chantier générateur/Nouveau projet : outil et matrice livrés)
+## État actuel (v0.211.0 — lot L3 du chantier générateur/Nouveau projet : modèles hors Android livrés)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -29,7 +29,7 @@ maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 - **Dépôts frères en binaire** (v0.134.41 → v0.134.44) : séparation des dépôts, publication de 18 paquets publics sur GitHub Packages, consommation **binaire par défaut** (mavenLocal puis Packages, `scripts/bump-frere.sh`), composite en opt-in `-Pfreres.sources`, CI sans clone + garde-fou composite nocturne
 - **Console hybride** (v0.42.0, ADR 0074) : zone structurée + zone texte — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln, installer/lancer un APK sans adb (ADR 0102)
-- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable — **refonte en cours** (chantier ci-dessus, ADR 0153–0158)
+- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable — **refonte en cours** (chantier ci-dessus, ADR 0153–0158 — L3 : spring-boot 2.0.0 bilingue/bi-build câblé, `_commun/` mutualisé, schéma `wizard` déclaré)
 - **Installation** (Phase R, E1–E6, v0.55.0 → v0.65.0) : JDK 17/21 + outils Android installés sur l'appareil, orchestration quatre phases, migration des installations
 - **Terminal** (ADR 0035/0036/0053) : Termux, sessions, tiroir, pont SAF/FUSE, cartes d'aperçu
 - **Historique local** (ADR 0104–0106) : blobs, index atomique, étiquettes, capture de ports
