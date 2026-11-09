@@ -94,3 +94,27 @@ la console ni pour le journal compact.
   sa sémantique est dupliquée DANS `FiltreSorties`, et l'onglet Logcat
   bascule vers lui au lot L4 — puis `FiltreLogcat` est retiré dans le
   même lot que son remplacement (pas de code mort).
+
+## Addendum (2026-11-10, lot L1) — octets de téléchargement sur la ligne
+
+L'arbitrage propriétaire Q12 (« téléchargements à la ligne, mise à jour
+en place » — cf. `docs/SORTIES_QUESTIONS_L0.md` § Q11/Q12, aller-retour
+de la relecture de maquette) exige que la µ-jauge d'un téléchargement
+se rende SUR SA LIGNE : la ligne ouverte au premier événement de
+l'artefact se met à jour EN PLACE à chaque tick, jamais une ligne par
+tick. Pour que le rendu et l'export composent ce qu'ils montrent depuis
+les MÊMES données structurées — et ne réinterprètent jamais un texte —
+`LigneSortie` porte deux champs de plus :
+
+- `octetsRecus: Long?` — octets reçus pour l'élément (ce que le
+  protocole fournit réellement : total connu ou cumul de phase,
+  spec SORTIES § 4.7) ;
+- `octetsTotal: Long?` — total si connu (sonde `.part`), sinon `null` :
+  JAMAIS de pourcentage inventé.
+
+L'adaptateur `TelechargementBuild.versLigneSortie` (core:domain) pose
+ces champs ; le `message` de la ligne de téléchargement reste vide —
+l'UI et l'export composent le texte AU RENDU depuis les champs (aucun
+libellé résolu dans le modèle, discipline `PresentationTooling`). Les
+autres familles (logcat, journal, flux) laissent les deux champs à
+`null` — aucune donnée dupliquée, règle 14.
