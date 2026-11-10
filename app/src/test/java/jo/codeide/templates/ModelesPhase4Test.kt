@@ -133,7 +133,7 @@ class ModelesPhase4Test {
         val defauts = planPourAndroid(parametres = mapOf("appName" to "AppDefauts"))
         val buildDefauts = defauts.contenu("app/build.gradle.kts")
         assertTrue(buildDefauts.contains("minSdk = 26"))
-        assertTrue(buildDefauts.contains("targetSdk = 37"))
+        assertTrue(buildDefauts.contains("targetSdk = 36"))
     }
 
     // ------------------------------------------- dépendances Android
@@ -347,7 +347,7 @@ class ModelesPhase4Test {
 
     private suspend fun planPourAndroid(
         minSdk: String = "26",
-        targetSdk: String = "37",
+        targetSdk: String = "36",
         parametres: Map<String, String>,
     ): TemplatePlan {
         val complets =

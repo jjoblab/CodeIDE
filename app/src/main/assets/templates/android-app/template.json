@@ -294,13 +294,6 @@
           "includeRoom",
           "includeHilt"
         ]
-      },
-      {
-        "id": "identite-application",
-        "titreKey": "etape.identite-application.titre",
-        "parametres": [
-          "applicationId"
-        ]
       }
     ],
     "presets": [

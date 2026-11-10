@@ -85,18 +85,23 @@ class ModelesPhase2Test {
 
     @Test
     fun les_modeles_android_spring_et_kmp_derivent_leur_package_de_la_convention_com_example() = runTest {
-        // Android : com.example.<appName> (défaut « MonApp ») — la source
-        // appName est déclarée avant sa dérivée (ADR 0075).
+        // Android : la chaîne de dérivation ADR 0158 §2 — nom → appName →
+        // packageName : « Projet Test » donne appName « ProjetTest » puis
+        // com.example.projettest (la source est déclarée avant sa dérivée,
+        // ADR 0075).
         val android = (evaluer(TemplateId("android-app"), "Projet Test", emptyMap()) as AppResult.Success).value
-        assertEquals("com.example.monapp", valeur(android, "packageName"))
+        assertEquals("com.example.projettest", valeur(android, "packageName"))
 
         // Le package suit le nom d'app tant que l'utilisateur ne fige pas le champ.
+        // ADR 0158 : appName est désormais dérivé — une saisie manuelle doit
+        // donc être marquée « modifiée à la main » (contrat d'édition UI).
         val androidRenomme =
             (
                 evaluer(
                     TemplateId("android-app"),
                     "Projet Test",
                     mapOf("appName" to "Nouvelle App"),
+                    setOf("appName"),
                 ) as AppResult.Success
                 ).value
         assertEquals("com.example.nouvelleapp", valeur(androidRenomme, "packageName"))

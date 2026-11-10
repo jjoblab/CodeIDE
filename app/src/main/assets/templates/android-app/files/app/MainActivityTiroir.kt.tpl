@@ -18,7 +18,7 @@ import {{packageName}}.databinding.ActivityMainTiroirBinding
 class MainActivity : AppCompatActivity() {
     private lateinit var liaison: ActivityMainTiroirBinding
 {{#if avecNavigation}}
-{{else}}
+{{#else}}
     private lateinit var basculeTiroir: ActionBarDrawerToggle
 {{/if}}
 

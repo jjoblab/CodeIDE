@@ -338,7 +338,7 @@
     "parametres": {
       "appName": "AppDeps",
       "minSdk": "24",
-      "targetSdk": "37",
+      "targetSdk": "36",
       "includeCoroutines": "true",
       "includeRetrofit": "true",
       "includeNavigation": "true",
