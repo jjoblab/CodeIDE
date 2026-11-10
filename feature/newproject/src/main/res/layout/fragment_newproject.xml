@@ -6,6 +6,7 @@
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
@@ -51,6 +52,17 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
+
+    <!-- Sur téléphone l'aperçu en direct vit en feuille basse : ce
+         conteneur n'est jamais affiché — l'identifiant reste présent dans
+         toutes les configurations (lint InconsistentLayout, le code de
+         l'hôte est commun). -->
+    <FrameLayout
+        android:id="@+id/conteneur_apercu"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        tools:ignore="UselessLeaf" />
 
     <LinearLayout
         android:id="@+id/barre_actions"
