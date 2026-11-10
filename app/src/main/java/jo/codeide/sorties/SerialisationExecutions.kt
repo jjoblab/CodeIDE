@@ -1,8 +1,8 @@
 package jo.codeide.sorties
 
 import jo.codeide.core.domain.CompteursTaches
-import jo.codeide.core.domain.EtatExecutionGradle
 import jo.codeide.core.domain.EtapeSync
+import jo.codeide.core.domain.EtatExecutionGradle
 import jo.codeide.core.domain.ExecutionSortie
 import jo.codeide.core.domain.GravitePosition
 import jo.codeide.core.domain.LigneSortie
@@ -125,7 +125,14 @@ internal object SerialisationExecutions {
             tachesDemandees = chainesDuTableau(json.optJSONArray(CLE_TACHES)),
             debutMs = json.optLong(CLE_DEBUT, 0L),
             finMs = longNul(json, CLE_FIN),
-            etat = if (json.isNull(CLE_ETAT_EXECUTION)) null else etatDepuisJson(json.getJSONObject(CLE_ETAT_EXECUTION)),
+            etat = if (json.isNull(
+                    CLE_ETAT_EXECUTION,
+                )
+            ) {
+                null
+            } else {
+                etatDepuisJson(json.getJSONObject(CLE_ETAT_EXECUTION))
+            },
             troncature = if (json.isNull(CLE_TRONCATURE)) {
                 null
             } else {
@@ -242,11 +249,7 @@ internal object SerialisationExecutions {
 
     /** L'énumération du champ, ou `null` (valeur inconnue acceptée — la
      *  relecture survit aux modèles plus récents). */
-    private inline fun <reified T : Enum<T>> enumNul(
-        json: JSONObject,
-        cle: String,
-        lire: (String) -> T,
-    ): T? {
+    private inline fun <reified T : Enum<T>> enumNul(json: JSONObject, cle: String, lire: (String) -> T): T? {
         if (json.isNull(cle) || !json.has(cle)) return null
         return runCatching { lire(json.getString(cle)) }.getOrNull()
     }

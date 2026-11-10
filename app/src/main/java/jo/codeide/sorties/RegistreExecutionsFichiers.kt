@@ -2,24 +2,24 @@ package jo.codeide.sorties
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.File
-import javax.inject.Inject
-import javax.inject.Singleton
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
-import jo.codeide.core.domain.ExpurgateurSorties
 import jo.codeide.core.domain.ExecutionSortie
-import jo.codeide.core.model.LogEntry
-import jo.codeide.core.domain.LogRepository
+import jo.codeide.core.domain.ExpurgateurSorties
 import jo.codeide.core.domain.LigneSortie
+import jo.codeide.core.domain.LogRepository
 import jo.codeide.core.domain.ReferenceJournauxServeur
 import jo.codeide.core.domain.RegistreExecutions
 import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.domain.TroncatureSorties
 import jo.codeide.core.domain.versNiveauSortie
+import jo.codeide.core.model.LogEntry
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * L'implémentation FICHIER du registre des exécutions (ADR 0161, lot L3)
@@ -196,7 +196,9 @@ constructor(
             }
         }
         if (aGarder.size != gardees.size) {
-            journal.i(TAG) { "plafond d'octets atteint : ${gardees.size - aGarder.size} exécutions les plus anciennes purgées" }
+            journal.i(TAG) {
+                "plafond d'octets atteint : ${gardees.size - aGarder.size} exécutions les plus anciennes purgées"
+            }
             ecrireIndex(aGarder)
             stockage.toutEffacerSauf(aGarder.map { it.id }.toSet())
         }

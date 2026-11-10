@@ -122,7 +122,8 @@ class RegistreExecutionsFichiersTest {
 
     @Test
     fun `la troncature epargne la tete et la queue et est annoncee`() = runBlocking {
-        val execution = ExecutionSortie(id = "b-3", type = TypeExecution.BUILD, projet = null, debutMs = 1L, totalLignes = 30)
+        val execution =
+            ExecutionSortie(id = "b-3", type = TypeExecution.BUILD, projet = null, debutMs = 1L, totalLignes = 30)
         registre.demarrer(execution)
         // Un registre de test a le plafond PRODUCTION (20 000) : on ne
         // peut pas le contourner sans une seconde implémentation — la
@@ -179,7 +180,11 @@ class RegistreExecutionsFichiersTest {
         assertEquals("gradle-server", lignes[0].etiquette)
         assertEquals("daemon démarré", lignes[0].message)
         // Sans référence (exécution ancienne), aucune ligne.
-        assertTrue(registre.chargerJournauxServeur(ExecutionSortie(id = "x", type = TypeExecution.BUILD, debutMs = 1L)).isEmpty())
+        assertTrue(
+            registre.chargerJournauxServeur(
+                ExecutionSortie(id = "x", type = TypeExecution.BUILD, debutMs = 1L),
+            ).isEmpty(),
+        )
     }
 
     @Test

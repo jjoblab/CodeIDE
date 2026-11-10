@@ -2,12 +2,12 @@ package jo.codeide.feature.sorties
 
 import android.os.Bundle
 import android.view.View
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import android.widget.ArrayAdapter
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textview.MaterialTextView
@@ -15,8 +15,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.RegistreExecutions
 import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.collectWithLifecycle
-import javax.inject.Inject
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * L'écran de diagnostic « banc sorties » (docs/SORTIES_BANC_MESURE.md,
