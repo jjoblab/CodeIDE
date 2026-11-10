@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reader toolbar (SORTIES spec § 2, lot L2). -->
+    <string name="sorties_recherche_indice">Search in outputs</string>
+    <string name="sorties_regex">Treat the pattern as a regular expression</string>
+    <string name="sorties_regex_marque">.*</string>
+    <string name="sorties_correspondance_suivante">Next match</string>
+    <string name="sorties_correspondance_precedente">Previous match</string>
+    <string name="sorties_pause">Pause the live feed</string>
+    <string name="sorties_reprise">Resume the live feed</string>
+    <string name="sorties_horodatage">Show timestamps (relative, then absolute)</string>
+    <string name="sorties_numeros">Show line numbers</string>
+    <string name="sorties_retour_ligne">Wrap lines</string>
+    <string name="sorties_selection">Select lines (explicit copy)</string>
+    <string name="sorties_selection_quitter">Leave selection mode</string>
+    <string name="sorties_effacer">Clear outputs</string>
+    <string name="sorties_suivre_le_bas">⇣ follow</string>
+    <string name="sorties_copier_selection">Copy selection</string>
+    <string name="sorties_copie_effectuee">Selection copied</string>
+
+    <!-- State banners (honesty — rule 14: never silent loss, never a
+         label promising more than reality). -->
+    <string name="sorties_bandeau_pertes">%1$d lines lost (maximum window reached)</string>
+    <string name="sorties_bandeau_masquees">%1$d lines hidden by the filter (they stay in the buffer)</string>
+    <string name="sorties_pause_bandeau">Live feed paused — the delta arrives in one shot on resume</string>
+
+    <!-- Search: invalid regex pattern (FiltreLogcat heritage — no-match
+         fallback, never an exception). -->
+    <string name="sorties_recherche_motif_invalide">Invalid regular expression — the search finds nothing while the pattern is wrong</string>
+
+    <!-- Search « n/N » counter (one string, two values). -->
+    <string name="sorties_recherche_compteur">%1$d/%2$d</string>
+
+    <!-- Per-line TalkBack (SORTIES spec § 3.10: level, source, relative
+         timestamp, text). -->
+    <string name="sorties_a11y_ligne">Level %1$s, %2$s, %3$s: %4$s</string>
+
+    <!-- Source families (row TalkBack). -->
+    <string name="sorties_source_build">build outputs</string>
+    <string name="sorties_source_sync">sync outputs</string>
+    <string name="sorties_source_taches">task listing outputs</string>
+    <string name="sorties_source_serveur">build server logs</string>
+    <string name="sorties_source_logcat">application logs</string>
+    <string name="sorties_source_journal">CodeIDE log</string>
+
+    <!-- « Sorties bench » diagnostic screen (docs/SORTIES_BANC_MESURE.md,
+         PV deliverables of L2 — ADR 0159): opt-in, zero cost by default. -->
+    <string name="sorties_banc_titre">Outputs bench (diagnostic)</string>
+    <string name="sorties_banc_sequence">Bench sequence</string>
+    <string name="sorties_banc_lancer">Run</string>
+    <string name="sorties_banc_arreter">Stop</string>
+    <string name="sorties_banc_lignes_ingerees">%1$d lines ingested</string>
+    <string name="sorties_banc_pertes">%1$d lost</string>
+    <string name="sorties_banc_masquees">%1$d hidden</string>
+    <string name="sorties_banc_avertissement">The bench outputs contain no personal data (deterministic fake content).</string>
+    <string name="sorties_banc_sequence_s1">S1 — ingestion rate (100,000 lines)</string>
+    <string name="sorties_banc_sequence_s2">S2 — full buffer (100,000 lines at once)</string>
+    <string name="sorties_banc_sequence_s6">S6 — pause/resume (10,000 lines/s)</string>
+
+    <!-- Honest empty states (truth table — every empty state says why and
+         proposes the next action). -->
+    <string name="sorties_vide_titre">No output</string>
+    <string name="sorties_vide_message">The buffer is empty: run a build or a sync, or arm a bench sequence to feed the reader.</string>
+</resources>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Barre d'outils du lecteur (spec SORTIES § 2, lot L2). -->
+    <string name="sorties_recherche_indice">Rechercher dans les sorties</string>
+    <string name="sorties_regex">Traiter le motif comme une expression régulière</string>
+    <string name="sorties_regex_marque">.*</string>
+    <string name="sorties_correspondance_suivante">Correspondance suivante</string>
+    <string name="sorties_correspondance_precedente">Correspondance précédente</string>
+    <string name="sorties_pause">Mettre le direct en pause</string>
+    <string name="sorties_reprise">Reprendre le direct</string>
+    <string name="sorties_horodatage">Afficher l\'horodatage (relatif, puis absolu)</string>
+    <string name="sorties_numeros">Afficher les numéros de ligne</string>
+    <string name="sorties_retour_ligne">Retour à la ligne</string>
+    <string name="sorties_selection">Sélectionner des lignes (copie explicite)</string>
+    <string name="sorties_selection_quitter">Quitter le mode sélection</string>
+    <string name="sorties_effacer">Effacer les sorties</string>
+    <string name="sorties_suivre_le_bas">⇣ suivre</string>
+    <string name="sorties_copier_selection">Copier la sélection</string>
+    <string name="sorties_copie_effectuee">Sélection copiée</string>
+
+    <!-- Bandeaux d\'état (honnêteté — règle 14 : jamais de perte
+         silencieuse, jamais un libellé qui promet plus que la réalité). -->
+    <string name="sorties_bandeau_pertes">%1$d lignes perdues (fenêtre maximale atteinte)</string>
+    <string name="sorties_bandeau_masquees">%1$d lignes masquées par le filtre (elles restent dans le tampon)</string>
+    <string name="sorties_pause_bandeau">Direct en pause — le delta arrivera en une fois à la reprise</string>
+
+    <!-- Recherche : motif regex invalide (héritage FiltreLogcat — repli
+         « aucune correspondance », jamais d\'exception). -->
+    <string name="sorties_recherche_motif_invalide">Expression régulière invalide — la recherche ne trouve rien tant que le motif est faux</string>
+
+    <!-- Compteur « n/N » de la recherche (une seule chaîne, deux valeurs). -->
+    <string name="sorties_recherche_compteur">%1$d/%2$d</string>
+
+    <!-- TalkBack par ligne (spec SORTIES § 3.10 : niveau, source,
+         horodatage relatif, texte). -->
+    <string name="sorties_a11y_ligne">Niveau %1$s, %2$s, %3$s : %4$s</string>
+
+    <!-- Familles de sources (TalkBack des rangées). -->
+    <string name="sorties_source_build">sorties de build</string>
+    <string name="sorties_source_sync">sorties de synchronisation</string>
+    <string name="sorties_source_taches">sorties du listage de tâches</string>
+    <string name="sorties_source_serveur">journaux du serveur de build</string>
+    <string name="sorties_source_logcat">journaux de l\'application</string>
+    <string name="sorties_source_journal">journal de CodeIDE</string>
+
+    <!-- Écran de diagnostic « banc sorties » (docs/SORTIES_BANC_MESURE.md,
+         PV livrables de L2 — ADR 0159) : opt-in, coût nul par défaut. -->
+    <string name="sorties_banc_titre">Banc sorties (diagnostic)</string>
+    <string name="sorties_banc_sequence">Séquence du banc</string>
+    <string name="sorties_banc_lancer">Lancer</string>
+    <string name="sorties_banc_arreter">Arrêter</string>
+    <string name="sorties_banc_lignes_ingerees">%1$d lignes ingérées</string>
+    <string name="sorties_banc_pertes">%1$d pertes</string>
+    <string name="sorties_banc_masquees">%1$d masquées</string>
+    <string name="sorties_banc_avertissement">Les sorties du banc ne contiennent aucune donnée personnelle (contenu déterministe factice).</string>
+    <string name="sorties_banc_sequence_s1">S1 — débit d\'ingestion (100 000 lignes)</string>
+    <string name="sorties_banc_sequence_s2">S2 — tampon plein (100 000 lignes d\'un bloc)</string>
+    <string name="sorties_banc_sequence_s6">S6 — pause/reprise (10 000 lignes/s)</string>
+
+    <!-- États vides honnêtes (table de vérité — chaque état vide dit
+         pourquoi et propose l\'action suivante). -->
+    <string name="sorties_vide_titre">Aucune sortie</string>
+    <string name="sorties_vide_message">Le tampon est vide : lancez un build, une synchronisation, ou armez une séquence du banc pour alimenter le lecteur.</string>
+</resources>

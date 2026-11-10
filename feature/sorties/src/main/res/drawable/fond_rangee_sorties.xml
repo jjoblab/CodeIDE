@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond d'une rangée du lecteur (Centre de sorties, lot L2) : rectangle
+     transparent, TEINTÉ en code au bind quand la rangée est sélectionnée
+     (rôle conteneur primaire — une sélection n'est jamais une erreur ;
+     ColorStateList XML avec ?attr n'est pas fiable sous Robolectric, la
+     teinte est posée par l'adaptateur, patron IndicateurEtat). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>
