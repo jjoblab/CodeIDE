@@ -50,6 +50,15 @@ public interface RegistreExecutions {
     public suspend fun ouvrirLignes(id: String): List<LigneSortie>
 
     /**
+     * Ouvre l'exécution dans le registre (en-tête posé AU DÉPART, verdict
+     * et durée encore inconnus) — l'en-tête placeholder survit à la mort
+     * du processus : une exécution qui meurt sans conclusion reste
+     * listée avec les données déjà écrites (consultation honnête d'un
+     * incident).
+     */
+    public suspend fun demarrer(execution: ExecutionSortie)
+
+    /**
      * Ajoute UN LOT de lignes à l'exécution en cours (une écriture par
      * lot, jamais par ligne). Les lignes sont expurgées à l'écriture
      * ([ExpurgateurSorties], racine [ExecutionSortie.projet]).

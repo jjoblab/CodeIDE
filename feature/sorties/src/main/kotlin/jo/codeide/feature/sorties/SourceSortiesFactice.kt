@@ -1,5 +1,6 @@
 package jo.codeide.feature.sorties
 
+import jo.codeide.core.domain.EtatExecutionGradle
 import jo.codeide.core.domain.LigneSortie
 import jo.codeide.core.domain.SourceSortie
 import kotlinx.coroutines.currentCoroutineContext
@@ -36,6 +37,15 @@ public interface FluxSorties {
 
     /** La séquence banc armée, si le lecteur tourne en banc de mesure. */
     public val sequenceArmee: StateFlow<SequenceBanc?>
+
+    /**
+     * L'état de l'exécution EN VOL porté par les ÉVÉNEMENTS (lot L3 —
+     * verdict, compteurs, statuts/durées par tâche, phases de sync) : le
+     * résumé en tête et la projection regroupée le lisent, la
+     * consultation d'une exécution persistée le reçoit du registre.
+     * `null` hors exécution (attente, banc, consultation).
+     */
+    public val etatExecution: StateFlow<EtatExecutionGradle?>
 }
 
 /** Fenêtre commune des séquences banc (lignes) — S2 exige le tampon
@@ -115,6 +125,10 @@ constructor() : FluxSorties {
     private val sequenceInterne = MutableStateFlow<SequenceBanc?>(null)
 
     override val sequenceArmee: StateFlow<SequenceBanc?> = sequenceInterne.asStateFlow()
+
+    /** Le banc ne porte AUCUN état d'exécution (contenu déterministe —
+     *  le résumé regroupé du banc dérive du texte seul). */
+    override val etatExecution: StateFlow<EtatExecutionGradle?> = MutableStateFlow(null)
 
     override fun capaciteFenetre(): Int = sequenceInterne.value?.fenetre ?: FENETRE_DEFAUT
 

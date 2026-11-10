@@ -28,6 +28,9 @@ private class FluxDeTest(private val fenetre: Int = FENETRE_DEFAUT) : FluxSortie
 
     override val sequenceArmee: kotlinx.coroutines.flow.StateFlow<SequenceBanc?> =
         kotlinx.coroutines.flow.MutableStateFlow(null)
+
+    override val etatExecution: kotlinx.coroutines.flow.StateFlow<jo.codeide.core.domain.EtatExecutionGradle?> =
+        kotlinx.coroutines.flow.MutableStateFlow(null)
 }
 
 /**

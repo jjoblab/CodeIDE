@@ -84,6 +84,11 @@ import javax.inject.Singleton
  * @param tooling port du dépôt tooling (canaux de sortie, état, tâches,
  *        téléchargements, progression sync).
  * @param serviceGradle détenteur process-wide de l'état affichable.
+ * @param collecteur l'adaptation vers le Centre de sorties (lot L3 — le
+ *        VRAI flux derrière le port `FluxSorties`, historien compris) :
+ *        la pompe est le SEUL entonnoir qui voit tout, le collecteur y
+ *        est branché à côté de la console (migration par parité, la
+ *        console reste active).
  * @param journal traces des pans de vidange (v0.49.0 : une mort
  *        silencieuse est une panne invisible — elle se journalise).
  * @param dispatchers répartition des fils (règle 5 : injectés).
@@ -94,6 +99,7 @@ class PompeBuildTooling
 constructor(
     private val tooling: GradleToolingRepository,
     private val serviceGradle: GradleService,
+    private val collecteur: CollecteurSortiesGradle,
     private val journal: AppLogger,
     dispatchers: DispatcherProvider,
 ) {
@@ -140,6 +146,9 @@ constructor(
      */
     fun pomper(buildId: String, taches: List<String> = emptyList()) {
         serviceGradle.suivreBuild(buildId, taches)
+        // Lot L3 : le Centre de sorties observe le MÊME câble — l'état
+        // repart vierge et l'en-tête du registre est posé (ADR 0161).
+        collecteur.demarrerBuild(buildId, taches)
         synchronized(vidanges) {
             if (vidanges.containsKey(buildId)) return
             val travail = portee.launch { vider(buildId) }
@@ -161,12 +170,22 @@ constructor(
     private suspend fun vider(buildId: String) = supervisorScope {
         launch {
             tooling.observeBuildOutput(buildId).collect { ligne ->
-                traiterSansPanne("sortie du build $buildId") { serviceGradle.ajouterLigne(ligne) }
+                traiterSansPanne("sortie du build $buildId") {
+                    serviceGradle.ajouterLigne(ligne)
+                    // Lot L3 : adaptation enrichie (tâche, positions) et
+                    // publication par lots au Centre de sorties.
+                    collecteur.surLigneBuild(ligne)
+                }
             }
         }
         launch {
             tooling.observeBuildState(buildId).collect { etat ->
-                traiterSansPanne("état du build $buildId") { serviceGradle.publierEtatBuild(etat) }
+                traiterSansPanne("état du build $buildId") {
+                    serviceGradle.publierEtatBuild(etat)
+                    // Lot L3 : compteurs/verdict de l'exécution — la
+                    // transition terminale conclut l'en-tête du registre.
+                    collecteur.surEtatBuild(etat)
+                }
             }
         }
         launch {
@@ -177,7 +196,13 @@ constructor(
             // jamais bloquer sur un canal sans consommateur
             // (leçon v0.45.1). v0.49.0 : la vidange ne meurt plus
             // d'une pan non prévue non plus.
-            tooling.observeTachesBuild(buildId).collect { }
+            // Lot L3 : les ÉVÉNEMENTS de tâches font foi (arbitrage
+            // Q6) — le collecteur pose la frontière et les durées.
+            tooling.observeTachesBuild(buildId).collect { evenement ->
+                traiterSansPanne("tâche du build $buildId") {
+                    collecteur.surTache(evenement)
+                }
+            }
         }
         // v0.45.1 : la progression des artefacts du build alimente
         // la rangée en place de la vue Build — SANS cette vidange,
@@ -187,6 +212,9 @@ constructor(
             tooling.observeTelechargementsBuild(buildId).collect { telechargement ->
                 traiterSansPanne("téléchargement du build $buildId") {
                     serviceGradle.ajouterTelechargement(telechargement)
+                    // Lot L3 : UNE ligne par artefact terminé (base de
+                    // parité, spec SORTIES § 4.7 dégradation).
+                    collecteur.surTelechargement(telechargement)
                 }
             }
         }
@@ -236,13 +264,30 @@ constructor(
         }
     }
 
-    /** Publication d'un événement du flux sync (v0.48.0, ADR 0079). */
+    /** Publication d'un événement du flux sync (v0.48.0, ADR 0079) —
+     *  lot L3 : le collecteur observe le même câble (l'en-tête du
+     *  registre est posé au Début et conclu au Terminal). */
     private fun publier(evenement: EvenementSyncFlux) {
         when (evenement) {
-            is EvenementSyncFlux.Debut -> serviceGradle.marquerSyncEnCours()
-            is EvenementSyncFlux.Ligne -> serviceGradle.ajouterLigneSync(evenement.sortie)
-            is EvenementSyncFlux.Etape -> serviceGradle.ajouterEtapeSync(evenement.etape)
-            is EvenementSyncFlux.Terminal -> serviceGradle.publierResultatSync(evenement.resultat)
+            is EvenementSyncFlux.Debut -> {
+                serviceGradle.marquerSyncEnCours()
+                collecteur.surEvenementSync(evenement)
+            }
+
+            is EvenementSyncFlux.Ligne -> {
+                serviceGradle.ajouterLigneSync(evenement.sortie)
+                collecteur.surEvenementSync(evenement)
+            }
+
+            is EvenementSyncFlux.Etape -> {
+                serviceGradle.ajouterEtapeSync(evenement.etape)
+                collecteur.surEvenementSync(evenement)
+            }
+
+            is EvenementSyncFlux.Terminal -> {
+                serviceGradle.publierResultatSync(evenement.resultat)
+                collecteur.surEvenementSync(evenement)
+            }
         }
     }
 
