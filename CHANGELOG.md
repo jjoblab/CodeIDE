@@ -1,5 +1,85 @@
 # Journal des modifications
 
+## [0.213.0] – 2026-11-11
+
+Lot **L5 — écrans** du chantier « Refonte du générateur de projets et
+des écrans Nouveau projet » : le wizard passe à un **parcours
+adaptatif** calculé par le domaine (ADR 0155) — les étapes déclarées
+par le manifeste (`wizard.etapes`) deviennent des écrans réels, les
+préréglages sont posés d'un geste, le récapitulatif reflète le
+parcours réellement suivi, et l'aperçu du plan devient **en direct**
+(antirebond 300 ms, différentiel ajouté/retiré, feuille basse ou
+panneau latéral tablette). Vérifications : tests `:core:model`,
+`:core:domain` et `:feature:newproject` verts (dont 8 nouveaux
+scénarios parcours/préréglages, `CalculeParcoursUseCaseTest`),
+detekt et spotless verts, `checkUiTokens` tenu (cliquet descendu),
+`:app` compilé.
+
+### Ajouté
+
+- **Parcours adaptatif (L5a)** — `CalculeParcoursUseCase` (core:domain)
+  assemble socle (`modele` → étapes de modèle → `identite` → `fichiers`
+  → `recapitulatif`) et étapes effectives ; le moteur évalue le `when`
+  des étapes déclarées sur le contexte final (passe 10) et matérialise
+  l'étape par défaut « Configuration » pour tout paramètre
+  `CONFIGURATION` non rangé (manifeste sans bloc `wizard` inclus) ;
+  une étape dont la condition disparaît **n'existe plus** et ramène à
+  la dernière étape effective précédente (jamais sauté en avant), les
+  saisies restant conservées et reprises si l'étape réapparaît ; la
+  requête de génération ne transmet que les paramètres des étapes
+  effectives (ADR 0155 §4).
+- **Type fermé `EtapeId`** (ADR 0155 §5) : quatre identifiants du socle
+  + identifiant personnalisé des étapes de modèle ; `ETAPES_WIZARD`
+  supprimée (ADR 0020 amendé), indicateur « Étape N sur M » lu dans le
+  parcours ; registre de fragments avec **`EtapeParametresFragment`
+  générique** (toute nouvelle étape déclarée s'affiche sans toucher au
+  cadre) ; migration des clés persistées pré-L5
+  (`CONFIGURATION`/`INFORMATIONS`).
+- **Préréglages (B-8)** : cartes « Démarrage rapide » posées dès
+  l'étape Modèle (nom + description résolus du dictionnaire), valeurs
+  appliquées sans figer `modifiesManuellement`.
+- **Mode rapide (L5d)** : bouton éclair d'une carte de préréglage —
+  applique puis saute au récapitulatif.
+- **Aperçu en direct (L5d)** : bouton « Aperçu » sur les étapes à
+  paramètres ; plan recalculé avec antirebond 300 ms, **différentiel
+  ajouté/retiré** entre deux plans consécutifs (puces dédiées), état
+  d'erreur typé avec « Réessayer » ; rendu en **feuille basse** sur
+  téléphone, **panneau latéral** (deux colonnes) sur tablette
+  sw600dp — même contenu ([ApercuPlanFragment]) dans les deux formes.
+- **Rendu enrichi (L5c, ADR 0154)** : composant **déclaré** par le
+  manifeste (`rendu`), libellés/sous-titres/explications/icônes de
+  choix **résolus du dictionnaire du modèle** (registre du wizard en
+  repli), titres de **groupe** (`groupe.<id>.titre`), **zone
+  « Avancé » repliable** (paramètres `avance`), **cartes-interrupteurs**
+  pour les booléens groupés (maquette « Bibliothèques »), états
+  **désactivés** grisés avec leur raison (ADR 0153 §2, annoncée à
+  TalkBack), messages des règles affichés au bon endroit (sévérité par
+  symbole et couleur) et au récapitulatif.
+- **Étapes communes (L5b)** : « Informations » devient le socle
+  **« Identité »** (nom, description, emplacement + paramètres
+  `INFORMATION`) ; l'étape **« Fichiers » est adaptée au modèle** —
+  seuls les groupes réellement déclarés (README/.gitignore/.editorconfig)
+  offrent leur coche ; le **récapitulatif est fidèle au parcours** —
+  une ligne par étape réellement parcourue avec « Modifier », choix et
+  bibliothèques listés, avertissements restants.
+- Recette manuelle L5 (`docs/TESTS_MANUELS.md`, W19-W31) : parcours
+  par famille, disparition/réapparition d'étapes, préréglages, mode
+  rapide, aperçu en direct téléphone/tablette.
+
+### Modifié
+
+- `TemplateFormEvaluation` porte les étapes effectives, les préréglages
+  résolus et les groupes de fichiers déclarés (`etapesWizard`,
+  `presets`, `groupesFichiers`) — l'UI n'analyse jamais un manifeste.
+- `EtapeConfigurationFragment` supprimé (remplacé par le fragment
+  générique) ; `ArborescenceAdapter` extrait du récapitulatif (partagé
+  avec l'aperçu) ; la variante tablette de l'hôte passe en deux
+  colonnes quand l'aperçu est ouvert.
+- Les messages `ERREUR` des règles de projet **ne bloquent plus les
+  étapes intermédiaires** (l'utilisateur doit pouvoir atteindre le
+  choix fautif pour le corriger) — ils interdisent la création via la
+  revalidation globale du récapitulatif.
+
 ## [0.212.0] – 2026-11-10
 
 Lot **L4 — modèles Android** du chantier « Refonte du générateur de

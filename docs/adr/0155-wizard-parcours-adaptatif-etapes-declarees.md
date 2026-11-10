@@ -5,8 +5,19 @@
   (étapes + préréglages) analysé et validé par le parseur, porté dans
   `ProjectTemplate.etapesWizard`/`presets`, lint des clés i18n, `lister`
   étendu ; les cinq modèles hors Android déclarent leurs étapes. Le
-  **consommateur** (`CalculeParcoursUseCase`, état du wizard, écrans)
-  reste au lot L5 (L5a-L5d). Amendement L3 : la clé de condition d'une
+  **consommateur est implémenté au lot L5 (v0.213.0)** :
+  `CalculeParcoursUseCase` (socle + étapes effectives calculées à la
+  passe 10 du moteur), `EtapeId` type fermé, `ETAPES_WIZARD` supprimée,
+  fragment générique `EtapeParametresFragment`, préréglages et mode
+  rapide, aperçu en direct (feuille basse / panneau sw600dp).
+  Amendements L5 : (a) un paramètre cité dans une étape aujourd'hui
+  filtrée par son `when` n'est **pas** déplacé vers l'étape par défaut
+  (l'étape réapparaît si la condition redevient vraie) ; (b) la
+  disparition de l'étape courante ramène à la dernière étape effective
+  **précédente** (jamais un saut en avant) ; (c) les messages `ERREUR`
+  des règles de projet ne bloquent pas les étapes intermédiaires — ils
+  interdisent la création via la revalidation du récapitulatif.
+  Amendement L3 : la clé de condition d'une
   étape s'écrit **`when`** (alignée sur la convention du manifeste —
   `files`/`constraints`/`autoDefinit`), l'exemple du §1 disait `quand` ;
   les identifiants d'étapes et de préréglages suivent
