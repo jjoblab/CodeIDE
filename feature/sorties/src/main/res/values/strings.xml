@@ -94,4 +94,21 @@
     <string name="sorties_resume_gravites">%1$d erreur(s) · %2$d avertissement(s) · %3$d lignes</string>
     <string name="sorties_consultation_bandeau">Lecture d\'une exécution passée — le direct est retenu, « revenir au direct » l\'écrira.</string>
     <string name="sorties_saut_sans_editeur">Aucun éditeur ouvert : le saut au source s\'effectuera depuis l\'éditeur (lot L5).</string>
+
+    <!-- Lot L5 (suite) — spec SORTIES § 5.4 : pid/tid affichables, puces
+         d\'étiquettes avec compteurs, saut erreur suivant/précédent,
+         en-têtes du regroupement Logcat (×N, trace repliée). -->
+    <string name="sorties_pid_tid">Afficher pid et tid des lignes Logcat</string>
+    <string name="sorties_pid_tid_marque">pid</string>
+    <string name="sorties_etiquettes">Filtrer par étiquette (suggestions avec compteurs)</string>
+    <string name="sorties_etiquettes_marque">#</string>
+    <string name="sorties_etiquettes_aide">Appuyer : inclure · encore : exclure · encore : neutre</string>
+    <string name="sorties_etiquettes_aucune">Aucune étiquette dans la fenêtre</string>
+    <string name="sorties_etiquette_compte">%1$s ×%2$d</string>
+    <string name="sorties_etiquette_exclue">✕ %1$s ×%2$d</string>
+    <string name="sorties_erreur_precedente">Erreur précédente</string>
+    <string name="sorties_erreur_suivante">Erreur suivante</string>
+    <string name="sorties_a11y_entete_logcat">Bloc %1$s, %2$s, %3$d lignes visibles, groupe %4$s</string>
+    <string name="sorties_entete_logcat_repetition">×%1$d</string>
+    <string name="sorties_entete_logcat_trace">%1$d lignes · %2$d causes</string>
 </resources>

@@ -1,5 +1,6 @@
 package jo.codeide.feature.sorties
 
+import jo.codeide.core.domain.GroupeLogcat
 import jo.codeide.core.domain.GroupeTache
 
 /**
@@ -55,6 +56,37 @@ public sealed interface RangeeLecteur {
         public val indiceGroupe: Int,
         public val groupe: GroupeTache,
         public val lignesVisibles: Int,
+        public val replie: Boolean,
+    ) : RangeeLecteur
+
+    /**
+     * L'en-tête d'UN groupe LOGCAT de la vue regroupée (lot L5, spec
+     * SORTIES § 5.4 M5) — une run répétée « ×N » ou une trace d'exception
+     * repliée. L'en-tête REPRÉSENTE la première ligne visible du groupe
+     * (le rendu l'accompagne — jamais une seconde liste, ADR 0078) ; à
+     * repli fermé, les CAUSES d'une trace restent affichées (le « Caused
+     * by » porte le diagnostic).
+     *
+     * @property indiceGroupe l'indice du groupe dans l'état dérivé — LA
+     *           clé du repli (stable tant que le regroupement n'a pas
+     *           été re-dérivé).
+     * @property groupe le groupe dérivé (répétition ou trace, bornes).
+     * @property rangee le rendu de la ligne REPRÉSENTÉE (segments SGR
+     *           pré-parsés — une seule construction par ligne).
+     * @property lignesVisibles lignes VISIBLES du groupe (le compteur
+     *           honnête du badge — les masquées restent comptées par le
+     *           filtre).
+     * @property causesVisibles causes VISIBLES restées affichées à repli
+     *           fermé (trace seule — zéro pour une répétition).
+     * @property replie le groupe est-il replié (son contenu est omis de
+     *           CETTE projection — jamais du tampon).
+     */
+    public data class EnteteLogcat(
+        public val indiceGroupe: Int,
+        public val groupe: GroupeLogcat,
+        public val rangee: RangeeSortie,
+        public val lignesVisibles: Int,
+        public val causesVisibles: Int,
         public val replie: Boolean,
     ) : RangeeLecteur
 }

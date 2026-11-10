@@ -15,7 +15,10 @@ import jo.codeide.core.domain.LigneSortie
 import jo.codeide.core.domain.LotTampon
 import jo.codeide.core.domain.PositionSource
 import jo.codeide.core.domain.ProjectionRegroupee
+import jo.codeide.core.domain.ProjectionRegroupeeLogcat
 import jo.codeide.core.domain.ProjectionSorties
+import jo.codeide.core.domain.RangeeRegroupeeLogcat
+import jo.codeide.core.domain.RegroupementLogcat
 import jo.codeide.core.domain.RegroupementSorties
 import jo.codeide.core.domain.RequeteRecherche
 import jo.codeide.core.domain.SectionFluxGradle
@@ -134,12 +137,13 @@ constructor(
     /** Le flux de la famille — le SEUL câblage que le lecteur connaît. */
     private val flux: FluxSorties = fabrique.flux(famille)
 
-    /** Le mode REGROUPÉ n'est proposé que pour la famille GRADLE (la
-     *  dérivation regroupée Logcat ×N et Journal est un ajout planifié) —
-     *  l'UI cache la bascule ailleurs : honnêteté, jamais une bascule qui
-     *  prétend regrouper sans le faire. */
+    /** Le mode REGROUPÉ est proposé pour GRADLE (dérivation par tâche,
+     *  lot L3) ET pour LOGCAT (répétitions ×N et traces repliées, lot
+     *  L5 — spec SORTIES § 5.4 M5) ; l'UI cache la bascule ailleurs
+     *  (JOURNAL — pas de dérivation planifiée pour ce lot) : honnêteté,
+     *  jamais une bascule qui prétend regrouper sans le faire. */
     val modeDisponible: Boolean
-        get() = famille == FamilleSorties.GRADLE
+        get() = famille == FamilleSorties.GRADLE || famille == FamilleSorties.LOGCAT
 
     private val tampon = TamponSorties(flux.capaciteFenetre(), horloge)
     private val verrou = Mutex()
@@ -300,6 +304,25 @@ constructor(
     }
 
     /**
+     * SAUT « erreur suivante / précédente » (spec SORTIES § 5.4, lot L5)
+     * — [pas] = +1 suivant, −1 précédent, depuis la rangée [rangDepart]
+     * (la première visible du lecteur) ; le parcours BOUCLE (jamais un
+     * geste mort) sur les repères d'erreurs de la projection COURANTE
+     * (brut ou regroupé — les en-têtes ne répondent pas, seules les
+     * lignes portent la gravité). Sans repère : rien (l'UI cache le
+     * geste).
+     */
+    public fun naviguerErreur(pas: Int, rangDepart: Int) {
+        viewModelScope.launch(dispatchers.default) {
+            verrou.withLock {
+                cibleErreur(marquesErreurs, pas, rangDepart)?.let { cible ->
+                    _allerA.tryEmit(cible)
+                }
+            }
+        }
+    }
+
+    /**
      * Pause/reprise du direct — en pause, le tampon RETIENT le flux (les
      * pertes continuent d'être comptées, la vue reste figée) ; à la
      * reprise, le delta arrive EN UNE fois (re-dérivation complète,
@@ -323,6 +346,35 @@ constructor(
         viewModelScope.launch(dispatchers.default) {
             verrou.withLock {
                 filtreActuel = filtre
+                rederriverComplete()
+            }
+        }
+    }
+
+    /**
+     * Les SUGGESTIONS d'étiquettes avec compteurs (spec SORTIES § 5.4,
+     * lot L5) — un passage sur la fenêtre au GESTE de l'utilisateur (le
+     * menu s'ouvre — jamais dans le chemin chaud de l'ingestion), tri
+     * compte décroissant puis alphabétique, borné ([BORNE_ETIQUETTES]).
+     * L'état de chaque puce (neutre/incluse/exclue) vient du filtre
+     * courant — le menu dit la vérité du filtre.
+     */
+    public suspend fun etiquettesComptees(): List<EtiquetteComptee> {
+        verrou.withLock {
+            return etiquettesCompteesInterne(tampon.instantane(), filtreActuel)
+        }
+    }
+
+    /**
+     * Bascule UNE étiquette dans le filtre (le cycle de la puce, spec
+     * § 5.4 : neutre → incluse → exclue → neutre) — le RESTE du filtre
+     * est conservé (niveau poussé par le chrome, plage de temps…) :
+     * copy du filtre, jamais un filtre neuf. Le tampon ne bouge pas.
+     */
+    public fun basculerEtiquette(etiquette: String) {
+        viewModelScope.launch(dispatchers.default) {
+            verrou.withLock {
+                filtreActuel = cyclerEtiquette(filtreActuel, etiquette)
                 rederriverComplete()
             }
         }
@@ -446,6 +498,12 @@ constructor(
      * ne prennent ni rangée ni repère).
      */
     private fun deriverRegroupe(etat: EtatTamponSorties) {
+        // Le Logcat a SA dérivation (lot L5) — classes propres à la
+        // famille, le vocabulaire de tâches ne s'y applique pas.
+        if (famille == FamilleSorties.LOGCAT) {
+            deriverRegroupeLogcat(etat)
+            return
+        }
         val regroupe = RegroupementSorties.deriverClasse(
             etat.lignes,
             classifications,
@@ -480,14 +538,56 @@ constructor(
     }
 
     /**
-     * Bascule brut ↔ regroupé (spec SORTIES § 4, lot L3). Le passage en
+     * La dérivation REGROUPÉE LOGCAT (lot L5, spec SORTIES § 5.4 M5) —
+     * répétitions ×N et traces repliées via [RegroupementLogcat]
+     * (classes PROPRES à la famille), projection
+     * [ProjectionRegroupeeLogcat], rangées [RangeeLecteur.EnteteLogcat].
+     * Le résumé Gradle ([_regroupement]) reste `null` : pas de carte de
+     * résumé ni d'en-tête collant pour le Logcat — l'UI honnête. La
+     * recherche est remappée sur les rangées VISIBLES du regroupement
+     * (une ligne de groupe replié ne répond plus — MÊME discipline que
+     * la vue Gradle). */
+    private fun deriverRegroupeLogcat(etat: EtatTamponSorties) {
+        val derive = RegroupementLogcat.deriver(etat.lignes)
+        val liste = ProjectionRegroupeeLogcat.deriver(visibles, derive, replisActuels)
+        val positions = HashMap<Int, Int>(visibles.size)
+        var rang = 0
+        val nouvellesRangees = liste.map { rangee ->
+            when (rangee) {
+                is RangeeRegroupeeLogcat.Ligne -> {
+                    positions[rangee.position] = rang
+                    rang++
+                    RangeeLecteur.Ligne(rangee.position, rangeeEnCache(etat.lignes[rangee.position]))
+                }
+
+                is RangeeRegroupeeLogcat.EnteteLogcat -> RangeeLecteur.EnteteLogcat(
+                    indiceGroupe = rangee.indiceGroupe,
+                    groupe = rangee.groupe,
+                    rangee = rangeeEnCache(etat.lignes[rangee.position]),
+                    lignesVisibles = rangee.lignesVisibles,
+                    causesVisibles = rangee.causesVisibles,
+                    replie = replisActuels.contains(rangee.indiceGroupe),
+                )
+            }
+        }
+        rangees = nouvellesRangees
+        rangVisible = { position -> positions[position] }
+        marquesErreurs = marquesDesLignes(rangees) { it.estErreur }
+        marquesAvertissements = marquesDesLignes(rangees) { it.estAvertissement }
+        publierMarques()
+        publierProjection(etat, delta = null)
+    }
+
+    /**
+     * Bascule brut ↔ regroupé (spec SORTIES § 4, lot L3 ; Logcat inclus
+     * au lot L5 — § 5.4). Le passage en
      * regroupé classe TOUTE la fenêtre UNE fois (le banc S5 mesure cette
      * bascule — chaque ligne n'est jamais analysée deux fois) ; le
      * retour au brut repart du chemin L2 sans coût.
      */
     public fun definirMode(mode: ModeLecture) {
-        // Refus honnête hors famille GRADLE (la bascule est cachée dans
-        // l'UI — la dérivation regroupée Logcat ×N est un ajout planifié).
+        // Refus honnête hors familles à dérivation (GRADLE, LOGCAT — la
+        // bascule est cachée dans l'UI pour JOURNAL).
         if (!modeDisponible) return
         viewModelScope.launch(dispatchers.default) {
             verrou.withLock {
@@ -575,8 +675,15 @@ constructor(
         _projection.value = ProjectionLecteur.VIDE
     }
 
-    /** Classe TOUTE la fenêtre (une bascule = une passe — banc S5). */
+    /** Classe TOUTE la fenêtre (une bascule = une passe — banc S5).
+     *  GRADLE seul : les classifications portent la structure de tâches
+     *  ; le Logcat (lot L5) n'en a pas — sa dérivation lit les lignes
+     *  directement (une passe sur le contenu, sans machine à états). */
     private fun classifierTout() {
+        if (famille != FamilleSorties.GRADLE) {
+            classifications = ArrayList()
+            return
+        }
         val etat = tampon.instantane()
         var section = SectionFluxGradle.FLUX
         classifications = ArrayList(etat.lignes.size)
@@ -593,6 +700,7 @@ constructor(
      * est analysée UNE fois — jamais de re-scan à chaque lot).
      */
     private fun maintenirClassifications(etat: EtatTamponSorties, tailleAvant: Int, troncature: Int) {
+        if (famille != FamilleSorties.GRADLE) return
         var section = classifications.lastOrNull()?.section ?: SectionFluxGradle.FLUX
         val nouvelles = etat.lignes.subList((tailleAvant - troncature).coerceAtLeast(0), etat.lignes.size)
         classifications = ArrayList(classifications.drop(troncature))
@@ -707,3 +815,102 @@ private inline fun rangeesMarquees(rangees: List<RangeeLecteur>, marquee: (Range
  *  dérivation regroupée partagent la même discipline). */
 private inline fun marquesDesLignes(rangees: List<RangeeLecteur>, marquee: (RangeeSortie) -> Boolean): List<Int> =
     rangeesMarquees(rangees, marquee)
+
+/**
+ * Le SAUT d'erreur (spec SORTIES § 5.4, lot L5) — pur, testé : la cible
+ * dans les repères d'erreurs (indices de RANGÉES de la projection
+ * courante), [pas] = +1 suivant / −1 précédent depuis [rangDepart], le
+ * parcours BOUCLE (un « suivant » depuis la dernière erreur revient à la
+ * première — jamais un geste mort). `null` : aucun repère.
+ */
+internal fun cibleErreur(marques: List<Int>, pas: Int, rangDepart: Int): Int? {
+    if (marques.isEmpty()) return null
+    return if (pas >= 0) {
+        marques.firstOrNull { it > rangDepart } ?: marques.first()
+    } else {
+        marques.lastOrNull { it < rangDepart } ?: marques.last()
+    }
+}
+
+/** L'état de filtre d'UNE étiquette (le cycle des puces, spec SORTIES
+ *  § 5.4, lot L5 : inclure / exclure / neutre). */
+internal enum class EtatPuceEtiquette {
+    /** Le filtre ne parle pas de cette étiquette. */
+    NEUTRE,
+
+    /** L'étiquette est ADMISE seule (etiquettesInclues). */
+    INCLUSE,
+
+    /** L'étiquette est MASQUÉE (etiquettesExclues). */
+    EXCLUE,
+}
+
+/**
+ * Une suggestion d'étiquette avec son compteur (spec SORTIES § 5.4, lot
+ * L5) — le menu « # » du lecteur la liste, la puce cycle son état.
+ *
+ * @property etiquette le tag exact (sensible à la casse — les tags
+ *           logcat le sont, ADR 0160).
+ * @property compte les lignes de la fenêtre portant cette étiquette.
+ * @property etat l'état de la puce dans le filtre COURANT (le menu dit
+ *           la vérité du filtre).
+ */
+internal data class EtiquetteComptee(val etiquette: String, val compte: Int, val etat: EtatPuceEtiquette)
+
+/** Les étiquettes proposées au menu (borné — le menu reste lisible). */
+internal const val BORNE_ETIQUETTES = 24
+
+/**
+ * Le comptage des étiquettes d'une fenêtre (pur, testé) — un passage
+ * sur les lignes, tri compte décroissant puis étiquette (déterministe),
+ * borné à [BORNE_ETIQUETTES]. Les lignes SANS étiquette ne comptent pas
+ * (jamais une puce « sans objet »).
+ */
+internal fun etiquettesCompteesInterne(etat: EtatTamponSorties, filtre: FiltreSorties): List<EtiquetteComptee> {
+    val comptes = HashMap<String, Int>()
+    etat.lignes.forEach { ligne ->
+        ligne.etiquette?.let { etiquette ->
+            comptes[etiquette] = (comptes[etiquette] ?: 0) + 1
+        }
+    }
+    return comptes.entries
+        .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+        .take(BORNE_ETIQUETTES)
+        .map { (etiquette, compte) ->
+            EtiquetteComptee(
+                etiquette = etiquette,
+                compte = compte,
+                etat = etatPuceEtiquette(filtre, etiquette),
+            )
+        }
+}
+
+/** L'état de puce d'une étiquette dans le filtre (pur — l'incluse
+ *  PRÉVAUT si les deux ensembles la portaient, ce que le cycle ne
+ *  produit jamais : les deux contraintes ne se composent pas). */
+internal fun etatPuceEtiquette(filtre: FiltreSorties, etiquette: String): EtatPuceEtiquette = when {
+    etiquette in filtre.etiquettesInclues -> EtatPuceEtiquette.INCLUSE
+    etiquette in filtre.etiquettesExclues -> EtatPuceEtiquette.EXCLUE
+    else -> EtatPuceEtiquette.NEUTRE
+}
+
+/**
+ * Le cycle de la puce (pur, testé) : neutre → incluse → exclue →
+ * neutre. Le reste du filtre est CONSERVÉ (copy — le niveau poussé par
+ * le chrome, la plage de temps, la session survivent à la bascule).
+ */
+internal fun cyclerEtiquette(filtre: FiltreSorties, etiquette: String): FiltreSorties =
+    when (etatPuceEtiquette(filtre, etiquette)) {
+        EtatPuceEtiquette.NEUTRE -> filtre.copy(
+            etiquettesInclues = filtre.etiquettesInclues + etiquette,
+        )
+
+        EtatPuceEtiquette.INCLUSE -> filtre.copy(
+            etiquettesInclues = filtre.etiquettesInclues - etiquette,
+            etiquettesExclues = filtre.etiquettesExclues + etiquette,
+        )
+
+        EtatPuceEtiquette.EXCLUE -> filtre.copy(
+            etiquettesExclues = filtre.etiquettesExclues - etiquette,
+        )
+    }

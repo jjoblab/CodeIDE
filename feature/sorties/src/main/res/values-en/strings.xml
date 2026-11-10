@@ -92,4 +92,19 @@
     <string name="sorties_banc_rejouer">Replay the last persisted execution</string>
     <string name="sorties_banc_rejouer_vide">No persisted execution yet: run a build (the registry fills from the first execution).</string>
     <string name="sorties_banc_rejoue">Execution %1$s replayed read-only — “Stop” returns to live.</string>
+
+    <!-- Lot L5 (suite) — spec SORTIES § 5.4. -->
+    <string name="sorties_pid_tid">Show pid and tid of Logcat lines</string>
+    <string name="sorties_pid_tid_marque">pid</string>
+    <string name="sorties_etiquettes">Filter by tag (suggestions with counters)</string>
+    <string name="sorties_etiquettes_marque">#</string>
+    <string name="sorties_etiquettes_aide">Tap: include · again: exclude · again: neutral</string>
+    <string name="sorties_etiquettes_aucune">No tag in the window</string>
+    <string name="sorties_etiquette_compte">%1$s ×%2$d</string>
+    <string name="sorties_etiquette_exclue">✕ %1$s ×%2$d</string>
+    <string name="sorties_erreur_precedente">Previous error</string>
+    <string name="sorties_erreur_suivante">Next error</string>
+    <string name="sorties_a11y_entete_logcat">Block %1$s, %2$s, %3$d visible lines, group %4$s</string>
+    <string name="sorties_entete_logcat_repetition">×%1$d</string>
+    <string name="sorties_entete_logcat_trace">%1$d lines · %2$d causes</string>
 </resources>
