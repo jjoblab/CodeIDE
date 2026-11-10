@@ -109,6 +109,27 @@ class AdaptateursSortiesTest {
     }
 
     @Test
+    fun `la ligne logcat porte pid et tid pour l affichage du lecteur`() {
+        // Spec SORTIES § 5.4 (lot L5) : pid/tid MONTENT sur le modèle
+        // unique (affichables sur option) — la clé de session reste
+        // l'identité de session, elle ne bouge pas.
+        val ligne = LigneJournal(
+            horodatageMs = 1_000L,
+            pid = 4321,
+            tid = 4322,
+            niveau = NiveauJournal.INFO,
+            etiquette = "App",
+            message = "démarrage",
+        )
+
+        val sortie = ligne.versLigneSortie(identiteSession = "jo.app.exemple/4321/principal")
+
+        assertEquals(4321, sortie.pid)
+        assertEquals(4322, sortie.tid)
+        assertEquals("jo.app.exemple/4321/principal", sortie.identiteSession)
+    }
+
+    @Test
     fun `l entree du journal applicatif porte son tag et sa session`() {
         val entree = LogEntry(
             timestampMillis = 2_000L,

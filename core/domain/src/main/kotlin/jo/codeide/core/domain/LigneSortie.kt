@@ -141,6 +141,10 @@ public data class PositionSource(
  * @property octetsTotal octets totaux du téléchargement si le protocole
  *           les connaît (sonde `.part`), sinon `null` — JAMAIS de
  *           pourcentage inventé (honnêteté, arbitrage Q12).
+ * @property pid identifiant du processus émetteur (Logcat, § 5.4 —
+ *           affichable sur option du lecteur) ; `null` hors Logcat.
+ * @property tid identifiant du fil émetteur (Logcat, § 5.4) ; `null`
+ *           hors Logcat.
  * @property positionsSource positions cliquables extraites au passage par
  *           [ParseurFluxGradle] — vide pour la plupart des lignes.
  */
@@ -157,5 +161,7 @@ public data class LigneSortie(
     public val dureeMs: Long? = null,
     public val octetsRecus: Long? = null,
     public val octetsTotal: Long? = null,
+    public val pid: Int? = null,
+    public val tid: Int? = null,
     public val positionsSource: List<PositionSource> = emptyList(),
 )

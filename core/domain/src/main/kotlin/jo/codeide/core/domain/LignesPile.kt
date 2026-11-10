@@ -26,8 +26,10 @@ public object LignesPile {
     /** Étiquette des lignes de plantage du pont (applog-runtime). */
     public const val ETIQUETTE_PLANTAGE: String = "Plantage"
 
-    /** Préfixe du message d'annonce d'une exception non interceptée. */
-    private const val PREFIXE_EXCEPTION = "Exception non interceptée"
+    /** Préfixe du message d'annonce d'une exception non interceptée
+     *  (public : l'ancre de tête de trace du regroupement Logcat —
+     *  spec SORTIES § 5.4 M5 — reprend le MÊME vocabulaire du pont). */
+    public const val PREFIXE_EXCEPTION: String = "Exception non interceptée"
 
     /**
      * Cadre de pile : `at classe.methode(fichier:ligne)`. Le groupe
@@ -74,6 +76,14 @@ public object LignesPile {
             ),
         )
     }
+
+    /**
+     * Ce texte est-il un CADRE de pile (`at …(Fichier.kt:12)`) — l'ancre
+     * du repli des traces d'exception du Logcat (spec SORTIES § 5.4 M5 :
+     * une trace se replie sous sa tête, les cadres restent dans le
+     * tampon). Défensif : un texte externe ne lève jamais d'exception ici.
+     */
+    public fun estCadrePile(texte: String): Boolean = CADRE.matcher(texte).find()
 
     /**
      * Cette ligne de journal annonce-t-elle un PLANTAGE de l'application
