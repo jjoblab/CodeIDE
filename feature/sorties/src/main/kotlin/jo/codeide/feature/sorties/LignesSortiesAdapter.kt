@@ -143,20 +143,19 @@ internal class LignesSortiesAdapter(
         else -> TYPE_LIGNE
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
-        when (viewType) {
-            TYPE_ENTETE -> EnteteViewHolder(
-                EnteteTacheSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
-            )
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder = when (viewType) {
+        TYPE_ENTETE -> EnteteViewHolder(
+            EnteteTacheSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+        )
 
-            TYPE_ENTETE_LOGCAT -> EnteteLogcatViewHolder(
-                EnteteLogcatSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
-            )
+        TYPE_ENTETE_LOGCAT -> EnteteLogcatViewHolder(
+            EnteteLogcatSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+        )
 
-            else -> LigneViewHolder(
-                LigneSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
-            )
-        }
+        else -> LigneViewHolder(
+            LigneSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+        )
+    }
 
     override fun getItemCount(): Int = rangees.size
 
@@ -463,19 +462,18 @@ internal class LignesSortiesAdapter(
         /** Le badge honnête : « ×N » (répétition — le compteur AFFICHÉ du
          *  groupe, les masquées restant au bandeau du filtre) ou « N
          *  lignes · k causes » (trace). */
-        private fun badge(contexte: Context, rangee: RangeeLecteur.EnteteLogcat): String =
-            when (rangee.groupe) {
-                is GroupeLogcat.Repetition -> contexte.getString(
-                    R.string.sorties_entete_logcat_repetition,
-                    rangee.lignesVisibles,
-                )
+        private fun badge(contexte: Context, rangee: RangeeLecteur.EnteteLogcat): String = when (rangee.groupe) {
+            is GroupeLogcat.Repetition -> contexte.getString(
+                R.string.sorties_entete_logcat_repetition,
+                rangee.lignesVisibles,
+            )
 
-                is GroupeLogcat.Trace -> contexte.getString(
-                    R.string.sorties_entete_logcat_trace,
-                    rangee.lignesVisibles,
-                    rangee.causesVisibles,
-                )
-            }
+            is GroupeLogcat.Trace -> contexte.getString(
+                R.string.sorties_entete_logcat_trace,
+                rangee.lignesVisibles,
+                rangee.causesVisibles,
+            )
+        }
     }
 
     private companion object {

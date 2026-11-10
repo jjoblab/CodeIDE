@@ -21,21 +21,37 @@ class ProjectionRegroupeeLogcatTest {
         etiquette = "App",
     )
 
-    /** La couverture stricte : chaque position visible paraît une fois —
-     *  soit en Ligne, soit représentée par UNE en-tête. */
-    private fun assertCouverture(
-        rangees: List<RangeeRegroupeeLogcat>,
-        visibles: List<Int>,
-    ) {
-        val couverts = ArrayList<Int>()
-        rangees.forEach { rangee ->
-            when (rangee) {
-                is RangeeRegroupeeLogcat.Ligne -> couverts.add(rangee.position)
-                is RangeeRegroupeeLogcat.EnteteLogcat -> couverts.add(rangee.position)
+    /** Les positions des RANGÉES LIGNE (les en-têtes représentent la
+     *  leur). */
+    private fun positionsDesLignes(rangees: List<RangeeRegroupeeLogcat>): List<Int> =
+        rangees.filterIsInstance<RangeeRegroupeeLogcat.Ligne>().map { it.position }
+
+    /** La couverture EXACTE (tout déplié) : chaque position visible
+     *  paraît EXACTEMENT une fois — en Ligne ou représentée par UNE
+     *  en-tête (critère § 10.1.1). */
+    private fun assertCouvertureExacte(rangees: List<RangeeRegroupeeLogcat>, visibles: List<Int>) {
+        val couverts = rangees.map {
+            when (it) {
+                is RangeeRegroupeeLogcat.Ligne -> it.position
+                is RangeeRegroupeeLogcat.EnteteLogcat -> it.position
             }
         }
         assertEquals(visibles, couverts.sorted())
         assertEquals(visibles.size, couverts.size)
+    }
+
+    /** La couverture SOUPLE (replis fermés) : aucune position ne paraît
+     *  deux fois, tout ce qui paraît est visible — les lignes REPLYIÉES
+     *  sont omises de CETTE projection (jamais du tampon). */
+    private fun assertSansDoublon(rangees: List<RangeeRegroupeeLogcat>, visibles: List<Int>) {
+        val couverts = rangees.map {
+            when (it) {
+                is RangeeRegroupeeLogcat.Ligne -> it.position
+                is RangeeRegroupeeLogcat.EnteteLogcat -> it.position
+            }
+        }
+        assertEquals(couverts.size, couverts.distinct().size)
+        assertTrue(couverts.all { visibles.contains(it) })
     }
 
     @Test
@@ -50,8 +66,8 @@ class ProjectionRegroupeeLogcatTest {
         assertEquals(0, entete.position)
         assertEquals(3, entete.lignesVisibles)
         assertEquals(0, entete.causesVisibles)
-        assertEquals(listOf(1, 2, 3), rangees.drop(1).map { (it as RangeeRegroupeeLogcat.Ligne).position })
-        assertCouverture(rangees, visibles)
+        assertEquals(listOf(1, 2, 3), positionsDesLignes(rangees))
+        assertCouvertureExacte(rangees, visibles)
     }
 
     @Test
@@ -60,11 +76,19 @@ class ProjectionRegroupeeLogcatTest {
         val etat = RegroupementLogcat.deriver(lignes)
         val visibles = lignes.indices.toList()
         val rangees = ProjectionRegroupeeLogcat.deriver(visibles, etat, replis = setOf(0))
+        // En-tête (représente la première visible, position 0) + la ligne
+        // hors groupe — les répétées sont omises de CETTE projection.
         assertEquals(2, rangees.size)
         val entete = rangees.first() as RangeeRegroupeeLogcat.EnteteLogcat
+        assertTrue(entete.representePremiereVisible(visibles))
         assertEquals(3, entete.lignesVisibles)
-        assertEquals(3, rangees[1].let { (it as RangeeRegroupeeLogcat.Ligne).position })
-        assertCouverture(rangees, visibles)
+        assertEquals(listOf(3), positionsDesLignes(rangees))
+        assertSansDoublon(rangees, visibles)
+    }
+
+    private fun RangeeRegroupeeLogcat.EnteteLogcat.representePremiereVisible(visibles: List<Int>): Boolean {
+        val groupe = groupe as? GroupeLogcat.Repetition ?: return false
+        return visibles.firstOrNull { it in groupe.debut..groupe.fin } == position
     }
 
     @Test
@@ -82,17 +106,17 @@ class ProjectionRegroupeeLogcatTest {
         val etat = RegroupementLogcat.deriver(lignes)
         val visibles = lignes.indices.toList()
         val rangees = ProjectionRegroupeeLogcat.deriver(visibles, etat, replis = setOf(0))
-        // En-tête (tête, position 1) + les deux lignes de cause (4, 6) +
-        // les lignes hors groupe (0, 7). Les cadres (2, 3, 5) sont omis.
+        // Chronologique : la ligne hors groupe (0), l'EN-TÊTE (1), les
+        // deux causes visibles (4, 6), la ligne hors groupe (7). Les
+        // cadres (2, 3, 5) sont omis de CETTE projection.
         assertEquals(5, rangees.size)
-        val entete = rangees.first() as RangeeRegroupeeLogcat.EnteteLogcat
+        val entete = rangees[1] as RangeeRegroupeeLogcat.EnteteLogcat
         assertTrue(entete.groupe is GroupeLogcat.Trace)
         assertEquals(1, entete.position)
         assertEquals(6, entete.lignesVisibles)
         assertEquals(2, entete.causesVisibles)
-        val positions = rangees.drop(1).map { (it as RangeeRegroupeeLogcat.Ligne).position }
-        assertEquals(listOf(0, 4, 6, 7), positions)
-        assertCouverture(rangees, visibles)
+        assertEquals(listOf(0, 4, 6, 7), positionsDesLignes(rangees))
+        assertSansDoublon(rangees, visibles)
     }
 
     @Test
@@ -110,9 +134,9 @@ class ProjectionRegroupeeLogcatTest {
         assertEquals(0, entete.position)
         assertEquals(
             listOf(1, 2),
-            rangees.drop(1).map { (it as RangeeRegroupeeLogcat.Ligne).position },
+            positionsDesLignes(rangees),
         )
-        assertCouverture(rangees, visibles)
+        assertCouvertureExacte(rangees, visibles)
     }
 
     @Test
@@ -136,6 +160,6 @@ class ProjectionRegroupeeLogcatTest {
         val entete = rangees[1] as RangeeRegroupeeLogcat.EnteteLogcat
         assertEquals(2, entete.position)
         assertEquals(1, entete.lignesVisibles)
-        assertCouverture(rangees, listOf(0, 2, 3))
+        assertCouvertureExacte(rangees, listOf(0, 2, 3))
     }
 }

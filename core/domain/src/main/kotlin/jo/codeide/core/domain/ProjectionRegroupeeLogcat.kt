@@ -140,12 +140,7 @@ public object ProjectionRegroupeeLogcat {
     }
 
     /** Compte les CAUSES visibles d'une trace (mêmes bornes). */
-    private fun compterCausesVisibles(
-        visibles: List<Int>,
-        depart: Int,
-        borneFin: Int,
-        causes: Set<Int>?,
-    ): Int {
+    private fun compterCausesVisibles(visibles: List<Int>, depart: Int, borneFin: Int, causes: Set<Int>?): Int {
         if (causes.isNullOrEmpty()) return 0
         var compteur = 0
         var i = depart

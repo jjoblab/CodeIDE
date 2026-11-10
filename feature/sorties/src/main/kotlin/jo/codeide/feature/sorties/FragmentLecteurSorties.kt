@@ -427,9 +427,11 @@ public class FragmentLecteurSorties :
         } else {
             when (val rangee = projection.rangees[premiere]) {
                 is RangeeLecteur.EnteteTache -> rangee.groupe
+
                 // Le Logcat regroupé n'a pas d'en-tête collant (pas de
                 // tâche — le résumé du regroupement reste `null`).
                 is RangeeLecteur.EnteteLogcat -> null
+
                 is RangeeLecteur.Ligne -> groupeDe(regroupe, projection, premiere)
             }
         }
