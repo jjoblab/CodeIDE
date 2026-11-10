@@ -138,31 +138,51 @@ public object RegroupementLogcat {
         val horsGroupes = ArrayList<Int>()
         var position = 0
         while (position < lignes.size) {
-            val finRun = finRepetition(lignes, position)
-            val taille = finRun - position + 1
-            if (taille >= REPETITION_MIN) {
-                groupes.add(GroupeLogcat.Repetition(position, finRun, taille))
-                position = finRun + 1
-                continue
-            }
-            val suitTrace = position + 1 < lignes.size &&
-                TracesLogcat.estLigneTrace(lignes[position + 1].message)
-            if (TracesLogcat.estTeteTrace(lignes[position].message) && suitTrace) {
-                val finTrace = finTrace(lignes, position)
-                groupes.add(
-                    GroupeLogcat.Trace(
-                        debut = position,
-                        fin = finTrace,
-                        positionsCauses = causesEntre(lignes, position + 1, finTrace),
-                    ),
-                )
-                position = finTrace + 1
-                continue
-            }
-            horsGroupes.add(position)
-            position++
+            position = consommerGroupe(lignes, position, groupes, horsGroupes)
         }
         return EtatRegroupementLogcat(groupes = groupes, horsGroupes = horsGroupes)
+    }
+
+    /** Consomme LE groupe qui commence à [position] (répétition, trace
+     *  ou ligne isolée) et rend la position SUIVANTE — un groupe par
+     *  appel, aucun saut dans la boucle du lecteur. */
+    private fun consommerGroupe(
+        lignes: List<LigneSortie>,
+        position: Int,
+        groupes: MutableList<GroupeLogcat>,
+        horsGroupes: MutableList<Int>,
+    ): Int {
+        val finRun = finRepetition(lignes, position)
+        val finTrace = finTraceSiTeteSuivie(lignes, position)
+        val groupe: GroupeLogcat? = when {
+            finRun - position + 1 >= REPETITION_MIN ->
+                GroupeLogcat.Repetition(position, finRun, finRun - position + 1)
+
+            finTrace != null ->
+                GroupeLogcat.Trace(position, finTrace, causesEntre(lignes, position + 1, finTrace))
+
+            else -> null
+        }
+        return when (groupe) {
+            null -> {
+                horsGroupes.add(position)
+                position + 1
+            }
+
+            else -> {
+                groupes.add(groupe)
+                groupe.fin + 1
+            }
+        }
+    }
+
+    /** La fin d'une trace si la ligne [position] EN EST une tête suivie
+     *  d'au moins un cadre ou une cause, `null` sinon. */
+    private fun finTraceSiTeteSuivie(lignes: List<LigneSortie>, position: Int): Int? {
+        val suitTrace = position + 1 < lignes.size &&
+            TracesLogcat.estLigneTrace(lignes[position + 1].message)
+        if (!TracesLogcat.estTeteTrace(lignes[position].message) || !suitTrace) return null
+        return finTrace(lignes, position)
     }
 
     /** Fin de la run de répétition ouverte à [debut] (incluse). */

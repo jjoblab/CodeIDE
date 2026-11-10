@@ -223,48 +223,10 @@ public class FragmentLecteurSorties :
                 }
             },
         )
-        binding.boutonRegex.setOnClickListener {
-            regexActif = !regexActif
-            // Bascule visuelle par accent (même discipline que le filtre
-            // Logcat — l'état ne dépend jamais d'une couleur seule :
-            // TalkBack annonce via la description du bouton).
-            val attributAccent = if (regexActif) {
-                androidx.appcompat.R.attr.colorPrimary
-            } else {
-                com.google.android.material.R.attr.colorOnSurfaceVariant
-            }
-            binding.boutonRegex.setTextColor(
-                MaterialColors.getColor(binding.boutonRegex, attributAccent, 0),
-            )
-            viewModel.definirRecherche(champRecherche.text.toString(), regexActif)
-        }
+        brancherRegex()
         binding.boutonCorrespondancePrecedente.setOnClickListener { viewModel.naviguerCorrespondance(-1) }
         binding.boutonCorrespondanceSuivante.setOnClickListener { viewModel.naviguerCorrespondance(+1) }
-        // Saut « erreur précédente / suivante » (spec SORTIES § 5.4, lot
-        // L5) : le départ est la première rangée VISIBLE du lecteur — le
-        // parcours boucle sur les repères d'erreurs (jamais un geste mort).
-        binding.boutonErreurPrecedente.setOnClickListener {
-            viewModel.naviguerErreur(-1, lecteur.premiereRangeeVisible())
-        }
-        binding.boutonErreurSuivante.setOnClickListener {
-            viewModel.naviguerErreur(+1, lecteur.premiereRangeeVisible())
-        }
-        binding.boutonEtiquettes.setOnClickListener { ouvrirMenuEtiquettes() }
-        binding.boutonPidTid.setOnClickListener {
-            // Option d'affichage pid/tid (spec SORTIES § 5.4) — l'état
-            // actif s'accentue (même discipline que le bouton regex :
-            // jamais la couleur seule, TalkBack lit la description).
-            val actif = !viewModel.reglages.value.affichePidTid
-            viewModel.regler { options -> options.copy(affichePidTid = actif) }
-            val attributAccent = if (actif) {
-                androidx.appcompat.R.attr.colorPrimary
-            } else {
-                com.google.android.material.R.attr.colorOnSurfaceVariant
-            }
-            binding.boutonPidTid.setTextColor(
-                MaterialColors.getColor(binding.boutonPidTid, attributAccent, 0),
-            )
-        }
+        brancherGestesLot5()
         binding.boutonRegrouper.setOnClickListener {
             // Bascule brut ↔ regroupé (spec SORTIES § 4) : la bascule est
             // symétrique, le tampon ne bouge jamais.
@@ -311,6 +273,57 @@ public class FragmentLecteurSorties :
             }
         }
         binding.boutonEffacer.setOnClickListener { viewModel.effacer() }
+    }
+
+    /** L'option regex — la bascule visuelle par accent (même discipline
+     *  que le filtre Logcat : l'état ne dépend jamais d'une couleur
+     *  seule, TalkBack annonce via la description du bouton). */
+    private fun brancherRegex() {
+        binding.boutonRegex.setOnClickListener {
+            regexActif = !regexActif
+            val attributAccent = if (regexActif) {
+                androidx.appcompat.R.attr.colorPrimary
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
+            binding.boutonRegex.setTextColor(
+                MaterialColors.getColor(binding.boutonRegex, attributAccent, 0),
+            )
+            viewModel.definirRecherche(champRecherche.text.toString(), regexActif)
+        }
+    }
+
+    /** Les gestes du lot L5 (spec SORTIES § 5.4) : saut « erreur
+     *  précédente / suivante » (le départ est la première rangée
+     *  VISIBLE du lecteur — le parcours boucle sur les repères, jamais
+     *  un geste mort), puces d'étiquettes, option pid/tid. */
+    private fun brancherGestesLot5() {
+        binding.boutonErreurPrecedente.setOnClickListener {
+            viewModel.naviguerErreur(-1, lecteur.premiereRangeeVisible())
+        }
+        binding.boutonErreurSuivante.setOnClickListener {
+            viewModel.naviguerErreur(+1, lecteur.premiereRangeeVisible())
+        }
+        binding.boutonEtiquettes.setOnClickListener { ouvrirMenuEtiquettes() }
+        brancherPidTid()
+    }
+
+    /** L'option d'affichage pid/tid — l'état actif s'accentue (même
+     *  discipline que le bouton regex : jamais la couleur seule,
+     *  TalkBack lit la description). */
+    private fun brancherPidTid() {
+        binding.boutonPidTid.setOnClickListener {
+            val actif = !viewModel.reglages.value.affichePidTid
+            viewModel.regler { options -> options.copy(affichePidTid = actif) }
+            val attributAccent = if (actif) {
+                androidx.appcompat.R.attr.colorPrimary
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
+            binding.boutonPidTid.setTextColor(
+                MaterialColors.getColor(binding.boutonPidTid, attributAccent, 0),
+            )
+        }
     }
 
     /** Les états publiés : bandeaux d'honnêteté, compteur n/N, pause. */
