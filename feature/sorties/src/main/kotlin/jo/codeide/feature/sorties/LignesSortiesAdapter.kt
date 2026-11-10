@@ -12,21 +12,27 @@ import androidx.core.view.isGone
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.CouleurAnsi
+import jo.codeide.core.domain.GroupeTache
 import jo.codeide.core.domain.NiveauSortie
+import jo.codeide.core.domain.PositionSource
 import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.ui.NiveauPastilleSortie
+import jo.codeide.feature.sorties.databinding.EnteteTacheSortieBinding
 import jo.codeide.feature.sorties.databinding.LigneSortieBinding
 import jo.codeide.core.ui.R as RUi
 
 /**
- * L'adaptateur des rangées du lecteur (ADR 0159 décision 2, lot L2) :
+ * L'adaptateur des rangées du lecteur (ADR 0159 décision 2, lot L2 ;
+ * lot L3 : DEUX types de vue — les lignes et les en-têtes regroupés) :
  * RecyclerView VIRTUALISÉ sur le modèle de rangées — **sans DiffUtil**
  * (leçon de l'ADR 0074 : append par lot, notifications bornées, les
  * deltas viennent de l'index de projection du ViewModel).
  *
  * Le bind n'alloue PAS les analyses : les segments SGR sont pré-parsés
  * dans [RangeeSortie] à l'ingestion — le bind ne construit que les spans
- * AndroidX qui les portent, sur des rangées recyclées.
+ * AndroidX qui les portent, sur des rangées recyclées. Les en-têtes
+ * regroupés ([RangeeLecteur.EnteteTache]) portent leurs données dans la
+ * rangée (une dérivation — jamais une seconde liste, ADR 0078).
  *
  * Couleurs ANSI minimales par RÔLES DE THÈME (spec SORTIES § 3.9 — les
  * huit couleurs analytiques se mappent sur les rôles sémantiques réels ;
@@ -36,20 +42,34 @@ import jo.codeide.core.ui.R as RUi
  *
  * Sélection : la plage de rangées sélectionnée est teintée
  * (`colorPrimaryContainer` — c'est une sélection, jamais une erreur).
+ * Les en-têtes ne participent PAS à la sélection (ils portent du
+ * contenu, pas des lignes — la copie reste un geste sur les lignes).
+ *
+ * Liens source (lot L3) : un appui simple sur une ligne qui PORTE une
+ * position cliquable ouvre le source (le geste de l'onglet Problèmes —
+ * pas de second endroit pour la même information) ; hors sélection, un
+ * appui sans position n'agit pas.
  *
  * TalkBack : chaque rangée annonce niveau, source, horodatage relatif et
- * texte (spec SORTIES § 3.10 — description assemblée au bind).
+ * texte (spec SORTIES § 3.10 — description assemblée au bind) ; chaque
+ * en-tête annonce chemin, statut, durée, compteur et état de repli.
  *
  * @param surLigneAppuyee appui simple (index de rangée) — le fragment
  *           étend la sélection si le mode est ouvert.
  * @param surLigneLongueAppuyee appui long (index de rangée) — ouvre le
  *           mode sélection.
+ * @param surPositionSource appui sur une ligne PORTANT une position
+ *           cliquable (liens source, lot L3).
+ * @param surEnteteAppuyee appui sur un en-tête (bascule du repli).
  */
+@Suppress("TooManyFunctions")
 internal class LignesSortiesAdapter(
     private val surLigneAppuyee: (Int) -> Unit,
     private val surLigneLongueAppuyee: (Int) -> Unit,
-) : RecyclerView.Adapter<LignesSortiesAdapter.LigneViewHolder>() {
-    private var rangees: List<RangeeSortie> = emptyList()
+    private val surPositionSource: (PositionSource) -> Unit,
+    private val surEnteteAppuyee: (Int) -> Unit,
+) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+    private var rangees: List<RangeeLecteur> = emptyList()
     private var options: OptionsRenduRangee = OptionsRenduRangee()
     private var origineMs: Long = 0L
     private var selection: IntRange? = null
@@ -61,6 +81,9 @@ internal class LignesSortiesAdapter(
     /** La teinte de la SÉLECTION (rôle conteneur primaire) — résolue au
      *  rattachement, posée au bind (patron IndicateurEtat). */
     private var teinteSelection: android.content.res.ColorStateList? = null
+
+    /** La teinte du CHEMIN d'en-tête portant une ERREUR (rôle erreur). */
+    private var teinteErreur: Int = 0
 
     /** Les options de rendu courantes (le zoom pincé les lit). */
     internal val optionsCourantes: OptionsRenduRangee
@@ -82,9 +105,9 @@ internal class LignesSortiesAdapter(
     /**
      * Publie la projection : delta non nul → notifications BORNÉES
      * (retrait de tête + append fin) ; `null` → re-liaison complète
-     * (reprise de pause, filtre, effacement).
+     * (reprise de pause, filtre, effacement, bascule regroupée).
      */
-    internal fun publierProjection(rangeesNouvelles: List<RangeeSortie>, delta: DeltaProjection?) {
+    internal fun publierProjection(rangeesNouvelles: List<RangeeLecteur>, delta: DeltaProjection?) {
         rangees = rangeesNouvelles
         if (delta == null || rangeesNouvelles.isEmpty()) {
             notifyDataSetChanged()
@@ -109,16 +132,32 @@ internal class LignesSortiesAdapter(
                 0,
             ),
         )
+        teinteErreur = MaterialColors.getColor(recyclerView.context, androidx.appcompat.R.attr.colorError, 0)
     }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LigneViewHolder = LigneViewHolder(
-        LigneSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
-    )
+    override fun getItemViewType(position: Int): Int = when (rangees[position]) {
+        is RangeeLecteur.EnteteTache -> TYPE_ENTETE
+        else -> TYPE_LIGNE
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
+        if (viewType == TYPE_ENTETE) {
+            EnteteViewHolder(
+                EnteteTacheSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+            )
+        } else {
+            LigneViewHolder(
+                LigneSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+            )
+        }
 
     override fun getItemCount(): Int = rangees.size
 
-    override fun onBindViewHolder(holder: LigneViewHolder, position: Int) {
-        holder.lier(position, rangees[position])
+    override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+        when (val rangee = rangees[position]) {
+            is RangeeLecteur.EnteteTache -> (holder as EnteteViewHolder).lier(rangee)
+            is RangeeLecteur.Ligne -> (holder as LigneViewHolder).lier(position, rangee.rangee)
+        }
     }
 
     /** La teinte de rôle d'une couleur ANSI (résolue au rattachement). */
@@ -169,7 +208,17 @@ internal class LignesSortiesAdapter(
             val plage = selection
             liaison.root.isSelected = plage != null && indice in plage
             liaison.root.backgroundTintList = if (plage != null && indice in plage) teinteSelection else null
-            liaison.root.setOnClickListener { surLigneAppuyee(indice) }
+            liaison.root.setOnClickListener {
+                // Liens source (lot L3) : une ligne qui porte une position
+                // s'ouvre au simple appui HORS sélection (le geste reste
+                // explicite — le mode sélection reste maître).
+                val position = rangee.positionsSource.firstOrNull()
+                if (plage != null || position == null) {
+                    surLigneAppuyee(indice)
+                } else {
+                    surPositionSource(position)
+                }
+            }
             liaison.root.setOnLongClickListener {
                 surLigneLongueAppuyee(indice)
                 true
@@ -233,6 +282,111 @@ internal class LignesSortiesAdapter(
             }
             return construit
         }
+    }
+
+    /** La vue d'un en-tête regroupé (chemin, statut, durée, repli). */
+    internal inner class EnteteViewHolder(internal val liaison: EnteteTacheSortieBinding) :
+        RecyclerView.ViewHolder(liaison.root) {
+        internal fun lier(rangee: RangeeLecteur.EnteteTache) {
+            val contexte = liaison.root.context
+            val groupe = rangee.groupe
+            liaison.cheminEntete.text = groupe.chemin
+            // Le chemin d'une tâche ÉCHOUÉE se colore (rôle erreur — la
+            // lettre du statut porte l'information sans la couleur).
+            liaison.cheminEntete.setTextColor(
+                if (groupe.erreurs > 0 || groupe.statutTexte == jo.codeide.core.domain.StatutTacheGradle.ECHOUEE) {
+                    teinteErreur
+                } else {
+                    MaterialColors.getColor(liaison.cheminEntete, com.google.android.material.R.attr.colorOnSurface, 0)
+                },
+            )
+            liaison.statutEntete.text = statutTexte(groupe)
+            liaison.dureeEntete.isGone = groupe.dureeMs == null
+            groupe.dureeMs?.let { duree ->
+                liaison.dureeEntete.text = dureeTexte(duree)
+            }
+            liaison.graviteEntete.isGone = groupe.erreurs == 0 && groupe.avertissements == 0
+            if (!liaison.graviteEntete.isGone) {
+                liaison.graviteEntete.text = graviteTexte(contexte, groupe)
+            }
+            liaison.chevronEntete.text = if (rangee.replie) {
+                contexte.getString(R.string.sorties_repli_ferme)
+            } else {
+                contexte.getString(R.string.sorties_repli_ouvert)
+            }
+            liaison.root.setOnClickListener { surEnteteAppuyee(rangee.indiceGroupe) }
+            // TalkBack : chemin, statut, compteur, repli (la couleur
+            // seule ne porte jamais l'information).
+            liaison.root.contentDescription = contexte.getString(
+                R.string.sorties_a11y_entete_tache,
+                groupe.chemin,
+                statutTexte(groupe),
+                rangee.lignesVisibles,
+                contexte.getString(
+                    if (rangee.replie) R.string.sorties_repli_ferme else R.string.sorties_repli_ouvert,
+                ),
+            )
+        }
+
+        /** Le statut affiché : l'ÉVÉNEMENT fait foi, le texte affine (D1). */
+        private fun statutTexte(groupe: GroupeTache): String = when (groupe.statutEvenement) {
+            jo.codeide.core.domain.StatutTache.ECHOUEE -> "✕"
+
+            jo.codeide.core.domain.StatutTache.SAUTEE -> "–"
+
+            null -> when (groupe.statutTexte) {
+                jo.codeide.core.domain.StatutTacheGradle.ECHOUEE -> "✕"
+                jo.codeide.core.domain.StatutTacheGradle.A_JOUR -> "○"
+                jo.codeide.core.domain.StatutTacheGradle.DEPUIS_CACHE -> "◇"
+                jo.codeide.core.domain.StatutTacheGradle.SANS_SOURCE -> "–"
+                jo.codeide.core.domain.StatutTacheGradle.SAUTEE -> "–"
+                jo.codeide.core.domain.StatutTacheGradle.EXECUTEE -> "●"
+                null -> ""
+            }
+
+            else -> "●"
+        }
+
+        /** La durée serveur affichée (l'événement fait foi — jamais une
+         *  mesure locale). */
+        private fun dureeTexte(dureeMs: Long): String = when {
+            dureeMs >= MS_PAR_SECONDE -> String.format(
+                java.util.Locale.getDefault(),
+                "%.1f s",
+                dureeMs / MS_PAR_SECONDE.toDouble(),
+            )
+
+            dureeMs > 0 -> "$dureeMs ms"
+
+            else -> ""
+        }
+
+        /** Le résumé de gravité du groupe (« 2 ! · 1 ⚠ »). */
+        private fun graviteTexte(contexte: Context, groupe: GroupeTache): String {
+            val morceaux = ArrayList<String>()
+            if (groupe.erreurs > 0) {
+                morceaux.add(
+                    contexte.getString(R.string.sorties_entete_erreurs, groupe.erreurs),
+                )
+            }
+            if (groupe.avertissements > 0) {
+                morceaux.add(
+                    contexte.getString(R.string.sorties_entete_avertissements, groupe.avertissements),
+                )
+            }
+            return morceaux.joinToString(separator = " · ")
+        }
+    }
+
+    private companion object {
+        /** Type de vue : une ligne de tampon. */
+        const val TYPE_LIGNE = 0
+
+        /** Type de vue : un en-tête regroupé. */
+        const val TYPE_ENTETE = 1
+
+        /** Millisecondes par seconde (affichage de la durée serveur). */
+        const val MS_PAR_SECONDE = 1_000L
     }
 }
 

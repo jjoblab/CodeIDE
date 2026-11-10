@@ -62,4 +62,27 @@
          pourquoi et propose l\'action suivante). -->
     <string name="sorties_vide_titre">Aucune sortie</string>
     <string name="sorties_vide_message">Le tampon est vide : lancez un build, une synchronisation, ou armez une séquence du banc pour alimenter le lecteur.</string>
+
+    <!-- Mode regroupé, résumé et replis (lot L3 — spec SORTIES § 4). -->
+    <string name="sorties_mode_regroupe">Regrouper</string>
+    <string name="sorties_mode_brut">Brut</string>
+    <string name="sorties_repli_ouvert">▾</string>
+    <string name="sorties_repli_ferme">▸</string>
+    <string name="sorties_entete_erreurs">%1$d !</string>
+    <string name="sorties_entete_avertissements">%1$d ⚠</string>
+    <string name="sorties_a11y_entete_tache">Tâche %1$s, statut %2$s, %3$d lignes visibles, groupe %4$s</string>
+    <string name="sorties_resume_reussi">Build réussi</string>
+    <string name="sorties_resume_echoue">Build échoué</string>
+    <string name="sorties_resume_annule">Build annulé</string>
+    <string name="sorties_resume_en_cours">Build en cours</string>
+    <string name="sorties_resume_duree">%1$.1f s</string>
+    <string name="sorties_resume_taches">%1$d tâches</string>
+    <string name="sorties_resume_executees">%1$d exécutées</string>
+    <string name="sorties_resume_a_jour">%1$d à jour</string>
+    <string name="sorties_resume_cache">%1$d du cache</string>
+    <string name="sorties_resume_sautees">%1$d sautées</string>
+    <string name="sorties_resume_taches_aucune">Aucun compteur de tâches (le build n\'est pas allé au bout de la synthèse)</string>
+    <string name="sorties_resume_gravites">%1$d erreur(s) · %2$d avertissement(s) · %3$d lignes</string>
+    <string name="sorties_consultation_bandeau">Lecture d\'une exécution passée — le direct est retenu, « revenir au direct » l\'écrira.</string>
+    <string name="sorties_saut_sans_editeur">Aucun éditeur ouvert : le saut au source s\'effectuera depuis l\'éditeur (lot L5).</string>
 </resources>

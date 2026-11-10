@@ -62,4 +62,25 @@
          proposes the next action). -->
     <string name="sorties_vide_titre">No output</string>
     <string name="sorties_vide_message">The buffer is empty: run a build or a sync, or arm a bench sequence to feed the reader.</string>
+    <string name="sorties_mode_regroupe">Group</string>
+    <string name="sorties_mode_brut">Raw</string>
+    <string name="sorties_repli_ouvert">▾</string>
+    <string name="sorties_repli_ferme">▸</string>
+    <string name="sorties_entete_erreurs">%1$d !</string>
+    <string name="sorties_entete_avertissements">%1$d ⚠</string>
+    <string name="sorties_a11y_entete_tache">Task %1$s, status %2$s, %3$d visible lines, group %4$s</string>
+    <string name="sorties_resume_reussi">Build succeeded</string>
+    <string name="sorties_resume_echoue">Build failed</string>
+    <string name="sorties_resume_annule">Build cancelled</string>
+    <string name="sorties_resume_en_cours">Build running</string>
+    <string name="sorties_resume_duree">%1$.1f s</string>
+    <string name="sorties_resume_taches">%1$d tasks</string>
+    <string name="sorties_resume_executees">%1$d executed</string>
+    <string name="sorties_resume_a_jour">%1$d up-to-date</string>
+    <string name="sorties_resume_cache">%1$d from cache</string>
+    <string name="sorties_resume_sautees">%1$d skipped</string>
+    <string name="sorties_resume_taches_aucune">No task counters (the build never reached the summary)</string>
+    <string name="sorties_resume_gravites">%1$d error(s) · %2$d warning(s) · %3$d lines</string>
+    <string name="sorties_consultation_bandeau">Reading a past execution — live output is held back until “back to live”.</string>
+    <string name="sorties_saut_sans_editeur">No editor open: the jump to source will work from the editor (lot L5).</string>
 </resources>

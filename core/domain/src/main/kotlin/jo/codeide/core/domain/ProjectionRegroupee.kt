@@ -88,7 +88,13 @@ public object ProjectionRegroupee {
             if (dansGroupe && !enteteEmise) {
                 enteteEmise = true
                 val (indice, groupe) = courant!!
-                val visiblesGroupe = compterVisibles(visibles, indiceVisible, groupe.fin)
+                // Le compteur honnête : les lignes AFFICHÉES sous
+                // l'en-tête — la ligne d'en-tête elle-même (remplacée par
+                // la rangée d'en-tête quand l'ancre texte l'a ouverte)
+                // n'est pas comptée une seconde fois (règle 14 : jamais
+                // deux fois).
+                val visiblesGroupe = compterVisibles(visibles, indiceVisible, groupe.fin) -
+                    (if (groupe.statutTexte != null && visibles.contains(groupe.debut)) 1 else 0)
                 if (visiblesGroupe > 0) {
                     liste.add(
                         RangeeRegroupee.EnteteTache(
@@ -100,7 +106,13 @@ public object ProjectionRegroupee {
                 }
             }
             val replie = dansGroupe && replis.contains(courant!!.index)
-            if (!replie) {
+            // La ligne d'EN-TÊTE ouverte par l'ancre texte n'est PAS
+            // ré-ajoutée comme Ligne : la rangée d'en-tête LA REPRÉSENTE
+            // (jamais deux fois — critère § 10.1.1).
+            val estLaLigneEntete = dansGroupe &&
+                position == courant.value.debut &&
+                courant.value.statutTexte != null
+            if (!replie && !estLaLigneEntete) {
                 liste.add(RangeeRegroupee.Ligne(position))
             }
         }

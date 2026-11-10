@@ -43,18 +43,19 @@ internal class SelectionLecteur {
     }
 
     /**
-     * Le texte PUR de la plage (copie explicite), `null` hors sélection.
+     * Le texte PUR de la plage (copie explicite), `null` hors sélection —
+     * seules les RANGÉES LIGNE se copient (les en-têtes regroupés portent
+     * du contenu, pas des lignes — lot L3).
      *
      * @param rangees les rangées affichées (la projection courante).
      */
-    public fun texteDe(rangees: List<RangeeSortie>): String? {
-        val plageCourante = _plage.value ?: return null
-        return if (rangees.size <= plageCourante.last) {
-            null
-        } else {
-            rangees
-                .subList(plageCourante.first, plageCourante.last + 1)
-                .joinToString(separator = "\n") { rangee -> rangee.textePur }
-        }
+    public fun texteDe(rangees: List<RangeeLecteur>): String? {
+        val plage = _plage.value
+        val visibles = plage?.let { bornes -> rangees.takeIf { it.size > bornes.last } }
+        if (plage == null || visibles == null) return null
+        return visibles
+            .subList(plage.first, plage.last + 1)
+            .mapNotNull { rangee -> (rangee as? RangeeLecteur.Ligne)?.rangee }
+            .joinToString(separator = "\n") { rangee -> rangee.textePur }
     }
 }

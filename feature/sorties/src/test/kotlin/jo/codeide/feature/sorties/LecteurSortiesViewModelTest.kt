@@ -93,7 +93,7 @@ class LecteurSortiesViewModelTest {
         assertEquals(3, projection.tailleTampon)
         assertEquals(2L, projection.pertes)
         // La tête (1, 2) est tombée : la fenêtre commence à 3.
-        assertEquals("tache 3", projection.rangees.first().textePur)
+        assertEquals("tache 3", (projection.rangees.first() as RangeeLecteur.Ligne).rangee.textePur)
         assertEquals(3, projection.rangees.size)
     }
 

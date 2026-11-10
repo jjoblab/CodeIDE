@@ -58,6 +58,8 @@ class MoteurLecteurSortiesTest {
         adapter = LignesSortiesAdapter(
             surLigneAppuyee = {},
             surLigneLongueAppuyee = {},
+            surPositionSource = {},
+            surEnteteAppuyee = {},
         )
         lecteur = LecteurSortiesRecycler(
             liste = liste,
@@ -72,12 +74,19 @@ class MoteurLecteurSortiesTest {
         LigneSortie(SourceSortie.BUILD, message, horodatageMs = 1_000L, niveau = niveau),
     )
 
+    /** Les rangées LIGNE d'une liste (position de tampon = rang d'affichage
+     *  dans ces tests — l'index de projection du lecteur). */
+    private fun lignes(rangees: List<RangeeSortie>): List<RangeeLecteur> =
+        rangees.mapIndexed { indice, rangee -> RangeeLecteur.Ligne(indice, rangee) }
+
     @Test
     fun `une rangee lie ses colonnes et porte sa description TalkBack`() {
         val projection = ProjectionLecteur(
-            rangees = listOf(
-                rangee("> Task :app:compileDebugKotlin"),
-                rangee("w: variable jamais utilisée", NiveauSortie.AVERTISSEMENT),
+            rangees = lignes(
+                listOf(
+                    rangee("> Task :app:compileDebugKotlin"),
+                    rangee("w: variable jamais utilisée", NiveauSortie.AVERTISSEMENT),
+                ),
             ),
             delta = null,
             tailleTampon = 2,
@@ -87,7 +96,7 @@ class MoteurLecteurSortiesTest {
         )
         lecteur.afficherProjection(projection)
         adapter.definirOptions(OptionsRenduRangee(afficheNumeros = true, afficheHorodatage = true), origine = 0L)
-        val holder = lier(1)
+        val holder = lierLigne(1)
         assertEquals("2", holder.liaison.numeroSortie.text.toString())
         assertEquals("+1,000 s", holder.liaison.horodatageSortie.text.toString())
         assertEquals("w: variable jamais utilisée", holder.liaison.texteSortie.text.toString())
@@ -105,12 +114,12 @@ class MoteurLecteurSortiesTest {
     @Test
     fun `un delta borné ajoute en fin sans relier toute la liste`() {
         lecteur.afficherProjection(
-            ProjectionLecteur(listOf(rangee("un"), rangee("deux")), DeltaProjection(0, 2), 2, 0L, 0, 0L),
+            ProjectionLecteur(lignes(listOf(rangee("un"), rangee("deux"))), DeltaProjection(0, 2), 2, 0L, 0, 0L),
         )
         assertEquals(2, adapter.itemCount)
         lecteur.afficherProjection(
             ProjectionLecteur(
-                listOf(rangee("un"), rangee("deux"), rangee("trois")),
+                lignes(listOf(rangee("un"), rangee("deux"), rangee("trois"))),
                 DeltaProjection(0, 1),
                 3,
                 0L,
@@ -126,7 +135,7 @@ class MoteurLecteurSortiesTest {
     @Test
     fun `la remontée coupe le suivi honnête - le bouton réapparaît`() {
         lecteur.afficherProjection(
-            ProjectionLecteur((1..50).map { rangee("ligne $it") }, DeltaProjection(0, 50), 50, 0L, 0, 0L),
+            ProjectionLecteur(lignes((1..50).map { rangee("ligne $it") }), DeltaProjection(0, 50), 50, 0L, 0, 0L),
         )
         disposer()
         assertTrue(suiviActif)
@@ -144,13 +153,13 @@ class MoteurLecteurSortiesTest {
     @Test
     fun `la sélection se teinte et se retire`() {
         lecteur.afficherProjection(
-            ProjectionLecteur(listOf(rangee("un"), rangee("deux")), DeltaProjection(0, 2), 2, 0L, 0, 0L),
+            ProjectionLecteur(lignes(listOf(rangee("un"), rangee("deux"))), DeltaProjection(0, 2), 2, 0L, 0, 0L),
         )
         lecteur.definirSelection(0..1)
-        val holder = lier(0)
+        val holder = lierLigne(0)
         assertTrue(holder.liaison.root.isSelected)
         lecteur.definirSelection(null)
-        val holderApres = lier(0)
+        val holderApres = lierLigne(0)
         assertFalse(holderApres.liaison.root.isSelected)
     }
 
@@ -158,18 +167,20 @@ class MoteurLecteurSortiesTest {
     fun `les repères de défilement sont normalisés par l index`() {
         lecteur.afficherProjection(
             ProjectionLecteur(
-                (1..10).map { indice ->
-                    rangee(
-                        "ligne $indice",
-                        if (indice ==
-                            3
-                        ) {
-                            NiveauSortie.ERREUR
-                        } else {
-                            NiveauSortie.INDETERMINE
-                        },
-                    )
-                },
+                lignes(
+                    (1..10).map { indice ->
+                        rangee(
+                            "ligne $indice",
+                            if (indice ==
+                                3
+                            ) {
+                                NiveauSortie.ERREUR
+                            } else {
+                                NiveauSortie.INDETERMINE
+                            },
+                        )
+                    },
+                ),
                 DeltaProjection(0, 10),
                 10,
                 0L,
@@ -187,21 +198,21 @@ class MoteurLecteurSortiesTest {
     @Test
     fun `le retour à la ligne change la hauteur des rangees`() {
         lecteur.afficherProjection(
-            ProjectionLecteur(listOf(rangee("ligne")), DeltaProjection(0, 1), 1, 0L, 0, 0L),
+            ProjectionLecteur(lignes(listOf(rangee("ligne"))), DeltaProjection(0, 1), 1, 0L, 0, 0L),
         )
         adapter.definirOptions(OptionsRenduRangee(retourALaLigne = true), origine = 0L)
-        val holderPlie = lier(0)
+        val holderPlie = lierLigne(0)
         assertEquals(Integer.MAX_VALUE, holderPlie.liaison.texteSortie.maxLines)
         adapter.definirOptions(OptionsRenduRangee(retourALaLigne = false), origine = 0L)
-        val holderCoupe = lier(0)
+        val holderCoupe = lierLigne(0)
         assertEquals(1, holderCoupe.liaison.texteSortie.maxLines)
     }
 
-    private fun lier(indice: Int): LignesSortiesAdapter.LigneViewHolder {
+    private fun lierLigne(indice: Int): LignesSortiesAdapter.LigneViewHolder {
         // La mesure réelle exige un layout pass : mesurer/bind manuellement.
         val holder = adapter.createViewHolder(liste, adapter.getItemViewType(indice))
         adapter.bindViewHolder(holder, indice)
-        assertNotNull(holder.liaison.texteSortie)
+        assertNotNull((holder as LignesSortiesAdapter.LigneViewHolder).liaison.texteSortie)
         return holder
     }
 

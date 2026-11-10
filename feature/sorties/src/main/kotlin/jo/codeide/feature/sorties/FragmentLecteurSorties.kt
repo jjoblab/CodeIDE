@@ -15,6 +15,8 @@ import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.color.MaterialColors
+import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.RegistrePortSautSource
 import jo.codeide.core.ui.BandeauSorties
 import jo.codeide.core.ui.BaseFragment
 import jo.codeide.core.ui.NiveauEtat
@@ -24,10 +26,12 @@ import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.sorties.databinding.FragmentLecteurSortiesBinding
 
 /**
- * Le lecteur du Centre de sorties (ADR 0159/0162, lot L2) — le fragment
+ * Le lecteur du Centre de sorties (ADR 0159/0162, lots L2-L3) — le fragment
  * qui assemble les ZONES de spec SORTIES § 2 : barre d'outils unifiée,
  * bandeaux d'état (honnêteté règle 14), lecteur virtualisé avec poignée
- * à repères, bouton « ⇣ suivre » du suivi honnête.
+ * à repères, bouton « ⇣ suivre » du suivi honnête ; lot L3 : bascule
+ * brut ↔ regroupé, carte de résumé, en-tête collant de la tâche courante,
+ * bandeau de consultation (ADR 0161.5) et liens source cliquables.
  *
  * Le fragment ne fait que RENDRE l'état du ViewModel et relayer les
  * gestes (règle 1 : aucune logique métier ici — la mécanique vit dans
@@ -43,11 +47,21 @@ import jo.codeide.feature.sorties.databinding.FragmentLecteurSortiesBinding
  *
  * Sélection : appui long = ouvrir/étendre la sélection (toujours
  * explicite — spec § 3.6) ; bouton « copier » = copie du texte pur
- * (contrôleurs ANSI purgés) dans le presse-papiers.
+ * (contrôleurs ANSI purgés) dans le presse-papiers. Une ligne PORTANT
+ * une position cliquable s'ouvre au simple appui hors sélection (liens
+ * source, spec § 4.3).
  */
+@AndroidEntryPoint
+@Suppress("TooManyFunctions")
 internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBinding>() {
     private val viewModel: LecteurSortiesViewModel by activityViewModels()
     private lateinit var lecteur: LecteurSorties
+
+    /** Le registre du port de saut au source (liens source — l'éditeur
+     *  actif s'y enregistre, le lecteur ne le connaît pas, patron ADR
+     *  0122). Injecté : la MÊME instance que celle de l'éditeur. */
+    @javax.inject.Inject
+    lateinit var registreSaut: RegistrePortSautSource
 
     /** Anti-rebond de la frappe (la relance du ViewModel annule et
      *  relance la recherche — le champ reste maître, spec § 3.4). */
@@ -69,6 +83,7 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         brancherLecteur()
         brancherBarre()
         brancherEtats()
+        brancherRegroupement()
         // Rotation : retrouver la position retenue (spec SORTIES § 3.11 —
         // pivoter ne perd ni position, ni filtre, ni recherche : le
         // ViewModel survit, la position est repoussée au nouveau lecteur).
@@ -99,6 +114,14 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
             surLigneLongueAppuyee = { indice ->
                 viewModel.selection.selectionner(indice)
             },
+            surPositionSource = { position ->
+                // Liens source (spec SORTIES § 4.3) : le geste se RELAYE
+                // au ViewModel — la surface reste un rendu d'état.
+                viewModel.demanderOuverture(position)
+            },
+            surEnteteAppuyee = { indiceGroupe ->
+                viewModel.basculerRepli(indiceGroupe)
+            },
         )
         lecteur = LecteurSortiesRecycler(
             liste = binding.listeSorties,
@@ -111,6 +134,7 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         )
         viewModel.projection.collectWithLifecycle(viewLifecycleOwner) { projection ->
             lecteur.afficherProjection(projection)
+            majCollant()
         }
         viewModel.reglages.collectWithLifecycle(viewLifecycleOwner) { options ->
             lecteur.definirReglages(options, viewModel.projection.value.origineMs)
@@ -125,10 +149,20 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         viewModel.allerA.collectWithLifecycle(viewLifecycleOwner) { indice ->
             lecteur.allerALaRangee(indice)
         }
+        // L'en-tête collant suit le défilement (une écoute LOCALE — le
+        // moteur du lot L2 reste inchangé).
+        binding.listeSorties.addOnScrollListener(
+            object : androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: androidx.recyclerview.widget.RecyclerView, dx: Int, dy: Int) {
+                    majCollant()
+                }
+            },
+        )
         binding.boutonSuivre.setOnClickListener { lecteur.reprendreSuivi() }
     }
 
-    /** Les bascules de la barre d'outils (recherche, pause, réglages). */
+    /** Les bascules de la barre d'outils (recherche, regroupement, pause,
+     *  réglages). */
     private fun brancherBarre() {
         champRecherche.addTextChangedListener(
             object : SimpleTextWatcher() {
@@ -159,6 +193,13 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         }
         binding.boutonCorrespondancePrecedente.setOnClickListener { viewModel.naviguerCorrespondance(-1) }
         binding.boutonCorrespondanceSuivante.setOnClickListener { viewModel.naviguerCorrespondance(+1) }
+        binding.boutonRegrouper.setOnClickListener {
+            // Bascule brut ↔ regroupé (spec SORTIES § 4) : la bascule est
+            // symétrique, le tampon ne bouge jamais.
+            viewModel.definirMode(
+                if (viewModel.mode.value == ModeLecture.REGROUPE) ModeLecture.BRUT else ModeLecture.REGROUPE,
+            )
+        }
         binding.boutonPause.setOnClickListener { viewModel.basculerPause() }
         binding.boutonHorodatage.setOnClickListener {
             // Relatif → absolu → masqué (trois états, un bouton).
@@ -240,10 +281,139 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
                 if (enPause) R.drawable.ic_reprise else R.drawable.ic_pause_sorties,
             )
         }
+        viewModel.demandeOuverture.collectWithLifecycle(viewLifecycleOwner) { position ->
+            // Liens source : la demande va au port de l'éditeur ACTIF
+            // (RegistrePortSautSource — le lecteur ne connaît pas
+            // l'éditeur, patron ADR 0122). Port absent : honnête.
+            val port = registreSaut.actif()
+            if (port != null) {
+                port.ouvrir(position.fichier, position.ligne, position.colonne)
+            } else {
+                Retour.snackbar(
+                    binding.root,
+                    requireContext().getString(R.string.sorties_saut_sans_editeur),
+                )
+            }
+        }
+    }
+
+    /** La carte de résumé (mode regroupé — l'état ÉVÉNEMENTS fait foi,
+     *  spec SORTIES § 4.1 ; jamais compté sur le texte seul). */
+    private fun majResume(regroupe: jo.codeide.core.domain.EtatRegroupement?) {
+        val resume = regroupe?.resume
+        binding.carteResume.isGone = resume == null
+        if (resume == null) return
+        val verdict = when (resume.verdict) {
+            jo.codeide.core.domain.VerdictExecution.REUSSI -> getString(R.string.sorties_resume_reussi)
+            jo.codeide.core.domain.VerdictExecution.ECHOUE -> getString(R.string.sorties_resume_echoue)
+            jo.codeide.core.domain.VerdictExecution.ANNULE -> getString(R.string.sorties_resume_annule)
+            null -> getString(R.string.sorties_resume_en_cours)
+        }
+        val duree =
+            resume.dureeMs?.let { getString(R.string.sorties_resume_duree, it / DUREE_SECONDE.toDouble()) } ?: ""
+        binding.resumeVerdict.text = listOf(verdict, duree).filter { it.isNotBlank() }.joinToString(separator = " · ")
+        binding.resumeCompteurs.text = texteCompteurs(resume)
+        binding.resumeGravites.text = getString(
+            R.string.sorties_resume_gravites,
+            resume.erreurs,
+            resume.avertissements,
+            resume.totalLignes,
+        )
+    }
+
+    /** La ligne des compteurs de tâches (les `null` disparaissent — un
+     *  compteur inconnu ne s'affiche jamais comme zéro, règle 14). */
+    private fun texteCompteurs(resume: jo.codeide.core.domain.ResumeExecution): String {
+        val compteurs = resume.compteurs ?: return getString(R.string.sorties_resume_taches_aucune)
+        val morceaux = ArrayList<String>()
+        compteurs.actionnables?.let { morceaux.add(getString(R.string.sorties_resume_taches, it)) }
+        compteurs.executees?.let { morceaux.add(getString(R.string.sorties_resume_executees, it)) }
+        compteurs.aJour?.let { morceaux.add(getString(R.string.sorties_resume_a_jour, it)) }
+        compteurs.depuisCache?.let { morceaux.add(getString(R.string.sorties_resume_cache, it)) }
+        compteurs.sautees?.let { morceaux.add(getString(R.string.sorties_resume_sautees, it)) }
+        return if (morceaux.isEmpty()) {
+            getString(
+                R.string.sorties_resume_taches_aucune,
+            )
+        } else {
+            morceaux.joinToString(separator = " · ")
+        }
+    }
+
+    /** L'en-tête COLLANT : la tâche de la première rangée visible (le
+     *  regroupement et les rangées publiées sont les seuls détenteurs). */
+    private fun majCollant() {
+        val regroupe = viewModel.regroupement.value ?: return
+        if (viewModel.mode.value != ModeLecture.REGROUPE) {
+            binding.collantTache.isGone = true
+            return
+        }
+        val projection = viewModel.projection.value
+        val premiere = if (projection.rangees.isEmpty()) -1 else lecteur.premiereRangeeVisible()
+        val groupe = if (premiere < 0 || premiere >= projection.rangees.size) {
+            regroupe.groupes.lastOrNull()
+        } else {
+            when (val rangee = projection.rangees[premiere]) {
+                is RangeeLecteur.EnteteTache -> rangee.groupe
+                is RangeeLecteur.Ligne -> groupeDe(regroupe, projection, premiere)
+            }
+        }
+        binding.collantTache.isGone = groupe == null
+        groupe?.let { binding.collantTache.text = it.chemin }
+    }
+
+    /** Le groupe qui PORTE la rangée visible [rang] — retrouvé par la
+     *  POSITION DE TAMPON de la ligne (vérité d'index ; les lignes hors
+     *  groupe n'ont pas d'en-tête collant). */
+    private fun groupeDe(
+        regroupe: jo.codeide.core.domain.EtatRegroupement,
+        projection: ProjectionLecteur,
+        rang: Int,
+    ): jo.codeide.core.domain.GroupeTache? {
+        val position = (projection.rangees.getOrNull(rang) as? RangeeLecteur.Ligne)?.position ?: return null
+        return regroupe.groupes.firstOrNull { groupe -> position in groupe.debut..groupe.fin }
+    }
+
+    /** Les états L3 du lecteur : mode (bascule/collant), résumé
+     *  regroupé, consultation, liens source. */
+    private fun brancherRegroupement() {
+        viewModel.mode.collectWithLifecycle(viewLifecycleOwner) { mode ->
+            // La bascule s'accorde : en mode BRUT le bouton PROPOSE le
+            // regroupement ; en REGROUPE il propose le retour au brut.
+            binding.boutonRegrouper.text = getString(
+                if (mode == ModeLecture.REGROUPE) R.string.sorties_mode_brut else R.string.sorties_mode_regroupe,
+            )
+            binding.collantTache.isGone = mode != ModeLecture.REGROUPE
+            majCollant()
+        }
+        viewModel.regroupement.collectWithLifecycle(viewLifecycleOwner) { regroupe ->
+            majResume(regroupe)
+            majCollant()
+        }
+        viewModel.enConsultation.collectWithLifecycle(viewLifecycleOwner) { enConsultation ->
+            binding.bandeauConsultation.isGone = !enConsultation
+        }
+        viewModel.demandeOuverture.collectWithLifecycle(viewLifecycleOwner) { position ->
+            // Liens source : la demande va au port de l'éditeur ACTIF
+            // (RegistrePortSautSource — le lecteur ne connaît pas
+            // l'éditeur, patron ADR 0122). Port absent : honnête.
+            val port = registreSaut.actif()
+            if (port != null) {
+                port.ouvrir(position.fichier, position.ligne, position.colonne)
+            } else {
+                Retour.snackbar(
+                    binding.root,
+                    requireContext().getString(R.string.sorties_saut_sans_editeur),
+                )
+            }
+        }
     }
 
     private companion object {
         /** Délai d'anti-rebond de la recherche (ms). */
         private const val ANTI_REBOND_MS = 300L
+
+        /** Millisecondes par seconde (durée du résumé). */
+        private const val DUREE_SECONDE = 1_000L
     }
 }

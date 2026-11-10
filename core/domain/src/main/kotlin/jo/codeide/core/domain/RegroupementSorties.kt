@@ -38,6 +38,78 @@ public object RegroupementSorties {
         lignes.forEachIndexed { position, ligne -> constructeur.ingere(position, ligne) }
         return constructeur.conclut(lignes.size)
     }
+
+    /**
+     * Dérive la vue regroupée depuis les classifications PRÉ-CALCULÉES
+     * (le lecteur les tient à l'ingestion — chaque ligne est analysée UNE
+     * fois, jamais re-analysée à chaque dérivation : le banc S5 mesure la
+     * bascule brut → regroupé sur un tampon plein).
+     *
+     * @param classifications classifications alignées sur [lignes] (même
+     *        indice) — `null` dans la liste = ligne jamais classée (elle
+     *        est classée au vol, dégradation honnête).
+     */
+    public fun deriverClasse(
+        lignes: List<LigneSortie>,
+        classifications: List<ClassificationLigneGradle?>,
+        execution: EtatExecutionGradle?,
+    ): EtatRegroupement {
+        val constructeur = ConstructeurRegroupement(execution)
+        lignes.forEachIndexed { position, ligne ->
+            constructeur.ingereClasse(position, ligne, classifications.getOrNull(position))
+        }
+        return constructeur.conclut(lignes.size)
+    }
+}
+
+/**
+ * Le résultat de l'analyse structurelle d'UNE ligne — calculé UNE fois
+ * par ligne ([classifier]) et réutilisé par toutes les dérivations
+ * regroupées (aucune regex re-exécutée à la dérivation : le coût du
+ * regroupement devient un simple parcours).
+ *
+ * @property enTete l'en-tête de tâche si la ligne EN ÉTAIT une (la
+ *           frontière texte, Q6).
+ * @property verdict le verdict de fin si la ligne EN ÉTAIT un.
+ * @property resume le résumé « N actionable tasks » si la ligne EN ÉTAIT
+ *           un (jamais dans le bloc d'échec).
+ * @property section la section du flux APRÈS la ligne (l'état du bloc
+ *           d'échec est porté ICI — la classification suit la même
+ *           machine à états que [ParseurFluxGradle] : une section ouverte
+ *           persiste jusqu'à l'en-tête ou au verdict suivant).
+ */
+public data class ClassificationLigneGradle(
+    public val enTete: EnTeteTacheGradle? = null,
+    public val verdict: VerdictGradle? = null,
+    public val resume: ResumeTachesGradle? = null,
+    public val section: SectionFluxGradle = SectionFluxGradle.FLUX,
+) {
+    /** La ligne appartient-elle au bloc d'échec (épinglable) ? */
+    public val dansBloc: Boolean
+        get() = section != SectionFluxGradle.FLUX
+}
+
+/**
+ * La classification d'UNE ligne (les ancres du protocole, UNE fois) —
+ * pure, appelée à l'ingestion par le lecteur en mode regroupé, avec la
+ * section PRECEDENTE de la fenêtre (la machine à états du bloc d'échec).
+ *
+ * @param sectionPrecedente la section courante AVANT cette ligne (FLUX
+ *        pour une première ligne).
+ */
+public fun RegroupementSorties.classifier(
+    ligne: LigneSortie,
+    sectionPrecedente: SectionFluxGradle = SectionFluxGradle.FLUX,
+): ClassificationLigneGradle {
+    val enTete = AncresFluxGradle.enTeteTache(ligne.message)
+    // L'en-tête ou le verdict RÉOUVRENT le flux (une nouvelle tâche suit
+    // parfois un bloc d'échec, cf. 08-erreur-config.log).
+    val structurelle = enTete?.let { ClassificationLigneGradle(enTete = it) }
+        ?: AncresFluxGradle.verdictDe(ligne.message)?.let { ClassificationLigneGradle(verdict = it) }
+    if (structurelle != null) return structurelle
+    val section = AncresFluxGradle.sectionDe(ligne.message, sectionPrecedente)
+    val resume = if (section == SectionFluxGradle.FLUX) AncresFluxGradle.resumeDe(ligne.message) else null
+    return ClassificationLigneGradle(resume = resume, section = section)
 }
 
 /**
@@ -143,8 +215,14 @@ private class ConstructeurRegroupement(private val execution: EtatExecutionGradl
     /** Ingestion d'une ligne : les ancres structurelles d'abord (section
      *  fait foi sur le rattachement de tâche), le groupe ensuite. */
     fun ingere(position: Int, ligne: LigneSortie) {
+        ingereClasse(position, ligne, null)
+    }
+
+    /** Ingestion AVEC classification pré-calculée (`null` = les ancres
+     *  s'exécutent au vol — même verdict par construction, testé). */
+    fun ingereClasse(position: Int, ligne: LigneSortie, classification: ClassificationLigneGradle?) {
         compteGravite(ligne)
-        val enTete = AncresFluxGradle.enTeteTache(ligne.message)
+        val enTete = classification?.enTete ?: AncresFluxGradle.enTeteTache(ligne.message)
         if (enTete != null) {
             // Frontière TEXTE : l'annonce ouvre un groupe (l'événement
             // fait foi sur le statut, cf. AnalyseLigneGradle) — et
