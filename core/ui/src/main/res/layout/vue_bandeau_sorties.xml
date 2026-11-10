@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Enfants de BandeauSorties (ADR 0162, lot L2) — bandeau d'état pleine
+  largeur du lecteur : icône + titre + détail optionnel, teinté par les
+  rôles de NiveauEtat (même sémantique que IndicateurEtat — la forme et
+  le rôle conteneur portent l'état, jamais la couleur seule).
+
+  Gonflés par <merge> dans le LinearLayout que la classe configure.
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <ImageView
+        android:id="@+id/bandeau_sorties_icone"
+        android:layout_width="@dimen/sorties_bandeau_icone_taille"
+        android:layout_height="@dimen/sorties_bandeau_icone_taille"
+        android:importantForAccessibility="no"
+        tools:src="@drawable/ic_indicateur_erreur" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/bandeau_sorties_titre"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceLabelLarge" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/bandeau_sorties_detail"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceBodySmall"
+            android:visibility="gone"
+            tools:text="Détail de l'état"
+            tools:visibility="visible" />
+    </LinearLayout>
+</merge>

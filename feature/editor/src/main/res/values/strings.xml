@@ -530,6 +530,9 @@
     <string name="editor_config_niveau_journal">Niveau de journal du serveur</string>
     <string name="editor_config_niveau_journal_aide">INFO, WARN ou ERROR — à la prochaine vie du serveur</string>
     <string name="editor_config_redemarrer">Redémarrer le serveur de build</string>
+    <string name="editor_config_banc_sorties">Banc sorties (diagnostic)</string>
+    <string name="editor_config_banc_sorties_desc">Mesure propriétaire S1/S2/S6 du lecteur du Centre de sorties (docs/SORTIES_BANC_MESURE.md) — source factice déterministe, aucune donnée personnelle, aucun coût hors ouverture.</string>
+    <string name="editor_config_banc_sorties_bouton">Ouvrir le banc</string>
     <string name="editor_config_redemarrer_desc">Applique aussitôt les réglages « prochaine vie » (journal, instrumentation, banc)</string>
     <string name="editor_config_redemarrer_bouton">Redémarrer</string>
     <string name="editor_config_etat">Orchestrateur</string>

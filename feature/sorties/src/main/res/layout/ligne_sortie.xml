@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Une rangée du lecteur du Centre de sorties (ADR 0159, lot L2) :
+     numéro · pastille de niveau · horodatage · texte monospace (spec
+     SORTIES § 2). Hauteur VARIABLE (retour à la ligne), rangée dense —
+     la sélection se teinte (fond_rangee_sorties), TalkBack porte la
+     description complète (assemblée au bind). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/fond_rangee_sorties"
+    android:gravity="center_vertical"
+    android:minHeight="24dp"
+    android:orientation="horizontal"
+    android:paddingHorizontal="@dimen/spacing_md_compact"
+    android:paddingVertical="@dimen/spacing_xs">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/numero_sortie"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:gravity="end"
+        android:importantForAccessibility="no"
+        android:minWidth="@dimen/sorties_numero_largeur"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        tools:text="12" />
+
+    <jo.codeide.core.ui.PastilleNiveauSortie
+        android:id="@+id/pastille_sortie"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_xs" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/horodatage_sortie"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:fontFamily="monospace"
+        android:importantForAccessibility="no"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        tools:text="+2,140 s" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/texte_sortie"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/spacing_sm"
+        android:layout_weight="1"
+        android:fontFamily="monospace"
+        android:textColor="?attr/colorOnSurface"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        tools:text="> Task :app:compileDebugKotlin" />
+</LinearLayout>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dimensions propres au lecteur du Centre de sorties (lot L2) —
+     marges et paddings restent sur l'échelle @dimen/spacing_* de
+     core:ui ; ceci ne couvre que les largeurs spécifiques. -->
+<resources>
+    <!-- Largeur de la colonne des numéros de ligne (rangée du lecteur). -->
+    <dimen name="sorties_numero_largeur">32dp</dimen>
+
+    <!-- Largeur du rail de la poignée de défilement (repères). -->
+    <dimen name="sorties_rail_largeur">24dp</dimen>
+
+    <!-- Marge horizontale commune (rangées, en-têtes, cartes). -->
+    <dimen name="sorties_marge_h">12dp</dimen>
+</resources>

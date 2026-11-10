@@ -137,4 +137,36 @@
     <attr name="colorLangageXml" format="color" />
     <attr name="colorLangageJson" format="color" />
 
+    <!-- Pastille de niveau du Centre de sorties (ADR 0162, lot L2) :
+         lettre + teinte, jamais la couleur seule (spec SORTIES § 2). -->
+    <declare-styleable name="PastilleNiveauSortie">
+        <attr name="pastilleSortieNiveau" format="enum">
+            <enum name="verbeux" value="0" />
+            <enum name="debogage" value="1" />
+            <enum name="info" value="2" />
+            <enum name="avertissement" value="3" />
+            <enum name="erreur" value="4" />
+            <!-- « fatal » et non « assert » : un nom de ressource ne peut
+                 pas être un mot réservé Java (validation AAPT2). -->
+            <enum name="fatal" value="5" />
+            <enum name="indefini" value="6" />
+        </attr>
+    </declare-styleable>
+
+    <!-- Bandeau d'état du lecteur de sorties (pertes, masquées, pause…) :
+         même sémantique que IndicateurEtat (NiveauEtat — la forme et le
+         rôle conteneur portent l'état), en pleine largeur avec titre et
+         détail optionnel. -->
+    <declare-styleable name="BandeauSorties">
+        <attr name="bandeauSortiesEtat" format="enum">
+            <enum name="ok" value="0" />
+            <enum name="avertissement" value="1" />
+            <enum name="erreur" value="2" />
+            <enum name="neutre" value="3" />
+        </attr>
+        <attr name="bandeauSortiesTitre" format="string" />
+        <attr name="bandeauSortiesDetail" format="string" />
+    </declare-styleable>
+
 </resources>
+

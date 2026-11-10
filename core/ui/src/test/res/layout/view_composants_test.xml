@@ -72,6 +72,19 @@
         app:indicateurEtat="ok"
         app:indicateurTexte="Prêt" />
 
+    <jo.codeide.core.ui.PastilleNiveauSortie
+        android:id="@+id/pastille_sortie_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:pastilleSortieNiveau="avertissement" />
+
+    <jo.codeide.core.ui.BandeauSorties
+        android:id="@+id/bandeau_sorties_test"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:bandeauSortiesEtat="erreur"
+        app:bandeauSortiesTitre="2 000 lignes perdues" />
+
     <jo.codeide.core.ui.VueEtat
         android:id="@+id/vue_etat_vide"
         android:layout_width="match_parent"

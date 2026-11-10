@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composants du Centre de sorties — core:ui (ADR 0162, lot L2)</title>
+<!--
+  Planche des composants livrés par le lot L2 (ADR 0159/0162 — lecteur du
+  Centre de sorties), ancrée sur les VRAIS jetons de CodeIDE :
+  core/ui colors.xml + values-night (jetons sorties_niveau_*) et rôles
+  NiveauEtat existants (IndicateurEtat). Même format que
+  docs/mockups/ui/composants-partages.html ; chaque planche se relit en
+  mode sombre par le bouton. Les composants KDoc correspondants :
+  PastilleNiveauSortie.kt, BandeauSorties.kt (core:ui).
+-->
+<style>
+:root{--primary:#43559E;--on-primary:#FFF;--pc:#DCE1FF;--on-pc:#001159;--bg:#F9F9FF;--on-bg:#1A1B21;--sv:#E2E1EC;--on-sv:#46464F;--outline:#767680;--ov:#C6C5D0;--err:#BA1A1A;--err-c:#FFDAD6;--warn:#9A6700;--warn-c:#F6E7C1;--ok:#2E7D32;--ok-c:#DDEFE0}
+.dark{--primary:#BAC4FF;--on-primary:#0C2264;--pc:#293D8F;--on-pc:#DCE1FF;--bg:#111318;--on-bg:#E2E1E9;--sv:#46464F;--on-sv:#C6C5D0;--outline:#90909A;--ov:#46464F;--err:#FFB4AB;--err-c:#93000A;--warn:#FDD663;--warn-c:#5A4408;--ok:#81C995;--ok-c:#1F3A1F}
+/* Jetons réels sorties_niveau_* (jour / nuit) : teinte pleine + conteneur. */
+:root{--n-v:#7A8492;--n-v-c:#EDEFF2;--n-d:#1E6EC8;--n-d-c:#DCE8F8;--n-i:#2E7D38;--n-i-c:#DDEFE0;--n-w:#9A6700;--n-w-c:#F6E7C1;--n-e:#C6362D;--n-e-c:#FFDAD6;--n-f:#8B2D55;--n-f-c:#F5DCE7;--n-x:#5F6672;--n-x-c:#ECEEF1}
+.dark{--n-v:#6C7581;--n-v-c:#2A2E35;--n-d:#7AB8F5;--n-d-c:#17314F;--n-i:#6FC47A;--n-i-c:#1F3A1F;--n-w:#EDA63F;--n-w-c:#4C3B0D;--n-e:#E5584F;--n-e-c:#4E1C18;--n-f:#E58AB4;--n-f-c:#4A1F32;--n-x:#8C93A0;--n-x-c:#2A2E35}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--on-bg);font:14px/1.4 system-ui,sans-serif}
+h1{font-size:18px;margin:0 0 2px}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.top p{margin:0;color:var(--on-sv);font-size:12px}
+.tg{border:1px solid var(--outline);background:none;color:var(--on-bg);border-radius:16px;padding:4px 12px;font:inherit;cursor:pointer}
+.wrap{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}.col{display:flex;flex-direction:column;gap:6px}.cap{font-size:12px;font-weight:600;color:var(--on-sv)}
+.ds{width:360px;border:2px solid var(--outline);border-radius:22px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.sec{font-weight:600;font-size:12px;color:var(--on-sv)}
+/* PastilleNiveauSortie : lettre mono + conteneur arrondi 10 dp. */
+.pl{display:inline-flex;align-items:center;justify-content:center;min-width:26px;border-radius:10px;padding:2px 6px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+.pl.v{background:var(--n-v-c);color:var(--n-v)}.pl.d{background:var(--n-d-c);color:var(--n-d)}
+.pl.i{background:var(--n-i-c);color:var(--n-i)}.pl.w{background:var(--n-w-c);color:var(--n-w)}
+.pl.e{background:var(--n-e-c);color:var(--n-e)}.pl.f{background:var(--n-f-c);color:var(--n-f)}
+.pl.x{background:var(--n-x-c);color:var(--n-x)}
+/* Rangée du lecteur : numéro · pastille · horodatage · texte mono. */
+.lg{display:flex;gap:8px;align-items:baseline;padding:2px 8px;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace}
+.lg .num{color:var(--on-sv);min-width:34px;text-align:right}
+.lg .h{color:var(--on-sv)}
+.lg .msg{color:var(--on-bg);word-break:break-word}
+.lg.sel{background:var(--pc);border-radius:6px}
+.lg .b{font-weight:700}.lg .it{font-style:italic}
+/* BandeauSorties : bande pleine largeur, rôle conteneur + forme. */
+.bn{display:flex;gap:10px;align-items:center;border-radius:10px;padding:8px 12px}
+.bn.e{background:var(--err-c);color:var(--err)}.bn.w{background:var(--warn-c);color:var(--warn)}
+.bn.n{background:var(--sv);color:var(--on-sv)}
+.bn b{font-size:13px}.bn span{font-size:12px;opacity:.85}
+.note{font-size:11px;color:var(--on-sv)}
+</style>
+</head>
+<body>
+<div class="top"><div><h1>Composants du Centre de sorties — core:ui</h1><p>Lot L2 · ADR 0159 (moteur) + 0162 (contrat visuel partagé) · jetons réels <code>sorties_niveau_*</code> + rôles <code>NiveauEtat</code> · sombre = valeurs night de colors.xml · KDoc : PastilleNiveauSortie.kt, BandeauSorties.kt</p></div>
+<button class="tg" onclick="document.body.classList.toggle('dark')">Clair / Sombre</button></div>
+<div class="wrap">
+
+<!-- Pastilles de niveau -->
+<div class="col"><div class="cap">PastilleNiveauSortie — lettre + teinte (jamais la couleur seule)</div><div class="ds">
+ <div class="sec">Échelle de 7 niveaux (NiveauPastilleSortie, miroir NiveauSortie ADR 0160)</div>
+ <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <span class="pl v">V</span><span class="pl d">D</span><span class="pl i">I</span><span class="pl w">W</span><span class="pl e">E</span><span class="pl f">F</span><span class="pl x">·</span>
+ </div>
+ <div class="sec">Dans une rangée du lecteur (numéro · pastille · horodatage · texte)</div>
+ <div class="lg"><span class="num">12</span><span class="pl w">W</span><span class="h">+2,140 s</span><span class="msg">warning: unused variable <span class="b">x</span></span></div>
+ <div class="lg sel"><span class="num">13</span><span class="pl e">E</span><span class="h">+2,151 s</span><span class="msg"><span class="b">e: file:///app/main.kt:2:8</span> unresolved reference</span></div>
+ <div class="lg"><span class="num">14</span><span class="pl x">·</span><span class="h">+2,152 s</span><span class="msg">&gt; Task :app:compileDebugKotlin <span class="it">[FROM-CACHE]</span></span></div>
+ <div class="note">La lettre porte le niveau sans la couleur ; la description de contenu porte le NOM localisé (TalkBack). Les lignes sans sévérité (·) ne se déguisent jamais en ligne graduée (règle 14).</div>
+</div></div>
+
+<!-- Bandeaux -->
+<div class="col"><div class="cap">BandeauSorties — pertes, masquées, pause (rôles NiveauEtat)</div><div class="ds">
+ <div class="sec">Pertes de fenêtre (erreur — comptées, jamais silencieuses, règle 14)</div>
+ <div class="bn e">⚠ <div><b>2 000 lignes perdues</b><br><span>La fenêtre maximale du canal a été atteinte.</span></div></div>
+ <div class="sec">Lignes masquées par le filtre (avertissement)</div>
+ <div class="bn w">△ <div><b>148 lignes masquées par le filtre</b></div></div>
+ <div class="sec">Pause du direct (neutre)</div>
+ <div class="bn n">⏸ <div><b>Direct en pause</b><br><span>Le delta arrivera en une seule fois à la reprise.</span></div></div>
+ <div class="note">Même sémantique que IndicateurEtat (la forme et le rôle conteneur portent l'état) ; région live polie — les changements sont annoncés sans voler le focus.</div>
+</div></div>
+
+<!-- Rappel du moteur -->
+<div class="col"><div class="cap">Rappel de lot (ce que L2 livre, ADR 0159)</div><div class="ds">
+ <div class="sec">Moteur</div>
+ <div class="note">RecyclerView virtualisé sur le modèle de lignes <code>LigneSortie</code>, SANS DiffUtil (append par lot, notifications bornées), recherche hors thread principal, repères de défilement sur l'index, suivi du bas honnête, zoom 10–20 sp, retour à la ligne ou défilement horizontal, couleurs ANSI SGR minimales (parseur pur testé, lot L1), TalkBack par ligne. Branché sur une source factice uniquement (banc S1/S2/S6 — PV propriétaire livrables de L2).</div>
+</div></div>
+
+</div>
+</body>
+</html>

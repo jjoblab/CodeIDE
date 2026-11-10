@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fond de la pastille de niveau du Centre de sorties (ADR 0162, lot
+     L2) : rectangle plein, coins arrondis (jeton sorties_pastille_rayon),
+     teinté au bind par backgroundTintList du rôle CONTENEUR du niveau. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <corners android:radius="@dimen/sorties_pastille_rayon" />
+    <solid android:color="@android:color/transparent" />
+</shape>

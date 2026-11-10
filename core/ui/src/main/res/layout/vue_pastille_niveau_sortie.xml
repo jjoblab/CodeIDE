@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Enfants de PastilleNiveauSortie (ADR 0162, lot L2) — pastille de
+  niveau du Centre de sorties : LETTRE (V/D/I/W/E/F/·) sur fond
+  conteneur teinté au bind. La lettre porte le niveau sans la couleur
+  (accessibilité, spec SORTIES § 2) ; le nom du niveau, localisé, est
+  porté par la description de contenu.
+
+  Gonflés par <merge> dans le LinearLayout que la classe teinte
+  (fond_pastille_sortie + backgroundTintList du rôle conteneur).
+-->
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/pastille_sortie_lettre"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="monospace"
+        android:importantForAccessibility="no"
+        android:textAppearance="?attr/textAppearanceLabelMedium"
+        tools:text="W" />
+</merge>

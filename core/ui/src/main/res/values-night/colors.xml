@@ -132,4 +132,22 @@
     <color name="codeide_explorateur_texte_sur_accent">#0D1420</color>
     <color name="codeide_explorateur_rail_fond">#171A21</color>
     <color name="codeide_explorateur_rail_bordure">#242A33</color>
+
+    <!-- Niveaux du Centre de sorties (ADR 0162, lot L2) — déclinaison nuit
+         (même famille que logcat_niveau_* nuit de feature:editor). -->
+    <color name="sorties_niveau_verbeux">#6C7581</color>
+    <color name="sorties_niveau_verbeux_conteneur">#2A2E35</color>
+    <color name="sorties_niveau_debogage">#7AB8F5</color>
+    <color name="sorties_niveau_debogage_conteneur">#17314F</color>
+    <color name="sorties_niveau_info">#6FC47A</color>
+    <color name="sorties_niveau_info_conteneur">#1F3A1F</color>
+    <color name="sorties_niveau_avertissement">#EDA63F</color>
+    <color name="sorties_niveau_avertissement_conteneur">#4C3B0D</color>
+    <color name="sorties_niveau_erreur">#E5584F</color>
+    <color name="sorties_niveau_erreur_conteneur">#4E1C18</color>
+    <color name="sorties_niveau_assert">#E58AB4</color>
+    <color name="sorties_niveau_assert_conteneur">#4A1F32</color>
+    <color name="sorties_niveau_indefini">#8C93A0</color>
+    <color name="sorties_niveau_indefini_conteneur">#2A2E35</color>
 </resources>
+

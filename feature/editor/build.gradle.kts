@@ -6,6 +6,12 @@ plugins {
 }
 
 dependencies {
+    // Centre de sorties (ADR 0162, lot L2) : la carte « banc sorties » de
+    // la configuration tooling ouvre BancSortiesActivity — première arête
+    // feature:editor → feature:sorties (le panneau et les points
+    // d'entrée ouvriront le lecteur aux lots L5b/L5d).
+    implementation(project(":feature:sorties"))
+
     // Bibliothèque d'édition (prompt compagnon, section 2.2) : `cel-ui`
     // embarque `cel-core` (moteur pur) et `cel-lsp-api` en transitif —
     // `cel-lsp` (serveurs de langage) reste hors périmètre Phase 1.

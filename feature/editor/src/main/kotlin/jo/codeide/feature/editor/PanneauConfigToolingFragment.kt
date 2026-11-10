@@ -155,6 +155,12 @@ class PanneauConfigToolingFragment : Fragment() {
         // reconnexion en direct.
         liaison.boutonRedemarrer.setOnClickListener { viewModel.redemarrerServeur() }
 
+        // Banc sorties (docs/SORTIES_BANC_MESURE.md — PV livrables de L2,
+        // ADR 0159) : l'écran de diagnostic arme la source factice du
+        // Centre de sorties ; l'arête feature:editor → feature:sorties
+        // est celle de l'ADR 0162 (le panneau ouvre le lecteur).
+        liaison.boutonBancSorties.setOnClickListener { ouvrirBancSorties() }
+
         viewModel.reglages.collectWithLifecycle(viewLifecycleOwner) { rendreReglages(it) }
         viewModel.etatVivant.collectWithLifecycle(viewLifecycleOwner) { rendreEtatVivant(it) }
     }
@@ -162,6 +168,15 @@ class PanneauConfigToolingFragment : Fragment() {
     override fun onDestroyView() {
         liaisonAmorce = null
         super.onDestroyView()
+    }
+
+    /** Ouvre l'écran de diagnostic « banc sorties » (feature:sorties,
+     *  ADR 0162 — arête assumée). */
+    private fun ouvrirBancSorties() {
+        val contexte = liaisonAmorce?.root?.context ?: return
+        contexte.startActivity(
+            android.content.Intent(contexte, jo.codeide.feature.sorties.BancSortiesActivity::class.java),
+        )
     }
 
     /** Rendu idempotent des réglages (le DataStore est la seule vérité).

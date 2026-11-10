@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Le lecteur du Centre de sorties (ADR 0159/0162, lots L2-L3) : barre
+     d'outils unifiée (recherche n/N, regex, mode regroupé, pause,
+     horodatage, numéros, retour à la ligne, sélection, effacer),
+     bandeaux d'état (pertes, masquées, pause, consultation — honnêteté
+     règle 14), carte de résumé + en-tête collant (mode regroupé),
+     lecteur virtualisé (liste + poignée à repères), bouton « ⇣ suivre »
+     du suivi du bas honnête. Fragment FragmentLecteurSorties — les
+     surfaces (onglet/plein écran/panneau, L5) l'embarquent comme UNE
+     fenêtre. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ===================== Barre d'outils (spec SORTIES § 2) ======== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_2xs">
+
+        <EditText
+            android:id="@+id/champ_recherche"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/fond_outil_sorties"
+            android:fontFamily="monospace"
+            android:hint="@string/sorties_recherche_indice"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:minHeight="48dp"
+            android:paddingHorizontal="@dimen/spacing_md_compact"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="?attr/colorOnSurfaceVariant" />
+
+        <!-- Option regex : le motif du champ devient une expression
+             régulière (erreur signalée en ligne — héritage FiltreLogcat). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_regex"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_regex"
+            android:fontFamily="monospace"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/sorties_regex_marque"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+
+        <!-- Compteur « n/N » de la recherche. -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/compteur_recherche"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_xs"
+            android:fontFamily="monospace"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            tools:text="3/27" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_correspondance_precedente"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_correspondance_precedente"
+            app:icon="@drawable/ic_correspondance_haut"
+            app:iconGravity="textStart"
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_correspondance_suivante"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_correspondance_suivante"
+            app:icon="@drawable/ic_suivre_bas"
+            app:iconGravity="textStart"
+            app:iconTint="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <!-- Bascule brut ↔ regroupé (spec SORTIES § 4, lot L3) : le
+             tampon est UNIQUE, la projection est une dérivation. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_regrouper"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_mode_regroupe"
+            android:fontFamily="monospace"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/sorties_mode_regroupe"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_pause"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_pause"
+            app:icon="@drawable/ic_pause_sorties"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_horodatage"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_horodatage"
+            app:icon="@drawable/ic_horodatage"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_numeros"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_numeros"
+            app:icon="@drawable/ic_numeros"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_retour_ligne"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_retour_ligne"
+            app:icon="@drawable/ic_retour_ligne"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_selection"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_selection"
+            app:icon="@drawable/ic_selection"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_effacer"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_effacer"
+            app:icon="@drawable/ic_effacer"
+            app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <!-- La copie de la sélection (toujours explicite — spec § 3.6). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_copier"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_copier_selection"
+            android:text="@string/sorties_copier_selection"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!-- Ligne d'erreur de motif regex (héritage FiltreLogcat : jamais
+         d'exception — l'écart est honnête, en ligne). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/erreur_motif"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorErrorContainer"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_2xs"
+        android:text="@string/sorties_recherche_motif_invalide"
+        android:textColor="?attr/colorOnErrorContainer"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- ===================== Bandeaux d'état (règle 14) ============== -->
+    <jo.codeide.core.ui.BandeauSorties
+        android:id="@+id/bandeau_pertes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_sm"
+        android:layout_marginTop="@dimen/spacing_2xs"
+        app:bandeauSortiesEtat="erreur"
+        android:visibility="gone"
+        tools:text="2 000 lignes perdues"
+        tools:visibility="visible" />
+
+    <jo.codeide.core.ui.BandeauSorties
+        android:id="@+id/bandeau_masquees"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_sm"
+        android:layout_marginTop="@dimen/spacing_2xs"
+        app:bandeauSortiesEtat="avertissement"
+        android:visibility="gone"
+        tools:text="148 lignes masquées par le filtre"
+        tools:visibility="visible" />
+
+    <jo.codeide.core.ui.BandeauSorties
+        android:id="@+id/bandeau_pause"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_sm"
+        android:layout_marginTop="@dimen/spacing_2xs"
+        app:bandeauSortiesEtat="neutre"
+        app:bandeauSortiesTitre="@string/sorties_pause_bandeau"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- Bandeau de CONSULTATION (ADR 0161.5, lot L3) : une exécution
+         persistée est re-ouverte en lecture seule — le live est retenu. -->
+    <jo.codeide.core.ui.BandeauSorties
+        android:id="@+id/bandeau_consultation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_sm"
+        android:layout_marginTop="@dimen/spacing_2xs"
+        app:bandeauSortiesEtat="neutre"
+        app:bandeauSortiesTitre="@string/sorties_consultation_bandeau"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- ===================== Carte de résumé (mode regroupé) ======== -->
+    <LinearLayout
+        android:id="@+id/carte_resume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/spacing_sm"
+        android:layout_marginTop="@dimen/spacing_2xs"
+        android:background="?attr/colorSurfaceVariant"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/sorties_marge_h"
+        android:paddingVertical="@dimen/spacing_2xs"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/resume_verdict"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceTitleSmall"
+            tools:text="BUILD REUSSI · 3,4 s" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/resume_compteurs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            tools:text="12 tâches · 3 exécutées · 9 à jour" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/resume_gravites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="?attr/colorOnSurfaceVariant"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            tools:text="1 erreur · 2 avertissements · 100 lignes" />
+    </LinearLayout>
+
+    <!-- ===================== Lecteur (le moteur, ADR 0159) =========== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="@dimen/spacing_2xs"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/liste_sorties"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingEnd="@dimen/sorties_rail_largeur"
+            tools:listitem="@layout/ligne_sortie" />
+
+        <!-- L'en-tête COLLANT de la tâche courante (spec SORTIES § 4.2 —
+             visible en mode regroupé, suit la première rangée). -->
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/collant_tache"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorSurfaceVariant"
+            android:ellipsize="start"
+            android:importantForAccessibility="no"
+            android:paddingHorizontal="@dimen/sorties_marge_h"
+            android:paddingVertical="@dimen/spacing_xs"
+            android:singleLine="true"
+            android:textColor="?attr/colorOnSurface"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text=":app:compileDebugKotlin" />
+
+        <jo.codeide.feature.sorties.PoigneeDefilement
+            android:id="@+id/poignee_sorties"
+            android:layout_width="@dimen/sorties_rail_largeur"
+            android:layout_height="match_parent"
+            android:layout_gravity="end" />
+
+        <!-- Le bouton du suivi du bas honnête (spec § 3.2) : ré-apparaît
+             dès que l'utilisateur remonte. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_suivre"
+            style="@style/Widget.CodeIDE.Button.Tonal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="@dimen/spacing_sm"
+            android:text="@string/sorties_suivre_le_bas"
+            app:icon="@drawable/ic_suivre_bas"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+</LinearLayout>

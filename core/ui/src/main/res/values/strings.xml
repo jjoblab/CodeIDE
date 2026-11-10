@@ -3,6 +3,16 @@
     <!-- Composants d'état de core:ui. -->
     <string name="core_ui_retry">Réessayer</string>
 
+    <!-- Niveaux du Centre de sorties (noms localisés portés par les
+         pastilles — ADR 0162, lot L2). -->
+    <string name="sorties_niveau_verbeux">Verbose</string>
+    <string name="sorties_niveau_debogage">Débogage</string>
+    <string name="sorties_niveau_info">Information</string>
+    <string name="sorties_niveau_avertissement">Avertissement</string>
+    <string name="sorties_niveau_erreur">Erreur</string>
+    <string name="sorties_niveau_assert">Fatal</string>
+    <string name="sorties_niveau_indefini">Sans sévérité</string>
+
     <!-- Composants partagés ADR 0127 (lot UI-1). -->
     <string name="core_ui_bientot">Bientôt</string>
     <string name="core_ui_chargement">Chargement</string>

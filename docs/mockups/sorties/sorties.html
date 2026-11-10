@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centre de sorties — maquette interactive (lot L0)</title>
+<!--
+  MAQUETTE « Centre de sorties » — livrable L0 du chantier « Sorties ».
+  Fichier unique et autonome : aucune dépendance réseau (ni police, ni
+  bibliothèque). Données factices réalistes tirées du corpus
+  docs/archive/tooling-scenarios/ (verdicts, blocs d'échec, positions
+  fichier:ligne:colonne) et des gabarits EXECUTER.md § 4 (Logcat).
+
+  JETONS : chaque variable CSS cite le jeton XML réel dont elle vient
+  (core/ui/src/main/res/values/colors.xml, values-night, et
+  feature/editor/.../values[-night]/colors.xml — jetons logcat_*).
+  AUCUNE couleur inventée : ce sont les valeurs de l'application.
+
+  Écrans : M1 panneau compact 3 états · M2 build réussi · M3 build échoué ·
+  M4 sync par phases · M5 Logcat · M6 journal applicatif · M7 éditeur dédié
+  plein écran · M8 tablette volet · M9 feuille de filtres · M10 export ·
+  M11 historique des builds · M12 états et erreurs · M13 réglages ·
+  M14 table d'adaptation projet × état · + « Écarts maquette → réalité ».
+  Spécification : docs/SORTIES_SPEC.md · ADR 0159–0162.
+
+  RETOUR PROPRIÉTAIRE (2026-11-10) : (1) l'header du BottomSheet est
+  conservé à l'identique — seule évolution « Console » → « Sorties » ; le
+  sélecteur interne ne porte que les sources Gradle (Sync/Build/Tâches/
+  Serveur), Logcat et Journal restent des onglets du header. (2) Chaque
+  dépendance téléchargée porte SA progression à sa ligne (µ-jauge + % si
+  total connu, molette + cumuls sinon, figée à la fin) — animation dans
+  M1 et M4 ; limite Tooling API et demande D2 documentées aux écarts.
+-->
+<style>
+/* ===================== Jetons réels (jour / nuit) ===================== */
+:root{
+  /* core/ui colors.xml — marque, surfaces, filets */
+  --bg:#F9F9FF;            /* codeide_background */
+  --on-bg:#1A1B21;         /* codeide_on_background */
+  --surface:#F9F9FF;       /* codeide_surface */
+  --sv:#E2E1EC;            /* codeide_surface_variant */
+  --on-sv:#46464F;         /* codeide_on_surface_variant */
+  --outline:#767680;       /* codeide_outline */
+  --ov:#C6C5D0;            /* codeide_outline_variant */
+  --primary:#43559E;       /* codeide_primary */
+  --on-primary:#FFFFFF;    /* codeide_on_primary */
+  --pc:#DCE1FF;            /* codeide_primary_container */
+  --on-pc:#001159;         /* codeide_on_primary_container */
+  --err:#BA1A1A;           /* codeide_error */
+  --err-c:#FFDAD6;         /* codeide_error_container */
+  --ok:#2E7D32;            /* codeide_succes */
+  --ok-c:#DDEFE0;          /* codeide_succes_container */
+  --warn:#9A6700;          /* codeide_avertissement */
+  --warn-c:#F6E7C1;        /* codeide_avertissement_container */
+  --info:#1A5FB4;          /* codeide_info */
+  /* canaux tooling (ADR 0056) */
+  --canal-sync:#0E7490;    /* codeide_canal_sync */
+  --canal-build:#1E6EC8;   /* codeide_canal_build */
+  --canal-taches:#7C3AED;  /* codeide_canal_taches */
+  /* sortie build */
+  --stdout:#3C4043;        /* codeide_stdout */
+  --stderr:#B3261E;        /* codeide_stderr */
+  /* journal applicatif */
+  --j-debug:#5F6368;       /* codeide_journal_debug */
+  --j-info:#1A5FB4;        /* codeide_journal_info */
+  --j-warn:#9A6700;        /* codeide_journal_warn */
+  --j-error:#B3261E;       /* codeide_journal_error */
+  /* panneau */
+  --panneau:#F7F9FC;       /* codeide_panneau_inferieur_fond */
+  /* feature/editor colors.xml — lecteur de sortie (base logcat) */
+  --lect-fond:#FBFCFE;     /* logcat_fond */
+  --n-V:#7A8492;           /* logcat_niveau_verbeux */
+  --n-D:#1E6EC8;           /* logcat_niveau_debogage */
+  --n-I:#2E7D38;           /* logcat_niveau_info */
+  --n-W:#9A6700;           /* logcat_niveau_avertissement */
+  --n-E:#C6362D;           /* logcat_niveau_erreur */
+  --n-F:#C6362D;           /* niveau fatal : même famille que erreur (aucun jeton dédié) */
+  --msg-err:#B3261E;       /* logcat_message_erreur */
+}
+.dark{
+  --bg:#111318; --on-bg:#E2E1E9; --surface:#111318;
+  --sv:#46464F; --on-sv:#C6C5D0; --outline:#90909A; --ov:#46464F;
+  --primary:#BAC4FF; --on-primary:#0C2264; --pc:#293D8F; --on-pc:#DCE1FF;
+  --err:#FFB4AB; --err-c:#5C1A14;
+  --ok:#81C995; --ok-c:#1F3A1F; --warn:#FDD663; --warn-c:#5A3D56; --info:#8AB4F8;
+  --canal-sync:#5AC8DE; --canal-build:#7AB8F5; --canal-taches:#A78BFA;
+  --stdout:#E8EAED; --stderr:#F2B8B5;
+  --j-debug:#9AA0A6; --j-info:#8AB4F8; --j-warn:#FDD663; --j-error:#F2B8B5;
+  --panneau:#1A1E25;
+  --lect-fond:#14171D;     /* logcat_fond nuit */
+  --n-V:#6C7581; --n-D:#7AB8F5; --n-I:#6FC47A; --n-W:#EDA63F; --n-E:#E5584F; --n-F:#E5584F;
+  --msg-err:#F2A29D;
+}
+
+/* ============================== socle ============================== */
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+body{margin:0;padding:16px;background:var(--bg);color:var(--on-bg);font:14px/1.45 system-ui,sans-serif}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+h1{font-size:18px;margin:0 0 2px}
+.top p{margin:0;color:var(--on-sv);font-size:12px;max-width:70ch}
+.tg{border:1px solid var(--outline);background:none;color:var(--on-bg);border-radius:16px;padding:8px 14px;font:inherit;cursor:pointer;min-height:36px}
+.tg.on{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.aide{margin:0 0 14px;border:1px dashed var(--ov);border-radius:12px;padding:10px 14px;font-size:12px;color:var(--on-sv)}
+.aide b{color:var(--on-bg)}
+.wrap{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.col{display:flex;flex-direction:column;gap:6px}
+.cap{font-size:12px;font-weight:700;color:var(--on-sv)}
+.cap small{font-weight:400}
+.pourquoi{font-size:11px;color:var(--on-sv);max-width:390px;line-height:1.4}
+
+/* cadres : téléphone ≈ 390 dp, tablette 880 dp */
+.ph{width:390px;height:760px;border:2px solid var(--outline);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);flex:none;position:relative}
+.tb{width:880px;height:620px;border:2px solid var(--outline);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);flex:none;position:relative}
+.bar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--ov);font-weight:600;flex:none;min-height:48px}
+.bar .sp{flex:1}
+.ico{font-style:normal;width:26px;text-align:center;flex:none}
+.back{background:none;border:none;color:var(--on-bg);font-size:18px;cursor:pointer;padding:8px}
+
+/* sélecteur segmenté de source */
+.sel{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--ov);background:var(--panneau);flex:none}
+.sel button{flex:1;border:1px solid transparent;background:none;color:var(--on-sv);border-radius:14px;padding:9px 4px;font:12px system-ui;cursor:pointer;min-height:36px;display:flex;gap:4px;align-items:center;justify-content:center}
+.sel button.on{background:var(--pc);color:var(--on-pc);border-color:transparent;font-weight:600}
+.sel button .pt{width:7px;height:7px;border-radius:50%;flex:none}
+.sel button .pt.vide{background:var(--on-sv)}
+.sel button .pt.act{background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.sel button .pt.ech{background:var(--err)}
+
+/* ===================== lecteur de sortie (moteur) ===================== */
+.out{flex:1;overflow:auto;background:var(--lect-fond);font:12px/1.5 ui-monospace,'JetBrains Mono',Menlo,Consolas,monospace;position:relative}
+.out .lg{display:flex;gap:8px;padding:1px 8px 1px 4px;min-height:20px}
+.out .lg:hover{background:color-mix(in srgb,var(--primary) 7%,transparent)}
+.out .gr{flex:none;width:30px;text-align:right;color:var(--n-V);user-select:none;font-size:10.5px;padding-top:1.5px}
+.out .ms{flex:none;color:var(--n-V);font-size:10.5px;padding-top:1.5px;user-select:none}
+.out .nv{flex:none;width:15px;height:15px;border-radius:4px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;align-self:center}
+.nv.V{color:var(--n-V);background:color-mix(in srgb,var(--n-V) 16%,transparent)}
+.nv.D{color:var(--n-D);background:color-mix(in srgb,var(--n-D) 16%,transparent)}
+.nv.I{color:var(--n-I);background:color-mix(in srgb,var(--n-I) 16%,transparent)}
+.nv.W{color:var(--n-W);background:color-mix(in srgb,var(--n-W) 20%,transparent)}
+.nv.E,.nv.F{color:var(--n-E);background:color-mix(in srgb,var(--n-E) 18%,transparent)}
+.out .tx{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word}
+.out .tx.err{color:var(--msg-err)}
+.out .tx.cli{cursor:pointer;text-decoration:underline dotted color-mix(in srgb,var(--msg-err) 55%,transparent);text-underline-offset:2px}
+.out .tx.cli:hover{background:color-mix(in srgb,var(--msg-err) 10%,transparent);border-radius:3px}
+.out .lg.reper{background:color-mix(in srgb,var(--info) 12%,transparent)}
+mark{background:color-mix(in srgb,var(--warn) 45%,transparent);color:inherit;padding:0 1px;border-radius:2px}
+
+/* groupes de tâche Gradle — une liste, deux projections */
+.tk{border-top:1px solid color-mix(in srgb,var(--ov) 60%,transparent)}
+.tk-h{display:flex;align-items:center;gap:8px;padding:5px 8px 5px 4px;cursor:pointer;user-select:none;min-height:34px;position:sticky;top:0;background:var(--lect-fond);z-index:2}
+.tk-h:hover{background:color-mix(in srgb,var(--primary) 8%,transparent)}
+.tk-h .chev{flex:none;width:14px;color:var(--on-sv);transition:transform .15s;font-size:10px}
+.tk.replie .chev{transform:rotate(-90deg)}
+.tk.replie .tk-c{display:none}
+.tk-h .pth{font-weight:600;color:var(--canal-build);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk-h .du{flex:none;color:var(--on-sv);font-size:11px}
+.tk-h .co{flex:none;color:var(--n-V);font-size:10px}
+.tk-c{padding:1px 0 3px}
+/* résumé de build en tête */
+.res{margin:8px;border:1px solid var(--ov);border-radius:12px;padding:8px 12px;background:var(--surface);font-family:system-ui;font-size:12px}
+.res .vd{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+.res .vd .g{font-size:16px}
+.res .meta{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;color:var(--on-sv)}
+.res .meta b{color:var(--on-bg);font-weight:600}
+
+/* bandeaux (honnêteté : jamais silencieux) */
+.bd{margin:8px;padding:9px 12px;border-radius:12px;font-size:12px;font-family:system-ui;display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.bd.ech{background:var(--err-c);color:var(--err)}
+.bd.per{background:color-mix(in srgb,var(--n-W) 12%,transparent);color:var(--n-W)}
+.bd.arre{background:color-mix(in srgb,var(--n-E) 12%,transparent);color:var(--n-E)}
+.bd.inf{background:var(--sv);color:var(--on-sv)}
+.bd .b{flex:1}
+.bd .g{flex:none;font-size:14px}
+
+/* barre d'outils du lecteur */
+.tol{display:flex;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--ov);background:var(--panneau);flex:none;flex-wrap:wrap}
+.tol .sr{flex:1;display:flex;align-items:center;gap:6px;border:1px solid var(--ov);border-radius:10px;padding:4px 8px;min-height:36px;background:var(--lect-fond);min-width:150px}
+.tol .sr input{border:none;background:none;color:var(--on-bg);font:13px system-ui;outline:none;flex:1;min-width:60px}
+.tol .sr .cnt{font-size:11px;color:var(--on-sv);flex:none}
+.tol button{border:none;background:none;color:var(--on-sv);cursor:pointer;border-radius:8px;min-width:36px;min-height:36px;font-size:14px}
+.tol button:hover{background:var(--sv)}
+.tol button.on{background:var(--pc);color:var(--on-pc)}
+
+/* puces de filtre */
+.chips{display:flex;gap:6px;padding:7px 10px;border-bottom:1px solid var(--ov);background:var(--panneau);flex:none;flex-wrap:wrap}
+.ch{border:1px solid var(--ov);background:none;color:var(--on-sv);border-radius:9px;padding:5px 10px;font:12px system-ui;cursor:pointer;min-height:32px;display:inline-flex;gap:5px;align-items:center}
+.ch.on{background:var(--pc);color:var(--on-pc);border-color:transparent;font-weight:600}
+.ch .k{font-size:10px;opacity:.75}
+
+/* ========================= panneau compact M1 ========================= */
+.sheet{margin:8px 10px 10px;border:1px solid var(--ov);border-radius:18px 18px 14px 14px;background:var(--panneau);overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
+.peigne{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 10px;flex:none;min-height:48px;cursor:pointer}
+.peigne .poign{width:28px;height:4px;border-radius:2px;background:var(--outline);flex:none;opacity:.5}
+.peigne .ti{flex:1;font-weight:700;min-width:0}
+.peigne .ti small{display:block;font-weight:400;font-size:11px;color:var(--on-sv)}
+.etat-replie .sheet{flex:none;height:56px}
+.etat-replie .sheet .zon{display:none}
+.etat-mi .sheet{height:46%}
+.etat-plein .sheet{height:88%}
+.zon{flex:1;min-height:0;display:flex;flex-direction:column}
+.centre{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:4px}
+.code{flex:1;background:var(--lect-fond);padding:10px;font:12px/1.6 ui-monospace,monospace;color:var(--on-bg);opacity:.55;overflow:hidden}
+.code .kl{color:var(--canal-taches)}.code .fx{color:var(--n-D)}
+.onglets{display:flex;gap:2px;padding:0 8px;border-bottom:1px solid var(--ov);flex:none;background:var(--panneau)}
+.onglets button{border:none;background:none;color:var(--on-sv);padding:9px 10px;font:12px system-ui;cursor:pointer;border-bottom:2px solid transparent;min-height:36px}
+.onglets button.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+.onglets .bdg{display:inline-block;min-width:15px;border-radius:8px;background:var(--err-c);color:var(--err);font-size:10px;text-align:center;padding:0 4px;margin-left:3px}
+.onglets .hd-note{margin-left:auto;font-size:10px;color:var(--on-sv);align-self:center;flex:none}
+
+/* téléchargements en vol (retour propriétaire 2026-11-10) : µ-jauge à
+   la ligne, mise à jour EN PLACE — jamais une ligne par tick. */
+.dl{display:inline-flex;align-items:center;gap:6px;margin-left:4px;font:11px ui-monospace,monospace;color:var(--on-sv);flex:none;vertical-align:baseline}
+.dl .mbar{width:58px;height:6px;border-radius:3px;background:var(--sv);overflow:hidden;flex:none}
+.dl .mbar i{display:block;height:100%;width:0%;background:var(--canal-sync);border-radius:3px}
+.dl .tour{width:10px;height:10px;border:2px solid var(--ov);border-top-color:var(--canal-sync);border-radius:50%;flex:none;animation:tourne .9s linear infinite}
+@keyframes tourne{to{transform:rotate(360deg)}}
+.dl .fin{color:var(--ok);font-weight:700}
+.dl .dl-t{white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.dl .tour{animation:none;border-top-color:var(--canal-sync);border-right-color:var(--canal-sync)}}
+
+/* ============================ tablette M8 ============================ */
+.cadre-tb{flex:1;display:flex;min-height:0}
+.volet-code{flex:1.35;border-right:1px solid var(--ov);display:flex;flex-direction:column;min-width:0}
+.volet-sort{flex:1;display:flex;flex-direction:column;min-width:0;background:var(--panneau)}
+
+/* feuilles (M9 filtres, M10 export) */
+.voile{position:absolute;inset:0;background:color-mix(in srgb,var(--on-bg) 32%,transparent);display:flex;align-items:flex-end;z-index:5}
+.feui{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-height:88%;overflow:auto;padding:10px 16px 14px}
+.feui .ht{display:flex;align-items:center;margin:0 0 6px}
+.feui h3{font-size:15px;margin:0;flex:1}
+.feui .sec{font-size:11px;font-weight:700;color:var(--on-sv);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.4px}
+.feui .rw{display:flex;align-items:center;gap:10px;min-height:48px;border-top:1px solid var(--ov);font-size:13px}
+.feui .rw .t{flex:1}
+.feui .rw .t small{display:block;color:var(--on-sv);font-size:11px}
+.sw{width:40px;height:22px;border-radius:11px;background:var(--primary);position:relative;flex:none;cursor:pointer}
+.sw:after{content:"";position:absolute;right:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--on-primary)}
+.sw.off{background:var(--sv)}.sw.off:after{right:auto;left:3px;background:var(--outline)}
+.btn{border:1px solid var(--outline);background:none;color:var(--primary);border-radius:18px;padding:8px 16px;font:13px system-ui;display:inline-block;cursor:pointer;min-height:36px}
+.btn.t{background:var(--pc);color:var(--on-pc);border-color:transparent}
+.btn.p{background:var(--primary);color:var(--on-primary);border-color:var(--primary);font-weight:600}
+.btn.d{color:var(--err);border-color:var(--err)}
+.ccb{width:18px;height:18px;border:2px solid var(--outline);border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--on-primary)}
+.ccb.on{background:var(--primary);border-color:var(--primary)}
+.chp{border:1px solid var(--ov);border-radius:10px;padding:9px 12px;font:13px system-ui;background:var(--lect-fond);color:var(--on-bg);width:100%;outline:none}
+.chp:focus{border-color:var(--primary)}
+
+/* historique M11 */
+.hist{flex:1;overflow:auto}
+.hrow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--ov);cursor:pointer;min-height:52px}
+.hrow:hover{background:color-mix(in srgb,var(--primary) 7%,transparent)}
+.hrow .g{flex:none;font-size:15px;width:22px;text-align:center}
+.hrow .t{flex:1;min-width:0}
+.hrow .t b{display:block;font-size:13px}
+.hrow .t span{display:block;font-size:11px;color:var(--on-sv)}
+.hrow .du{flex:none;font:12px ui-monospace,monospace;color:var(--on-sv)}
+.delta{display:none;font-size:11px;color:var(--on-sv);border-left:2px solid var(--ov);padding-left:8px;margin-top:2px}
+.hrow.cmp .delta{display:block}
+
+/* table M14 */
+.tab{width:100%;border-collapse:collapse;font-size:11px;background:var(--surface)}
+.tab th,.tab td{border:1px solid var(--ov);padding:5px 7px;text-align:left;vertical-align:top}
+.tab th{background:var(--sv);font-size:10px}
+.tab td.m{color:var(--on-sv)}
+
+/* états M12 */
+.vs{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--on-sv);padding:20px;gap:6px}
+.vs b{color:var(--on-bg);font-size:14px}
+.vs .g{font-size:30px;opacity:.6}
+
+/* repères de défilement */
+.poignee-defile{position:absolute;right:2px;top:0;bottom:0;width:8px}
+.pm{position:absolute;right:0;width:8px;height:3px;border-radius:2px}
+.pm.e{background:var(--n-E)}.pm.w{background:var(--n-W)}.pm.m{background:var(--info)}
+
+/* toast honnête */
+.toast{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);background:var(--on-bg);color:var(--bg);border-radius:10px;padding:8px 14px;font-size:12px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9;max-width:88%}
+.toast.v{opacity:.96}
+.note{margin:6px 20px;font-size:11px;color:var(--on-sv)}
+.ecarts{margin:26px auto 40px;max-width:980px;border:1px solid var(--ov);border-radius:14px;padding:14px 20px;background:var(--surface)}
+.ecarts h2{font-size:15px;margin:0 0 8px}
+.ecarts li{margin:5px 0;font-size:13px}
+.pd{display:inline-flex;gap:4px;align-items:center;border-radius:12px;padding:2px 9px;font-size:11px;font-weight:600;flex:none}
+.pd.ok{background:var(--ok-c);color:var(--ok)}.pd.w{background:var(--warn-c);color:var(--warn)}
+.pd.e{background:var(--err-c);color:var(--err)}.pd.n{background:var(--sv);color:var(--on-sv)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div>
+    <h1>Centre de sorties — maquette interactive</h1>
+    <p>Livrable L0 du chantier « Sorties ». Jetons réels de CodeIDE (core/ui + feature/editor, jour et nuit) ·
+    données factices tirées du corpus <code>docs/archive/tooling-scenarios/</code> ·
+    spec : <code>docs/SORTIES_SPEC.md</code> · ADR 0159–0162.</p>
+  </div>
+  <button class="tg on" id="tglNuit" onclick="basculerNuit()">Thème clair</button>
+</div>
+<div class="aide">
+  <b>Interactions à essayer :</b> basculer le thème (bouton en haut) · changer de source Gradle (Sync | Build | Tâches | Serveur) — Logcat et Journal restent des ONGLETS du header existant ·
+  activer/couper les puces de filtre · taper dans la recherche (surlignage + compteur « n/N » + repères) ·
+  cliquer l'en-tête d'une tâche Gradle (replier/déplier) · cliquer une ligne d'erreur (saut au source simulé) ·
+  Pause puis Reprise (rattrapage incrémental : 3 lignes retenues arrivent) · faire défiler vers le haut (le suivi du bas s'arrête — bandeau « suivre ») ·
+  bouton d'état du panneau M1 (replié → mi-hauteur → étendu) · boutons « Filtres » et « Exporter » (feuilles M9/M10) ·
+  regarder les téléchargements en vol dans M1 et M4 : µ-jauge + pourcentage à la ligne, mise à jour en place, figée à la fin.
+</div>
+<div class="wrap" id="planche">
+<!-- M1 ================================================================ -->
+<div class="col">
+  <div class="cap">M1 · Panneau compact en 3 états — l'header existant est conservé
+    <small>(rang d'onglets du BottomSheet inchangé · seule évolution : « Console » devient « Sorties »)</small></div>
+  <div class="ph etat-mi" id="m1">
+    <div class="centre">
+      <div class="code"><span class="kl">class</span> MainActivity : AppCompatActivity() {
+    <span class="kl">override fun</span> onCreate(s: Bundle?) {
+        setContentView(R.layout.activity_main)
+        <span class="fx">boutonValider.setOnClickListener { valider() }</span>
+    }
+}</div>
+      <div class="onglets">
+        <button class="on">Sorties</button><button>Problèmes <span class="bdg">3</span></button>
+        <button>Journal</button><button>Logcat</button>
+        <span class="hd-note">← header existant, inchangé</span>
+      </div>
+      <div class="sheet">
+        <div class="peigne" onclick="cycleEtat('m1')">
+          <div class="poign"></div>
+          <div class="ti">Sorties <small id="m1ti">Build · :app:compileDebugKotlin en cours…</small></div>
+          <button class="tg" style="min-height:32px;padding:3px 10px;font-size:12px" onclick="event.stopPropagation();cycleEtat('m1')">Replié ▲</button>
+        </div>
+        <div class="zon">
+          <div class="sel" data-groupe="m1">
+            <button class="on" data-pane="m1-sync" onclick="choisirSource('m1',this,'Sync')"><span class="pt act" style="background:var(--canal-sync)"></span>Sync</button>
+            <button data-pane="m1-build" onclick="choisirSource('m1',this,'Build')"><span class="pt act"></span>Build</button>
+            <button data-pane="m1-taches" onclick="choisirSource('m1',this,'Tâches')"><span class="pt vide"></span>Tâches</button>
+            <button data-pane="m1-serveur" onclick="choisirSource('m1',this,'Serveur')"><span class="pt vide"></span>Serveur</button>
+          </div>
+          <div class="zon" style="position:relative">
+            <div class="out" id="m1-sync">
+              <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">Outils Gradle · présent ✓ 0,3s</span></div>
+              <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">Distribution · déjà installée ✓ 0,1s</span></div>
+              <div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx">Daemon · vivant (pid 13913) ✓ 0,2s</span></div>
+              <div class="lg"><span class="gr">4</span><span class="nv I">I</span><span class="tx">Configuration du projet ✓ 1,8s</span></div>
+              <div class="lg" id="m1-phase-dep"><span class="gr">5</span><span class="nv I">I</span><span class="tx">Dépendances · en cours 12,6s — <b id="m1-cumul">12 artefacts ✓ · 129,4 Mo reçus · 2 en vol</b></span></div>
+              <div class="lg" id="m1-dl-gson"><span class="gr">6</span><span class="nv I">I</span><span class="tx">⬇ gson-2.10.1.jar<span class="dl"><span class="tour"></span><span class="mbar"><i style="width:0%"></i></span><span class="dl-t">0/2,7 Mo · 0 %</span></span></span></div>
+              <div class="lg" id="m1-dl-stdlib"><span class="gr">7</span><span class="nv I">I</span><span class="tx">⬇ kotlin-stdlib-2.0.0.jar<span class="dl"><span class="tour"></span><span class="dl-t">8,4 Mo cumulés · total inconnu</span></span></span></div>
+              <div class="lg"><span class="gr">8</span><span class="nv I">I</span><span class="tx">Modèle IDE · en attente de la fin des dépendances…</span></div>
+            </div>
+            <div class="out" id="m1-build" hidden>
+              <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">&gt; Task :app:checkDebugAarMetadata</span></div>
+              <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">&gt; Task :app:compileDebugKotlin</span></div>
+              <div class="lg"><span class="gr">3</span><span class="nv E">E</span><span class="tx err">e: file:///projet/app/MainActivity.kt:42:19: Référence non résolue « boutonValider »</span></div>
+            </div>
+            <div class="out" id="m1-taches" hidden>
+              <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">Listage des tâches — 47 tâches dans 2 projets (cache, 2 ms)</span></div>
+              <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">build : assembleDebug, bundleDebug, compileDebugKotlin…</span></div>
+              <div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx">verification : lintDebug, testDebugUnitTest…</span></div>
+            </div>
+            <div class="out" id="m1-serveur" hidden>
+              <div class="lg"><span class="gr">57</span><span class="nv I">I</span><span class="tx">gradle-server · orchestrateur prêt (socket Unix)</span></div>
+              <div class="lg"><span class="gr">58</span><span class="nv D">D</span><span class="tx">gradle-server · daemon Gradle 8.9 connecté (pid 13913)</span></div>
+              <div class="lg"><span class="gr">59</span><span class="nv W">W</span><span class="tx">gradle-server · heap 412/512 Mo (poll 30 s)</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="m1-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : le header existant du BottomSheet ne disparaît PAS — le rang d'onglets (Sorties · Problèmes · Journal · Logcat) et l'indicateur compact restent ceux d'aujourd'hui (ADR 0029/0118) ; seule évolution : le libellé « Console » devient « Sorties ». Dans l'onglet Sorties, le sélecteur à puces ne porte QUE les sources Gradle (Sync · Build · Tâches · Serveur) — <b>Logcat et Journal ne sont pas dupliqués dedans</b> : ce sont déjà des onglets du header. Le bouton d'état (ou la poignée) fait défiler les trois états du BottomSheet.<br>
+  Pourquoi : UNE navigation par niveau — le header répond « quelle sortie », le sélecteur répond « quel flux Gradle » ; le panneau reste une fenêtre sur le même composant que l'éditeur dédié (ADR 0162). Les dépendances en vol s'affichent À LA LIGNE (µ-jauge ou molette + cumuls, figées à la fin) — voir M4 et « Écarts maquette → réalité ».</div>
+</div>
+
+<!-- M2 ================================================================ -->
+<div class="col">
+  <div class="cap">M2 · Build réussi — résumé + tâches regroupées
+    <small>(exécutée / en cache / à jour, durées)</small></div>
+  <div class="ph" id="m2">
+    <div class="bar"><button class="back">‹</button> Sorties — Build
+      <span class="sp"></span><span class="pd ok">● Réussi</span></div>
+    <div class="tol">
+      <div class="sr"><input placeholder="Rechercher…" oninput="rechercher(this,'m2-out')" aria-label="Rechercher"><span class="cnt">–</span>
+        <button title="Précédent" onclick="errer('m2-out',-1)">⌃</button><button title="Suivant" onclick="errer('m2-out',1)">⌄</button></div>
+      <button title="Suivre le bas" id="m2-suivre" onclick="suivreBas('m2-out')">⇣ suivre</button>
+      <button title="Exporter" onclick="ouvrirFeuille('m10','m2')">⇪</button>
+    </div>
+    <div class="out" id="m2-out">
+      <div class="res">
+        <div class="vd"><span class="g" style="color:var(--ok)">✓</span> BUILD SUCCESSFUL in 6,4s</div>
+        <div class="meta"><span>Tâches : <b>12</b> exécutées · <b>4</b> en cache · <b>31</b> à jour · <b>0</b> sans source</span>
+        <span><b style="color:var(--err)">0</b> erreur · <b style="color:var(--warn)">2</b> avertissements</span></div>
+      </div>
+      <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx">⬇ okhttp-4.12.0.jar<span class="dl"><span class="fin">✓ 0,9 Mo · 0,5s</span></span></span></div>
+      <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx">Téléchargé PENDANT le build : ligne ouverte au départ, mise à jour EN PLACE (molette puis µ-jauge — animation dans M1/M4), figée ici à la fin. Jamais une ligne par tick.</span></div>
+      <div class="tk"><div class="tk-h" onclick="basculerTache(this)"><span class="chev">▼</span>
+        <span class="pth">:app:checkDebugAarMetadata</span><span class="co">◇ cache</span><span class="du">0,1s</span><span class="co">2 l.</span></div>
+        <div class="tk-c"><div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx">Task content is not modified — omitted from build.</span></div>
+        <div class="lg"><span class="gr">4</span><span class="nv I">I</span><span class="tx">Résultat restauré du cache de build Gradle.</span></div></div>
+      </div>
+      <div class="tk"><div class="tk-h" onclick="basculerTache(this)"><span class="chev">▼</span>
+        <span class="pth">:app:mergeDebugResources</span><span class="co">○ à jour</span><span class="co">–</span></div>
+        <div class="tk-c"><div class="lg"><span class="gr">5</span><span class="nv I">I</span><span class="tx">UP-TO-DATE</span></div></div>
+      </div>
+      <div class="tk"><div class="tk-h" onclick="basculerTache(this)"><span class="chev">▼</span>
+        <span class="pth">:app:compileDebugKotlin</span><span class="co" style="color:var(--ok)">● exécutée</span><span class="du">3,2s</span><span class="co">14 l.</span></div>
+        <div class="tk-c">
+          <div class="lg"><span class="gr">6</span><span class="nv I">I</span><span class="tx">w: file:///projet/app/Ui/Apercu.kt:18:1: paramètre « ctx » jamais utilisé</span></div>
+          <div class="lg"><span class="gr">7</span><span class="nv I">I</span><span class="tx">w: file:///projet/app/Ui/Apercu.kt:24:7: cast non contrôlé vers « AdapterView »</span></div>
+          <div class="lg"><span class="gr">8</span><span class="nv I">I</span><span class="tx">Compilé 14 sources Kotlin en 3,1s (cache des IR activé)</span></div>
+        </div>
+      </div>
+      <div class="tk"><div class="tk-h" onclick="basculerTache(this)"><span class="chev">▼</span>
+        <span class="pth">:app:assembleDebug</span><span class="co" style="color:var(--ok)">● exécutée</span><span class="du">1,4s</span><span class="co">9 l.</span></div>
+        <div class="tk-c">
+          <div class="lg"><span class="gr">22</span><span class="nv I">I</span><span class="tx">Téléchargé : kotlin-stdlib-1.9.24.jar · 34,2 Mo reçus au total</span></div>
+          <div class="lg"><span class="gr">30</span><span class="nv I">I</span><span class="tx">APK écrit : app-debug.apk (4,8 Mo)</span></div>
+        </div>
+      </div>
+      <div class="lg"><span class="gr">47</span><span class="nv I">I</span><span class="tx" style="font-weight:700">BUILD SUCCESSFUL in 6,4s · 47 tâches actionnables : 12 exécutées, 35 à jour</span></div>
+      <div class="lg"><span class="gr">48</span><span class="nv V">V</span><span class="tx">Actionnable dans la notification de fin : Voir les sorties.</span></div>
+      <div class="poignee-defile" id="m2-marq"></div>
+    </div>
+    <div class="toast" id="m2-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : la projection <b>regroupée</b> — résumé en tête (verdict, durées, compteurs), une rangée par tâche avec statut sans ambiguïté (● exécutée / ◇ cache / ○ à jour) et durée serveur (événement <code>EtatTacheBuild</code>), contenu repliable. Le <b>brut</b> reste à un geste (bascule en barre d'outils) et reste la source de vérité — jamais deux listes (leçon ADR 0078).<br>
+  Pourquoi : aujourd'hui la sortie est un flux plat de 2 000 lignes maximum, sans verdict lisible ni durée par tâche ; c'est le gain n°1 de la maquette.</div>
+</div>
+
+<!-- M3 ================================================================ -->
+<div class="col">
+  <div class="cap">M3 · Build échoué — bandeau, bloc d'échec épinglé, erreurs cliquables
+    <small>(Réessayer / Copier / Corriger avec l'IA)</small></div>
+  <div class="ph" id="m3">
+    <div class="bar"><button class="back">‹</button> Sorties — Build
+      <span class="sp"></span><span class="pd e">✕ Échec</span></div>
+    <div class="bd ech" style="margin-top:8px"><span class="g">✕</span><div class="b"><b>Build échoué</b> — :app:compileDebugKotlin · 4,1s
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn t" onclick="toast('m3','Réessayer : relance les MÊMES tâches')">↻ Réessayer</button>
+        <button class="btn" onclick="toast('m3','Copié : 6 lignes (bloc d échec + erreurs)')">⧉ Copier</button>
+        <button class="btn" onclick="toast('m3','Contrat existant ControleurPanneauEditeur — chat pré-rempli')">✨ Corriger avec l'IA</button>
+      </div></div></div>
+    <div class="out" id="m3-out">
+      <div class="res" style="border-color:color-mix(in srgb,var(--err) 45%,transparent)">
+        <div class="vd"><span class="g" style="color:var(--err)">✕</span> BUILD FAILED in 4,1s</div>
+        <div class="meta"><span>Tâche en échec : <b>:app:compileDebugKotlin</b></span>
+        <span><b style="color:var(--err)">1</b> erreur · <b style="color:var(--warn)">2</b> avertissements</span></div>
+      </div>
+      <div class="tk" style="border:1px solid color-mix(in srgb,var(--err) 40%,transparent);border-radius:12px;margin:8px">
+        <div class="tk-h" style="color:var(--err)"><span class="chev">▼</span><span class="pth" style="color:var(--err)">📌 What went wrong — épinglé</span></div>
+        <div class="tk-c">
+          <div class="lg"><span class="gr">9</span><span class="nv E">E</span><span class="tx err">FAILURE: Build failed with an exception.</span></div>
+          <div class="lg"><span class="gr">10</span><span class="nv E">E</span><span class="tx err">* What went wrong:</span></div>
+          <div class="lg"><span class="gr">11</span><span class="nv E">E</span><span class="tx err">Execution failed for task ':app:compileDebugKotlin'.</span></div>
+          <div class="lg"><span class="gr">12</span><span class="nv E">E</span><span class="tx err">&gt; Compilation error. See log for more details</span></div>
+          <div class="lg"><span class="gr">13</span><span class="nv E">E</span><span class="tx err">* Try:</span></div>
+          <div class="lg"><span class="gr">14</span><span class="nv E">E</span><span class="tx err">&gt; Run with --stacktrace to get the stack trace.</span></div>
+        </div>
+      </div>
+      <div class="tk"><div class="tk-h" onclick="basculerTache(this)"><span class="chev">▼</span>
+        <span class="pth" style="color:var(--err)">:app:compileDebugKotlin</span><span class="co" style="color:var(--err)">✕ échouée</span><span class="du">2,8s</span><span class="co">6 l.</span></div>
+        <div class="tk-c">
+          <div class="lg"><span class="gr">15</span><span class="nv W">W</span><span class="tx">w: file:///projet/app/Ui/Apercu.kt:18:1: paramètre « ctx » jamais utilisé</span></div>
+          <div class="lg"><span class="gr">16</span><span class="nv E">E</span><span class="tx err cli" onclick="toast('m3','Saut au source : MainActivity.kt ligne 42, colonne 19')">e: file:///projet/app/MainActivity.kt:42:19: Référence non résolue « boutonValider »</span></div>
+          <div class="lg"><span class="gr">17</span><span class="nv E">E</span><span class="tx err">e: file:///projet/app/MainActivity.kt:42:19: <span>unresolved reference: boutonValider</span></span></div>
+        </div>
+      </div>
+      <div class="lg"><span class="gr">20</span><span class="nv E">E</span><span class="tx err" style="font-weight:700">BUILD FAILED in 4,1s · 1 tâche en échec sur 3 actionnables</span></div>
+      <div class="lg"><span class="gr">21</span><span class="nv V">V</span><span class="tx">Fil de l'incident : Problèmes · journaux serveur · Logcat (si un lancement a suivi) — depuis la barre « plus ».</span></div>
+    </div>
+    <div class="toast" id="m3-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : l'échec n'est plus muet — bandeau d'échec (existant, INC-21) enrichi des trois actions ; bloc « What went wrong / Try » <b>épinglé</b> ; erreurs <code>e: file://…:l:c</code> <b>cliquables dans le flux</b> (saut à la source, comme l'onglet Problèmes — pas de second endroit pour la même information) ; « fil de l'incident » dans le menu plus (M12).<br>
+  Pourquoi : ADR 0078 a supprimé la duplication, pas la structure — un même incident ne doit pas éclater en quatre surfaces (constat § 4.4 de l'audit).</div>
+</div>
+<!-- M4 ================================================================ -->
+<div class="col">
+  <div class="cap">M4 · Sync — phases et durées, téléchargements en vol À LA LIGNE, en-tête collant</div>
+  <div class="ph" id="m4">
+    <div class="bar"><button class="back">‹</button> Sorties — Sync <span class="sp"></span><span class="pd n">● En cours</span></div>
+    <div class="chips"><span class="ch on">Phases</span><span class="ch on">Flux</span><span class="ch">Téléchargements (129,4 Mo)</span><span class="ch">Serveur</span></div>
+    <div class="out">
+      <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Outils Gradle — présent ✓ 0,3s</span></div>
+      <div class="lg"><span class="gr">2</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Distribution — déjà installée ✓ 0,1s</span></div>
+      <div class="lg"><span class="gr">3</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Daemon — vivant (pid 13913) ✓ 0,2s</span></div>
+      <div class="lg"><span class="gr">4</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Configuration du projet ✓ 1,8s</span></div>
+      <div class="tk"><div class="tk-h" style="top:0"><span class="chev">▼</span><span class="pth" style="color:var(--canal-sync)">▸ Dépendances — en cours 12,6s <span class="co" id="m4-cumul">(12 artefacts ✓ · 129,4 Mo · 2 en vol)</span></span></div>
+        <div class="tk-c">
+          <div class="lg" id="m4-dl-gson"><span class="gr">5</span><span class="nv I">I</span><span class="tx">⬇ gson-2.10.1.jar<span class="dl"><span class="tour"></span><span class="mbar"><i style="width:0%"></i></span><span class="dl-t">0/2,7 Mo · 0 %</span></span></span></div>
+          <div class="lg" id="m4-dl-stdlib"><span class="gr">6</span><span class="nv I">I</span><span class="tx">⬇ kotlin-stdlib-2.0.0.jar<span class="dl"><span class="tour"></span><span class="dl-t">8,4 Mo cumulés · total inconnu</span></span></span></div>
+          <div class="lg"><span class="gr">7</span><span class="nv I">I</span><span class="tx">⬇ okio-jvm-3.4.0.jar<span class="dl"><span class="fin">✓ 2,4 Mo · 0,8s</span></span></span></div>
+          <div class="lg"><span class="gr">8</span><span class="nv I">I</span><span class="tx">⬇ androidx-core-ktx-1.13.1.aar<span class="dl"><span class="fin">✓ 0,6 Mo · 0,3s</span></span></span></div>
+          <div class="lg"><span class="gr">9</span><span class="nv I">I</span><span class="tx">… 10 autres artefacts terminés (126,4 Mo) — chaque ligne figée EN PLACE à sa fin</span></div>
+        </div>
+      </div>
+      <div class="lg"><span class="gr">10</span><span class="nv I">I</span><span class="tx" style="font-weight:600;color:var(--canal-sync)">▸ Modèle IDE · en attente de la fin des dépendances…</span></div>
+      <div class="lg"><span class="gr">11</span><span class="nv V">V</span><span class="tx">Flux brut du câble (—console=plain) consultable : basculer « Phases » sur « Flux » — une seule liste, deux projections, jamais les deux à l'écran (ADR 0079).</span></div>
+    </div>
+    <div class="toast" id="m4-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : les phases réelles du protocole (Outils, Distribution, Daemon, Configuration, Dépendances, Modèle) avec durée et volume, l'étape courante en <b>en-tête collant</b>, et — retour propriétaire — chaque dépendance téléchargée porte <b>SA progression à sa ligne</b> : molette + cumuls, µ-jauge + pourcentage quand le total est connu (sonde <code>.part</code>), figée à la fin (taille + durée).<br>
+  Pourquoi : la fenêtre d'étapes de l'en-tête porte déjà le VIVANT (ADR 0151) ; la console garde l'HISTORIQUE — les lignes de téléchargement se mettent à jour en place (≤ 5 événements/s, throttle serveur), jamais une ligne par tick : ni duplication, ni inondation. La phase Distribution d'une PREMIÈRE sync affiche un vrai pourcentage (sonde .part, 500 ms) sur le même principe.</div>
+</div>
+
+<!-- M5 ================================================================ -->
+<div class="col">
+  <div class="cap">M5 · Logcat — session, filtre par étiquette, répétitions « ×37 », trace repliée, bandeau de plantage</div>
+  <div class="ph" id="m5">
+    <div class="bar"><button class="back">‹</button> Sorties — Logcat
+      <span class="sp"></span><button class="tg" style="min-height:32px;padding:3px 10px;font-size:12px" onclick="basculerPause('m5')">⏸ Pause</button></div>
+    <div class="sel" style="padding:6px 10px">
+      <button class="on" style="flex:none;padding-inline:12px"><span class="pt act"></span>jo.codeide.demo · pid 12345 (principale)</button>
+      <button style="flex:none;padding-inline:12px">pid 12200 (:service)</button>
+      <button style="flex:none;padding-inline:12px;color:var(--on-sv)">Archivées ›</button>
+    </div>
+    <div class="chips" data-filtre-tags="m5-out">
+      <button class="ch on" data-tag="Room">Room <span class="k">112</span></button>
+      <button class="ch on" data-tag="Lifecycle">Lifecycle <span class="k">41</span></button>
+      <button class="ch on" data-tag="OkHttp">OkHttp <span class="k">87</span></button>
+      <button class="ch on" data-tag="MainActivity">MainActivity <span class="k">9</span></button>
+      <button class="ch on" data-tag="AndroidRuntime">AndroidRuntime <span class="k">6</span></button>
+      <span style="flex:1"></span>
+      <button class="btn" style="padding:3px 10px" onclick="ouvrirFeuille('m9','m5')">Filtres ⚙</button>
+    </div>
+    <div class="tol">
+      <div class="sr"><input placeholder="Message, étiquette, pid…" oninput="rechercher(this,'m5-out')"><span class="cnt">–</span>
+        <button title="Erreur suivante" onclick="errer('m5-out',1)">⌄</button></div>
+      <button title="Effacer" onclick="toast('m5','Effacer : vide le tampon courant (action explicite)')">⌫</button>
+      <button title="Plus" onclick="toast('m5','Fil de l incident, export, copie — menu plus')">⋮</button>
+    </div>
+    <div class="bd per" id="m5-perd" hidden><span class="g">▲</span><div class="b">1 205 lignes perdues — tampon borné (5 000). La perte est annoncée, jamais silencieuse.</div></div>
+    <div class="out" id="m5-out" data-flux="1">
+      <div class="lg" data-niv="D" data-tags="MainActivity"><span class="gr">841</span><span class="nv D">D</span><span class="ms">+2,1s</span><span class="tx">MainActivity · onCreate terminé</span></div>
+      <div class="lg" data-niv="I" data-tags="Room"><span class="gr">842</span><span class="nv I">I</span><span class="ms">+2,3s</span><span class="tx">Room · base ouverte en 38 ms</span></div>
+      <div class="lg" data-niv="I" data-tags="OkHttp"><span class="gr">843</span><span class="nv I">I</span><span class="ms">+2,4s</span><span class="tx">OkHttp · GET https://exemple.test/api/health → 200</span></div>
+      <div class="lg" data-niv="W" data-tags="Lifecycle"><span class="gr">844</span><span class="nv W">W</span><span class="ms">+3,0s</span><span class="tx">Lifecycle · observe() appelé après onStart (suggestion : init dans onCreate)</span></div>
+      <div class="lg" data-niv="D" data-tags="OkHttp"><span class="gr">845</span><span class="nv D">D</span><span class="ms">+3,1s</span><span class="tx">OkHttp · requête répétée (poll 500 ms)</span>
+        <span class="co" style="flex:none;color:var(--on-sv);font-size:10px" title="37 lignes identiques regroupées">×37</span></div>
+      <div class="lg" data-niv="E" data-tags="AndroidRuntime"><span class="gr">882</span><span class="nv F">F</span><span class="ms">+4,0s</span><span class="tx err" onclick="deplierPile(this)">✕ FATAL EXCEPTION: main — Process: jo.codeide.demo (trace repliée — cliquer pour déplier)</span></div>
+      <div class="lg" hidden data-niv="E" data-tags="AndroidRuntime" data-pile="1"><span class="gr">883</span><span class="nv F">F</span><span class="ms">+4,0s</span><span class="tx err">kotlin.UninitializedPropertyAccessException: lateinit property pont has not been initialized</span></div>
+      <div class="lg" hidden data-niv="E" data-tags="AndroidRuntime" data-pile="1"><span class="gr">884</span><span class="nv F">F</span><span class="ms">+4,0s</span><span class="tx err">  at jo.codeide.demo.MainActivity.valider(MainActivity.kt:57)</span></div>
+      <div class="lg" hidden data-niv="E" data-tags="AndroidRuntime" data-pile="1"><span class="gr">885</span><span class="nv F">F</span><span class="ms">+4,0s</span><span class="tx err">Caused by: java.lang.IllegalStateException: pont non prêt</span></div>
+      <div class="bd arre"><span class="g">✕</span><div class="b"><b>Le processus s'est arrêté</b> : exception fatale à +4,0s
+        <div style="margin-top:5px"><button class="btn t" style="padding:3px 10px" onclick="toast('m5','Ouvre le tampon de session précédente (dernière ligne conservée)')">Voir la trace</button>
+        <button class="btn" style="padding:3px 10px" onclick="toast('m5','Relance l application (perimètre EXECUTER.md)')">↻ Relancer</button></div></div></div>
+    </div>
+    <div class="note" style="margin:4px 12px 8px">Sans adb : journaux de votre application uniquement (pont embarqué — ADR 0103, honnêteté EXECUTER.md § 5).</div>
+    <div class="toast" id="m5-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : la parité stricte R3/R4 conservée (sessions par (paquet, pid, processus), pause/rattrapage, bandeau de pertes, bandeau d'arrêt, session archivée), PLUS : puces d'étiquettes avec compteurs, regroupement des répétitions « ×37 » (une seule rangée + badge), trace d'exception repliée avec « Caused by », saut « erreur suivante ».<br>
+  Pourquoi : le Logcat garde son moteur existant mais rejoint le lecteur unifié ; le regroupement est un gain de lecture mesurable sur les boucles de poll.</div>
+</div>
+
+<!-- M6 ================================================================ -->
+<div class="col">
+  <div class="cap">M6 · Journal applicatif de CodeIDE — niveaux, sessions de lancement, export</div>
+  <div class="ph" id="m6">
+    <div class="bar"><button class="back">‹</button> Sorties — Journal <span class="sp"></span>
+      <button class="tg" style="min-height:32px;padding:3px 10px;font-size:12px" onclick="toast('m6','Le panneau compact garde une fenêtre de 200 (ADR 0029) — ici, l historique complet')">Complet</button></div>
+    <div class="sel" style="padding:6px 10px">
+      <button class="on" style="flex:none;padding-inline:12px">Lancement 14:02 · vivant</button>
+      <button style="flex:none;padding-inline:12px">Lancement 11:20</button>
+      <button style="flex:none;padding-inline:12px">09:58</button>
+    </div>
+    <div class="chips" data-filtre-tags="m6-out">
+      <button class="ch on" data-niv="V">V</button><button class="ch on" data-niv="D">D</button>
+      <button class="ch on" data-niv="I">I</button><button class="ch on" data-niv="W">W</button>
+      <button class="ch on" data-niv="E">E</button>
+      <span style="flex:1"></span>
+      <button class="btn" style="padding:3px 10px" onclick="ouvrirFeuille('m10','m6')">Exporter ⇪</button>
+    </div>
+    <div class="out" id="m6-out">
+      <div class="lg" data-niv="D" data-tags="LspClient"><span class="gr">201</span><span class="nv D">D</span><span class="ms">14:02:07</span><span class="tx">LspClient · serveur de langue démarré (Kotlin)</span></div>
+      <div class="lg" data-niv="I" data-tags="ToolingDaemon"><span class="gr">202</span><span class="nv I">I</span><span class="ms">14:02:09</span><span class="tx">ToolingDaemon · orchestrateur prêt (socket Unix, secret frais)</span></div>
+      <div class="lg" data-niv="I" data-tags="ToolingDaemon"><span class="gr">203</span><span class="nv I">I</span><span class="ms">14:02:11</span><span class="tx">gradle-server · stderr : daemon démarré (pid 13913)</span></div>
+      <div class="lg" data-niv="W" data-tags="LspClient"><span class="gr">204</span><span class="nv W">W</span><span class="ms">14:03:44</span><span class="tx">LspClient · indexation lente détectée (1,2s &gt; seuil 800ms)</span></div>
+      <div class="lg" data-niv="E" data-tags="LspClient"><span class="gr">205</span><span class="nv E">E</span><span class="ms">14:04:02</span><span class="tx err">LspClient · diagnostic non appliqué : document fermé entre-temps</span></div>
+    </div>
+    <div class="note" style="margin:4px 12px 8px">Recherche insensible aux accents conservée (ADR 0025) · export zip existant · usage disque affiché dans l'écran complet. L'écran Diagnostics devient un CONSOMMATEUR du même composant.</div>
+    <div class="toast" id="m6-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : la troisième source passe au lecteur unifié — même barre d'outils, mêmes filtres, mêmes exports ; les sessions de lancement (ADR 0025) restent la première discrimination ; le tag serveur <code>gradle-server</code> est consultable ici ET filtrable depuis une session de build (M11).<br>
+  Pourquoi : trois surfaces, un moteur, un filtre, un export — les trois modèles de ligne convergent vers un seul (ADR 0160).</div>
+</div>
+
+<!-- M7 ================================================================ -->
+<div class="col">
+  <div class="cap">M7 · Éditeur dédié plein écran — barre de recherche, repères de défilement, en-tête collant</div>
+  <div class="ph" id="m7">
+    <div class="bar"><button class="back">↓</button> <b>Sorties</b>
+      <small style="color:var(--on-sv);font-weight:400">· Build · projet « demo » · session de 14:22:31</small>
+      <span class="sp"></span>
+      <button title="Rechercher" onclick="toggleRecherche('m7')">🔍</button>
+      <button title="Filtres" onclick="ouvrirFeuille('m9','m7')">⚙</button>
+      <button title="Historique" onclick="toast('m7','Historique des exécutions (M11)')">☰</button>
+    </div>
+    <div class="tol" id="m7-rech" hidden>
+      <div class="sr"><input placeholder="Rechercher dans les 12 480 lignes…" oninput="rechercher(this,'m7-out')"><span class="cnt">–</span>
+        <button title="Précédent" onclick="errer('m7-out',-1)">⌃</button><button title="Suivant" onclick="errer('m7-out',1)">⌄</button></div>
+      <button title="Regex" onclick="this.classList.toggle('on');toast('m7','Regex activée — motif invalide signalé en ligne, jamais d exception')">.*</button>
+      <button title="Casse" onclick="toast('m7','Sensible à la casse')">Aa</button>
+      <button title="Effacer" onclick="videRecherche(this)">✕</button>
+    </div>
+    <div class="chips">
+      <span class="ch on">Brut / regroupé : <b>regroupé</b></span>
+      <span class="ch">Horodatage relatif</span><span class="ch">Numéros</span>
+      <span class="ch">Retour à la ligne</span><span class="ch">ANSI</span>
+    </div>
+    <div class="out" id="m7-out" style="font-size:12.5px">
+      <div class="res"><div class="vd"><span class="g" style="color:var(--err)">✕</span> BUILD FAILED in 4,1s</div>
+        <div class="meta"><span>:app:compileDebugKotlin</span><span><b style="color:var(--err)">1</b> erreur · <b style="color:var(--warn)">2</b> avertissements</span></div></div>
+      <div class="tk"><div class="tk-h" style="position:sticky"><span class="chev">▼</span><span class="pth" style="color:var(--err)">:app:compileDebugKotlin</span><span class="co" style="color:var(--err)">✕</span><span class="du">2,8s</span></div>
+        <div class="tk-c">
+          <div class="lg"><span class="gr">1</span><span class="nv I">I</span><span class="ms">+0,0s</span><span class="tx">Tâche démarrée (événement serveur, durée mesurée côté serveur)</span></div>
+          <div class="lg"><span class="gr">2</span><span class="nv W">W</span><span class="ms">+0,9s</span><span class="tx">w: file:///projet/app/Ui/Apercu.kt:18:1: paramètre « ctx » jamais utilisé</span></div>
+          <div class="lg reper"><span class="gr">3</span><span class="nv E">E</span><span class="ms">+1,7s</span><span class="tx err cli" onclick="toast('m7','Saut au source : MainActivity.kt:42:19')">e: file:///projet/app/MainActivity.kt:42:19: Référence non résolue « boutonValider »</span></div>
+          <div class="lg"><span class="gr">4</span><span class="nv E">E</span><span class="ms">+2,8s</span><span class="tx err">FAILURE: Build failed with an exception.</span></div>
+        </div>
+      </div>
+      <div class="tk replie"><div class="tk-h"><span class="chev">▼</span><span class="pth">:app:mergeDebugResources</span><span class="co">○ à jour</span></div>
+        <div class="tk-c"><div class="lg"><span class="gr">5</span><span class="nv I">I</span><span class="ms">+3,0s</span><span class="tx">UP-TO-DATE</span></div></div>
+      </div>
+      <div class="poignee-defile">
+        <span class="pm e" style="top:34%"></span><span class="pm w" style="top:28%"></span>
+        <span class="pm w" style="top:31%"></span><span class="pm m" style="top:36%"></span>
+      </div>
+    </div>
+    <div class="toast" id="m7-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : l'éditeur dédié comme <b>document de premier rang</b> — plein écran portrait, barre de recherche dépliable (compteur « n/N », précédent/suivant, regex avec motif invalide signalé), puces de projection et d'affichage (brut/regroupé, horodatage, numéros, retour à la ligne, ANSI), repères sur la poignée de défilement (rouge = erreurs, ambre = avertissements, bleu = correspondances), en-tête de tâche courante collant.<br>
+  Pourquoi : aujourd'hui ni recherche ni filtre ne sont possibles dans la console ; le plein écran donne enfin la place de lire un build de 12 000 lignes.</div>
+</div>
+
+<!-- M8 ================================================================ -->
+<div class="col" style="min-width:900px">
+  <div class="cap">M8 · Tablette — éditeur dédié en volet À CÔTÉ du code</div>
+  <div class="tb" id="m8">
+    <div class="cadre-tb">
+      <div class="volet-code">
+        <div class="bar">MainActivity.kt <small style="color:var(--on-sv);font-weight:400">· Kotlin ·</small>
+          <span class="pd e" style="font-size:10px">● 1 erreur</span></div>
+        <div class="code" style="opacity:1">
+1 <span class="kl">class</span> MainActivity : AppCompatActivity() {
+2     <span class="kl">private lateinit var</span> boutonValider: Button
+3
+4     <span class="kl">override fun</span> onCreate(s: Bundle?) {
+5         setContentView(R.layout.activity_main)
+6
+7         <span style="background:color-mix(in srgb,var(--err) 16%,transparent)">boutonValider.setOnClickListener { valider() }</span>
+<span style="background:color-mix(in srgb,var(--err) 16%,transparent)"><b style="color:var(--err)">       ▲ ligne 7 (col. 9) — Référence non résolue : boutonValider</b></span>
+9     }
+10 }</div>
+        <div class="note">Le curseur est posé par le même contrat <code>ControleurPanneauEditeur.sauterAuProbleme(fichier, ligne)</code> — le volet sorties reste visible pendant la correction.</div>
+      </div>
+      <div class="volet-sort">
+        <div class="bar" style="min-height:44px"><b>Sorties</b> <small style="color:var(--on-sv);font-weight:400">· Build</small>
+          <span class="sp"></span><span class="pd e">✕ Échec</span>
+          <button class="tg" style="min-height:30px;padding:2px 8px;font-size:11px" onclick="toast('m8','Le volet devient onglet plein écran (ADR 0162)')">⤢</button></div>
+        <div class="sel">
+          <button data-pane="m8-a" class="on" onclick="choisirSource('m8',this,'Build')">Build</button>
+          <button data-pane="m8-b" onclick="choisirSource('m8',this,'Logcat')">Logcat</button>
+          <button data-pane="m8-c" onclick="choisirSource('m8',this,'Journal')">Journal</button>
+        </div>
+        <div class="out" id="m8-a">
+          <div class="res"><div class="vd"><span class="g" style="color:var(--err)">✕</span> BUILD FAILED in 4,1s</div></div>
+          <div class="lg"><span class="gr">16</span><span class="nv E">E</span><span class="tx err">e: file:///projet/app/MainActivity.kt:42:19: Référence non résolue « boutonValider »</span></div>
+          <div class="lg"><span class="gr">17</span><span class="nv E">E</span><span class="tx err">FAILURE: Build failed with an exception.</span></div>
+        </div>
+        <div class="out" id="m8-b" hidden>
+          <div class="lg"><span class="gr">841</span><span class="nv D">D</span><span class="ms">+2,1s</span><span class="tx">MainActivity · onCreate terminé</span></div>
+        </div>
+        <div class="out" id="m8-c" hidden>
+          <div class="lg"><span class="gr">202</span><span class="nv I">I</span><span class="ms">14:02</span><span class="tx">ToolingDaemon · orchestrateur prêt</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="m8-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : sur tablette, l'éditeur dédié devient un <b>volet latéral</b> (pas un recouvrement) — code et sorties côte à côte ; basculer de source ne quitte jamais la lecture ; le geste « ⤢ » rend le volet plein écran.<br>
+  Pourquoi : un panneau du bas en mi-hauteur laisse quelques lignes visibles ; le volet est la réponse tablette (ADR 0162, décision § 9 Q1).</div>
+</div>
+<!-- M9 ================================================================ -->
+<div class="col">
+  <div class="cap">M9 · Feuille de filtres avancés <small>(niveau, étiquettes, source, période, regex, filtres enregistrés)</small></div>
+  <div class="ph" id="m9" style="position:relative">
+    <div class="bar"><button class="back">‹</button> Sorties — Logcat <span class="sp"></span>
+      <button class="btn" style="padding:3px 10px" onclick="ouvrirFeuille('m9','m9')">Filtres ⚙</button></div>
+    <div class="out" style="opacity:.35">
+      <div class="lg"><span class="gr">842</span><span class="nv I">I</span><span class="ms">+2,3s</span><span class="tx">Room · base ouverte en 38 ms</span></div>
+      <div class="lg"><span class="gr">843</span><span class="nv I">I</span><span class="ms">+2,4s</span><span class="tx">OkHttp · GET … → 200</span></div>
+    </div>
+    <div class="voile" id="m9-voile" hidden>
+      <div class="feui">
+        <div class="ht"><h3>Filtres des sorties</h3><button class="btn" style="padding:3px 10px" onclick="fermerFeuille('m9')">✕ Fermer</button></div>
+        <div class="sec">Niveau minimal</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="ch" onclick="basc(this)">V</button><button class="ch" onclick="basc(this)">D</button>
+          <button class="ch on" onclick="basc(this)">I</button><button class="ch on" onclick="basc(this)">W</button>
+          <button class="ch on" onclick="basc(this)">E</button><button class="ch on" onclick="basc(this)">F</button>
+        </div>
+        <div class="sec">Étiquettes</div>
+        <div class="rw"><div class="t">Inclure <small>aucune cochée = toutes</small></div><span class="pd n">+ 3</span></div>
+        <div class="rw"><div class="t">Exclure <small>les étiquettes bruyantes</small></div><span class="pd n">OkHttp</span></div>
+        <div class="sec">Texte</div>
+        <input class="chp" placeholder="Room ou pid:12345" value="level:W -OkHttp" readonly>
+        <div class="rw"><div class="t">Expression régulière <small>motif invalide : signalé en ligne, repli « aucune correspondance »</small></div><div class="sw" onclick="this.classList.toggle('off')"></div></div>
+        <div class="rw"><div class="t">Casse <small>insensible par défaut</small></div><div class="sw off" onclick="this.classList.toggle('off')"></div></div>
+        <div class="rw"><div class="t">Accents <small>insensibles (héritage ADR 0025)</small></div><div class="sw" onclick="this.classList.toggle('off')"></div></div>
+        <div class="sec">Source et période</div>
+        <div class="rw"><div class="t">Sources <small>Sources multiples cochables</small></div><span class="pd n">Build · Logcat</span></div>
+        <div class="rw"><div class="t">Période <small>bornée au contenu du tampon</small></div><span class="v">Dernière heure ›</span></div>
+        <div class="sec">Filtres enregistrés (par projet)</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;padding:6px 0">
+          <button class="ch on">Mes erreurs (W+E)</button><button class="ch">Gradle sans cache</button>
+          <button class="btn t" onclick="toast('m9','Enregistrer le filtre courant')">+ Enregistrer</button>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+          <button class="btn" onclick="fermerFeuille('m9')">Réinitialiser</button>
+          <button class="btn p" onclick="fermerFeuille('m9');toast('m9','Filtre appliqué — compteur de lignes masquées visible dans la barre')">Appliquer</button>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="m9-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : une seule feuille de filtres pour TOUTES les sources — niveau (ensemble, pas seulement « minimal »), étiquettes à inclure/exclure, texte (sous-chaîne / regex / casse / accents), source et période, filtres enregistrés par projet ; la syntaxe de requête <code>tag:… level:… -texte</code> est montrée comme option (décision § 9 Q4bis).<br>
+  Pourquoi : la sémantique de <code>FiltreLogcat</code> (repli « aucune correspondance », erreur de motif signalée, jamais d'exception) est généralisée par <code>FiltreSorties</code> (ADR 0160).</div>
+</div>
+
+<!-- M10 =============================================================== -->
+<div class="col">
+  <div class="cap">M10 · Export / partage — toujours explicite, avertissement « données sensibles »</div>
+  <div class="ph" id="m10" style="position:relative">
+    <div class="bar"><button class="back">‹</button> Sorties — Build <span class="sp"></span>
+      <button class="btn" style="padding:3px 10px" onclick="ouvrirFeuille('m10','m10')">⇪ Exporter</button></div>
+    <div class="out" style="opacity:.35">
+      <div class="lg"><span class="gr">16</span><span class="nv E">E</span><span class="tx err">e: file:///projet/app/MainActivity.kt:42:19: …</span></div>
+      <div class="lg"><span class="gr">20</span><span class="nv E">E</span><span class="tx err" style="font-weight:700">BUILD FAILED in 4,1s</span></div>
+    </div>
+    <div class="voile" id="m10-voile" hidden>
+      <div class="feui">
+        <div class="ht"><h3>Exporter les sorties</h3><button class="btn" style="padding:3px 10px" onclick="fermerFeuille('m10')">✕ Fermer</button></div>
+        <div class="sec">Contenu</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="ch on">La sélection (2 lignes)</button><button class="ch">La vue filtrée</button><button class="ch">Tout le tampon</button>
+        </div>
+        <div class="sec">Format</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="ch on">Texte brut</button><button class="ch">Zip (journal complet)</button>
+        </div>
+        <div class="bd per" style="margin:10px 0 0"><span class="g">▲</span><div class="b"><b>Les sorties peuvent contenir des données sensibles</b> (chemins, noms de machine, extraits de code). Le fichier copié ou partagé n'est PAS expurgé ; l'historique conservé sur l'appareil, lui, l'est à l'écriture (<code>LogRedactor</code>).</div></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+          <button class="btn" onclick="fermerFeuille('m10');toast('m10','Partager via FileProvider (autorité dans app, ADR 0025)')">⤴ Partager</button>
+          <button class="btn p" onclick="fermerFeuille('m10');toast('m10','Enregistrer via SAF (aucune permission de stockage)')">Enregistrer…</button>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="m10-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : l'export est une action EXPLICITE (jamais automatique), avec périmètre choisi (sélection / vue filtrée / tout), l'avertissement de confidentialité et la frontière exacte de l'expurgation (live = contenu de l'utilisateur, inchangé ; historique sur disque = expurgé).<br>
+  Pourquoi : le partage passe par <code>FileProvider</code> (ADR 0025) ou SAF (ADR 0003) — aucune permission ajoutée.</div>
+</div>
+
+<!-- M11 =============================================================== -->
+<div class="col">
+  <div class="cap">M11 · Historique des exécutions <small>(10 dernières, verdict, durée, comparaison)</small></div>
+  <div class="ph" id="m11">
+    <div class="bar"><button class="back">‹</button> Historique des builds <span class="sp"></span>
+      <button class="tg" style="min-height:32px;padding:3px 10px;font-size:12px" onclick="document.getElementById('m11-list').classList.toggle('cmp');toast('m11','Comparaison avec l exécution précédente (durée, tâches rejouées)')">Comparer</button></div>
+    <div class="chips">
+      <span class="ch on">Tous</span><span class="ch">Échecs</span><span class="ch">Build</span><span class="ch">Sync</span>
+      <span class="sp" style="flex:1"></span>
+      <button class="btn d" style="padding:3px 10px" onclick="toast('m11','Effacer l historique (action explicite, confirmation)')">Effacer</button>
+    </div>
+    <div class="hist" id="m11-list">
+      <div class="hrow"><span class="g" style="color:var(--err)">✕</span><div class="t"><b>Build · :app:assembleDebug</b><span>Hier 14:22 · 1 erreur · 2 avertissements</span>
+        <div class="delta">vs précédent : +0,8s · 3 tâches rejouées (compileDebugKotlin, mergeDebugResources, assembleDebug) · journaux serveur rattachés (4 lignes)</div></div>
+        <span class="du">4,1s</span></div>
+      <div class="hrow"><span class="g" style="color:var(--ok)">✓</span><div class="t"><b>Build · :app:assembleDebug</b><span>Hier 11:03 · 0 erreur · 2 avertissements</span>
+        <div class="delta">vs précédent : −5,2s · daemon chaud, cache 70 %</div></div><span class="du">6,4s</span></div>
+      <div class="hrow"><span class="g" style="color:var(--ok)">✓</span><div class="t"><b>Sync · complet</b><span>Hier 11:02 · 34,2 Mo reçus · 6 phases</span>
+        <div class="delta">vs précédent : empreinte Gradle inchangée</div></div><span class="du">16,1s</span></div>
+      <div class="hrow"><span class="g" style="color:var(--err)">✕</span><div class="t"><b>Build · :app:testDebugUnitTest</b><span>12 nov · 1 échec de test</span>
+        <div class="delta">vs précédent : premier échec depuis 3 jours</div></div><span class="du">21,7s</span></div>
+      <div class="hrow"><span class="g" style="color:var(--ok)">✓</span><div class="t"><b>Sync · restituée du cache</b><span>12 nov · empreinte identique</span>
+        <div class="delta"></div></div><span class="du">0,2s</span></div>
+    </div>
+    <div class="note" style="margin:6px 14px 10px">10 exécutions · plafond de taille par exécution · stockage privé · <b>expurgées à l'écriture</b> (<code>LogRedactor</code> + chemins absolus) · consultables après redémarrage · effaçables.</div>
+    <div class="toast" id="m11-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : la sortie du build qui a échoué hier reste relisible après un redémarrage de CodeIDE — liste bornée des exécutions avec verdict, durée et compteurs ; « Comparer » ajoute le delta avec l'exécution précédente ; les journaux serveur du build sont rattachés à la session (filtre « Serveur »).<br>
+  Pourquoi : aujourd'hui la console repart vierge à chaque action et après redémarrage — le constat le plus brutal de l'audit (§ 4.3).</div>
+</div>
+
+<!-- M12 =============================================================== -->
+<div class="col">
+  <div class="cap">M12 · États et erreurs — chaque vide dit pourquoi et propose la suite</div>
+  <div class="ph" id="m12">
+    <div class="bar"><button class="back">‹</button> Sorties <span class="sp"></span>
+      <select onchange="montrerEtat(this.value)" style="background:var(--pc);color:var(--on-pc);border:none;border-radius:10px;padding:7px;font:12px system-ui;min-height:36px">
+        <option value="e1">Vide — bibliothèque</option>
+        <option value="e2">Serveur déconnecté</option>
+        <option value="e3">Session morte</option>
+        <option value="e4">Lignes perdues</option>
+        <option value="e5">Sortie tronquée</option>
+      </select></div>
+    <div id="e1" class="vs" style="flex:1"><span class="g">◇</span><b>Aucune sortie de build</b>
+      Projet de type <b>bibliothèque</b> : seul Sync est disponible — Logcat n'existe que pour un projet exécutable sur l'appareil (périmètre EXECUTER.md § 1).
+      <button class="btn t" onclick="toast('m12','Lance la synchronisation')">Synchroniser</button></div>
+    <div id="e2" class="vs" style="flex:1;display:none"><span class="g">◉</span><b>Serveur de build déconnecté</b>
+      L'orchestrateur JVM ne répond pas (handshake refusé après 3 tentatives). Les sorties précédentes restent lisibles ci-dessous.
+      <button class="btn t" onclick="toast('m12','Redémarre le serveur de build')">Redémarrer le serveur</button></div>
+    <div id="e3" class="vs" style="flex:1;display:none"><span class="g">✕</span><b>Session terminée</b>
+      Le processus de votre application s'est arrêté à +4,0s (exception fatale). Sa session précédente est archivée.
+      <button class="btn t" onclick="toast('m12','Ouvre la session précédente')">Voir la session précédente</button>
+      <button class="btn" onclick="toast('m12','Relance l application')">↻ Relancer</button></div>
+    <div id="e4" class="bd per" style="display:none;margin:10px"><span class="g">▲</span><div class="b"><b>1 205 lignes perdues</b> — le tampon est borné (5 000) pour protéger la mémoire ; les plus anciennes ont été sacrifiées. Exportez avant de saturer si vous voulez tout garder.</div></div>
+    <div id="e5" class="vs" style="flex:1;display:none"><span class="g">⤢</span><b>Sortie tronquée</b>
+      Cette exécution a produit 48 120 lignes ; l'historique conserve les 20 000 premières et les 2 000 dernières (plafond de taille).
+      <button class="btn t" onclick="toast('m12','Exporte l exécution complète avant purge')">Exporter l'exécution</button></div>
+    <div class="toast" id="m12-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : la table de vérité § 5.8 rendue visible — chaque état vide ou erreur explique SA cause et propose LA suite (jamais d'écran muet) ; la perte est annoncée (honnêteté, leçon ADR 0078 / EXECUTER.md § 5) ; la troncature de l'historique est dite avec les bornes exactes.<br>
+  Pourquoi : cette table devient un test automatisé (un état = un libellé = une action) dès le lot L1.</div>
+</div>
+
+<!-- M13 =============================================================== -->
+<div class="col">
+  <div class="cap">M13 · Réglages « Sorties » <small>(aucun réglage sans effet réel)</small></div>
+  <div class="ph" id="m13">
+    <div class="bar"><button class="back">‹</button> Paramètres — Sorties</div>
+    <div style="overflow:auto;flex:1">
+      <div class="sec" style="margin:10px 16px 2px;font-size:11px;font-weight:700;color:var(--on-sv)">HISTORIQUE</div>
+      <div class="rangee48"><div style="flex:1"><b>Exécutions conservées</b><small style="display:block;color:var(--on-sv)">10 par défaut · plafond de taille par exécution</small></div><span class="v">10 ›</span></div>
+      <div class="rangee48"><div style="flex:1"><b>Taille maximale d'une exécution</b><small style="display:block;color:var(--on-sv)">les lignes du milieu sont les premières tronquées</small></div><span class="v">20 000 lignes ›</span></div>
+      <div class="rangee48"><div style="flex:1"><b>Effacer maintenant</b><small style="display:block;color:var(--on-sv)">libère le stockage privé</small></div><button class="btn d" style="padding:4px 12px">Effacer</button></div>
+      <div class="sec" style="margin:10px 16px 2px;font-size:11px;font-weight:700;color:var(--on-sv)">AFFICHAGE</div>
+      <div class="rangee48"><div style="flex:1"><b>Horodatage par défaut</b></div><span class="v">Relatif ›</span></div>
+      <div class="rangee48"><div style="flex:1"><b>Taille de police</b></div><span class="v">13 sp ›</span></div>
+      <div class="rangee48"><div style="flex:1"><b>Retour à la ligne</b><small style="display:block;color:var(--on-sv)">sinon défilement horizontal</small></div><div class="sw" onclick="this.classList.toggle('off')"></div></div>
+      <div class="rangee48"><div style="flex:1"><b>Couleurs ANSI</b><small style="display:block;color:var(--on-sv)">SGR minimal, parseur pur testé</small></div><div class="sw" onclick="this.classList.toggle('off')"></div></div>
+      <div class="rangee48"><div style="flex:1"><b>Numéros de ligne</b></div><div class="sw off" onclick="this.classList.toggle('off')"></div></div>
+      <div class="sec" style="margin:10px 16px 2px;font-size:11px;font-weight:700;color:var(--on-sv)">FILTRES PAR DÉFAUT</div>
+      <div class="rangee48"><div style="flex:1"><b>Filtre au démarrage</b><small style="display:block;color:var(--on-sv)">par source</small></div><span class="v">Mes erreurs ›</span></div>
+      <div class="rangee48"><div style="flex:1"><b>Taille des tampons</b><small style="display:block;color:var(--on-sv)">5 000 lignes (Logcat) · 2 000 (console)</small></div><span class="v">Par défaut ›</span></div>
+    </div>
+    <div class="toast" id="m13-toast"></div>
+  </div>
+  <div class="pourquoi">Ce que ça montre : la section « Sorties » des réglages — rétention, plafond d'exécution, horodatage, police, retour à la ligne, ANSI, numéros, filtres par défaut, tailles de tampons. Chaque réglage a un effet réel et borné ; « Effacer » est explicite et confirmée.<br>
+  Pourquoi : rien de ce qui est réglable ne doit être décoratif — la table d'adaptation (M14) reste automatique et non réglable.</div>
+</div>
+
+<!-- M14 =============================================================== -->
+<div class="col" style="min-width:420px">
+  <div class="cap">M14 · Table d'adaptation projet × état <small>(§ 5.8 — livrable de L0, devient un test)</small></div>
+  <div style="overflow:auto;border:1px solid var(--ov);border-radius:12px">
+    <table class="tab">
+      <tr><th>Type de projet ↓ · État →</th><th>Serveur déconnecté</th><th>Sync jamais faite</th><th>Sync prête</th><th>Build en vol / fini</th><th>Exécution lancée</th></tr>
+      <tr><td><b>Application Android</b></td>
+        <td class="m">Sorties ouvertes : Historique + Journal serveur. Action : redémarrer le serveur.</td>
+        <td class="m">Sync visible avec bandeau « jamais synchronisée ». Action : Synchroniser.</td>
+        <td class="m">4 sources : Sync, Build, Logcat, Journal. Tâches listées.</td>
+        <td class="m">Verdict, résumé, regroupement ; fil de l'incident si échec.</td>
+        <td class="m">Logcat + bandeau plantage ; fil de l'incident complet.</td></tr>
+      <tr><td><b>Bibliothèque</b></td>
+        <td class="m">Historique + Journal. Action : redémarrer.</td>
+        <td class="m">Sync seule. Action : Synchroniser.</td>
+        <td class="m">Sync + Build + Journal ; <b>pas de Logcat</b> (non exécutable sur l'appareil).</td>
+        <td class="m">Verdict, résumé, regroupement.</td>
+        <td class="m">— (état impossible : Logcat absent de la table).</td></tr>
+      <tr><td><b>JVM / Kotlin</b></td>
+        <td class="m">Historique + Journal. Action : redémarrer.</td>
+        <td class="m">Sync seule. Action : Synchroniser.</td>
+        <td class="m">Sync + Build + Journal ; pas de Logcat (hors périmètre EXECUTER.md § 1).</td>
+        <td class="m">Verdict, résumé, regroupement.</td>
+        <td class="m">— (idem).</td></tr>
+      <tr><td><b>Spring / plugin Gradle</b></td>
+        <td class="m">Historique + Journal. Action : redémarrer.</td>
+        <td class="m">Sync seule (ou listage de tâches).</td>
+        <td class="m">Sync + Build + Journal.</td>
+        <td class="m">Verdict, résumé, regroupement.</td>
+        <td class="m">—.</td></tr>
+      <tr><td><b>Multiplateforme</b></td>
+        <td class="m">Historique + Journal.</td>
+        <td class="m">Sync seule.</td>
+        <td class="m">Sync + Build + Journal ; Logcat seulement pour la cible Android exécutée sur l'appareil.</td>
+        <td class="m">Verdict, résumé ; tâches par cible.</td>
+        <td class="m">Logcat si cible Android lancée.</td></tr>
+    </table>
+  </div>
+  <div class="pourquoi">Ce que ça montre : pour chaque type de projet × état — les sources visibles, l'action proposée et le texte d'état vide. La table est le contrat de cohésion : le Logcat n'apparaît que si le projet est exécutable sur l'appareil ; la bibliothèque n'a que Sync/Build.<br>
+  Pourquoi : la même table existe en version testable (lot L1) — un état qui change doit faire échouer le test qui l'affiche.</div>
+</div>
+
+<!-- ÉCARTS ============================================================ -->
+<div class="ecarts">
+  <h2>Écarts maquette → réalité (preuve de sérieux)</h2>
+  <ul>
+    <li><b>Rendu.</b> La maquette dessine chaque ligne en un nœud DOM réel ; sur appareil, la quantité cible est la <b>virtualisation</b> ( RecyclerView ou vue Canvas, décision ADR 0159 par mesure) — la maquette n'est pas un prototype de performance. Les chiffres de débit JVM de l'audit et le PV d'instrumentation (banc de mesure) font foi.</li>
+    <li><b>En-tête collant de la tâche courante.</b> Posé ici par CSS <code>position:sticky</code> ; sur appareil il dépend du moteur retenu (trivial en RecyclerView/Canvas, à composer en lecture seule d'une bibliothèque d'édition).</li>
+    <li><b>Regroupement « ×37 » et repli de pile.</b> Statique ici ; en production ils sont calculés sur le tampon (compteur de répétitions consécutives, reconstruit après filtre) et leur état doit survivre à la rotation — critère d'acceptation n° 7 de la spec.</li>
+    <li><b>Recherche.</b> Le surlignage est instantané sur ~50 lignes de maquette ; la vraie recherche porte sur 100 000 lignes hors thread principal, annulable, avec compteur et repères (budgets § 8 de la spec).</li>
+    <li><b>Panneau M1.</b> Le cycle d'états simule le BottomSheet Material 3 (REPLIE / MI_HAUTEUR / ETENDU, ADR 0029/0118) : les vrais insets, la poignée système et le clavier ne sont pas maquettés.</li>
+    <li><b>Sync M4.</b> La maquette montre la projection « phases » ; le flux réel du câble reste disponible (projection « brut ») — les deux projections ne sont jamais empilées (ADR 0078/0079).</li>
+    <li><b>Progression des téléchargements.</b> La maquette anime la µ-jauge par artefact ; en réalité, la Tooling API ne livre les octets d'une dépendance <b>QU'À SA FIN</b> (vérifié par <code>javap</code>, <code>docs/TOOLING.md</code> § v4). En vol : molette + compteurs cumulés garantis (throttle 5 événements/s par élément) ; µ-jauge + pourcentage RÉELS seulement quand le total est connu (sonde des fichiers <code>.part</code>, comme la phase Distribution d'une première sync) — la généralisation par artefact est demandée au dépôt frère (<code>DEMANDES_CODEIDE_TOOLING.md</code> D2). En attendant, dégradation propre : jamais de pourcentage inventé.</li>
+    <li><b>Header du panneau M1.</b> Le rang d'onglets et l'indicateur compact existants sont conservés à l'identique (ADR 0029/0118) ; la maquette ne les re-dessine pas — seule évolution : libellé « Console » → « Sorties » (ADR 0162 § 5). Le sélecteur interne ne porte que les sources Gradle.</li>
+    <li><b>Feuilles M9/M10.</b> Les champs de saisie sont des maquettes : la validation (motif regex invalide affiché en ligne) est spécifiée dans la spec, pas démontrée.</li>
+    <li><b>Ce que la maquette ne peut pas montrer :</b> la latence réelle émission→pixel (instrumentation ADR 0152, PV du banc), la consommation mémoire à 100 000 lignes, TalkBack, l'échelle de police 200 %, les couleurs dynamiques (Material You) harmonisées à l'exécution, et le comportement multi-fenêtres / pliable.</li>
+    <li><b>Densité.</b> Cadres 390 px ≈ 390 dp téléphone ; tablette 880 px ≈ 880 dp. Les cibles tactiles respectent 48 dp ; la lisibilité plein soleil est couverte par les jetons jour réels (non harmonisés pour la sévérité — règle core/ui).</li>
+  </ul>
+</div>
+
+<script>
+/* Interactions de la maquette — JavaScript sans dépendance. */
+function basculerNuit(){
+  document.body.classList.toggle('dark');
+  const t=document.getElementById('tglNuit');
+  const nuit=document.body.classList.contains('dark');
+  t.textContent=nuit?'Thème nuit':'Thème clair';
+  t.classList.toggle('on',nuit);
+}
+function toast(fr,texte){
+  const t=document.getElementById(fr+'-toast'); if(!t) return;
+  t.textContent=texte; t.classList.add('v');
+  clearTimeout(t._tid); t._tid=setTimeout(()=>t.classList.remove('v'),2600);
+}
+/* M1 : états du panneau + source */
+const ETATS=['etat-replie','etat-mi','etat-plein'];
+const LIB=['Replié ▲','Mi-hauteur ▲','Étendu ▼'];
+function cycleEtat(id){
+  const f=document.getElementById(id);
+  let i=ETATS.findIndex(e=>f.classList.contains(e));
+  f.classList.remove(...ETATS);
+  i=(i+1)%ETATS.length;
+  f.classList.add(ETATS[i]);
+  const b=f.querySelector('.peigne .tg'); if(b) b.textContent=LIB[i];
+  if(id==='m1') document.getElementById('m1ti').textContent=
+    i===0?'Sync · Dépendances — en vol… (dernières lignes)':(i===1?'Sync · Dépendances — en vol…':'Sync · 132 lignes · recherche et filtres disponibles');
+}
+function choisirSource(g,btn,nom){
+  btn.closest('.sel').querySelectorAll('button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const frame=document.getElementById(g);
+  frame.querySelectorAll('.zon .out').forEach(p=>{ if(p.id.startsWith(g+'-')) p.hidden=(p.id!==btn.dataset.pane); });
+  toast(g,'Source : '+nom+' — basculer ne perd rien, ne rejoue rien');
+}
+/* lecture : recherche */
+function echappe(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function rechercher(input,cible){
+  const out=document.getElementById(cible); if(!out) return;
+  const q=input.value.trim();
+  const lgs=[...out.querySelectorAll('.lg')];
+  lgs.forEach(l=>{const tx=l.querySelector('.tx'); if(!tx)return;
+    if(!l.dataset.orig){l.dataset.orig=tx.textContent;} else {tx.textContent=l.dataset.orig;}
+    l.classList.remove('reper');
+  });
+  const cont=out.querySelector('.cnt'); const marq=out.querySelector('.poignee-defile');
+  if(marq) marq.innerHTML='';
+  if(!q){ if(cont) cont.textContent='–'; return; }
+  let nb=0, vu=false;
+  lgs.forEach((l,i)=>{const tx=l.querySelector('.tx'); if(!tx)return;
+    const txt=l.dataset.orig; const pos=txt.toLowerCase().indexOf(q.toLowerCase());
+    if(pos<0) return;
+    nb++;
+    tx.innerHTML=echappe(txt.slice(0,pos))+'<mark>'+echappe(txt.slice(pos,pos+q.length))+'</mark>'+echappe(txt.slice(pos+q.length));
+    l.classList.add('reper');
+    if(marq) marq.insertAdjacentHTML('beforeend','<span class="pm m" style="top:'+Math.round(100*i/lgs.length)+'%"></span>');
+  });
+  if(cont) cont.textContent=nb?('1/'+nb):'0/0 — aucune correspondance (repli honnête)';
+  reperIndex.set(cible,{cour:0,nb});
+  if(nb) errer(cible,0);
+}
+const reperIndex=new Map();
+function errer(cible,delta){
+  const r=reperIndex.get(cible)||{cour:0,nb:0}; if(!r.nb) return;
+  const out=document.getElementById(cible);
+  const hits=[...out.querySelectorAll('.lg.reper')];
+  r.cour=(r.cour+delta+hits.length)%hits.length;
+  reperIndex.set(cible,r);
+  hits.forEach((h,i)=>h.classList.toggle('actuel',i===r.cour));
+  hits[r.cour].scrollIntoView({block:'center'});
+  const cont=out.querySelector('.cnt'); if(cont) cont.textContent=(r.cour+1)+'/'+hits.length;
+}
+function videRecherche(btn){
+  const tol=btn.closest('.tol'); const inp=tol.querySelector('input');
+  inp.value=''; const out=tol.parentElement.querySelector('.out'); rechercher(inp,out.id);
+}
+function toggleRecherche(fr){const r=document.getElementById(fr+'-rech'); r.hidden=!r.hidden; if(!r.hidden) r.querySelector('input').focus();}
+/* lecture : suivi du bas honnête */
+function estAuBas(el){return el.scrollHeight-el.scrollTop-el.clientHeight<48}
+function suivreBas(id){const el=document.getElementById(id); el._suivre=true; el.scrollTop=el.scrollHeight; const b=document.getElementById(id.replace('-out','-suivre')); if(b) b.classList.remove('on');}
+document.addEventListener('scroll',e=>{
+  const el=e.target; if(!el.classList||!el.classList.contains('out')) return;
+  const auBas=estAuBas(el);
+  el._suivre=auBas;
+  const b=document.getElementById(el.id.replace('-out','-suivre'));
+  if(b) b.classList.toggle('on',!auBas);
+  if(!auBas&&!el._averti){el._averti=true; toast(el.id.split('-')[0],'Suivi du bas interrompu — vous remontez dans l historique');}
+  if(auBas) el._averti=false;
+},true);
+/* tâches Gradle */
+function basculerTache(h){h.parentElement.classList.toggle('replie')}
+function deplierPile(l){
+  const out=l.closest('.out');
+  out.querySelectorAll('[data-pile]').forEach(x=>x.hidden=false);
+  toast('m5','Trace dépliée — cause « Caused by » visible, cadres cliquables (saut au source)');
+}
+/* pause / reprise + flux vivant */
+function basculerPause(fr){
+  const bar=document.querySelector('#'+fr+' .bar .tg');
+  const out=document.querySelector('#'+fr+' [data-flux]');
+  if(!out._enPause){
+    out._enPause=true; bar.textContent='▶ Reprise';
+    toast(fr,'Pause : le tampon garde le direct de côté (rattrapage incrémental — ADR 0107)');
+  } else {
+    out._enPause=false; bar.textContent='⏸ Pause';
+    const ret=out._retenues||[]; ret.forEach(l=>out.appendChild(l));
+    out._retenues=[]; toast(fr,'Reprise : '+ret.length+' ligne(s) retenue(s) arrivent EN UNE fois (aucun trou)');
+    if(out._suivre) out.scrollTop=out.scrollHeight;
+  }
+}
+const FLUX_M5=[
+  {n:'D',t:'OkHttp · requête répétée (poll 500 ms) ×38'},
+  {n:'I',t:'Room · transaction validée (2 ms)'},
+  {n:'W',t:'Lifecycle · onTrimMemory(level=80)'},
+];
+setInterval(()=>{
+  const out=document.getElementById('m5-out'); if(!out) return;
+  const i=Math.floor(Math.random()*FLUX_M5.length);
+  const s=FLUX_M5[i];
+  const lg=document.createElement('div'); lg.className='lg'; lg.dataset.niv=s.n;
+  const n=900+Math.floor(Math.random()*90);
+  lg.innerHTML='<span class="gr">'+n+'</span><span class="nv '+s.n+'">'+s.n+'</span><span class="ms">+5,'+(n%9)+'s</span><span class="tx">'+s.t+'</span>';
+  if(out._enPause){ (out._retenues=out._retenues||[]).push(lg); }
+  else { out.appendChild(lg); if(out._suivre!==false) out.scrollTop=out.scrollHeight; }
+},3800);
+/* Téléchargements en vol (retour propriétaire 2026-11-10) : chaque
+   dépendance ouvre SA ligne au départ et la met à jour EN PLACE —
+   jamais une ligne par tick. En vol : molette + cumuls garantis ;
+   µ-jauge + pourcentage seulement quand le total est connu (sonde
+   .part — demande D2 au dépôt frère : les octets d'un artefact ne
+   sont connus QU'À SA FIN par la Tooling API). À la fin, la ligne
+   FIGE (taille + durée) : c'est la ligne d'historique, unique. */
+function fmtMo(x){return x.toLocaleString('fr-FR',{maximumFractionDigits:1})}
+function animerTelechargements(){
+  const frames=['m1','m4'].map(p=>({
+    gson:document.getElementById(p+'-dl-gson'),
+    stdlib:document.getElementById(p+'-dl-stdlib'),
+    cumul:document.getElementById(p+'-cumul'),
+    fr:p,
+  })).filter(f=>f.gson&&f.stdlib);
+  if(!frames.length) return;
+  let gson=0, stdlib=8.4, artefacts=12, total=129.4;
+  const tid=setInterval(()=>{
+    gson=Math.min(2.7,gson+0.14); stdlib+=0.19; total+=0.14;
+    const pct=Math.round(gson/2.7*100);
+    frames.forEach(f=>{
+      const bar=f.gson.querySelector('.mbar i'); if(bar) bar.style.width=pct+'%';
+      const gt=f.gson.querySelector('.dl-t'); if(gt) gt.textContent=fmtMo(gson)+'/2,7 Mo · '+pct+' %';
+      const st=f.stdlib.querySelector('.dl-t'); if(st) st.textContent=fmtMo(stdlib)+' Mo cumulés · total inconnu';
+      if(f.cumul){
+        const t=artefacts+' artefacts ✓ · '+fmtMo(total)+' Mo reçus · 2 en vol';
+        f.cumul.textContent=(f.cumul.id==='m4-cumul')?('('+t+')'):t;
+      }
+    });
+    const m1ti=document.getElementById('m1ti'); if(m1ti) m1ti.textContent='Sync · Dépendances — 2 en vol…';
+    if(gson>=2.7){
+      clearInterval(tid);
+      frames.forEach(f=>{
+        const dl=f.gson.querySelector('.dl'); if(dl) dl.innerHTML='<span class="fin">✓ 2,7 Mo · 1,1s</span>';
+        if(f.cumul){
+          const t=(artefacts+1)+' artefacts ✓ · '+fmtMo(total)+' Mo reçus · 1 en vol';
+          f.cumul.textContent=(f.cumul.id==='m4-cumul')?('('+t+')'):t;
+        }
+      });
+      const m1ti=document.getElementById('m1ti'); if(m1ti) m1ti.textContent='Sync · Dépendances — 1 en vol…';
+      toast('m1','Fin du téléchargement : la ligne FIGE en place (taille + durée) — c\'est la ligne d\'historique, aucune nouvelle ligne');
+      toast('m4','Fin du téléchargement : la ligne FIGE en place (taille + durée) — jamais une ligne par tick');
+    }
+  },700);
+}
+/* feuilles */
+function ouvrirFeuille(fr,origine){const v=document.getElementById(fr+'-voile'); if(v) v.hidden=false; if(origine) v.dataset.origine=origine;}
+function fermerFeuille(fr){const v=document.getElementById(fr+'-voile'); if(v) v.hidden=true;}
+function basc(b){b.classList.toggle('on')}
+/* M12 : états */
+function montrerEtat(v){
+  ['e1','e2','e3','e4','e5'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.display=(id===v)?(id==='e4'?'flex':'flex'):'none';
+    if(id===v) el.style.flex='1';
+  });
+}
+/* repères initiaux M2 (erreurs/avertissements en vert de démo : 0) */
+window.addEventListener('load',()=>{
+  const m2=document.getElementById('m2-marq');
+  if(m2) m2.innerHTML='<span class="pm w" style="top:26%"></span><span class="pm w" style="top:30%"></span>';
+  animerTelechargements();
+});
+</script>
+</div>
+</body>
+</html>

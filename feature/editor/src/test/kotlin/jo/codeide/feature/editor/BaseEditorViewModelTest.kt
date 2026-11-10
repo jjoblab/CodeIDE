@@ -184,11 +184,26 @@ abstract class BaseEditorViewModelTest {
     /** Pompe process-wide des canaux de build (v0.37.3) : construite sur
      *  les MÊMES faux que l'espace — tooling, état et réglages partagent
      *  leurs instances, la vidange survit au ViewModel comme en
-     *  production (correctif « connexion perdue » en plein build). */
+     *  production (correctif « connexion perdue » en plein build). Lot
+     *  L3 : le collecteur du Centre de sorties y est branché avec un
+     *  historien de test (le registre reste un faux en mémoire). */
+    protected val historienSortiesTest =
+        HistorienExecutions(
+            registre = FauxRegistreExecutions(),
+            horloge = horlogeOutil,
+            journal = FakeAppLogger(),
+            dispatchers = TestDispatcherProvider(regleMain.dispatcher),
+        )
+
     protected val pompeBuildsTest =
         PompeBuildTooling(
             tooling = tooling,
             serviceGradle = serviceGradleTest,
+            collecteur = CollecteurSortiesGradle(
+                horloge = horlogeOutil,
+                historien = historienSortiesTest,
+                journal = FakeAppLogger(),
+            ),
             journal = FakeAppLogger(),
             dispatchers = TestDispatcherProvider(regleMain.dispatcher),
         )
