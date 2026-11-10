@@ -171,13 +171,26 @@ PY
 # ---------------------------------------------------------------------------
 # 3. Génération sur disque (harnais JVM — ADR 0019) puis déterminisme.
 # ---------------------------------------------------------------------------
+# Empreinte des assets : un marqueur ne vaut que pour les assets qui l'ont produit.
+# Calculée AVANT la purge — c'est elle qui décide quels répertoires conservent
+# leur cache `.verifie`.
+EMPREINTE_ASSETS=$( (find "$RACINE/app/src/main/assets/templates" -type f | sort | xargs sha256sum; \
+    sha256sum "$RACINE/gradle/wrapper/gradle-wrapper.jar") 2>/dev/null | sha256sum | cut -d' ' -f1)
+
 note "Génération des projets dans $TRAVAIL/modeles …"
 # Les répertoires des combinaisons (re)générées sont purgés AVANT : un lot
 # qui change le jeu de fichiers d'un cas (ex. Gradle → Maven) ne doit jamais
 # hériter des fichiers de l'exécution précédente ; le cache `.verifie` des
-# autres combinaisons est conservé.
+# autres combinaisons est conservé (marqueur + empreinte des assets — la
+# génération est déterministe, réécrire un répertoire déjà vérifié avec les
+# MÊMES assets produit les mêmes octets et n'invalide rien).
 while IFS=$'\t' read -r cid _; do
-    rm -rf "$TRAVAIL/modeles/$cid"
+    projet_a_purger="$TRAVAIL/modeles/$cid"
+    if [ -f "$projet_a_purger/.verifie" ] && \
+       [ "$(cat "$projet_a_purger/.verifie" 2>/dev/null)" = "$EMPREINTE_ASSETS" ]; then
+        continue
+    fi
+    rm -rf "$projet_a_purger"
 done < "$TRAVAIL/matrix.tsv"
 (cd "$RACINE" && JAVA_HOME="$JDK21" ./gradlew -q -Pfreres.sources :tools:generateur:run \
     "--args=generer --assets $RACINE/app/src/main/assets --sortie $TRAVAIL/modeles --combos $TRAVAIL/combos.json --annee 2026 --auteur CodeIDE --generateur $VERSION_CODEIDE")
@@ -260,10 +273,6 @@ combinaison_ko() {
 combinaison_ok() {
     lignes_tableau+=("$(printf '%-24s | %s' "$1" "OK")")
 }
-
-# Empreinte des assets : un marqueur ne vaut que pour les assets qui l'ont produit.
-EMPREINTE_ASSETS=$( (find "$RACINE/app/src/main/assets/templates" -type f | sort | xargs sha256sum; \
-    sha256sum "$RACINE/gradle/wrapper/gradle-wrapper.jar") 2>/dev/null | sha256sum | cut -d' ' -f1)
 
 note "Builds réels ($(wc -l < "$TRAVAIL/matrix.tsv") combinaisons) — ceci prend plusieurs minutes…"
 mkdir -p "$TRAVAIL/junit"
@@ -590,6 +599,11 @@ while IFS=$'\t' read -r cid template build jdk tests wrapper langue licence role
     if [ -z "$erreur" ]; then
         combinaison_ok "$cid"
         printf '%s' "$EMPREINTE_ASSETS" > "$marqueur"
+        # Hygiène disque : les artefacts de build d'une combinaison vérifiée
+        # ne servent plus (le marqueur `.verifie` court-circuite tout
+        # re-contrôle à la relance ; les checks structurels excluent déjà
+        # build/ et .gradle) — libérer l'espace pour les suivantes.
+        find "$projet" -maxdepth 2 -type d \( -name build -o -name .gradle \) -exec rm -rf {} +
         note "OK   $cid (${duree} ms)"
         printf '%s\n' "<testcase name=\"$cid\" classname=\"verify-templates\" time=\"$(awk "BEGIN{printf \"%.3f\", $duree/1000}")\" />" >> "$TRAVAIL/junit/cases.xml.part"
     else

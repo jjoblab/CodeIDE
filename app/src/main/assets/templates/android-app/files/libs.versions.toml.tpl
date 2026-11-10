@@ -1,6 +1,6 @@
 [versions]
 agp = "9.4.1"
-core-ktx = "1.19.0"
+core-ktx = "1.17.0"
 appcompat = "1.8.0"
 material = "1.14.0"
 {{#if estActiviteTiroir}}

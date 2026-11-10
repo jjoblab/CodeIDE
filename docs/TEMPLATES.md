@@ -381,7 +381,7 @@ régression :
 |---|---|---|
 | `kotlin-jvm` | projet JVM Kotlin (app/biblio, Gradle/Maven/none, JDK 17/21) | étape 9 — Greeter + Main + GreeterTest, `-Werror` |
 | `java` | projet JVM Java (mêmes axes) | étape 9 — `-Xlint:all -Werror` |
-| `android-app` | application Android (AGP 9.4.1, Material 3) | phases 2-4 — `projectType` (`empty-activity`/`no-activity`/`basic-activity` tiroir Material), `language` (`kotlin`/`java`), `minSdk` 24-34, `targetSdk` 34-37, `applicationId` dérivé, package `com.example.<appName>`, ViewBinding, 5 dépendances au choix (Coroutines, Retrofit, Navigation, Room, Hilt) |
+| `android-app` | application Android (AGP 9.4.1, Material 3) | phases 2-4 — `projectType` (`empty-activity`/`no-activity`/`basic-activity` tiroir Material), `language` (`kotlin`/`java`), `minSdk` 24-34, `targetSdk` 34-36 (défaut 36 — aligné plateforme android-36), `applicationId` dérivé, `appName` dérivé du nom (ADR 0158), package `com.example.<appName>`, ViewBinding, 5 dépendances au choix (Coroutines, Retrofit, Navigation, Room, Hilt) |
 | `spring-boot` | service REST Boot 4.1.1 — Kotlin **ou** Java, Gradle **ou** Maven, JDK 17/21 (L3, v2.0.0) | L3 — port `DepotSalutations` (dépôt mémoire ssi !JPA, sinon Spring Data + entité + H2), profils `dev`/`prod`, SecurityFilterChain explicite (health ouvert ssi Actuator), DTO validé ssi Validation, tests de contexte et d'effets générés, 3 étapes wizard + préréglage « API REST avec persistance » |
 | `kotlin-multiplatform` | bibliothèque KMP (Kotlin 2.2.21) | phases 2+4 — `expect`/`actual` câblé, `jvmTest`, tâche `run`, 3 dépendances au choix (serialization, coroutines, datetime) |
 | `android-library` | bibliothèque Android (.aar) | phases 3+4 — module `:library`, `consumer-rules.pro`, package `com.example.<nom>`, `minSdk` 24-34 |
@@ -434,7 +434,7 @@ puis **validée par build réel** via `verify-templates.sh` :
 | JUnit Jupiter (BOM) | 5.14.4 | repo.maven.apache.org |
 | junit-platform-launcher | 1.14.4 | repo.maven.apache.org |
 | AGP (application/bibliothèque Android) | 9.4.1 | dl.google.com/dl/android/maven2 |
-| androidx core-ktx | 1.19.0 | dl.google.com/dl/android/maven2 |
+| androidx core-ktx | 1.17.0 (dernière compatible compileSdk 36 — la 1.19.0 exige compileSdk 37) | dl.google.com/dl/android/maven2 |
 | androidx appcompat | 1.8.0 | dl.google.com/dl/android/maven2 |
 | material | 1.14.0 | dl.google.com/dl/android/maven2 |
 | androidx drawerlayout | 1.2.0 | dl.google.com/dl/android/maven2 |

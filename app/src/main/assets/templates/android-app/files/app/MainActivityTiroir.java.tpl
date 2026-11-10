@@ -19,7 +19,7 @@ import {{packageName}}.databinding.ActivityMainTiroirBinding;
 public class MainActivity extends AppCompatActivity {
     private ActivityMainTiroirBinding liaison;
 {{#if avecNavigation}}
-{{else}}
+{{#else}}
     private ActionBarDrawerToggle basculeTiroir;
 {{/if}}
 

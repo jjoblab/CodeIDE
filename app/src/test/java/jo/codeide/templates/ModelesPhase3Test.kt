@@ -308,8 +308,10 @@ class ModelesPhase3Test {
                     emptyMap(),
                 ) as AppResult.Success
                 ).value
-        assertEquals("MaBibliotheque", valeur(libre, "appName"))
-        assertEquals("com.example.mabibliotheque", valeur(libre, "packageName"))
+        // ADR 0158 §2 : appName est dérivé du nom du projet —
+        // « Bibliotheque Test » → « BibliothequeTest » → com.example.bibliothequetest.
+        assertEquals("BibliothequeTest", valeur(libre, "appName"))
+        assertEquals("com.example.bibliothequetest", valeur(libre, "packageName"))
 
         val renomme =
             (
@@ -317,6 +319,7 @@ class ModelesPhase3Test {
                     TemplateId("android-library"),
                     "Bibliotheque Test",
                     mapOf("appName" to "Utils Kit !"),
+                    setOf("appName"),
                 ) as AppResult.Success
                 ).value
         assertEquals("com.example.utilskit", valeur(renomme, "packageName"))
