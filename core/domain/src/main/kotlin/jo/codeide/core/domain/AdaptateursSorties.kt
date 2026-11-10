@@ -95,9 +95,10 @@ public fun LigneSortieSync.versLigneSortie(idExecution: String? = null): LigneSo
 
 /**
  * Projette UNE ligne du Logcat (pont `AnalyseurTramesJournal`, ADR 0103)
- * vers le modèle unique — pid/tid ne montent PAS : ils restent sur le
- * modèle d'origine pour les regroupements « ×N » (§ 5.4), le Centre de
- * sorties les affiche via l'étiquette et le filtre de session.
+ * vers le modèle unique — pid/tid MONTENT sur la ligne (lot L5, spec
+ * SORTIES § 5.4 : affichables sur option du lecteur ; la clé de session
+ * `paquet/pid/processus` reste l'identité de session, le filtre de
+ * session ne change pas).
  *
  * @param identiteSession la clé de session produite par
  *        [IdentiteSessionJournal.cleSession] — obligatoire : une ligne
@@ -110,6 +111,8 @@ public fun LigneJournal.versLigneSortie(identiteSession: String): LigneSortie = 
     identiteSession = identiteSession,
     niveau = niveau.versNiveauSortie(),
     etiquette = etiquette,
+    pid = pid,
+    tid = tid,
 )
 
 /**
