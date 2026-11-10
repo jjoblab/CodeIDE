@@ -1,5 +1,108 @@
 # Journal des modifications
 
+## [0.212.0] – 2026-11-10
+
+Lot **L4 — modèles Android** du chantier « Refonte du générateur de
+projets et des écrans Nouveau projet » : câblage réel des cinq options
+bibliothèques d'`android-app`, bornes SDK alignées plateforme 36, extras
+sobres (icône adaptative, thème nuit, règles de sauvegarde), wizard
+déclaré (données — l'écran arrive en L5), i18n fr/en complet et
+`android-library` assaini. Validation locale complète : lint
+`valider-manifestes` zéro écart, `verify-templates.sh` 33/33 combinaisons
+vertes (déterminisme inclus), 50/50 tests `jo.codeide.templates.*`.
+
+### Ajouté
+
+- **`android-app` v2.0.0 — câblage réel des options 12-16** (plan §7) :
+  - `includeCoroutines` → usage réel (`CoroutineScope` + `Dispatchers`)
+    dans `MainActivity` (variante vide sans navigation) et
+    `BienvenueFragment` ; param masqué (`visibleWhen`) quand
+    `language != "kotlin"` ;
+  - `includeRetrofit` → permission `INTERNET` (manifeste) +
+    `ServiceCitations.kt/.java` (API d'exemple + convertisseur Gson) ;
+    désactivé avec raison (`disabledReasonKey`) si `no-activity` ;
+    AVERTISSEMENT « pensez à Coroutines » si absent
+    (`hint.retrofit.sans.coroutines`) ;
+  - `includeNavigation` → `graphe_principal.xml` (res/navigation) +
+    `NavHostFragment` dans `activity_main.xml` (variante vide) **et**
+    `activity_main_tiroir.xml` (intégration tiroir : identifiants du menu
+    `tiroir_accueil`/`tiroir_apropos` = destinations du graphe, argument
+    `espace` compatible `FragmentAccueil`, câblage `NavigationUI` +
+    `AppBarConfiguration`) ; `BienvenueFragment` + `fragment_bienvenue.xml`
+    en variante vide ; `MainActivityNavigation.kt/.java` séparés ;
+  - `includeRoom` → base instanciée et EMPLOYÉE : `BddLocale` (Kotlin :
+    entité + DAO + `compter()` inline ; Java : `TacheEntity`/`TacheDao`
+    séparés avec `compter()`), usage réel hors thread UI (`Executors`) ;
+    INFO « Hilt recommandé » (`hint.room.sans.hilt`) ;
+  - `includeHilt` → `@HiltAndroidApp` (`Application`),
+    `@AndroidEntryPoint` (MainActivity, MainActivityNavigation,
+    BienvenueFragment), modules `ModuleApplication` (fournit `Greeter`,
+    SEUL fournisseur) et `ModuleDonnees` (fournit `BddLocale`, seulement
+    si Room+Hilt) ; **injection réelle** démontrée dans
+    `BienvenueFragment`.
+- **Extras sobres** : icône adaptative vectorielle maison (`ic_launcher*`,
+  repli `mipmap-anydpi` + `mipmap-anydpi-v26`), thème nuit
+  (`values-night/themes.xml`), règles de sauvegarde (`xml/backup_rules.xml`
+  + `xml/data_extraction_rules.xml`) ; tout le contenu généré localisé via
+  `{{t:}}` (parité fr/en vérifiée).
+- **Wizard `android-app`** (données — l'écran arrive en L5a) : étapes
+  plateforme/démarrage/bibliothèques + groupes d'affichage
+  (`demarrage`/`plateforme`/`bibliotheques`/`qualite`), préréglages
+  `app-complete` et `app-reseau` (ADR 0155).
+- **i18n** : 19 clés ajoutées dans `i18n/fr.json` + `i18n/en.json`
+  (`etape.*.titre`, `preset.*.nom/description`, `regle.*`, `hint.*`,
+  `param.*.raison`, `tache.*`, `bienvenue.kdoc`, `main.navigation.kdoc`,
+  `dao.compter.kdoc`, `groupe.*.titre`, `readme.navigation`) ; textes
+  corrigés (`param.targetSdk.help` 34-36, `readme.sdk` compileSdk 36).
+
+### Modifié
+
+- **targetSdk 34-36** (37 supprimé, défaut 36) + contraintes ERREUR
+  `regle.targetSdk.sup.plateforme` (> plateformeMajeure 36) et
+  `regle.minSdk.sup.targetSdk` ; compileSdk **verrouillé** à 36/0 (règle
+  13, test `AlignementCatalogueTemplatesTest`) ; core-ktx aligné 1.17.0
+  (la 1.19.0 exige compileSdk 37, hors plateforme verrouillée).
+- **README exact** : arborescence fidèle aux fichiers réellement générés
+  (icônes, values-night, xml/, navigation, Room, modules Hilt,
+  `ServiceCitations`, `BienvenueFragment`).
+- **`android-library` v1.2.0** : `appName` dérivé (`defaultFrom:
+  "appNameFromNom"`, ADR 0158 §2) ; orphelin
+  `files/library/proguard-rules.pro.tpl` supprimé (non référencé par le
+  manifeste, `consumer-rules.pro` seul utilisé).
+- **Mutualisation (suite ADR 0156)** : `android-app` bascule
+  `.gitattributes`/`.editorconfig`/wrapper/gradlew sur `commun:…` — le
+  motif AAPT2 excluant `_commun` du paquet d'assets est déjà corrigé
+  (v0.211.1).
+- **Gabarits tiroir (kt + java)** : `{{else}}` → `{{#else}}` — la variante
+  sans navigation perdait la déclaration `basculeTiroir` (syntaxe
+  Handlebars incomplète).
+- **`gradle.properties` des modèles Android (app + library)** :
+  `org.gradle.jvmargs` 2 Gio — le défaut 512m plante sur les builds avec
+  KSP/Room/Hilt.
+- **verify-templates.sh** : empreinte des assets calculée AVANT la purge
+  (le marqueur `.verifie` court-circuite la régénération des combinaisons
+  déjà vérifiées avec les mêmes assets) ; hygiène disque des artefacts de
+  build après succès d'une combinaison ; rapport JUnit sans résidu d'une
+  exécution interrompue.
+
+### Corrigé
+
+- **`sansHilt = !avecHilt` ajouté aux calculés** : le gabarit
+  `MainActivity` l'utilisait mais il n'existait pas — la variante sans
+  Hilt perdait l'import `AppCompatActivity` et `greeter`.
+- **Doublon de liaison Hilt supprimé** : `ModuleDonnees` ne fournit plus
+  `Greeter`, `ModuleApplication` seul fournisseur.
+- **Wizard android-app** : étape `identite-application` supprimée
+  (`applicationId` dérivé — ADR 0158).
+- **Tests Phase2/3/4** : adaptation aux dérivations ADR 0158 (`appName`
+  dérivé, champs modifiés marqués explicitement).
+- **docs/TEMPLATES.md** : tableau catalogue et provenance alignés.
+
+### Retiré
+
+- `docs/REPRISE_L4.md` (mémo de reprise du lot — supprimé à la fin du
+  lot, comme prévu).
+
 ## [0.211.1] – 2026-11-09
 
 Correctif du lot L3 — le CI de v0.211.0 était rouge (18 tests Robolectric
