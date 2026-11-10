@@ -63,14 +63,10 @@
     <!-- Information subtitle of the first section (v0.80.1): count for
          the active tab, Log or Problems. -->
     <string name="editor_panneau_aucun_probleme">No problems</string>
-    <string name="editor_panneau_journal_vide">No entries</string>
+    <string name="editor_panneau_journal_sous_titre">Live log window — history and exports stay in Diagnostics.</string>
     <plurals name="editor_panneau_problemes_compte">
         <item quantity="one">%1$d problem</item>
         <item quantity="other">%1$d problems</item>
-    </plurals>
-    <plurals name="editor_panneau_journal_compte">
-        <item quantity="one">%1$d entry shown</item>
-        <item quantity="other">%1$d entries shown</item>
     </plurals>
 
     <!-- Editing tabs (step 15). -->

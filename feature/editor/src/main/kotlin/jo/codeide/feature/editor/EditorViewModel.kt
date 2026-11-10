@@ -190,11 +190,11 @@ internal class SessionSuivie(
  * modification) **et** manuelle, toujours via `FileSystem.writeText`,
  * verrouillée par fichier contre les écritures concurrentes.
  *
- * Journal compact (étape 16, ADR 0029) : la fenêtre mémoire des entrées
- * récentes ([ObserveLogsUseCase]) suffit — l'historique complet lu sur
- * disque reste le propre de l'écran Diagnostic (lien « Ouvrir le journal
- * complet ») ; les filtres par niveau suivent la même règle que l'étape 12
- * (ensemble vide = tous les niveaux).
+ * Journal (lot L4, ADR 0162) : l'AFFICHAGE vit dans le lecteur famille
+ * JOURNAL du Centre de sorties — le VM ne garde que l'état persisté des
+ * filtres par niveau (ensemble vide = tous, même règle que l'écran
+ * Diagnostic) ; l'historique complet lu sur disque reste le propre de
+ * l'écran Diagnostic (lien « Ouvrir le journal complet »).
  *
  * La mort du processus rouvre les onglets (chemins et onglet actif dans
  * le `SavedStateHandle`, contenu relu) — le fichier de reprise par projet
@@ -229,7 +229,6 @@ constructor(
     @param:FileSystemPrive
     private val fichiersPrives: FileSystem,
     private val journal: AppLogger,
-    observerJournaux: ObserveLogsUseCase,
     private val evaluerNom: EvaluerNomFichierUseCase,
     private val enregistrerEtatEspace: EnregistrerEtatEspaceUseCase,
     private val lireEtatEspace: LireEtatEspaceUseCase,
@@ -784,9 +783,6 @@ constructor(
     /** Sauvegardes automatiques en attente, par onglet (délai d'inactivité). */
     private val sauvegardesAuto = ConcurrentHashMap<String, Job>()
 
-    /** Fenêtre brute des entrées récentes (avant filtres), étape 16. */
-    private var entreesJournalConnues: List<LogEntry> = emptyList()
-
     /** Type reconnu brut (étape 18) — conservé pour re-résoudre le nom
      * du modèle si la langue des libellés change. */
     private var typeProjetBrut: TypeProjetReconnu? = null
@@ -842,7 +838,6 @@ constructor(
             .onEach { projet -> suivre(projet) }
             .launchIn(viewModelScope)
         restaurerOnglets()
-        observerJournal(observerJournaux)
         observerSessionsTerminal()
         observerOutilsTerminal()
         observerTooling()
@@ -5460,35 +5455,11 @@ constructor(
                     etat.copy(filtresJournal = nouveaux)
                 }.filtresJournal
         sauvetage[ClesEditor.CLE_FILTRES_JOURNAL] = ArrayList(filtres.map { it.name })
-        rafraichirJournal()
     }
 
-    /**
-     * Collecte la fenêtre mémoire des entrées récentes (ADR 0029) :
-     * pas de lecture disque ici — l'historique complet reste le propre
-     * de l'écran Diagnostic, le panneau ne montre que le flux vivant.
-     */
-    private fun observerJournal(observerJournaux: ObserveLogsUseCase) {
-        observerJournaux(FENETRE_JOURNAL)
-            .onEach { fenetre ->
-                entreesJournalConnues = fenetre
-                rafraichirJournal()
-            }.launchIn(viewModelScope)
-    }
-
-    /** Recalcule la fenêtre affichée depuis les filtres courants. */
-    private fun rafraichirJournal() {
-        val filtres = etatInterne.value.filtresJournal
-        val affichees =
-            if (filtres.isEmpty()) {
-                entreesJournalConnues
-            } else {
-                entreesJournalConnues.filter { it.level in filtres }
-            }
-        etatInterne.update { it.copy(entreesJournal = affichees) }
-    }
-
-    /** Restitue les filtres de niveaux sauvegardés. */
+    /** Restitue les filtres de niveaux sauvegardés (l'AFFICHAGE vit dans
+     *  le lecteur famille JOURNAL — lot L4 : le VM ne garde que l'état
+     *  persisté des chips, jamais un second afficheur). */
     private fun restaurerFiltresJournal(): Set<LogLevel> {
         val noms: List<String> = sauvetage.get<ArrayList<String>>(ClesEditor.CLE_FILTRES_JOURNAL) ?: emptyList()
         return noms.mapNotNull { nom -> LogLevel.entries.firstOrNull { it.name == nom } }.toSet()

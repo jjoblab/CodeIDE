@@ -1978,7 +1978,7 @@ class EditorActivity :
         if (gestionnaire.findFragmentById(R.id.conteneur_fragments_panneau) == null) {
             val console = PanneauConsoleFragment()
             val problemes = PanneauProblemesFragment()
-            val journal = PanneauJournalFragment()
+            val journal = PanneauSortiesJournalFragment()
             val logcat = PanneauSortiesLogcatFragment()
             gestionnaire
                 .beginTransaction()
@@ -2908,7 +2908,10 @@ class EditorActivity :
             when (onglet) {
                 OngletPanneau.CONSOLE -> 0
                 OngletPanneau.PROBLEMES -> etatGradle.problemesTotal
-                OngletPanneau.JOURNAL -> etat.entreesJournal.size
+                // Journal et Logcat (lot L4) : AUCUN badge — ce sont les
+                // surfaces vivantes du lecteur (compteurs honnêtes dans
+                // l'onglet), pas des « comptes à traiter ».
+                OngletPanneau.JOURNAL -> 0
                 OngletPanneau.LOGCAT -> 0
             }
         liaison.badgePanneau.isVisible = onglet != OngletPanneau.CONSOLE && compte > 0
@@ -2968,12 +2971,7 @@ class EditorActivity :
 
             OngletPanneau.JOURNAL -> {
                 liaison.sousTitrePanneau.isVisible = true
-                liaison.sousTitrePanneau.text =
-                    if (compte == 0) {
-                        getString(R.string.editor_panneau_journal_vide)
-                    } else {
-                        resources.getQuantityString(R.plurals.editor_panneau_journal_compte, compte, compte)
-                    }
+                liaison.sousTitrePanneau.text = getString(R.string.editor_panneau_journal_sous_titre)
             }
 
             OngletPanneau.LOGCAT -> {

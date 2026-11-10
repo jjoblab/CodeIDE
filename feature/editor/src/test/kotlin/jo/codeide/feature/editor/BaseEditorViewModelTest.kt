@@ -7,7 +7,6 @@ import jo.codeide.core.domain.EnregistrerEtatEspaceUseCase
 import jo.codeide.core.domain.EvaluerNomFichierUseCase
 import jo.codeide.core.domain.LireArbreUseCase
 import jo.codeide.core.domain.LireEtatEspaceUseCase
-import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveProjectUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
 import jo.codeide.core.domain.ReconnaitreTypeProjetUseCase
@@ -302,7 +301,6 @@ abstract class BaseEditorViewModelTest {
         fichiers = fichiers,
         fichiersPrives = fichiersPrives,
         journal = journalViewModel,
-        observerJournaux = ObserveLogsUseCase(depotJournaux),
         evaluerNom = EvaluerNomFichierUseCase(),
         enregistrerEtatEspace = EnregistrerEtatEspaceUseCase(fichiers),
         lireEtatEspace = LireEtatEspaceUseCase(fichiers),

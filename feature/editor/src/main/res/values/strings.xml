@@ -68,16 +68,11 @@
     <!-- Sous-titre d\'informations de la première section (v0.80.1) :
          compte correspondant à l\'onglet actif, Journal ou Problèmes. -->
     <string name="editor_panneau_aucun_probleme">Aucun problème</string>
-    <string name="editor_panneau_journal_vide">Aucune entrée</string>
+    <string name="editor_panneau_journal_sous_titre">Fenêtre vivante du journal — historique et exports restent à Diagnostics.</string>
     <plurals name="editor_panneau_problemes_compte">
         <item quantity="one">%1$d problème</item>
         <item quantity="many">%1$d problèmes</item>
         <item quantity="other">%1$d problèmes</item>
-    </plurals>
-    <plurals name="editor_panneau_journal_compte">
-        <item quantity="one">%1$d entrée affichée</item>
-        <item quantity="many">%1$d entrées affichées</item>
-        <item quantity="other">%1$d entrées affichées</item>
     </plurals>
 
     <!-- Onglets d\'édition (étape 15). -->
