@@ -1,5 +1,7 @@
 package jo.codeide.core.domain
 
+import java.util.regex.Pattern
+
 /**
  * UNE trace d'exception du Logcat (spec SORTIES § 5.4 M5) — les ancres
  * pures qui reconnaissent les trois rôles d'une trace imprimée ligne par
@@ -74,11 +76,8 @@ public sealed interface GroupeLogcat {
      * @property repetitions nombre de lignes de la run (≥ 2 — une ligne
      *           isolée n'est pas un groupe).
      */
-    public data class Repetition(
-        override val debut: Int,
-        override val fin: Int,
-        public val repetitions: Int,
-    ) : GroupeLogcat
+    public data class Repetition(override val debut: Int, override val fin: Int, public val repetitions: Int) :
+        GroupeLogcat
 
     /**
      * Une trace d'exception repliée : la tête reste affichée (le contenu
@@ -89,11 +88,8 @@ public sealed interface GroupeLogcat {
      *           (« Caused by » / « Suppressed » / fin relative) DANS le
      *           groupe — la projection les garde visibles à repli fermé.
      */
-    public data class Trace(
-        override val debut: Int,
-        override val fin: Int,
-        public val positionsCauses: List<Int>,
-    ) : GroupeLogcat
+    public data class Trace(override val debut: Int, override val fin: Int, public val positionsCauses: List<Int>) :
+        GroupeLogcat
 }
 
 /**
@@ -106,10 +102,7 @@ public sealed interface GroupeLogcat {
  * @property horsGroupes positions des lignes sans groupe (la majorité du
  *           flux vivant).
  */
-public data class EtatRegroupementLogcat(
-    public val groupes: List<GroupeLogcat>,
-    public val horsGroupes: List<Int>,
-)
+public data class EtatRegroupementLogcat(public val groupes: List<GroupeLogcat>, public val horsGroupes: List<Int>)
 
 /**
  * La dérivation REGROUPÉE du Logcat (spec SORTIES § 5.4 M5, lot L5) — le

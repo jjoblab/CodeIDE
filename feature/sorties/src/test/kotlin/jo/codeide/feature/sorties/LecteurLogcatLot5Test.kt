@@ -70,19 +70,16 @@ class LecteurLogcatLot5Test {
         androidx.lifecycle.SavedStateHandle(mapOf(CLE_FAMILLE to FamilleSorties.LOGCAT.name)),
     )
 
-    private fun ligneLogcat(
-        message: String,
-        etiquette: String? = "App",
-        niveau: NiveauSortie = NiveauSortie.INFO,
-    ) = LigneSortie(
-        source = SourceSortie.LOGCAT,
-        message = message,
-        horodatageMs = horloge.instant.getAndIncrement(),
-        niveau = niveau,
-        etiquette = etiquette,
-        pid = 1234,
-        tid = 5678,
-    )
+    private fun ligneLogcat(message: String, etiquette: String? = "App", niveau: NiveauSortie = NiveauSortie.INFO) =
+        LigneSortie(
+            source = SourceSortie.LOGCAT,
+            message = message,
+            horodatageMs = horloge.instant.getAndIncrement(),
+            niveau = niveau,
+            etiquette = etiquette,
+            pid = 1234,
+            tid = 5678,
+        )
 
     // ------------------------------------------------- regroupé Logcat
 
@@ -236,14 +233,16 @@ class LecteurLogcatLot5Test {
         viewModel.basculerEtiquette("Deux")
         advanceUntilIdle()
         var projection = viewModel.projection.value
-        assertEquals(2, projection.rangees.size)
-        assertEquals(1, projection.masquees)
+        // INCLUSE « Deux » : la ligne b seule passe (a et c masquées).
+        assertEquals(1, projection.rangees.size)
+        assertEquals(2, projection.masquees)
 
         viewModel.basculerEtiquette("Deux")
         advanceUntilIdle()
         projection = viewModel.projection.value
-        // Exclue : toujours masquée (la puce dit exclure).
+        // EXCLUE « Deux » : les deux lignes « Un » passent, b masquée.
         assertEquals(2, projection.rangees.size)
+        assertEquals(1, projection.masquees)
 
         viewModel.basculerEtiquette("Deux")
         advanceUntilIdle()
@@ -308,13 +307,17 @@ class LecteurLogcatLot5Test {
         )
         val suggestions = etiquettesCompteesInterne(etat, FiltreSorties())
         // 30 étiquettes distinctes, bornées à 24 (le menu reste lisible) ;
-        // comptes égaux — le tri alphabétique tranche.
+        // comptes égaux — le tri ALPHABÉTIQUE tranche (ordre lexicographique :
+        // tag0, tag1, tag10, tag11…).
         assertEquals(BORNE_ETIQUETTES, suggestions.size)
         assertEquals(
             suggestions.map { it.etiquette },
             suggestions.map { it.etiquette }.sorted(),
         )
-        assertEquals((0 until 24).map { "tag$it" }, suggestions.map { it.etiquette })
+        assertEquals(
+            (0 until 30).map { "tag$it" }.sorted().take(BORNE_ETIQUETTES),
+            suggestions.map { it.etiquette },
+        )
     }
 
     @Test

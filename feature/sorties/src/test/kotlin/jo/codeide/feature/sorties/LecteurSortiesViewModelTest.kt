@@ -244,7 +244,7 @@ class LecteurSortiesViewModelTest {
     }
 
     @Test
-    fun `la famille vient de l argument et le mode regroupé n est proposé que pour GRADLE`() = runTest {
+    fun `la famille vient de l argument et le mode regroupé suit le contrat`() = runTest {
         val handleLogcat = androidx.lifecycle.SavedStateHandle(mapOf(CLE_FAMILLE to "LOGCAT"))
         val logcat = LecteurSortiesViewModel(
             FabriqueDeTest(FluxDeTest(fenetre = FENETRE_LOGCAT)),
@@ -254,15 +254,29 @@ class LecteurSortiesViewModelTest {
         )
         assertEquals(FamilleSorties.LOGCAT, logcat.famille)
         assertEquals(FENETRE_LOGCAT, logcat.capaciteFenetre)
-        assertFalse(logcat.modeDisponible)
-        // Refus honnête : la bascule ne fait RIEN hors GRADLE.
-        logcat.definirMode(ModeLecture.REGROUPE)
-        advanceUntilIdle()
-        assertEquals(ModeLecture.BRUT, logcat.mode.value)
+        // Lot L5 (spec SORTIES § 5.4 M5) : la bascule est OUVERTE au
+        // Logcat (dérivation ×N et traces) — le test d'origine (cachée
+        // hors GRADLE) est PORTÉ au nouveau contrat.
+        assertTrue(logcat.modeDisponible)
 
         val gradle = viewModel()
         assertEquals(FamilleSorties.GRADLE, gradle.famille)
         assertTrue(gradle.modeDisponible)
+
+        // JOURNAL reste hors dérivation : refus honnête, la bascule ne
+        // fait RIEN (et l'UI la cache).
+        val handleJournal = androidx.lifecycle.SavedStateHandle(mapOf(CLE_FAMILLE to "JOURNAL"))
+        val journal = LecteurSortiesViewModel(
+            FabriqueDeTest(FluxDeTest(fenetre = FENETRE_JOURNAL)),
+            TestDispatcherProvider(regleMain.dispatcher),
+            horloge,
+            handleJournal,
+        )
+        assertEquals(FamilleSorties.JOURNAL, journal.famille)
+        assertFalse(journal.modeDisponible)
+        journal.definirMode(ModeLecture.REGROUPE)
+        advanceUntilIdle()
+        assertEquals(ModeLecture.BRUT, journal.mode.value)
     }
 
     @Test

@@ -15,17 +15,14 @@ import org.junit.Test
 class RegroupementLogcatTest {
 
     /** Une ligne LOGCAT (le seul flux qui porte des traces). */
-    private fun ligne(
-        message: String,
-        etiquette: String? = "App",
-        niveau: NiveauSortie = NiveauSortie.INFO,
-    ) = LigneSortie(
-        source = SourceSortie.LOGCAT,
-        message = message,
-        horodatageMs = 1L,
-        niveau = niveau,
-        etiquette = etiquette,
-    )
+    private fun ligne(message: String, etiquette: String? = "App", niveau: NiveauSortie = NiveauSortie.INFO) =
+        LigneSortie(
+            source = SourceSortie.LOGCAT,
+            message = message,
+            horodatageMs = 1L,
+            niveau = niveau,
+            etiquette = etiquette,
+        )
 
     /** La couverture stricte : groupes + hors-groupes couvrent chaque
      *  position EXACTEMENT une fois (critère § 10.1.1). */

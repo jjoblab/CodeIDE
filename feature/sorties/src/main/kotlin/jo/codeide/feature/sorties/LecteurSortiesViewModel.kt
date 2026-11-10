@@ -855,11 +855,7 @@ internal enum class EtatPuceEtiquette {
  * @property etat l'état de la puce dans le filtre COURANT (le menu dit
  *           la vérité du filtre).
  */
-internal data class EtiquetteComptee(
-    val etiquette: String,
-    val compte: Int,
-    val etat: EtatPuceEtiquette,
-)
+internal data class EtiquetteComptee(val etiquette: String, val compte: Int, val etat: EtatPuceEtiquette)
 
 /** Les étiquettes proposées au menu (borné — le menu reste lisible). */
 internal const val BORNE_ETIQUETTES = 24
@@ -870,10 +866,7 @@ internal const val BORNE_ETIQUETTES = 24
  * borné à [BORNE_ETIQUETTES]. Les lignes SANS étiquette ne comptent pas
  * (jamais une puce « sans objet »).
  */
-internal fun etiquettesCompteesInterne(
-    etat: EtatTamponSorties,
-    filtre: FiltreSorties,
-): List<EtiquetteComptee> {
+internal fun etiquettesCompteesInterne(etat: EtatTamponSorties, filtre: FiltreSorties): List<EtiquetteComptee> {
     val comptes = HashMap<String, Int>()
     etat.lignes.forEach { ligne ->
         ligne.etiquette?.let { etiquette ->
