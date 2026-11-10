@@ -2,6 +2,12 @@
 <!-- English strings for the workspace (étapes 13-14). -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="editor_title">Editor</string>
+    <!-- L5a/L5c (SORTIES spec § 5.7): dedicated output surfaces. -->
+    <string name="editor_sorties_onglet">Output</string>
+    <string name="editor_sorties_plein_ecran">Full screen</string>
+    <string name="editor_sorties_plein_ecran_cd">Open the output in full screen</string>
+    <string name="editor_sorties_volet">Output beside the code</string>
+    <string name="editor_sorties_volet_cd">Show the output beside the code</string>
     <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
     <string name="editor_fermer_tiroir_cd">Close the navigation drawer</string>
     <string name="editor_vide_titre">No file open</string>
@@ -397,6 +403,14 @@
     <string name="editor_console_selecteur_canal_cd">Choose the visible console: sync or build</string>
     <string name="editor_console_echec_voir_problemes">See problems</string>
     <string name="editor_console_echec_reessayer">Retry</string>
+    <!-- L5d (SORTIES spec § 5.7): incident thread — one gesture to the
+         destinations that matter. -->
+    <string name="editor_console_echec_fil">Incident thread</string>
+    <string name="fil_incident_titre">Incident thread</string>
+    <string name="fil_incident_sorties">Build output</string>
+    <string name="fil_incident_problemes">Build problems</string>
+    <string name="fil_incident_diagnostics">Diagnostics and server logs</string>
+    <string name="fil_incident_logcat">Session logcat</string>
     <string name="editor_console_echec_defaut">Build failed</string>
     <!-- INC-21 (volet C): default message of the Sync channel failure banner. -->
     <string name="editor_console_echec_sync_defaut">Synchronization failed</string>

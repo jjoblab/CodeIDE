@@ -662,16 +662,6 @@ constructor(
      *  structurées l'émettent (tâches, étapes, statuts). */
     val etatGradle: StateFlow<EtatGradle> = serviceGradle.etat
 
-    /** Zone TEXTE de la console (v0.42.0, phase 1 du roadmap) : lignes
-     *  stdout/stderr brutes du build suivi et vidages, sur le flux
-     *  dédié du détenteur process-wide — le fragment de la console
-     *  applique chaque événement par append direct (O(1) par ligne) ;
-     *  l'abonnement rejoue l'historique borné puis suit le direct.
-     *  v0.46.0 : INTERNE — l'événement porte des types internes du
-     *  module (libellé, style), seuls le fragment et les tests y
-     *  touchent. */
-    internal val lignesBrutesConsole: SharedFlow<EvenementConsoleTexte> = serviceGradle.lignesBrutes
-
     /** Cache, plis et connaissances d'UN arbre (projet ou privé) — la
      * structure intime de l'arborescence paresseuse ADR 0027, dupliquée
      * par source (étape 31 : les deux arbres sont exclusifs mais

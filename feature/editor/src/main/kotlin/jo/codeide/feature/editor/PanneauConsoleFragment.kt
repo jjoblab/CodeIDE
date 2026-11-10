@@ -2,11 +2,6 @@ package jo.codeide.feature.editor
 
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.text.Editable
-import android.text.SpannableString
-import android.text.SpannableStringBuilder
-import android.text.style.ForegroundColorSpan
-import android.text.style.StyleSpan
 import android.view.Choreographer
 import android.view.LayoutInflater
 import android.view.View
@@ -21,40 +16,45 @@ import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.EtatConnexion
+import jo.codeide.core.domain.FiltreSorties
 import jo.codeide.core.domain.ObserveSettingsUseCase
+import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentPanneauConsoleBinding
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import jo.codeide.feature.sorties.FamilleSorties
+import jo.codeide.feature.sorties.FragmentLecteurSorties
 import javax.inject.Inject
 
 /**
  * Onglet Sortie du panneau inférieur (G5 §6, v0.32.4 ADR 0055 ; v4, §3.3 :
- * CHIPS Sync/Build ; v5, aperçu ; v0.40.1 : UN SEUL chip d'action reflète
- * l'action Gradle courante ; v0.42.0 : console HYBRIDE (zone structurée +
- * zone texte) ; **v0.46.0 — REFONTE TOTALE (ADR 0078) : CONSOLE FLUX BRUT
- * UNIQUE** — un `TextView` monospace PAR CANAL (Sync et Build), le flux
- * stdout/stderr de Gradle ENTIÈREMENT reconstitué comme la fenêtre Build
- * d'Android Studio : ses propres lignes « > Task :app:xxx », « BUILD
- * SUCCESSFUL in 6s », les diagnostics de compilation, plus les statuts de
- * l'orchestrateur (connexion au daemon, téléchargements, configuration) et
- * les étapes de sync (vue Sync). PLUS AUCUN RecyclerView, plus de DiffUtil,
- * plus de rangées structurées : l'information vit dans le flux ou dans
- * l'en-tête du panneau — jamais aux deux.
+ * CHIPS Sync/Build) — **L5b (spec SORTIES § 5.7) : PANNEAU COMPACT
+ * REBRANCHÉ** — il N'EMBARQUE PLUS de moteur d'affichage à lui (les deux
+ * consoles `TextView` et leur vidage loti ADR 0078 sont SUPPRIMÉS) : le
+ * corps est une FENÊTRE sur le MÊME composant, le lecteur du Centre de
+ * sorties (famille GRADLE, fragment enfant `FragmentLecteurSorties`).
+ * Un lecteur qui s'attache ne voit jamais deux fois la même ligne
+ * (cliché de publication, lot L3) ; l'onglet ne rejoue rien.
  *
- * Deux `TextView` (un par canal) s'accumulent EN PARALLÈLE : le SÉLECTEUR
- * Sync/Build (INC-20, volet C : redevenu cliquable) choisit lequel est
- * VISIBLE — basculer ne perd rien, ne rejoue rien, ne reconstruit rien.
- * L'application des lignes est
- * LOTIE PAR TRAME (un seul `append` par frame, O(1) par ligne — la leçon
- * de l'ADR 0074 reste : jamais de reconstruction, jamais de DiffUtil).
+ * Le chip de canal (Sync | Build — INC-20) pousse son filtre PAR SOURCE
+ * au lecteur (`FiltreSorties.sources` : SYNC → [SourceSortie.SYNC], BUILD
+ * → [SourceSortie.BUILD]) — le tampon ne bouge pas, les lignes masquées
+ * sont comptées et annoncées par le lecteur ; basculer ne perd rien, ne
+ * rejoue rien. La recherche, la pause, l'effacement, le regroupé et la
+ * consultation vivent DANS le lecteur (jamais un second chrome).
  *
- * Bouton Tâches armé par le cache de la sync, BANDEAU d'échec avec « Voir
- * les problèmes » et « Réessayer », annulation visible en vol,
- * auto-défilement honnête (le suivi s'arrête quand l'utilisateur remonte
- * — un build fini ne défile plus).
+ * Le chrome d'ACTIONS du panneau est conservé à l'identique : bouton
+ * Tâches (armé par le cache de la sync), configuration intégrée (page
+ * enfant, flèche retour), « Expliquer » IA (dernières rangées VISIBLES
+ * du lecteur), bandeau d'échec PAR CANAL (« Voir les problèmes » +
+ * « Réessayer »), annulation en vol, saisie stdin pendant un build
+ * (v0.41.1), point d'actualité du canal non affiché (INC-20).
+ *
+ * Sonde T6 (ADR 0152) conservée : la cadence d'images du fil principal
+ * pendant que la vue est attachée. La mesure T5 du vidage loti s'éteint
+ * AVEC le moteur qu'elle chronométrait (suppression justifiée, le
+ * lecteur a ses propres budgets et ses propres mesures).
  *
  * Exemption detekt ciblée (même précédent que `TerminalTiroirFragment` et
  * l'écran d'installation) : TooManyFunctions — un fragment de panneau est un
@@ -94,31 +94,27 @@ class PanneauConsoleFragment : Fragment() {
      * persiste jusqu'à la prochaine action. La sauvegarde locale
      * [CLE_ACTION_COURANTE] reste pour la continuité de cycle entre
      * l'instance du fragment et le ViewModel (re-création du ViewModel
-     * avant le onCreateView).
+     * avant le onCreateView). L5b : le canal pousse AUSSI son filtre par
+     * source au lecteur (voir [pousserFiltreAuLecteur]).
      */
     private var action: FiltreCanalConsole = FiltreCanalConsole.SYNC
 
-    // ---- Console flux brut (v0.46.0, ADR 0078) --------------------------
-
-    /** Événements en attente du prochain vidage (LOTIS par trame). */
-    private val evenementsEnAttente = mutableListOf<EvenementConsoleTexte>()
-
-    /** Un vidage est déjà planifié (déduplication des posts). */
-    private var vidagePlanifie = false
-
-    /** Un défilement vers le bas est déjà planifié (déduplication). */
-    private var defilementPlanifie = false
-
-    /** Tolérance « l'utilisateur est au bas » (une ligne ≈ 16 dp, en px). */
-    private var toleranceBasPx = 0
+    /** L5b : dernier canal dont le filtre a été poussé au lecteur (garde
+     *  d'idempotence — une émission d'état Gradle ne repousse pas). */
+    private var canalPousse: FiltreCanalConsole? = null
 
     /** Retour système pendant l'affichage de la configuration (§3.3) : la
      *  referme avant de remonter au retour de l'espace. */
     private lateinit var retourConfiguration: OnBackPressedCallback
 
-    // ---- Phase 1 (ADR 0152) : sonde T5/T6 de la vue ---------------------
+    /** Le lecteur hébergé (fenêtre sur le composant — L5b) ou `null`
+     *  s'il n'est pas encore attaché. */
+    private val lecteur: FragmentLecteurSorties?
+        get() = childFragmentManager.findFragmentById(R.id.conteneur_lecteur_panneau) as? FragmentLecteurSorties
 
-    /** Sonde de la vue (T5 lots, T6 images) — armée par le réglage
+    // ---- Phase 1 (ADR 0152) : sonde T6 de la vue ---------------------
+
+    /** Sonde de la vue (T6 images) — armée par le réglage
      *  `instrumentationTransport`, coupée par défaut (règle 10). */
     private val sondeVue by lazy { SondeConsoleVue(journal) }
 
@@ -179,11 +175,24 @@ class PanneauConsoleFragment : Fragment() {
             retourConfiguration,
         )
 
-        // v0.40.1 : l'action courante vit dans le ViewModel — on l'observe
-        // pour que le sélecteur se mette à jour quand un build ou une sync
-        // démarre (la bascule est poussée par `executerTachesGradle` /
-        // `synchroniserProjetGradle`). INC-20 : le clic utilisateur passe
-        // par la MÊME source — ActionEditor.SelectionnerCanalConsole.
+        // L5b (spec SORTIES § 5.7) : le corps est le LECTEUR du Centre de
+        // sorties (famille GRADLE) — ajouté UNE fois (commitNow : le
+        // filtre du canal courant part TOUT DE SUITE, jamais une fenêtre
+        // « tous les canaux » par défaillance d'ordonnancement) ; un
+        // lecteur qui s'attache ne voit jamais deux fois la même ligne
+        // (cliché qui suit la PUBLICATION, lot L3).
+        if (childFragmentManager.findFragmentById(R.id.conteneur_lecteur_panneau) == null) {
+            childFragmentManager
+                .beginTransaction()
+                .add(
+                    R.id.conteneur_lecteur_panneau,
+                    FragmentLecteurSorties.nouvelle(FamilleSorties.GRADLE),
+                    ETIQUETTE_LECTEUR,
+                )
+                .commitNow()
+        }
+        pousserFiltreAuLecteur()
+
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat ->
             if (action != etat.filtreConsole) {
                 action = etat.filtreConsole
@@ -213,27 +222,16 @@ class PanneauConsoleFragment : Fragment() {
             }
         }
 
-        // v0.46.0 (ADR 0078) : les DEUX consoles sont posées VIERGES puis
-        // l'abonnement rejoue l'historique borné du service (reconstruction
-        // exacte, canal par canal) avant de suivre le direct — chaque
-        // événement s'accumule, le vidage LOTI PAR TRAME applique. La
-        // collecte vit sur le `viewLifecycleOwner` : elle survit à un
-        // onStop (un onglet du panneau ne doit PAS rejouer l'historique à
-        // son retour — doublement) et meurt avec la vue (une rotation se
-        // ré-abonne et reconstruit depuis le rejeu).
-        toleranceBasPx = (TOLERANCE_BAS_DP * resources.displayMetrics.density).toInt()
-        poserTamponVierge(liaison.texteConsoleSync)
-        poserTamponVierge(liaison.texteConsoleBuild)
-        viewModel.lignesBrutesConsole
-            .onEach { evenement -> accumuler(evenement) }
-            .launchIn(viewLifecycleOwner.lifecycleScope)
-
+        // L5b : le lecteur est déjà alimenté (il s'attache au flux du
+        // Centre LUI-MÊME — aucun abonnement console ici, plus de rejeu
+        // canal par canal) ; le rendu du chrome (statut, bandeau, chips)
+        // reste piloté par l'état Gradle.
         viewModel.etatGradle.collectWithLifecycle(viewLifecycleOwner) { rendre(it) }
 
         // Phase 1 (ADR 0152) : le drapeau d'instrumentation arme la sonde
-        // de vue (T5 : lots de la console ; T6 : images du fil principal) —
-        // réglage persisté, lu à l'attache de la vue et suivi en direct :
-        // coupé, la vue ne paie RIEN (aucune mesure, aucune ligne).
+        // de vue (T6 : images du fil principal) — réglage persisté, lu à
+        // l'attache de la vue et suivi en direct : coupé, la vue ne paie
+        // RIEN (aucune mesure, aucune ligne).
         observerReglages()
             .collectWithLifecycle(viewLifecycleOwner) { reglages ->
                 armerSondeVue(reglages.instrumentationTransport)
@@ -246,11 +244,6 @@ class PanneauConsoleFragment : Fragment() {
     }
 
     override fun onDestroyView() {
-        // v0.46.0 : le lot en attente appartient à la vue morte — la
-        // reconstruction repassera par le rejeu, le garder doublerait.
-        vidagePlanifie = false
-        defilementPlanifie = false
-        evenementsEnAttente.clear()
         // Phase 1 : la boucle d'images meurt avec la vue (un rappel déjà
         // en vol s'arrête de lui-même au drapeau).
         imagesSuivies = false
@@ -296,6 +289,15 @@ class PanneauConsoleFragment : Fragment() {
         liaison.boutonVoirProblemes.setOnClickListener {
             viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(OngletPanneau.PROBLEMES))
         }
+        // L5d (spec SORTIES § 5.7) : le FIL DE L'INCIDENT — un seul geste
+        // ouvre les destinations qui comptent. Le message d'échec courant
+        // voyage EN ARGUMENT (contexte de l'incident, vérité complète
+        // dans les sorties).
+        liaison.boutonFilIncident.setOnClickListener {
+            FeuilleFilIncidentFragment
+                .creer(liaison.messageEchecCanal.text?.toString().orEmpty())
+                .show(childFragmentManager, FeuilleFilIncidentFragment.ETIQUETTE)
+        }
         liaison.boutonReessayerCanal.setOnClickListener {
             when (action) {
                 FiltreCanalConsole.SYNC -> {
@@ -310,19 +312,37 @@ class PanneauConsoleFragment : Fragment() {
                 }
             }
         }
-        // « Expliquer » (mission IA, lot IA-5, spec E3) : la sortie du
-        // canal VISIBLE part en pré-remplissage du chat (jamais
-        // auto-envoyée — l'utilisateur relit puis envoie).
+        // « Expliquer » (mission IA, lot IA-5, spec E3) : les dernières
+        // rangées VISIBLES DU LECTEUR partent en pré-remplissage du chat
+        // (jamais auto-envoyées — l'utilisateur relit puis envoie).
         liaison.boutonExpliquerIa.setOnClickListener {
-            (activity as? ControleurPanneauEditeur)?.expliquerAvecIa(texteVisible())
+            (activity as? ControleurPanneauEditeur)?.expliquerAvecIa(
+                lecteur?.texteVisible(EXPLIQUER_DERNIERES) ?: "",
+            )
         }
     }
 
-    /** Sortie VISIBLE courante (console du canal affiché — Sync ou Build). */
-    private fun texteVisible(): String = if (liaison.defilementConsoleBuild.isVisible) {
-        liaison.texteConsoleBuild.text.toString()
-    } else {
-        liaison.texteConsoleSync.text.toString()
+    /**
+     * L5b : pousse le filtre PAR SOURCE du canal courant au lecteur —
+     * SYNC → [SourceSortie.SYNC], BUILD → [SourceSortie.BUILD]. Le tampon
+     * ne bouge pas : la projection est redérivée, les lignes masquées
+     * sont comptées et annoncées par le lecteur (honnêteté, règle 14).
+     * Idempotent : un canal déjà poussé ne repart pas (une redérivation
+     * à chaque émission d'état Gradle serait un gaspillage).
+     */
+    private fun pousserFiltreAuLecteur() {
+        if (canalPousse == action) return
+        canalPousse = action
+        val lecteurAttache = lecteur ?: return
+        lecteurAttache.definirFiltre(
+            FiltreSorties(
+                sources =
+                when (action) {
+                    FiltreCanalConsole.SYNC -> setOf(SourceSortie.SYNC)
+                    FiltreCanalConsole.BUILD -> setOf(SourceSortie.BUILD)
+                },
+            ),
+        )
     }
 
     /**
@@ -330,10 +350,9 @@ class PanneauConsoleFragment : Fragment() {
      * dérive de [PresentationTooling.canalAffiche], PLUS de cascade
      * locale), l'annulation, le bouton Tâches, le bandeau d'échec
      * (message du serveur sinon libellé générique, « Réessayer » seulement
-     * si des tâches existent), le chip d'action courante (v0.40.1 §3) et la
-     * VISIBILITÉ de la console du canal courant (v0.46.0 : deux
-     * `TextView`, le chip choisit — plus de RecyclerView, plus de rangées
-     * à reconstruire).
+     * si des tâches existent), le chip d'action courante (v0.40.1 §3) et
+     * pousse le filtre PAR SOURCE du canal au lecteur (L5b — le tampon ne
+     * bouge pas, les lignes masquées sont comptées et annoncées).
      */
     private fun rendre(etat: EtatGradle) {
         // INC-02 : UNE dérivation alimente sélecteur, console visible et
@@ -386,234 +405,9 @@ class PanneauConsoleFragment : Fragment() {
         // v0.41.1 : champ de saisie stdin visible pendant un build EN_COURS.
         liaison.champEntreeConsole.isVisible = etat.statutBuild == StatutBuild.EN_COURS
 
-        // v0.46.0 : la console du canal courant est la SEULE visible —
-        // l'autre continue de s'accumuler en coulisses, basculer ne perd
-        // rien.
-        majVisibiliteConsoles()
-    }
-
-    /** Visibilité des deux consoles selon l'action courante + état vide. */
-    private fun majVisibiliteConsoles() {
-        val vueSync = action == FiltreCanalConsole.SYNC
-        liaison.defilementConsoleSync.isVisible = vueSync
-        liaison.defilementConsoleBuild.isVisible = !vueSync
-        majEtatVide()
-    }
-
-    /** État vide honnête (v0.46.0) : la console du canal COURANT n'a
-     *  encore rien écrit — ni flux, ni étapes. */
-    private fun majEtatVide() {
-        val texteCourant =
-            if (action == FiltreCanalConsole.SYNC) {
-                liaison.texteConsoleSync.text
-            } else {
-                liaison.texteConsoleBuild.text
-            }
-        liaison.texteSortieVide.isVisible = texteCourant.isNullOrEmpty()
-    }
-
-    // ---- Console : accumulation, vidage loti, auto-défilement ----------
-
-    /**
-     * Accumule UN événement de la console (v0.46.0) : la ligne rejoint le
-     * lot en attente, le vidage d'un canal arme son tampon vierge (et
-     * jette les lignes du lot qui lui appartiennent — elles appartenaient
-     * à l'ancienne console). Le vidage est PLANIFIÉ : tous les événements
-     * arrivés dans la même passe de la boucle de messages partent en UN
-     * seul lot — une seule notification de changement, une seule passe de
-     * layout par trame et par canal.
-     */
-    private fun accumuler(evenement: EvenementConsoleTexte) {
-        if (evenement is EvenementConsoleTexte.Vider) {
-            evenementsEnAttente.removeAll { it is EvenementConsoleTexte.Vider && it.canal == evenement.canal }
-            evenementsEnAttente.removeAll { it is EvenementConsoleTexte.Ligne && it.canal == evenement.canal }
-            evenementsEnAttente += evenement
-        } else {
-            evenementsEnAttente += evenement
-        }
-        planifierVidage()
-    }
-
-    /** Planifie le vidage du lot (dédupliqué : un post vivant au plus). */
-    private fun planifierVidage() {
-        if (vidagePlanifie) return
-        vidagePlanifie = true
-        // Capture de la vue : un runnable exécuté après destruction de la
-        // vue ne doit rien appliquer (les champs ont été réinitialisés).
-        val vue = liaison
-        vue.root.post {
-            vidagePlanifie = false
-            if (liaisonAmorce === vue) viderLot(vue)
-        }
-    }
-
-    /**
-     * Applique le lot accumulé (v0.46.0) : chaque événement va à SA
-     * console (Sync ou Build — les deux s'accumulent, seule la visible se
-     * défile), tampon vierge si un vidage est armé, PUIS les lignes en un
-     * seul `append` par console (le `TextView` garde un `Editable` :
-     * l'ajout est en place, O(longueur de la ligne), les spans de couleurs
-     * voyagent avec). L'auto-défilement suit le bas si l'utilisateur y
-     * ÉTAIT (l'intention de lecture est capturée AVANT l'ajout) — un
-     * utilisateur remonté dans l'historique n'est jamais rabattu en bas.
-     */
-    private fun viderLot(vue: FragmentPanneauConsoleBinding) {
-        if (evenementsEnAttente.isEmpty()) {
-            majEtatVide()
-            return
-        }
-        // T5 (Phase 1, ADR 0152) : le vidage est chronométré SEULEMENT si la
-        // sonde est armée — ouverture et conclusion hors des branches du
-        // vidage (complexité), le chemin sans sonde est l'identique d'avant.
-        val mesureLot = ouvrirMesureLot()
-        val suivreBasSync = action == FiltreCanalConsole.SYNC && estAuBas(vue.defilementConsoleSync)
-        val suivreBasBuild = action == FiltreCanalConsole.BUILD && estAuBas(vue.defilementConsoleBuild)
-        val vidageSync = evenementsEnAttente.any { it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.SYNC }
-        val vidageBuild =
-            evenementsEnAttente.any {
-                it is EvenementConsoleTexte.Vider && it.canal == CanalTooling.BUILD
-            }
-        val lotSync = lotDuCanal(CanalTooling.SYNC)
-        val lotBuild = lotDuCanal(CanalTooling.BUILD)
-        evenementsEnAttente.clear()
-        if (vidageSync) poserTamponVierge(vue.texteConsoleSync)
-        if (vidageBuild) poserTamponVierge(vue.texteConsoleBuild)
-        if (lotSync.isNotEmpty()) {
-            vue.texteConsoleSync.append(lotSync)
-            if (suivreBasSync) suivreLeBas(vue.defilementConsoleSync)
-        }
-        if (lotBuild.isNotEmpty()) {
-            vue.texteConsoleBuild.append(lotBuild)
-            if (suivreBasBuild) suivreLeBas(vue.defilementConsoleBuild)
-        }
-        majEtatVide()
-        conclureMesureLot(mesureLot, vue)
-    }
-
-    /** Mesure T5 d'un lot ouvert (Phase 1, ADR 0152) — [ouvrirMesureLot]. */
-    private class MesureLot(val debut: Long, val lignes: Int)
-
-    /**
-     * Ouvre la mesure T5 du lot (Phase 1, ADR 0152) : chronomètre et
-     * lignes du lot — `null` quand la sonde est coupée (aucune mesure,
-     * aucun comptage, la vue ne paie rien).
-     */
-    private fun ouvrirMesureLot(): MesureLot? {
-        if (!sondeVue.active) return null
-        return MesureLot(
-            debut = System.nanoTime(),
-            lignes = evenementsEnAttente.count { it is EvenementConsoleTexte.Ligne },
-        )
-    }
-
-    /**
-     * Conclut la mesure T5 du lot : durées et longueurs du texte APRÈS
-     * application (la variable de X9 — coût par ligne vs lignes déjà
-     * affichées) partent au journal `ConsoleVue`. Sonde coupée : rien.
-     */
-    private fun conclureMesureLot(mesure: MesureLot?, vue: FragmentPanneauConsoleBinding) {
-        if (mesure == null) return
-        sondeVue.lot(
-            lignes = mesure.lignes,
-            dureeNs = System.nanoTime() - mesure.debut,
-            longueurTexteSync = vue.texteConsoleSync.text?.length ?: 0,
-            longueurTexteBuild = vue.texteConsoleBuild.text?.length ?: 0,
-        )
-    }
-
-    /** Stylise et accumule les LIGNES du lot en attente pour un canal. */
-    private fun lotDuCanal(canal: CanalTooling): SpannableStringBuilder {
-        val lot = SpannableStringBuilder()
-        evenementsEnAttente
-            .filterIsInstance<EvenementConsoleTexte.Ligne>()
-            .filter { ligne -> ligne.canal == canal }
-            .forEach { ligne -> lot.append(ligneStylee(ligne)) }
-        return lot
-    }
-
-    /** Pose un tampon `Editable` VIERGE — `append()` modifie en place. */
-    private fun poserTamponVierge(vue: com.google.android.material.textview.MaterialTextView) {
-        vue.text = Editable.Factory.getInstance().newEditable("")
-    }
-
-    /** L'utilisateur est-il au bas de la console donnée (tolérance : une ligne) ? */
-    private fun estAuBas(defilement: androidx.core.widget.NestedScrollView): Boolean {
-        val contenu = defilement.getChildAt(0) ?: return true
-        return defilement.scrollY >= contenu.height - defilement.height - toleranceBasPx
-    }
-
-    /** Défile vers le bas (dédupliqué : un post vivant au plus). */
-    private fun suivreLeBas(defilement: androidx.core.widget.NestedScrollView) {
-        if (defilementPlanifie) return
-        defilementPlanifie = true
-        defilement.post {
-            defilementPlanifie = false
-            defilement.fullScroll(View.FOCUS_DOWN)
-        }
-    }
-
-    /**
-     * Construit la ligne stylée (v0.46.0) : le libellé se résout (une
-     * ressource, un brut ou une composition) et porte SA couleur — stderr
-     * en rouge d'erreur, stdout en couleur de sortie (l'avertissement
-     * bénin apaisé, C5), étapes et synthèses en couleur de surface. Le
-     * retour à la ligne final fait qu'aucune ligne n'en chevauche une
-     * autre, et l'auto-défilement « plein bas » repose sur un dernier
-     * retour toujours présent.
-     */
-    private fun ligneStylee(ligne: EvenementConsoleTexte.Ligne): CharSequence {
-        val contexte = requireContext()
-        val couleur =
-            when (ligne.style) {
-                StyleLigne.ERREUR -> {
-                    androidx.core.content.ContextCompat.getColor(
-                        contexte,
-                        jo.codeide.core.ui.R.color.codeide_stderr,
-                    )
-                }
-
-                StyleLigne.APAISEE -> {
-                    androidx.core.graphics.ColorUtils.setAlphaComponent(
-                        androidx.core.content.ContextCompat.getColor(
-                            contexte,
-                            jo.codeide.core.ui.R.color.codeide_stdout,
-                        ),
-                        ALPHA_LIGNE_APAISEE,
-                    )
-                }
-
-                StyleLigne.SORTIE, StyleLigne.TELECHARGEMENT -> {
-                    androidx.core.content.ContextCompat.getColor(
-                        contexte,
-                        jo.codeide.core.ui.R.color.codeide_stdout,
-                    )
-                }
-
-                StyleLigne.ETAPE, StyleLigne.SYNTHESE -> {
-                    com.google.android.material.color.MaterialColors.getColor(
-                        liaison.root,
-                        com.google.android.material.R.attr.colorOnSurface,
-                    )
-                }
-            }
-        val texte = SpannableString(ligne.libelle.resoudre(contexte) + "\n")
-        texte.setSpan(
-            ForegroundColorSpan(couleur),
-            0,
-            texte.length,
-            android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
-        )
-        if (ligne.style == StyleLigne.SYNTHESE) {
-            // La conclusion de sync se détache du flux qui la précède —
-            // grasse, comme le verdict d'une fenêtre Build.
-            texte.setSpan(
-                StyleSpan(android.graphics.Typeface.BOLD),
-                0,
-                texte.length,
-                android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE,
-            )
-        }
-        return texte
+        // L5b : le canal affiché pousse son filtre PAR SOURCE au lecteur
+        // (le tampon ne bouge pas — basculer ne perd rien, ne rejoue rien).
+        pousserFiltreAuLecteur()
     }
 
     /**
@@ -735,22 +529,16 @@ class PanneauConsoleFragment : Fragment() {
         /** Étiquette de la page de configuration (anti-doublon). */
         const val ETIQUETTE_CONFIG = "config-tooling"
 
+        /** L5b : étiquette du lecteur hébergé (anti-doublon). */
+        const val ETIQUETTE_LECTEUR = "lecteur_panneau_console"
+
+        /** L5b : « Expliquer » IA — le nombre de dernières rangées
+         *  visibles DU LECTEUR envoyées en pré-remplissage (fenêtre
+         *  bornée, jamais auto-envoyée). */
+        const val EXPLIQUER_DERNIERES = 50
+
         /** Clé de l'action courante dans l'état d'instance (v0.40.1). */
         const val CLE_ACTION_COURANTE = "action-courante-console"
-
-        /**
-         * Alpha d'une ligne brute apaisée (v0.42.0 — avertissement bénin du
-         * daemon, C5 : de l'information, pas du bruit ; même valeur que
-         * l'ancien `LigneGradleHolder`).
-         */
-        const val ALPHA_LIGNE_APAISEE = 140
-
-        /**
-         * Tolérance « l'utilisateur est au bas » de la console (v0.42.0)
-         * : une LIGNE de marge en dp — un lecteur à une ligne du fond
-         * reste considéré comme SUIVEUR du bas.
-         */
-        const val TOLERANCE_BAS_DP = 16f
 
         /**
          * Alpha du fond teinté des chips du sélecteur (v0.40.1, prompt de

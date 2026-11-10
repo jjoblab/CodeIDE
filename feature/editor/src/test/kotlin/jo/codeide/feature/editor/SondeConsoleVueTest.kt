@@ -6,38 +6,26 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tests de la sonde de vue (T5/T6, Phase 1, ADR 0152) : les lots de la
- * console et les images du fil principal ne se journalisent QUE sonde
- * armée — coupée, la vue ne paie rien (règle 10 du prompt).
+ * Tests de la sonde de vue (T6, Phase 1, ADR 0152) : les images du fil
+ * principal ne se journalisent QUE sonde armée — coupée, la vue ne paie
+ * rien (règle 10 du prompt).
+ *
+ * L5b : les tests T5 du vidage loti se sont ÉTEINTS AVEC le moteur qu'ils
+ * chronométraient (les deux consoles `TextView` du panneau compact sont
+ * remplacées par le lecteur du Centre de sorties — son lotissement vit
+ * dans le composant et ses budgets sont testés dans :feature:sorties).
  */
 class SondeConsoleVueTest {
     @Test
-    fun `sonde coupee - aucun lot ni resume ne se journalise`() {
+    fun `sonde coupee - aucun resume ne se journalise`() {
         val journal = FakeAppLogger()
         val sonde = SondeConsoleVue(journal)
         sonde.active = false
 
-        sonde.lot(lignes = 12, dureeNs = 340_000L, longueurTexteSync = 0, longueurTexteBuild = 560)
         sonde.image(16L)
         sonde.image(32L)
 
         assertEquals(0, journal.entries.size)
-    }
-
-    @Test
-    fun `T5 - un lot arme journalise lignes, duree et longueurs de texte`() {
-        val journal = FakeAppLogger()
-        val sonde = SondeConsoleVue(journal)
-        sonde.active = true
-
-        sonde.lot(lignes = 12, dureeNs = 340_000L, longueurTexteSync = 0, longueurTexteBuild = 560)
-
-        val ligne = journal.entries.single().message
-        assertTrue("lignes du lot : $ligne", ligne.contains("lot 12 ligne(s)"))
-        assertTrue("durée du lot : $ligne", ligne.contains("340 µs"))
-        assertTrue("longueurs de texte : $ligne", ligne.contains("texte sync 0 car., build 560 car."))
-        assertTrue("préfixe instru : $ligne", ligne.startsWith("instru: vue —"))
-        assertEquals("ConsoleVue", journal.entries.single().tag)
     }
 
     @Test

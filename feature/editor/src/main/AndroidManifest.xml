@@ -22,6 +22,15 @@
             android:label="@string/editor_title"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- L5a (spec SORTIES § 5.7, M7) : l'éditeur dédié aux sorties en
+             PLEIN ÉCRAN — le lecteur du Centre de sorties tel quel sous
+             une barre d'application minimale. NON exportée : le seul
+             chemin d'entrée est l'onglet central « Sorties » de l'espace. -->
+        <activity
+            android:name="jo.codeide.feature.editor.EditeurSortiesActivity"
+            android:exported="false"
+            android:label="@string/editor_sorties_onglet" />
+
         <service
             android:name="jo.codeide.feature.editor.ToolingService"
             android:exported="false"

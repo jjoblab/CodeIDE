@@ -3,16 +3,15 @@ package jo.codeide.feature.editor
 import jo.codeide.core.domain.AppLogger
 
 /**
- * Sonde de la VUE console — **T5 et T6** de la Phase 1 (ADR 0152,
- * `DIAGNOSTIC-LOGS.md` §3 : « durée du lot, lignes/lot, longueur du
- * texte » et « images perdues, layout/dessin »).
+ * Sonde de la VUE console — **T6** de la Phase 1 (ADR 0152,
+ * `DIAGNOSTIC-LOGS.md` §3 : « images perdues, layout/dessin »).
  *
- * Elle mesure ce que AUCUNE sonde existante ne voyait : le coût APRÈS la
- * publication (angle mort n°1 du prompt) — le lotissement de la console
- * (stylage + append) et la cadence d'images du fil principal pendant que
- * la vue est attachée. Le déluge H-V1…V5 (X9) se lira ici : un coût par
- * lot qui CROÎT avec la longueur du texte déjà affiché désigne la vue,
- * pas le transport.
+ * Elle mesure la cadence d'images du fil principal pendant que la vue
+ * est attachée. (L5b : la mesure T5 du vidage loti s'est ÉTEINTE avec le
+ * moteur qu'elle chronométrait — les deux consoles `TextView` sont
+ * remplacées par le lecteur du Centre de sorties, qui a ses propres
+ * budgets et ses propres tests ; le déluge H-V1…V5 (X9) se lira sur les
+ * compteurs du lecteur.)
  *
  * **Désactivable** (règle 10) : [active] est piloté par le réglage
  * utilisateur `instrumentationTransport` (observé par le fragment) —
@@ -24,35 +23,13 @@ import jo.codeide.core.domain.AppLogger
  * sortie d'instrumentation passe par le journal applicatif (règle 10) et
  * reste dans l'export de logs du propriétaire.
  *
- * Thread : [lot] est appelée sur le fil principal (vidage du lot) ;
- * [image] aussi (rappel Choreographer) — aucun verrou nécessaire.
+ * Thread : [image] est appelée sur le fil principal (rappel
+ * Choreographer) — aucun verrou nécessaire.
  */
 internal class SondeConsoleVue(private val journal: AppLogger) {
     /** Drapeau d'activation — piloté par le réglage utilisateur. */
     @Volatile
     var active: Boolean = false
-
-    // ---- T5 : le lot de la console ------------------------------------
-
-    /**
-     * Consigne UN vidage de lot (T5) : lignes du lot, durée totale du
-     * vidage (stylage + appends + état vide) et longueur du texte des
-     * DEUX consoles APRÈS application — la longueur est la variable de X9
-     * (coût par ligne vs lignes déjà affichées : O(1) ou O(n) ?).
-     *
-     * Une ligne par lot : le lot est déjà l'unité de coalescence (un
-     * vidage par passe de la boucle de messages au plus) — pour le
-     * scénario du propriétaire (≈ 60 lignes), cela fait quelques lignes
-     * de journal par build ; sous déluge (X9), c'est précisément la
-     * donnée demandée.
-     */
-    fun lot(lignes: Int, dureeNs: Long, longueurTexteSync: Int, longueurTexteBuild: Int) {
-        if (!active) return
-        journal.i(TAG) {
-            "instru: vue — lot $lignes ligne(s), ${dureeNs / NANOS_PAR_MICRO} µs, " +
-                "texte sync $longueurTexteSync car., build $longueurTexteBuild car."
-        }
-    }
 
     // ---- T6 : les images du fil principal ------------------------------
 
@@ -120,8 +97,5 @@ internal class SondeConsoleVue(private val journal: AppLogger) {
 
         /** Un résumé d'images par tranche de 5 s (borné). */
         const val INTERVALLE_RESUME_MS = 5_000L
-
-        /** Nanosecondes par microseconde (durées des phases internes, lisibles en µs). */
-        const val NANOS_PAR_MICRO = 1_000L
     }
 }

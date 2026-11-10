@@ -26,6 +26,37 @@
         app:iconTint="?attr/colorOnSurfaceVariant"
         app:showAsAction="ifRoom" />
 
+    <!-- L5a (spec SORTIES § 5.7) : point d'entrée du NOYAU « Centre de
+         sorties » — sélectionne l'onglet central « Sorties » (l'éditeur
+         dédié ouvert comme un fichier, ADR 0028). Toujours disponible :
+         l'historique des exécutions est consultable même sans fichier
+         ouvert. -->
+    <item
+        android:id="@+id/action_sorties"
+        android:icon="@drawable/ic_terminal"
+        android:title="@string/editor_sorties_onglet"
+        app:iconTint="?attr/colorOnSurfaceVariant"
+        app:showAsAction="never" />
+
+    <!-- L5a (spec SORTIES § 5.7, M7) : l'éditeur dédié en PLEIN ÉCRAN
+         (téléphone portrait) — n'est visible QUE quand la surface
+         « Sorties » est déjà affichée au centre. -->
+    <item
+        android:id="@+id/action_plein_ecran_sorties"
+        android:title="@string/editor_sorties_plein_ecran"
+        android:visible="false"
+        app:showAsAction="never" />
+
+    <!-- L5c (spec SORTIES § 5.7, M8) : le VOLET tablette — l'éditeur
+         dédié à côté du code. Le menu n'est visible QUE sur grand écran
+         (booléen values-sw600dp) : sur téléphone l'action n'existe pas
+         (jamais une entrée morte dans le menu). -->
+    <item
+        android:id="@+id/action_volet_sorties"
+        android:title="@string/editor_sorties_volet"
+        android:visible="false"
+        app:showAsAction="never" />
+
     <item
         android:id="@+id/action_enregistrer"
         android:icon="@drawable/ic_enregistrer"
