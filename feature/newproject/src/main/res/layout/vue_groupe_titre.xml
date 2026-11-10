@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Titre d'un groupe d'affichage (ADR 0154 §3) : clé `groupe.<id>.titre`
+  résolue par le moteur, posée avant le premier paramètre du groupe.
+-->
+<com.google.android.material.textview.MaterialTextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/titre_groupe"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/spacing_lg"
+    android:layout_marginBottom="@dimen/spacing_xs"
+    android:textAppearance="?attr/textAppearanceTitleSmall" />

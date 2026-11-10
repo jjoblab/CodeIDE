@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- L'aperçu en direct se rend en feuille basse sur téléphone (défaut). -->
+<resources>
+    <bool name="apercu_en_panneau">false</bool>
+</resources>

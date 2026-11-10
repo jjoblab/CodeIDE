@@ -8,12 +8,18 @@ import androidx.recyclerview.widget.GridLayoutManager
 import jo.codeide.core.ui.SimpleTextWatcher
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.newproject.databinding.EtapeModeleBinding
+import jo.codeide.feature.newproject.databinding.VueCartePresetBinding
 
 /**
  * Étape 1 « Modèle » du wizard (section 12.3) : grille de **cartes
  * sélectionnables** — monogramme maison (pas de logo officiel, règle de
  * l'étape 9), nom, description courte, tags. Sélection unique, modèle
  * présélectionné au retour arrière.
+ *
+ * **Préréglages déclarés** (ADR 0155, B-8) : dès qu'un modèle déclarant
+ * un bloc `presets` est sélectionné, ses jeux de valeurs cohérents sont
+ * proposés en cartes sous la grille — posés d'un geste, jamais figés ; le
+ * bouton éclair applique puis saute au récapitulatif (mode rapide, L5d).
  *
  * La barre de recherche n'apparaît que si le catalogue dépasse
  * [SEUIL_RECHERCHE] modèles — l'interface est prête pour la croissance sans
@@ -60,7 +66,39 @@ class EtapeModeleFragment : EtapeFragment<EtapeModeleBinding>() {
                 wizard.action(ActionWizard.ReessayerCatalogue)
             }
             binding.grilleModeles.isVisible = !etat.chargementCatalogue && !etat.erreurCatalogue
+            rendrePresets(etat)
             mettreAJourEtatVide()
+        }
+    }
+
+    /**
+     * Rend les préréglages du modèle sélectionné (ADR 0155, B-8) : une
+     * carte par préréglage (nom + description résolus), appliquée d'un
+     * toucher ; le bouton éclair applique puis saute au récapitulatif
+     * (mode rapide, L5d). Masqué sans sélection ni préréglage déclaré.
+     */
+    private fun rendrePresets(etat: EtatWizard) {
+        val presets = etat.evaluation?.presets.orEmpty()
+        binding.conteneurPresets.isVisible = presets.isNotEmpty()
+        if (presets.isEmpty()) {
+            binding.conteneurPresets.removeAllViews()
+            return
+        }
+        // Reconstruction simple : une sélection de modèle réévalue tout,
+        // et le nombre de préréglages est borné par le manifeste (≤ 12).
+        binding.conteneurPresets.removeAllViews()
+        presets.forEach { preset ->
+            val carte = VueCartePresetBinding.inflate(layoutInflater, binding.conteneurPresets, false)
+            carte.titrePreset.text = preset.nom
+            carte.descriptionPreset.isVisible = preset.description.isNotBlank()
+            carte.descriptionPreset.text = preset.description
+            carte.root.setOnClickListener {
+                wizard.action(ActionWizard.AppliquerPreset(preset.id))
+            }
+            carte.boutonModeRapide.setOnClickListener {
+                wizard.action(ActionWizard.ModeRapide(preset.id))
+            }
+            binding.conteneurPresets.addView(carte.root)
         }
     }
 

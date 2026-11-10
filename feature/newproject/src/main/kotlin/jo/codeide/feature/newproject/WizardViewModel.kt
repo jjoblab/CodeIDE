@@ -13,6 +13,7 @@ import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.ValidationDossier
 import jo.codeide.core.domain.VerificationCible
 import jo.codeide.core.domain.VerifyCreationTargetUseCase
+import jo.codeide.core.domain.templates.CalculeParcoursUseCase
 import jo.codeide.core.domain.templates.CreateProjectUseCase
 import jo.codeide.core.domain.templates.EvaluateTemplateFormUseCase
 import jo.codeide.core.domain.templates.EvaluerNomProjetUseCase
@@ -22,6 +23,7 @@ import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.CreateProjectRequest
 import jo.codeide.core.model.CreationProgress
+import jo.codeide.core.model.EtapeParcours
 import jo.codeide.core.model.License
 import jo.codeide.core.model.StorageLocation
 import jo.codeide.core.model.TemplateId
@@ -54,38 +56,44 @@ import javax.inject.Inject
  *   changement de langue ou sur « Réessayer » ;
  * - réévaluer le formulaire **à chaque changement**
  *   ([EvaluateTemplateFormUseCase]) : visibilité, valeurs dérivées,
- *   validité — le rendu dynamique de la section 12.2 ;
+ *   validité, **étapes effectives et préréglages** (ADR 0155) — le rendu
+ *   dynamique de la section 12.2 ;
+ * - **calculer le parcours effectif** ([CalculeParcoursUseCase]) à chaque
+ *   réévaluation : une étape dont `when` disparaît ramène l'utilisateur à
+ *   la dernière étape effective (jamais sauté en avant), les valeurs
+ *   saisies restent conservées ;
  * - évaluer le nom du projet (raison typée, section 12.3) ;
  * - résoudre l'emplacement effectif (override éphémère ou dossier de
  *   travail des Paramètres) et vérifier la cible **avec délai** (permission,
  *   joignabilité, collision de nom — section 12.3) ;
  * - piloter la machine à étapes (suivant gardé par validité, précédent,
  *   « Modifier » du récapitulatif vers l'arrière uniquement) ;
+ * - appliquer les **préréglages** déclarés (ADR 0155, B-8) et le **mode
+ *   rapide** (préréglage → récapitulatif, L5d) ;
  * - porter les **options communes** de l'étape Fichiers (section 12.3) et
- *   **planifier** le récapitulatif (dry-run — ce qui est planifié est ce
- *   qui sera écrit, à l'octet près) ;
+ *   **planifier** le récapitulatif et l'**aperçu en direct** (dry-run — ce
+ *   qui est planifié est ce qui sera écrit, à l'octet près ; antirebond
+ *   300 ms, différentiel ajouté/retiré entre deux plans consécutifs) ;
  * - **créer** le projet ([CreateProjectUseCase] : revalidation, écritures
  *   avec progression temps réel, rollback à tout échec ou annulation,
  *   registre en dernier) ; l'annulation déclenche le rollback côté domaine
  *   puis ramène au récapitulatif ;
- * - à l'abandon confirmé, relâcher la permission éphémère de l'override
- *   si elle ne sert plus à rien ([ReleaseCreationLocationUseCase]).
+ * - à l'abandon confirmé, relâcher l'emplacement éphémère de l'override
+ *   avant l'effet de fermeture.
  *
- * Journalisation (règle 15) : identifiants uniquement — jamais un nom de
- * projet, jamais un chemin.
- *
- * Exemption detekt ciblée (règle 16 du prompt maître) :
- * TooManyFunctions — un gestionnaire par action du wizard (section 5.3,
- * UDF) ; LongParameterList — chaque paramètre est un cas d'usage distinct
- * du domaine, les regrouper créerait un objet céleste.
+ * Les cas d'usage sont injectés un par un (règle 8 : l'agrégation par
+ * le domaine, les regrouper créerait un objet céleste).
  */
 @HiltViewModel
-@Suppress("TooManyFunctions", "LongParameterList")
+// Machine à états complète en UN état observable unique — exemption
+// LargeClass ciblée (règle 16 du prompt maître).
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 class WizardViewModel
 @Inject
 constructor(
     private val listerModeles: ListTemplatesUseCase,
     private val evaluerFormulaire: EvaluateTemplateFormUseCase,
+    private val calculeParcours: CalculeParcoursUseCase,
     private val evaluerNom: EvaluerNomProjetUseCase,
     private val resoudreEmplacement: ResolveCreationLocationUseCase,
     private val relacherEmplacement: ReleaseCreationLocationUseCase,
@@ -117,11 +125,24 @@ constructor(
     /** Création en cours (annulable — le domaine roule le rollback). */
     private var creationJob: Job? = null
 
+    /** Planification en cours (antirebond de l'aperçu, L5d). */
+    private var planificationJob: Job? = null
+
+    /** Chemins du dernier plan connu — base du différentiel (L5d). */
+    private var cheminsPlanPrecedent: Set<String> = emptySet()
+
+    /**
+     * Le différentiel est-il armé ? Faux à l'ouverture de l'aperçu (le
+     * premier plan posé **est** la base) et hors aperçu — jamais de
+     * « tout ajouté » qui ne signifierait rien.
+     */
+    private var differentielArme: Boolean = false
+
     init {
         restaurer()
         observerReglages()
         chargerCatalogue()
-        if (etatInterne.value.etape == EtapeId.RECAPITULATIF) {
+        if (etatInterne.value.etape == EtapeId.Recapitulatif) {
             // Mort du processus sur le récapitulatif : le plan se
             // recalcule (il n'est pas sauvé — il se redéduit).
             planifier()
@@ -143,6 +164,10 @@ constructor(
             ActionWizard.Suivant -> avancer()
             ActionWizard.Precedent -> reculer()
             is ActionWizard.AllerEtape -> allerEtape(action.id)
+            is ActionWizard.AppliquerPreset -> appliquerPreset(action.id, versRecapitulatif = false)
+            is ActionWizard.ModeRapide -> appliquerPreset(action.id, versRecapitulatif = true)
+            ActionWizard.OuvrirApercu -> ouvrirApercu()
+            ActionWizard.FermerApercu -> fermerApercu()
             is ActionWizard.SaisirNom -> saisirNom(action.valeur)
             is ActionWizard.SaisirDescription -> saisirDescription(action.valeur)
             is ActionWizard.SaisirTexte -> saisirTexte(action.parametreId, action.valeur)
@@ -235,19 +260,19 @@ constructor(
     private fun avancer() {
         val etat = etatInterne.value
         if (!etat.etapeValide || !etat.aUneEtapeSuivante) return
-        val suivante = ETAPES_WIZARD[etat.indexEtape + 1]
-        savedState[CLE_ETAPE] = suivante.id.name
-        etatInterne.update { it.copy(etape = suivante.id) }
-        if (suivante.id == EtapeId.RECAPITULATIF) planifier()
+        val suivante = etat.parcours[etat.indexEtape + 1]
+        sauvegarderEtape(suivante)
+        etatInterne.update { it.copy(etape = EtapeId.deCle(suivante.id)) }
+        if (suivante.id == EtapeId.Recapitulatif.cle) planifier()
     }
 
     /** Revient à l'étape précédente (garde : première étape). */
     private fun reculer() {
         val etat = etatInterne.value
         if (etat.indexEtape <= 0) return
-        val precedente = ETAPES_WIZARD[etat.indexEtape - 1]
-        savedState[CLE_ETAPE] = precedente.id.name
-        etatInterne.update { it.copy(etape = precedente.id) }
+        val precedente = etat.parcours[etat.indexEtape - 1]
+        sauvegarderEtape(precedente)
+        etatInterne.update { it.copy(etape = EtapeId.deCle(precedente.id)) }
     }
 
     /**
@@ -256,10 +281,16 @@ constructor(
      * esquiverait les gardes de validité).
      */
     private fun allerEtape(id: EtapeId) {
-        val cible = ETAPES_WIZARD.indexOfFirst { it.id == id }
-        if (cible < 0 || cible >= etatInterne.value.indexEtape) return
-        savedState[CLE_ETAPE] = id.name
+        val etat = etatInterne.value
+        val cible = etat.parcours.indexOfFirst { it.id == id.cle }
+        if (cible < 0 || cible >= etat.indexEtape) return
+        sauvegarderEtape(etat.parcours[cible])
         etatInterne.update { it.copy(etape = id) }
+    }
+
+    /** Persiste la clé de l'étape de parcours devenue courante. */
+    private fun sauvegarderEtape(etape: EtapeParcours) {
+        savedState[CLE_ETAPE] = etape.id
     }
 
     // ------------------------------------------------- champs communs
@@ -309,6 +340,36 @@ constructor(
         reevaluer()
     }
 
+    // -------------------------------------------------- préréglages
+
+    /**
+     * Applique un préréglage déclaré (ADR 0155, B-8) : pose son jeu de
+     * valeurs en un geste — [EtatWizard.modifiesManuellement] reste
+     * inchangé (rien n'est figé, les champs dérivés restent
+     * resynchronisables). [versRecapitulatif] implémente le **mode
+     * rapide** (L5d, plan §9-Q9) : préréglage → récapitulatif.
+     */
+    private fun appliquerPreset(presetId: String, versRecapitulatif: Boolean) {
+        val etat = etatInterne.value
+        if (etat.templateId == null) return
+        val preset = etat.evaluation?.presets?.firstOrNull { it.id == presetId } ?: return
+        val valeurs = etat.valeursParametres + preset.valeurs
+        persisterValeurs(valeurs, etat.modifiesManuellement)
+        etatInterne.update {
+            if (versRecapitulatif) {
+                it.copy(valeursParametres = valeurs, etape = EtapeId.Recapitulatif)
+            } else {
+                it.copy(valeursParametres = valeurs)
+            }
+        }
+        if (versRecapitulatif) {
+            savedState[CLE_ETAPE] = EtapeId.Recapitulatif.cle
+            planifier()
+        } else {
+            reevaluer()
+        }
+    }
+
     // -------------------------------------------------- emplacement
 
     /** Résout le dossier choisi « pour cette création uniquement ». */
@@ -345,7 +406,7 @@ constructor(
 
     // ---------------------------------------------------- options
 
-    /** Inclut ou exclut un fichier optionnel (étape 4, section 12.3). */
+    /** Inclut ou exclut un fichier optionnel (étape Fichiers, section 12.3). */
     private fun basculerFichier(fichier: FichierOptionnel, inclus: Boolean) {
         val options =
             when (fichier) {
@@ -357,7 +418,7 @@ constructor(
         etatInterne.update { it.copy(options = options) }
     }
 
-    /** Choisit la licence à générer (étape 4). */
+    /** Choisit la licence à générer (étape Fichiers). */
     private fun choisirLicence(licence: License) {
         val options = etatInterne.value.options.copy(license = licence)
         persisterOptions(options)
@@ -365,8 +426,8 @@ constructor(
     }
 
     /**
-     * Choisit la langue du contenu généré (étape 4) — bornée aux
-     * langues connues du moteur, tout autre valeur est ignorée.
+     * Choisit la langue du contenu généré — bornée aux langues connues du
+     * moteur, tout autre valeur est ignorée.
      */
     private fun choisirLangueContenu(langue: String) {
         if (!TemplateOptions.langueValide(langue)) return
@@ -397,16 +458,63 @@ constructor(
             ?: TemplateOptions.LANGUE_DEFAUT,
     )
 
-    // ---------------------------------------------- plan / création
+    // ---------------------------------------------- aperçu / plan / création
+
+    /** Ouvre l'aperçu en direct (L5d) : le plan courant devient la base. */
+    private fun ouvrirApercu() {
+        cheminsPlanPrecedent =
+            etatInterne.value.plan?.fichiers?.map { it.chemin }?.toSet() ?: emptySet()
+        differentielArme = false
+        etatInterne.update {
+            it.copy(apercuOuvert = true, fichiersAjoutes = emptyList(), fichiersRetires = emptyList())
+        }
+        planifier()
+    }
+
+    /** Referme l'aperçu en direct (le plan du récapitulatif reste utile). */
+    private fun fermerApercu() {
+        etatInterne.update {
+            it.copy(apercuOuvert = false, fichiersAjoutes = emptyList(), fichiersRetires = emptyList())
+        }
+    }
 
     /**
-     * Planifie la création pour le récapitulatif (dry-run, section
-     * 12.3) : l'aperçu de l'arborescence reflète toutes les options.
+     * Planifie immédiatement (entrée récapitulatif, ouverture de l'aperçu,
+     * « Réessayer ») — annule toute planification différée en vol.
      */
     private fun planifier() {
-        // Le plan est un dry-run : il n'exige ni emplacement ni cible
-        // (PlanProjectCreationUseCase n'écrit rien) — seul le modèle
-        // compte ; la revalidation complète a lieu à la création.
+        planificationJob?.cancel()
+        lancerPlanification()
+    }
+
+    /**
+     * Replanifie **après** une réévaluation du formulaire (L5d) : seulement
+     * si l'aperçu est ouvert ou que le récapitulatif est affiché, avec un
+     * antirebond de 300 ms (ADR 0155 §6) — le plan est un rendu complet
+     * du projet, chaque frappe ne doit pas le déclencher.
+     */
+    private fun planifierDiffere() {
+        val etat = etatInterne.value
+        if (!etat.apercuOuvert && !etat.estRecapitulatif) return
+        planificationJob?.cancel()
+        planificationJob =
+            viewModelScope.launch {
+                delay(DELAI_ANTIREBOND_MS)
+                lancerPlanification()
+            }
+    }
+
+    /**
+     * Produit le plan (dry-run, section 12.4) : il n'exige ni emplacement
+     * ni cible ([PlanProjectCreationUseCase] n'écrit rien — ADR 0017, le
+     * plan ne dépend que du modèle, des valeurs et des options) ; seul le
+     * modèle compte, la revalidation complète a lieu à la création.
+     *
+     * À chaque succès, le **différentiel** ajouté/retiré est calculé entre
+     * deux plans consécutifs (L5d) — armé seulement quand l'aperçu est
+     * ouvert, sinon il ne signifierait rien.
+     */
+    private fun lancerPlanification() {
         val etat = etatInterne.value
         if (etat.templateId == null) {
             etatInterne.update { it.copy(plan = null, chargementPlan = false, erreurPlan = true) }
@@ -416,8 +524,23 @@ constructor(
         viewModelScope.launch {
             when (val resultat = planifierCreation(requeteDeLEtat())) {
                 is AppResult.Success -> {
+                    val chemins = resultat.value.fichiers.map { it.chemin }.toSet()
+                    val (ajoutes, retires) =
+                        if (differentielArme) {
+                            (chemins - cheminsPlanPrecedent).sorted() to (cheminsPlanPrecedent - chemins).sorted()
+                        } else {
+                            emptyList<String>() to emptyList()
+                        }
+                    differentielArme = true
+                    cheminsPlanPrecedent = chemins
                     etatInterne.update {
-                        it.copy(plan = resultat.value, chargementPlan = false, erreurPlan = false)
+                        it.copy(
+                            plan = resultat.value,
+                            chargementPlan = false,
+                            erreurPlan = false,
+                            fichiersAjoutes = ajoutes,
+                            fichiersRetires = retires,
+                        )
                     }
                 }
 
@@ -436,15 +559,12 @@ constructor(
      * collecté ici — chaque événement alimente [EtatCreation.EnCours],
      * l'événement terminal tranche succès ou échec typé.
      *
-     * V0.31.5 — **pré-vol** : la vérification de l'étape Informations
+     * **Pré-vol** (v0.31.5) : la vérification de l'étape Identité
      * (délai 400 ms) peut être obsolète au moment de l'appui sur
      * « Créer » (résidu d'une tentative échouée, dossier déposé
      * entre-temps par un gestionnaire de fichiers ou un nuage) : la
      * cible est re-vérifiée juste avant d'écrire. Un échec de pré-vol
-     * s'affiche honnêtement SANS lancer une création condamnée —
-     * retour d'appareil réel : « un dossier porte déjà ce nom, toutes
-     * mes tentatives sont vaines », l'utilisateur restait bouclé sur
-     * « Réessayer » avec la même requête vouée à l'échec.
+     * s'affiche honnêtement SANS lancer une création condamnée.
      */
     private fun creer() {
         val etat = etatInterne.value
@@ -563,6 +683,7 @@ constructor(
         viewModelScope.launch {
             when (val resultat = planifierCreation(requeteDeLEtat(renommages = candidats))) {
                 is AppResult.Success -> {
+                    cheminsPlanPrecedent = resultat.value.fichiers.map { it.chemin }.toSet()
                     etatInterne.update {
                         it.copy(plan = resultat.value, chargementPlan = false, erreurPlan = false)
                     }
@@ -586,6 +707,7 @@ constructor(
     private suspend fun replanifierApresEchecRenommage() {
         when (val retour = planifierCreation(requeteDeLEtat())) {
             is AppResult.Success -> {
+                cheminsPlanPrecedent = retour.value.fichiers.map { it.chemin }.toSet()
                 etatInterne.update {
                     it.copy(plan = retour.value, chargementPlan = false, erreurPlan = true)
                 }
@@ -636,7 +758,7 @@ constructor(
         viewModelScope.launch {
             val ancienOverride = etatInterne.value.emplacementOverride
             val modeleGarde = etatInterne.value.templateId.takeIf { garderModele }
-            savedState[CLE_ETAPE] = EtapeId.MODELE.name
+            savedState[CLE_ETAPE] = EtapeId.Modele.cle
             savedState[CLE_TEMPLATE] = modeleGarde?.value
             savedState[CLE_NOM] = ""
             savedState[CLE_DESCRIPTION] = ""
@@ -650,7 +772,8 @@ constructor(
             savedState[CLE_OVERRIDE_LIBELLE] = null
             etatInterne.update {
                 it.copy(
-                    etape = EtapeId.MODELE,
+                    etape = EtapeId.Modele,
+                    parcours = emptyList(),
                     templateId = modeleGarde,
                     evaluation = null,
                     nomProjet = "",
@@ -666,25 +789,41 @@ constructor(
                     plan = null,
                     chargementPlan = false,
                     erreurPlan = false,
+                    apercuOuvert = false,
+                    fichiersAjoutes = emptyList(),
+                    fichiersRetires = emptyList(),
                     etatCreation = EtatCreation.Inactif,
                 )
             }
+            differentielArme = false
+            cheminsPlanPrecedent = emptySet()
             relacherEmplacement(ancienOverride)
             reevaluer()
             replanifierVerification()
         }
     }
 
-    /** Demande complète adressée au domaine (sections 12.3 et 12.4). */
+    /**
+     * Demande complète adressée au domaine (sections 12.3 et 12.4).
+     *
+     * ADR 0155 §4 : seuls les paramètres des **étapes effectives** sont
+     * transmis — les valeurs saisies sur une étape disparue restent dans
+     * l'état du wizard (elles reviennent si l'étape réapparaît) mais
+     * retombent sur leur défaut à la revalidation du domaine.
+     */
     private fun requeteDeLEtat(renommages: Map<String, String>? = null): CreateProjectRequest {
         val etat = etatInterne.value
+        val idsParcours = etat.parcours.flatMap { it.idsParametres }.toSet()
         return CreateProjectRequest(
             templateId = requireNotNull(etat.templateId) { "Un modèle est requis pour planifier." },
             name = etat.nomProjet.trim(),
             description = etat.description.trim(),
-            parentLocation = requireNotNull(etat.emplacement) { "Un emplacement parent est requis." },
-            parameterValues = etat.valeursParametres,
-            manuallySetParameters = etat.modifiesManuellement,
+            // Ignoré par le dry-run (ADR 0017 : le plan ne dépend que du
+            // modèle, des valeurs et des options) — l'aperçu peut donc
+            // planifier avant qu'un emplacement soit résolu.
+            parentLocation = etat.emplacement ?: EMPLACEMENT_APERCU,
+            parameterValues = etat.valeursParametres.filterKeys { it in idsParcours },
+            manuallySetParameters = etat.modifiesManuellement.filter { it in idsParcours }.toSet(),
             cheminsRenommes = renommages ?: etat.renommages,
             options = etat.options,
         )
@@ -699,12 +838,18 @@ constructor(
 
     // ------------------------------------------------ évaluation moteur
 
-    /** Réévalue le formulaire du modèle sélectionné. */
+    /**
+     * Réévalue le formulaire du modèle sélectionné, puis recalcule le
+     * **parcours effectif** (ADR 0155 §3) : une étape de modèle dont la
+     * condition cesse d'être vraie disparaît — si c'était l'étape
+     * courante, l'utilisateur est ramené à la dernière étape effective
+     * (jamais sauté en avant), ses saisies conservées.
+     */
     private fun reevaluer() {
         val etat = etatInterne.value
         val id = etat.templateId
         if (id == null) {
-            etatInterne.update { it.copy(evaluation = null) }
+            etatInterne.update { it.copy(evaluation = null, parcours = emptyList()) }
             return
         }
         viewModelScope.launch {
@@ -719,15 +864,52 @@ constructor(
                     )
             ) {
                 is AppResult.Success -> {
-                    etatInterne.update { it.copy(evaluation = resultat.value) }
+                    etatInterne.update { courant -> majParcours(courant, resultat.value) }
+                    planifierDiffere()
                 }
 
                 is AppResult.Failure -> {
                     journal.w(TAG) { "évaluation impossible du modèle ${id.value}" }
-                    etatInterne.update { it.copy(evaluation = null) }
+                    etatInterne.update { it.copy(evaluation = null, parcours = emptyList()) }
                 }
             }
         }
+    }
+
+    /**
+     * Intègre une évaluation à l'état : parcours recalculé par le domaine,
+     * étape courante ramenée en arrière si elle a disparu (ADR 0155 §4 —
+     * l'index **ancien** sert de borne : jamais de saut en avant vers une
+     * étape jamais visitée).
+     */
+    private fun majParcours(
+        courant: EtatWizard,
+        evaluation: jo.codeide.core.model.TemplateFormEvaluation,
+    ): EtatWizard {
+        val nouveauParcours = calculeParcours(evaluation).etapes
+        val existait = courant.parcours.indexOfFirst { it.id == courant.etape.cle }
+        val existeEncore = nouveauParcours.any { it.id == courant.etape.cle }
+        if (existeEncore || nouveauParcours.isEmpty()) {
+            return courant.copy(evaluation = evaluation, parcours = nouveauParcours)
+        }
+        // ADR 0155 §4 : l'étape qui disparaît ramène à la dernière étape
+        // effective **précédente** — jamais un saut en avant vers une étape
+        // jamais visitée. Étape restaurée inconnue (existait < 0) : borne à
+        // l'index courant du parcours précédent, coercé sur la liste.
+        val index =
+            if (existait > 0) {
+                existait - 1
+            } else {
+                courant.indexEtape.coerceIn(0, nouveauParcours.lastIndex)
+            }
+        val cible = nouveauParcours[index.coerceIn(0, nouveauParcours.lastIndex)]
+        savedState[CLE_ETAPE] = cible.id
+        journal.i(TAG) { "étape « ${courant.etape.cle} » disparue du parcours — retour à « ${cible.id} »" }
+        return courant.copy(
+            evaluation = evaluation,
+            parcours = nouveauParcours,
+            etape = EtapeId.deCle(cible.id),
+        )
     }
 
     // ------------------------------------------- vérification cible
@@ -764,8 +946,8 @@ constructor(
         val etape =
             savedState
                 .get<String>(CLE_ETAPE)
-                ?.let { nom -> EtapeId.entries.firstOrNull { it.name == nom } }
-                ?: EtapeId.MODELE
+                ?.let(EtapeId::deCle)
+                ?: EtapeId.Modele
         val template = savedState.get<String>(CLE_TEMPLATE)?.let(::TemplateId)
         val nom = savedState.get<String>(CLE_NOM) ?: ""
         val description = savedState.get<String>(CLE_DESCRIPTION) ?: ""
@@ -840,12 +1022,30 @@ constructor(
         /** Délai de la vérification asynchrone de cible (section 12.3). */
         const val DELAI_VERIFICATION_MS = 400L
 
+        /** Antirebond de l'aperçu en direct (ADR 0155 §6 — ~300 ms). */
+        const val DELAI_ANTIREBOND_MS = 300L
+
         /** Détails de l'échec de pré-vol collision (v0.31.5) — lisible
          * dans les détails copiables de l'écran d'échec. */
         const val PRE_VOL_COLLISION = "pré-vol : un enfant du dossier parent porte déjà ce nom"
 
         /** Dossier des métadonnées du projet — jamais renommable (ADR 0077). */
         const val DOSSIER_METADATA = ".codeide"
+
+        /**
+         * Emplacement factice de l'aperçu : le dry-run ignore l'emplacement
+         * parent (ADR 0017 — le plan ne dépend que du modèle, des valeurs
+         * et des options), la planification peut donc précéder la
+         * résolution du dossier de travail. Les valeurs factices sont
+         * valides pour le contrat SAF mais jamais utilisées : le plan
+         * n'écrit rien.
+         */
+        val EMPLACEMENT_APERCU =
+            StorageLocation(
+                grantUri = "content://apercu/tree/plan",
+                documentUri = "content://apercu/document/plan",
+                displayPath = "aperçu",
+            )
 
         const val CLE_ETAPE = "wizard.etape"
         const val CLE_TEMPLATE = "wizard.template"
