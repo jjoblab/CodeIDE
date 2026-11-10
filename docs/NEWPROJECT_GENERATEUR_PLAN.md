@@ -267,10 +267,18 @@ preuve (règle 9, §6 du prompt : aucun gonflement gratuit).
 | **L2 — Outil et matrice** | 5 commandes (0157), lint, matrice dérivée, script refondu, doc outil à jour | tests générateur + propriété pairwise ; `verify-templates.sh` vert (outillage requis, sinon signalé) |
 | **L3 — Modèles hors Android** | spring-boot (langage/build/JDK/profils + câblage JPA/Security/Actuator/Validation), kotlin-jvm/java (groupes, i18n de choix), kmp (i18n), gradle-plugin (étapes, i18n) ; mutualisation 0156 ; templateVersion ++ | lint + matrice `paires` par modèle ; build réel au minimum pairwise |
 | **L4 — Modèles Android** | android-app (câblage 12-16, targetSdk 34-36, readme exact), android-library (appName dérivé, orphelin soldé), icône/thème/backup/localisation ; compileSdk verrouillé (règle 13) | idem L3 + `AlignementCatalogueTemplatesTest` |
-| **L5 — Écrans** | L5a socle parcours dynamique (ADR 0155, état), L5b étapes communes (IDENTITE/FICHIERS adaptés/RECAPITULATIF fidèle), L5c étapes par famille + états D/AV/ERREUR, L5d aperçu en direct + tablette (+ mode rapide) | 37 tests existants verts (renommages mécaniques tracés) + nouveaux ; fr/en parité ; checkUiTokens non remonté ; recette `docs/TESTS_MANUELS.md` ; captures |
+| **L5 — Écrans** (livré, v0.213.0) | L5a socle parcours dynamique (ADR 0155, état), L5b étapes communes (IDENTITE/FICHIERS adaptés/RECAPITULATIF fidèle), L5c étapes par famille + états D/AV/ERREUR, L5d aperçu en direct + tablette (+ mode rapide) | tests existants verts (renommages mécaniques tracés) + nouveaux (parcours, préréglages, `CalculeParcoursUseCaseTest`) ; fr/en parité ; checkUiTokens tenu (cliquet descendu) ; recette `docs/TESTS_MANUELS.md` W19-W31 |
 | **L6 — Finitions** | dette `checkUiTokens` du module réduite (cliquet `-Pui.baseline.ratchet`), doc module/ADR 0021 amended consigné, `docs/consommes/` | chaîne complète, CI verte, tag |
 
 ## 10. Écarts, risques et prochaine étape
+
+> **Statut 2026-11-11 (lot L5 livré, v0.213.0)** : les quatre sous-lots
+> L5a-L5d sont implémentés (parcours adaptatif consommé par l'état et les
+> écrans, étapes communes, rendu enrichi ADR 0154, aperçu en direct +
+> mode rapide). Reste au lot **L6** : dette `checkUiTokens` du module
+> (cliquet `-Pui.baseline.ratchet`), doc module/ADR 0021 amended consigné,
+> `docs/consommes/`. Captures d'écran du parcours : à produire à la
+> recette sur appareil (recette manuelle W19-W31).
 
 - **Écart d'environnement (signalé, sans contournement)** : cet environnement
   de travail n'a ni JDK 17, ni Maven, ni SDK Android, ni le clone frère

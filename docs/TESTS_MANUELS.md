@@ -182,6 +182,33 @@ dossier de travail configuré (O3).
 | W17 | Écran de succès → « Créer un autre projet » | Retour à l'étape 1 Modèle avec le modèle **précédent présélectionné**, saisies vidées ; **aucun outil de développement à l'écran** (le menu debug vit dans l'écran Diagnostic depuis l'étape 12) |
 | W18 | Rotation pendant l'écran de création (EnCours) puis après le succès | La liste d'événements est conservée ; l'état succès survit ; le retour système pendant EnCours annule (rollback) |
 
+## Wizard — parcours adaptatif, préréglages et aperçu en direct (lot L5 → v0.213.0)
+
+La machine à parcours (socle + étapes déclarées, disparition/réapparition,
+conservation des valeurs), les préréglages et le calcul d'étapes effectives
+sont couverts par les tests JVM (`WizardViewModelTest`,
+`CalculeParcoursUseCaseTest`) ; les procédures suivantes valident le
+parcours réel à l'écran par famille de modèles.
+
+Préambule commun : installation de l'app, assistant terminé (O6), un
+dossier de travail configuré (O3).
+
+| # | Procédure | Résultat attendu |
+|---|---|---|
+| W19 | « Nouveau projet » → choisir « Kotlin JVM » | Indicateur « Étape 1 sur 5 · Modèle » ; choisir le modèle → Suivant → « Étape 2 sur 5 · Type et build » (titre **résolu du manifeste**, plus « Configuration ») ; étapes suivantes : « Qualité et outillage », « Identité », « Fichiers », « Récapitulatif » |
+| W20 | Même parcours avec « Application Android » | Le parcours s'adapte au modèle (6 étapes) : « Plateforme », « Démarrage », « Bibliothèques »… — M suit le parcours effectif, jamais un compte fixe |
+| W21 | Étape de modèle : observer le rendu | Titres de groupe (ex. « Bibliothèques ») ; booléens groupés en **cartes** avec effet décrit ; zone « **Avancé** » repliée (Gradle Wrapper) qui s'ouvre au toucher (chevron) ; aucune valeur brute (« empty-activity », « 26 ») affichée |
+| W22 | `android-app` : choisir « Sans écran » puis aller à « Bibliothèques » | Navigation et Retrofit **grisés** avec leur raison (« un projet sans écran n'a pas de destination à afficher ») ; TalkBack annonce l'état ; les choix conservés ne sont pas générés |
+| W23 | Messages de règles | Un AVERTISSEMENT (ex. Retrofit sans Coroutines) s'affiche au bon endroit avec son symbole ; une règle ERREUR rend « Créer le projet » inactif au récapitulatif **sans** bloquer la navigation intermédiaire |
+| W24 | Étape Modèle → sélectionner un modèle à préréglages (`android-app`, `spring-boot`) | Cartes « **Démarrage rapide** » (nom + description du manifeste) ; toucher une carte : les valeurs se posent (chips et étapes suivantes) ; les champs dérivés restent resynchronisables (rien n'est figé) |
+| W25 | Mode rapide : bouton éclair d'une carte de préréglage | Le wizard applique le préréglage puis saute **directement au récapitulatif** ; « Créer le projet » reste gardé (nom/emplacement manquants → inactif) |
+| W26 | Étapes « Identité » et « Fichiers » | « Étape N sur M · Identité » (nouveau libellé) ; Fichiers n'affiche que les coches des groupes **déclarés** par le modèle ; récapitulatif : une ligne **par étape parcourue** avec « Modifier », résumés lisibles (jamais d'identifiants bruts) |
+| W27 | Disparition d'une étape (Kotlin JVM : passer « Sources uniquement » depuis l'étape « Qualité ») | L'étape « Qualité et outillage » disparaît ; l'écran **revient à l'étape précédente** (jamais un saut en avant) ; revenir à Gradle : l'étape réapparaît, les choix repris |
+| W28 | Aperçu en direct (téléphone) : bouton « Aperçu » depuis une étape à paramètres | Feuille basse (7/10 écran) : arborescence prévue ; changer un choix → recalcul avec antirebond ; puces « + N fichier(s) » / « − N fichier(s) » reflètent le différentiel ; retour système ou glissement referme l'aperçu (le parcours reprend) |
+| W29 | Aperçu en direct (tablette sw600dp) | **Deux colonnes** : parcours borné à gauche, aperçu à droite ; fermer l'aperçu : la colonne du parcours se recentre |
+| W30 | Mort du processus sur une étape de modèle déclarée | Le wizard rouvre sur la même étape (clé persistée) ; une clé devenue inconnue (migration) ramène à l'étape Modèle sans saut en avant |
+| W31 | Parité fr/en (langue système) | Tous les nouveaux libellés (Identité, Avancé, Démarrage rapide, Aperçu, sévérités, différentiel) existent en français **et** en anglais |
+
 ## Écran Diagnostic (étape 12)
 
 Préambule : entrée **Paramètres › Avancé › Diagnostic** ; build debug
