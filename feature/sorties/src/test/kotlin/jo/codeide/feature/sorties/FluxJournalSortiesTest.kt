@@ -23,7 +23,7 @@ import java.io.IOException
  * Tests de la source JOURNAL derrière le port du lecteur (lot L4) —
  * parité de la fusion de l'écran Journaux (ADR 0025) : l'historique est
  * lu UNE fois, les nouveautés se fusionnent SANS doublon, une lecture
- * en échec est honnête, le cliché suit la publication (un lecteur qui
+ * en échec est honnête, le cliche suit la publication (un lecteur qui
  * s'attache ne voit jamais une ligne deux fois).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,11 +42,7 @@ class FluxJournalSortiesTest {
         ) = Unit
     }
 
-    private fun entree(
-        message: String,
-        horodatageMs: Long,
-        niveau: LogLevel = LogLevel.INFO,
-    ) = LogEntry(
+    private fun entree(message: String, horodatageMs: Long, niveau: LogLevel = LogLevel.INFO) = LogEntry(
         timestampMillis = horodatageMs,
         sessionId = "session-1",
         level = niveau,
@@ -59,18 +55,18 @@ class FluxJournalSortiesTest {
         CollecteurSortiesJournal(depot, JournalSilencieux(), dispatchers)
 
     @Test
-    fun `le cliché charge l historique UNE fois et l adapte au modèle unique`() = runTest {
+    fun `le cliche charge l historique UNE fois et l adapte au modèle unique`() = runTest {
         val depot = InMemoryLogRepository()
         depot.add(entree("ancienne", 10L), entree("récente", 20L))
         val collecteur = collecteur(depot, TestDispatcherProvider(regleMain.dispatcher))
         advanceUntilIdle()
-        val cliché = collecteur.cliche()
-        assertEquals(2, cliché.size)
-        assertEquals("ancienne", cliché[0].message)
-        assertEquals(jo.codeide.core.domain.SourceSortie.JOURNAL, cliché[0].source)
-        assertEquals("Test", cliché[0].etiquette)
-        assertEquals("session-1", cliché[0].identiteSession)
-        // Re-attachement : le MÊME cliché (jamais de relecture en plus).
+        val cliche = collecteur.cliche()
+        assertEquals(2, cliche.size)
+        assertEquals("ancienne", cliche[0].message)
+        assertEquals(jo.codeide.core.domain.SourceSortie.JOURNAL, cliche[0].source)
+        assertEquals("Test", cliche[0].etiquette)
+        assertEquals("session-1", cliche[0].identiteSession)
+        // Re-attachement : le MÊME cliche (jamais de relecture en plus).
         assertEquals(2, collecteur.cliche().size)
     }
 
@@ -88,8 +84,8 @@ class FluxJournalSortiesTest {
         depot.add(entree("nouvelle", 30L))
         advanceUntilIdle()
         travail.cancel()
-        val publiées = lotsRecus.flatten()
-        assertEquals(listOf("nouvelle"), publiées.map { it.message })
+        val publiees = lotsRecus.flatten()
+        assertEquals(listOf("nouvelle"), publiees.map { it.message })
     }
 
     @Test
@@ -110,7 +106,7 @@ class FluxJournalSortiesTest {
     }
 
     @Test
-    fun `le flux porte la fenêtre du Journal et livre cliché puis lots`() = runTest {
+    fun `le flux porte la fenêtre du Journal et livre cliche puis lots`() = runTest {
         val depot = InMemoryLogRepository()
         depot.add(entree("historique", 5L))
         val flux = FluxSortiesJournal(collecteur(depot, TestDispatcherProvider(regleMain.dispatcher)))

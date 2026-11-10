@@ -3,8 +3,8 @@ package jo.codeide.feature.sorties
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.EtatExecutionGradle
-import jo.codeide.core.domain.LogRepository
 import jo.codeide.core.domain.LigneSortie
+import jo.codeide.core.domain.LogRepository
 import jo.codeide.core.domain.versLigneSortie
 import jo.codeide.core.model.LogEntry
 import kotlinx.coroutines.CoroutineScope
@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -78,7 +78,7 @@ constructor(
     /** La lecture d'historique — lancée une fois, la fusion l'attend. */
     private val chargement = portee.launch(dispatchers.io) { chargerHistorique() }
 
-    /** La fusion des entrées récentes (après l'historique, sans course). */
+    // La fusion des entrées récentes (après l'historique, sans course).
     init {
         portee.launch(dispatchers.io) {
             chargement.join()
@@ -149,9 +149,7 @@ constructor(
 @Singleton
 public class FluxSortiesJournal
 @Inject
-constructor(
-    private val collecteur: CollecteurSortiesJournal,
-) : FluxSorties {
+constructor(private val collecteur: CollecteurSortiesJournal) : FluxSorties {
     override fun capaciteFenetre(): Int = FENETRE_JOURNAL
 
     override fun lots(): Flow<List<LigneSortie>> = flow {

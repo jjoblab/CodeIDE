@@ -188,5 +188,4 @@ class PanneauEditorViewModelTest : BaseEditorViewModelTest() {
             sauvegarde.get<String>(ClesEditor.CLE_FILTRE_CONSOLE),
         )
     }
-
 }

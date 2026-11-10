@@ -9,15 +9,11 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commit
-import androidx.fragment.app.viewModels
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textview.MaterialTextView
 import dagger.hilt.android.AndroidEntryPoint
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import javax.inject.Inject
 import jo.codeide.core.domain.EtatSessionJournal
 import jo.codeide.core.domain.FiltreSorties
 import jo.codeide.core.domain.LignesPile
@@ -31,6 +27,10 @@ import jo.codeide.feature.sorties.ControleurLecteurSorties
 import jo.codeide.feature.sorties.EtatSessionsLogcat
 import jo.codeide.feature.sorties.FamilleSorties
 import jo.codeide.feature.sorties.FragmentLecteurSorties
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import javax.inject.Inject
 
 /**
  * Onglet Logcat du panneau inférieur (mission « Exécuter » R3/R4, lot L4)
@@ -66,8 +66,9 @@ class PanneauSortiesLogcatFragment : Fragment() {
     @Inject
     lateinit var collecteur: CollecteurSortiesLogcat
 
-    /** ViewModel de l'espace (R4 : sauter au fichier source). */
-    private val viewModelEditeur: EditorViewModel by viewModels()
+    /** ViewModel de l'ESPACE (R4 : sauter au fichier source) — porté par
+     *  l'activité (patron du panneau : une seule source d'état). */
+    private val viewModelEditeur: EditorViewModel by activityViewModels()
 
     /** Le lecteur enfant (famille LOGCAT) — le même composant partout. */
     private var lecteur: FragmentLecteurSorties? = null

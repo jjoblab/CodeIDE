@@ -346,9 +346,7 @@ constructor(
 @Singleton
 public class FluxSortiesLogcat
 @Inject
-constructor(
-    private val collecteur: CollecteurSortiesLogcat,
-) : FluxSorties {
+constructor(private val collecteur: CollecteurSortiesLogcat) : FluxSorties {
     override fun capaciteFenetre(): Int = FENETRE_LOGCAT
 
     override fun lots(): Flow<List<LigneSortie>> = collecteur.selection.flatMapLatest { selection ->

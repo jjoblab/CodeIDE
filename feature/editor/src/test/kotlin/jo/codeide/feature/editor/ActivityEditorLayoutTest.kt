@@ -415,40 +415,9 @@ class ActivityEditorLayoutTest {
 
     @Test
     fun `les fragments du panneau se gonflent avec leurs vues completes`() {
-        // Journal (lot L4) : chips de niveaux persistés + lien Diagnostic,
-        // puis le LECTEUR famille JOURNAL embarqué (ADR 0162 — le même
-        // composant partout, pas un second afficheur).
-        val journal = gonfler(R.layout.fragment_panneau_sorties_journal)
-        assertNotNull("chip Débogage du journal (lot L4)", journal.findViewById<View>(R.id.chip_journal_debug))
-        assertNotNull("chip Info du journal (lot L4)", journal.findViewById<View>(R.id.chip_journal_info))
-        assertNotNull("chip Avertissement du journal (lot L4)", journal.findViewById<View>(R.id.chip_journal_warn))
-        assertNotNull("chip Erreur du journal (lot L4)", journal.findViewById<View>(R.id.chip_journal_error))
-        assertNotNull(
-            "lien vers le journal complet (v0.32.4)",
-            journal.findViewById<View>(R.id.bouton_journal_complet),
-        )
-        assertNotNull(
-            "lecteur famille JOURNAL embarqué (lot L4)",
-            journal.findViewById<View>(R.id.conteneur_lecteur),
-        )
-
-        // Logcat (lot L4) : le chrome R3/R4 (puce de processus, filtre de
-        // niveau, IA, bandeaux honnêtes) autour du LECTEUR famille LOGCAT.
-        val logcat = gonfler(R.layout.fragment_panneau_sorties_logcat)
-        assertNotNull("puce de processus (R3, lot L4)", logcat.findViewById<View>(R.id.puce_processus))
-        assertNotNull("nom du processus (R3, lot L4)", logcat.findViewById<View>(R.id.nom_processus))
-        assertNotNull("filtre de niveau (R3, lot L4)", logcat.findViewById<View>(R.id.bouton_niveau))
-        assertNotNull("« Expliquer » IA (R3, lot L4)", logcat.findViewById<View>(R.id.bouton_expliquer_ia))
-        assertNotNull("bandeau de pertes (R3, lot L4)", logcat.findViewById<View>(R.id.bandeau_pertes))
-        assertNotNull("bandeau d'arrêt (R3, lot L4)", logcat.findViewById<View>(R.id.bandeau_arret))
-        assertNotNull(
-            "bandeau de session précédente (R3, lot L4)",
-            logcat.findViewById<View>(R.id.bandeau_precedente),
-        )
-        assertNotNull(
-            "lecteur famille LOGCAT embarqué (lot L4)",
-            logcat.findViewById<View>(R.id.conteneur_lecteur),
-        )
+        // Journal et Logcat (lot L4) : leurs vues complètes vivent dans
+        // PanneauxSortiesLayoutTest (le lecteur du Centre de sorties y est
+        // vérifié famille par famille).
 
         val console = gonfler(R.layout.fragment_panneau_console)
         // INC-22 (finale) : la ligne de statut ne porte plus que l'état

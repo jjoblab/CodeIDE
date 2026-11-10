@@ -441,10 +441,9 @@ public class FragmentLecteurSorties :
         /** Crée un lecteur pour la famille [famille] — l'argument du
          *  fragment porte la famille au ViewModel ([CLE_FAMILLE] via
          *  `SavedStateHandle`) et SURVIT à la rotation. */
-        public fun nouvelle(famille: FamilleSorties): FragmentLecteurSorties =
-            FragmentLecteurSorties().apply {
-                arguments = Bundle().apply { putString(CLE_FAMILLE, famille.name) }
-            }
+        public fun nouvelle(famille: FamilleSorties): FragmentLecteurSorties = FragmentLecteurSorties().apply {
+            arguments = Bundle().apply { putString(CLE_FAMILLE, famille.name) }
+        }
     }
 
     // ---- Façade publique (ControleurLecteurSorties) — les hôtes (écran

@@ -18,20 +18,18 @@
 
     <!-- ====== Logs tab ====== -->
 
-    <string name="diagnostics_recherche_indication">Search the logs</string>
     <string name="diagnostics_niveau_debug">Debug</string>
     <string name="diagnostics_niveau_info">Info</string>
     <string name="diagnostics_niveau_warn">Warning</string>
     <string name="diagnostics_niveau_error">Error</string>
     <string name="diagnostics_pointeur_exception">Exception</string>
-    <string name="diagnostics_suivi_direct_cd">Follow new entries live</string>
     <string name="diagnostics_usage_taille">Logs: %1$s</string>
     <plurals name="diagnostics_usage_fichiers">
         <item quantity="one">%1$d file</item>
         <item quantity="other">%1$d files</item>
     </plurals>
     <string name="diagnostics_usage_inconnu">Log disk usage: unknown</string>
-    <string name="diagnostics_journaux_vide">No log entries for these filters.\nUse the app, then come back.</string>
+    <string name="diagnostics_lecture_echec">Could not read the history: new entries keep arriving live.</string>
     <string name="diagnostics_verbosite_normale">Level: Normal</string>
     <string name="diagnostics_verbosite_detaillee">Level: Detailed</string>
     <string name="diagnostics_verbosite_titre">Logging level</string>

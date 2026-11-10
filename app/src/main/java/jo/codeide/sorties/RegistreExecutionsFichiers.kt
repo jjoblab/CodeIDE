@@ -60,7 +60,11 @@ import javax.inject.Singleton
  * @param journal les pans du registre sont journalisés (ADR 0080).
  * @param dispatchers répartition des fils (règle 5 : injectés).
  */
+// Exemption detekt ciblée (règle 16) : UNE fonction par opérande du port
+// [RegistreExecutions] plus les mécaniques fichiers (index atomique,
+// plafond) — l'implémentation est la traduction littérale du port.
 @Singleton
+@Suppress("TooManyFunctions")
 internal class RegistreExecutionsFichiers
 @Inject
 constructor(

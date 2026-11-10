@@ -1,10 +1,10 @@
 package jo.codeide.feature.editor
 
+import jo.codeide.feature.sorties.FabriqueFluxSorties
 import jo.codeide.feature.sorties.FamilleSorties
 import jo.codeide.feature.sorties.FluxSorties
 import jo.codeide.feature.sorties.FluxSortiesJournal
 import jo.codeide.feature.sorties.FluxSortiesLogcat
-import jo.codeide.feature.sorties.FabriqueFluxSorties
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,9 +36,7 @@ constructor(
 ) : FabriqueFluxSorties {
     override fun flux(famille: FamilleSorties): FluxSorties = when (famille) {
         FamilleSorties.GRADLE -> gradle
-
         FamilleSorties.LOGCAT -> logcat
-
         FamilleSorties.JOURNAL -> journal
     }
 }

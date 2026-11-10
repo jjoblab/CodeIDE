@@ -1,5 +1,6 @@
 package jo.codeide.core.domain
 
+import jo.codeide.core.model.FlattenedException
 import jo.codeide.core.model.LogEntry
 import jo.codeide.core.model.LogLevel
 
@@ -113,19 +114,48 @@ public fun LigneJournal.versLigneSortie(identiteSession: String): LigneSortie = 
 
 /**
  * Projette UNE entrée du journal applicatif (`LogEntry`, core:model)
- * vers le modèle unique — le nom du fil émetteur se perd sciemment : il
- * reste consultable sur l'entrée d'origine (journal complet de
- * `feature:diagnostics`), l'aplanissement ne duplique pas
- * l'information (règle 14 : jamais deux fois).
+ * vers le modèle unique. Le nom du fil émetteur se perd sciemment
+ * (consultable sur l'entrée d'origine exportée) ; l'EXCEPTION aplatie,
+ * elle, PART DANS LE MESSAGE (lot L4) : l'écran Diagnostics consomme le
+ * lecteur — il n'y a plus de « journal complet » qui ré-afficherait le
+ * détail à côté (pas de second afficheur, ADR 0162) ; le lecteur plie
+ * les messages multi-lignes (repli honnête) et la recherche y retrouve
+ * le texte de la pile. Bornes du détail : les mêmes que le modèle
+ * ([FlattenedException.DEFAULT_MAX_CAUSES] causes, 5 tranches par
+ * cause — l'affichage d'origine, règle 14 : aucune perte silencieuse).
  */
 public fun LogEntry.versLigneSortie(): LigneSortie = LigneSortie(
     source = SourceSortie.JOURNAL,
-    message = message,
+    message = exception?.let { exception -> message + "\n" + exception.aplatie() } ?: message,
     horodatageMs = timestampMillis,
     identiteSession = sessionId,
     niveau = level.versNiveauSortie(),
     etiquette = tag,
 )
+
+/** Le détail aplanie d'une exception (classe, message, tranches bornées,
+ *  causes enchaînées « Caused by: » — la mise en forme du détail
+ *  d'origine de `feature:diagnostics`, portée au domaine pur). */
+private fun FlattenedException.aplatie(): String = buildString {
+    append(className)
+    message?.let { detail -> append(": ").append(detail) }
+    frames.take(TRANCHES_PAR_CAUSE).forEach { tranche -> append("\n    ").append(tranche) }
+    var courante = cause
+    var profondeur = 1
+    while (courante != null && profondeur <= CAUSES_MAX) {
+        append("\nCaused by: ").append(courante.className)
+        courante.message?.let { detail -> append(": ").append(detail) }
+        courante.frames.take(TRANCHES_PAR_CAUSE).forEach { tranche -> append("\n    ").append(tranche) }
+        courante = courante.cause
+        profondeur++
+    }
+}
+
+/** Tranches affichées par cause (le détail d'origine). */
+private const val TRANCHES_PAR_CAUSE = 5
+
+/** Causes enchaînées affichées (le détail d'origine, 10 niveaux). */
+private const val CAUSES_MAX = 10
 
 /**
  * Projette UN téléchargement (port tooling v4, arbitrage Q12) vers SA

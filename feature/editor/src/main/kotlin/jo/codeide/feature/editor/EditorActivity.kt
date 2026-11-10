@@ -35,8 +35,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
-import jo.codeide.feature.sorties.CollecteurSortiesLogcat
-import jo.codeide.feature.sorties.PlantageLogcat
 import jo.codeeditor.document.Selection
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
@@ -81,6 +79,8 @@ import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
 import jo.codeide.feature.editor.di.PorteeFermetureSession
+import jo.codeide.feature.sorties.CollecteurSortiesLogcat
+import jo.codeide.feature.sorties.PlantageLogcat
 import jo.codeide.preview.xml.ClassificateurPreview
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -2907,11 +2907,14 @@ class EditorActivity :
         val compte =
             when (onglet) {
                 OngletPanneau.CONSOLE -> 0
+
                 OngletPanneau.PROBLEMES -> etatGradle.problemesTotal
+
                 // Journal et Logcat (lot L4) : AUCUN badge — ce sont les
                 // surfaces vivantes du lecteur (compteurs honnêtes dans
                 // l'onglet), pas des « comptes à traiter ».
                 OngletPanneau.JOURNAL -> 0
+
                 OngletPanneau.LOGCAT -> 0
             }
         liaison.badgePanneau.isVisible = onglet != OngletPanneau.CONSOLE && compte > 0

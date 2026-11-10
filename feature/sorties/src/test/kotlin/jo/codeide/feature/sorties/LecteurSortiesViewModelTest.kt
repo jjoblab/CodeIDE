@@ -63,13 +63,12 @@ class LecteurSortiesViewModelTest {
         override fun nowMillis(): Long = instant.get()
     }
 
-    private fun viewModel(flux: FluxDeTest = FluxDeTest()): LecteurSortiesViewModel =
-        LecteurSortiesViewModel(
-            FabriqueDeTest(flux),
-            TestDispatcherProvider(regleMain.dispatcher),
-            horloge,
-            androidx.lifecycle.SavedStateHandle(),
-        )
+    private fun viewModel(flux: FluxDeTest = FluxDeTest()): LecteurSortiesViewModel = LecteurSortiesViewModel(
+        FabriqueDeTest(flux),
+        TestDispatcherProvider(regleMain.dispatcher),
+        horloge,
+        androidx.lifecycle.SavedStateHandle(),
+    )
 
     private fun ligne(
         message: String,

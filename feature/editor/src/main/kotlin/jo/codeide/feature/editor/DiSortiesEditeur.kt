@@ -23,7 +23,5 @@ internal abstract class DiSortiesEditeur {
     /** La fabrique par famille (GRADLE, LOGCAT, JOURNAL — lot L4). */
     @Binds
     @Singleton
-    internal abstract fun fabriqueFluxSorties(
-        implementation: FabriqueFluxSortiesEditeur,
-    ): FabriqueFluxSorties
+    internal abstract fun fabriqueFluxSorties(implementation: FabriqueFluxSortiesEditeur): FabriqueFluxSorties
 }

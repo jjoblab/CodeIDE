@@ -6,13 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commit
-import androidx.fragment.app.viewModels
-import jo.codeide.core.model.LogLevel
-import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.core.domain.FiltreSorties
 import jo.codeide.core.domain.NiveauSortie
 import jo.codeide.core.domain.versNiveauSortie
+import jo.codeide.core.model.LogLevel
+import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.editor.databinding.FragmentPanneauSortiesJournalBinding
 import jo.codeide.feature.sorties.ControleurLecteurSorties
 import jo.codeide.feature.sorties.FamilleSorties
@@ -47,8 +47,9 @@ class PanneauSortiesJournalFragment : Fragment() {
                 "liaison du panneau Journal indisponible — vue détruite ?"
             }
 
-    /** ViewModel de l'espace (chips persistées + lien Diagnostic). */
-    private val viewModel: EditorViewModel by viewModels()
+    /** ViewModel de l'ESPACE (chips persistées + lien Diagnostic) — porté
+     *  par l'activité (patron d'origine : une seule source d'état). */
+    private val viewModel: EditorViewModel by activityViewModels()
 
     /** Le lecteur enfant (famille JOURNAL) — le même composant partout. */
     private var lecteur: FragmentLecteurSorties? = null

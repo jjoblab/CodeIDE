@@ -89,16 +89,16 @@
         <!-- « Expliquer » (mission IA, lot IA-5, spec E3) : les dernières
              rangées visibles partent en pré-remplissage du chat (fenêtre
              bornée — jamais auto-envoyées). -->
-        <ImageButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_expliquer_ia"
+            style="@style/Widget.CodeIDE.Button.Icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/ia_expliquer_ia_cd"
             android:minWidth="@dimen/touch_target_min"
             android:minHeight="@dimen/touch_target_min"
-            android:src="@drawable/ic_auto_awesome"
-            app:tint="?attr/colorPrimary" />
+            app:icon="@drawable/ic_auto_awesome"
+            app:iconTint="?attr/colorPrimary" />
     </LinearLayout>
 
     <!-- ===================== Bandeaux LOGCAT (règle 14) ================ -->

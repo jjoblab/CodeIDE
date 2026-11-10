@@ -63,6 +63,11 @@ public object ProjectionRegroupee {
      * @param replis indices de groupes REPLIÉS (ensemble vide = tout
      *        déplié).
      */
+    // Exemption detekt ciblée (règle 16) : la complexité est celle de la
+    // STRUCTURE elle-même (lignes hors groupes, en-têtes, bloc d'échec
+    // épinglé, replis) — une ramification par branche du contrat ADR 0078,
+    // jamais deux branches pour la même décision.
+    @Suppress("CyclomaticComplexMethod")
     public fun deriver(visibles: List<Int>, regroupement: EtatRegroupement, replis: Set<Int>): List<RangeeRegroupee> {
         val bloc = regroupement.blocEchec.toHashSet()
         val groupes = regroupement.groupes.withIndex().sortedBy { (_, groupe) -> groupe.debut }

@@ -70,13 +70,12 @@ class LecteurSortiesRegroupeTest {
 
     private val horloge = TimeProviderDeTest()
 
-    private fun viewModel(flux: FluxDeTest = FluxDeTest()) =
-        LecteurSortiesViewModel(
-            FabriqueDeTest(flux),
-            TestDispatcherProvider(regleMain.dispatcher),
-            horloge,
-            androidx.lifecycle.SavedStateHandle(),
-        )
+    private fun viewModel(flux: FluxDeTest = FluxDeTest()) = LecteurSortiesViewModel(
+        FabriqueDeTest(flux),
+        TestDispatcherProvider(regleMain.dispatcher),
+        horloge,
+        androidx.lifecycle.SavedStateHandle(),
+    )
 
     private fun ligne(message: String, tache: String? = null) = LigneSortie(
         source = SourceSortie.BUILD,

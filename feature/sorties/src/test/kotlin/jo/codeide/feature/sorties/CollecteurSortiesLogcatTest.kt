@@ -2,8 +2,8 @@ package jo.codeide.feature.sorties
 
 import jo.codeide.core.domain.ArchiveSessionsJournal
 import jo.codeide.core.domain.EtatSessionJournal
-import jo.codeide.core.domain.FinSessionJournal
 import jo.codeide.core.domain.FiltreSorties
+import jo.codeide.core.domain.FinSessionJournal
 import jo.codeide.core.domain.IdentiteSessionJournal
 import jo.codeide.core.domain.LigneJournal
 import jo.codeide.core.domain.LotJournal
@@ -73,13 +73,12 @@ class CollecteurSortiesLogcatTest {
         CollecteurSortiesLogcat(pont, archive, TestDispatcherProvider(regleMain.dispatcher))
 
     /** Le lecteur branché au flux logcat (famille par fabrique de test). */
-    private fun lecteur(flux: FluxSortiesLogcat): LecteurSortiesViewModel =
-        LecteurSortiesViewModel(
-            FabriqueDeTest(flux),
-            TestDispatcherProvider(regleMain.dispatcher),
-            horloge,
-            androidx.lifecycle.SavedStateHandle(),
-        )
+    private fun lecteur(flux: FluxSortiesLogcat): LecteurSortiesViewModel = LecteurSortiesViewModel(
+        FabriqueDeTest(flux),
+        TestDispatcherProvider(regleMain.dispatcher),
+        horloge,
+        androidx.lifecycle.SavedStateHandle(),
+    )
 
     /** La fabrique de test : UNE famille, LE flux du test. */
     private class FabriqueDeTest(private val flux: FluxSorties) : FabriqueFluxSorties {
@@ -111,13 +110,13 @@ class CollecteurSortiesLogcatTest {
         pont.pousser("com.exemple.app", 4321, listOf(ligne("onCreate"), ligne("onStart")))
         avancer()
 
-        // Le cliché suit la publication (un lecteur qui s'attache voit
+        // Le cliche suit la publication (un lecteur qui s'attache voit
         // l'existant), les lignes sont adaptées au modèle unique.
-        val cliché = collecteur.cliche(collecteur.selection.value)
-        assertEquals(listOf("onCreate", "onStart"), cliché.map { it.message })
-        assertTrue(cliché.all { it.source == SourceSortie.LOGCAT })
-        assertTrue(cliché.all { it.identiteSession == "com.exemple.app/4321" })
-        assertEquals("MainActivity", cliché[0].etiquette)
+        val cliche = collecteur.cliche(collecteur.selection.value)
+        assertEquals(listOf("onCreate", "onStart"), cliche.map { it.message })
+        assertTrue(cliche.all { it.source == SourceSortie.LOGCAT })
+        assertTrue(cliche.all { it.identiteSession == "com.exemple.app/4321" })
+        assertEquals("MainActivity", cliche[0].etiquette)
         assertEquals(2, collecteur.etatSessions.value.sessions[0].nombreLignes)
     }
 
@@ -348,7 +347,7 @@ class CollecteurSortiesLogcatTest {
     }
 
     @Test
-    fun `un changement de session incremente la generation — le lecteur repart du cliché`() = runTest {
+    fun `un changement de session incremente la generation — le lecteur repart du cliche`() = runTest {
         pont.ouvrir("com.exemple.app", 4321)
         pont.ouvrir("com.exemple.autre", 777)
         val collecteur = collecteur()
@@ -401,15 +400,15 @@ class CollecteurSortiesLogcatTest {
             tampons[id] = mutableListOf()
             etatSessions.value =
                 etatSessions.value.filter { it.id != id } +
-                    SessionJournal(
-                        id = id,
-                        identite = IdentiteSessionJournal(paquet, pid, paquet),
-                        etat = EtatSessionJournal.VIVANTE,
-                        fin = null,
-                        nombreLignes = 0,
-                        lignesPerdues = 0,
-                        sortiePrecedente = null,
-                    )
+                SessionJournal(
+                    id = id,
+                    identite = IdentiteSessionJournal(paquet, pid, paquet),
+                    etat = EtatSessionJournal.VIVANTE,
+                    fin = null,
+                    nombreLignes = 0,
+                    lignesPerdues = 0,
+                    sortiePrecedente = null,
+                )
             return id
         }
 

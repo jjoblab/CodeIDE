@@ -48,15 +48,15 @@ internal class StockageLignesExecutions(private val dossier: File) {
         if (lignes.isEmpty()) return
         val fichier = fichier(id)
         fichier.parentFile?.mkdirs()
+        // Exemption detekt ciblée (règle 16) : la panne d'écriture d'UN
+        // membre n'est pas propagée par DESIGN (consultation ADR 0161) —
+        // le lot suivant retentera, les lots précédents restent intacts
+        // (append seul, jamais de réécriture en vol). L'exception ne
+        // porte aucune information de plus que le diagnostic du journal
+        // applicatif, qui est émis par le registre appelant.
+        @Suppress("SwallowedException")
         try {
-            FileOutputStream(fichier, true).use { sortie ->
-                GZIPOutputStream(sortie).use { gzip ->
-                    lignes.forEach { ligne ->
-                        gzip.write(SerialisationExecutions.ligneVersJson(ligne).toString().toByteArray(Charsets.UTF_8))
-                        gzip.write(SEPARATEUR_LIGNE)
-                    }
-                }
-            }
+            ecrireMembre(fichier, lignes, ajouter = true)
         } catch (t: Throwable) {
             // Panne d'écriture : le lot suivant retentera, les lots
             // précédents restent intacts (append seul — jamais de
@@ -64,7 +64,26 @@ internal class StockageLignesExecutions(private val dossier: File) {
         }
     }
 
+    /** Écrit UNE passe de lignes (membre gzip de plus en append, ou
+     *  réécriture complète à la troncature — le seul appelant des
+     *  flux gzip de ce stockage). */
+    private fun ecrireMembre(fichier: File, lignes: List<LigneSortie>, ajouter: Boolean) {
+        FileOutputStream(fichier, ajouter).use { sortie ->
+            GZIPOutputStream(sortie).use { gzip ->
+                lignes.forEach { ligne ->
+                    gzip.write(SerialisationExecutions.ligneVersJson(ligne).toString().toByteArray(Charsets.UTF_8))
+                    gzip.write(SEPARATEUR_LIGNE)
+                }
+            }
+        }
+    }
+
     /** Relit TOUTES les lignes de l'exécution (ordre du flux). */
+    // Exemption detekt ciblée (règle 16) : le membre tronqué (mort du
+    // processus en pleine écriture) rend ce qu'il a décodé PAR DESIGN
+    // (lecture tolérante, ADR 0161 décision 6) — jamais d'exception vers
+    // l'appelant, c'est une consultation.
+    @Suppress("SwallowedException")
     internal fun lire(id: String): List<LigneSortie> {
         val fichier = fichier(id)
         if (!fichier.isFile) return emptyList()
@@ -81,9 +100,8 @@ internal class StockageLignesExecutions(private val dossier: File) {
                 }
             }
         } catch (t: Throwable) {
-            // Membre tronqué (mort du processus en pleine écriture) :
-            // ce qui a été décodé reste rendu — jamais d'exception
-            // (c'est une consultation, ADR 0161).
+            // Membre tronqué : ce qui a été décodé reste rendu — jamais
+            // d'exception (c'est une consultation, ADR 0161).
         }
         return lignes
     }
@@ -102,14 +120,7 @@ internal class StockageLignesExecutions(private val dossier: File) {
         val fichier = fichier(id)
         fichier.parentFile?.mkdirs()
         runCatching {
-            FileOutputStream(fichier, false).use { sortie ->
-                GZIPOutputStream(sortie).use { gzip ->
-                    conservees.forEach { ligne ->
-                        gzip.write(SerialisationExecutions.ligneVersJson(ligne).toString().toByteArray(Charsets.UTF_8))
-                        gzip.write(SEPARATEUR_LIGNE)
-                    }
-                }
-            }
+            ecrireMembre(fichier, conservees, ajouter = false)
         }
     }
 
