@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Étape 3 « Informations et emplacement » (section 12.3) : nom, description,
-  paramètres INFORMATION dynamiques, carte d'emplacement avec vérifications
+  Étape socle « Identité » (ADR 0155 §2) : nom, description,
+  emplacement, paramètres INFORMATION dynamiques, carte d'emplacement avec vérifications
   asynchrones (indicateur, collision, joignabilité).
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/defilement_informations"
+    android:id="@+id/defilement_identite"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true">
@@ -63,12 +63,11 @@
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/carte_emplacement"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_lg"
-            android:checkable="false"
-            app:cardCornerRadius="@dimen/corner_radius_medium"
-            app:cardElevation="0dp">
+            android:checkable="false">
 
             <LinearLayout
                 android:layout_width="match_parent"

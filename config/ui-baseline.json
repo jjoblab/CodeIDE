@@ -62,15 +62,6 @@
         "R6": 0,
         "R7": 0
     },
-    "feature/ai/src/main/res/layout/ligne_conversation.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 1,
-        "R6": 0,
-        "R7": 0
-    },
     "feature/ai/src/main/res/layout/ligne_fichier_revue.xml": {
         "R1": 1,
         "R2": 0,
@@ -160,24 +151,6 @@
         "R5": 0,
         "R6": 0,
         "R7": 0
-    },
-    "feature/newproject/src/main/res/layout/etape_informations.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 1
-    },
-    "feature/newproject/src/main/res/layout/etape_recapitulatif.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 5
     },
     "feature/newproject/src/main/res/layout/item_modele.xml": {
         "R1": 0,

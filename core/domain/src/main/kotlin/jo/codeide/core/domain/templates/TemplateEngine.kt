@@ -10,11 +10,13 @@ import jo.codeide.core.model.PlannedFile
 import jo.codeide.core.model.ProjectTemplate
 import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.SeveriteRegle
+import jo.codeide.core.model.TemplateEtapeEvaluee
 import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateFormEvaluation
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.TemplateParameterEvaluation
 import jo.codeide.core.model.TemplatePlan
+import jo.codeide.core.model.TemplatePresetResolu
 import jo.codeide.core.model.TemplateSummary
 import jo.codeide.core.model.codeTemplate
 import jo.codeide.core.model.getOrNull
@@ -53,7 +55,15 @@ internal data class EvaluationParametres(
     val variablesCalculees: Map<String, ExpressionValue>,
     val etats: Map<String, EtatParametre>,
     val messages: List<MessageRegle>,
+    val etapesEffectives: List<EtapeEffective> = emptyList(),
 )
+
+/**
+ * Étape de modèle effective calculée à la passe 10 (ADR 0155 §3) —
+ * identifiant brut et paramètres cités dans l'ordre déclaré ; le titre et
+ * l'icône sont résolus au retour public ([TemplateEtapeEvaluee]).
+ */
+internal data class EtapeEffective(val id: String, val parametres: List<String>, val defaut: Boolean)
 
 /**
  * Moteur de templates (étape 8 — section 11) : évaluation du formulaire,
@@ -157,7 +167,44 @@ constructor(private val assets: TemplateAssetsSource) {
             messages = evaluation.messages,
             isValid = evaluation.erreurs.isEmpty() &&
                 evaluation.messages.none { it.severite == SeveriteRegle.ERREUR },
+            etapesWizard =
+            evaluation.etapesEffectives.map { etape ->
+                TemplateEtapeEvaluee(
+                    id = etape.id,
+                    // Étape par défaut : titre applicatif (vide) — les
+                    // étapes déclarées résolvent leur titreKey (repli clé).
+                    titre = if (etape.defaut) "" else dictionnaire[charge.template.titreEtape(etape.id)] ?: etape.id,
+                    icone =
+                    charge.template.etapesWizard
+                        .firstOrNull { it.id == etape.id }
+                        ?.iconeKey
+                        ?.let { dictionnaire[it] }
+                        ?: "",
+                    parametres = etape.parametres,
+                    defaut = etape.defaut,
+                )
+            },
+            presets =
+            charge.template.presets.map { preset ->
+                TemplatePresetResolu(
+                    id = preset.id,
+                    nom = dictionnaire[preset.nomKey] ?: preset.nomKey,
+                    description = preset.descriptionKey?.let { dictionnaire[it] } ?: "",
+                    valeurs = preset.valeurs,
+                )
+            },
+            groupesFichiers =
+            charge.template.fichiers
+                .map { it.group }
+                .filter { it in GROUPES_OPTIONNELS }
+                .toSet(),
         )
+    }
+
+    /** Clé i18n du titre d'une étape déclarée : `etape.<id>.titre`. */
+    private fun ProjectTemplate.titreEtape(id: String): String {
+        val cle = etapesWizard.firstOrNull { it.id == id }?.titreKey
+        return cle ?: "etape.$id.titre"
     }
 
     /** Choix d'un paramètre `CHOICE` avec leurs textes résolus (ADR 0154 §1). */
@@ -674,6 +721,12 @@ constructor(private val assets: TemplateAssetsSource) {
             annoncer(regle)
         }
 
+        // Passe 10 : étapes de wizard EFFECTIVES (ADR 0155 §1/§3) — une
+        // étape déclarée dont `when` est faux n'existe pas (jamais d'écran
+        // vide) ; les paramètres CONFIGURATION non rangés rejoignent une
+        // étape par défaut unique « Configuration » (jamais déclarée).
+        val etapesEffectives = etapesWizardEffectives(template, contexteFinal)
+
         return EvaluationParametres(
             visibilites,
             effectives,
@@ -681,7 +734,44 @@ constructor(private val assets: TemplateAssetsSource) {
             calculees,
             etats,
             messages.keys.toList(),
+            etapesEffectives,
         )
+    }
+
+    /**
+     * Calcule la liste des étapes de modèle effectives (ADR 0155 §1/§3) :
+     * étapes déclarées dont `when` est vrai (dans l'ordre du manifeste),
+     * puis l'étape par défaut « Configuration » si des paramètres
+     * `CONFIGURATION` ne sont rangés dans aucune étape.
+     */
+    private fun etapesWizardEffectives(
+        template: ProjectTemplate,
+        contexteFinal: ContexteExpressions,
+    ): List<EtapeEffective> {
+        val declarees =
+            template.etapesWizard.mapNotNull { etape ->
+                val condition = etape.quand
+                val presente =
+                    condition == null ||
+                        evaluerCondition(condition, contexteFinal, "when de l'étape « ${etape.id} »")
+                if (presente) EtapeEffective(etape.id, etape.parametres, defaut = false) else null
+            }
+        // Rangement incomplet : les paramètres CONFIGURATION non cités par
+        // AUCUNE étape déclarée (manifeste sans bloc wizard ou rangement
+        // partiel) rejoignent l'étape par défaut — un paramètre cité dans
+        // une étape aujourd'hui filtrée par son `when` n'est PAS déplacé
+        // (l'étape réapparaîtra si la condition redevient vraie).
+        val ranges = template.etapesWizard.flatMap { it.parametres }.toSet()
+        val orphelins =
+            template.parameters
+                .filter { it.section == jo.codeide.core.model.TemplateSection.CONFIGURATION && it.id !in ranges }
+                .map { it.id }
+        return if (orphelins.isEmpty()) {
+            declarees
+        } else {
+            declarees +
+                EtapeEffective(ID_ETAPE_DEFAUT, orphelins, defaut = true)
+        }
     }
 
     /** Évalue une condition déclarative en exigeant un booléen. */
@@ -876,6 +966,17 @@ constructor(private val assets: TemplateAssetsSource) {
         private const val CHEMIN_LICENCE = "LICENSE"
         private const val CHEMIN_METADATA = ".codeide/project.json"
         private const val EXTENSION_LICENCE = ".txt"
+
+        /** Identifiant de l'étape par défaut « Configuration » (ADR 0155 §1). */
+        internal const val ID_ETAPE_DEFAUT = "configuration"
+
+        /** Groupes de fichiers optionnels pilotés par l'étape Fichiers. */
+        private val GROUPES_OPTIONNELS =
+            setOf(
+                TemplateFileGroup.README,
+                TemplateFileGroup.GITIGNORE,
+                TemplateFileGroup.EDITORCONFIG,
+            )
 
         private const val NOM_VARIABLE_NOM = "projectName"
         private const val NOM_VARIABLE_DESCRIPTION = "description"

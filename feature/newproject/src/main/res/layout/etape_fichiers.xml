@@ -27,32 +27,41 @@
             android:text="@string/wizard_fichiers_soustitre"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/interrupteur_readme"
+        <!-- Fichiers optionnels : seulement les groupes réellement
+             déclarés par le modèle (ADR 0155 §2 — étape adaptée). -->
+        <LinearLayout
+            android:id="@+id/section_fichiers_optionnels"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_md"
-            android:minHeight="@dimen/touch_target_min"
-            android:text="@string/wizard_fichiers_readme"
-            app:helperText="@string/wizard_fichiers_readme_aide" />
+            android:orientation="vertical">
 
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/interrupteur_gitignore"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:minHeight="@dimen/touch_target_min"
-            android:text="@string/wizard_fichiers_gitignore"
-            app:helperText="@string/wizard_fichiers_gitignore_aide" />
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/interrupteur_readme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/wizard_fichiers_readme"
+                app:helperText="@string/wizard_fichiers_readme_aide" />
 
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/interrupteur_editorconfig"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            android:minHeight="@dimen/touch_target_min"
-            android:text="@string/wizard_fichiers_editorconfig"
-            app:helperText="@string/wizard_fichiers_editorconfig_aide" />
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/interrupteur_gitignore"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/wizard_fichiers_gitignore"
+                app:helperText="@string/wizard_fichiers_gitignore_aide" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/interrupteur_editorconfig"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:minHeight="@dimen/touch_target_min"
+                android:text="@string/wizard_fichiers_editorconfig"
+                app:helperText="@string/wizard_fichiers_editorconfig_aide" />
+        </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/champ_licence"

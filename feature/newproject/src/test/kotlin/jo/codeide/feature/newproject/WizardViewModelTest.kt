@@ -7,6 +7,7 @@ import jo.codeide.core.domain.ReleaseCreationLocationUseCase
 import jo.codeide.core.domain.ResolveCreationLocationUseCase
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.domain.VerifyCreationTargetUseCase
+import jo.codeide.core.domain.templates.CalculeParcoursUseCase
 import jo.codeide.core.domain.templates.CreateProjectUseCase
 import jo.codeide.core.domain.templates.EvaluateTemplateFormUseCase
 import jo.codeide.core.domain.templates.EvaluerNomProjetUseCase
@@ -23,12 +24,14 @@ import jo.codeide.core.model.License
 import jo.codeide.core.model.ProjectTemplate
 import jo.codeide.core.model.RaisonValidation
 import jo.codeide.core.model.StorageLocation
+import jo.codeide.core.model.TemplateEtapeWizard
 import jo.codeide.core.model.TemplateFile
 import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.TemplateParameter
 import jo.codeide.core.model.TemplateParameterType
+import jo.codeide.core.model.TemplatePreset
 import jo.codeide.core.model.TemplateSection
 import jo.codeide.core.testing.FakeAppLogger
 import jo.codeide.core.testing.FakeArborescencesSaf
@@ -175,6 +178,29 @@ class WizardViewModelTest {
                         ),
                     ),
                     computedVariables = emptyList(),
+                    etapesWizard =
+                    listOf(
+                        TemplateEtapeWizard(
+                            id = "type-build",
+                            titreKey = "etape.type-build.titre",
+                            parametres = listOf("projectType", "buildSystem"),
+                        ),
+                        TemplateEtapeWizard(
+                            id = "qualite",
+                            titreKey = "etape.qualite.titre",
+                            quand = "buildSystem == \"gradle-kts\"",
+                            parametres = listOf("jdkVersion", "includeWrapper"),
+                        ),
+                    ),
+                    presets =
+                    listOf(
+                        TemplatePreset(
+                            id = "rapide",
+                            nomKey = "preset.rapide.nom",
+                            descriptionKey = "preset.rapide.description",
+                            valeurs = mapOf("projectType" to "library", "jdkVersion" to "17"),
+                        ),
+                    ),
                     fichiers =
                     listOf(
                         TemplateFile(
@@ -202,6 +228,10 @@ class WizardViewModelTest {
                             "param.includeWrapper.label" to "Gradle wrapper",
                             "param.packageName.label" to "Package name",
                             "param.groupId.label" to "Group ID",
+                            "etape.type-build.titre" to "Type et build",
+                            "etape.qualite.titre" to "Qualité",
+                            "preset.rapide.nom" to "Rapide",
+                            "preset.rapide.description" to "Bibliothèque en JDK 17",
                         ),
                 ),
             )
@@ -225,6 +255,7 @@ class WizardViewModelTest {
     ): WizardViewModel = WizardViewModel(
         listerModeles = ListTemplatesUseCase(setOf(fournisseur), TemplateEngine(sourceAssets)),
         evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
+        calculeParcours = CalculeParcoursUseCase(),
         evaluerNom = EvaluerNomProjetUseCase(),
         resoudreEmplacement =
         ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
@@ -251,7 +282,7 @@ class WizardViewModelTest {
         advanceUntilIdle()
 
         val etat = viewModel.etat.value
-        assertEquals(EtapeId.MODELE, etat.etape)
+        assertEquals(EtapeId.Modele, etat.etape)
         assertFalse(etat.etapeValide)
         assertNull(etat.templateId)
         assertFalse(etat.chargementCatalogue)
@@ -270,7 +301,8 @@ class WizardViewModelTest {
         viewModel.action(ActionWizard.Suivant)
         advanceUntilIdle()
 
-        assertEquals(EtapeId.CONFIGURATION, viewModel.etat.value.etape)
+        // Première étape de modèle DÉCLARÉE (ADR 0155) : « Type et build ».
+        assertEquals(EtapeId.EtapeModele("type-build"), viewModel.etat.value.etape)
     }
 
     @Test
@@ -280,7 +312,7 @@ class WizardViewModelTest {
         viewModel.action(ActionWizard.Suivant)
         advanceUntilIdle()
 
-        assertEquals(EtapeId.MODELE, viewModel.etat.value.etape)
+        assertEquals(EtapeId.Modele, viewModel.etat.value.etape)
     }
 
     @Test
@@ -293,7 +325,7 @@ class WizardViewModelTest {
         viewModel.action(ActionWizard.Precedent)
         advanceUntilIdle()
 
-        assertEquals(EtapeId.MODELE, viewModel.etat.value.etape)
+        assertEquals(EtapeId.Modele, viewModel.etat.value.etape)
         // Modèle présélectionné au retour arrière (section 12.3).
         assertEquals(TemplateId("kotlin-jvm"), viewModel.etat.value.templateId)
     }
@@ -304,7 +336,133 @@ class WizardViewModelTest {
         viewModel.action(ActionWizard.Precedent)
         advanceUntilIdle()
 
-        assertEquals(EtapeId.MODELE, viewModel.etat.value.etape)
+        assertEquals(EtapeId.Modele, viewModel.etat.value.etape)
+    }
+
+    // --------------------------------------- parcours adaptatif (L5a)
+
+    @Test
+    fun `le parcours suit le socle et les étapes déclarées`() = runTest {
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), viewModel.etat.value.parcours.map { it.id })
+
+        viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
+
+        val parcours = viewModel.etat.value.parcours
+        assertEquals(
+            listOf("modele", "type-build", "qualite", "identite", "fichiers", "recapitulatif"),
+            parcours.map { it.id },
+        )
+        // Socle sans paramètres, étapes de modèle portant leurs évaluations.
+        assertTrue(parcours.first().socle)
+        assertEquals(
+            listOf("projectType", "buildSystem"),
+            parcours.first { it.id == "type-build" }.idsParametres,
+        )
+        assertEquals("Type et build", parcours.first { it.id == "type-build" }.titre)
+        // L'identité socle porte les paramètres INFORMATION.
+        assertEquals(
+            listOf("packageName", "groupId"),
+            parcours.first { it.id == "identite" }.idsParametres,
+        )
+        // Indicateur : « Étape N sur M » lit M dans le parcours.
+        assertEquals(6, viewModel.etat.value.parcours.size)
+        assertEquals(0, viewModel.etat.value.indexEtape)
+    }
+
+    @Test
+    fun `une étape déclarée dont la condition devient fausse disparaît et ramène en arrière`() = runTest {
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.Suivant) // type-build
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.Suivant) // qualite
+        advanceUntilIdle()
+        assertEquals(EtapeId.EtapeModele("qualite"), viewModel.etat.value.etape)
+
+        // Une saisie conservée, puis l'étape disparaît (buildSystem ≠ gradle).
+        viewModel.action(ActionWizard.ChoisirValeur("jdkVersion", "17"))
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirValeur("buildSystem", "none"))
+        advanceUntilIdle()
+
+        // L'étape courante a disparu : retour à la dernière effective.
+        assertEquals(EtapeId.EtapeModele("type-build"), viewModel.etat.value.etape)
+        assertFalse(viewModel.etat.value.parcours.any { it.id == "qualite" })
+        // La saisie reste dans l'état (elle revient si l'étape réapparaît).
+        assertEquals("17", viewModel.etat.value.valeursParametres["jdkVersion"])
+    }
+
+    @Test
+    fun `une étape réapparue reprend ses valeurs et se revalide`() = runTest {
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirValeur("jdkVersion", "17"))
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirValeur("buildSystem", "none"))
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirValeur("buildSystem", "gradle-kts"))
+        advanceUntilIdle()
+
+        assertTrue(viewModel.etat.value.parcours.any { it.id == "qualite" })
+        assertEquals("17", viewModel.etat.value.valeursParametres["jdkVersion"])
+    }
+
+    @Test
+    fun `une étape restaurée inconnue est ramenée au modèle sans saut en avant`() = runTest {
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
+        val relance = relancerDepuisSauvegardeAvecEtape("etape.inconnue")
+        advanceUntilIdle()
+
+        assertEquals(EtapeId.Modele, relance.etat.value.etape)
+    }
+
+    // --------------------------------------- préréglages (L5a, B-8)
+
+    @Test
+    fun `AppliquerPreset pose un jeu de valeurs sans figer les dérivés`() = runTest {
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.etat.value.evaluation!!.presets.size)
+        viewModel.action(ActionWizard.AppliquerPreset("rapide"))
+        advanceUntilIdle()
+
+        assertEquals("library", viewModel.etat.value.valeursParametres["projectType"])
+        assertEquals("17", viewModel.etat.value.valeursParametres["jdkVersion"])
+        // Rien n'est figé : modifiesManuellement reste vide (ADR 0155).
+        assertTrue(viewModel.etat.value.modifiesManuellement.isEmpty())
+    }
+
+    @Test
+    fun `ModeRapide applique le préréglage et saute au récapitulatif`() = runTest {
+        preparerEmplacementEtModele()
+
+        viewModel.action(ActionWizard.ModeRapide("rapide"))
+        advanceUntilIdle()
+
+        assertEquals(EtapeId.Recapitulatif, viewModel.etat.value.etape)
+        assertEquals("library", viewModel.etat.value.valeursParametres["projectType"])
+        assertNotNull(viewModel.etat.value.plan)
+    }
+
+    @Test
+    fun `AppliquerPreset d un préréglage inconnu est ignoré`() = runTest {
+        advanceUntilIdle()
+        viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
+        val avant = viewModel.etat.value.valeursParametres
+
+        viewModel.action(ActionWizard.AppliquerPreset("inexistant"))
+        advanceUntilIdle()
+
+        assertEquals(avant, viewModel.etat.value.valeursParametres)
     }
 
     // -------------------------------------------- formulaire dynamique
@@ -411,14 +569,14 @@ class WizardViewModelTest {
         advanceUntilIdle()
         viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
         advanceUntilIdle()
-        viewModel.action(ActionWizard.Suivant)
-        advanceUntilIdle()
-        viewModel.action(ActionWizard.Suivant)
-        advanceUntilIdle()
+        repeat(3) {
+            viewModel.action(ActionWizard.Suivant)
+            advanceUntilIdle()
+        }
 
-        // Sur l'étape Informations : sans nom, ni emplacement (réglage
+        // Sur l'étape Identité : sans nom, ni emplacement (réglage
         // absent), l'étape est invalide.
-        assertEquals(EtapeId.INFORMATIONS, viewModel.etat.value.etape)
+        assertEquals(EtapeId.Identite, viewModel.etat.value.etape)
         assertFalse(viewModel.etat.value.etapeValide)
         assertEquals(RaisonValidation.LongueurNom, viewModel.etat.value.raisonNom)
 
@@ -522,10 +680,11 @@ class WizardViewModelTest {
         )
         viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
         advanceUntilIdle()
-        viewModel.action(ActionWizard.Suivant)
-        viewModel.action(ActionWizard.Suivant)
-        advanceUntilIdle()
-        assertEquals(EtapeId.INFORMATIONS, viewModel.etat.value.etape)
+        repeat(3) {
+            viewModel.action(ActionWizard.Suivant)
+            advanceUntilIdle()
+        }
+        assertEquals(EtapeId.Identite, viewModel.etat.value.etape)
 
         viewModel.action(ActionWizard.ChangerEmplacement(grant))
         advanceUntilIdle()
@@ -570,6 +729,7 @@ class WizardViewModelTest {
     fun `l état est restitué après la mort du processus`() = runTest {
         advanceUntilIdle()
         viewModel.action(ActionWizard.ChoisirModele(TemplateId("kotlin-jvm")))
+        advanceUntilIdle()
         viewModel.action(ActionWizard.SaisirNom("MonProjet"))
         viewModel.action(ActionWizard.SaisirDescription("Une description"))
         viewModel.action(ActionWizard.SaisirTexte("packageName", "org.fixe"))
@@ -581,7 +741,7 @@ class WizardViewModelTest {
         val relance = relancerDepuisSauvegarde()
         advanceUntilIdle()
 
-        assertEquals(EtapeId.CONFIGURATION, relance.etat.value.etape)
+        assertEquals(EtapeId.EtapeModele("type-build"), relance.etat.value.etape)
         assertEquals(TemplateId("kotlin-jvm"), relance.etat.value.templateId)
         assertEquals("MonProjet", relance.etat.value.nomProjet)
         assertEquals("Une description", relance.etat.value.description)
@@ -652,7 +812,7 @@ class WizardViewModelTest {
 
         assertTrue(
             viewModel.etat.value
-                .copy(etape = EtapeId.FICHIERS)
+                .copy(etape = EtapeId.Fichiers)
                 .etapeValide,
         )
     }
@@ -678,18 +838,18 @@ class WizardViewModelTest {
         avancerJusquaRecapitulatif()
 
         // Retour arrière depuis le récapitulatif : direct.
-        viewModel.action(ActionWizard.AllerEtape(EtapeId.MODELE))
+        viewModel.action(ActionWizard.AllerEtape(EtapeId.Modele))
         advanceUntilIdle()
-        assertEquals(EtapeId.MODELE, viewModel.etat.value.etape)
+        assertEquals(EtapeId.Modele, viewModel.etat.value.etape)
 
         // Vers l'avant : toujours ignoré (aucun raccourci qui
         // esquiverait les gardes de validité).
         viewModel.action(ActionWizard.Suivant)
         advanceUntilIdle()
-        assertEquals(EtapeId.CONFIGURATION, viewModel.etat.value.etape)
-        viewModel.action(ActionWizard.AllerEtape(EtapeId.RECAPITULATIF))
+        assertEquals(EtapeId.EtapeModele("type-build"), viewModel.etat.value.etape)
+        viewModel.action(ActionWizard.AllerEtape(EtapeId.Recapitulatif))
         advanceUntilIdle()
-        assertEquals(EtapeId.CONFIGURATION, viewModel.etat.value.etape)
+        assertEquals(EtapeId.EtapeModele("type-build"), viewModel.etat.value.etape)
     }
 
     @Test
@@ -701,7 +861,7 @@ class WizardViewModelTest {
         val relance = relancerDepuisSauvegarde()
         advanceUntilIdle()
 
-        assertEquals(EtapeId.RECAPITULATIF, relance.etat.value.etape)
+        assertEquals(EtapeId.Recapitulatif, relance.etat.value.etape)
         assertNotNull(relance.etat.value.plan)
     }
 
@@ -863,6 +1023,7 @@ class WizardViewModelTest {
             WizardViewModel(
                 listerModeles = ListTemplatesUseCase(setOf(fournisseur), moteur),
                 evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
+                calculeParcours = CalculeParcoursUseCase(),
                 evaluerNom = EvaluerNomProjetUseCase(),
                 resoudreEmplacement =
                 ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
@@ -889,7 +1050,7 @@ class WizardViewModelTest {
         advanceUntilIdle()
 
         assertTrue(lentViewModel.etat.value.etatCreation is EtatCreation.Inactif)
-        assertEquals(EtapeId.RECAPITULATIF, lentViewModel.etat.value.etape)
+        assertEquals(EtapeId.Recapitulatif, lentViewModel.etat.value.etape)
         assertTrue(depot.projets.isEmpty())
     }
 
@@ -937,6 +1098,7 @@ class WizardViewModelTest {
             WizardViewModel(
                 listerModeles = ListTemplatesUseCase(setOf(fournisseur), moteur),
                 evaluerFormulaire = EvaluateTemplateFormUseCase(planificateur),
+                calculeParcours = CalculeParcoursUseCase(),
                 evaluerNom = EvaluerNomProjetUseCase(),
                 resoudreEmplacement =
                 ResolveCreationLocationUseCase(arborescences, fichiers, parametres, horloge),
@@ -991,7 +1153,7 @@ class WizardViewModelTest {
         advanceUntilIdle()
 
         assertTrue(viewModel.etat.value.etatCreation is EtatCreation.Inactif)
-        assertEquals(EtapeId.RECAPITULATIF, viewModel.etat.value.etape)
+        assertEquals(EtapeId.Recapitulatif, viewModel.etat.value.etape)
     }
 
     @Test
@@ -1028,7 +1190,7 @@ class WizardViewModelTest {
         advanceUntilIdle()
 
         val etat = viewModel.etat.value
-        assertEquals(EtapeId.MODELE, etat.etape)
+        assertEquals(EtapeId.Modele, etat.etape)
         assertEquals(TemplateId("kotlin-jvm"), etat.templateId)
         assertEquals("", etat.nomProjet)
         assertEquals("", etat.description)
@@ -1061,13 +1223,14 @@ class WizardViewModelTest {
         advanceUntilIdle()
     }
 
-    /** Fait avancer le wizard jusqu'au récapitulatif (étapes 1 à 5). */
+    /** Fait avancer le wizard jusqu'au récapitulatif (parcours effectif). */
     private fun kotlinx.coroutines.test.TestScope.avancerJusquaRecapitulatif(cible: WizardViewModel = viewModel) {
-        repeat(4) {
+        repeat(8) {
+            if (cible.etat.value.estRecapitulatif) return
             cible.action(ActionWizard.Suivant)
             advanceUntilIdle()
         }
-        assertEquals(EtapeId.RECAPITULATIF, cible.etat.value.etape)
+        assertEquals(EtapeId.Recapitulatif, cible.etat.value.etape)
     }
 
     /** Raison d'erreur courante du package, ou `null`. */
@@ -1083,6 +1246,20 @@ class WizardViewModelTest {
         val planificateur =
             TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
         return construire(planificateur, fournisseur, viewModelPoigneeSauvegarde())
+    }
+
+    /**
+     * Relance le wizard depuis une sauvegarde où l'étape persistée est
+     * **inconnue** du parcours (migration, manifeste évolué) : le modèle
+     * est repris, l'étape est ramenée en arrière par le calcul du parcours.
+     */
+    private fun relancerDepuisSauvegardeAvecEtape(etape: String): WizardViewModel {
+        val moteur = TemplateEngine(sourceAssets)
+        val fournisseur = FauxFournisseur()
+        val planificateur =
+            TemplateProjectPlanner(moteur, setOf(fournisseur), parametres, horloge, VersionTest())
+        val sauvegarde = SavedStateHandle(mapOf("wizard.etape" to etape, "wizard.template" to "kotlin-jvm"))
+        return construire(planificateur, fournisseur, sauvegarde)
     }
 
     /** Extrait le `SavedStateHandle` du ViewModel courant (champ privé). */

@@ -70,6 +70,14 @@
             android:layout_height="wrap_content"
             android:text="@string/wizard_bouton_precedent" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_apercu"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/wizard_bouton_apercu"
+            android:visibility="gone" />
+
         <Space
             android:layout_width="0dp"
             android:layout_height="0dp"

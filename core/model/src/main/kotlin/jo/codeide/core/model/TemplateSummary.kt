@@ -41,12 +41,24 @@ public data class TemplateSummary(
  * affiche au bon endroit, le récapitulatif compris (ADR 0153 §5).
  * @property isValid tous les paramètres visibles sont-ils valides **et**
  * aucune règle `ERREUR` déclenchée ?
+ * @property etapesWizard étapes de modèle **effectives** (ADR 0155) :
+ * étapes déclarées dont `when` est vrai, puis l'étape par défaut
+ * « Configuration » si des paramètres `CONFIGURATION` ne sont rangés
+ * nulle part — titres et icônes résolus, ordre du manifeste conservé.
+ * @property presets préréglages **résolus** du manifeste (ADR 0155, B-8) :
+ * jeux de valeurs cohérents proposés dès l'étape Modèle.
+ * @property groupesFichiers groupes de fichiers optionnels réellement
+ * déclarés par le manifeste (ADR 0155 §2 : l'étape Fichiers devient
+ * adaptée au modèle) — parmi README, GITIGNORE, EDITORCONFIG.
  */
 public data class TemplateFormEvaluation(
     public val parameters: List<TemplateParameterEvaluation>,
     public val computedValues: Map<String, String>,
     public val messages: List<MessageRegle> = emptyList(),
     public val isValid: Boolean,
+    public val etapesWizard: List<TemplateEtapeEvaluee> = emptyList(),
+    public val presets: List<TemplatePresetResolu> = emptyList(),
+    public val groupesFichiers: Set<TemplateFileGroup> = emptySet(),
 )
 
 /**
@@ -161,3 +173,52 @@ public data class ChoixEvalue(
  * @property cle clé i18n d'origine — traçabilité et tests.
  */
 public data class MessageRegle(public val severite: SeveriteRegle, public val texte: String, public val cle: String)
+
+/**
+ * Étape de modèle **effective** calculée par le moteur (ADR 0155 §1/§3) :
+ * une étape déclarée dont `when` est vrai, ou l'étape par défaut
+ * « Configuration » qui ramasse les paramètres `CONFIGURATION` non rangés
+ * (manifeste sans bloc `wizard`, ou rangement incomplet).
+ *
+ * Le titre et l'icône sont **résolus** dans la langue demandée (dictionnaire
+ * du modèle) — l'interface n'analyse aucun manifeste. L'étape par défaut a
+ * un titre vide : son libellé est une ressource **applicative**
+ * (`wizard_etape_configuration`), pas du contenu de modèle.
+ *
+ * @property id identifiant de l'étape (identifiant déclaré, ou
+ * `configuration` pour l'étape par défaut — jamais un identifiant du socle,
+ * réservé et contrôlé au chargement, ADR 0155 §1).
+ * @property titre titre résolu ; vide pour l'étape par défaut (libellé
+ * applicatif).
+ * @property icone icône maison résolue (clé `iconeKey` du dictionnaire),
+ * vide si absente.
+ * @property parametres identifiants des paramètres `CONFIGURATION` de
+ * l'étape, dans l'ordre déclaré de rendu.
+ * @property defaut `true` pour l'étape par défaut « Configuration »
+ * (matérialisée par le moteur, jamais déclarée par le manifeste).
+ */
+public data class TemplateEtapeEvaluee(
+    public val id: String,
+    public val titre: String,
+    public val icone: String,
+    public val parametres: List<String>,
+    public val defaut: Boolean = false,
+)
+
+/**
+ * Préréglage **résolu** d'un manifeste (ADR 0155 §1, B-8) : jeu de valeurs
+ * cohérent posé en un geste depuis l'étape Modèle. Les libellés viennent du
+ * dictionnaire du modèle (repli sur la clé brute — repli théorique, le
+ * fournisseur embarqué refuse les clés manquantes au chargement).
+ *
+ * @property id identifiant du préréglage.
+ * @property nom nom affiché résolu.
+ * @property description description courte résolue, vide si absente.
+ * @property valeurs valeurs posées (clé = identifiant de paramètre).
+ */
+public data class TemplatePresetResolu(
+    public val id: String,
+    public val nom: String,
+    public val description: String,
+    public val valeurs: Map<String, String>,
+)

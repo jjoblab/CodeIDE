@@ -11,14 +11,14 @@ import androidx.core.view.isVisible
 import jo.codeide.core.domain.ValidationDossier
 import jo.codeide.core.domain.VerificationCible
 import jo.codeide.core.model.RaisonValidation
-import jo.codeide.core.model.TemplateSection
 import jo.codeide.core.ui.SimpleTextWatcher
 import jo.codeide.core.ui.applyImeBottomInset
 import jo.codeide.core.ui.collectWithLifecycle
-import jo.codeide.feature.newproject.databinding.EtapeInformationsBinding
+import jo.codeide.feature.newproject.databinding.EtapeIdentiteBinding
 
 /**
- * Étape 3 « Informations et emplacement » (section 12.3) : nom du projet,
+ * Étape socle « Identité » (ADR 0155 §2, ancienne « Informations » scindée) :
+ * nom du projet,
  * description avec compteur, paramètres de section `INFORMATION` rendus
  * dynamiquement (package dérivé, coordonnées selon la visibilité), et
  * **carte d'emplacement** — dossier de travail par défaut, changement
@@ -28,7 +28,7 @@ import jo.codeide.feature.newproject.databinding.EtapeInformationsBinding
  *
  * Actions IME « Suivant »/« OK », focus automatique sur le premier champ.
  */
-class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
+class EtapeIdentiteFragment : EtapeFragment<EtapeIdentiteBinding>() {
     private var rendu: RenduParametres? = null
 
     /** Sélecteur SAF « Changer de dossier » (pour cette création uniquement). */
@@ -44,13 +44,13 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
         inflater: LayoutInflater,
         container: ViewGroup?,
         attachToRoot: Boolean,
-    ): EtapeInformationsBinding = EtapeInformationsBinding.inflate(inflater, container, attachToRoot)
+    ): EtapeIdentiteBinding = EtapeIdentiteBinding.inflate(inflater, container, attachToRoot)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Le clavier ne doit jamais passer sous la carte d'emplacement.
-        binding.defilementInformations.applyImeBottomInset()
+        binding.defilementIdentite.applyImeBottomInset()
 
         rendu =
             RenduParametres(
@@ -100,7 +100,7 @@ class EtapeInformationsFragment : EtapeFragment<EtapeInformationsBinding>() {
             rendreDescription(etat)
             if (etat.evaluation != null) {
                 binding.conteneurParametres.isVisible = true
-                rendu?.rendre(etat.parametresSection(TemplateSection.INFORMATION))
+                rendu?.rendre(etat.parametresEtapeCourante())
             } else {
                 binding.conteneurParametres.isVisible = false
             }

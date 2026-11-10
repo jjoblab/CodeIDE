@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Wizard — hôte, tablette / paysage (sw600dp, section 12.1) : la barre
-  d'outils reste pleine largeur, le contenu (indicateur, étapes, actions)
-  est borné et centré — jamais étiré. Le FrameLayout absorbe la hauteur
-  pondérée : la colonne bornée évite ainsi les poids imbriqués (le poids du
-  conteneur reste à un seul niveau).
+  Wizard — hôte, tablette / paysage (sw600dp, section 12.1 + ADR 0155 §6) :
+  la barre d'outils reste pleine largeur ; le contenu (indicateur, étapes,
+  actions) est borné et centré ; l'aperçu en direct occupe un **panneau
+  latéral** à droite du parcours — deux colonnes quand il est ouvert.
+  Le FrameLayout absorbe la hauteur pondérée : la colonne bornée évite les
+  poids imbriqués (le poids du conteneur reste à un seul niveau).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -32,73 +33,96 @@
         tools:ignore="UselessParent">
 
         <LinearLayout
-            android:layout_width="@dimen/wizard_largeur_tablette"
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="center_horizontal"
-            android:orientation="vertical">
+            android:orientation="horizontal">
 
             <LinearLayout
-                android:id="@+id/conteneur_indicateur"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingStart="@dimen/screen_horizontal_margin"
-                android:paddingTop="@dimen/spacing_sm"
-                android:paddingEnd="@dimen/screen_horizontal_margin"
-                android:paddingBottom="@dimen/spacing_sm">
+                android:layout_width="@dimen/wizard_largeur_tablette"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_vertical"
+                android:orientation="vertical">
 
-                <com.google.android.material.progressindicator.LinearProgressIndicator
-                    android:id="@+id/indicateur_etapes"
+                <LinearLayout
+                    android:id="@+id/conteneur_indicateur"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:max="5"
-                    android:progress="1" />
+                    android:orientation="vertical"
+                    android:paddingStart="@dimen/screen_horizontal_margin"
+                    android:paddingTop="@dimen/spacing_sm"
+                    android:paddingEnd="@dimen/screen_horizontal_margin"
+                    android:paddingBottom="@dimen/spacing_sm">
 
-                <TextView
-                    android:id="@+id/libelle_etape"
+                    <com.google.android.material.progressindicator.LinearProgressIndicator
+                        android:id="@+id/indicateur_etapes"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:max="5"
+                        android:progress="1" />
+
+                    <TextView
+                        android:id="@+id/libelle_etape"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_xs"
+                        android:textAppearance="?attr/textAppearanceTitleSmall"
+                        android:accessibilityLiveRegion="polite" />
+                </LinearLayout>
+
+                <androidx.fragment.app.FragmentContainerView
+                    android:id="@+id/conteneur_etapes"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceTitleSmall"
-                    android:accessibilityLiveRegion="polite" />
-            </LinearLayout>
-
-            <androidx.fragment.app.FragmentContainerView
-                android:id="@+id/conteneur_etapes"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <LinearLayout
-                android:id="@+id/barre_actions"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="@dimen/screen_horizontal_margin"
-                android:paddingTop="@dimen/spacing_sm"
-                android:paddingEnd="@dimen/screen_horizontal_margin"
-                android:paddingBottom="@dimen/spacing_sm">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_precedent"
-                    style="@style/Widget.CodeIDE.Button.Text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/wizard_bouton_precedent" />
-
-                <Space
-                    android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:layout_weight="1" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/bouton_suivant"
-                    style="@style/Widget.CodeIDE.Button"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:id="@+id/barre_actions"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/wizard_bouton_suivant" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="@dimen/screen_horizontal_margin"
+                    android:paddingTop="@dimen/spacing_sm"
+                    android:paddingEnd="@dimen/screen_horizontal_margin"
+                    android:paddingBottom="@dimen/spacing_sm">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_precedent"
+                        style="@style/Widget.CodeIDE.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wizard_bouton_precedent" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_apercu"
+                        style="@style/Widget.CodeIDE.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wizard_bouton_apercu"
+                        android:visibility="gone" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/bouton_suivant"
+                        style="@style/Widget.CodeIDE.Button"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/wizard_bouton_suivant" />
+                </LinearLayout>
             </LinearLayout>
+
+            <!-- Aperçu en direct : panneau latéral (deux colonnes, ADR 0155 §6). -->
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/conteneur_apercu"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:layout_weight="1"
+                android:visibility="gone" />
         </LinearLayout>
     </FrameLayout>
 </LinearLayout>

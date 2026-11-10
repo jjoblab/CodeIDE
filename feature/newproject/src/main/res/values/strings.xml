@@ -7,7 +7,7 @@
     <string name="wizard_indicateur_etape" tools:ignore="PluralsCandidate">Étape %1$d sur %2$d · %3$s</string>
     <string name="wizard_etape_modele">Modèle</string>
     <string name="wizard_etape_configuration">Configuration</string>
-    <string name="wizard_etape_informations">Informations</string>
+    <string name="wizard_etape_identite">Identité</string>
     <string name="wizard_bouton_precedent">Retour</string>
     <string name="wizard_bouton_suivant">Suivant</string>
     <string name="wizard_fermer">Fermer le wizard</string>
@@ -87,6 +87,20 @@
     <string name="wizard_erreur_motif">La valeur ne correspond pas au format attendu (%1$s).</string>
     <string name="wizard_etape_fichiers">Fichiers</string>
     <string name="wizard_etape_recapitulatif">Récapitulatif</string>
+    <string name="wizard_etape_avancee">Avancé</string>
+    <string name="wizard_avance_deplier">Ouvrir la zone Avancé</string>
+    <string name="wizard_avance_replier">Replier la zone Avancé</string>
+    <string name="wizard_parametre_desactive">Paramètre désactivé</string>
+    <string name="wizard_presets_titre">Démarrage rapide</string>
+    <string name="wizard_preset_rapide_desc">Appliquer ce préréglage puis passer au récapitulatif</string>
+    <string name="wizard_bouton_apercu">Aperçu</string>
+    <string name="wizard_apercu_titre">Aperçu du projet</string>
+    <string name="wizard_apercu_erreur">Aperçu indisponible.</string>
+    <string name="wizard_apercu_ajoutes" tools:ignore="PluralsCandidate">+ %1$d fichier(s)</string>
+    <string name="wizard_apercu_retires" tools:ignore="PluralsCandidate">− %1$d fichier(s)</string>
+    <string name="wizard_message_severite_erreur">Erreur bloquante</string>
+    <string name="wizard_message_severite_avertissement">Avertissement</string>
+    <string name="wizard_message_severite_info">Information</string>
     <string name="wizard_bouton_creer">Créer le projet</string>
     <string name="wizard_fichiers_soustitre">Choisis les fichiers à générer et le contenu de référence.</string>
     <string name="wizard_fichiers_readme">README.md</string>

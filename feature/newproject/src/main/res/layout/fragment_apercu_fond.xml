@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fond de la feuille basse de l'aperçu en direct (téléphone, L5d) :
+  conteneur unique du fragment de contenu partagé [ApercuPlanFragment].
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/conteneur_apercu_feuille"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingTop="@dimen/spacing_sm" />

@@ -59,7 +59,7 @@ class EcranCreationFragment : BaseFragmentEcran<EcranCreationBinding>() {
         // arrière pur — les gardes de validité restent intactes).
         binding.boutonCorriger.setOnClickListener {
             wizard.action(ActionWizard.RetourRecapitulatif)
-            wizard.action(ActionWizard.AllerEtape(EtapeId.INFORMATIONS))
+            wizard.action(ActionWizard.AllerEtape(EtapeId.Identite))
         }
 
         wizard.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat.etatCreation, etat.nomProjet) }

@@ -5,15 +5,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import androidx.core.view.isVisible
 import jo.codeide.core.model.License
+import jo.codeide.core.model.TemplateFileGroup
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.newproject.databinding.EtapeFichiersBinding
 
 /**
- * Étape 4 « Fichiers » (section 12.3) : interrupteurs des fichiers
- * optionnels (README, .gitignore, .editorconfig), licence pré-remplie des
- * Paramètres (auteur et année affichés — MIT et BSD les intègrent), langue
- * du contenu généré (boutons segmentés Français / English).
+ * Étape socle « Fichiers » (section 12.3, **adaptée au modèle** — ADR 0155
+ * §2) : interrupteurs des fichiers optionnels **seulement pour les groupes
+ * réellement déclarés** par le manifeste (un modèle sans README ne propose
+ * pas le coche README), licence pré-remplie des Paramètres (auteur et année
+ * affichés — MIT et BSD les intègrent), langue du contenu généré (boutons
+ * segmentés Français / English).
  *
  * Aucune validation bloquante : toute combinaison est légitime — le bouton
  * Suivant reste donc actif ; l'aperçu de l'arborescence (étape suivante)
@@ -64,6 +68,14 @@ class EtapeFichiersFragment : EtapeFragment<EtapeFichiersBinding>() {
     /** Rendu idempotent des options (la vue garde le dernier état rendu). */
     private fun rendre(etat: EtatWizard) {
         renduEnCours = true
+
+        // Étape adaptée au modèle : un groupe non déclaré n'offre pas son
+        // coche (ADR 0155 §2) — le fichier serait de toute façon ignoré.
+        val groupes = etat.evaluation?.groupesFichiers.orEmpty()
+        binding.sectionFichiersOptionnels.isVisible = groupes.isNotEmpty()
+        binding.interrupteurReadme.isVisible = TemplateFileGroup.README in groupes
+        binding.interrupteurGitignore.isVisible = TemplateFileGroup.GITIGNORE in groupes
+        binding.interrupteurEditorconfig.isVisible = TemplateFileGroup.EDITORCONFIG in groupes
 
         if (binding.interrupteurReadme.isChecked != etat.options.includeReadme) {
             binding.interrupteurReadme.isChecked = etat.options.includeReadme

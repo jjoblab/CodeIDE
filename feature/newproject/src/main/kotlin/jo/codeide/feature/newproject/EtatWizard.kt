@@ -5,7 +5,9 @@ import jo.codeide.core.domain.ValidationDossier
 import jo.codeide.core.domain.VerificationCible
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.CreationProgress
+import jo.codeide.core.model.EtapeParcours
 import jo.codeide.core.model.License
+import jo.codeide.core.model.ParcoursCreation
 import jo.codeide.core.model.Project
 import jo.codeide.core.model.ProjectId
 import jo.codeide.core.model.RaisonValidation
@@ -14,64 +16,101 @@ import jo.codeide.core.model.TemplateFormEvaluation
 import jo.codeide.core.model.TemplateId
 import jo.codeide.core.model.TemplateOptions
 import jo.codeide.core.model.TemplatePlan
-import jo.codeide.core.model.TemplateSection
 
 /**
- * Identifiants des étapes du wizard (section 12.2 : cinq étapes numérotées).
+ * Identifiant d'une étape du wizard (ADR 0155 §5) : **type fermé** — les
+ * quatre identifiants du socle imposé par l'application, plus l'identifiant
+ * personnalisé de toute étape de modèle déclarée (bloc `wizard` du
+ * manifeste) ou de l'étape par défaut « Configuration ».
  *
- * L'ordre réel et la composition vivent dans [ETAPES_WIZARD] — jamais dans
- * un `when` dispersé : l'étape 11 insérera `FICHIERS` et `RECAPITULATIF`
- * dans la liste sans toucher au cadre.
+ * La liste des étapes actives ne vit plus dans une constante
+ * ([ETAPES_WIZARD] supprimée — ADR 0155 amende l'ADR 0020) : elle est
+ * **calculée par le domaine** ([ParcoursCreation]) et portée par l'état.
  */
-enum class EtapeId {
-    /** Étape 1 — grille de cartes de modèles. */
-    MODELE,
+public sealed interface EtapeId {
+    /** Clé stable de l'étape — persistance `SavedStateHandle` et parcours. */
+    public val cle: String
 
-    /** Étape 2 — paramètres de section `CONFIGURATION`. */
-    CONFIGURATION,
+    /** Étape socle « Modèle » — grille de cartes de modèles. */
+    public data object Modele : EtapeId {
+        override val cle: String get() = "modele"
+    }
 
-    /** Étape 3 — paramètres de section `INFORMATION` et emplacement. */
-    INFORMATIONS,
+    /** Étape socle « Identité » — nom, description, emplacement (+ paramètres `INFORMATION`). */
+    public data object Identite : EtapeId {
+        override val cle: String get() = "identite"
+    }
 
-    /** Étape 4 — fichiers et licence (étape 11). */
-    FICHIERS,
+    /** Étape socle « Fichiers » — options adaptées au modèle (ADR 0155 §2). */
+    public data object Fichiers : EtapeId {
+        override val cle: String get() = "fichiers"
+    }
 
-    /** Étape 5 — récapitulatif (étape 11). */
-    RECAPITULATIF,
+    /** Étape socle « Récapitulatif » — fidèle au parcours réellement suivi. */
+    public data object Recapitulatif : EtapeId {
+        override val cle: String get() = "recapitulatif"
+    }
+
+    /**
+     * Étape de modèle — identifiant déclaré par le manifeste
+     * (`^[a-z][a-z0-9-]*$`), ou `configuration` pour l'étape par défaut
+     * matérialisée par le moteur (paramètres `CONFIGURATION` non rangés).
+     */
+    public data class EtapeModele(val id: String) : EtapeId {
+        override val cle: String get() = id
+    }
+
+    public companion object {
+        /** Identifiants du socle, réservés au chargement des manifestes. */
+        public val SOCLES: Set<String> = setOf(Modele.cle, Identite.cle, Fichiers.cle, Recapitulatif.cle)
+
+        /** Identifiant de l'étape par défaut « Configuration » (moteur). */
+        public const val ID_ETAPE_DEFAUT: String = "configuration"
+
+        /**
+         * Retrouve une étape par clé persistée — socle reconnu directement,
+         * tout le reste étant une étape de modèle (contrôlée contre le
+         * parcours à l'arrivée de l'évaluation : une clé inconnue est
+         * ramenée en arrière, jamais sautée en avant).
+         */
+        public fun deCle(cle: String): EtapeId = when (cle) {
+            Modele.cle -> Modele
+
+            Identite.cle -> Identite
+
+            Fichiers.cle -> Fichiers
+
+            Recapitulatif.cle -> Recapitulatif
+
+            // Anciennes clés pré-L5 (sauvegardes d'une version
+            // antérieure) : migration mécanique vers le socle.
+            "CONFIGURATION" -> EtapeModele(ID_ETAPE_DEFAUT)
+
+            "INFORMATIONS" -> Identite
+
+            else -> EtapeModele(cle)
+        }
+    }
 }
-
-/**
- * Une étape déclarée du wizard (section 12.2).
- *
- * @property id identifiant stable de l'étape.
- * @property titreRes titre localisé (« Modèle », « Configuration »…).
- */
-data class WizardStep(val id: EtapeId, @field:StringRes val titreRes: Int)
-
-/**
- * Étapes actives du wizard (section 12.2 : cinq étapes numérotées, puis
- * l'écran de création hors numérotation).
- */
-val ETAPES_WIZARD: List<WizardStep> =
-    listOf(
-        WizardStep(EtapeId.MODELE, R.string.wizard_etape_modele),
-        WizardStep(EtapeId.CONFIGURATION, R.string.wizard_etape_configuration),
-        WizardStep(EtapeId.INFORMATIONS, R.string.wizard_etape_informations),
-        WizardStep(EtapeId.FICHIERS, R.string.wizard_etape_fichiers),
-        WizardStep(EtapeId.RECAPITULATIF, R.string.wizard_etape_recapitulatif),
-    )
 
 /**
  * État observable du wizard (UDF, section 5.3) — unique source de vérité
  * des étapes : les fragments ne rendent que cet état, la survie passe par
- * le `SavedStateHandle` du ViewModel.
+ * le `SavedStateHandle` du ViewModel. Le **parcours** ([parcours]) est
+ * recalculé par le domaine à chaque réévaluation du formulaire ; l'indicateur
+ * « Étape N sur M » lit M dans cette liste (ADR 0155 §3).
  *
  * @property chargementCatalogue catalogue en cours de chargement.
  * @property erreurCatalogue le catalogue a échoué (bouton Réessayer).
  * @property modeles catalogue résolu pour la langue courante.
- * @property etape étape courante.
+ * @property parcours étapes effectives calculées par le domaine
+ * ([CalculeParcoursUseCase]) — socle + étapes de modèle dont `when` est
+ * vrai ; vide tant qu'aucun modèle n'est sélectionné.
+ * @property etape étape courante (identifiant fermé [EtapeId]).
  * @property templateId modèle sélectionné (étape 1).
- * @property evaluation dernière évaluation du moteur (null sans modèle).
+ * @property evaluation dernière évaluation du moteur (null sans modèle) —
+ * porte aussi les étapes effectives, les préréglages et les groupes de
+ * fichiers déclarés (ADR 0155).
  * @property nomProjet nom saisi (champ commun, section 12.3).
  * @property description description saisie (champ commun).
  * @property raisonNom raison typée du nom invalide, `null` si valide.
@@ -86,25 +125,34 @@ val ETAPES_WIZARD: List<WizardStep> =
  * @property verificationCible résultat de la vérification asynchrone
  * (permission, joignabilité, collision de nom).
  * @property verificationEnCours vérification en cours (indicateur).
- * @property options options communes du moteur (étape 4 Fichiers :
- * fichiers optionnels, licence, langue du contenu — section 12.3).
+ * @property options options communes du moteur (étape Fichiers : fichiers
+ * optionnels, licence, langue du contenu — section 12.3).
  * @property auteur nom d'auteur des paramètres (affiché avec l'année pour
  * les licences MIT et BSD ; jamais saisi ici).
  * @property annee année civile de l'horloge injectée (affichée avec l'auteur).
- * @property plan plan de création du récapitulatif (dry-run, section 12.3).
+ * @property plan plan de création du récapitulatif et de l'aperçu en direct
+ * (dry-run, section 12.3 — recalculé à chaque changement quand l'aperçu est
+ * ouvert).
  * @property chargementPlan plan en cours de calcul.
  * @property erreurPlan le plan a échoué (message + bouton Réessayer).
  * @property renommages renommages demandés depuis l'aperçu (ADR 0077) :
  * clé = chemin original du nœud, valeur = nouveau nom du segment — l'aperçu
  * se recalcule après chaque renommage, ce qui est planifié reste ce qui
  * est écrit.
+ * @property apercuOuvert aperçu en direct ouvert (L5d) — feuille basse
+ * (téléphone) ou panneau latéral (tablette).
+ * @property fichiersAjoutes fichiers apparus entre deux plans consécutifs
+ * (différentiel de l'aperçu, L5d).
+ * @property fichiersRetires fichiers disparus entre deux plans consécutifs
+ * (différentiel de l'aperçu, L5d).
  * @property etatCreation écran de création (hors numérotation, section 12.2).
  */
 data class EtatWizard(
     val chargementCatalogue: Boolean = true,
     val erreurCatalogue: Boolean = false,
     val modeles: List<TemplateSummaryUi> = emptyList(),
-    val etape: EtapeId = EtapeId.MODELE,
+    val parcours: List<EtapeParcours> = emptyList(),
+    val etape: EtapeId = EtapeId.Modele,
     val templateId: TemplateId? = null,
     val evaluation: TemplateFormEvaluation? = null,
     val nomProjet: String = "",
@@ -124,61 +172,90 @@ data class EtatWizard(
     val chargementPlan: Boolean = false,
     val erreurPlan: Boolean = false,
     val renommages: Map<String, String> = emptyMap(),
+    val apercuOuvert: Boolean = false,
+    val fichiersAjoutes: List<String> = emptyList(),
+    val fichiersRetires: List<String> = emptyList(),
     val etatCreation: EtatCreation = EtatCreation.Inactif,
 ) {
-    /** L'index de l'étape courante dans [ETAPES_WIZARD] (0 par défaut). */
-    val indexEtape: Int get() = ETAPES_WIZARD.indexOfFirst { it.id == etape }.coerceAtLeast(0)
+    /** L'index de l'étape courante dans [parcours] (0 par défaut). */
+    val indexEtape: Int get() = parcours.indexOfFirst { it.id == etape.cle }.coerceAtLeast(0)
+
+    /** L'étape courante existe-t-elle dans le parcours effectif ? */
+    val etapeExistante: Boolean get() = parcours.any { it.id == etape.cle }
 
     /** L'étape suivante existe-t-elle ? (fausse sur la dernière). */
-    val aUneEtapeSuivante: Boolean get() = indexEtape < ETAPES_WIZARD.lastIndex
+    val aUneEtapeSuivante: Boolean get() = etapeExistante && indexEtape < parcours.lastIndex
 
     /** L'étape courante est-elle le récapitulatif final ? */
-    val estRecapitulatif: Boolean get() = etape == EtapeId.RECAPITULATIF
+    val estRecapitulatif: Boolean get() = etape == EtapeId.Recapitulatif
+
+    /** L'étape courante est-elle l'étape socle « Modèle » ? */
+    val estEtapeModele: Boolean get() = etape == EtapeId.Modele
+
+    /**
+     * L'étape courante porte-t-elle des paramètres de modèle ? (Étape de
+     * modèle ou identité — c'est là que l'aperçu en direct est proposé,
+     * ADR 0155 §6.)
+     */
+    val etapeAvecParametres: Boolean
+        get() =
+            when (etape) {
+                is EtapeId.EtapeModele -> true
+                EtapeId.Identite -> true
+                else -> false
+            }
+
+    /** L'étape de parcours courante, ou `null` hors parcours. */
+    val etapeCourante: EtapeParcours? get() = parcours.firstOrNull { it.id == etape.cle }
 
     /**
      * L'étape courante est-elle valide ? « Suivant » — « Créer le projet »
      * sur le récapitulatif — reste désactivé tant que non (section 12.2).
+     *
+     * Les messages `ERREUR` des règles de projet **ne bloquent pas** les
+     * étapes intermédiaires (l'utilisateur doit pouvoir avancer jusqu'au
+     * choix fautif pour le corriger) — ils bloquent la création elle-même
+     : la revalidation globale du récapitulatif les refuse.
      */
     val etapeValide: Boolean
         get() =
-            when (etape) {
-                EtapeId.MODELE -> {
-                    templateId != null
-                }
+            when (val etape = etape) {
+                EtapeId.Modele -> templateId != null
 
-                EtapeId.CONFIGURATION -> {
-                    parametresValides(TemplateSection.CONFIGURATION)
-                }
-
-                EtapeId.INFORMATIONS -> {
+                EtapeId.Identite ->
                     raisonNom == null &&
-                        parametresValides(TemplateSection.INFORMATION) &&
+                        parametresValides(etapeCourante?.parametres.orEmpty()) &&
                         emplacement != null &&
                         verificationCible is VerificationCible.Valide
-                }
 
-                EtapeId.FICHIERS -> {
+                EtapeId.Fichiers ->
                     // Options libres : toute combinaison est valide.
                     true
-                }
 
-                EtapeId.RECAPITULATIF -> {
+                EtapeId.Recapitulatif ->
                     // Revalidation globale (section 12.4, point 1 : jamais
                     // confiance à l'UI — le domaine revalidera de toute façon).
                     templateId != null &&
                         raisonNom == null &&
-                        parametresValides(TemplateSection.CONFIGURATION) &&
-                        parametresValides(TemplateSection.INFORMATION) &&
                         emplacement != null &&
-                        verificationCible is VerificationCible.Valide
-                }
+                        verificationCible is VerificationCible.Valide &&
+                        evaluation != null &&
+                        evaluation.isValid &&
+                        messagesErreurVides
+
+                is EtapeId.EtapeModele ->
+                    // Paramètres VISIBLES de l'étape tous valides ; un
+                    // paramètre désactivé (grisé) n'est pas validé (ADR 0153 §2).
+                    parametresValides(etapeCourante?.parametres.orEmpty())
             }
 
-    /** Les paramètres visibles d'une section sont-ils tous valides ? */
-    private fun parametresValides(section: TemplateSection): Boolean = evaluation
-        ?.parameters
-        ?.filter { it.visible && it.section == section }
-        ?.all { it.error == null } == true
+    /** Aucun message `ERREUR` dans l'évaluation courante ? (création). */
+    private val messagesErreurVides: Boolean
+        get() = evaluation?.messages?.none { it.severite == jo.codeide.core.model.SeveriteRegle.ERREUR } ?: true
+
+    /** Les paramètres visibles d'une étape sont-ils tous valides ? */
+    private fun parametresValides(parametres: List<jo.codeide.core.model.TemplateParameterEvaluation>): Boolean =
+        parametres.filter { it.visible }.all { it.error == null }
 
     /**
      * Des données ont-elles été saisies ? Conditionne le dialogue de
@@ -193,15 +270,26 @@ data class EtatWizard(
                 renommages.isNotEmpty() ||
                 options != TemplateOptions()
 
-    /** Les paramètres visibles d'une section, dans l'ordre du manifeste. */
-    fun parametresSection(section: TemplateSection): List<jo.codeide.core.model.TemplateParameterEvaluation> =
-        evaluation?.parameters.orEmpty().filter { it.visible && it.section == section }
+    /**
+     * Les paramètres visibles de l'étape courante, dans l'ordre de rendu
+     * du parcours (étape de modèle : `CONFIGURATION` déclarée ; identité :
+     * `INFORMATION`).
+     */
+    fun parametresEtapeCourante(): List<jo.codeide.core.model.TemplateParameterEvaluation> =
+        etapeCourante?.parametres.orEmpty().filter { it.visible }
 }
 
-/**
- * Résumé d'un modèle prêt à afficher (catalogue de l'étape 1) — pastille
- * monogramme, pas de logo officiel (règle de l'étape 9).
- */
+/** Titres des étapes du socle (ressources applicatives — ADR 0155 §2). */
+val TITRES_SOCLE: Map<String, Int> =
+    mapOf(
+        EtapeId.Modele.cle to R.string.wizard_etape_modele,
+        EtapeId.Identite.cle to R.string.wizard_etape_identite,
+        EtapeId.Fichiers.cle to R.string.wizard_etape_fichiers,
+        EtapeId.Recapitulatif.cle to R.string.wizard_etape_recapitulatif,
+    )
+
+/** Résumé d'un modèle prêt à afficher (catalogue de l'étape 1) — pastille
+ * monogramme, pas de logo officiel (règle de l'étape 9). */
 data class TemplateSummaryUi(
     val id: TemplateId,
     val nom: String,
@@ -230,6 +318,26 @@ sealed interface ActionWizard {
      */
     data class AllerEtape(val id: EtapeId) : ActionWizard
 
+    /**
+     * Applique un préréglage déclaré (ADR 0155, B-8) : pose son jeu de
+     * valeurs cohérent en un geste — rien n'est figé
+     * ([EtatWizard.modifiesManuellement] inchangé).
+     */
+    data class AppliquerPreset(val id: String) : ActionWizard
+
+    /**
+     * Mode rapide (L5d, plan §9-Q9) : applique le préréglage puis saute
+     * directement au récapitulatif — exception déclarée au retour
+     * strictement arrière de « Modifier ».
+     */
+    data class ModeRapide(val id: String) : ActionWizard
+
+    /** Ouvre l'aperçu en direct du plan (L5d, ADR 0155 §6). */
+    data object OuvrirApercu : ActionWizard
+
+    /** Referme l'aperçu en direct. */
+    data object FermerApercu : ActionWizard
+
     /** Saisit le nom du projet (champ commun). */
     data class SaisirNom(val valeur: String) : ActionWizard
 
@@ -248,19 +356,19 @@ sealed interface ActionWizard {
     /** Change de dossier « pour cette création uniquement » (sélecteur SAF). */
     data class ChangerEmplacement(val grantUri: String) : ActionWizard
 
-    /** Inclut ou exclut un fichier optionnel (étape 4, section 12.3). */
+    /** Inclut ou exclut un fichier optionnel (étape Fichiers, section 12.3). */
     data class BasculerFichier(val fichier: FichierOptionnel, val inclus: Boolean) : ActionWizard
 
-    /** Choisit la licence à générer (étape 4). */
+    /** Choisit la licence à générer (étape Fichiers). */
     data class ChoisirLicence(val licence: License) : ActionWizard
 
-    /** Choisit la langue du contenu généré (étape 4 : `fr` ou `en`). */
+    /** Choisit la langue du contenu généré (`fr` ou `en`). */
     data class ChoisirLangueContenu(val langue: String) : ActionWizard
 
     /** Lance la création depuis le récapitulatif (garde : état valide). */
     data object Creer : ActionWizard
 
-    /** Recalcule le plan du récapitulatif après un échec (dry-run). */
+    /** Recalcule le plan après un échec (dry-run). */
     data object ReessayerPlan : ActionWizard
 
     /**
@@ -296,7 +404,7 @@ sealed interface ActionWizard {
     data object Fermer : ActionWizard
 }
 
-/** Fichier optionnel de l'étape 4 (section 12.3). */
+/** Fichier optionnel de l'étape Fichiers (section 12.3). */
 enum class FichierOptionnel {
     README,
     GITIGNORE,

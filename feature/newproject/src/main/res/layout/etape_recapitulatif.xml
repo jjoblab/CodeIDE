@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Étape 5 « Récapitulatif » (section 12.3) : résumé lisible par section
-  avec bouton « Modifier », puis aperçu de l'arborescence générée (dry-run)
-  avec le nombre de fichiers.
+  Étape « Récapitulatif » (section 12.3, ADR 0155) : le résumé s'organise
+  selon les étapes réellement parcourues (lignes dynamiques avec bouton
+  « Modifier »), liste les avertissements restants, puis l'aperçu de
+  l'arborescence générée (dry-run) avec le nombre de fichiers.
 -->
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -27,198 +28,29 @@
             android:text="@string/wizard_recap_soustitre"
             android:textAppearance="?attr/textAppearanceBodyMedium" />
 
-        <!-- Section Modèle -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/carte_modele"
+        <!-- Une ligne par étape réellement parcourue (vue_ligne_recap_etape). -->
+        <LinearLayout
+            android:id="@+id/conteneur_etapes_recap"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_md"
-            app:cardCornerRadius="@dimen/corner_radius_medium"
-            app:cardElevation="0dp">
+            android:orientation="vertical" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_md">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/wizard_etape_modele"
-                        android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_modifier_modele"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/wizard_recap_modifier" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/texte_resume_modele"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceBodyMedium" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Section Configuration -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/carte_configuration"
+        <!-- Avertissements et erreurs restants (ADR 0153 §5). -->
+        <LinearLayout
+            android:id="@+id/conteneur_avertissements"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            app:cardCornerRadius="@dimen/corner_radius_medium"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_md">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/wizard_etape_configuration"
-                        android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_modifier_configuration"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/wizard_recap_modifier" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/texte_resume_configuration"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceBodyMedium" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Section Informations -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/carte_informations"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            app:cardCornerRadius="@dimen/corner_radius_medium"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_md">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/wizard_etape_informations"
-                        android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_modifier_informations"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/wizard_recap_modifier" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/texte_resume_informations"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceBodyMedium" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Section Fichiers -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/carte_fichiers"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_sm"
-            app:cardCornerRadius="@dimen/corner_radius_medium"
-            app:cardElevation="0dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="@dimen/spacing_md">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/wizard_etape_fichiers"
-                        android:textAppearance="?attr/textAppearanceTitleSmall" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_modifier_fichiers"
-                        style="@style/Widget.CodeIDE.Button.Text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:minWidth="0dp"
-                        android:text="@string/wizard_recap_modifier" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/texte_resume_fichiers"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xs"
-                    android:textAppearance="?attr/textAppearanceBodyMedium" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            android:orientation="vertical" />
 
         <!-- Arborescence prévue -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/carte_arborescence"
+            style="@style/Widget.CodeIDE.Card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_sm"
-            app:cardCornerRadius="@dimen/corner_radius_medium"
-            app:cardElevation="0dp">
+            android:checkable="false">
 
             <LinearLayout
                 android:layout_width="match_parent"

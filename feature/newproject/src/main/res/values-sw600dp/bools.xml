@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Tablette : l'aperçu en direct occupe un panneau latéral (deux colonnes). -->
+<resources>
+    <bool name="apercu_en_panneau">true</bool>
+</resources>
