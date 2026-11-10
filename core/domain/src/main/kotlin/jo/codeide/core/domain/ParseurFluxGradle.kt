@@ -83,6 +83,159 @@ public data class ResumeTachesGradle(
 )
 
 /**
+ * Une en-tête de tâche reconnue dans le TEXTE (`> Task :chemin [STATUT]`)
+ * — la frontière texte posée par Gradle lui-même (arbitrage Q6 : l'ÉVÉNEMENT
+ * fait foi sur le statut, l'ancre rattache les lignes suivantes).
+ *
+ * @property chemin chemin Gradle complet de la tâche.
+ * @property statutTexte statut fin porté par le suffixe, s'il y en a un.
+ */
+public data class EnTeteTacheGradle(public val chemin: String, public val statutTexte: StatutTacheGradle?)
+
+/**
+ * Les ANCRES du flux Gradle (lot L3) — les fonctions pures qui reconnaissent
+ * dans le texte brut les structures que le protocole Gradle imprime
+ * lui-même : en-têtes de tâches, sections du bloc d'échec, verdicts,
+ * résumé. UNE source de vérité partagée par [ParseurFluxGradle] (analyse
+ * ligne à ligne au fil du câble) et [RegroupementSorties] (dérivation
+ * regroupée sur le tampon) : deux consommateurs, ZÉRO divergence de
+ * reconnaissance (une ancre reconnue par l'un est reconnue par l'autre).
+ *
+ * Ce ne sont PAS des « devinettes de contenu » (Q6) : chaque ancre est un
+ * marqueur IMPRIMÉ par le protocole Gradle (mêmes constantes que le
+ * client tooling) — l'événement reste la source de vérité du statut.
+ */
+public object AncresFluxGradle {
+
+    /** En-tête `> Task :chemin [STATUT]` — la frontière TEXTE. */
+    public fun enTeteTache(texte: String): EnTeteTacheGradle? {
+        val correspondance = REGEX_TACHE.find(texte) ?: return null
+        return EnTeteTacheGradle(
+            chemin = correspondance.groupValues[1],
+            statutTexte = statutTexteDe(correspondance.groupValues[2]),
+        )
+    }
+
+    /** Le statut fin porté par le suffixe de l'en-tête `> Task :…`. */
+    public fun statutTexteDe(suffixe: String): StatutTacheGradle? = when (suffixe) {
+        "" -> StatutTacheGradle.EXECUTEE
+        "UP-TO-DATE" -> StatutTacheGradle.A_JOUR
+        "FROM-CACHE" -> StatutTacheGradle.DEPUIS_CACHE
+        "NO-SOURCE" -> StatutTacheGradle.SANS_SOURCE
+        "FAILED" -> StatutTacheGradle.ECHOUEE
+        "SKIPPED" -> StatutTacheGradle.SAUTEE
+        else -> null
+    }
+
+    /** Avance (ou persiste) la section du flux selon la ligne. */
+    public fun sectionDe(texte: String, precedente: SectionFluxGradle): SectionFluxGradle {
+        val t = texte.trim()
+        return when {
+            t.startsWith(PREFIXE_INTITULE) -> SectionFluxGradle.ECHEC_INTITULE
+            t.startsWith(PREFIXE_OU) -> SectionFluxGradle.ECHEC_OU
+            t.startsWith(PREFIXE_CAUSE) -> SectionFluxGradle.ECHEC_CAUSE
+            t.startsWith(PREFIXE_CONSEIL) -> SectionFluxGradle.ECHEC_CONSEIL
+            t.startsWith(PREFIXE_TRACE) -> SectionFluxGradle.ECHEC_TRACE
+            t.startsWith(PREFIXE_CAUSE_PAR) -> SectionFluxGradle.ECHEC_CAUSE
+            else -> precedente
+        }
+    }
+
+    /** Le texte est-il un verdict de fin de build ? */
+    public fun verdictDe(texte: String): VerdictGradle? {
+        val correspondance = REGEX_VERDICT.find(texte) ?: return null
+        val reussi = correspondance.groupValues[1] == "SUCCESSFUL"
+        val duree = dureeEnMs(correspondance.groupValues[2])
+        return VerdictGradle(reussi = reussi, dureeMs = duree)
+    }
+
+    /** Le texte est-il la ligne de résumé « N actionable tasks: … » ? */
+    public fun resumeDe(texte: String): ResumeTachesGradle? {
+        val correspondance = REGEX_RESUME.find(texte) ?: return null
+        var executees: Int? = null
+        var aJour: Int? = null
+        var depuisCache: Int? = null
+        var sansSource: Int? = null
+        var sautees: Int? = null
+        for (detail in REGEX_DETAIL.findAll(correspondance.groupValues[2])) {
+            val compte = detail.groupValues[1].toIntOrNull() ?: continue
+            when (detail.groupValues[2]) {
+                "executed" -> executees = compte
+                "up-to-date" -> aJour = compte
+                "from-cache" -> depuisCache = compte
+                "no-source" -> sansSource = compte
+                "skipped" -> sautees = compte
+            }
+        }
+        return ResumeTachesGradle(
+            actionnables = correspondance.groupValues[1].toIntOrNull(),
+            executees = executees,
+            aJour = aJour,
+            depuisCache = depuisCache,
+            sansSource = sansSource,
+            sautees = sautees,
+        )
+    }
+
+    /** Convertit une durée Gradle imprimée (« 2m 3s », « 954ms ») en ms. */
+    private fun dureeEnMs(imprime: String): Long? {
+        var totalMs: Long? = null
+        for (correspondance in REGEX_DUREE.findAll(imprime)) {
+            val nombre = correspondance.groupValues[1].toDoubleOrNull() ?: continue
+            val enMs = when (correspondance.groupValues[2]) {
+                UNITE_HEURE -> (nombre * MS_PAR_HEURE).toLong()
+                UNITE_MINUTE -> (nombre * MS_PAR_MINUTE).toLong()
+                UNITE_SECONDE -> (nombre * MS_PAR_SECONDE).toLong()
+                UNITE_MILLISECONDE -> nombre.toLong()
+                else -> null
+            }
+            if (enMs != null) {
+                totalMs = (totalMs ?: 0) + enMs
+            }
+        }
+        return totalMs
+    }
+
+    /** Suffixes de statut fin d'un en-tête de tâche (ordre du texte). */
+    private const val SUFFIXES_STATUT = "UP-TO-DATE|FROM-CACHE|NO-SOURCE|FAILED|SKIPPED"
+
+    /** En-tête `> Task :chemin [STATUT]` — la frontière TEXTE. */
+    private val REGEX_TACHE = Regex("^> Task (\\S+)(?: ($SUFFIXES_STATUT))?$")
+
+    /** Verdict de fin (`BUILD SUCCESSFUL in …` / `BUILD FAILED in …`). */
+    private val REGEX_VERDICT = Regex("^BUILD (SUCCESSFUL|FAILED) in (.+)$")
+
+    /** Résumé de fin (`N actionable tasks: …` — singulier compris). */
+    private val REGEX_RESUME = Regex("^(\\d+) actionable tasks?: (.+)$")
+
+    /** Détail du résumé (`7 executed`, `11 up-to-date`…). */
+    private val REGEX_DETAIL = Regex("(\\d+) (executed|up-to-date|from-cache|no-source|skipped)")
+
+    /** Durée imprimée par Gradle (« 42s », « 2m 3s », « 954ms », « 3.4s ») —
+     *  l'unité la plus longue d'abord pour que « ms » ne se coupe pas. */
+    private val REGEX_DUREE = Regex("(\\d+(?:\\.\\d+)?)\\s*(ms|s|m|h)")
+
+    /** Préfixes de section du bloc d'échec, dans l'ordre du texte. */
+    private const val PREFIXE_INTITULE = "FAILURE:"
+    private const val PREFIXE_OU = "* Where:"
+    private const val PREFIXE_CAUSE = "* What went wrong:"
+    private const val PREFIXE_CONSEIL = "* Try:"
+    private const val PREFIXE_TRACE = "* Exception is:"
+    private const val PREFIXE_CAUSE_PAR = "Caused by:"
+
+    /** Unités de durée imprimées par Gradle. */
+    private const val UNITE_HEURE = "h"
+    private const val UNITE_MINUTE = "m"
+    private const val UNITE_SECONDE = "s"
+    private const val UNITE_MILLISECONDE = "ms"
+
+    /** Conversions d'unités de durée. */
+    private const val MS_PAR_SECONDE = 1_000.0
+    private const val MS_PAR_MINUTE = 60_000.0
+    private const val MS_PAR_HEURE = 3_600_000.0
+}
+
+/**
  * Le résultat de l'analyse d'UNE ligne du flux Gradle par
  * [ParseurFluxGradle] — tout ce que le lecteur (L2) et la projection
  * regroupée (L3) ont besoin de savoir pour placer, colorer et épingler
@@ -167,21 +320,21 @@ public class ParseurFluxGradle {
         var verdict: VerdictGradle? = null
         var resume: ResumeTachesGradle? = null
 
-        val enTeteTache = REGEX_TACHE.find(texte)
-        if (enTeteTache != null) {
+        val enTete = AncresFluxGradle.enTeteTache(texte)
+        if (enTete != null) {
             // Frontière TEXTE : l'annonce rattache les lignes suivantes à
             // la rangée de la tâche (l'événement fait foi sur le statut).
-            annoncee = enTeteTache.groupValues[1]
+            annoncee = enTete.chemin
             tacheCourante = annoncee
-            statutTexte = statutTexteDe(enTeteTache.groupValues[2])
+            statutTexte = enTete.statutTexte
             sectionCourante = SectionFluxGradle.FLUX
         } else {
-            verdict = verifierVerdict(texte)
+            verdict = AncresFluxGradle.verdictDe(texte)
             if (verdict != null) {
                 sectionCourante = SectionFluxGradle.FLUX
             } else {
-                sectionCourante = avancerSection(texte)
-                resume = verifierResume(texte)
+                sectionCourante = AncresFluxGradle.sectionDe(texte, sectionCourante)
+                resume = AncresFluxGradle.resumeDe(texte)
             }
         }
 
@@ -218,128 +371,8 @@ public class ParseurFluxGradle {
         sectionCourante = SectionFluxGradle.FLUX
     }
 
-    /** Le statut fin porté par le suffixe de l'en-tête `> Task :…`. */
-    private fun statutTexteDe(suffixe: String): StatutTacheGradle? = when (suffixe) {
-        "" -> StatutTacheGradle.EXECUTEE
-        "UP-TO-DATE" -> StatutTacheGradle.A_JOUR
-        "FROM-CACHE" -> StatutTacheGradle.DEPUIS_CACHE
-        "NO-SOURCE" -> StatutTacheGradle.SANS_SOURCE
-        "FAILED" -> StatutTacheGradle.ECHOUEE
-        "SKIPPED" -> StatutTacheGradle.SAUTEE
-        else -> null
-    }
-
-    /** Le texte est-il un verdict de fin de build ? */
-    private fun verifierVerdict(texte: String): VerdictGradle? {
-        val correspondance = REGEX_VERDICT.find(texte) ?: return null
-        val reussi = correspondance.groupValues[1] == "SUCCESSFUL"
-        val duree = dureeEnMs(correspondance.groupValues[2])
-        return VerdictGradle(reussi = reussi, dureeMs = duree)
-    }
-
-    /** Le texte est-il la ligne de résumé « N actionable tasks: … » ? */
-    private fun verifierResume(texte: String): ResumeTachesGradle? {
-        val correspondance = REGEX_RESUME.find(texte) ?: return null
-        var executees: Int? = null
-        var aJour: Int? = null
-        var depuisCache: Int? = null
-        var sansSource: Int? = null
-        var sautees: Int? = null
-        for (detail in REGEX_DETAIL.findAll(correspondance.groupValues[2])) {
-            val compte = detail.groupValues[1].toIntOrNull() ?: continue
-            when (detail.groupValues[2]) {
-                "executed" -> executees = compte
-                "up-to-date" -> aJour = compte
-                "from-cache" -> depuisCache = compte
-                "no-source" -> sansSource = compte
-                "skipped" -> sautees = compte
-            }
-        }
-        return ResumeTachesGradle(
-            actionnables = correspondance.groupValues[1].toIntOrNull(),
-            executees = executees,
-            aJour = aJour,
-            depuisCache = depuisCache,
-            sansSource = sansSource,
-            sautees = sautees,
-        )
-    }
-
-    /** Avance (ou persiste) la section du flux selon la ligne. */
-    private fun avancerSection(texte: String): SectionFluxGradle {
-        val t = texte.trim()
-        return when {
-            t.startsWith(PREFIXE_INTITULE) -> SectionFluxGradle.ECHEC_INTITULE
-            t.startsWith(PREFIXE_OU) -> SectionFluxGradle.ECHEC_OU
-            t.startsWith(PREFIXE_CAUSE) -> SectionFluxGradle.ECHEC_CAUSE
-            t.startsWith(PREFIXE_CONSEIL) -> SectionFluxGradle.ECHEC_CONSEIL
-            t.startsWith(PREFIXE_TRACE) -> SectionFluxGradle.ECHEC_TRACE
-            t.startsWith(PREFIXE_CAUSE_PAR) -> SectionFluxGradle.ECHEC_CAUSE
-            else -> sectionCourante
-        }
-    }
-
     /** Extraction AU PASSAGE des positions cliquables de la ligne. */
     private fun extrairePositions(texte: String): List<PositionSource> = ExtrairePositionsGradle.extraire(texte)
-
-    /** Convertit une durée Gradle imprimée (« 2m 3s », « 954ms ») en ms. */
-    private fun dureeEnMs(imprime: String): Long? {
-        var totalMs: Long? = null
-        for (correspondance in REGEX_DUREE.findAll(imprime)) {
-            val nombre = correspondance.groupValues[1].toDoubleOrNull() ?: continue
-            val enMs = when (correspondance.groupValues[2]) {
-                UNITE_HEURE -> (nombre * MS_PAR_HEURE).toLong()
-                UNITE_MINUTE -> (nombre * MS_PAR_MINUTE).toLong()
-                UNITE_SECONDE -> (nombre * MS_PAR_SECONDE).toLong()
-                UNITE_MILLISECONDE -> nombre.toLong()
-                else -> null
-            }
-            if (enMs != null) {
-                totalMs = (totalMs ?: 0) + enMs
-            }
-        }
-        return totalMs
-    }
-
-    private companion object {
-        /** Suffixes de statut fin d'un en-tête de tâche (ordre du texte). */
-        private const val SUFFIXES_STATUT = "UP-TO-DATE|FROM-CACHE|NO-SOURCE|FAILED|SKIPPED"
-
-        /** En-tête `> Task :chemin [STATUT]` — la frontière TEXTE. */
-        private val REGEX_TACHE = Regex("^> Task (\\S+)(?: ($SUFFIXES_STATUT))?$")
-
-        /** Verdict de fin (`BUILD SUCCESSFUL in …` / `BUILD FAILED in …`). */
-        private val REGEX_VERDICT = Regex("^BUILD (SUCCESSFUL|FAILED) in (.+)$")
-
-        /** Résumé de fin (`N actionable tasks: …` — singulier compris). */
-        private val REGEX_RESUME = Regex("^(\\d+) actionable tasks?: (.+)$")
-
-        /** Détail du résumé (`7 executed`, `11 up-to-date`…). */
-        private val REGEX_DETAIL = Regex("(\\d+) (executed|up-to-date|from-cache|no-source|skipped)")
-
-        /** Durée imprimée par Gradle (« 42s », « 2m 3s », « 954ms », « 3.4s ») —
-         *  l'unité la plus longue d'abord pour que « ms » ne se coupe pas. */
-        private val REGEX_DUREE = Regex("(\\d+(?:\\.\\d+)?)\\s*(ms|s|m|h)")
-
-        /** Préfixes de section du bloc d'échec, dans l'ordre du texte. */
-        private const val PREFIXE_INTITULE = "FAILURE:"
-        private const val PREFIXE_OU = "* Where:"
-        private const val PREFIXE_CAUSE = "* What went wrong:"
-        private const val PREFIXE_CONSEIL = "* Try:"
-        private const val PREFIXE_TRACE = "* Exception is:"
-        private const val PREFIXE_CAUSE_PAR = "Caused by:"
-
-        /** Unités de durée imprimées par Gradle. */
-        private const val UNITE_HEURE = "h"
-        private const val UNITE_MINUTE = "m"
-        private const val UNITE_SECONDE = "s"
-        private const val UNITE_MILLISECONDE = "ms"
-
-        /** Conversions d'unités de durée. */
-        private const val MS_PAR_SECONDE = 1_000.0
-        private const val MS_PAR_MINUTE = 60_000.0
-        private const val MS_PAR_HEURE = 3_600_000.0
-    }
 }
 
 /**
