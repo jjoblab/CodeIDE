@@ -52,6 +52,7 @@
     <string name="sorties_banc_lignes_ingerees">%1$d lines ingested</string>
     <string name="sorties_banc_pertes">%1$d lost</string>
     <string name="sorties_banc_masquees">%1$d hidden</string>
+    <string name="sorties_banc_compteurs">%1$d lines ingested · %2$d lost · %3$d hidden</string>
     <string name="sorties_banc_avertissement">The bench outputs contain no personal data (deterministic fake content).</string>
     <string name="sorties_banc_sequence_s1">S1 — ingestion rate (100,000 lines)</string>
     <string name="sorties_banc_sequence_s2">S2 — full buffer (100,000 lines at once)</string>

@@ -82,6 +82,7 @@ modules déplacés portent leur dépôt d'origine entre crochets.
 | `feature:newproject` | Wizard de création de projet |
 | `feature:settings` | Paramètres |
 | `feature:diagnostics` | Visionneuse de journaux et rapports de plantage |
+| `feature:sorties` | Centre de sorties (ADR 0162) : lecteur unifié virtualisé (ADR 0159), contrôleurs, source factice et banc de mesure — branché sur une source factice uniquement ; feature:editor l'ouvre (banc au lot L2, lecteur aux lots L5b/L5d), feature:diagnostics deviendra consommatrice (L4) |
 | `feature:install` | Écran d'installation du bootstrap natif (état partagé du domaine, Terminal T3) |
 | `feature:terminal` | Écran plein écran du terminal : onglets de sessions, rendu unique, clavier étendu interne (ADR 0036) ; fragment Terminal du tiroir (rendu réel, split view — ADR 0053) |
 | `feature:ai` | **Mission IA** — tiroir IA (Chat / Agent / Historique), écrans Paramètres → IA, consentement, rendu Markdown ; EXCEPTION feature explicite `→ core:ai` (ADR 0122) ; fragment du tiroir au lot IA-3 |
@@ -127,7 +128,8 @@ toute dépendance non autorisée **fait échouer le build**.
 | `core:ui` | `core:model` | `core:domain`, `core:data`, features |
 | `feature:*` | `core:ui`, `core:domain`, `core:model` | `core:data`, sources de données, `core:crash`, `core:logging`, **autres features** |
 | `feature:terminal`, `feature:install` | `core:ui`, `core:domain`, `core:model`, `core:terminal-runtime` | — (exception v0.54.0, ADR 0083 : le journal live de l'installation est un mini TerminalView intégré) |
-| `feature:editor` | `core:ui`, `core:domain`, `core:model`, `lsp:host` (coordonnée codeide-lsp) | — (exception v0.100.0, mission « LSP Java » h2 : l'éditeur consomme l'HÔTE du langage comme feature:terminal consomme le runtime des sessions — SessionLsp, définition cel-lsp, état d'indexation ; cel-lsp reste interdit en dépendance DIRECTE, il arrive par l'`api` de l'hôte, ADR 0109) |
+| `feature:editor` | `core:ui`, `core:domain`, `core:model`, `lsp:host` (coordonnée codeide-lsp), `feature:sorties` (ADR 0162 : la carte « banc sorties » de la configuration tooling ouvre l'écran de diagnostic — lot L2 ; le panneau rebranchera le lecteur aux lots L5b/L5d) | — (exception v0.100.0, mission « LSP Java » h2 : l'éditeur consomme l'HÔTE du langage comme feature:terminal consomme le runtime des sessions — SessionLsp, définition cel-lsp, état d'indexation ; cel-lsp reste interdit en dépendance DIRECTE, il arrive par l'`api` de l'hôte, ADR 0109) |
+| `feature:sorties` | `core:ui`, `core:domain`, `core:model` (trio feature standard — ADR 0162) | — (aucune arête feature:sorties → autre feature ; Logcat/Journal migrés au lot L4) |
 | `core:ai` | `core:model`, `core:domain` | Android, réseau, tout autre module (module pur — ADR 0122) |
 | `ai:providers` | `core:ai`, `core:model`, `core:domain` | Android, bibliothèque réseau tierce (`HttpURLConnection` JDK — ADR 0123) |
 | `core:ai-storage` | `core:ai`, `core:model`, `core:domain`, `core:datastore` (+ `core:database` lot IA-6) | features, réseau, `core:ui` |

@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Centre de sorties (ADR 0162, lot L2) : le lecteur unifié, branché sur
      une source factice uniquement. L'écran de diagnostic « banc sorties »
-     (mesure propriétaire S1/S2/S6, docs/SORTIES_BANC_MESURE.md) est posé
-     dans le lot L2 avec son activité non exportée. -->
-<manifest />
+     (mesure propriétaire S1/S2/S6, docs/SORTIES_BANC_MESURE.md — PV
+     livrables de L2, ADR 0159) : activité séparée, JAMAIS exposée hors de
+     l'application, ouverte par la carte de diagnostic de la configuration
+     tooling (feature:editor — arête ADR 0162, patron openPreview). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:supportsRtl="true">
+        <activity
+            android:name="jo.codeide.feature.sorties.BancSortiesActivity"
+            android:exported="false"
+            android:label="@string/sorties_banc_titre"
+            android:theme="@style/Theme.CodeIDE" />
+    </application>
+
+</manifest>

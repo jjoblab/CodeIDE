@@ -166,6 +166,10 @@ class ModuleRulesPlugin : Plugin<Project> {
         // (LspSettingsStore, hors AppSettings — même exception que
         // :feature:preview → SettingsDataStore en PE7c ; l'écran des
         // réglages vivra côté feature:settings).
+        // Centre de sorties (ADR 0162) : + :feature:sorties — le panneau
+        // ouvre l'écran de diagnostic « banc sorties » (lot L2) et
+        // rebranchera le lecteur aux lots L5b/L5d ; l'arête réciproque
+        // est interdite (aucune feature:sorties → autre feature).
         chemin == ":feature:editor" ->
             setOf(
                 ":core:ui",
@@ -175,6 +179,7 @@ class ModuleRulesPlugin : Plugin<Project> {
                 ":core:datastore",
                 ":preview:xml",
                 ":preview:compose",
+                ":feature:sorties",
             )
         // Previews PE6-0 (maquette docs/mockups/apercu-xml.html) : l'écran
         // d'aperçu dédié consomme le moteur :preview:xml (le moteur de

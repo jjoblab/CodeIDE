@@ -481,6 +481,9 @@
     <string name="editor_config_niveau_journal">Server log level</string>
     <string name="editor_config_niveau_journal_aide">INFO, WARN or ERROR — next server lifetime</string>
     <string name="editor_config_redemarrer">Restart the build server</string>
+    <string name="editor_config_banc_sorties">Outputs bench (diagnostic)</string>
+    <string name="editor_config_banc_sorties_desc">Owner-side S1/S2/S6 measurement of the Centre de sorties reader (docs/SORTIES_BANC_MESURE.md) — deterministic fake source, no personal data, zero cost unless opened.</string>
+    <string name="editor_config_banc_sorties_bouton">Open the bench</string>
     <string name="editor_config_redemarrer_desc">Applies “next lifetime” settings at once (log level, instrumentation, bench)</string>
     <string name="editor_config_redemarrer_bouton">Restart</string>
     <string name="editor_config_etat">Orchestrator</string>

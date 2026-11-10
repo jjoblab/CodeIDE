@@ -52,6 +52,7 @@
     <string name="sorties_banc_lignes_ingerees">%1$d lignes ingérées</string>
     <string name="sorties_banc_pertes">%1$d pertes</string>
     <string name="sorties_banc_masquees">%1$d masquées</string>
+    <string name="sorties_banc_compteurs">%1$d lignes ingérées · %2$d pertes · %3$d masquées</string>
     <string name="sorties_banc_avertissement">Les sorties du banc ne contiennent aucune donnée personnelle (contenu déterministe factice).</string>
     <string name="sorties_banc_sequence_s1">S1 — débit d\'ingestion (100 000 lignes)</string>
     <string name="sorties_banc_sequence_s2">S2 — tampon plein (100 000 lignes d\'un bloc)</string>
