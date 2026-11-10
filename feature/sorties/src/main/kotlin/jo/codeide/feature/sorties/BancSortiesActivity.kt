@@ -3,7 +3,6 @@ package jo.codeide.feature.sorties
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -46,7 +45,13 @@ public class BancSortiesActivity : AppCompatActivity() {
     @Inject
     lateinit var registre: RegistreExecutions
 
-    private val viewModel: LecteurSortiesViewModel by viewModels()
+    /** Le lecteur hébergé (famille GRADLE — banc des séquences) : le
+     *  ViewModel du lecteur est scopé AU FRAGMENT (lot L4), le banc le
+     *  rejoint par le fragment (les compteurs, la consultation). */
+    private fun lecteurHote(): FragmentLecteurSorties? {
+        supportFragmentManager.executePendingTransactions()
+        return supportFragmentManager.findFragmentById(R.id.conteneur_lecteur) as? FragmentLecteurSorties
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +62,7 @@ public class BancSortiesActivity : AppCompatActivity() {
 
         if (supportFragmentManager.findFragmentById(R.id.conteneur_lecteur) == null) {
             supportFragmentManager.commit {
-                replace(R.id.conteneur_lecteur, FragmentLecteurSorties())
+                replace(R.id.conteneur_lecteur, FragmentLecteurSorties.nouvelle(FamilleSorties.GRADLE))
             }
         }
 
@@ -85,13 +90,16 @@ public class BancSortiesActivity : AppCompatActivity() {
             rejouerDerniere()
         }
 
-        viewModel.projection.collectWithLifecycle(this) { projection ->
-            findViewById<MaterialTextView>(R.id.compteurs_banc).text = getString(
-                R.string.sorties_banc_compteurs,
-                projection.tailleTampon,
-                projection.pertes,
-                projection.masquees,
-            )
+        // Les compteurs du lecteur hébergé (la vérité du banc § 4.2).
+        lifecycleScope.launch {
+            lecteurHote()?.viewModel?.projection?.collectWithLifecycle(this@BancSortiesActivity) { projection ->
+                findViewById<MaterialTextView>(R.id.compteurs_banc).text = getString(
+                    R.string.sorties_banc_compteurs,
+                    projection.tailleTampon,
+                    projection.pertes,
+                    projection.masquees,
+                )
+            }
         }
 
         // Le banc est armé par l'EXTRA de lancement (carte de diagnostic)
@@ -112,10 +120,12 @@ public class BancSortiesActivity : AppCompatActivity() {
         SequenceBanc.entries.firstOrNull { getString(libelleDe(it)) == libelle }
             ?: SequenceBanc.S1_DEBIT_INGESTION
 
-    /** Arme la séquence (la source commence à émettre). */
+    /** Arme la séquence (la source commence à émettre) — le lecteur est
+     *  en consultation (rejeu) : retour au direct (no-op si le lecteur
+     *  n'existe pas encore — un lecteur neuf EST au direct). */
     private fun armer(sequence: SequenceBanc) {
         source.desarmer()
-        viewModel.revenirAuDirect()
+        lecteurHote()?.viewModel?.revenirAuDirect()
         source.armer(sequence)
     }
 
@@ -133,7 +143,7 @@ public class BancSortiesActivity : AppCompatActivity() {
                 return@launch
             }
             source.desarmer()
-            viewModel.ouvrirExecution(registre.ouvrirLignes(recente.id), recente)
+            lecteurHote()?.viewModel?.ouvrirExecution(registre.ouvrirLignes(recente.id), recente)
             Retour.snackbar(
                 findViewById<MaterialTextView>(R.id.compteurs_banc),
                 getString(R.string.sorties_banc_rejoue, recente.id),

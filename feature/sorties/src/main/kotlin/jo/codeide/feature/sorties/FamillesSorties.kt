@@ -44,6 +44,11 @@ public interface FabriqueFluxSorties {
     public fun flux(famille: FamilleSorties): FluxSorties
 }
 
+/** La clé de l'argument du fragment hôte ([FragmentLecteurSorties]) qui
+ *  porte la famille au ViewModel (via `SavedStateHandle`, lot L4) —
+ *  survit à la rotation (les arguments du fragment persistent). */
+internal const val CLE_FAMILLE = "famille_sorties"
+
 /** Fenêtre du tampon pour la famille LOGCAT — parité exacte avec le
  *  miroir d'affichage de l'ancien onglet (`CAPACITE_TAMPON`, R3) et le
  *  tampon du pont (`CAPACITE_LIGNES`). */

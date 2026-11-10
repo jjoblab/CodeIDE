@@ -7,6 +7,7 @@ import jo.codeide.core.testing.MainDispatcherRule
 import jo.codeide.core.testing.TestDispatcherProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -22,6 +23,10 @@ import java.util.concurrent.atomic.AtomicLong
 private class FluxDeTest(private val fenetre: Int = FENETRE_DEFAUT) : FluxSorties {
     val lots = MutableSharedFlow<List<LigneSortie>>(extraBufferCapacity = 64)
 
+    /** Le compteur de génération — le test l'incrémente pour simuler un
+     *  changement de source derrière le port (lot L4). */
+    val generationInterne = MutableStateFlow(0)
+
     override fun capaciteFenetre(): Int = fenetre
 
     override fun lots(): kotlinx.coroutines.flow.Flow<List<LigneSortie>> = lots
@@ -32,8 +37,12 @@ private class FluxDeTest(private val fenetre: Int = FENETRE_DEFAUT) : FluxSortie
     override val etatExecution: kotlinx.coroutines.flow.StateFlow<jo.codeide.core.domain.EtatExecutionGradle?> =
         kotlinx.coroutines.flow.MutableStateFlow(null)
 
-    override val generation: kotlinx.coroutines.flow.StateFlow<Int> =
-        kotlinx.coroutines.flow.MutableStateFlow(0)
+    override val generation: kotlinx.coroutines.flow.StateFlow<Int> = generationInterne
+}
+
+/** La fabrique de test : UNE famille, LE flux du test. */
+private class FabriqueDeTest(private val flux: FluxSorties) : FabriqueFluxSorties {
+    override fun flux(famille: FamilleSorties): FluxSorties = flux
 }
 
 /**
@@ -55,7 +64,12 @@ class LecteurSortiesViewModelTest {
     }
 
     private fun viewModel(flux: FluxDeTest = FluxDeTest()): LecteurSortiesViewModel =
-        LecteurSortiesViewModel(flux, TestDispatcherProvider(regleMain.dispatcher), horloge)
+        LecteurSortiesViewModel(
+            FabriqueDeTest(flux),
+            TestDispatcherProvider(regleMain.dispatcher),
+            horloge,
+            androidx.lifecycle.SavedStateHandle(),
+        )
 
     private fun ligne(
         message: String,
@@ -228,6 +242,49 @@ class LecteurSortiesViewModelTest {
         viewModel.selection.quitter()
         advanceUntilIdle()
         assertNull(viewModel.selection.texteDe(viewModel.projection.value.rangees))
+    }
+
+    @Test
+    fun `la famille vient de l argument et le mode regroupé n est proposé que pour GRADLE`() = runTest {
+        val handleLogcat = androidx.lifecycle.SavedStateHandle(mapOf(CLE_FAMILLE to "LOGCAT"))
+        val logcat = LecteurSortiesViewModel(
+            FabriqueDeTest(FluxDeTest(fenetre = FENETRE_LOGCAT)),
+            TestDispatcherProvider(regleMain.dispatcher),
+            horloge,
+            handleLogcat,
+        )
+        assertEquals(FamilleSorties.LOGCAT, logcat.famille)
+        assertEquals(FENETRE_LOGCAT, logcat.capaciteFenetre)
+        assertFalse(logcat.modeDisponible)
+        // Refus honnête : la bascule ne fait RIEN hors GRADLE.
+        logcat.definirMode(ModeLecture.REGROUPE)
+        advanceUntilIdle()
+        assertEquals(ModeLecture.BRUT, logcat.mode.value)
+
+        val gradle = viewModel()
+        assertEquals(FamilleSorties.GRADLE, gradle.famille)
+        assertTrue(gradle.modeDisponible)
+    }
+
+    @Test
+    fun `un changement de generation vide l état vivant — jamais deux sources mélangées`() = runTest {
+        val flux = FluxDeTest()
+        val viewModel = viewModel(flux)
+        advanceUntilIdle()
+        flux.lots.tryEmit(listOf(ligne("première"), ligne("seconde")))
+        advanceUntilIdle()
+        assertEquals(2, viewModel.projection.value.rangees.size)
+
+        // Changement de source derrière le port (session Logcat, banc) :
+        // l'état vivant est vidé — la première ligne de la nouvelle source
+        // ne côtoie jamais l'ancienne.
+        flux.generationInterne.value += 1
+        advanceUntilIdle()
+        assertEquals(ProjectionLecteur.VIDE, viewModel.projection.value)
+
+        flux.lots.tryEmit(listOf(ligne("nouvelle source")))
+        advanceUntilIdle()
+        assertEquals(1, viewModel.projection.value.rangees.size)
     }
 
     private companion object {

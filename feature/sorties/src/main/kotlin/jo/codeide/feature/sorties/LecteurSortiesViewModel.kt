@@ -1,5 +1,6 @@
 package jo.codeide.feature.sorties
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -100,11 +101,16 @@ internal data class ProjectionLecteur(
  * la source) et commandes (recherche, filtre, pause, effacement) — elles
  * partagent le tampon.
  *
- * Une instance par famille de source (la source injectée porte sa
- * capacité de fenêtre) ; le panneau compact et l'éditeur dédié liront le
- * MÊME état (une seule source d'état — critère § 10.1.11, lot L5).
+ * Une instance par famille de source (lot L4 — [FabriqueFluxSorties] lui
+ * livre le flux de SA famille, portée par l'argument du fragment hôte
+ * via [SavedStateHandle]) ; deux lecteurs simultanés (onglet Logcat et
+ * onglet Journal du même panneau, banc) ne partagent RIEN — deux flux
+ * séparés, deux tampons séparés. Au sein d'UNE famille, un changement de
+ * source (session Logcat sélectionnée, banc armé) est signalé par la
+ * GÉNÉRATION du flux : l'état vivant est vidé — jamais un mélange de
+ * deux sources dans un même tampon.
  *
- * @property flux la source de lots (routage banc ↔ câble réel, lot L3).
+ * @property famille la famille de source de CE lecteur (défaut GRADLE).
  * @property dispatchers dispatchers injectés (règle 5).
  * @property horloge horloge injectée pour l'horodatage à l'ingestion.
  */
@@ -113,10 +119,28 @@ internal data class ProjectionLecteur(
 internal class LecteurSortiesViewModel
 @Inject
 constructor(
-    private val flux: FluxSorties,
+    fabrique: FabriqueFluxSorties,
     private val dispatchers: DispatcherProvider,
     horloge: TimeProvider,
+    savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
+    /** La famille de CE lecteur — l'argument `famille_sorties` du
+     *  fragment hôte (survit à la rotation), défaut GRADLE (banc et
+     *  futures surfaces Gradle). */
+    val famille: FamilleSorties = savedStateHandle.get<String>(CLE_FAMILLE)
+        ?.let { nom -> FamilleSorties.entries.firstOrNull { it.name == nom } }
+        ?: FamilleSorties.GRADLE
+
+    /** Le flux de la famille — le SEUL câblage que le lecteur connaît. */
+    private val flux: FluxSorties = fabrique.flux(famille)
+
+    /** Le mode REGROUPÉ n'est proposé que pour la famille GRADLE (la
+     *  dérivation regroupée Logcat ×N et Journal est un ajout planifié) —
+     *  l'UI cache la bascule ailleurs : honnêteté, jamais une bascule qui
+     *  prétend regrouper sans le faire. */
+    val modeDisponible: Boolean
+        get() = famille == FamilleSorties.GRADLE
+
     private val tampon = TamponSorties(flux.capaciteFenetre(), horloge)
     private val verrou = Mutex()
 
@@ -227,6 +251,23 @@ constructor(
     init {
         viewModelScope.launch(dispatchers.io) {
             flux.lots().collect { lot -> ingerer(lot) }
+        }
+        // Le signal de RESET de la source (lot L4) : au changement de
+        // génération (session Logcat sélectionnée, banc armé/désarmé),
+        // l'état vivant est vidé — jamais un mélange de deux sources.
+        viewModelScope.launch(dispatchers.io) {
+            var generationConnue = flux.generation.value
+            flux.generation.collect { generation ->
+                if (generation != generationConnue) {
+                    generationConnue = generation
+                    verrou.withLock {
+                        consultationActive = false
+                        _enConsultation.value = false
+                        etatConsultationInterne.value = null
+                        viderEtatVivant()
+                    }
+                }
+            }
         }
     }
 
@@ -445,6 +486,9 @@ constructor(
      * retour au brut repart du chemin L2 sans coût.
      */
     public fun definirMode(mode: ModeLecture) {
+        // Refus honnête hors famille GRADLE (la bascule est cachée dans
+        // l'UI — la dérivation regroupée Logcat ×N est un ajout planifié).
+        if (!modeDisponible) return
         viewModelScope.launch(dispatchers.default) {
             verrou.withLock {
                 if (modeActuel == mode) return@withLock

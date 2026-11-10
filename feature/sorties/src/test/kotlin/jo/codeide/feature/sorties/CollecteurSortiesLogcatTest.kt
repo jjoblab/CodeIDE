@@ -72,6 +72,20 @@ class CollecteurSortiesLogcatTest {
     private fun collecteur(): CollecteurSortiesLogcat =
         CollecteurSortiesLogcat(pont, archive, TestDispatcherProvider(regleMain.dispatcher))
 
+    /** Le lecteur branché au flux logcat (famille par fabrique de test). */
+    private fun lecteur(flux: FluxSortiesLogcat): LecteurSortiesViewModel =
+        LecteurSortiesViewModel(
+            FabriqueDeTest(flux),
+            TestDispatcherProvider(regleMain.dispatcher),
+            horloge,
+            androidx.lifecycle.SavedStateHandle(),
+        )
+
+    /** La fabrique de test : UNE famille, LE flux du test. */
+    private class FabriqueDeTest(private val flux: FluxSorties) : FabriqueFluxSorties {
+        override fun flux(famille: FamilleSorties): FluxSorties = flux
+    }
+
     private fun ligne(
         message: String,
         niveau: NiveauJournal = NiveauJournal.INFO,
@@ -190,8 +204,7 @@ class CollecteurSortiesLogcatTest {
         pont.ouvrir("com.exemple.app", 4321)
         val collecteur = collecteur()
         val flux = FluxSortiesLogcat(collecteur)
-        val viewModel =
-            LecteurSortiesViewModel(flux, TestDispatcherProvider(regleMain.dispatcher), horloge)
+        val viewModel = lecteur(flux)
         avancer()
         pont.pousser("com.exemple.app", 4321, listOf(ligne("ancienne")))
         avancer()
@@ -214,8 +227,7 @@ class CollecteurSortiesLogcatTest {
         pont.ouvrir("com.exemple.app", 4321)
         val collecteur = collecteur()
         val flux = FluxSortiesLogcat(collecteur)
-        val viewModel =
-            LecteurSortiesViewModel(flux, TestDispatcherProvider(regleMain.dispatcher), horloge)
+        val viewModel = lecteur(flux)
         avancer()
         pont.pousser(
             "com.exemple.app",
@@ -247,8 +259,7 @@ class CollecteurSortiesLogcatTest {
         pont.ouvrir("com.exemple.app", 4321)
         val collecteur = collecteur()
         val flux = FluxSortiesLogcat(collecteur)
-        val viewModel =
-            LecteurSortiesViewModel(flux, TestDispatcherProvider(regleMain.dispatcher), horloge)
+        val viewModel = lecteur(flux)
         avancer()
         pont.pousser(
             "com.exemple.app",
