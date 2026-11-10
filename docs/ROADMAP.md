@@ -1,14 +1,15 @@
 # CodeIDE — Roadmap
 
-> Dernière mise à jour : 2026-11-09
-> Version courante : **0.208.0** (source de vérité : `version.properties`)
+> Dernière mise à jour : 2026-11-11
+> Version courante : **0.214.0** (source de vérité : `version.properties`)
 > Historique complet des 235 livraisons : `CHANGELOG.md`. Cette feuille
 > décrit l'état réel courant et ce qui reste — les phases achevées sont
 > gardées comme record (voir aussi `docs/archive/`).
 
-## Chantier ouvert — Refonte du générateur de projets et des écrans « Nouveau projet »
+## Chantier livré — Refonte du générateur de projets et des écrans « Nouveau projet »
 
-Plan opérationnel : `docs/NEWPROJECT_GENERATEUR_PLAN.md` · ADR **0153**-**0158** ·
+Plan opérationnel (consommé) : `docs/consommes/NEWPROJECT_GENERATEUR_PLAN.md` ·
+ADR **0153**-**0158** ·
 maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 
 | Lot | Contenu | État |
@@ -17,11 +18,11 @@ maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 | **L1** | Socle moteur : schéma étendu rétro-compatible, évaluation des contraintes (`EvaluateTemplateFormUseCase`), revalidation (`CreateProjectUseCase`), libellés de choix déclaratifs, groupes, `appNameFromNom` | ✅ v0.209.0 |
 | **L2** | Outil et matrice : `lister`/`generer`/`matrice`/`valider-manifestes`/`determinisme`, script refondu, doc outil | ✅ v0.210.0 |
 | **L3** | Modèles hors Android (spring-boot langage/build/JDK + câblage JPA/Security/Actuator/Validation, JVM, KMP, plugin) + mutualisation `_commun/` | ✅ v0.211.0 (+ correctif packaging v0.211.1) |
-| **L4** | Modèles Android (câblage complet des 5 dépendances, targetSdk ≤ 36, icône/thème/backup, appName dérivé) | ⏳ |
-| **L5** | Écrans « Nouveau projet » : parcours adaptatif (L5a socle, L5b étapes communes, L5c étapes par famille, L5d aperçu + tablette + mode rapide) | ⏳ |
-| **L6** | Finitions : dette `checkUiTokens` du module réduite, docs, `docs/consommes/` | ⏳ |
+| **L4** | Modèles Android (câblage complet des 5 dépendances, targetSdk ≤ 36, icône/thème/backup, appName dérivé) | ✅ v0.212.0 |
+| **L5** | Écrans « Nouveau projet » : parcours adaptatif (L5a socle, L5b étapes communes, L5c étapes par famille, L5d aperçu + tablette + mode rapide) | ✅ v0.213.0 |
+| **L6** | Finitions : dette `checkUiTokens` du module soldée (baseline 24 → 19), ADR 0021 amended consigné, doc module, plan consommé | ✅ v0.214.0 |
 
-## État actuel (v0.211.1 — correctif packaging du lot L3 : `_commun/` emballé, CI verte)
+## État actuel (v0.214.0 — chantier générateur et écrans Nouveau projet livré, L0-L6)
 
 ### Fonctionnel ✅
 - **Tooling Gradle** : sync d'ouverture, étapes dynamiques progressives, sync suivante immédiate (empreinte SHA-256 + revalidation silencieuse), chip d'action unique, stats classpath par module — moteur déplacé dans le dépôt frère [`codeide-tooling`](https://github.com/jjoblab/codeide-tooling) (v1.0.0)
@@ -29,7 +30,7 @@ maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 - **Dépôts frères en binaire** (v0.134.41 → v0.134.44) : séparation des dépôts, publication de 18 paquets publics sur GitHub Packages, consommation **binaire par défaut** (mavenLocal puis Packages, `scripts/bump-frere.sh`), composite en opt-in `-Pfreres.sources`, CI sans clone + garde-fou composite nocturne
 - **Console hybride** (v0.42.0, ADR 0074) : zone structurée + zone texte — un build de 725 ms s'affiche en < 1 s
 - **Exécution** : bouton Run (détecte `fun main()`), support stdin/readln, installer/lancer un APK sans adb (ADR 0102)
-- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable — **refonte en cours** (chantier ci-dessus, ADR 0153–0158 — L3 : spring-boot 2.0.0 bilingue/bi-build câblé, `_commun/` mutualisé, schéma `wizard` déclaré)
+- **Templates & wizard** (v0.43.0 → v0.45.0, ADR 0075–0077) : 7 familles de modèles vérifiés par 37 combinaisons réelles, rendu 100 % dynamique, aperçu renommable — **refonte TERMINÉE** (chantier ci-dessus, ADR 0153–0158, L0-L6 livrés v0.208.0 → v0.214.0 : règles déclaratives, parcours adaptatif, rendu ADR 0154, aperçu en direct, dette UI du module soldée)
 - **Installation** (Phase R, E1–E6, v0.55.0 → v0.65.0) : JDK 17/21 + outils Android installés sur l'appareil, orchestration quatre phases, migration des installations
 - **Terminal** (ADR 0035/0036/0053) : Termux, sessions, tiroir, pont SAF/FUSE, cartes d'aperçu
 - **Historique local** (ADR 0104–0106) : blobs, index atomique, étiquettes, capture de ports

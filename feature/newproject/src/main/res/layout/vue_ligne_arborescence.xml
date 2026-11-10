@@ -40,6 +40,7 @@
 
     <ImageButton
         android:id="@+id/bouton_renommer"
+        style="@style/Widget.CodeIDE.Button.Icon"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

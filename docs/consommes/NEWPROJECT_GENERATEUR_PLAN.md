@@ -279,6 +279,19 @@ preuve (règle 9, §6 du prompt : aucun gonflement gratuit).
 > (cliquet `-Pui.baseline.ratchet`), doc module/ADR 0021 amended consigné,
 > `docs/consommes/`. Captures d'écran du parcours : à produire à la
 > recette sur appareil (recette manuelle W19-W31).
+>
+> **Statut final 2026-11-11 (lot L6 livré, v0.214.0)** : dette
+> `checkUiTokens` du module **soldée** — 6 occurrences corrigées (2× R4
+> `etape_fichiers.xml` → `Widget.CodeIDE.Button.Outlined`, 1× R5
+> `vue_ligne_arborescence.xml` → `Widget.CodeIDE.Button.Icon`, 3× R7
+> rayon/élévation → jeton `@dimen/elevation_aucune`), les 5 entrées du
+> module sortent de la baseline du cliquet (24 → 19 fichiers) ;
+> ADR 0021 amended consigné (note d'amende ADR 0154 en fin d'ADR) ;
+> `feature/newproject/Module.md` à jour du parcours adaptatif. Le
+> chantier **L0-L6 est terminé** : conformément à la règle §8
+> d'`AGENTS.md`, ce document rejoint `docs/consommes/` et ne se modifie
+> plus. Seule la recette manuelle W19-W31 (captures d'écran du parcours
+> sur appareil) reste au propriétaire, hors lots.
 
 - **Écart d'environnement (signalé, sans contournement)** : cet environnement
   de travail n'a ni JDK 17, ni Maven, ni SDK Android, ni le clone frère

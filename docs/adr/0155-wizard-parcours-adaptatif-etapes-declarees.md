@@ -129,7 +129,7 @@ personnalisé des étapes de modèle.
 ## Conséquences
 
 - Parcours attendus (détail et schémas par famille dans
-  `docs/NEWPROJECT_GENERATEUR_PLAN.md` et maquettes `docs/mockups/ui/`) :
+  `docs/consommes/NEWPROJECT_GENERATEUR_PLAN.md` et maquettes `docs/mockups/ui/`) :
   3 étapes pour `gradle-plugin`, 6-7 pour `android-app` riche.
 - `ETAPES_WIZARD` supprimée : l'état dérive la liste ; « l'étape N sur M »
   reste exact quand M change.

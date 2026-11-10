@@ -1531,7 +1531,7 @@ conflit, la plus récente prime.
       de production)** : 25 constats du prompt re-vérifiés sur le code au
       commit `d9b0c615` avec preuves fichier:ligne (24 confirmés, 1
       partiel — B3 ; nuances B1/B2.1/C4 documentées) ; plan
-      d'exécution `docs/NEWPROJECT_GENERATEUR_PLAN.md` (tableaux de
+      d'exécution `docs/consommes/NEWPROJECT_GENERATEUR_PLAN.md` (tableaux de
       cohérence, parcours adaptatif par famille, choix « évolution
       encadrée » de `feature/newproject`, 16 paramètres/extras chiffrés,
       réponses aux 9 questions, lots L1-L6) ; **ADR 0153** (contraintes
@@ -2605,14 +2605,17 @@ conflit, la plus récente prime.
       passe avec] ; 2 tests AppliquerApparenceTest (core:ui) + 1
       ApparenceIntegrationTest (app), chaîne verte sur les modules
       touchés (core:ui, app, feature:settings), 69 tests app/0 échec.
-- Prochaine : chantier « Refonte du générateur de projets et des écrans
-      Nouveau projet » — lots L0 (v0.208.0, conception), L1 (v0.209.0,
-      socle moteur), L2 (v0.210.0, outil et matrice — ADR 0157) et L3
-      (v0.211.0 + correctif packaging v0.211.1 — ADR 0155/0156) livrés,
-      en attente du « GO L4 » (modèles Android — migration `_commun/` des
-      deux modèles restants, câblage des cinq dépendances, targetSdk ≤ 36).
+- Chantier « Refonte du générateur de projets et des écrans
+      Nouveau projet » TERMINÉ : lots L0 (v0.208.0, conception), L1
+      (v0.209.0, socle moteur), L2 (v0.210.0, outil et matrice — ADR
+      0157), L3 (v0.211.0 + correctif packaging v0.211.1 — ADR
+      0155/0156), L4 (v0.212.0, modèles Android), L5 (v0.213.0, écrans
+      et parcours adaptatif) et L6 (v0.214.0, finitions — dette
+      `checkUiTokens` du module soldée, ADR 0021 amended consigné, plan
+      consommé) livrés ; plan consommé en
+      `docs/consommes/NEWPROJECT_GENERATEUR_PLAN.md`.
       Missions antérieures : lot L0
-      (v0.208.0, ADR 0153-0158, docs/NEWPROJECT_GENERATEUR_PLAN.md) ;
+      (v0.208.0, ADR 0153-0158, docs/consommes/NEWPROJECT_GENERATEUR_PLAN.md) ;
       Phase 2 du diagnostic
       « retard d'affichage » côté app (v0.207.0) ; la refonte du parcours
       d'installation (phase R, E1-E6) est TERMINÉE (v0.55.0 → v0.60.0) ;

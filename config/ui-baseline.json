@@ -143,51 +143,6 @@
         "R6": 0,
         "R7": 0
     },
-    "feature/newproject/src/main/res/layout/etape_fichiers.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 2,
-        "R5": 0,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/newproject/src/main/res/layout/item_modele.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 1
-    },
-    "feature/newproject/src/main/res/layout/vue_carte_radio.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 1
-    },
-    "feature/newproject/src/main/res/layout/vue_ligne_arborescence.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 1,
-        "R6": 0,
-        "R7": 0
-    },
-    "feature/newproject/src/main/res/layout/vue_tuile_choix.xml": {
-        "R1": 0,
-        "R2": 0,
-        "R3": 0,
-        "R4": 0,
-        "R5": 0,
-        "R6": 0,
-        "R7": 1
-    },
     "feature/onboarding/src/main/res/layout/page_profil.xml": {
         "R1": 0,
         "R2": 0,

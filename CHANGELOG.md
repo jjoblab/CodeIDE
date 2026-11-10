@@ -1,5 +1,65 @@
 # Journal des modifications
 
+## [0.214.0] – 2026-11-11
+
+Lot **L6 — finitions** du chantier « Refonte du générateur de projets
+et des écrans Nouveau projet » : dernier lot — la dette UI du module
+`feature/newproject` est **soldée** (cliquet `checkUiTokens`, ADR 0127
+§5), l'amende de l'ADR 0021 est consignée, la documentation du module
+reflète le parcours adaptatif livré en L5, et le plan d'exécution
+rejoint `docs/consommes/` (règle §8 d'`AGENTS.md`). Le chantier
+L0-L6 est terminé (v0.208.0 → v0.214.0).
+
+### Corrigé
+
+- **Dette `checkUiTokens` du module soldée** : les 6 occurrences
+  plafonnées dans la baseline disparaissent — 2× R4
+  (`etape_fichiers.xml`, boutons langue : `?attr/materialButtonOutlinedStyle`
+  → `@style/Widget.CodeIDE.Button.Outlined`), 1× R5
+  (`vue_ligne_arborescence.xml` : `<ImageButton` nu →
+  `@style/Widget.CodeIDE.Button.Icon`), 3× R7 (`item_modele.xml`,
+  `vue_carte_radio.xml`, `vue_tuile_choix.xml` : `app:cardElevation="0dp"`
+  → jeton `@dimen/elevation_aucune`). Les 5 entrées du module sortent de
+  `config/ui-baseline.json` (24 → 19 fichiers) ; aucun dépassement
+  ailleurs (constat recalculé par un port hors Gradle du moteur R1-R7 :
+  36 occurrences restantes sous baseline, toutes hors
+  `feature/newproject`).
+
+### Modifié
+
+- **ADR 0021 amendé et consigné** : note d'amende en fin d'ADR — le
+  registre de présentation côté UI (composants nommés
+  `COMPOSANTS_NOMMÉS`, libellés de choix codés, `libelleValeur`) est
+  supprimé au profit du déclaratif ADR 0154 (`rendu` →
+  `RenduParametre`, clés i18n de choix → `ChoixEvalue`) ; la partie
+  « raisons typées » (`RaisonValidation`) reste inchangée.
+- **`feature/newproject/Module.md`** : décrit désormais le parcours
+  adaptatif (ADR 0155), le contrat d'affichage déclaratif (ADR 0154),
+  les contraintes (ADR 0153), l'aperçu en direct et le mode rapide ;
+  historique des lots rappelé jusqu'à L6.
+- **`docs/ROADMAP.md`** : chantier marqué livré (L0-L6 ✅, v0.208.0 →
+  v0.214.0), version courante et date actualisées, « Templates &
+  wizard » passe de « refonte en cours » à « refonte TERMINÉE ».
+- **`AGENTS.md`** : mission « chantier générateur » marquée TERMINÉE
+  (L0-L6), références au plan mises à jour vers `docs/consommes/`.
+
+### Retiré
+
+- **`docs/NEWPROJECT_GENERATEUR_PLAN.md` quitte la racine de `docs/`** :
+  chantier livré, le plan rejoint
+  `docs/consommes/NEWPROJECT_GENERATEUR_PLAN.md` par `git mv` (règle §8
+  d'`AGENTS.md`) — références croisées mises à jour (`ROADMAP.md`,
+  `AGENTS.md`, ADR 0155). Seule la recette manuelle W19-W31 (captures
+  d'écran du parcours sur appareil) reste au propriétaire, hors lots.
+
+### Vérifié
+
+- Constat `checkUiTokens` recalculé hors Gradle (port fidèle du moteur
+  R1-R7, mêmes regexes et exemptions) : zéro occurrence dans
+  `feature/newproject`, aucun dépassement de baseline sur le reste du
+  dépôt ; la vérification complète (tests, lint, chaîne Gradle) est
+  portée par la CI GitHub au push.
+
 ## [0.213.0] – 2026-11-11
 
 Lot **L5 — écrans** du chantier « Refonte du générateur de projets et

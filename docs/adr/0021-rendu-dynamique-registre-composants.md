@@ -1,6 +1,9 @@
 # ADR 0021 — Rendu dynamique des paramètres : registre de composants et raisons typées
 
-- **Statut** : accepté (étape 10)
+- **Statut** : accepté (étape 10) ; **amendé par l'ADR 0154** (chantier
+  « Refonte du générateur de projets et des écrans Nouveau projet » —
+  conçu au lot L1, suppression effective au lot L5, v0.213.0) : voir la
+  note d'amende en fin de document.
 - **Contexte** : la section 12.2 exige que les champs des étapes
   Configuration et Informations soient **générés depuis les
   `TemplateParameter`** du moteur — jamais codés en dur — avec des
@@ -46,3 +49,17 @@
   - `resumer` du moteur résout aussi `iconKey` via le dictionnaire
     i18n (monogramme maison, ex. « kt », « jv ») : la grille de modèles
     n'a jamais à connaître les dictionnaires.
+- **Note d'amende (ADR 0154, consignée au lot L6)** : le « registre de
+  présentation » que cet ADR instaurait côté UI — composants nommés par
+  identifiant (`COMPOSANTS_NOMMÉS`) et libellés/sous-titres/icônes des
+  choix codés dans `RenduParametres`, plus `libelleValeur` de l'étape
+  Configuration — est **supprimé**. Le manifeste déclare désormais ce que
+  cet ADR mettait en dur côté vue : l'indice de composant (`rendu` →
+  `RenduParametre`, ADR 0154 §2) et les textes de choix (convention de
+  clés i18n `param.<id>.choix.<valeur>.*` résolue par le moteur en
+  `ChoixEvalue`, ADR 0154 §3). Le repli par traits reste (composant et
+  valeur brute par défaut) ; les métadonnées `type`/`choices`/`derived`/
+  `section` de `TemplateParameterEvaluation` restent, enrichies (`rendu`,
+  `groupe`, `avance`). La partie « raisons typées » de cet ADR
+  (`RaisonValidation` et son mapping ressourcé) est inchangée et a été
+  confirmée par l'audit L0 (§2.2 KEEP).
