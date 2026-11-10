@@ -58,12 +58,24 @@ class LecteurSortiesRegroupeTest {
 
         override val etatExecution:
             kotlinx.coroutines.flow.StateFlow<jo.codeide.core.domain.EtatExecutionGradle?> = etat
+
+        override val generation: kotlinx.coroutines.flow.StateFlow<Int> =
+            kotlinx.coroutines.flow.MutableStateFlow(0)
+    }
+
+    /** La fabrique de test : UNE famille, LE flux du test. */
+    private class FabriqueDeTest(private val flux: FluxSorties) : FabriqueFluxSorties {
+        override fun flux(famille: FamilleSorties): FluxSorties = flux
     }
 
     private val horloge = TimeProviderDeTest()
 
-    private fun viewModel(flux: FluxDeTest = FluxDeTest()) =
-        LecteurSortiesViewModel(flux, TestDispatcherProvider(regleMain.dispatcher), horloge)
+    private fun viewModel(flux: FluxDeTest = FluxDeTest()) = LecteurSortiesViewModel(
+        FabriqueDeTest(flux),
+        TestDispatcherProvider(regleMain.dispatcher),
+        horloge,
+        androidx.lifecycle.SavedStateHandle(),
+    )
 
     private fun ligne(message: String, tache: String? = null) = LigneSortie(
         source = SourceSortie.BUILD,

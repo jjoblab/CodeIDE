@@ -79,6 +79,10 @@ import jo.codeide.core.ui.couleurSurSurfaceDiscret
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
 import jo.codeide.feature.editor.databinding.VueOngletFichierBinding
 import jo.codeide.feature.editor.di.PorteeFermetureSession
+import jo.codeide.feature.sorties.CollecteurSortiesLogcat
+import jo.codeide.feature.sorties.FamilleSorties
+import jo.codeide.feature.sorties.FragmentLecteurSorties
+import jo.codeide.feature.sorties.PlantageLogcat
 import jo.codeide.preview.xml.ClassificateurPreview
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -144,10 +148,12 @@ class EditorActivity :
     ControleurPanneauEditeur {
     private val viewModel: EditorViewModel by viewModels()
 
-    /** ViewModel Logcat (R3) — portée ACTIVITÉ (le fragment Logcat y
-     *  accède par `activityViewModels`) : le snackbar « L'application a
-     *  planté » (R4) vit ici, visible même replié. */
-    private val viewModelLogcat: LogcatViewModel by viewModels()
+    /** Le collecteur LOGCAT process-wide (lot L4) — le snackbar «
+     *  L'application a planté » (R4) observe SON état ici, visible même
+     *  replié ; l'action « Voir la trace » sélectionne la session morte
+     *  sur le collecteur (l'onglet Logcat est le lecteur famille LOGCAT). */
+    @javax.inject.Inject
+    lateinit var collecteurLogcat: CollecteurSortiesLogcat
 
     /** Complétion fantôme (IA-8b, ADR 0129) : rendu inlay + debounce +
      * annulation à la frappe + Tab/Échap — câblé dans [cacherOuInstallerFantome]. */
@@ -285,6 +291,24 @@ class EditorActivity :
     /** Idem pour les onglets du panneau inférieur (étape 16). */
     private var selectionProgrammatiquePanneau = false
 
+    /**
+     * L5a (spec SORTIES § 5.7) : l'onglet central « Sorties » est-il
+     * ACTIF ? L'état de surface vit DANS l'activité — les onglets du
+     * [EditorViewModel] comptent des FICHIERS, l'onglet « Sorties » est
+     * un point d'entrée du composant (comme le panneau compact et le
+     * volet tablette), pas un fichier. Sauvegardé en instance (rotation).
+     */
+    private var sortiesCentralActif = false
+
+    /**
+     * L5c (spec SORTIES § 5.7, M8) : le VOLET tablette — « sorties à
+     * côté du code » — est-il ouvert ? L'action de menu n'existe QUE sur
+     * grand écran ([R.bool.sorties_volet_disponible], values-sw600dp) :
+     * sur téléphone le volet reste absent (jamais une entrée morte).
+     * Sauvegardé en instance (rotation).
+     */
+    private var voletSortiesActif = false
+
     /** Dernier plantage déjà signalé en snackbar (R4 — une fois par
      *  session morte, jamais de ressassement à chaque réémission d'état). */
     private var dernierPlantageAffiche: String? = null
@@ -392,6 +416,11 @@ class EditorActivity :
         savedInstanceState?.let {
             largeurTiroirPx = it.getInt(CLE_LARGEUR_TIROIR, 0)
             destinationCourante = it.getInt(CLE_DESTINATION_TIROIR, R.id.destination_explorateur)
+            // L5a : l'onglet central « Sorties » était actif — renduOnglets
+            // ré-appliquera la surface au premier état (rotation, spec § 3.11).
+            sortiesCentralActif = it.getBoolean(CLE_ONGLET_SORTIES, false)
+            // L5c : le volet tablette était ouvert.
+            voletSortiesActif = it.getBoolean(CLE_VOLET_SORTIES, false)
         }
         liaison = ActivityEditorBinding.inflate(layoutInflater)
         setContentView(liaison.root)
@@ -454,8 +483,8 @@ class EditorActivity :
 
         // R4 : plantage de l'application exécutée — snackbar UNE fois par
         // session morte (le pont signale l'exception non interceptée).
-        viewModelLogcat.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
-            surveillerPlantage(etat.plantage)
+        collecteurLogcat.plantage.collectWithLifecycle(this, Lifecycle.State.STARTED) { plantage ->
+            surveillerPlantage(plantage)
         }
 
         // Réglages de l'éditeur (v0.37.0) : chaque changement persisté
@@ -497,7 +526,7 @@ class EditorActivity :
         Snackbar
             .make(liaison.racineEditeur, R.string.logcat_plantage, Snackbar.LENGTH_LONG)
             .setAction(R.string.logcat_plantage_voir) {
-                viewModelLogcat.selectionnerSession(plantage.idSession)
+                collecteurLogcat.selectionnerSession(plantage.idSession)
                 viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(OngletPanneau.LOGCAT))
                 if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
                     viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
@@ -1443,6 +1472,14 @@ class EditorActivity :
     @Suppress("LongMethod")
     private fun brancherOnglets() {
         liaison.toolbarEditeur.inflateMenu(R.menu.menu_editeur)
+        // L5c : l'entrée « volet » n'existe QUE sur grand écran (booléen
+        // sw600dp) — sur téléphone jamais une entrée morte ; l'état
+        // restauré (rotation) est appliqué tout de suite.
+        val voletDisponible = resources.getBoolean(R.bool.sorties_volet_disponible)
+        liaison.toolbarEditeur.menu.findItem(R.id.action_volet_sorties)?.isVisible = voletDisponible
+        if (voletSortiesActif && voletDisponible) {
+            appliquerVoletSorties(true)
+        }
         liaison.toolbarEditeur.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_run -> {
@@ -1492,6 +1529,30 @@ class EditorActivity :
 
                 R.id.action_executer -> {
                     viewModel.onAction(ActionEditor.OuvrirSelecteurTaches)
+                    true
+                }
+
+                // L5a (spec SORTIES § 5.7) : ouvrir l'éditeur dédié EN
+                // ONGLET central — le dernier onglet de la barre (créé
+                // au premier rendu, toujours présent).
+                R.id.action_sorties -> {
+                    selectionnerOngletSorties()
+                    true
+                }
+
+                // L5a (spec SORTIES § 5.7, M7) : plein écran téléphone —
+                // la MÊME fenêtre (lecteur GRADLE) en activité dédiée.
+                R.id.action_plein_ecran_sorties -> {
+                    startActivity(
+                        android.content.Intent(this, EditeurSortiesActivity::class.java),
+                    )
+                    true
+                }
+
+                // L5c (spec SORTIES § 5.7, M8) : basculer le VOLET tablette
+                // — l'éditeur dédié à côté du code (jamais par-dessus).
+                R.id.action_volet_sorties -> {
+                    basculerVoletSorties()
                     true
                 }
 
@@ -1557,7 +1618,15 @@ class EditorActivity :
         liaison.ongletsFichiers.addOnTabSelectedListener(
             object : TabLayout.OnTabSelectedListener {
                 override fun onTabSelected(tab: TabLayout.Tab) {
-                    if (!selectionProgrammatique) {
+                    if (selectionProgrammatique) return
+                    // L5a : la DERNIÈRE position est l'onglet « Sorties » —
+                    // il n'est pas un fichier : l'état de surface vit dans
+                    // l'activité, aucune action VM (les onglets du VM
+                    // comptent des fichiers, jamais cette position).
+                    if (tab.position >= viewModel.etat.value.onglets.size) {
+                        activerSurfaceSorties(true)
+                    } else {
+                        activerSurfaceSorties(false)
                         viewModel.onAction(ActionEditor.SelectionnerOnglet(tab.position))
                     }
                 }
@@ -1974,8 +2043,8 @@ class EditorActivity :
         if (gestionnaire.findFragmentById(R.id.conteneur_fragments_panneau) == null) {
             val console = PanneauConsoleFragment()
             val problemes = PanneauProblemesFragment()
-            val journal = PanneauJournalFragment()
-            val logcat = PanneauLogcatFragment()
+            val journal = PanneauSortiesJournalFragment()
+            val logcat = PanneauSortiesLogcatFragment()
             gestionnaire
                 .beginTransaction()
                 .add(R.id.conteneur_fragments_panneau, console, TAG_PANNEAU_CONSOLE)
@@ -2063,7 +2132,8 @@ class EditorActivity :
         val projet = etat.projet
         liaison.progression.isVisible = etat.chargement
 
-        liaison.zoneVide.isVisible = !etat.chargement && projet != null && etat.onglets.isEmpty()
+        liaison.zoneVide.isVisible =
+            !etat.chargement && projet != null && etat.onglets.isEmpty() && !sortiesCentralActif
         liaison.zoneIntrouvable.isVisible = !etat.chargement && projet == null
         if (projet != null) {
             liaison.toolbarEditeur.title = projet.name
@@ -2259,11 +2329,20 @@ class EditorActivity :
         }
     }
 
-    /** Onglets : réconciliation de la barre avec l'état (ajouts, retraits). */
+    /**
+     * Onglets : réconciliation de la barre avec l'état (ajouts, retraits).
+     *
+     * L5a (spec SORTIES § 5.7) : la barre porte AUSSI l'onglet central
+     * « Sorties » — DERNIÈRE position, toujours présent (même sans
+     * fichier ouvert : l'éditeur dédié est consultable d'un geste, les
+     * 10 derniers builds aussi une fois le registre rempli). Sa position
+     * est DÉRIVÉE (nombre de fichiers), jamais stockée dans l'état du
+     * ViewModel — les onglets du VM comptent des fichiers.
+     */
     private fun rendreOnglets(etat: EtatEditor) {
         val barre = liaison.ongletsFichiers
         val onglets = etat.onglets
-        barre.isVisible = onglets.isNotEmpty()
+        barre.isVisible = true
 
         val reconnaissance =
             onglets.joinToString("|") { "${it.uri};${it.isDirty};${it.sauvegardeEnCours}" }
@@ -2272,9 +2351,20 @@ class EditorActivity :
             selectionProgrammatique = true
             barre.removeAllTabs()
             onglets.forEach { onglet -> barre.addTab(creerOnglet(onglet, onglets)) }
-            val cible = etat.indexOngletActif
-            if (cible in 0 until barre.tabCount) barre.selectTab(barre.getTabAt(cible))
+            barre.addTab(creerOngletSorties())
+            if (sortiesCentralActif) {
+                barre.selectTab(barre.getTabAt(barre.tabCount - 1))
+            } else {
+                val cible = etat.indexOngletActif
+                if (cible in 0 until barre.tabCount) barre.selectTab(barre.getTabAt(cible))
+            }
             selectionProgrammatique = false
+        } else if (sortiesCentralActif) {
+            if (barre.selectedTabPosition != barre.tabCount - 1) {
+                selectionProgrammatique = true
+                barre.selectTab(barre.getTabAt(barre.tabCount - 1))
+                selectionProgrammatique = false
+            }
         } else if (etat.indexOngletActif in 0 until barre.tabCount &&
             barre.selectedTabPosition != etat.indexOngletActif
         ) {
@@ -2282,6 +2372,10 @@ class EditorActivity :
             barre.selectTab(barre.getTabAt(etat.indexOngletActif))
             selectionProgrammatique = false
         }
+
+        // L5a : la surface centrale suit la sélection programmatique ET
+        // utilisateur (une rotation ré-applique l'état sans geste).
+        activerSurfaceSorties(sortiesCentralActif)
 
         // Sauvegarde en vol : l'action d'enregistrement reste muette.
         liaison.toolbarEditeur.menu
@@ -2439,6 +2533,96 @@ class EditorActivity :
         vue.boutonFermerOnglet.isVisible = !onglet.isDirty
     }
 
+    /**
+     * L5a (spec SORTIES § 5.7) : l'onglet graphique « Sorties » —
+     * DERNIÈRE position de la barre, sans fermeture ni menu contextuel
+     * (pas un fichier : le composant ne se « ferme » pas, il se quitte
+     * en sélectionnant un autre onglet).
+     */
+    private fun creerOngletSorties(): TabLayout.Tab = liaison.ongletsFichiers
+        .newTab()
+        .setText(R.string.editor_sorties_onglet)
+        .setIcon(jo.codeide.core.ui.R.drawable.ic_terminal)
+
+    /** Sélectionne l'onglet central « Sorties » (geste menu). */
+    private fun selectionnerOngletSorties() {
+        val barre = liaison.ongletsFichiers
+        val dernier = barre.tabCount - 1
+        if (dernier >= 0 && barre.selectedTabPosition != dernier) {
+            barre.selectTab(barre.getTabAt(dernier))
+        } else if (barre.selectedTabPosition == dernier) {
+            // Déjà sélectionné : ré-activer explicitement (le listener
+            // ne recevrait pas de re-sélection).
+            activerSurfaceSorties(true)
+        }
+    }
+
+    /**
+     * L5a : affiche/masque la surface « Sorties » de la zone centrale —
+     * le lecteur (famille GRADLE, ajouté UNE fois, tag stable) prend la
+     * place de l'éditeur de code (hide/show, aucun rechargement de
+     * session) ; l'état vide du projet reste lui-même sous l'onglet
+     * Sorties. Idempotent : appelé à chaque rendu d'état ET par le geste
+     * utilisateur.
+     */
+    private fun activerSurfaceSorties(actif: Boolean) {
+        sortiesCentralActif = actif
+        liaison.conteneurLecteurCentral.isVisible = actif
+        if (actif && supportFragmentManager.findFragmentByTag(TAG_LECTEUR_CENTRAL) == null) {
+            supportFragmentManager
+                .beginTransaction()
+                .replace(
+                    R.id.conteneur_lecteur_central,
+                    FragmentLecteurSorties.nouvelle(FamilleSorties.GRADLE),
+                    TAG_LECTEUR_CENTRAL,
+                )
+                .commit()
+        }
+        // L'onglet « Sorties » masque l'éditeur ET l'état vide du projet —
+        // le lecteur a SON état vide honnête (famille GRADLE). À la
+        // désactivation, l'état courant DU MOMENT est restauré (le prochain
+        // rendu d'état re-confirmera de toute façon).
+        val etat = viewModel.etat.value
+        if (actif) {
+            liaison.vueEditeur.isVisible = false
+            liaison.zoneVide.isVisible = false
+        } else {
+            liaison.vueEditeur.isVisible = etat.onglets.getOrNull(etat.indexOngletActif) != null
+            liaison.zoneVide.isVisible =
+                !etat.chargement && etat.projet != null && etat.onglets.isEmpty()
+        }
+        liaison.toolbarEditeur.menu.findItem(R.id.action_plein_ecran_sorties)?.isVisible = actif
+    }
+
+    /** L5c : bascule le volet tablette (« sorties à côté du code »). */
+    private fun basculerVoletSorties() {
+        appliquerVoletSorties(!voletSortiesActif)
+    }
+
+    /**
+     * L5c (spec SORTIES § 5.7, M8) : ouvre/ferme le VOLET — l'éditeur
+     * dédié vit À CÔTÉ DU CODE (rangée code | sorties, poids égaux),
+     * jamais par-dessus. Le lecteur (famille GRADLE) est ajouté UNE fois
+     * (tag stable) — son ViewModel survit à la rotation, la position,
+     * les filtres et la recherche avec (spec § 3.11). Idempotent.
+     */
+    private fun appliquerVoletSorties(actif: Boolean) {
+        voletSortiesActif = actif
+        liaison.conteneurLecteurVolet.isVisible = actif
+        if (actif && supportFragmentManager.findFragmentByTag(TAG_LECTEUR_VOLET) == null) {
+            supportFragmentManager
+                .beginTransaction()
+                .replace(
+                    R.id.conteneur_lecteur_volet,
+                    FragmentLecteurSorties.nouvelle(FamilleSorties.GRADLE),
+                    TAG_LECTEUR_VOLET,
+                )
+                .commit()
+        }
+        // Le menu dit l'état (l'entrée est cochée quand le volet vit).
+        liaison.toolbarEditeur.menu.findItem(R.id.action_volet_sorties)?.isChecked = actif
+    }
+
     /** Entrées du menu contextuel d'onglet (5.4 + missions H2/H3). */
     private fun construireMenuOnglet(menu: PopupMenu, onglet: EditorTabState) {
         menu.menu.add(android.view.Menu.NONE, ID_FERMER, android.view.Menu.NONE, R.string.editor_menu_fermer)
@@ -2530,7 +2714,9 @@ class EditorActivity :
      *  de disparaître — v0.32.5). Plus de fil d'Ariane (retiré, ADR 0056). */
     private fun rendreEditeur(etat: EtatEditor) {
         val onglet = etat.onglets.getOrNull(etat.indexOngletActif)
-        liaison.vueEditeur.isVisible = onglet != null
+        // L5a : la surface « Sorties » active masque l'éditeur de code —
+        // même avec un onglet fichier ouvert (la sélection revient).
+        liaison.vueEditeur.isVisible = onglet != null && !sortiesCentralActif
         appliquerClavier()
         if (onglet == null) {
             return
@@ -2903,8 +3089,14 @@ class EditorActivity :
         val compte =
             when (onglet) {
                 OngletPanneau.CONSOLE -> 0
+
                 OngletPanneau.PROBLEMES -> etatGradle.problemesTotal
-                OngletPanneau.JOURNAL -> etat.entreesJournal.size
+
+                // Journal et Logcat (lot L4) : AUCUN badge — ce sont les
+                // surfaces vivantes du lecteur (compteurs honnêtes dans
+                // l'onglet), pas des « comptes à traiter ».
+                OngletPanneau.JOURNAL -> 0
+
                 OngletPanneau.LOGCAT -> 0
             }
         liaison.badgePanneau.isVisible = onglet != OngletPanneau.CONSOLE && compte > 0
@@ -2964,12 +3156,7 @@ class EditorActivity :
 
             OngletPanneau.JOURNAL -> {
                 liaison.sousTitrePanneau.isVisible = true
-                liaison.sousTitrePanneau.text =
-                    if (compte == 0) {
-                        getString(R.string.editor_panneau_journal_vide)
-                    } else {
-                        resources.getQuantityString(R.plurals.editor_panneau_journal_compte, compte, compte)
-                    }
+                liaison.sousTitrePanneau.text = getString(R.string.editor_panneau_journal_sous_titre)
             }
 
             OngletPanneau.LOGCAT -> {
@@ -3540,6 +3727,11 @@ class EditorActivity :
         super.onSaveInstanceState(etat)
         etat.putInt(CLE_LARGEUR_TIROIR, largeurTiroirPx)
         etat.putInt(CLE_DESTINATION_TIROIR, destinationCourante)
+        // L5a : l'onglet central « Sorties » était actif — pivoter ne
+        // perd ni surface, ni position, ni recherche (spec § 3.11).
+        etat.putBoolean(CLE_ONGLET_SORTIES, sortiesCentralActif)
+        // L5c : le volet tablette était ouvert.
+        etat.putBoolean(CLE_VOLET_SORTIES, voletSortiesActif)
     }
 
     private companion object {
@@ -3622,6 +3814,20 @@ class EditorActivity :
 
         /** Durée des transitions de la poignée (maquette : `.15s`). */
         const val DUREE_ANIMATION_POIGNEE_MS = 150L
+
+        /** L5a : tag du lecteur hébergé par l'ONGLET CENTRAL « Sorties »
+         *  (éditeur dédié ouvert comme un fichier, ADR 0028). */
+        const val TAG_LECTEUR_CENTRAL = "lecteur_central_sorties"
+
+        /** L5c : tag du lecteur hébergé par le VOLET tablette. */
+        const val TAG_LECTEUR_VOLET = "lecteur_volet_sorties"
+
+        /** L5a : clé d'état d'instance — l'onglet central « Sorties »
+         *  était actif (survit à la rotation, spec § 3.11). */
+        const val CLE_ONGLET_SORTIES = "onglet_sorties_actif"
+
+        /** L5c : clé d'état d'instance — le volet tablette était ouvert. */
+        const val CLE_VOLET_SORTIES = "volet_sorties_actif"
 
         /** Tags des fragments du panneau inférieur (v0.32.4, ADR 0055) —
          *  le ciblage par tag est le garde-fou contre les show/hide qui

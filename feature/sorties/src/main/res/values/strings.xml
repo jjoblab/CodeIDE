@@ -66,6 +66,11 @@
          pourquoi et propose l\'action suivante). -->
     <string name="sorties_vide_titre">Aucune sortie</string>
     <string name="sorties_vide_message">Le tampon est vide : lancez un build, une synchronisation, ou armez une séquence du banc pour alimenter le lecteur.</string>
+    <!-- États vides PAR FAMILLE (lot L4) : chaque source dit son périmètre. -->
+    <string name="sorties_vide_titre_logcat">Aucun journal pour l’instant</string>
+    <string name="sorties_vide_message_logcat">Sans adb : les journaux de votre application exécutée apparaissent ici — lancez-la depuis CodeIDE.</string>
+    <string name="sorties_vide_titre_journal">Journal vide</string>
+    <string name="sorties_vide_message_journal">Le journal de CodeIDE s’alimente dès la première action : les entrées récentes et l’historique persisté y paraissent.</string>
 
     <!-- Mode regroupé, résumé et replis (lot L3 — spec SORTIES § 4). -->
     <string name="sorties_mode_regroupe">Regrouper</string>

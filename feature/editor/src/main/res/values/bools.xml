@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- L5c : téléphone — pas de volet tablette (voir values-sw600dp). -->
+<resources>
+    <bool name="sorties_volet_disponible">false</bool>
+</resources>

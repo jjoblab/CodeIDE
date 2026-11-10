@@ -85,17 +85,45 @@
                      la toolbar qui existe déjà — aucun saut de mise en
                      page pendant l'indexation (Phase B prompt 2, ADR 0117). -->
 
-                <FrameLayout
+                <!-- L5c (spec SORTIES § 5.7, M8) : la zone centrale devient
+                     une RANGÉE code | sorties — sur tablette, l'éditeur
+                     dédié vit DANS UN VOLET À CÔTÉ DU CODE (jamais
+                     par-dessus) ; le volet est GONE par défaut (téléphone)
+                     et l'activité le montre (poids) quand l'utilisateur
+                     l'ouvre. Le conteneur historique devient [zone_code],
+                     sa colonne conserve TOUS ses enfants existants. -->
+                <LinearLayout
                     android:id="@+id/conteneur_editeur"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
-                    android:layout_weight="1">
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:id="@+id/zone_code"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1">
 
                     <!-- Éditeur du fichier actif (pleine largeur — l'aperçu
                          XML se superpose en overlay quand activé, plus de
                          split 50/50 qui rendait l'éditeur illisible). -->
                     <jo.codeeditor.view.EditorView
                         android:id="@+id/vue_editeur"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone" />
+
+                    <!-- L5a (spec SORTIES § 5.7, M7) : l'éditeur dédié aux
+                         sorties OUVERT EN ONGLET de la zone centrale (comme
+                         un fichier, ADR 0028) — quand l'onglet « Sorties »
+                         est sélectionné, cette vue remplace l'éditeur de
+                         code (hide/show, aucun rechargement) et accueille
+                         FragmentLecteurSorties (famille GRADLE) : la MÊME
+                         fenêtre que le panneau compact et le volet tablette,
+                         jamais un second afficheur. -->
+                    <androidx.fragment.app.FragmentContainerView
+                        android:id="@+id/conteneur_lecteur_central"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:visibility="gone" />
@@ -264,6 +292,19 @@
                             android:textColor="?attr/colorOnSurfaceVariant" />
                     </LinearLayout>
                 </FrameLayout>
+
+                <!-- L5c (spec SORTIES § 5.7, M8) : le VOLET tablette —
+                     l'éditeur dédié À CÔTÉ DU CODE, jamais par-dessus.
+                     FragmentLecteurSorties (famille GRADLE) y vit ; l'état
+                     d'ouverture (téléphone : absent) est porté par
+                     l'activité, la largeur par son poids face au code. -->
+                <FrameLayout
+                    android:id="@+id/conteneur_lecteur_volet"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:visibility="gone" />
+                </LinearLayout>
 
                 <!-- Barre de symboles collée au clavier (v0.32.5, ADR 0056
                      décision 2, patron du projet de référence) : DERNIÈRE vue de la

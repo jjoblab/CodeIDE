@@ -904,9 +904,9 @@ data class TypeProjetAffiche(val nomModele: String, val versionModele: String? =
  * @property indexOngletActif position de l'onglet actif, −1 si aucun.
  * @property etatPanneau état d'ouverture du panneau inférieur (étape 16).
  * @property ongletPanneau onglet actif du panneau inférieur (étape 16).
- * @property entreesJournal fenêtre compacte des entrées récentes du
- * journal applicatif, filtrée par niveaux (étape 16).
- * @property filtresJournal niveaux retenus — vide = tous les niveaux
+ * @property filtresJournal niveaux retenus du journal (chips du panneau,
+ * persistés) — vide = tous les niveaux ; l'AFFICHAGE vit dans le lecteur
+ * famille JOURNAL du Centre de sorties (lot L4, ADR 0162).
  * (même règle que l'écran Diagnostic).
  * @property typeProjet type reconnu depuis `.codeide/project.json`
  * (étape 18) : `null` tant que la racine n'est pas lisible — l'interface
@@ -956,7 +956,6 @@ data class EtatEditor(
      * rotation via [ClesEditor.CLE_FILTRE_CONSOLE].
      */
     val filtreConsole: FiltreCanalConsole = FiltreCanalConsole.SYNC,
-    val entreesJournal: List<LogEntry> = emptyList(),
     val filtresJournal: Set<LogLevel> = emptySet(),
     val typeProjet: TypeProjetAffiche? = null,
     val source: SourceArbre = SourceArbre.PROJET,

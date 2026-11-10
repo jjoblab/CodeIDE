@@ -34,6 +34,10 @@ import org.json.JSONObject
  * ou valeur d'énumération plus récente = valeur neutre, jamais
  * d'exception vers l'appelant (c'est une consultation, ADR 0161).
  */
+// Exemption detekt ciblée (règle 16) : UNE fonction de sérialisation par
+// champ du modèle des exécutions (ADR 0161) — les découper éparpillerait
+// le format JSONL que ce seul objet documente.
+@Suppress("TooManyFunctions")
 internal object SerialisationExecutions {
 
     // ----- lignes -------------------------------------------------------

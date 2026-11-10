@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Onglet Journaux de l'écran Diagnostic (étape 12) : recherche, filtres par
-  niveau, suivi direct, actions (niveau, partage, enregistrement, effacement),
-  occupation disque et liste chronologique bornée.
+  Onglet Journaux de l'écran Diagnostic (lot L4, ADR 0162) — le chrome
+  des ACTIONS autour du lecteur UNIQUE du Centre de sorties (famille
+  JOURNAL) : filtres par niveau (persistés), réglage du niveau de
+  journalisation, partage / enregistrement / effacement, occupation
+  disque, bandeau honnête si la lecture d'historique a échoué. La
+  visionneuse (recherche n/N insensible aux accents, fenêtre, suivi,
+  état vide) est le lecteur embarqué — pas un second afficheur.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,50 +15,11 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
-        android:layout_marginTop="@dimen/spacing_sm"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/champ_recherche"
-            style="@style/Widget.CodeIDE.TextField"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="@string/diagnostics_recherche_indication"
-            app:endIconMode="clear_text"
-            app:startIconDrawable="@drawable/ic_recherche">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/saisie_recherche"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_suivi_direct"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_sm"
-            android:contentDescription="@string/diagnostics_suivi_direct_cd"
-            android:minWidth="@dimen/touch_target_min"
-            android:minHeight="@dimen/touch_target_min"
-            app:icon="@drawable/ic_suivi_direct" />
-    </LinearLayout>
-
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
-        android:layout_marginTop="@dimen/spacing_xs"
+        android:layout_marginTop="@dimen/spacing_sm"
         android:scrollbars="none">
 
         <com.google.android.material.chip.ChipGroup
@@ -163,41 +128,27 @@
         android:visibility="gone"
         tools:text="Opération impossible pour le moment." />
 
-    <FrameLayout
+    <!-- Lecture d'historique en échec : bandeau honnête (règle 14) — le
+         lecteur reste utilisable (les entrées vivantes continuent). -->
+    <jo.codeide.core.ui.BandeauSorties
+        android:id="@+id/bandeau_lecture"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+        android:layout_marginTop="@dimen/spacing_xs"
+        app:bandeauSortiesEtat="erreur"
+        app:bandeauSortiesTitre="@string/diagnostics_lecture_echec"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <!-- ===================== Le lecteur (UNE fenêtre) ================== -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/conteneur_lecteur"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/liste_entrees"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingHorizontal="@dimen/screen_horizontal_margin"
-            android:paddingBottom="@dimen/spacing_sm"
-            tools:itemCount="6"
-            tools:listitem="@layout/item_entree_journal" />
-
-        <com.google.android.material.progressindicator.LinearProgressIndicator
-            android:id="@+id/progression"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="top"
-            android:indeterminate="true"
-            android:visibility="gone" />
-
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/texte_vide"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:drawablePadding="@dimen/spacing_sm"
-            android:gravity="center"
-            android:padding="@dimen/state_padding"
-            android:text="@string/diagnostics_journaux_vide"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:visibility="gone" />
-    </FrameLayout>
+        android:layout_marginHorizontal="@dimen/screen_horizontal_margin"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:layout_weight="1"
+        tools:layout="@layout/fragment_lecteur_sorties" />
 
 </LinearLayout>

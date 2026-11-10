@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Journal du panneau inférieur (lot L4, ADR 0162) — le chrome
+     compact autour du lecteur UNIQUE du Centre de sorties (famille
+     JOURNAL) : chips de niveaux (état persisté du ViewModel de l'espace),
+     lien vers l'écran Diagnostic (historique + exports), puis le lecteur
+     (recherche, pause, effacement, état vide honnête). Fragment
+     PanneauSortiesJournalFragment — le chrome reste à l'hôte (ADR 0055). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ===================== Chrome compact (chips + lien) ============= -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_2xs">
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_journal_debug"
+            style="@style/Widget.CodeIDE.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/editor_journal_niveau_debug"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_journal_info"
+            style="@style/Widget.CodeIDE.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/editor_journal_niveau_info"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_journal_warn"
+            style="@style/Widget.CodeIDE.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/editor_journal_niveau_warn"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/chip_journal_error"
+            style="@style/Widget.CodeIDE.Chip.Filter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="@string/editor_journal_niveau_error"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- Lien vers le journal complet (étape 12) : l'historique et les
+             exports restent à l'écran Diagnostic. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_journal_complet"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/editor_journal_complet"
+            android:textAppearance="?attr/textAppearanceLabelSmall" />
+    </LinearLayout>
+
+    <!-- ===================== Le lecteur (UNE fenêtre) ================== -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/conteneur_lecteur"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:layout="@layout/fragment_lecteur_sorties" />
+</LinearLayout>

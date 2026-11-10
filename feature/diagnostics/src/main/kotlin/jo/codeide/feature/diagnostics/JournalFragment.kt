@@ -7,35 +7,45 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.isVisible
+import androidx.fragment.app.commit
 import androidx.fragment.app.viewModels
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
-import jo.codeide.core.model.FlattenedException
-import jo.codeide.core.model.LogEntry
+import jo.codeide.core.domain.FiltreSorties
+import jo.codeide.core.domain.versNiveauSortie
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.LogVerbosity
 import jo.codeide.core.ui.AppNavigator
 import jo.codeide.core.ui.BaseFragment
-import jo.codeide.core.ui.SimpleTextWatcher
 import jo.codeide.core.ui.collectWithLifecycle
-import jo.codeide.feature.diagnostics.databinding.DialogueDetailEntreeBinding
 import jo.codeide.feature.diagnostics.databinding.PageJournalBinding
+import jo.codeide.feature.sorties.CollecteurSortiesJournal
+import jo.codeide.feature.sorties.ControleurLecteurSorties
+import jo.codeide.feature.sorties.FamilleSorties
+import jo.codeide.feature.sorties.FragmentLecteurSorties
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 
 /**
- * Onglet Journaux de l'écran Diagnostic (étape 12) : visionneuse des 500
- * dernières entrées (les plus anciennes se révèlent au défilement),
- * filtres par niveau, recherche avec délai, suivi en direct, actions
- * Partager / Enregistrer / Effacer et réglage du niveau de journalisation.
+ * Onglet Journaux de l'écran Diagnostic (lot L4, ADR 0162) — un
+ * CONSOMMATEUR du lecteur du Centre de sorties (famille JOURNAL), pas un
+ * second afficheur : la visionneuse (fenêtre vivante, recherche n/N
+ * insensible aux accents, suivi, replis des exceptions aplanies, état
+ * vide honnête) est le lecteur embarqué ; ce fragment garde le chrome des
+ * actions (filtres par niveaux persistés, verbosité, partage,
+ * enregistrement, effacement, usage disque) et le bandeau honnête si la
+ * lecture d'historique a échoué.
  */
 @AndroidEntryPoint
 class JournalFragment : BaseFragment<PageJournalBinding>() {
     private val viewModel: JournalViewModel by viewModels()
+
+    /** Le collecteur JOURNAL process-wide (source du lecteur) — son état
+     *  de lecture alimente le bandeau honnête. */
+    @Inject
+    lateinit var collecteur: CollecteurSortiesJournal
 
     /** Navigation et partage découplés : la feature ne connaît jamais les autres. */
     @Inject
@@ -49,7 +59,8 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
             }
         }
 
-    private val adaptateurEntrees = EntreesJournalAdapter { entree -> ouvrirDetail(entree) }
+    /** Le lecteur enfant (famille JOURNAL) — le même composant partout. */
+    private var lecteur: FragmentLecteurSorties? = null
 
     override fun createBinding(
         inflater: LayoutInflater,
@@ -60,17 +71,7 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        binding.listeEntrees.layoutManager = LinearLayoutManager(requireContext())
-        binding.listeEntrees.adapter = adaptateurEntrees
-        binding.listeEntrees.addOnScrollListener(observateurDefilement)
-
-        binding.champRecherche.editText?.addTextChangedListener(
-            object : SimpleTextWatcher() {
-                override fun onTextChanged(texte: CharSequence?, debut: Int, avant: Int, nombre: Int) {
-                    viewModel.onAction(ActionJournal.Rechercher(texte?.toString().orEmpty()))
-                }
-            },
-        )
+        brancherLecteur()
 
         binding.chipDebug.setOnClickListener {
             viewModel.onAction(ActionJournal.BasculerNiveau(LogLevel.DEBUG))
@@ -85,9 +86,6 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
             viewModel.onAction(ActionJournal.BasculerNiveau(LogLevel.ERROR))
         }
 
-        binding.boutonSuiviDirect.setOnClickListener {
-            viewModel.onAction(ActionJournal.BasculerSuiviDirect)
-        }
         binding.boutonPartager.setOnClickListener {
             viewModel.onAction(ActionJournal.Partager)
         }
@@ -97,20 +95,47 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
         binding.boutonEffacer.setOnClickListener { confirmerEffacement() }
         binding.boutonVerbosite.setOnClickListener { choisirVerbosite() }
 
+        // La lecture d'historique en échec est honnête (règle 14) : le
+        // lecteur reste utilisable — les entrées vivantes continuent.
+        collecteur.lectureEnEchec.collectWithLifecycle(viewLifecycleOwner) { enEchec ->
+            binding.bandeauLecture.isVisible = enEchec
+        }
+
         viewModel.etat.collectWithLifecycle(viewLifecycleOwner) { etat -> rendre(etat) }
         viewModel.effets.collectWithLifecycle(viewLifecycleOwner) { effet -> appliquer(effet) }
     }
 
-    /** Rend l'état de la visionneuse. */
+    /** Le lecteur enfant (créé UNE fois — les arguments portent la
+     *  famille, le ViewModel survit à la rotation). */
+    private fun brancherLecteur() {
+        val existant = childFragmentManager.findFragmentById(R.id.conteneur_lecteur)
+        val hote = (existant as? FragmentLecteurSorties) ?: FragmentLecteurSorties.nouvelle(FamilleSorties.JOURNAL)
+        lecteur = hote
+        if (existant == null) {
+            childFragmentManager.commit {
+                replace(R.id.conteneur_lecteur, hote)
+            }
+        }
+    }
+
+    /** Rend le chrome : chips persistées, verbosité, usage, erreur — et
+     *  pousse les filtres au lecteur (filtre unifié, ADR 0160). */
     private fun rendre(etat: EtatJournal) {
-        adaptateurEntrees.submitList(etat.entrees)
-        binding.progression.isVisible = etat.chargement
         binding.chipDebug.isChecked = LogLevel.DEBUG in etat.filtresNiveaux
         binding.chipInfo.isChecked = LogLevel.INFO in etat.filtresNiveaux
         binding.chipWarn.isChecked = LogLevel.WARN in etat.filtresNiveaux
         binding.chipError.isChecked = LogLevel.ERROR in etat.filtresNiveaux
-        binding.boutonSuiviDirect.isChecked = etat.suivreDirect
         binding.boutonVerbosite.text = getString(TraductionsDiagnostic.verbosite(etat.verbosite))
+
+        // Ensemble vide = tous les niveaux (jamais « rien ne passe »).
+        val niveaux = etat.filtresNiveaux.map(LogLevel::versNiveauSortie).toSet()
+        controleurLecteur()?.definirFiltre(
+            if (niveaux.isEmpty()) {
+                FiltreSorties()
+            } else {
+                FiltreSorties(niveaux = niveaux)
+            },
+        )
 
         val usage = etat.usageDisque
         binding.texteUsageDisque.text =
@@ -129,7 +154,6 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
                     )
             }
 
-        binding.texteVide.isVisible = !etat.chargement && etat.entrees.isEmpty()
         binding.texteErreur.isVisible = etat.erreur != null
         etat.erreur?.let { erreur ->
             binding.texteErreur.text = getString(TraductionsDiagnostic.message(erreur))
@@ -143,83 +167,16 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
                 navigator.partagerArchive(effet.archive.fileName, effet.archive.location)
             }
 
-            EffetJournal.DefilerVersBas -> {
-                binding.listeEntrees.scrollToPosition(adaptateurEntrees.itemCount - 1)
+            EffetJournal.Efface -> {
+                // Le dépôt est effacé — le tampon du lecteur aussi (le
+                // même geste honnête que « effacer » du lecteur).
+                controleurLecteur()?.effacer()
             }
         }
     }
 
-    /** Révèle les entrées plus anciennes quand le défilement atteint le haut. */
-    private val observateurDefilement =
-        object : RecyclerView.OnScrollListener() {
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (dy >= 0) return
-                val gestionnaire = recyclerView.layoutManager as? LinearLayoutManager ?: return
-                if (gestionnaire.findFirstCompletelyVisibleItemPosition() <= SEUIL_HAUT &&
-                    viewModel.etat.value.plusAnciennesDisponibles
-                ) {
-                    viewModel.onAction(ActionJournal.ChargerPlusAnciennes)
-                }
-            }
-        }
-
-    /** Ouvre le détail d'une entrée (exception repliable). */
-    private fun ouvrirDetail(entree: LogEntry) {
-        val contexte = requireContext()
-        val vue = DialogueDetailEntreeBinding.inflate(layoutInflater)
-
-        vue.texteHorodatage.text =
-            SimpleDateFormat("EEEE d MMMM yyyy · HH:mm:ss.SSS", Locale.getDefault())
-                .format(Date(entree.timestampMillis))
-        vue.texteNiveau.text = contexte.getString(TraductionsDiagnostic.niveau(entree.level))
-        vue.texteEtiquette.text = entree.tag
-        vue.texteThread.text = entree.threadName
-        vue.texteSession.text = entree.sessionId
-        vue.texteMessage.text = entree.message
-
-        val exception = entree.exception
-        if (exception == null) {
-            vue.boutonException.isVisible = false
-            vue.texteException.isVisible = false
-        } else {
-            vue.texteException.isVisible = false
-            vue.texteException.text = formatterException(exception)
-            vue.boutonException.isVisible = true
-            vue.boutonException.setOnClickListener {
-                val visible = vue.texteException.isVisible
-                vue.texteException.isVisible = !visible
-                vue.boutonException.setText(
-                    if (visible) {
-                        R.string.diagnostics_detail_voir_exception
-                    } else {
-                        R.string.diagnostics_detail_masquer_exception
-                    },
-                )
-            }
-        }
-
-        MaterialAlertDialogBuilder(contexte)
-            .setTitle(R.string.diagnostics_detail_titre)
-            .setView(vue.root)
-            .setPositiveButton(android.R.string.ok, null)
-            .show()
-    }
-
-    /** Met en forme la chaîne d'exception aplanie (causes imbriquées). */
-    private fun formatterException(exception: FlattenedException): String = buildString {
-        appendLine("${exception.className}: ${exception.message.orEmpty()}")
-        exception.frames.forEach { tranche -> appendLine("    $tranche") }
-        var cause = exception.cause
-        var profondeur = 1
-        while (cause != null && profondeur <= PROFONDEUR_CAUSES_AFFICHEES) {
-            appendLine("Caused by: ${cause.className}: ${cause.message.orEmpty()}")
-            cause.frames.take(TRANCHES_CAUSE_AFFICHEES).forEach { tranche ->
-                appendLine("    $tranche")
-            }
-            cause = cause.cause
-            profondeur++
-        }
-    }
+    /** Le contrôleur du lecteur enfant (façade publique — lot L4). */
+    private fun controleurLecteur(): ControleurLecteurSorties? = lecteur
 
     /** Confirmation explicite avant l'effacement (règle du prompt). */
     private fun confirmerEffacement() {
@@ -251,16 +208,5 @@ class JournalFragment : BaseFragment<PageJournalBinding>() {
     private fun nomArchivePropose(): String {
         val horodatage = SimpleDateFormat("yyyy-MM-dd-HHmmss", Locale.US).format(Date())
         return "codeide-logs-$horodatage.zip"
-    }
-
-    private companion object {
-        /** Lignes visibles avant de considérer le haut atteint. */
-        const val SEUIL_HAUT = 1
-
-        /** Causes affichées dans le détail d'une exception. */
-        const val PROFONDEUR_CAUSES_AFFICHEES = 10
-
-        /** Tranches affichées par cause dans le détail. */
-        const val TRANCHES_CAUSE_AFFICHEES = 5
     }
 }

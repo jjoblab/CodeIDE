@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fil de l'incident (L5d — spec SORTIES § 5.7) : depuis un build
+     échoué, UN SEUL geste ouvre le fil — les destinations vivent ICI,
+     jamais quatre onglets à fouiller. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="@dimen/spacing_lg"
+    android:paddingTop="@dimen/spacing_lg"
+    android:paddingBottom="@dimen/spacing_xl">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/fil_incident_titre"
+        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/fil_incident_message"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:ellipsize="end"
+        android:maxLines="3"
+        android:textAppearance="?attr/textAppearanceBodySmall"
+        android:textColor="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/fil_destination_sorties"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:background="?attr/selectableItemBackground"
+        android:drawablePadding="@dimen/spacing_md"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/touch_target_min"
+        android:padding="@dimen/spacing_sm"
+        android:text="@string/fil_incident_sorties"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        app:drawableStartCompat="@drawable/ic_terminal"
+        app:drawableTint="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/fil_destination_problemes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:drawablePadding="@dimen/spacing_md"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/touch_target_min"
+        android:padding="@dimen/spacing_sm"
+        android:text="@string/fil_incident_problemes"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        app:drawableStartCompat="@drawable/ic_avertissement"
+        app:drawableTint="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/fil_destination_diagnostics"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:drawablePadding="@dimen/spacing_md"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/touch_target_min"
+        android:padding="@dimen/spacing_sm"
+        android:text="@string/fil_incident_diagnostics"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        app:drawableStartCompat="@drawable/ic_outils"
+        app:drawableTint="?attr/colorOnSurfaceVariant" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/fil_destination_logcat"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/selectableItemBackground"
+        android:drawablePadding="@dimen/spacing_md"
+        android:gravity="center_vertical"
+        android:minHeight="@dimen/touch_target_min"
+        android:padding="@dimen/spacing_sm"
+        android:text="@string/fil_incident_logcat"
+        android:textAppearance="?attr/textAppearanceBodyLarge"
+        app:drawableStartCompat="@drawable/ic_terminal"
+        app:drawableTint="?attr/colorOnSurfaceVariant" />
+</LinearLayout>

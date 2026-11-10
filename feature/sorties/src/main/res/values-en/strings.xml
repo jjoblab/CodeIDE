@@ -62,6 +62,11 @@
          proposes the next action). -->
     <string name="sorties_vide_titre">No output</string>
     <string name="sorties_vide_message">The buffer is empty: run a build or a sync, or arm a bench sequence to feed the reader.</string>
+    <!-- Empty states PER FAMILY (lot L4): each source states its scope. -->
+    <string name="sorties_vide_titre_logcat">No logs yet</string>
+    <string name="sorties_vide_message_logcat">No adb: logs from your running app appear here — launch it from CodeIDE.</string>
+    <string name="sorties_vide_titre_journal">Empty log</string>
+    <string name="sorties_vide_message_journal">CodeIDE’s log fills as soon as the first action runs: recent entries and persisted history appear here.</string>
     <string name="sorties_mode_regroupe">Group</string>
     <string name="sorties_mode_brut">Raw</string>
     <string name="sorties_repli_ouvert">▾</string>

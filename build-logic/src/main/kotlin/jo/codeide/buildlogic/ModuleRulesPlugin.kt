@@ -228,6 +228,14 @@ class ModuleRulesPlugin : Plugin<Project> {
         // JAMAIS :lsp:host (coordonnées externes, hors audit).
         chemin == ":feature:settings" ->
             setOf(":core:ui", ":core:domain", ":core:model", ":core:datastore")
+        // Centre de sorties (ADR 0162, décision 1) : l'écran Journaux de
+        // :feature:diagnostics devient un CONSOMMATEUR du lecteur du
+        // Centre de sorties (lot L4 — « pas un second afficheur ») :
+        // exception feature EXPLICITE au trio, même précédent que
+        // :feature:editor → :feature:sorties. L'arête réciproque reste
+        // interdite (aucune feature:sorties → autre feature).
+        chemin == ":feature:diagnostics" ->
+            setOf(":core:ui", ":core:domain", ":core:model", ":feature:sorties")
         chemin.startsWith(":feature:") -> setOf(":core:ui", ":core:domain", ":core:model")
         else -> null // module non répertorié : pas de contrainte (extensibilité)
     }

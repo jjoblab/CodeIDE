@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- L5c (spec SORTIES § 5.7, M8) : le volet « sorties à côté du code »
+     n'existe QUE sur grand écran — sur téléphone l'action de menu
+     n'apparaît pas (jamais une entrée morte). -->
+<resources>
+    <bool name="sorties_volet_disponible">true</bool>
+</resources>

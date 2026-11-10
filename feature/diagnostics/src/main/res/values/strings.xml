@@ -21,20 +21,18 @@
 
     <!-- ====== Onglet Journaux ====== -->
 
-    <string name="diagnostics_recherche_indication">Rechercher dans les journaux</string>
     <string name="diagnostics_niveau_debug">Débogage</string>
     <string name="diagnostics_niveau_info">Info</string>
     <string name="diagnostics_niveau_warn">Avertissement</string>
     <string name="diagnostics_niveau_error">Erreur</string>
     <string name="diagnostics_pointeur_exception">Exception</string>
-    <string name="diagnostics_suivi_direct_cd">Suivre les nouvelles entrées en direct</string>
     <string name="diagnostics_usage_taille">Journaux : %1$s</string>
     <plurals name="diagnostics_usage_fichiers">
         <item quantity="one">%1$d fichier</item>
         <item quantity="other">%1$d fichiers</item>
     </plurals>
     <string name="diagnostics_usage_inconnu">Occupation des journaux : inconnue</string>
-    <string name="diagnostics_journaux_vide">Aucune entrée de journal pour ces filtres.\nUtilisez l\'application, puis revenez.</string>
+    <string name="diagnostics_lecture_echec">Lecture de l’historique impossible : les nouvelles entrées continuent d’arriver en direct.</string>
     <string name="diagnostics_verbosite_normale">Niveau : Normal</string>
     <string name="diagnostics_verbosite_detaillee">Niveau : Détaillé</string>
     <string name="diagnostics_verbosite_titre">Niveau de journalisation</string>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Éditeur dédié aux sorties EN PLEIN ÉCRAN (spec SORTIES § 5.7, M7 ;
+     lot L5a) : barre d'outils d'application minimale (retour + titre) et
+     le lecteur du Centre de sorties TEL QUEL — recherche, filtres, pause,
+     effacement, regroupé et consultation vivent DANS le lecteur (jamais
+     un second chrome, jamais un second afficheur). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/barre_editeur_sorties"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorSurface"
+        android:elevation="@dimen/spacing_xs"
+        android:title="@string/editor_sorties_onglet" />
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/conteneur_lecteur_plein_ecran"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>

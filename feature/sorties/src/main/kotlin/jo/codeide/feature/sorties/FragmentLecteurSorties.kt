@@ -13,9 +13,10 @@ import android.view.ViewGroup
 import android.widget.EditText
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
-import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.FiltreSorties
 import jo.codeide.core.domain.RegistrePortSautSource
 import jo.codeide.core.ui.BandeauSorties
 import jo.codeide.core.ui.BaseFragment
@@ -53,8 +54,15 @@ import jo.codeide.feature.sorties.databinding.FragmentLecteurSortiesBinding
  */
 @AndroidEntryPoint
 @Suppress("TooManyFunctions")
-internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBinding>() {
-    private val viewModel: LecteurSortiesViewModel by activityViewModels()
+public class FragmentLecteurSorties :
+    BaseFragment<FragmentLecteurSortiesBinding>(),
+    ControleurLecteurSorties {
+
+    /** Le ViewModel du lecteur — scopé AU FRAGMENT (lot L4) : plusieurs
+     *  lecteurs simultanés (onglet Logcat et onglet Journal du même
+     *  panneau, banc) ont chacun LEUR instance et leur tampon. La famille
+     *  arrive par les arguments (survivent à la rotation). */
+    internal val viewModel: LecteurSortiesViewModel by viewModels()
     private lateinit var lecteur: LecteurSorties
 
     /** Le registre du port de saut au source (liens source — l'éditeur
@@ -62,6 +70,12 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
      *  0122). Injecté : la MÊME instance que celle de l'éditeur. */
     @javax.inject.Inject
     lateinit var registreSaut: RegistrePortSautSource
+
+    /** Le geste HÔTE d'une ligne appuyée SANS position source (lot L4) —
+     *  le chrome logcat y branche le saut au source des traces (R4) : le
+     *  lecteur ne connaît ni l'éditeur ni les piles ; l'hôte décide du
+     *  geste. `null` : le clic hors sélection ne fait rien (Gradle). */
+    public var surLigneSansPosition: ((texte: String) -> Unit)? = null
 
     /** Anti-rebond de la frappe (la relance du ViewModel annule et
      *  relance la recherche — le champ reste maître, spec § 3.4). */
@@ -84,6 +98,19 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         brancherBarre()
         brancherEtats()
         brancherRegroupement()
+        // Le mode REGROUPÉ n'existe que pour la famille GRADLE (la
+        // dérivation Logcat/Journal est un ajout planifié) — la bascule
+        // disparaît ailleurs : jamais une bascule qui prétend regrouper
+        // sans le faire (honnêteté règle 14).
+        binding.boutonRegrouper.isGone = !viewModel.modeDisponible
+        // État vide honnête PAR FAMILLE (règle 14 — chaque état vide dit
+        // pourquoi et propose la suite : logcat « sans adb », journal,
+        // Gradle par défaut) ; il suit la taille du tampon affiché.
+        binding.etatVideTitre.text = getString(titreVideDe(viewModel.famille))
+        binding.etatVideMessage.text = getString(messageVideDe(viewModel.famille))
+        viewModel.projection.collectWithLifecycle(viewLifecycleOwner) { projection ->
+            binding.etatVide.isGone = projection.tailleTampon > 0
+        }
         // Rotation : retrouver la position retenue (spec SORTIES § 3.11 —
         // pivoter ne perd ni position, ni filtre, ni recherche : le
         // ViewModel survit, la position est repoussée au nouveau lecteur).
@@ -106,9 +133,16 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         val adapter = LignesSortiesAdapter(
             surLigneAppuyee = { indice ->
                 // Appui simple : étendre la sélection SI le mode est ouvert
-                // (la copie reste toujours explicite — spec § 3.6).
+                // (la copie reste toujours explicite — spec § 3.6). Hors
+                // sélection : le geste HÔTE (logcat — le saut au source des
+                // traces, R4), sinon rien (jamais un geste perdu).
                 if (viewModel.selection.plage.value != null) {
                     viewModel.selection.selectionner(indice)
+                } else {
+                    val texte =
+                        (viewModel.projection.value.rangees.getOrNull(indice) as? RangeeLecteur.Ligne)
+                            ?.rangee?.textePur
+                    if (texte != null) surLigneSansPosition?.invoke(texte)
                 }
             },
             surLigneLongueAppuyee = { indice ->
@@ -375,7 +409,9 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
     }
 
     /** Les états L3 du lecteur : mode (bascule/collant), résumé
-     *  regroupé, consultation, liens source. */
+     *  regroupé, consultation. Les liens source sont traités UNE fois
+     *  (brancherEtats — le double traitement de L3 publiait la demande
+     *  deux fois : attrapé au lot L4). */
     private fun brancherRegroupement() {
         viewModel.mode.collectWithLifecycle(viewLifecycleOwner) { mode ->
             // La bascule s'accorde : en mode BRUT le bouton PROPOSE le
@@ -393,27 +429,63 @@ internal class FragmentLecteurSorties : BaseFragment<FragmentLecteurSortiesBindi
         viewModel.enConsultation.collectWithLifecycle(viewLifecycleOwner) { enConsultation ->
             binding.bandeauConsultation.isGone = !enConsultation
         }
-        viewModel.demandeOuverture.collectWithLifecycle(viewLifecycleOwner) { position ->
-            // Liens source : la demande va au port de l'éditeur ACTIF
-            // (RegistrePortSautSource — le lecteur ne connaît pas
-            // l'éditeur, patron ADR 0122). Port absent : honnête.
-            val port = registreSaut.actif()
-            if (port != null) {
-                port.ouvrir(position.fichier, position.ligne, position.colonne)
-            } else {
-                Retour.snackbar(
-                    binding.root,
-                    requireContext().getString(R.string.sorties_saut_sans_editeur),
-                )
-            }
-        }
     }
 
-    private companion object {
+    public companion object {
         /** Délai d'anti-rebond de la recherche (ms). */
         private const val ANTI_REBOND_MS = 300L
 
         /** Millisecondes par seconde (durée du résumé). */
         private const val DUREE_SECONDE = 1_000L
+
+        /** Crée un lecteur pour la famille [famille] — l'argument du
+         *  fragment porte la famille au ViewModel ([CLE_FAMILLE] via
+         *  `SavedStateHandle`) et SURVIT à la rotation. */
+        public fun nouvelle(famille: FamilleSorties): FragmentLecteurSorties = FragmentLecteurSorties().apply {
+            arguments = Bundle().apply { putString(CLE_FAMILLE, famille.name) }
+        }
+    }
+
+    // ---- Façade publique (ControleurLecteurSorties) — les hôtes (écran
+    // Journaux, panneau) commandent le lecteur par CE contrat. ----
+
+    override fun definirRecherche(texte: String, regex: Boolean) {
+        champRecherche.setText(texte)
+        regexActif = regex
+        viewModel.definirRecherche(texte, regex)
+    }
+
+    override fun definirFiltre(filtre: FiltreSorties) {
+        viewModel.definirFiltre(filtre)
+    }
+
+    override fun effacer() {
+        viewModel.effacer()
+    }
+
+    override fun basculerPause() {
+        viewModel.basculerPause()
+    }
+
+    override fun texteVisible(dernieres: Int): String? {
+        val lignes = viewModel.projection.value.rangees
+            .filterIsInstance<RangeeLecteur.Ligne>()
+            .takeLast(dernieres)
+            .map { it.rangee.textePur }
+        return lignes.joinToString(separator = "\n").ifEmpty { null }
+    }
+
+    /** Les libellés d'état vide PAR FAMILLE (honnêteté — chaque famille
+     *  dit son périmètre, jamais un message de Gradle sur le Logcat). */
+    private fun titreVideDe(famille: FamilleSorties): Int = when (famille) {
+        FamilleSorties.GRADLE -> R.string.sorties_vide_titre
+        FamilleSorties.LOGCAT -> R.string.sorties_vide_titre_logcat
+        FamilleSorties.JOURNAL -> R.string.sorties_vide_titre_journal
+    }
+
+    private fun messageVideDe(famille: FamilleSorties): Int = when (famille) {
+        FamilleSorties.GRADLE -> R.string.sorties_vide_message
+        FamilleSorties.LOGCAT -> R.string.sorties_vide_message_logcat
+        FamilleSorties.JOURNAL -> R.string.sorties_vide_message_journal
     }
 }

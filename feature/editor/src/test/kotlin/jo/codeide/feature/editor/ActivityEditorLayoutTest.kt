@@ -415,14 +415,9 @@ class ActivityEditorLayoutTest {
 
     @Test
     fun `les fragments du panneau se gonflent avec leurs vues completes`() {
-        val journal = gonfler(R.layout.fragment_panneau_journal)
-        assertNotNull("filtres du journal (v0.32.4)", journal.findViewById<View>(R.id.filtres_journal))
-        assertNotNull("liste du journal (v0.32.4)", journal.findViewById<View>(R.id.liste_journal))
-        assertNotNull("vide du journal (v0.32.4)", journal.findViewById<View>(R.id.texte_journal_vide))
-        assertNotNull(
-            "lien vers le journal complet (v0.32.4)",
-            journal.findViewById<View>(R.id.bouton_journal_complet),
-        )
+        // Journal et Logcat (lot L4) : leurs vues complètes vivent dans
+        // PanneauxSortiesLayoutTest (le lecteur du Centre de sorties y est
+        // vérifié famille par famille).
 
         val console = gonfler(R.layout.fragment_panneau_console)
         // INC-22 (finale) : la ligne de statut ne porte plus que l'état
@@ -430,23 +425,14 @@ class ActivityEditorLayoutTest {
         // discours : l'activité et le verdict vivent dans l'en-tête du
         // sheet (ligne enrichie + indicateurs compacts, INC-10).
         assertNotNull("statut de la sortie (v0.32.4)", console.findViewById<View>(R.id.statut_sortie))
-        // v0.46.0 (ADR 0078) : console FLUX BRUT — DEUX TextView monospace
-        // (un PAR canal), le chip choisit la visible.
+        // L5b (spec SORTIES § 5.7) : le corps est le LECTEUR du Centre de
+        // sorties — le conteneur du fragment enfant remplace les deux
+        // consoles TextView (moteur supprimé, fenêtre sur le MÊME
+        // composant) ; le lecteur EST gonflé par son fragment, ses vues
+        // vivent dans fragment_lecteur_sorties (feature:sorties).
         assertNotNull(
-            "console du canal BUILD (v0.46.0)",
-            console.findViewById<View>(R.id.texte_console_build),
-        )
-        assertNotNull(
-            "défilement du canal BUILD (v0.46.0)",
-            console.findViewById<View>(R.id.defilement_console_build),
-        )
-        assertNotNull(
-            "console du canal SYNC (v0.46.0)",
-            console.findViewById<View>(R.id.texte_console_sync),
-        )
-        assertNotNull(
-            "défilement du canal SYNC (v0.46.0)",
-            console.findViewById<View>(R.id.defilement_console_sync),
+            "conteneur du lecteur du Centre de sorties (L5b)",
+            console.findViewById<View>(R.id.conteneur_lecteur_panneau),
         )
         assertNotNull(
             "annulation du build (v0.32.4)",

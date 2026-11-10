@@ -2,6 +2,12 @@
 <!-- English strings for the workspace (étapes 13-14). -->
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="editor_title">Editor</string>
+    <!-- L5a/L5c (SORTIES spec § 5.7): dedicated output surfaces. -->
+    <string name="editor_sorties_onglet">Output</string>
+    <string name="editor_sorties_plein_ecran">Full screen</string>
+    <string name="editor_sorties_plein_ecran_cd">Open the output in full screen</string>
+    <string name="editor_sorties_volet">Output beside the code</string>
+    <string name="editor_sorties_volet_cd">Show the output beside the code</string>
     <string name="editor_ouvrir_tiroir_cd">Open the navigation drawer</string>
     <string name="editor_fermer_tiroir_cd">Close the navigation drawer</string>
     <string name="editor_vide_titre">No file open</string>
@@ -63,14 +69,10 @@
     <!-- Information subtitle of the first section (v0.80.1): count for
          the active tab, Log or Problems. -->
     <string name="editor_panneau_aucun_probleme">No problems</string>
-    <string name="editor_panneau_journal_vide">No entries</string>
+    <string name="editor_panneau_journal_sous_titre">Live log window — history and exports stay in Diagnostics.</string>
     <plurals name="editor_panneau_problemes_compte">
         <item quantity="one">%1$d problem</item>
         <item quantity="other">%1$d problems</item>
-    </plurals>
-    <plurals name="editor_panneau_journal_compte">
-        <item quantity="one">%1$d entry shown</item>
-        <item quantity="other">%1$d entries shown</item>
     </plurals>
 
     <!-- Editing tabs (step 15). -->
@@ -150,9 +152,6 @@
     <string name="logcat_session_vivante"> · running</string>
     <string name="logcat_session_terminee"> · finished</string>
     <string name="logcat_session_precedente"> · previous</string>
-    <string name="logcat_filtre_indice">Filter text</string>
-    <string name="logcat_regex">Regular expression</string>
-    <string name="logcat_regex_marque">.*</string>
     <string name="logcat_filtre_niveau">Minimum level shown</string>
     <string name="logcat_niveau_verbeux">Verbose</string>
     <string name="logcat_niveau_debogage">Debug</string>
@@ -160,10 +159,6 @@
     <string name="logcat_niveau_avertissement">Warning</string>
     <string name="logcat_niveau_erreur">Error</string>
     <string name="logcat_niveau_assert">Assert</string>
-    <string name="logcat_pause">Pause scrolling</string>
-    <string name="logcat_effacer">Clear displayed logs</string>
-    <string name="logcat_vide">Run your app to see its logs</string>
-    <string name="logcat_vide_pied">No adb: logs from your app only, since its process started.</string>
     <plurals name="logcat_lignes_perdues">
         <item quantity="one">%1$d line lost</item>
         <item quantity="other">%1$d lines lost</item>
@@ -171,10 +166,6 @@
     <string name="logcat_arret">The process stopped: %1$s</string>
     <string name="logcat_precedente">Previous session — %1$s (pid %2$d) · ended at %3$s</string>
     <string name="logcat_precedente_heure_inconnue">unknown time</string>
-    <string name="logcat_motif_invalide">Invalid pattern: %1$s</string>
-    <string name="logcat_pid_tid">%1$d-%2$d</string>
-    <string name="logcat_libelle_clip">Logcat line</string>
-    <string name="logcat_copiee">Line copied</string>
 
     <!-- Mission « Historique local » H2 (ADR 0104-0106): file History
          sheet — list, diff, restore. -->
@@ -412,6 +403,14 @@
     <string name="editor_console_selecteur_canal_cd">Choose the visible console: sync or build</string>
     <string name="editor_console_echec_voir_problemes">See problems</string>
     <string name="editor_console_echec_reessayer">Retry</string>
+    <!-- L5d (SORTIES spec § 5.7): incident thread — one gesture to the
+         destinations that matter. -->
+    <string name="editor_console_echec_fil">Incident thread</string>
+    <string name="fil_incident_titre">Incident thread</string>
+    <string name="fil_incident_sorties">Build output</string>
+    <string name="fil_incident_problemes">Build problems</string>
+    <string name="fil_incident_diagnostics">Diagnostics and server logs</string>
+    <string name="fil_incident_logcat">Session logcat</string>
     <string name="editor_console_echec_defaut">Build failed</string>
     <!-- INC-21 (volet C): default message of the Sync channel failure banner. -->
     <string name="editor_console_echec_sync_defaut">Synchronization failed</string>

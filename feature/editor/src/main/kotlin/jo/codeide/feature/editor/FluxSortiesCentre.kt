@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -56,6 +57,19 @@ constructor(
     dispatchers: DispatcherProvider,
 ) : FluxSorties {
     private val portee = CoroutineScope(SupervisorJob() + dispatchers.default)
+
+    /** Le numéro de génération (lot L4) — le routage banc ↔ réel change
+     *  de source derrière le port : chaque bascule l'incrémente (le
+     *  lecteur y voit son signal de RESET honnête). */
+    private val generationInterne = kotlinx.coroutines.flow.MutableStateFlow(0)
+
+    override val generation: StateFlow<Int> = generationInterne
+
+    init {
+        portee.launch {
+            factice.sequenceArmee.collect { generationInterne.value += 1 }
+        }
+    }
 
     override fun capaciteFenetre(): Int = factice.capaciteFenetre()
 

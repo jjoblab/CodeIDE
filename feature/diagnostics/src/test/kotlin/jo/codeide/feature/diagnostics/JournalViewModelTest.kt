@@ -7,13 +7,10 @@ import jo.codeide.core.domain.ExportedLogs
 import jo.codeide.core.domain.LogExportWriter
 import jo.codeide.core.domain.LogVerbosityApplier
 import jo.codeide.core.domain.MeasureLogDiskUsageUseCase
-import jo.codeide.core.domain.ObserveLogsUseCase
 import jo.codeide.core.domain.ObserveSettingsUseCase
-import jo.codeide.core.domain.ReadAllLogsUseCase
 import jo.codeide.core.domain.SetLogVerbosityUseCase
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
-import jo.codeide.core.model.FlattenedException
 import jo.codeide.core.model.LogEntry
 import jo.codeide.core.model.LogLevel
 import jo.codeide.core.model.LogVerbosity
@@ -25,11 +22,9 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -38,11 +33,22 @@ import org.junit.Test
 import java.io.IOException
 
 /**
- * Tests du ViewModel de l'onglet Journaux (étape 12) : fenêtre initiale et
- * pagination, filtres par niveau, recherche avec délai, fusion temps réel
- * sans doublon, effacement, partage et enregistrement, réglage de la
- * verbosité — doublés par les fakes de `core:testing` et des écrivains
- * locaux.
+ * Tests du ViewModel de l'onglet Journaux (lot L4, ADR 0162) — le chrome
+ * des ACTIONS : filtres par niveaux persistés, effacement (avec l'effet
+ * qui vide le tampon du lecteur), partage et enregistrement, réglage de
+ * la verbosité — doublés par les fakes de `core:testing`.
+ *
+ * Les scénarios d'AFFICHAGE de l'étape 12 sont PORTÉS à leur nouveau
+ * détenteur (équivalence démontrée, jamais supprimés pour verdir) :
+ *
+ * - fenêtre / pagination / fusion temps réel sans doublon / échec de
+ *   lecture honnête → [FluxJournalSortiesTest] (CollecteurSortiesJournal :
+ *   lire UNE fois, dédoublonnage d'égalité, `lectureEnEchec`) ;
+ * - fenêtre bornée et pertes honnêtes → `TamponSortiesTest` (core:domain) ;
+ * - recherche insensible aux accents et à la casse, regex honnête →
+ *   `FiltreSortiesTest` + `RechercheLecteurTest` (le filtre unifié,
+ *   ADR 0160, remplace la recherche du VM) ;
+ * - suivi du bas → le bouton « ⇣ suivre » du lecteur (`MoteurLecteurSortiesTest`).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class JournalViewModelTest {
@@ -77,150 +83,39 @@ class JournalViewModelTest {
 
     @Before
     fun preparer() {
-        viewModel =
-            JournalViewModel(
-                lireTout = ReadAllLogsUseCase(depot),
-                observerRecents = ObserveLogsUseCase(depot),
-                effacerJournaux = ClearLogsUseCase(depot),
-                exporterJournaux = ExportLogsUseCase(depot, exporteur),
-                mesurerUsage = MeasureLogDiskUsageUseCase(depot),
-                choisirVerbosite = SetLogVerbosityUseCase(parametres, appliqueur),
-                observerParametres = ObserveSettingsUseCase(parametres),
-                savedStateHandle = SavedStateHandle(),
-            )
+        viewModel = viewModel()
     }
 
     @Test
-    fun `la fenetre initiale affiche les 500 dernieres entrees et annonce les plus anciennes`() = runTest {
-        depot.add(*(1..1_200).map { entree(it) }.toTypedArray())
-        // L'historique doit exister AVANT l'ouverture de la visionneuse —
-        // comme à l'écran, où le disque est déjà peuplé.
-        viewModel = recreerViewModel()
+    fun `les filtres de niveau se persistent vide egale tous`() = runTest {
         advanceUntilIdle()
+        assertTrue(viewModel.etat.value.filtresNiveaux.isEmpty())
 
-        val etat = viewModel.etat.value
-        assertEquals(500, etat.entrees.size)
-        // Les plus récentes : la fenêtre se termine par la dernière.
-        assertEquals("entrée 1200", etat.entrees.last().message)
-        assertTrue(etat.plusAnciennesDisponibles)
-        assertFalse(etat.chargement)
-
-        viewModel.onAction(ActionJournal.ChargerPlusAnciennes)
-        assertEquals(1_000, viewModel.etat.value.entrees.size)
-
-        viewModel.onAction(ActionJournal.ChargerPlusAnciennes)
-        assertEquals(1_200, viewModel.etat.value.entrees.size)
-        assertFalse(viewModel.etat.value.plusAnciennesDisponibles)
-    }
-
-    @Test
-    fun `les filtres de niveau retenent seules les entrees choisies`() = runTest {
-        depot.add(
-            entree(1, LogLevel.DEBUG),
-            entree(2, LogLevel.INFO),
-            entree(3, LogLevel.WARN),
-            entree(4, LogLevel.ERROR),
-            entree(5, LogLevel.ERROR),
-        )
-        advanceUntilIdle()
-
+        // Un niveau coché est retenu : ensemble vide = tous les niveaux
+        // (même règle que l'étape 12 — le FILTRAGE lui-même est le filtre
+        // unifié du lecteur, FiltreSortiesTest en porte l'équivalence).
         viewModel.onAction(ActionJournal.BasculerNiveau(LogLevel.ERROR))
-        val etat = viewModel.etat.value
-        assertEquals(listOf("entrée 4", "entrée 5"), etat.entrees.map { it.message })
+        assertEquals(setOf(LogLevel.ERROR), viewModel.etat.value.filtresNiveaux)
 
-        // Retirer le filtre : tout revient.
+        // Décocher revient à tous les niveaux.
         viewModel.onAction(ActionJournal.BasculerNiveau(LogLevel.ERROR))
-        assertEquals(5, viewModel.etat.value.entrees.size)
+        advanceUntilIdle()
+        assertTrue(viewModel.etat.value.filtresNiveaux.isEmpty())
     }
 
     @Test
-    fun `la recherche fusionne les frappes puis filtre message etiquette et exception`() = runTest {
-        depot.add(
-            entree(1, message = "navigation accueil"),
-            entree(2, message = "lecture du modèle"),
-            entree(3, tag = "MoteurModele", message = "démarrage"),
-            entree(
-                4,
-                message = "avec exception",
-                exception = FlattenedException("SqliteException", null, emptyList(), null),
-            ),
-        )
-        advanceUntilIdle()
-
-        viewModel.onAction(ActionJournal.Rechercher("mode"))
-        // Avant le délai : rien ne bouge encore.
-        assertEquals(4, viewModel.etat.value.entrees.size)
-
-        advanceTimeBy(251)
-        assertEquals(
-            listOf("lecture du modèle", "démarrage"),
-            viewModel.etat.value.entrees
-                .map { it.message },
-        )
-
-        viewModel.onAction(ActionJournal.Rechercher("sqlite"))
-        advanceTimeBy(251)
-        assertEquals(
-            listOf("avec exception"),
-            viewModel.etat.value.entrees
-                .map { it.message },
-        )
-
-        viewModel.onAction(ActionJournal.Rechercher(""))
-        advanceTimeBy(251)
-        assertEquals(4, viewModel.etat.value.entrees.size)
-    }
-
-    @Test
-    fun `la fusion temps reel n affiche jamais deux fois une meme entree`() = runTest {
-        depot.add(entree(1), entree(2))
-        advanceUntilIdle()
-        assertEquals(2, viewModel.etat.value.entrees.size)
-
-        // Les entrées récentes (fenêtre du tampon) recouvrent celles déjà
-        // lues sur disque : aucune ne doit se dupliquer.
-        depot.add(entree(3))
-        advanceUntilIdle()
-
-        assertEquals(
-            listOf("entrée 1", "entrée 2", "entrée 3"),
-            viewModel.etat.value.entrees
-                .map { it.message },
-        )
-    }
-
-    @Test
-    fun `le suivi direct demande le defilement a chaque nouvelle entree`() = runTest {
-        depot.add(entree(1))
+    fun `l effacement emet l effet lecteur et reinitialise l usage sans erreur`() = runTest {
         advanceUntilIdle()
         collecterEffets()
 
-        viewModel.onAction(ActionJournal.BasculerSuiviDirect)
-        assertTrue(viewModel.etat.value.suivreDirect)
-
-        depot.add(entree(2))
-        advanceUntilIdle()
-        arreterCollecteEffets()
-        assertEquals(2, effetsRecus.filterIsInstance<EffetJournal.DefilerVersBas>().size)
-    }
-
-    @Test
-    fun `l effacement vide l historique et reinitialise la fenetre`() = runTest {
-        depot.add(*(1..600).map { entree(it) }.toTypedArray())
-        viewModel = recreerViewModel()
-        advanceUntilIdle()
-        assertEquals(500, viewModel.etat.value.entrees.size)
-
-        viewModel.onAction(ActionJournal.ChargerPlusAnciennes)
-        assertEquals(600, viewModel.etat.value.entrees.size)
-
         viewModel.onAction(ActionJournal.Effacer)
         advanceUntilIdle()
+        arreterCollecteEffets()
 
-        val etat = viewModel.etat.value
-        assertEquals(0, etat.entrees.size)
-        assertFalse(etat.plusAnciennesDisponibles)
-        assertNull(etat.erreur)
+        // Le dépôt est vidé — et le tampon du lecteur le suit (effet).
+        assertTrue(effetsRecus.single() is EffetJournal.Efface)
+        assertNull(viewModel.etat.value.erreur)
+        assertEquals(0L, depot.diskUsage().bytes)
     }
 
     @Test
@@ -236,17 +131,6 @@ class JournalViewModelTest {
         val prete = effetsRecus.filterIsInstance<EffetJournal.ArchivePrete>().single()
         assertEquals("codeide-logs-test.zip", prete.archive.fileName)
         assertEquals(2, exporteur.derniereEcriture?.size)
-    }
-
-    @Test
-    fun `l echec de lecture laisse une erreur typée`() = runTest {
-        depot.readError = IOException("disque muet")
-        viewModel = recreerViewModel()
-        advanceUntilIdle()
-
-        val etat = viewModel.etat.value
-        assertTrue(etat.erreur is AppError.Storage)
-        assertFalse(etat.chargement)
     }
 
     @Test
@@ -287,32 +171,25 @@ class JournalViewModelTest {
     }
 
     @Test
-    fun `l etat restaure recherche filtres et suivi apres rotation`() = runTest {
+    fun `l etat restaure les filtres apres rotation`() = runTest {
         val handle =
             SavedStateHandle(
                 mapOf(
-                    "journal.recherche" to "modèle",
                     "journal.filtres" to arrayListOf("ERROR"),
-                    "journal.suivi_direct" to true,
                 ),
             )
-        viewModel = recreerViewModel(handle)
+        viewModel = viewModel(handle)
         advanceUntilIdle()
 
-        val etat = viewModel.etat.value
-        assertEquals("modèle", etat.recherche)
-        assertEquals(setOf(LogLevel.ERROR), etat.filtresNiveaux)
-        assertTrue(etat.suivreDirect)
+        assertEquals(setOf(LogLevel.ERROR), viewModel.etat.value.filtresNiveaux)
     }
 
     // ------------------------------------------------------------------
     // Outils
     // ------------------------------------------------------------------
 
-    /** Recrée le ViewModel (avec un handle optionnel pour la restauration). */
-    private fun recreerViewModel(handle: SavedStateHandle = SavedStateHandle()): JournalViewModel = JournalViewModel(
-        lireTout = ReadAllLogsUseCase(depot),
-        observerRecents = ObserveLogsUseCase(depot),
+    /** Construit le ViewModel (handle optionnel pour la restauration). */
+    private fun viewModel(handle: SavedStateHandle = SavedStateHandle()): JournalViewModel = JournalViewModel(
         effacerJournaux = ClearLogsUseCase(depot),
         exporterJournaux = ExportLogsUseCase(depot, exporteur),
         mesurerUsage = MeasureLogDiskUsageUseCase(depot),
@@ -322,20 +199,13 @@ class JournalViewModelTest {
     )
 
     /** Construit une entrée de test. */
-    private fun entree(
-        index: Int,
-        niveau: LogLevel = LogLevel.INFO,
-        message: String = "entrée $index",
-        tag: String = "Test",
-        exception: FlattenedException? = null,
-    ): LogEntry = LogEntry(
+    private fun entree(index: Int): LogEntry = LogEntry(
         timestampMillis = 1_000L + index,
         sessionId = "session",
-        level = niveau,
-        tag = tag,
+        level = LogLevel.INFO,
+        tag = "Test",
         threadName = "main",
-        message = message,
-        exception = exception,
+        message = "entrée $index",
     )
 }
 

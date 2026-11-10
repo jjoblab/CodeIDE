@@ -129,6 +129,48 @@ class AdaptateursSortiesTest {
     }
 
     @Test
+    fun `l exception aplatie du journal part dans le message — jamais perdue en silence`() {
+        // Lot L4 : l'écran Diagnostics consomme le lecteur — plus de
+        // « journal complet » qui ré-afficherait le détail à côté (ADR
+        // 0162) : l'exception aplatie fait partie du message (le lecteur
+        // la plie, la recherche la retrouve).
+        val cause = jo.codeide.core.model.FlattenedException(
+            className = "java.lang.IllegalStateException",
+            message = "état invalide",
+            frames = listOf("at jo.app.Dépôt.charger(Dépôt.kt:88)", "at jo.app.Vue.rendre(Vue.kt:21)"),
+            cause = null,
+        )
+        val entree = LogEntry(
+            timestampMillis = 3_000L,
+            sessionId = "session-uuid",
+            level = LogLevel.ERROR,
+            tag = "Editor",
+            threadName = "principal",
+            message = "échec d'écriture",
+            exception = jo.codeide.core.model.FlattenedException(
+                className = "java.io.IOException",
+                message = "disque plein",
+                frames = listOf("at jo.app.FileSink.ecrire(FileSink.kt:44)"),
+                cause = cause,
+            ),
+        )
+
+        val sortie = entree.versLigneSortie()
+
+        val attendu = "échec d'écriture\n" +
+            "java.io.IOException: disque plein\n" +
+            "    at jo.app.FileSink.ecrire(FileSink.kt:44)\n" +
+            "Caused by: java.lang.IllegalStateException: état invalide\n" +
+            "    at jo.app.Dépôt.charger(Dépôt.kt:88)\n" +
+            "    at jo.app.Vue.rendre(Vue.kt:21)"
+        assertEquals(attendu, sortie.message)
+
+        // Sans exception : le message reste EXACTEMENT celui de l'entrée.
+        val sansException = entree.copy(exception = null).versLigneSortie()
+        assertEquals("échec d'écriture", sansException.message)
+    }
+
+    @Test
     fun `le telechargement porte ses octets et sa duree jamais de pourcentage`() {
         val telechargement = TelechargementBuild(
             buildId = "b-7",

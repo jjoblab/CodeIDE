@@ -25,6 +25,10 @@ import java.util.Random
  * (une classe = une responsabilité : le rythme et les volumes vivent
  * dans la source, le CONTENU vit ici).
  */
+// Exemption detekt ciblée (règle 16) : le contenu déterministe du banc a
+// UNE fabrique par famille de ligne (tâches, verdicts, positions, ANSI,
+// téléchargements) — la scinder éparpillerait le protocole du banc.
+@Suppress("TooManyFunctions")
 internal object ContenuFactice {
 
     /** Le contenu d'une ligne selon sa position (réaliste, calibré). */
@@ -80,11 +84,9 @@ internal object ContenuFactice {
 
     /** Le suffixe de statut fin de l'en-tête (granularité D1 en attente —
      *  le banc mesure le regroupement sur les QUATRE statuts). */
-    private fun suffixeStatut(position: Int): String = when ((position / PERIODE_TACHE) % STATUTS.size) {
-        1 -> " ${STATUTS[1]}"
-        2 -> " ${STATUTS[2]}"
-        3 -> " ${STATUTS[3]}"
-        else -> ""
+    private fun suffixeStatut(position: Int): String {
+        val statut = STATUTS[(position / PERIODE_TACHE) % STATUTS.size]
+        return if (statut == STATUTS.first()) "" else " $statut"
     }
 
     private fun verdictReussite(horodatage: Long) = LigneSortie(

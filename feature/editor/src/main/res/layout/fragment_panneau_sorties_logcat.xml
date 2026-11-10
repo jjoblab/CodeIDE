@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Onglet Logcat du panneau inférieur (mission « Exécuter » R3/R4, lot
+     L4) — le chrome de la famille LOGCAT autour du lecteur UNIQUE du
+     Centre de sorties (ADR 0162 : le composant est le même partout, pas
+     un second afficheur) :
+     en haut, la puce de processus (sélecteur de sessions vivantes/
+     terminées/précédentes), le filtre de niveau et « Expliquer » IA ;
+     les bandeaux LOGCAT (pertes annoncées, arrêt, session précédente) ;
+     puis le lecteur (recherche, regex, pause, effacer, sélection, copie,
+     état vide « sans adb » honnête) embarqué comme UNE fenêtre.
+     Fragment PanneauSortiesLogcatFragment — le chrome (en-tête, onglets)
+     reste à l'hôte (activity_editor.xml), même patron que les autres
+     onglets (ADR 0055). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ===================== Chrome LOGCAT (R3/R4) ===================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorSurface"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/spacing_sm"
+        android:paddingVertical="@dimen/spacing_2xs">
+
+        <!-- Sélecteur de processus (R3) : puce avec ampoule vivante, menu
+             des sessions (vivantes, terminées, précédentes). -->
+        <LinearLayout
+            android:id="@+id/puce_processus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/fond_outil_logcat"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_md_compact">
+
+            <View
+                android:id="@+id/ampoule_processus"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:background="@drawable/ampoule_processus"
+                android:importantForAccessibility="no" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/nom_processus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:ellipsize="end"
+                android:fontFamily="monospace"
+                android:maxWidth="96dp"
+                android:maxLines="1"
+                android:textColor="@color/explorateur_texte"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                tools:text=":monapp" />
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:contentDescription="@string/logcat_selecteur_processus"
+                android:importantForAccessibility="no"
+                android:rotation="90"
+                android:src="@drawable/ic_chevron_droite"
+                app:tint="@color/explorateur_texte_3" />
+        </LinearLayout>
+
+        <!-- Filtre de niveau (R3) : masque les niveaux inférieurs, façon
+             Android Studio (Verbose → Assert) — le filtre unifié
+             (FiltreSorties, ADR 0160) le porte. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_niveau"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/logcat_filtre_niveau"
+            app:icon="@drawable/ic_niveau_logcat"
+            app:iconTint="@color/logcat_niveau_info" />
+
+        <!-- « Expliquer » (mission IA, lot IA-5, spec E3) : les dernières
+             rangées visibles partent en pré-remplissage du chat (fenêtre
+             bornée — jamais auto-envoyées). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_expliquer_ia"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/ia_expliquer_ia_cd"
+            android:minWidth="@dimen/touch_target_min"
+            android:minHeight="@dimen/touch_target_min"
+            app:icon="@drawable/ic_auto_awesome"
+            app:iconTint="?attr/colorPrimary" />
+    </LinearLayout>
+
+    <!-- ===================== Bandeaux LOGCAT (règle 14) ================ -->
+
+    <!-- Pertes annoncées par le pont : jamais silencieuses (R3) — orange. -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/bandeau_pertes"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/logcat_bandeau_pertes_fond"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:textColor="@color/logcat_niveau_avertissement"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:visibility="gone"
+        tools:text="214 lignes perdues"
+        tools:visibility="visible" />
+
+    <!-- Arrêt du processus : rouge, la raison lisible (R3). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/bandeau_arret"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/logcat_bandeau_arret_fond"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:textColor="@color/logcat_niveau_erreur"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:visibility="gone"
+        tools:text="Le processus s'est arrêté : ANR"
+        tools:visibility="visible" />
+
+    <!-- Session précédente : grise, consultable (archive bornée, R3). -->
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/bandeau_precedente"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/explorateur_fond_surface"
+        android:paddingHorizontal="@dimen/spacing_md_compact"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:textColor="@color/explorateur_texte_2"
+        android:textAppearance="?attr/textAppearanceLabelSmall"
+        android:visibility="gone"
+        tools:text="Session précédente — :monapp (pid 18342) · terminée à 14:02"
+        tools:visibility="visible" />
+
+    <!-- ===================== Le lecteur (UNE fenêtre) ================== -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/conteneur_lecteur"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:layout="@layout/fragment_lecteur_sorties" />
+</LinearLayout>
