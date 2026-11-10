@@ -58,6 +58,24 @@
             android:text="@string/sorties_regex_marque"
             android:textAppearance="?attr/textAppearanceLabelSmall" />
 
+        <!-- Puces d'étiquettes avec compteurs (spec SORTIES § 5.4, lot
+             L5) : le menu des tags présents dans la fenêtre, chaque
+             puce cycle inclure / exclure / neutre. Caché pour les
+             familles sans étiquettes (GRADLE). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_etiquettes"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_etiquettes"
+            android:fontFamily="monospace"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/sorties_etiquettes_marque"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <!-- Compteur « n/N » de la recherche. -->
         <com.google.android.material.textview.MaterialTextView
             android:id="@+id/compteur_recherche"
@@ -89,6 +107,31 @@
             app:icon="@drawable/ic_suivre_bas"
             app:iconGravity="textStart"
             app:iconTint="?attr/colorOnSurfaceVariant"
+            android:visibility="gone" />
+
+        <!-- Saut « erreur précédente / suivante » (spec SORTIES § 5.4,
+             lot L5) : navigue les repères d'erreurs de la poignée —
+             visible seulement quand des erreurs existent. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_erreur_precedente"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_erreur_precedente"
+            app:icon="@drawable/ic_correspondance_haut"
+            app:iconGravity="textStart"
+            app:iconTint="?attr/colorError"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_erreur_suivante"
+            style="@style/Widget.CodeIDE.Button.Icon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_erreur_suivante"
+            app:icon="@drawable/ic_suivre_bas"
+            app:iconGravity="textStart"
+            app:iconTint="?attr/colorError"
             android:visibility="gone" />
 
         <!-- Bascule brut ↔ regroupé (spec SORTIES § 4, lot L3) : le
@@ -140,6 +183,22 @@
             android:contentDescription="@string/sorties_retour_ligne"
             app:icon="@drawable/ic_retour_ligne"
             app:iconTint="?attr/colorOnSurfaceVariant" />
+
+        <!-- pid/tid affichables (spec SORTIES § 5.4, lot L5) : le
+             préfixe « pid:tid » des lignes Logcat — caché hors LOGCAT. -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_pid_tid"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_pid_tid"
+            android:fontFamily="monospace"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/sorties_pid_tid_marque"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:visibility="gone"
+            tools:visibility="visible" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_selection"

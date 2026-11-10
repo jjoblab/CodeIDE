@@ -13,13 +13,15 @@ import java.util.Locale
  * barre d'outils (spec SORTIES § 2 « barre d'outils du lecteur ») :
  * numéros de ligne, horodatage relatif/absolu, retour à la ligne ou
  * défilement horizontal, taille de police (zoom au pincement, bornes
- * 10–20 sp — spec § 3.7).
+ * 10–20 sp — spec § 3.7) ; lot L5 : pid/tid affichables (spec § 5.4,
+ * Logcat — l'option ne change rien aux familles qui n'en portent pas).
  */
 public data class OptionsRenduRangee(
     public val afficheNumeros: Boolean = false,
     public val afficheHorodatage: Boolean = false,
     public val horodatageAbsolu: Boolean = false,
     public val retourALaLigne: Boolean = true,
+    public val affichePidTid: Boolean = false,
     public val taillePoliceSp: Int = TAILLE_DEFAUT_SP,
 ) {
     /**
@@ -67,6 +69,8 @@ public data class OptionsRenduRangee(
  *           (arbitrage Q12), `null` hors téléchargement.
  * @property octetsTotal octets totaux SI le protocole les connaît, sinon
  *           `null` — jamais de pourcentage inventé.
+ * @property pid processus émetteur (Logcat, § 5.4) ou `null`.
+ * @property tid fil émetteur (Logcat, § 5.4) ou `null`.
  */
 public data class RangeeSortie(
     public val niveau: NiveauSortie,
@@ -77,6 +81,8 @@ public data class RangeeSortie(
     public val positionsSource: List<PositionSource>,
     public val octetsRecus: Long? = null,
     public val octetsTotal: Long? = null,
+    public val pid: Int? = null,
+    public val tid: Int? = null,
 ) {
     /** Texte PUR de la ligne (contrôleurs ANSI purgés) — calculé à la
      *  construction (copie/TalkBack/export sans re-parcours). */
@@ -105,6 +111,8 @@ public data class RangeeSortie(
             positionsSource = ligne.positionsSource,
             octetsRecus = ligne.octetsRecus,
             octetsTotal = ligne.octetsTotal,
+            pid = ligne.pid,
+            tid = ligne.tid,
         )
 
         /** La lettre qui porte le niveau sans la couleur (spec § 2). */
@@ -204,6 +212,16 @@ public fun formaterOctets(octets: Long, locale: Locale = Locale.getDefault()): S
     octets >= MEGA_OCTET -> String.format(locale, "%.1f Mo", octets / MEGA_OCTET.toDouble())
     octets >= KILO_OCTET -> String.format(locale, "%.1f ko", octets / KILO_OCTET.toDouble())
     else -> String.format(locale, "%d o", octets)
+}
+
+/**
+ * Le préfixe « pid:tid » d'une rangée Logcat (spec SORTIES § 5.4, lot
+ * L5) — pur, localisé ; `null` quand la ligne ne porte pas de processus
+ * (l'option du lecteur ne fabrique jamais un pid inventé).
+ */
+public fun prefixePidTid(pid: Int?, tid: Int?): String? {
+    val processus = pid ?: return null
+    return "$processus:${tid ?: "?"}"
 }
 
 private const val KILO_OCTET: Long = 1024L
