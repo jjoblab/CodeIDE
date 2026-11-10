@@ -12,11 +12,13 @@ import androidx.core.view.isGone
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.CouleurAnsi
+import jo.codeide.core.domain.GroupeLogcat
 import jo.codeide.core.domain.GroupeTache
 import jo.codeide.core.domain.NiveauSortie
 import jo.codeide.core.domain.PositionSource
 import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.ui.NiveauPastilleSortie
+import jo.codeide.feature.sorties.databinding.EnteteLogcatSortieBinding
 import jo.codeide.feature.sorties.databinding.EnteteTacheSortieBinding
 import jo.codeide.feature.sorties.databinding.LigneSortieBinding
 import jo.codeide.core.ui.R as RUi
@@ -137,16 +139,21 @@ internal class LignesSortiesAdapter(
 
     override fun getItemViewType(position: Int): Int = when (rangees[position]) {
         is RangeeLecteur.EnteteTache -> TYPE_ENTETE
+        is RangeeLecteur.EnteteLogcat -> TYPE_ENTETE_LOGCAT
         else -> TYPE_LIGNE
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder =
-        if (viewType == TYPE_ENTETE) {
-            EnteteViewHolder(
+        when (viewType) {
+            TYPE_ENTETE -> EnteteViewHolder(
                 EnteteTacheSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
             )
-        } else {
-            LigneViewHolder(
+
+            TYPE_ENTETE_LOGCAT -> EnteteLogcatViewHolder(
+                EnteteLogcatSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
+            )
+
+            else -> LigneViewHolder(
                 LigneSortieBinding.inflate(LayoutInflater.from(parent.context), parent, false),
             )
         }
@@ -156,6 +163,7 @@ internal class LignesSortiesAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val rangee = rangees[position]) {
             is RangeeLecteur.EnteteTache -> (holder as EnteteViewHolder).lier(rangee)
+            is RangeeLecteur.EnteteLogcat -> (holder as EnteteLogcatViewHolder).lier(rangee)
             is RangeeLecteur.Ligne -> (holder as LigneViewHolder).lier(position, rangee.rangee)
         }
     }
@@ -224,32 +232,58 @@ internal class LignesSortiesAdapter(
                 true
             }
             // TalkBack : niveau, source, horodatage relatif, texte
-            // (spec SORTIES § 3.10 — jamais la couleur seule).
+            // (spec SORTIES § 3.10 — jamais la couleur seule) ; le
+            // pid/tid s'annonce TEL QU'AFFICHÉ (option § 5.4 — le
+            // helper pur est le seul détenteur du format).
+            val pidTid = prefixePidTid(rangee.pid, rangee.tid)
+                ?.takeIf { options.affichePidTid }
+                ?.let { prefixe -> " $prefixe" }
+                ?: ""
             liaison.root.contentDescription = contexte.getString(
                 R.string.sorties_a11y_ligne,
                 contexte.getString(nomNiveauDe(rangee.niveau)),
                 contexte.getString(nomSourceDe(rangee.source)),
                 formaterHorodatageRelatif(rangee.horodatageMs, origineMs),
                 rangee.textePur,
-            )
+            ) + pidTid
         }
 
         /**
          * La rangée est-elle SANS aucun style rendu (ni gras, ni italique,
-         * ni couleur ANSI) ni résumé de téléchargement ? Alors le texte
-         * pur suffit — aucun span à construire.
+         * ni couleur ANSI) ni résumé de téléchargement ni préfixe pid/tid
+         * (option § 5.4) ? Alors le texte pur suffit — aucun span à
+         * construire.
          */
         private fun aPlat(rangee: RangeeSortie): Boolean = rangee.segments.all { segment ->
             !segment.gras && !segment.italique && segment.couleur == null
-        } && resumeTelechargement(rangee.octetsRecus, rangee.octetsTotal) == null
+        } && resumeTelechargement(rangee.octetsRecus, rangee.octetsTotal) == null &&
+            prefixePidTid(rangee.pid, rangee.tid)?.takeIf { options.affichePidTid } == null
 
-        /** Le texte rendu : spans gras/italique/couleur ANSI minimale. */
+        /** Le texte rendu : préfixe pid/tid (option § 5.4), spans
+         *  gras/italique/couleur ANSI minimale. */
         private fun texteDe(contexte: Context, rangee: RangeeSortie): CharSequence {
-            if (aPlat(rangee)) {
+            val prefixe = prefixePidTid(rangee.pid, rangee.tid)?.takeIf { options.affichePidTid }
+            if (aPlat(rangee) && prefixe == null) {
                 return rangee.textePur
             }
             val resume = resumeTelechargement(rangee.octetsRecus, rangee.octetsTotal)
             val construit = SpannableStringBuilder()
+            prefixe?.let {
+                val debut = construit.length
+                construit.append(it).append(' ')
+                construit.setSpan(
+                    ForegroundColorSpan(
+                        MaterialColors.getColor(
+                            contexte,
+                            com.google.android.material.R.attr.colorOnSurfaceVariant,
+                            0,
+                        ),
+                    ),
+                    debut,
+                    construit.length,
+                    0,
+                )
+            }
             rangee.segments.forEach { segment ->
                 val debut = construit.length
                 construit.append(segment.texte)
@@ -378,12 +412,81 @@ internal class LignesSortiesAdapter(
         }
     }
 
+    /** La vue d'un en-tête LOGCAT regroupé (lot L5, spec SORTIES § 5.4
+     *  M5) — le contenu de la ligne représentée (run répétée ou tête de
+     *  trace), le badge honnête (×N ou « N lignes · k causes »), le
+     *  chevron. L'appui bascule le repli (MÊME geste que les tâches :
+     *  les indices de groupe sont la clé, le tampon ne bouge jamais). */
+    internal inner class EnteteLogcatViewHolder(internal val liaison: EnteteLogcatSortieBinding) :
+        RecyclerView.ViewHolder(liaison.root) {
+        internal fun lier(rangee: RangeeLecteur.EnteteLogcat) {
+            val contexte = liaison.root.context
+            // Le contenu rendu = la ligne REPRÉSENTÉE (pré-parsée à
+            // l'ingestion — le bind n'analyse jamais).
+            liaison.texteEnteteLogcat.setTextSize(
+                TypedValue.COMPLEX_UNIT_SP,
+                options.taillePoliceSp.toFloat(),
+            )
+            liaison.texteEnteteLogcat.text = rangee.rangee.textePur
+            // Une tête d'erreur se colore (rôle erreur — le badge et le
+            // chevron portent le reste sans la couleur seule).
+            liaison.texteEnteteLogcat.setTextColor(
+                if (rangee.rangee.estErreur) {
+                    teinteErreur
+                } else {
+                    MaterialColors.getColor(
+                        liaison.texteEnteteLogcat,
+                        com.google.android.material.R.attr.colorOnSurface,
+                        0,
+                    )
+                },
+            )
+            liaison.badgeEnteteLogcat.text = badge(contexte, rangee)
+            liaison.chevronEnteteLogcat.text = if (rangee.replie) {
+                contexte.getString(R.string.sorties_repli_ferme)
+            } else {
+                contexte.getString(R.string.sorties_repli_ouvert)
+            }
+            liaison.root.setOnClickListener { surEnteteAppuyee(rangee.indiceGroupe) }
+            // TalkBack : contenu, badge, compteur, état de repli.
+            liaison.root.contentDescription = contexte.getString(
+                R.string.sorties_a11y_entete_logcat,
+                rangee.rangee.textePur,
+                badge(contexte, rangee),
+                rangee.lignesVisibles,
+                contexte.getString(
+                    if (rangee.replie) R.string.sorties_repli_ferme else R.string.sorties_repli_ouvert,
+                ),
+            )
+        }
+
+        /** Le badge honnête : « ×N » (répétition — le compteur AFFICHÉ du
+         *  groupe, les masquées restant au bandeau du filtre) ou « N
+         *  lignes · k causes » (trace). */
+        private fun badge(contexte: Context, rangee: RangeeLecteur.EnteteLogcat): String =
+            when (rangee.groupe) {
+                is GroupeLogcat.Repetition -> contexte.getString(
+                    R.string.sorties_entete_logcat_repetition,
+                    rangee.lignesVisibles,
+                )
+
+                is GroupeLogcat.Trace -> contexte.getString(
+                    R.string.sorties_entete_logcat_trace,
+                    rangee.lignesVisibles,
+                    rangee.causesVisibles,
+                )
+            }
+    }
+
     private companion object {
         /** Type de vue : une ligne de tampon. */
         const val TYPE_LIGNE = 0
 
-        /** Type de vue : un en-tête regroupé. */
+        /** Type de vue : un en-tête regroupé (tâche Gradle). */
         const val TYPE_ENTETE = 1
+
+        /** Type de vue : un en-tête regroupé Logcat (×N ou trace, lot L5). */
+        const val TYPE_ENTETE_LOGCAT = 2
 
         /** Millisecondes par seconde (affichage de la durée serveur). */
         const val MS_PAR_SECONDE = 1_000L

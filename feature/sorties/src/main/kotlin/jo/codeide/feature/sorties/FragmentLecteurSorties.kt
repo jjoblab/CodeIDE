@@ -8,12 +8,15 @@ import android.os.Handler
 import android.os.Looper
 import android.text.Editable
 import android.view.LayoutInflater
+import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.domain.FiltreSorties
@@ -25,6 +28,7 @@ import jo.codeide.core.ui.Retour
 import jo.codeide.core.ui.SimpleTextWatcher
 import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.sorties.databinding.FragmentLecteurSortiesBinding
+import kotlinx.coroutines.launch
 
 /**
  * Le lecteur du Centre de sorties (ADR 0159/0162, lots L2-L3) — le fragment
@@ -98,11 +102,16 @@ public class FragmentLecteurSorties :
         brancherBarre()
         brancherEtats()
         brancherRegroupement()
-        // Le mode REGROUPÉ n'existe que pour la famille GRADLE (la
-        // dérivation Logcat/Journal est un ajout planifié) — la bascule
-        // disparaît ailleurs : jamais une bascule qui prétend regrouper
-        // sans le faire (honnêteté règle 14).
+        // Le mode REGROUPÉ existe pour GRADLE (tâches, lot L3) et LOGCAT
+        // (×N, traces — lot L5) ; la bascule disparaît ailleurs (JOURNAL)
+        // : jamais une bascule qui prétend regrouper sans le faire
+        // (honnêteté règle 14).
         binding.boutonRegrouper.isGone = !viewModel.modeDisponible
+        // Les gestes PAR FAMILLE (honnêteté — jamais un bouton mort) :
+        // les étiquettes existent pour Logcat et Journal (tags), le
+        // pid/tid n'existe que pour le Logcat (spec SORTIES § 5.4).
+        binding.boutonEtiquettes.isGone = viewModel.famille == FamilleSorties.GRADLE
+        binding.boutonPidTid.isGone = viewModel.famille != FamilleSorties.LOGCAT
         // État vide honnête PAR FAMILLE (règle 14 — chaque état vide dit
         // pourquoi et propose la suite : logcat « sans adb », journal,
         // Gradle par défaut) ; il suit la taille du tampon affiché.
@@ -179,6 +188,10 @@ public class FragmentLecteurSorties :
         }
         viewModel.marques.collectWithLifecycle(viewLifecycleOwner) { marques ->
             lecteur.definirMarques(marques)
+            // Les boutons du saut d'erreur n'existent que s'il y a des
+            // erreurs (jamais un geste mort — spec SORTIES § 5.4).
+            binding.boutonErreurPrecedente.isGone = marques.erreurs.isEmpty()
+            binding.boutonErreurSuivante.isGone = marques.erreurs.isEmpty()
         }
         viewModel.allerA.collectWithLifecycle(viewLifecycleOwner) { indice ->
             lecteur.allerALaRangee(indice)
@@ -227,6 +240,31 @@ public class FragmentLecteurSorties :
         }
         binding.boutonCorrespondancePrecedente.setOnClickListener { viewModel.naviguerCorrespondance(-1) }
         binding.boutonCorrespondanceSuivante.setOnClickListener { viewModel.naviguerCorrespondance(+1) }
+        // Saut « erreur précédente / suivante » (spec SORTIES § 5.4, lot
+        // L5) : le départ est la première rangée VISIBLE du lecteur — le
+        // parcours boucle sur les repères d'erreurs (jamais un geste mort).
+        binding.boutonErreurPrecedente.setOnClickListener {
+            viewModel.naviguerErreur(-1, lecteur.premiereRangeeVisible())
+        }
+        binding.boutonErreurSuivante.setOnClickListener {
+            viewModel.naviguerErreur(+1, lecteur.premiereRangeeVisible())
+        }
+        binding.boutonEtiquettes.setOnClickListener { ouvrirMenuEtiquettes() }
+        binding.boutonPidTid.setOnClickListener {
+            // Option d'affichage pid/tid (spec SORTIES § 5.4) — l'état
+            // actif s'accentue (même discipline que le bouton regex :
+            // jamais la couleur seule, TalkBack lit la description).
+            val actif = !viewModel.reglages.value.affichePidTid
+            viewModel.regler { options -> options.copy(affichePidTid = actif) }
+            val attributAccent = if (actif) {
+                androidx.appcompat.R.attr.colorPrimary
+            } else {
+                com.google.android.material.R.attr.colorOnSurfaceVariant
+            }
+            binding.boutonPidTid.setTextColor(
+                MaterialColors.getColor(binding.boutonPidTid, attributAccent, 0),
+            )
+        }
         binding.boutonRegrouper.setOnClickListener {
             // Bascule brut ↔ regroupé (spec SORTIES § 4) : la bascule est
             // symétrique, le tampon ne bouge jamais.
@@ -389,6 +427,9 @@ public class FragmentLecteurSorties :
         } else {
             when (val rangee = projection.rangees[premiere]) {
                 is RangeeLecteur.EnteteTache -> rangee.groupe
+                // Le Logcat regroupé n'a pas d'en-tête collant (pas de
+                // tâche — le résumé du regroupement reste `null`).
+                is RangeeLecteur.EnteteLogcat -> null
                 is RangeeLecteur.Ligne -> groupeDe(regroupe, projection, premiere)
             }
         }
@@ -416,10 +457,13 @@ public class FragmentLecteurSorties :
         viewModel.mode.collectWithLifecycle(viewLifecycleOwner) { mode ->
             // La bascule s'accorde : en mode BRUT le bouton PROPOSE le
             // regroupement ; en REGROUPE il propose le retour au brut.
+            // L'en-tête COLLANT est un concept de TÂCHES (GRADLE) — le
+            // regroupement Logcat (×N, traces) n'en a pas.
             binding.boutonRegrouper.text = getString(
                 if (mode == ModeLecture.REGROUPE) R.string.sorties_mode_brut else R.string.sorties_mode_regroupe,
             )
-            binding.collantTache.isGone = mode != ModeLecture.REGROUPE
+            binding.collantTache.isGone =
+                mode != ModeLecture.REGROUPE || viewModel.famille != FamilleSorties.GRADLE
             majCollant()
         }
         viewModel.regroupement.collectWithLifecycle(viewLifecycleOwner) { regroupe ->
@@ -437,6 +481,9 @@ public class FragmentLecteurSorties :
 
         /** Millisecondes par seconde (durée du résumé). */
         private const val DUREE_SECONDE = 1_000L
+
+        /** Identifiant de l'entrée d'aide du menu d'étiquettes. */
+        private const val ID_AIDE_ETIQUETTES = 0
 
         /** Crée un lecteur pour la famille [famille] — l'argument du
          *  fragment porte la famille au ViewModel ([CLE_FAMILLE] via
@@ -487,5 +534,71 @@ public class FragmentLecteurSorties :
         FamilleSorties.GRADLE -> R.string.sorties_vide_message
         FamilleSorties.LOGCAT -> R.string.sorties_vide_message_logcat
         FamilleSorties.JOURNAL -> R.string.sorties_vide_message_journal
+    }
+
+    /**
+     * Le menu « # » des puces d'étiquettes (spec SORTIES § 5.4, lot L5)
+     * — les tags de la fenêtre avec leur COMPTE, chaque puce cycle
+     * inclure / exclure / neutre ([LecteurSortiesViewModel.basculerEtiquette]).
+     * Le menu SE ROUVRE après chaque bascule (les états sont relus du
+     * filtre — la vérité du filtre) ; « retour » le referme. Comptage au
+     * GESTE (hors chemin chaud — un passage sur la fenêtre, jamais à
+     * chaque lot). Les masquées restent comptées par le bandeau du
+     * filtre : les compteurs ici disent le CONTENU de la fenêtre.
+     */
+    private fun ouvrirMenuEtiquettes() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val suggestions = viewModel.etiquettesComptees()
+            if (suggestions.isEmpty()) {
+                Retour.snackbar(
+                    binding.root,
+                    requireContext().getString(R.string.sorties_etiquettes_aucune),
+                )
+            } else {
+                montrerMenuEtiquettes(suggestions)
+            }
+        }
+    }
+
+    /** Le menu lui-même (reconstruit À CHAQUE bascule — les états des
+     *  puces viennent des suggestions RELUES, jamais mémorisés). */
+    private fun montrerMenuEtiquettes(suggestions: List<EtiquetteComptee>) {
+        val menu = PopupMenu(requireContext(), binding.boutonEtiquettes)
+        // L'aide du cycle en tête (désactivée — jamais cliquée).
+        menu.menu.add(Menu.NONE, ID_AIDE_ETIQUETTES, 0, R.string.sorties_etiquettes_aide)
+            .apply { isEnabled = false }
+        suggestions.forEachIndexed { index, suggestion ->
+            val libelle = when (suggestion.etat) {
+                EtatPuceEtiquette.EXCLUE -> getString(
+                    R.string.sorties_etiquette_exclue,
+                    suggestion.etiquette,
+                    suggestion.compte,
+                )
+
+                else -> getString(
+                    R.string.sorties_etiquette_compte,
+                    suggestion.etiquette,
+                    suggestion.compte,
+                )
+            }
+            menu.menu.add(Menu.NONE, index + 1, Menu.NONE, libelle).apply {
+                isCheckable = true
+                isChecked = suggestion.etat == EtatPuceEtiquette.INCLUSE
+            }
+        }
+        menu.setOnMenuItemClickListener { item ->
+            if (item.itemId == ID_AIDE_ETIQUETTES) return@setOnMenuItemClickListener true
+            val suggestion = suggestions.getOrNull(item.itemId - 1)
+                ?: return@setOnMenuItemClickListener true
+            viewModel.basculerEtiquette(suggestion.etiquette)
+            // Le menu se rouvre : les états viennent d'être cyclés — le
+            // comptage est relu au geste (le tampon n'a pas bougé ; le
+            // verrou sérialise avec la bascule).
+            viewLifecycleOwner.lifecycleScope.launch {
+                montrerMenuEtiquettes(viewModel.etiquettesComptees())
+            }
+            true
+        }
+        menu.show()
     }
 }
