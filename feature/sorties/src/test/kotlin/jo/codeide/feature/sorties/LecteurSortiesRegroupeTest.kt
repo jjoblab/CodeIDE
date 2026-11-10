@@ -58,6 +58,9 @@ class LecteurSortiesRegroupeTest {
 
         override val etatExecution:
             kotlinx.coroutines.flow.StateFlow<jo.codeide.core.domain.EtatExecutionGradle?> = etat
+
+        override val generation: kotlinx.coroutines.flow.StateFlow<Int> =
+            kotlinx.coroutines.flow.MutableStateFlow(0)
     }
 
     private val horloge = TimeProviderDeTest()

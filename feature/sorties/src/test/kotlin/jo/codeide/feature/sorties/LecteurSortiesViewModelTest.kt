@@ -31,6 +31,9 @@ private class FluxDeTest(private val fenetre: Int = FENETRE_DEFAUT) : FluxSortie
 
     override val etatExecution: kotlinx.coroutines.flow.StateFlow<jo.codeide.core.domain.EtatExecutionGradle?> =
         kotlinx.coroutines.flow.MutableStateFlow(null)
+
+    override val generation: kotlinx.coroutines.flow.StateFlow<Int> =
+        kotlinx.coroutines.flow.MutableStateFlow(0)
 }
 
 /**

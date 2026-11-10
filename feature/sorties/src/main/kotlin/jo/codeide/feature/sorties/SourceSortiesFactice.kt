@@ -46,6 +46,17 @@ public interface FluxSorties {
      * `null` hors exécution (attente, banc, consultation).
      */
     public val etatExecution: StateFlow<EtatExecutionGradle?>
+
+    /**
+     * Le numéro de GÉNÉRATION du flux (lot L4) — incrémenté à CHAQUE
+     * changement de source derrière le même port (banc armé/désarmé,
+     * session Logcat sélectionnée, changement de session consultée).
+     * Le lecteur y voit le signal de RESET honnête : au changement, il
+     * vide son état vivant — jamais un mélange de deux sources dans un
+     * même tampon (deux familles, deux flux : le changement n'arrive
+     * qu'au sein d'UNE famille).
+     */
+    public val generation: StateFlow<Int>
 }
 
 /** Fenêtre commune des séquences banc (lignes) — S2 exige le tampon
@@ -133,6 +144,12 @@ public class SourceSortiesFactice
 constructor() : FluxSorties {
     private val sequenceInterne = MutableStateFlow<SequenceBanc?>(null)
 
+    /** Le numéro de génération (le banc arme/désarme — chaque bascule
+     *  est un changement de source derrière le port). */
+    private val generationInterne = MutableStateFlow(0)
+
+    override val generation: StateFlow<Int> = generationInterne.asStateFlow()
+
     override val sequenceArmee: StateFlow<SequenceBanc?> = sequenceInterne.asStateFlow()
 
     /** Le banc ne porte AUCUN état d'exécution (contenu déterministe —
@@ -162,12 +179,16 @@ constructor() : FluxSorties {
      * constructeur du tampon).
      */
     public fun armer(sequence: SequenceBanc) {
+        if (sequenceInterne.value == sequence) return
         sequenceInterne.value = sequence
+        generationInterne.value += 1
     }
 
     /** Désarme la séquence (le flux retourne en attente, coût nul). */
     public fun desarmer() {
+        if (sequenceInterne.value == null) return
         sequenceInterne.value = null
+        generationInterne.value += 1
     }
 
     /** Les lots d'une séquence : rythme et volumes du banc § 3. */
