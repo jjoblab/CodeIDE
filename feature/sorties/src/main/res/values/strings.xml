@@ -57,6 +57,10 @@
     <string name="sorties_banc_sequence_s1">S1 — débit d\'ingestion (100 000 lignes)</string>
     <string name="sorties_banc_sequence_s2">S2 — tampon plein (100 000 lignes d\'un bloc)</string>
     <string name="sorties_banc_sequence_s6">S6 — pause/reprise (10 000 lignes/s)</string>
+    <string name="sorties_banc_sequence_s5">S5 — regroupement (500 tâches, tampon plein)</string>
+    <string name="sorties_banc_rejouer">Rejouer la dernière exécution persistée</string>
+    <string name="sorties_banc_rejouer_vide">Aucune exécution persistée : lancez un build (le registre se remplit dès la première exécution).</string>
+    <string name="sorties_banc_rejoue">Exécution %1$s relue en lecture seule — « Arrêter » revient au direct.</string>
 
     <!-- États vides honnêtes (table de vérité — chaque état vide dit
          pourquoi et propose l\'action suivante). -->

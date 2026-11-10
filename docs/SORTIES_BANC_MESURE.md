@@ -46,6 +46,13 @@ pas d'autres apps ; le profil est toujours le même (clair ET nuit).
 | S7 | **Rotation et navigation** : 20 rotations avec recherche active et filtre actif ; aller-retour éditeur dédié ↔ panneau compact | — | état conservé (position, filtre, recherche), temps de re-attach |
 | S8 | **Latence perçue de bout en bout** : build réel d'une fixture `docs/tooling-scenarios/fixtures/` via le serveur, sonde ADR 0152 activée | build réel | émission serveur → pixel, comparaison avec la console actuelle (régression interdite — budget `docs/SORTIES_SPEC.md` § 10.2) |
 
+> **Armement (lot L3)** : les séquences S1, S2, S5 et S6 sont armables
+> depuis l'écran de diagnostic « Banc sorties » (carte de la
+> configuration tooling) ; S5 ajoute le contenu regroupable (500 tâches
+> aux statuts fins cyclés — UP-TO-DATE / FROM-CACHE / NO-SOURCE) : la
+> bascule brut → regroupé et le repli/dépli se mesurent sur tampon
+> plein. S7/S8 attendent les lots suivants (S8 = transport réel).
+
 Volumes et séquences sont encodés dans la source factice par un paramètre
 unique (menu de diagnostic « banc sorties », carte dans la page de
 configuration tooling, réglage opt-in comme l'instrumentation — coût nul

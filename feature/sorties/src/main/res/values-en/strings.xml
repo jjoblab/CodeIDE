@@ -83,4 +83,8 @@
     <string name="sorties_resume_gravites">%1$d error(s) · %2$d warning(s) · %3$d lines</string>
     <string name="sorties_consultation_bandeau">Reading a past execution — live output is held back until “back to live”.</string>
     <string name="sorties_saut_sans_editeur">No editor open: the jump to source will work from the editor (lot L5).</string>
+    <string name="sorties_banc_sequence_s5">S5 — grouping (500 tasks, full buffer)</string>
+    <string name="sorties_banc_rejouer">Replay the last persisted execution</string>
+    <string name="sorties_banc_rejouer_vide">No persisted execution yet: run a build (the registry fills from the first execution).</string>
+    <string name="sorties_banc_rejoue">Execution %1$s replayed read-only — “Stop” returns to live.</string>
 </resources>

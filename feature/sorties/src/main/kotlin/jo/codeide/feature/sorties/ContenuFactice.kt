@@ -73,10 +73,19 @@ internal object ContenuFactice {
 
     private fun enTeteTache(position: Int, horodatage: Long) = LigneSortie(
         source = SourceSortie.BUILD,
-        message = "> Task :app:compile${TACHES[position % TACHES.size]}",
+        message = "> Task :app:compile${TACHES[position % TACHES.size]}" + suffixeStatut(position),
         horodatageMs = horodatage,
         etiquette = "tache",
     )
+
+    /** Le suffixe de statut fin de l'en-tête (granularité D1 en attente —
+     *  le banc mesure le regroupement sur les QUATRE statuts). */
+    private fun suffixeStatut(position: Int): String = when ((position / PERIODE_TACHE) % STATUTS.size) {
+        1 -> " ${STATUTS[1]}"
+        2 -> " ${STATUTS[2]}"
+        3 -> " ${STATUTS[3]}"
+        else -> ""
+    }
 
     private fun verdictReussite(horodatage: Long) = LigneSortie(
         source = SourceSortie.BUILD,
@@ -136,8 +145,13 @@ internal object ContenuFactice {
     /** Une ligne chaude sur deux est une erreur (une sur seize). */
     private const val PERIODE_ERREUR = 16
 
-    /** Période des en-têtes de tâche et de la ligne de verdict. */
-    private const val PERIODE_TACHE = 500
+    /** Période des en-têtes de tâche et de la ligne de verdict — 500
+     *  tâches sur le volume du banc (S5 : « 500 tâches sur tampon
+     *  plein », lot L3). */
+    private const val PERIODE_TACHE = 200
+
+    /** Les statuts fins cyclés des en-têtes (protocole Gradle). */
+    private val STATUTS = listOf("", "UP-TO-DATE", "FROM-CACHE", "NO-SOURCE")
 
     /** Périodes des lignes spéciales du contenu factice. */
     private const val PERIODE_LONGUE = 3_000

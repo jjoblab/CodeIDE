@@ -100,6 +100,15 @@ public enum class SequenceBanc(public val fenetre: Int, public val totalLignes: 
      * au compteur du lecteur.
      */
     S6_PAUSE_REPRISE(FENETRE_BANC, TOTAL_BANC),
+
+    /**
+     * S5 — regroupement (lot L3) : 100 000 lignes d'un bloc (500 tâches,
+     * statuts fins cyclés), tampon PLEIN — le propriétaire bascule brut →
+     * regroupé, replie/déplie 50 tâches : la mesure « une seule liste
+     * re-projetée » (ADR 0078), la latence de bascule, la rétention
+     * mémoire. Même cadence que S2 (tout d'un bloc, puis tampon stable).
+     */
+    S5_REGROUPEMENT(FENETRE_BANC, TOTAL_BANC),
 }
 
 /**
@@ -172,6 +181,8 @@ constructor() : FluxSorties {
             parLot = 500,
             periodeMs = 50L,
         )
+
+        SequenceBanc.S5_REGROUPEMENT -> lotsS5()
     }
 
     /** S1 : 20 lots de 500 lignes à 1 lot/s (500 l/s), puis 10 000 l/s. */
@@ -201,6 +212,19 @@ constructor() : FluxSorties {
         // Tampon plein, flux ouvert : la mesure S2/S3/S4 tourne sur un
         // tampon STABLE — plus rien n'est émis (délai long, pas de fin de
         // séquence prématurée).
+        yield(LotFactice(emptyList(), periodeMs = PAUSE_S2_MS))
+    }
+
+    /** S5 (lot L3) : tout d'un bloc comme S2 — la bascule brut →
+     *  regroupé se mesure sur un tampon PLEIN et STABLE. */
+    private fun lotsS5(): Sequence<LotFactice> = sequence {
+        var emises = 0
+        while (emises < SequenceBanc.S5_REGROUPEMENT.totalLignes) {
+            val taille = minOf(LOT_S2, SequenceBanc.S5_REGROUPEMENT.totalLignes - emises)
+            val lot = ligneFactice(taille, emises)
+            emises += taille
+            yield(LotFactice(lot, periodeMs = 0L))
+        }
         yield(LotFactice(emptyList(), periodeMs = PAUSE_S2_MS))
     }
 

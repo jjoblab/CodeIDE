@@ -1,8 +1,9 @@
 # ADR 0161 — Historique et rétention des sorties de build
 
-- Statut : proposé (2026-11-10, lot L0 — branche
-  `agent/sorties-l0-conception`). Renuméroté depuis 0155 (créneau
-  occupé par le chantier générateur).
+- Statut : **accepté** (2026-11-10 — « GO L3 » du propriétaire ; mis en
+  œuvre au lot L3, branche `agent/sorties-l3-gradle-historique`).
+  Proposé en L0 (branche `agent/sorties-l0-conception`). Renuméroté
+  depuis 0155 (créneau occupé par le chantier générateur).
 - Contexte : audit § 3 (« ni structure ni mémoire »), § 9 (écarts) ;
   `docs/SORTIES_SPEC.md` § 8 ; précédents : `ArchiveSessionsJournal`
   (Logcat), ADR 0025 (relecture disque du journal applicatif), ADR 0009

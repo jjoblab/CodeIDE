@@ -67,6 +67,14 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/spacing_sm"
             android:text="@string/sorties_banc_arreter" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_rejouer"
+            style="@style/Widget.CodeIDE.Button.Outlined"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_sm"
+            android:text="@string/sorties_banc_rejouer" />
     </LinearLayout>
 
     <com.google.android.material.textview.MaterialTextView
