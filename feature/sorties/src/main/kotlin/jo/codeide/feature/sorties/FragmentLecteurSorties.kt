@@ -71,6 +71,12 @@ public class FragmentLecteurSorties :
     @javax.inject.Inject
     lateinit var registreSaut: RegistrePortSautSource
 
+    /** Le geste HÔTE d'une ligne appuyée SANS position source (lot L4) —
+     *  le chrome logcat y branche le saut au source des traces (R4) : le
+     *  lecteur ne connaît ni l'éditeur ni les piles ; l'hôte décide du
+     *  geste. `null` : le clic hors sélection ne fait rien (Gradle). */
+    public var surLigneSansPosition: ((texte: String) -> Unit)? = null
+
     /** Anti-rebond de la frappe (la relance du ViewModel annule et
      *  relance la recherche — le champ reste maître, spec § 3.4). */
     private val antiRebond = Handler(Looper.getMainLooper())
@@ -97,6 +103,14 @@ public class FragmentLecteurSorties :
         // disparaît ailleurs : jamais une bascule qui prétend regrouper
         // sans le faire (honnêteté règle 14).
         binding.boutonRegrouper.isGone = !viewModel.modeDisponible
+        // État vide honnête PAR FAMILLE (règle 14 — chaque état vide dit
+        // pourquoi et propose la suite : logcat « sans adb », journal,
+        // Gradle par défaut) ; il suit la taille du tampon affiché.
+        binding.etatVideTitre.text = getString(titreVideDe(viewModel.famille))
+        binding.etatVideMessage.text = getString(messageVideDe(viewModel.famille))
+        viewModel.projection.collectWithLifecycle(viewLifecycleOwner) { projection ->
+            binding.etatVide.isGone = projection.tailleTampon > 0
+        }
         // Rotation : retrouver la position retenue (spec SORTIES § 3.11 —
         // pivoter ne perd ni position, ni filtre, ni recherche : le
         // ViewModel survit, la position est repoussée au nouveau lecteur).
@@ -119,9 +133,16 @@ public class FragmentLecteurSorties :
         val adapter = LignesSortiesAdapter(
             surLigneAppuyee = { indice ->
                 // Appui simple : étendre la sélection SI le mode est ouvert
-                // (la copie reste toujours explicite — spec § 3.6).
+                // (la copie reste toujours explicite — spec § 3.6). Hors
+                // sélection : le geste HÔTE (logcat — le saut au source des
+                // traces, R4), sinon rien (jamais un geste perdu).
                 if (viewModel.selection.plage.value != null) {
                     viewModel.selection.selectionner(indice)
+                } else {
+                    val texte =
+                        (viewModel.projection.value.rangees.getOrNull(indice) as? RangeeLecteur.Ligne)
+                            ?.rangee?.textePur
+                    if (texte != null) surLigneSansPosition?.invoke(texte)
                 }
             },
             surLigneLongueAppuyee = { indice ->
@@ -445,5 +466,27 @@ public class FragmentLecteurSorties :
 
     override fun basculerPause() {
         viewModel.basculerPause()
+    }
+
+    override fun texteVisible(dernieres: Int): String? {
+        val lignes = viewModel.projection.value.rangees
+            .filterIsInstance<RangeeLecteur.Ligne>()
+            .takeLast(dernieres)
+            .map { it.rangee.textePur }
+        return lignes.joinToString(separator = "\n").ifEmpty { null }
+    }
+
+    /** Les libellés d'état vide PAR FAMILLE (honnêteté — chaque famille
+     *  dit son périmètre, jamais un message de Gradle sur le Logcat). */
+    private fun titreVideDe(famille: FamilleSorties): Int = when (famille) {
+        FamilleSorties.GRADLE -> R.string.sorties_vide_titre
+        FamilleSorties.LOGCAT -> R.string.sorties_vide_titre_logcat
+        FamilleSorties.JOURNAL -> R.string.sorties_vide_titre_journal
+    }
+
+    private fun messageVideDe(famille: FamilleSorties): Int = when (famille) {
+        FamilleSorties.GRADLE -> R.string.sorties_vide_message
+        FamilleSorties.LOGCAT -> R.string.sorties_vide_message_logcat
+        FamilleSorties.JOURNAL -> R.string.sorties_vide_message_journal
     }
 }

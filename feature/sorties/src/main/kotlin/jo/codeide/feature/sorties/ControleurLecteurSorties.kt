@@ -28,4 +28,9 @@ public interface ControleurLecteurSorties {
     /** Bascule la pause du direct (le tampon ingère, la vue fige ; la
      *  reprise livre le delta EN UNE fois — spec SORTIES § 3.3). */
     public fun basculerPause()
+
+    /** Le texte PUR des dernières rangées visibles (pré-remplissage
+     *  « Expliquer » du chrome logcat — fenêtre bornée, jamais
+     *  auto-envoyée), ou `null` si rien n'est affiché. */
+    public fun texteVisible(dernieres: Int): String?
 }

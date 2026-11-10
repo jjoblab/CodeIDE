@@ -35,6 +35,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.tabs.TabLayout
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.feature.sorties.CollecteurSortiesLogcat
+import jo.codeide.feature.sorties.PlantageLogcat
 import jo.codeeditor.document.Selection
 import jo.codeeditor.session.EditorSession
 import jo.codeeditor.view.EditorView
@@ -144,10 +146,12 @@ class EditorActivity :
     ControleurPanneauEditeur {
     private val viewModel: EditorViewModel by viewModels()
 
-    /** ViewModel Logcat (R3) — portée ACTIVITÉ (le fragment Logcat y
-     *  accède par `activityViewModels`) : le snackbar « L'application a
-     *  planté » (R4) vit ici, visible même replié. */
-    private val viewModelLogcat: LogcatViewModel by viewModels()
+    /** Le collecteur LOGCAT process-wide (lot L4) — le snackbar «
+     *  L'application a planté » (R4) observe SON état ici, visible même
+     *  replié ; l'action « Voir la trace » sélectionne la session morte
+     *  sur le collecteur (l'onglet Logcat est le lecteur famille LOGCAT). */
+    @javax.inject.Inject
+    lateinit var collecteurLogcat: CollecteurSortiesLogcat
 
     /** Complétion fantôme (IA-8b, ADR 0129) : rendu inlay + debounce +
      * annulation à la frappe + Tab/Échap — câblé dans [cacherOuInstallerFantome]. */
@@ -454,8 +458,8 @@ class EditorActivity :
 
         // R4 : plantage de l'application exécutée — snackbar UNE fois par
         // session morte (le pont signale l'exception non interceptée).
-        viewModelLogcat.etat.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
-            surveillerPlantage(etat.plantage)
+        collecteurLogcat.plantage.collectWithLifecycle(this, Lifecycle.State.STARTED) { plantage ->
+            surveillerPlantage(plantage)
         }
 
         // Réglages de l'éditeur (v0.37.0) : chaque changement persisté
@@ -497,7 +501,7 @@ class EditorActivity :
         Snackbar
             .make(liaison.racineEditeur, R.string.logcat_plantage, Snackbar.LENGTH_LONG)
             .setAction(R.string.logcat_plantage_voir) {
-                viewModelLogcat.selectionnerSession(plantage.idSession)
+                collecteurLogcat.selectionnerSession(plantage.idSession)
                 viewModel.onAction(ActionEditor.SelectionnerOngletPanneau(OngletPanneau.LOGCAT))
                 if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
                     viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
@@ -1975,7 +1979,7 @@ class EditorActivity :
             val console = PanneauConsoleFragment()
             val problemes = PanneauProblemesFragment()
             val journal = PanneauJournalFragment()
-            val logcat = PanneauLogcatFragment()
+            val logcat = PanneauSortiesLogcatFragment()
             gestionnaire
                 .beginTransaction()
                 .add(R.id.conteneur_fragments_panneau, console, TAG_PANNEAU_CONSOLE)

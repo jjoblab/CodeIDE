@@ -290,6 +290,39 @@
             android:paddingEnd="@dimen/sorties_rail_largeur"
             tools:listitem="@layout/ligne_sortie" />
 
+        <!-- État vide honnête par famille (règle 14 — chaque état vide
+             dit pourquoi et propose la suite ; lot L4 : LOGCAT « sans
+             adb », JOURNAL « le journal de CodeIDE », GRADLE par défaut). -->
+        <LinearLayout
+            android:id="@+id/etat_vide"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/state_padding"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/etat_vide_titre"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/sorties_vide_titre"
+                android:textAppearance="?attr/textAppearanceBodyMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/etat_vide_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:gravity="center"
+                android:text="@string/sorties_vide_message"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textAppearance="?attr/textAppearanceLabelSmall" />
+        </LinearLayout>
+
         <!-- L'en-tête COLLANT de la tâche courante (spec SORTIES § 4.2 —
              visible en mode regroupé, suit la première rangée). -->
         <com.google.android.material.textview.MaterialTextView

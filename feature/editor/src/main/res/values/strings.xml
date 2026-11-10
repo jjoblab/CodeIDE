@@ -159,9 +159,6 @@
     <string name="logcat_session_vivante"> · en cours</string>
     <string name="logcat_session_terminee"> · terminée</string>
     <string name="logcat_session_precedente"> · précédente</string>
-    <string name="logcat_filtre_indice">Filtrer le texte</string>
-    <string name="logcat_regex">Expression régulière</string>
-    <string name="logcat_regex_marque">.*</string>
     <string name="logcat_filtre_niveau">Niveau minimal affiché</string>
     <string name="logcat_niveau_verbeux">Verbose</string>
     <string name="logcat_niveau_debogage">Débug</string>
@@ -169,10 +166,6 @@
     <string name="logcat_niveau_avertissement">Avertissement</string>
     <string name="logcat_niveau_erreur">Erreur</string>
     <string name="logcat_niveau_assert">Assert</string>
-    <string name="logcat_pause">Pause du défilement</string>
-    <string name="logcat_effacer">Effacer les journaux affichés</string>
-    <string name="logcat_vide">Lancez votre application pour voir ses journaux</string>
-    <string name="logcat_vide_pied">Sans adb : journaux de votre application uniquement, depuis le démarrage de son processus.</string>
     <plurals name="logcat_lignes_perdues">
         <item quantity="one">%1$d ligne perdue</item>
         <item quantity="many">%1$d lignes perdues</item>
@@ -181,10 +174,6 @@
     <string name="logcat_arret">Le processus s\'est arrêté : %1$s</string>
     <string name="logcat_precedente">Session précédente — %1$s (pid %2$d) · terminée à %3$s</string>
     <string name="logcat_precedente_heure_inconnue">heure inconnue</string>
-    <string name="logcat_motif_invalide">Motif invalide : %1$s</string>
-    <string name="logcat_pid_tid">%1$d-%2$d</string>
-    <string name="logcat_libelle_clip">Ligne Logcat</string>
-    <string name="logcat_copiee">Ligne copiée</string>
 
     <!-- Mission « Historique local » H2 (ADR 0104-0106) : feuille
          Historique d\'un fichier — liste, diff, restauration. -->
