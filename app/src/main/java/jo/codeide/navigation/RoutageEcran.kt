@@ -45,6 +45,14 @@ internal object RoutageEcran {
     val ECRAN_TERMINAL = RoutageInterEcrans.ECRAN_TERMINAL
 
     /**
+     * Écran « Sorties » de l'espace de travail (lot L6, spec SORTIES
+     * § 5.7) : la notification de fin de build ouvre l'éditeur du projet
+     * SUR l'onglet central — consommé par `routerProjetCible` (l'extra
+     * projet voyage avec).
+     */
+    val ECRAN_SORTIES = RoutageInterEcrans.ECRAN_SORTIES
+
+    /**
      * Écran de consentement IA (v0.186.0, rapport IA §5 Lot 1 — bug
      * B2a) : le bouton « Activer l'assistant » du tiroir IA vit dans
      * l'éditeur, une activité SANS graphe — le navigateur y replie

@@ -13,6 +13,8 @@ import jo.codeide.core.domain.RegistreExecutions
 import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.domain.TroncatureSorties
 import jo.codeide.core.domain.versNiveauSortie
+import jo.codeide.core.datastore.SettingsDataStore
+import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.LogEntry
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -72,9 +74,23 @@ constructor(
     private val journalDepot: LogRepository,
     private val journal: AppLogger,
     private val dispatchers: DispatcherProvider,
+    private val reglages: SettingsDataStore,
 ) : RegistreExecutions {
     private val dossier = File(contexte.filesDir, DOSSIER)
     private val stockage = StockageLignesExecutions(dossier)
+
+    /**
+     * La rétention effective (lot L6, M13) : le réglage persisté, BORNÉ
+     * à la lecture (3–30, même discipline que le banc ADR 0152 — une
+     * valeur aberrante ne peut pas vider l'historique ni le faire
+     * grossir sans borne). Une lecture échouée replie sur [N_EXECUTIONS]
+     * (le défaut ADR 0161) — jamais d'exception dans le chemin d'écriture.
+     */
+    private suspend fun executionsRetenues(): Int = when (val lecture = reglages.current()) {
+        is AppResult.Success -> lecture.value.sortiesExecutionsRetenues
+            .coerceIn(EXECUTIONS_MIN, EXECUTIONS_MAX)
+        is AppResult.Failure -> N_EXECUTIONS
+    }
 
     override suspend fun charger(): List<ExecutionSortie> = withContext(dispatchers.io) {
         lireIndex()
@@ -86,7 +102,7 @@ constructor(
 
     override suspend fun demarrer(execution: ExecutionSortie) = withContext(dispatchers.io) {
         val index = lireIndex().filterNot { it.id == execution.id }
-        ecrireIndex((listOf(execution) + index).take(N_EXECUTIONS))
+        ecrireIndex((listOf(execution) + index).take(executionsRetenues()))
     }
 
     override suspend fun ajouterLignes(execution: ExecutionSortie, lignes: List<LigneSortie>) =
@@ -106,9 +122,10 @@ constructor(
             conclue = conclue.copy(troncature = troncature)
         }
         conclue = conclue.copy(octetsPersistes = stockage.octets(conclue.id))
-        // L'index : la plus récente d'abord, bornée (N exécutions).
+        // L'index : la plus récente d'abord, bornée (réglage M13,
+        // borné à la lecture — le défaut ADR reste 10).
         val autres = lireIndex().filterNot { it.id == conclue.id }
-        val gardees = (listOf(conclue) + autres).take(N_EXECUTIONS)
+        val gardees = (listOf(conclue) + autres).take(executionsRetenues())
         ecrireIndex(gardees)
         purgerSiBesoin(gardees)
         conclue
@@ -221,13 +238,23 @@ constructor(
         /** Le tag des journaux du serveur de build (ADR 0040). */
         const val TAG_SERVEUR = "gradle-server"
 
-        /** Exécutions conservées (les plus anciennes sacrifiées d'abord,
-         *  ADR 0161 décision 1 — réglage fin au lot L6, M13). */
+        /** Exécutions conservées par DÉFAUT (ADR 0161 décision 1) — le
+         *  réglage M13 (`sortiesExecutionsRetenues`, borné 3–30 à la
+         *  lecture) la surcharge dès qu'il existe ; ce constant reste
+         *  le repli si la lecture des réglages échoue. */
         const val N_EXECUTIONS = 10
 
         /** Plafond de lignes PAR exécution (tête et queue conservées au-
          *  delà, ADR 0161 décision 2 — réglage fin au lot L6). */
         const val PLAFOND_LIGNES = 20_000
+
+        /** Borne basse de la rétention réglée (M13 — miroir de la borne
+         *  de lecture du DataStore ; une session de débogage tient). */
+        const val EXECUTIONS_MIN = 3
+
+        /** Borne haute de la rétention réglée (M13 — le plafond octets
+         *  reste le vrai garde-fou). */
+        const val EXECUTIONS_MAX = 30
 
         /** Plafond GLOBAL de l'historique (octets, ADR 0161 décision 3 —
          *  l'exécution la plus ancienne part d'abord ; réglage au lot

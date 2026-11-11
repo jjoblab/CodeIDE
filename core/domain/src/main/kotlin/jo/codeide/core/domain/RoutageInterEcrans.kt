@@ -32,4 +32,16 @@ public object RoutageInterEcrans {
 
     /** Écran plein écran du terminal (valeur d'[EXTRA_ECRAN_CIBLE]). */
     public const val ECRAN_TERMINAL: String = "terminal"
+
+    /**
+     * Écran « Sorties » de l'espace de travail (lot L6, spec SORTIES
+     * § 5.7 « sortie du build depuis la notification de fin ») : la
+     * notification de résultat DU BUILD porte cet écran AVEC
+     * [EXTRA_PROJET_CIBLE] — l'hôte ouvre l'éditeur du projet SUR
+     * l'onglet central « Sorties » (décision d'architecture du lot :
+     * un écran cible, pas un extra d'éditeur — la valeur reste
+     * canonique ici comme les autres écrans). Sans projet connu, la
+     * notification reste sur le routage standard (projet non routé).
+     */
+    public const val ECRAN_SORTIES: String = "sorties"
 }

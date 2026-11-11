@@ -354,4 +354,36 @@
         <item quantity="one">%1$d error</item>
         <item quantity="other">%1$d errors</item>
     </plurals>
+    <string name="settings_maitre_sorties">Output</string>
+    <string name="settings_cd_ligne_sorties">Open output center settings</string>
+    <string name="settings_sous_sorties">Reader, buffers, history</string>
+    <string name="settings_sorties_titre">Output</string>
+    <string name="settings_sorties_horodatage">Timestamps when the reader opens</string>
+    <string name="settings_sorties_horodatage_masque">Hidden</string>
+    <string name="settings_sorties_horodatage_relatif">Relative</string>
+    <string name="settings_sorties_horodatage_absolu">Absolute</string>
+    <string name="settings_sorties_police">Reader font</string>
+    <string name="settings_sorties_retour_ligne">Word wrap</string>
+    <string name="settings_sorties_retour_ligne_desc">Wrap long lines instead of horizontal scrolling</string>
+    <string name="settings_sorties_ansi">ANSI colors</string>
+    <string name="settings_sorties_ansi_desc">SGR sequence tints; when off the rendering stays monochrome and readable</string>
+    <string name="settings_sorties_retention">Kept executions</string>
+    <string name="settings_sorties_retention_desc">Build and sync history readable after a restart (ADR 0161)</string>
+    <string name="settings_sorties_retention_5">5</string>
+    <string name="settings_sorties_retention_10">10</string>
+    <string name="settings_sorties_retention_30">30</string>
+    <string name="settings_sorties_fenetre_logcat">Logcat window</string>
+    <string name="settings_sorties_fenetre_logcat_desc">Lines kept in memory by the reader</string>
+    <string name="settings_sorties_fenetre_journal">App log window</string>
+    <string name="settings_sorties_fenetre_journal_desc">Lines kept in memory for the application log</string>
+    <string name="settings_sorties_fenetre_2000">2,000</string>
+    <string name="settings_sorties_fenetre_5000">5,000</string>
+    <string name="settings_sorties_fenetre_10000">10,000</string>
+    <string name="settings_sorties_fenetre_20000">20,000</string>
+    <string name="settings_sorties_fenetre_30000">30,000</string>
+    <string name="settings_sorties_niveau">Logcat filter on open</string>
+    <string name="settings_sorties_niveau_desc">Hidden lines stay counted and recalled by the reader</string>
+    <string name="settings_sorties_niveau_tout">All</string>
+    <string name="settings_sorties_niveau_avertissement">Warn+</string>
+    <string name="settings_sorties_niveau_erreur">Errors</string>
 </resources>

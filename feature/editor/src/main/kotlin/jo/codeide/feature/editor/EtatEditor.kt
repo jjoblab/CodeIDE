@@ -985,6 +985,16 @@ object ClesEditor {
     /** Extra d'intention : identifiant du projet à ouvrir. */
     const val EXTRA_PROJECT_ID: String = "jo.codeide.editor.PROJECT_ID"
 
+    /**
+     * Extra d'intention : ACTIVER la surface « Sorties » à l'ouverture
+     * (lot L6, spec SORTIES § 5.7 — sortie du build depuis la
+     * notification de fin) : consommé une fois à [EditorActivity.onCreate]
+     * (instance neuve), il pose l'onglet central « Sorties » comme
+     * surface initiale. Un espace VIVANT remonté ignore cet extra —
+     * l'onglet y est déjà présent, à un geste.
+     */
+    const val EXTRA_SURFACE_SORTIES: String = "jo.codeide.editor.SURFACE_SORTIES"
+
     /** Sauvetage : onglets ouverts (« uri \n chemin »), étape 15. */
     const val CLE_ONGLETS: String = "onglets_ouverts"
 
