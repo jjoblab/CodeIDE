@@ -23,6 +23,11 @@ public data class OptionsRenduRangee(
     public val retourALaLigne: Boolean = true,
     public val affichePidTid: Boolean = false,
     public val taillePoliceSp: Int = TAILLE_DEFAUT_SP,
+    /** Les COULEURS ANSI SGR sont appliquées (lot L6, M13) — `false` =
+     *  rendu MONOCHROME : le gras/italique survivent, les teintes
+     *  disparaissent (le texte reste purgé des séquences, jamais brut).
+     *  Le réglage « Sorties » pose la valeur initiale. */
+    public val couleursAnsi: Boolean = true,
 ) {
     /**
      * L'option avec la taille de police RAMENÉE dans les bornes du zoom

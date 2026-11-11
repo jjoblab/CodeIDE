@@ -11,8 +11,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import jo.codeide.core.model.AppError
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
+import jo.codeide.core.model.HorodatageSorties
 import jo.codeide.core.model.License
 import jo.codeide.core.model.LogVerbosity
+import jo.codeide.core.model.NiveauDefautLogcat
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StorageLocation
@@ -172,6 +174,22 @@ public class SettingsDataStore(private val dataStore: DataStore<Preferences>, pr
         internal val APERCU_BULLE_Y: Preferences.Key<String> = stringPreferencesKey("preview_bubble_y")
         internal val APERCU_PALETTE_PAR_POPUP: Preferences.Key<Boolean> =
             booleanPreferencesKey("preview_palette_tap_mode")
+        internal val SORTIES_EXECUTIONS_RETENUES: Preferences.Key<Int> =
+            intPreferencesKey("sorties_executions_retenues")
+        internal val SORTIES_FENETRE_LOGCAT: Preferences.Key<Int> =
+            intPreferencesKey("sorties_fenetre_logcat")
+        internal val SORTIES_FENETRE_JOURNAL: Preferences.Key<Int> =
+            intPreferencesKey("sorties_fenetre_journal")
+        internal val SORTIES_HORODATAGE_DEFAUT: Preferences.Key<String> =
+            stringPreferencesKey("sorties_horodatage_defaut")
+        internal val SORTIES_TAILLE_POLICE: Preferences.Key<Int> =
+            intPreferencesKey("sorties_taille_police_sp")
+        internal val SORTIES_RETOUR_LIGNE: Preferences.Key<Boolean> =
+            booleanPreferencesKey("sorties_retour_ligne")
+        internal val SORTIES_COULEURS_ANSI: Preferences.Key<Boolean> =
+            booleanPreferencesKey("sorties_couleurs_ansi")
+        internal val SORTIES_NIVEAU_LOGCAT_DEFAUT: Preferences.Key<String> =
+            stringPreferencesKey("sorties_niveau_logcat_defaut")
     }
 }
 
@@ -190,6 +208,28 @@ internal fun Preferences.toAppSettings(defaults: AppSettings): AppSettings = toB
         ?: defaults.apercuBulleY,
     apercuPaletteParPopup =
     this[SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP] ?: defaults.apercuPaletteParPopup,
+    sortiesExecutionsRetenues =
+    (this[SettingsDataStore.Cles.SORTIES_EXECUTIONS_RETENUES] ?: defaults.sortiesExecutionsRetenues)
+        .coerceIn(SORTIES_EXECUTIONS_MIN, SORTIES_EXECUTIONS_MAX),
+    sortiesFenetreLogcat =
+    (this[SettingsDataStore.Cles.SORTIES_FENETRE_LOGCAT] ?: defaults.sortiesFenetreLogcat)
+        .coerceIn(SORTIES_FENETRE_LOGCAT_MIN, SORTIES_FENETRE_LOGCAT_MAX),
+    sortiesFenetreJournal =
+    (this[SettingsDataStore.Cles.SORTIES_FENETRE_JOURNAL] ?: defaults.sortiesFenetreJournal)
+        .coerceIn(SORTIES_FENETRE_JOURNAL_MIN, SORTIES_FENETRE_JOURNAL_MAX),
+    sortiesHorodatageDefaut =
+    HorodatageSorties.depuisNom(this[SettingsDataStore.Cles.SORTIES_HORODATAGE_DEFAUT])
+        ?: defaults.sortiesHorodatageDefaut,
+    sortiesTaillePoliceSp =
+    (this[SettingsDataStore.Cles.SORTIES_TAILLE_POLICE] ?: defaults.sortiesTaillePoliceSp)
+        .coerceIn(SORTIES_TAILLE_POLICE_MIN, SORTIES_TAILLE_POLICE_MAX),
+    sortiesRetourLigne =
+    this[SettingsDataStore.Cles.SORTIES_RETOUR_LIGNE] ?: defaults.sortiesRetourLigne,
+    sortiesCouleursAnsi =
+    this[SettingsDataStore.Cles.SORTIES_COULEURS_ANSI] ?: defaults.sortiesCouleursAnsi,
+    sortiesNiveauLogcatDefaut =
+    NiveauDefautLogcat.depuisNom(this[SettingsDataStore.Cles.SORTIES_NIVEAU_LOGCAT_DEFAUT])
+        ?: defaults.sortiesNiveauLogcatDefaut,
 )
 
 /**
@@ -313,6 +353,36 @@ private val NIVEAUX_JOURNAL_SERVEUR = setOf("INFO", "WARN", "ERROR")
 /** Bornes de lecture des paramètres du banc (Phase 1, ADR 0152). */
 private const val BANC_LIGNES_MAX: Int = 200_000
 
+/** Rétention du registre des exécutions (M13) : 3 exécutions au moins
+ *  (une session de débogage courte tient), 30 au plus (le plafond octets
+ *  de l'ADR 0161 reste la vraie garde-fou). */
+internal const val SORTIES_EXECUTIONS_MIN: Int = 3
+
+/** Plafond de la rétention du registre (M13). */
+internal const val SORTIES_EXECUTIONS_MAX: Int = 30
+
+/** Fenêtre Logcat minimale (M13) : 1 000 lignes — en dessous, un
+ *  plantage avec sa trace ne tient plus. */
+internal const val SORTIES_FENETRE_LOGCAT_MIN: Int = 1_000
+
+/** Fenêtre Logcat maximale (M13) : la mémoire du lecteur reste plafonnée
+ *  (budget § 8 de la spéc — 20 000 lignes ≈ le double du défaut). */
+internal const val SORTIES_FENETRE_LOGCAT_MAX: Int = 20_000
+
+/** Fenêtre Journal minimale (M13). */
+internal const val SORTIES_FENETRE_JOURNAL_MIN: Int = 2_000
+
+/** Fenêtre Journal maximale (M13) — au-delà, la fenêtre ne sert plus
+ *  la rétention 7 jours qu'elle couvre. */
+internal const val SORTIES_FENETRE_JOURNAL_MAX: Int = 30_000
+
+/** Taille de police du lecteur (M13) : les MÊMES bornes que le zoom au
+ *  pincement d'[OptionsRenduRangee] (10–20 sp). */
+internal const val SORTIES_TAILLE_POLICE_MIN: Int = 10
+
+/** Plafond de police du lecteur (M13). */
+internal const val SORTIES_TAILLE_POLICE_MAX: Int = 20
+
 /** Cadence maximale du banc (60 s entre deux lignes — au-delà, le banc n'a plus de sens). */
 private const val BANC_CADENCE_MS_MAX: Int = 60_000
 
@@ -375,6 +445,14 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.APERCU_BULLE_A_DROITE, reglage.apercuBulleADroite)
     set(SettingsDataStore.Cles.APERCU_BULLE_Y, reglage.apercuBulleY.toString())
     set(SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP, reglage.apercuPaletteParPopup)
+    set(SettingsDataStore.Cles.SORTIES_EXECUTIONS_RETENUES, reglage.sortiesExecutionsRetenues)
+    set(SettingsDataStore.Cles.SORTIES_FENETRE_LOGCAT, reglage.sortiesFenetreLogcat)
+    set(SettingsDataStore.Cles.SORTIES_FENETRE_JOURNAL, reglage.sortiesFenetreJournal)
+    set(SettingsDataStore.Cles.SORTIES_HORODATAGE_DEFAUT, reglage.sortiesHorodatageDefaut.name)
+    set(SettingsDataStore.Cles.SORTIES_TAILLE_POLICE, reglage.sortiesTaillePoliceSp)
+    set(SettingsDataStore.Cles.SORTIES_RETOUR_LIGNE, reglage.sortiesRetourLigne)
+    set(SettingsDataStore.Cles.SORTIES_COULEURS_ANSI, reglage.sortiesCouleursAnsi)
+    set(SettingsDataStore.Cles.SORTIES_NIVEAU_LOGCAT_DEFAUT, reglage.sortiesNiveauLogcatDefaut.name)
 
     val dossier = reglage.workspace
     if (dossier == null) {
