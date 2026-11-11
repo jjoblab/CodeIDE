@@ -200,6 +200,23 @@
             android:visibility="gone"
             tools:visibility="visible" />
 
+        <!-- L'HISTORIQUE des exécutions (lot L6, M11 — ADR 0161) : la
+             feuille du registre, ouverte DEPUIS le lecteur Gradle —
+             cachée hors GRADLE (le registre ne garde que les exécutions
+             Gradle). -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/bouton_historique"
+            style="@style/Widget.CodeIDE.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/sorties_historique_cd"
+            android:minWidth="48dp"
+            android:minHeight="48dp"
+            android:text="@string/sorties_historique_bouton"
+            android:textAppearance="?attr/textAppearanceLabelSmall"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <com.google.android.material.button.MaterialButton
             android:id="@+id/bouton_selection"
             style="@style/Widget.CodeIDE.Button.Icon"

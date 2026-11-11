@@ -515,6 +515,7 @@
          per activity and per result. -->
     <string name="tooling_service_titre">Gradle Tooling</string>
     <string name="tooling_service_canal">Gradle Activities</string>
+    <string name="tooling_service_voir_sorties">See the output</string>
     <string name="tooling_service_sync_en_cours">Project synchronization in progress…</string>
     <string name="tooling_service_build_en_cours">Build in progress…</string>
     <string name="tooling_service_build_taches">Build in progress — %1$s</string>

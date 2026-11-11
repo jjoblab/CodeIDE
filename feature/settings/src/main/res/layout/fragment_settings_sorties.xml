@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Section Sorties — les réglages du Centre de sorties (lot L6, M13,
+  spec SORTIES § 5.10) : même structure que la section Terminal (sa
+  propre toolbar, le SettingsViewModel partagé, cartes
+  Widget.CodeIDE.Card, filets entre blocs ADR 0127 §3). Chaque contrôle
+  a UN effet réel sur le lecteur ou le registre — aucun réglage
+  décoratif (§ 5.10).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
+    android:orientation="vertical"
+    tools:ignore="Overdraw">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/settings_toolbar"
+        style="@style/Widget.CodeIDE.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:navigationContentDescription="@string/settings_back_cd"
+        app:navigationIcon="?attr/homeAsUpIndicator"
+        app:title="@string/settings_sorties_titre" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- ===== Carte « Lecture » : le rendu du lecteur ======= -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginTop="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_md">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <!-- Horodatage par défaut (trois états du lecteur). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <jo.codeide.core.ui.RangeeParametre
+                            android:id="@+id/rangee_horodatage_sorties"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                                            app:rangeeTitre="@string/settings_sorties_horodatage"
+                            app:rangeeType="aucun" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_horodatage_sorties"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_horodatage_1"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_horodatage_masque" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_horodatage_2"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_horodatage_relatif" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_horodatage_3"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_horodatage_absolu" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <!-- Police par défaut (presets du zoom 10–20 sp). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <jo.codeide.core.ui.RangeeParametre
+                            android:id="@+id/rangee_police_sorties"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:rangeeIcone="@drawable/ic_taille_police"
+                            app:rangeeTitre="@string/settings_sorties_police"
+                            app:rangeeType="aucun" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_police_sorties"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_police_sorties_1"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_police_petite" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_police_sorties_2"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_police_moyenne" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_police_sorties_3"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_police_grande" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_retour_ligne_sorties"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeSousTitre="@string/settings_sorties_retour_ligne_desc"
+                        app:rangeeTitre="@string/settings_sorties_retour_ligne"
+                        app:rangeeType="interrupteur" />
+
+                    <jo.codeide.core.ui.RangeeParametre
+                        android:id="@+id/rangee_couleurs_ansi"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:rangeeSousTitre="@string/settings_sorties_ansi_desc"
+                        app:rangeeTitre="@string/settings_sorties_ansi"
+                        app:rangeeType="interrupteur" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ===== Carte « Mémoire et filtres » ================== -->
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.CodeIDE.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_md"
+                android:layout_marginVertical="@dimen/spacing_sm"
+                app:contentPadding="@dimen/spacing_md">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:divider="@drawable/separateur_rangee"
+                    android:orientation="vertical"
+                    android:showDividers="middle">
+
+                    <!-- Rétention du registre (ADR 0161, borné 3–30). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <jo.codeide.core.ui.RangeeParametre
+                            android:id="@+id/rangee_retention_sorties"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:rangeeSousTitre="@string/settings_sorties_retention_desc"
+                            app:rangeeIcone="@drawable/ic_historique"
+                            app:rangeeTitre="@string/settings_sorties_retention"
+                            app:rangeeType="aucun" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_retention_sorties"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_retention_1"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_retention_5" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_retention_2"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_retention_10" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_retention_3"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_retention_30" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <!-- Fenêtres des tampons (bornées, parité R3/R4). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <jo.codeide.core.ui.RangeeParametre
+                            android:id="@+id/rangee_fenetre_logcat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:rangeeSousTitre="@string/settings_sorties_fenetre_logcat_desc"
+                            app:rangeeTitre="@string/settings_sorties_fenetre_logcat"
+                            app:rangeeType="aucun" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_fenetre_logcat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fenetre_logcat_1"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_fenetre_2000" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fenetre_logcat_2"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_fenetre_5000" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fenetre_logcat_3"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_fenetre_20000" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+
+                        <jo.codeide.core.ui.RangeeParametre
+                            android:id="@+id/rangee_fenetre_journal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:rangeeSousTitre="@string/settings_sorties_fenetre_journal_desc"
+                            app:rangeeTitre="@string/settings_sorties_fenetre_journal"
+                            app:rangeeType="aucun" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_fenetre_journal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fenetre_journal_1"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_fenetre_2000" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fenetre_journal_2"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_fenetre_10000" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_fenetre_journal_3"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_fenetre_30000" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+
+                    <!-- Filtre Logcat par défaut (les masquées restent
+                         comptées — honnêteté règle 14). -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingVertical="@dimen/spacing_xs">
+
+                        <jo.codeide.core.ui.RangeeParametre
+                            android:id="@+id/rangee_niveau_logcat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:rangeeSousTitre="@string/settings_sorties_niveau_desc"
+                            app:rangeeTitre="@string/settings_sorties_niveau"
+                            app:rangeeType="aucun" />
+
+                        <com.google.android.material.button.MaterialButtonToggleGroup
+                            android:id="@+id/groupe_niveau_logcat"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/spacing_sm"
+                            app:selectionRequired="true"
+                            app:singleSelection="true">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_niveau_1"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_niveau_tout" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_niveau_2"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_niveau_avertissement" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/bouton_niveau_3"
+                                style="@style/Widget.CodeIDE.Button.Outlined"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="@string/settings_sorties_niveau_erreur" />
+                        </com.google.android.material.button.MaterialButtonToggleGroup>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

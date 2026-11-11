@@ -39,6 +39,8 @@ class SectionsParametresLayoutTest {
             "notifications" to R.layout.fragment_settings_notifications,
             "projets" to R.layout.fragment_settings_projets,
             "terminal" to R.layout.fragment_settings_terminal,
+            // Lot L6 (M13) : la section « Sorties » suit le MÊME gabarit.
+            "sorties" to R.layout.fragment_settings_sorties,
             // Lot LSP-3 : les cinq écrans « Intelligence du code » suivent
             // le MÊME gabarit (ADR 0127 §2) — ils entrent dans la même
             // régression qu'ils fondent avec les sections.

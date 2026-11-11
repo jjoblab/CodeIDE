@@ -12,7 +12,9 @@ import jo.codeide.core.domain.RegistreExecutions
 import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.execution.ApkInstallerAndroid
+import jo.codeide.feature.sorties.ReglagesLecteurPort
 import jo.codeide.sorties.RegistreExecutionsFichiers
+import jo.codeide.sorties.ReglagesLecteurDataStore
 import javax.inject.Singleton
 
 /**
@@ -54,4 +56,14 @@ internal interface DomainBindingsModule {
     @Binds
     @Singleton
     fun bindRegistreExecutions(impl: RegistreExecutionsFichiers): RegistreExecutions
+
+    /**
+     * Le port des réglages lecteur (lot L6, M13) : l'implémentation
+     * DataStore vit ICI (l'app voit `core:datastore` ET
+     * `feature:sorties`), le composant ne connaît que le port — la
+     * même discipline que le registre ci-dessus.
+     */
+    @Binds
+    @Singleton
+    fun bindReglagesLecteur(impl: ReglagesLecteurDataStore): ReglagesLecteurPort
 }

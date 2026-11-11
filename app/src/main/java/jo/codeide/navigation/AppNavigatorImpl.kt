@@ -133,6 +133,10 @@ constructor(
 
                         SectionParametres.TERMINAL -> R.id.settings_terminal
 
+                        // Lot L6 (M13) : la section « Sorties » du Centre
+                        // de sorties (réglages à effet réel, spec § 5.10).
+                        SectionParametres.SORTIES -> R.id.settings_sorties
+
                         SectionParametres.PROJETS -> R.id.settings_projets
 
                         SectionParametres.HISTORIQUE -> R.id.settings_historique
@@ -431,6 +435,24 @@ constructor(
         val intention =
             Intent(activity, EditorActivity::class.java)
                 .putExtra(ClesEditor.EXTRA_PROJECT_ID, projectId)
+        activity.startActivity(intention)
+    }
+
+    override fun openEditorSurSorties(projectId: String) {
+        // Lot L6 (spec SORTIES § 5.7) : la notification de fin de build
+        // ouvre l'espace SUR l'onglet « Sorties » — instance neuve avec
+        // l'extra de surface ; un espace vivant est remonté tel quel
+        // (miroir d'openEditor, l'onglet y est déjà présent).
+        if (instanceEditeurPour(projectId) != null) {
+            logger.d(TAG) { "espace vivant remontré (entrée sorties)" }
+            revenirALEditeur(projectId)
+            return
+        }
+        logger.d(TAG) { "ouverture de l'espace de travail sur les sorties" }
+        val intention =
+            Intent(activity, EditorActivity::class.java)
+                .putExtra(ClesEditor.EXTRA_PROJECT_ID, projectId)
+                .putExtra(ClesEditor.EXTRA_SURFACE_SORTIES, true)
         activity.startActivity(intention)
     }
 

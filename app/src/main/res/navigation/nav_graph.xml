@@ -115,6 +115,15 @@
         android:label="@string/settings_terminal_titre"
         tools:layout="@layout/fragment_settings_terminal" />
 
+    <!-- Lot L6 (M13) : la section « Sorties » du Centre de sorties —
+         les fragments vivent dans :feature:settings, le maître route
+         par l'enum (SectionParametres.SORTIES). -->
+    <fragment
+        android:id="@+id/settings_sorties"
+        android:name="jo.codeide.feature.settings.SortiesSectionFragment"
+        android:label="@string/settings_sorties_titre"
+        tools:layout="@layout/fragment_settings_sorties" />
+
     <fragment
         android:id="@+id/settings_projets"
         android:name="jo.codeide.feature.settings.ProjetsFragment"

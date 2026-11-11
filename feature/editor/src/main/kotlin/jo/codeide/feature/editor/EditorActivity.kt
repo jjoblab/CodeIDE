@@ -422,6 +422,14 @@ class EditorActivity :
             // L5c : le volet tablette était ouvert.
             voletSortiesActif = it.getBoolean(CLE_VOLET_SORTIES, false)
         }
+        // Lot L6 (spec SORTIES § 5.7) : entrée « Voir les sorties » depuis
+        // la notification de fin de build — l'extra est consommé UNE fois
+        // (instance neuve, donc après le sauvetage : la demande de la
+        // notification gagne), l'onglet central s'active au premier rendu.
+        if (intent?.getBooleanExtra(ClesEditor.EXTRA_SURFACE_SORTIES, false) == true) {
+            sortiesCentralActif = true
+            intent.removeExtra(ClesEditor.EXTRA_SURFACE_SORTIES)
+        }
         liaison = ActivityEditorBinding.inflate(layoutInflater)
         setContentView(liaison.root)
 

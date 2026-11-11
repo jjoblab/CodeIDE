@@ -19,7 +19,9 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.color.MaterialColors
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.domain.ExecutionSortie
 import jo.codeide.core.domain.FiltreSorties
+import jo.codeide.core.domain.LigneSortie
 import jo.codeide.core.domain.RegistrePortSautSource
 import jo.codeide.core.ui.BandeauSorties
 import jo.codeide.core.ui.BaseFragment
@@ -112,6 +114,14 @@ public class FragmentLecteurSorties :
         // pid/tid n'existe que pour le Logcat (spec SORTIES § 5.4).
         binding.boutonEtiquettes.isGone = viewModel.famille == FamilleSorties.GRADLE
         binding.boutonPidTid.isGone = viewModel.famille != FamilleSorties.LOGCAT
+        // L'HISTORIQUE du registre n'existe que pour GRADLE (lot L6, M11 —
+        // le registre ADR 0161 ne garde que les exécutions Gradle) ; la
+        // feuille relit les lignes persistées et les remet au lecteur en
+        // consultation (jamais un mélange avec le direct).
+        binding.boutonHistorique.isGone = viewModel.famille != FamilleSorties.GRADLE
+        binding.boutonHistorique.setOnClickListener {
+            FeuilleExecutionsFragment().show(childFragmentManager, FeuilleExecutionsFragment::class.java.simpleName)
+        }
         // État vide honnête PAR FAMILLE (règle 14 — chaque état vide dit
         // pourquoi et propose la suite : logcat « sans adb », journal,
         // Gradle par défaut) ; il suit la taille du tampon affiché.
@@ -488,6 +498,20 @@ public class FragmentLecteurSorties :
         viewModel.enConsultation.collectWithLifecycle(viewLifecycleOwner) { enConsultation ->
             binding.bandeauConsultation.isGone = !enConsultation
         }
+        // Le bandeau de consultation EST le geste de sortie (lot L6) : un
+        // tap rend le direct (vierge — l'exécution passée reste dans le
+        // registre). Cible de 48 dp par la hauteur du bandeau.
+        binding.bandeauConsultation.setOnClickListener { viewModel.revenirAuDirect() }
+        binding.bandeauConsultation.contentDescription =
+            getString(R.string.sorties_consultation_revenir_cd)
+    }
+
+    /** OUVRE une exécution persistée EN CONSULTATION (lot L6, M11 —
+     *  appelé par [FeuilleExecutionsFragment], le lecteur parent) : les
+     *  lignes relues du registre remplacent la fenêtre, le direct est
+     *  retenu jusqu'au « revenir au direct » (ADR 0161.5). */
+    public fun ouvrirExecutionPersistee(lignes: List<LigneSortie>, execution: ExecutionSortie?) {
+        viewModel.ouvrirExecution(lignes, execution)
     }
 
     public companion object {

@@ -9,6 +9,7 @@ import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.RetentionHistorique
+import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
@@ -240,21 +241,15 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                     jo.codeide.core.ui.R.drawable.ic_terminal,
                     R.string.settings_maitre_terminal,
                     R.string.settings_cd_ligne_terminal,
-                ) { etat ->
-                    val police =
-                        when (etat.reglage.taillePoliceTerminal) {
-                            TaillePoliceTerminal.PETITE -> getString(R.string.settings_police_petite)
-                            TaillePoliceTerminal.MOYENNE -> getString(R.string.settings_police_moyenne)
-                            TaillePoliceTerminal.GRANDE -> getString(R.string.settings_police_grande)
-                        }
-                    val curseur =
-                        when (etat.reglage.styleCurseurTerminal) {
-                            StyleCurseurTerminal.BLOC -> getString(R.string.settings_curseur_bloc)
-                            StyleCurseurTerminal.LIGNE -> getString(R.string.settings_curseur_ligne)
-                            StyleCurseurTerminal.BARRE -> getString(R.string.settings_curseur_barre)
-                        }
-                    "$police · $curseur"
-                },
+                ) { etat -> sousTitreTerminal(binding.root.context, etat.reglage) },
+                // Lot L6 (M13) : la section « Sorties » du Centre de
+                // sorties — lecteur, tampons, historique (spec § 5.10).
+                ligne(
+                    SectionParametres.SORTIES,
+                    jo.codeide.core.ui.R.drawable.ic_historique,
+                    R.string.settings_maitre_sorties,
+                    R.string.settings_cd_ligne_sorties,
+                ) { getString(R.string.settings_sous_sorties) },
                 // Mission IA (lot IA-2) : section réelle — l'écran vit
                 // dans :feature:ai, la destination dans le graphe de :app.
                 ligne(
@@ -373,4 +368,21 @@ private fun libelleRetention(retention: RetentionHistorique): Int = when (retent
     RetentionHistorique.JOURS_5 -> R.string.settings_historique_5_jours
     RetentionHistorique.JOURS_15 -> R.string.settings_historique_15_jours
     RetentionHistorique.JOURS_30 -> R.string.settings_historique_30_jours
+}
+
+/** Le sous-titre de la rangée Terminal (police · curseur). */
+private fun sousTitreTerminal(contexte: android.content.Context, reglages: AppSettings): String {
+    val police =
+        when (reglages.taillePoliceTerminal) {
+            TaillePoliceTerminal.PETITE -> contexte.getString(R.string.settings_police_petite)
+            TaillePoliceTerminal.MOYENNE -> contexte.getString(R.string.settings_police_moyenne)
+            TaillePoliceTerminal.GRANDE -> contexte.getString(R.string.settings_police_grande)
+        }
+    val curseur =
+        when (reglages.styleCurseurTerminal) {
+            StyleCurseurTerminal.BLOC -> contexte.getString(R.string.settings_curseur_bloc)
+            StyleCurseurTerminal.LIGNE -> contexte.getString(R.string.settings_curseur_ligne)
+            StyleCurseurTerminal.BARRE -> contexte.getString(R.string.settings_curseur_barre)
+        }
+    return "$police · $curseur"
 }

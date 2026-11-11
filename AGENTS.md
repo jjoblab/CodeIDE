@@ -2622,6 +2622,20 @@ conflit, la plus récente prime.
       en attente côté dépôt `codeide-tools` : la publication du manifeste
       v2 (prompt 2, R5) exigée par la phase 4.
 
+- Chantier « Centre de sorties » TERMINÉ : lecteur UNIQUE (composant
+      virtualisé borné) pour Gradle / Logcat / Journal — lots L0 (audit,
+      conception, banc, ADR 0159-0162), L1 (modèle de ligne, tampon,
+      filtre), L2 (lecteur, recherche, pause, sélection, regroupé),
+      L3 (sessions Gradle, historique ADR 0161), L4 (Logcat sans adb +
+      Journal, parité R3/R4), L5 (surfaces onglet/plein écran/panneau/
+      volet/fil de l'incident + § 5.4 complète : ×N, traces repliées,
+      puces d'étiquettes, pid/tid, saut d'erreur) et L6 (réglages
+      « Sorties » à effet réel M13, notification « Voir les sorties »,
+      entrée historique M11, accessibilité 200 %, PV de mesure
+      appareil) ; specs `docs/SORTIES_SPEC.md`, rapports
+      `docs/SORTIES_RAPPORT_L5.md` / `docs/SORTIES_RAPPORT_L6.md` ;
+      version posée par `scripts/bump-version.sh` à l'intégration.
+
 Détail de chaque étape : `docs/ROADMAP.md` et section 11 du prompt maître.
 
 ### Leçons d'ingénierie (à relire avant toute étape)

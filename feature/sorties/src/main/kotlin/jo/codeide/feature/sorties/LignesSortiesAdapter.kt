@@ -293,12 +293,18 @@ internal class LignesSortiesAdapter(
                     construit.setSpan(StyleSpan(Typeface.ITALIC), debut, construit.length, 0)
                 }
                 segment.couleur?.let { couleur ->
-                    construit.setSpan(
-                        ForegroundColorSpan(couleursAnsi.getValue(couleur)),
-                        debut,
-                        construit.length,
-                        0,
-                    )
+                    // Le réglage « couleurs ANSI » (lot L6, M13) coupé :
+                    // rendu MONOCHROME — le gras/italique survivent, la
+                    // teinte disparaît (le texte reste purgé des
+                    // séquences, jamais brut — règle 14).
+                    if (options.couleursAnsi) {
+                        construit.setSpan(
+                            ForegroundColorSpan(couleursAnsi.getValue(couleur)),
+                            debut,
+                            construit.length,
+                            0,
+                        )
+                    }
                 }
             }
             resume?.let {

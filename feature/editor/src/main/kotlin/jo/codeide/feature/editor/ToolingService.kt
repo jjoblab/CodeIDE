@@ -293,7 +293,41 @@ internal class ToolingService : Service() {
             .setOngoing(enCours)
             .setAutoCancel(!enCours)
             .setContentIntent(intentionOuverture(canal))
+            .apply {
+                // Lot L6 (spec SORTIES § 5.7) : sortie du build depuis la
+                // notification de FIN — une ACTION dédiée « Voir les
+                // sorties » sur les résultats (jamais sur les progressions),
+                // portant l'écran cible `sorties` + le projet du canal.
+                if (canal != null && !enCours) {
+                    intentionSorties(canal)?.let { intention ->
+                        addAction(0, getString(R.string.tooling_service_voir_sorties), intention)
+                    }
+                }
+            }
             .build()
+    }
+
+    /**
+     * L'intention de l'ACTION « Voir les sorties » (lot L6) : le même
+     * lancement que [intentionOuverture], PLUS l'écran cible
+     * [RoutageInterEcrans.ECRAN_SORTIES] — l'hôte ouvre l'éditeur du
+     * projet sur l'onglet central. Code de requête DISTINCT de
+     * [IDENTIFIANT_NOTIFICATION] (mêmes extras ≠ même identité —
+     * un code partagé laisserait le dernier créé réécrire les extras
+     * du premier).
+     */
+    private fun intentionSorties(canal: CanalTooling): PendingIntent? {
+        val intention = packageManager.getLaunchIntentForPackage(packageName) ?: return null
+        intention.putExtra(RoutageInterEcrans.EXTRA_ECRAN_CIBLE, RoutageInterEcrans.ECRAN_SORTIES)
+        serviceGradle.etat.value.projetDuCanal(canal)?.let { projet ->
+            intention.putExtra(RoutageInterEcrans.EXTRA_PROJET_CIBLE, projet.value)
+        }
+        return PendingIntent.getActivity(
+            this,
+            IDENTIFIANT_NOTIFICATION + 1,
+            intention,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     /**

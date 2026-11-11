@@ -15,7 +15,9 @@ import jo.codeide.core.domain.ValidationDossier
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.CrashAppInfo
+import jo.codeide.core.model.HorodatageSorties
 import jo.codeide.core.model.License
+import jo.codeide.core.model.NiveauDefautLogcat
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.RetentionHistorique
 import jo.codeide.core.model.StyleCurseurTerminal
@@ -82,6 +84,30 @@ sealed interface ActionParametres {
      * réglage dédié minimal, prompt Terminal-1 section 5).
      */
     data class ChangerTaillePoliceTerminal(val taille: TaillePoliceTerminal) : ActionParametres
+
+    /** Rétention du registre des exécutions (lot L6, M13 — ADR 0161). */
+    data class ChangerSortiesRetention(val executions: Int) : ActionParametres
+
+    /** Fenêtre du tampon Logcat (lot L6, M13). */
+    data class ChangerSortiesFenetreLogcat(val lignes: Int) : ActionParametres
+
+    /** Fenêtre du tampon Journal (lot L6, M13). */
+    data class ChangerSortiesFenetreJournal(val lignes: Int) : ActionParametres
+
+    /** Horodatage par défaut du lecteur (lot L6, M13). */
+    data class ChangerSortiesHorodatage(val mode: HorodatageSorties) : ActionParametres
+
+    /** Police par défaut du lecteur (lot L6, M13, presets 10/12/16 sp). */
+    data class ChangerSortiesPolice(val tailleSp: Int) : ActionParametres
+
+    /** Retour à la ligne initial du lecteur (lot L6, M13). */
+    data class ChangerSortiesRetourLigne(val actif: Boolean) : ActionParametres
+
+    /** Couleurs ANSI du lecteur (lot L6, M13). */
+    data class ChangerSortiesCouleursAnsi(val actives: Boolean) : ActionParametres
+
+    /** Filtre Logcat par défaut à l'ouverture (lot L6, M13). */
+    data class ChangerSortiesNiveauLogcat(val niveau: NiveauDefautLogcat) : ActionParametres
 
     /**
      * Notifications : active ou coupe le canal Synchronisation (ADR 0059).
@@ -214,13 +240,69 @@ constructor(
         mesurerEmpreinteHistorique()
     }
 
+    /** Les sections à traitement direct (le `when` principal garde le
+     *  reste) — extraite pour la lisibilité et les seuils detekt. */
+    private fun sectionReconnue(action: ActionParametres): Boolean =
+        traiterReglageEditeur(action) || traiterReglageSection(action) ||
+            traiterReglageApparence(action) || traiterReglageSorties(action)
+
+    /**
+     * Les actions « Sorties » (lot L6, M13 — spec SORTIES § 5.10) :
+     * extraites du `when` principal pour garder [onAction] sous les
+     * seuils detekt (même discipline que les autres sections).
+     *
+     * @return vrai si l'action est une action « Sorties » (traitée).
+     */
+    private fun traiterReglageSorties(action: ActionParametres): Boolean {
+        when (action) {
+            is ActionParametres.ChangerSortiesRetention ->
+                ecrireReglage("rétention du registre des exécutions") {
+                    it.copy(sortiesExecutionsRetenues = action.executions)
+                }
+
+            is ActionParametres.ChangerSortiesFenetreLogcat ->
+                ecrireReglage("fenêtre du tampon Logcat") {
+                    it.copy(sortiesFenetreLogcat = action.lignes)
+                }
+
+            is ActionParametres.ChangerSortiesFenetreJournal ->
+                ecrireReglage("fenêtre du tampon Journal") {
+                    it.copy(sortiesFenetreJournal = action.lignes)
+                }
+
+            is ActionParametres.ChangerSortiesHorodatage ->
+                ecrireReglage("horodatage par défaut du lecteur") {
+                    it.copy(sortiesHorodatageDefaut = action.mode)
+                }
+
+            is ActionParametres.ChangerSortiesPolice ->
+                ecrireReglage("police par défaut du lecteur") {
+                    it.copy(sortiesTaillePoliceSp = action.tailleSp)
+                }
+
+            is ActionParametres.ChangerSortiesRetourLigne ->
+                ecrireReglage("retour à la ligne du lecteur") {
+                    it.copy(sortiesRetourLigne = action.actif)
+                }
+
+            is ActionParametres.ChangerSortiesCouleursAnsi ->
+                ecrireReglage("couleurs ANSI du lecteur") {
+                    it.copy(sortiesCouleursAnsi = action.actives)
+                }
+
+            is ActionParametres.ChangerSortiesNiveauLogcat ->
+                ecrireReglage("filtre Logcat par défaut") {
+                    it.copy(sortiesNiveauLogcatDefaut = action.niveau)
+                }
+
+            else -> return false
+        }
+        return true
+    }
+
     /** Point d'entrée unique du fragment (section 5.3 : `onAction`). */
     fun onAction(action: ActionParametres) {
-        if (traiterReglageEditeur(action) || traiterReglageSection(action) ||
-            traiterReglageApparence(action)
-        ) {
-            return
-        }
+        if (sectionReconnue(action)) return
         when (action) {
             is ActionParametres.ChangerLangue -> {
                 ecrireReglage("langue") { it.copy(languageTag = action.tag) }

@@ -205,6 +205,18 @@ public interface AppNavigator {
     public fun openEditor(projectId: String): Unit
 
     /**
+     * Ouvre l'espace de travail du projet SUR la surface « Sorties »
+     * (lot L6, spec SORTIES § 5.7 — sortie du build depuis la
+     * notification de fin) : instance neuve portant l'extra de surface
+     * ([ClesEditor.EXTRA_SURFACE_SORTIES]), un espace VIVANT est
+     * remonté tel quel (l'onglet y est déjà présent — à un geste).
+     *
+     * L'implémentation par défaut est le repli honnête : ouvrir
+     * l'espace standard (l'onglet « Sorties » est TOUJOURS présent).
+     */
+    public fun openEditorSurSorties(projectId: String): Unit = openEditor(projectId)
+
+    /**
      * REMONTE l'espace de travail **déjà vivant** (lot LSP-4, ADR 0128 §4)
      * : miroir exact du routage « éditeur → paramètres » (ADR 0048) —
      * `EditorActivity` est remontée au premier plan (`REORDER_TO_FRONT |
@@ -320,6 +332,13 @@ public enum class SectionParametres {
 
     /** Réglages du terminal (police migrée depuis Apparence). */
     TERMINAL,
+
+    /**
+     * Centre de sorties (lot L6, M13 — spec SORTIES § 5.10) : rétention
+     * du registre, taille des tampons, horodatage, police, retour à la
+     * ligne, couleurs ANSI, filtre Logcat par défaut.
+     */
+    SORTIES,
 
     /** IA — bientôt disponible (écran minimal, aucun réglage). */
     IA,
