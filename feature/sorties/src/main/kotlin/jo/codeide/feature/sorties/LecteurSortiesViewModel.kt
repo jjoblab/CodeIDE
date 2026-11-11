@@ -432,9 +432,11 @@ constructor(
      * Régle une option de rendu (numéros, horodatage, retour à la ligne,
      * taille de police, couleurs ANSI) — la transformation est pure ; la
      * taille de police est ramenée dans les bornes du zoom (10–20 sp) ;
-     * le réglage est PERSISTÉ au fil des gestes (lot L6, M13 — le
-     * lecteur se rouvre comme il a été laissé ; l'écriture est feu et
-     * oubli, jamais bloquante pour l'UI).
+     * les réglages PORTEURS D'UN DÉFAUT persisté (horodatage, retour à
+     * la ligne, couleurs ANSI — lot L6, M13) sont sauvegardés au fil des
+     * gestes (feu et oubli) ; le zoom de police reste un choix de
+     * session (le réglage « police » de la section Réglages reste un
+     * preset honnête).
      */
     public fun regler(modification: (OptionsRenduRangee) -> OptionsRenduRangee) {
         _reglages.update { modification(it).taillePoliceBornee() }

@@ -563,6 +563,7 @@
          notification, textes par activité et par résultat. -->
     <string name="tooling_service_titre">Tooling Gradle</string>
     <string name="tooling_service_canal">Activités Gradle</string>
+    <string name="tooling_service_voir_sorties">Voir les sorties</string>
     <string name="tooling_service_sync_en_cours">Synchronisation du projet en cours…</string>
     <string name="tooling_service_build_en_cours">Build en cours…</string>
     <string name="tooling_service_build_taches">Build en cours — %1$s</string>

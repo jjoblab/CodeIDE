@@ -240,8 +240,17 @@ class MainActivity : AppCompatActivity() {
     private fun routerProjetCible(intent: Intent) {
         val identifiant = intent.getStringExtra(RoutageEcran.EXTRA_PROJET_CIBLE)
         if (identifiant.isNullOrBlank()) return
-        logger.d(TAG) { "routage externe -> projet de la notification" }
         intent.removeExtra(RoutageEcran.EXTRA_PROJET_CIBLE)
+        // Lot L6 (spec SORTIES § 5.7) : la notification de fin de build
+        // peut demander LA SURFACE « Sorties » — l'éditeur s'ouvre sur
+        // l'onglet central au lieu du dernier onglet fichier.
+        if (intent.getStringExtra(RoutageEcran.EXTRA_ECRAN_CIBLE) == RoutageEcran.ECRAN_SORTIES) {
+            intent.removeExtra(RoutageEcran.EXTRA_ECRAN_CIBLE)
+            logger.d(TAG) { "routage externe -> sorties du projet" }
+            navigator.openEditorSurSorties(identifiant)
+            return
+        }
+        logger.d(TAG) { "routage externe -> projet de la notification" }
         navigator.openEditor(identifiant)
     }
 

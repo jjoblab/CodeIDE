@@ -5,6 +5,9 @@
 
 pluginManagement {
     repositories {
+        // Miroirs de sortie du bac a sable (429 gradle/central/portal) — LOCAL NON COMMITE, lot L5.
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -45,6 +48,8 @@ val mavenLocalFreres: Boolean = listOf(
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // Miroir de sortie du bac a sable (429 gradle/central) — LOCAL NON COMMITE, lot L5.
+        maven { url = uri("https://mirrors.cloud.tencent.com/nexus/repository/maven-public/") }
         google()
         mavenCentral()
         // Bibliothèque d'édition code-editor (prompt compagnon, section 2.2)

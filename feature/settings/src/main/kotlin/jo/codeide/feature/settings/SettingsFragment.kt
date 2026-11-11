@@ -255,6 +255,14 @@ class SettingsFragment : BaseFragment<FragmentSettingsBinding>() {
                         }
                     "$police · $curseur"
                 },
+                // Lot L6 (M13) : la section « Sorties » du Centre de
+                // sorties — lecteur, tampons, historique (spec § 5.10).
+                ligne(
+                    SectionParametres.SORTIES,
+                    jo.codeide.core.ui.R.drawable.ic_historique,
+                    R.string.settings_maitre_sorties,
+                    R.string.settings_cd_ligne_sorties,
+                ) { getString(R.string.settings_sous_sorties) },
                 // Mission IA (lot IA-2) : section réelle — l'écran vit
                 // dans :feature:ai, la destination dans le graphe de :app.
                 ligne(
