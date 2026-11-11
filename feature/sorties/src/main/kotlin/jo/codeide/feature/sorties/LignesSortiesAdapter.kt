@@ -1,5 +1,6 @@
 package jo.codeide.feature.sorties
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Typeface
 import android.text.SpannableStringBuilder
@@ -91,14 +92,22 @@ internal class LignesSortiesAdapter(
     internal val optionsCourantes: OptionsRenduRangee
         get() = options
 
-    /** Les réglages changent (bascules de la barre, zoom, origine). */
+    /** Les réglages changent (bascules de la barre, zoom, origine).
+     *  Re-liaison complète VOLONTAIRE (les options de rendu touchent
+     *  TOUTES les rangées — police, pid/tid, horodatages) : le
+     *  notifyDataSetChanged est ici le « dernier recours » assumé de
+     *  lint (les événements bornés ne savent pas re-mesurer la hauteur
+     *  de chaque rangée). */
+    @SuppressLint("NotifyDataSetChanged")
     internal fun definirOptions(valeur: OptionsRenduRangee, origine: Long) {
         options = valeur
         origineMs = origine
         notifyDataSetChanged()
     }
 
-    /** La plage sélectionnée change — les rangees se teintent. */
+    /** La plage sélectionnée change — les rangees se teintent (toutes :
+     *  l'ancienne sélection ET la nouvelle sont impactées). */
+    @SuppressLint("NotifyDataSetChanged")
     internal fun definirSelection(plage: IntRange?) {
         selection = plage
         notifyDataSetChanged()
@@ -107,8 +116,11 @@ internal class LignesSortiesAdapter(
     /**
      * Publie la projection : delta non nul → notifications BORNÉES
      * (retrait de tête + append fin) ; `null` → re-liaison complète
-     * (reprise de pause, filtre, effacement, bascule regroupée).
+     * (reprise de pause, filtre, effacement, bascule regroupée) —
+     * dernier recours assumé pour ce lot, le delta ne le décrit pas
+     * (lint NotifyDataSetChanged).
      */
+    @SuppressLint("NotifyDataSetChanged")
     internal fun publierProjection(rangeesNouvelles: List<RangeeLecteur>, delta: DeltaProjection?) {
         rangees = rangeesNouvelles
         if (delta == null || rangeesNouvelles.isEmpty()) {
@@ -190,7 +202,10 @@ internal class LignesSortiesAdapter(
             val contexte = liaison.root.context
             liaison.numeroSortie.isGone = !options.afficheNumeros
             if (options.afficheNumeros) {
-                liaison.numeroSortie.text = (indice + 1).toString()
+                // Numéro TECHNIQUE de ligne de sortie — le format localisé
+                // suit le précédent ExplorateurAdapter (lint SetTextI18n).
+                liaison.numeroSortie.text =
+                    String.format(java.util.Locale.getDefault(), "%d", indice + 1)
             }
             liaison.pastilleSortie.setNiveau(niveauPastille(rangee.niveau))
             liaison.horodatageSortie.isGone = !options.afficheHorodatage

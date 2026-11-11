@@ -12,10 +12,14 @@
     android:paddingTop="@dimen/spacing_lg"
     android:paddingBottom="@dimen/spacing_lg">
 
+    <!-- Le défilement EST le rôle de ce ScrollView et la marge externe
+         du bas de feuille ne défile PAS (elle reste un encart fixe) —
+         les deux niveaux sont porteurs de sens (lint UselessParent). -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fadeScrollbars="false">
+        android:fadeScrollbars="false"
+        tools:ignore="UselessParent">
 
         <LinearLayout
             android:layout_width="match_parent"

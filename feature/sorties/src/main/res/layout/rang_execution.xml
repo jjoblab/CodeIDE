@@ -2,12 +2,16 @@
 <!-- Une rangée d'EXÉCUTION de la feuille d'historique (lot L6, M11) :
      nature + cible, verdict, date relative + durée, volume conservé —
      cible ≥ 48 dp, TalkBack par une description complète. -->
+    <!-- Le selectableItemBackground (ripple de clic) EST le design de la
+         rangée cliquable ; l'« overdraw » prétendu repose sur un thème
+         inféré inexact (lint Overdraw). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/racine"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
+    tools:ignore="Overdraw"
     android:minHeight="48dp"
     android:orientation="vertical"
     android:paddingHorizontal="@dimen/sorties_marge_h"

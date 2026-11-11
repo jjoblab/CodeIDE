@@ -5,10 +5,15 @@
      « N lignes · k causes »), le chevron de repli. L'appui bascule le
      repli (le contenu reste dans le tampon ; à repli fermé, les causes
      « Caused by » d'une trace restent affichées). -->
+    <!-- La teinte d'en-tête EST le design (contraste avec les rangées) ;
+         l'« overdraw » prétendu s'appuie sur un thème inféré inexact —
+         le lecteur est gonflé dans un fragment (lint Overdraw). -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/colorSurfaceVariant"
+    tools:ignore="Overdraw"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingHorizontal="@dimen/sorties_marge_h"
