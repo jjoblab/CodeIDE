@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import java.util.UUID
 import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Le COLLECTEUR du flux réel Gradle vers le Centre de sorties (lot L3,
@@ -39,6 +40,19 @@ import javax.inject.Inject
  * même port — le lecteur ne change pas ») — branché SUR LA POMPE
  * ([PompeBuildTooling], le seul entonnoir process-wide qui voit tout :
  * lignes, états, ÉVÉNEMENTS de tâches, téléchargements, flux de sync).
+ *
+ * **CONTRAT DE SCOPE — @Singleton OBLIGATOIRE** (retour d'appareil du
+ * 2026-11-11 : « la console n'affiche pas les sorties du gradle tooling
+ * en direct ») : la classe est injectée DEUX FOIS — la pompe qui la
+ * NOURRIT ([PompeBuildTooling]) et le flux que le lecteur LIT
+ * ([FluxSortiesCentre]). Sans scope, Hilt fabrique une instance PAR
+ * POINT D'INJECTION : la pompe arme et nourrit la sienne
+ * (`demarrerBuild`, `surLigneBuild`) pendant que le lecteur écoute une
+ * AUTRE instance jamais alimentée — cliché vide, aucun lot, console
+ * muette pour TOUT le câble tooling (ni direct, ni fin de build). Le
+ * banc n'a pas pu le voir : il passe par la source factice ; les tests
+ * assemblent le collecteur à la main. Le scope `@Singleton` est LE
+ * câble : une seule instance process-wide, partagée par les deux bouts.
  *
  * Trois responsabilités, dans l'ordre du câble :
  *
@@ -69,6 +83,7 @@ import javax.inject.Inject
  *        ADR 0080 : une mort silencieuse est une panne invisible).
  */
 @Suppress("TooManyFunctions")
+@Singleton
 public class CollecteurSortiesGradle
 @Inject
 constructor(
