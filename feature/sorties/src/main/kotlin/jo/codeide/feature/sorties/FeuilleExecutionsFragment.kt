@@ -141,7 +141,11 @@ public class FeuilleExecutionsFragment : BottomSheetDialogFragment() {
                 tronquee.totalLignes,
             )
         } else {
-            getString(R.string.sorties_historique_lignes, execution.totalLignes)
+            resources.getQuantityString(
+                R.plurals.sorties_historique_lignes,
+                execution.totalLignes.toInt(),
+                execution.totalLignes,
+            )
         }
     }
 

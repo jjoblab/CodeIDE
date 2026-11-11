@@ -57,10 +57,22 @@
     <string name="sorties_banc_sequence">Bench sequence</string>
     <string name="sorties_banc_lancer">Run</string>
     <string name="sorties_banc_arreter">Stop</string>
-    <string name="sorties_banc_lignes_ingerees">%1$d lines ingested</string>
-    <string name="sorties_banc_pertes">%1$d lost</string>
-    <string name="sorties_banc_masquees">%1$d hidden</string>
-    <string name="sorties_banc_compteurs">%1$d lines ingested · %2$d lost · %3$d hidden</string>
+    <!-- Real quantities → plurals (V0.31.5 discipline, tiroir_terminal
+         precedent); the COMPOSITE three-index counter stays a <string>
+         (plural would be semantically wrong) under tools:ignore. -->
+    <plurals name="sorties_banc_lignes_ingerees">
+        <item quantity="one">%1$d line ingested</item>
+        <item quantity="other">%1$d lines ingested</item>
+    </plurals>
+    <plurals name="sorties_banc_pertes">
+        <item quantity="one">%1$d loss</item>
+        <item quantity="other">%1$d losses</item>
+    </plurals>
+    <plurals name="sorties_banc_masquees">
+        <item quantity="one">%1$d hidden</item>
+        <item quantity="other">%1$d hidden</item>
+    </plurals>
+    <string name="sorties_banc_compteurs" tools:ignore="PluralsCandidate">%1$d lines ingested · %2$d lost · %3$d hidden</string>
     <string name="sorties_banc_avertissement">The bench outputs contain no personal data (deterministic fake content).</string>
     <string name="sorties_banc_sequence_s1">S1 — ingestion rate (100,000 lines)</string>
     <string name="sorties_banc_sequence_s2">S2 — full buffer (100,000 lines at once)</string>
@@ -81,19 +93,42 @@
     <string name="sorties_repli_ferme">▸</string>
     <string name="sorties_entete_erreurs">%1$d !</string>
     <string name="sorties_entete_avertissements">%1$d ⚠</string>
-    <string name="sorties_a11y_entete_tache">Task %1$s, status %2$s, %3$d visible lines, group %4$s</string>
+    <!-- Accessibility headers: MIXED string (%s and three %d) — not a
+         single quantity, plural would be semantically wrong (V0.31.5)
+         → accepted tools:ignore. -->
+    <string name="sorties_a11y_entete_tache" tools:ignore="PluralsCandidate">Task %1$s, status %2$s, %3$d visible lines, group %4$s</string>
     <string name="sorties_resume_reussi">Build succeeded</string>
     <string name="sorties_resume_echoue">Build failed</string>
     <string name="sorties_resume_annule">Build cancelled</string>
     <string name="sorties_resume_en_cours">Build running</string>
     <string name="sorties_resume_duree">%1$.1f s</string>
-    <string name="sorties_resume_taches">%1$d tasks</string>
-    <string name="sorties_resume_executees">%1$d executed</string>
-    <string name="sorties_resume_a_jour">%1$d up-to-date</string>
-    <string name="sorties_resume_cache">%1$d from cache</string>
-    <string name="sorties_resume_sautees">%1$d skipped</string>
+    <!-- Task counters: real quantities → plurals (V0.31.5). "up-to-date"
+         and "from cache" are invariable (the elided noun "task" does not
+         inflect after the preposition). -->
+    <plurals name="sorties_resume_taches">
+        <item quantity="one">%1$d task</item>
+        <item quantity="other">%1$d tasks</item>
+    </plurals>
+    <plurals name="sorties_resume_executees">
+        <item quantity="one">%1$d executed</item>
+        <item quantity="other">%1$d executed</item>
+    </plurals>
+    <plurals name="sorties_resume_a_jour">
+        <item quantity="one">%1$d up-to-date</item>
+        <item quantity="other">%1$d up-to-date</item>
+    </plurals>
+    <plurals name="sorties_resume_cache">
+        <item quantity="one">%1$d from cache</item>
+        <item quantity="other">%1$d from cache</item>
+    </plurals>
+    <plurals name="sorties_resume_sautees">
+        <item quantity="one">%1$d skipped</item>
+        <item quantity="other">%1$d skipped</item>
+    </plurals>
     <string name="sorties_resume_taches_aucune">No task counters (the build never reached the summary)</string>
-    <string name="sorties_resume_gravites">%1$d error(s) · %2$d warning(s) · %3$d lines</string>
+    <!-- COMPOSITE three-index counter (errors, warnings, lines) — not a
+         single quantity → tools:ignore (V0.31.5). -->
+    <string name="sorties_resume_gravites" tools:ignore="PluralsCandidate">%1$d error(s) · %2$d warning(s) · %3$d lines</string>
     <string name="sorties_consultation_bandeau">Reading a past execution — live output is held back until “back to live”.</string>
     <string name="sorties_saut_sans_editeur">No editor open: the jump to source will work from the editor (lot L5).</string>
     <string name="sorties_banc_sequence_s5">S5 — grouping (500 tasks, full buffer)</string>
@@ -112,9 +147,11 @@
     <string name="sorties_etiquette_exclue">✕ %1$s ×%2$d</string>
     <string name="sorties_erreur_precedente">Previous error</string>
     <string name="sorties_erreur_suivante">Next error</string>
-    <string name="sorties_a11y_entete_logcat">Block %1$s, %2$s, %3$d visible lines, group %4$s</string>
+    <!-- Accessibility header MIXED (%s and %d) → tools:ignore (V0.31.5). -->
+    <string name="sorties_a11y_entete_logcat" tools:ignore="PluralsCandidate">Block %1$s, %2$s, %3$d visible lines, group %4$s</string>
     <string name="sorties_entete_logcat_repetition">×%1$d</string>
-    <string name="sorties_entete_logcat_trace">%1$d lines · %2$d causes</string>
+    <!-- Two distinct indices (lines, causes) → tools:ignore (V0.31.5). -->
+    <string name="sorties_entete_logcat_trace" tools:ignore="PluralsCandidate">%1$d lines · %2$d causes</string>
     <string name="sorties_historique_bouton">History</string>
     <string name="sorties_historique_cd">Kept executions history</string>
     <string name="sorties_historique_titre">Recent executions</string>
@@ -124,8 +161,12 @@
     <string name="sorties_historique_cible_vide">unknown tasks</string>
     <string name="sorties_historique_ouvrir_cd">Open execution %1$s %2$s for review</string>
     <string name="sorties_historique_duree">%1$s · %2$s</string>
-    <string name="sorties_historique_lignes">%1$d lines</string>
-    <string name="sorties_historique_tronquee">%1$d lines kept of %2$d — truncated output</string>
+    <plurals name="sorties_historique_lignes">
+        <item quantity="one">%1$d line</item>
+        <item quantity="other">%1$d lines</item>
+    </plurals>
+    <!-- Two distinct indices (kept, total) → tools:ignore (V0.31.5). -->
+    <string name="sorties_historique_tronquee" tools:ignore="PluralsCandidate">%1$d lines kept of %2$d — truncated output</string>
     <string name="sorties_historique_effacer">Clear all history</string>
     <string name="sorties_historique_effacer_confirmation">Kept executions will be permanently cleared. Application logs stay untouched.</string>
     <string name="sorties_verdict_reussi">SUCCESS</string>

@@ -426,16 +426,20 @@ public class FragmentLecteurSorties :
         )
     }
 
+    /** La chaîne plurielle accordée pour un compteur entier — les compteurs
+     *  de tâches sont des quantités réelles (plurals, discipline V0.31.5). */
+    private fun pluriel(id: Int, n: Int): String = resources.getQuantityString(id, n, n)
+
     /** La ligne des compteurs de tâches (les `null` disparaissent — un
      *  compteur inconnu ne s'affiche jamais comme zéro, règle 14). */
     private fun texteCompteurs(resume: jo.codeide.core.domain.ResumeExecution): String {
         val compteurs = resume.compteurs ?: return getString(R.string.sorties_resume_taches_aucune)
         val morceaux = ArrayList<String>()
-        compteurs.actionnables?.let { morceaux.add(getString(R.string.sorties_resume_taches, it)) }
-        compteurs.executees?.let { morceaux.add(getString(R.string.sorties_resume_executees, it)) }
-        compteurs.aJour?.let { morceaux.add(getString(R.string.sorties_resume_a_jour, it)) }
-        compteurs.depuisCache?.let { morceaux.add(getString(R.string.sorties_resume_cache, it)) }
-        compteurs.sautees?.let { morceaux.add(getString(R.string.sorties_resume_sautees, it)) }
+        compteurs.actionnables?.let { morceaux.add(pluriel(R.plurals.sorties_resume_taches, it)) }
+        compteurs.executees?.let { morceaux.add(pluriel(R.plurals.sorties_resume_executees, it)) }
+        compteurs.aJour?.let { morceaux.add(pluriel(R.plurals.sorties_resume_a_jour, it)) }
+        compteurs.depuisCache?.let { morceaux.add(pluriel(R.plurals.sorties_resume_cache, it)) }
+        compteurs.sautees?.let { morceaux.add(pluriel(R.plurals.sorties_resume_sautees, it)) }
         return if (morceaux.isEmpty()) {
             getString(
                 R.string.sorties_resume_taches_aucune,

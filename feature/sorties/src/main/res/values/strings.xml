@@ -57,10 +57,22 @@
     <string name="sorties_banc_sequence">Séquence du banc</string>
     <string name="sorties_banc_lancer">Lancer</string>
     <string name="sorties_banc_arreter">Arrêter</string>
-    <string name="sorties_banc_lignes_ingerees">%1$d lignes ingérées</string>
-    <string name="sorties_banc_pertes">%1$d pertes</string>
-    <string name="sorties_banc_masquees">%1$d masquées</string>
-    <string name="sorties_banc_compteurs">%1$d lignes ingérées · %2$d pertes · %3$d masquées</string>
+    <!-- Quantités réelles → plurals (discipline V0.31.5, précédent
+         tiroir_terminal) ; le compteur COMPOSÉ à trois indices reste un
+         <string> (le pluriel serait sémantiquement faux) sous tools:ignore. -->
+    <plurals name="sorties_banc_lignes_ingerees">
+        <item quantity="one">%1$d ligne ingérée</item>
+        <item quantity="other">%1$d lignes ingérées</item>
+    </plurals>
+    <plurals name="sorties_banc_pertes">
+        <item quantity="one">%1$d perte</item>
+        <item quantity="other">%1$d pertes</item>
+    </plurals>
+    <plurals name="sorties_banc_masquees">
+        <item quantity="one">%1$d masquée</item>
+        <item quantity="other">%1$d masquées</item>
+    </plurals>
+    <string name="sorties_banc_compteurs" tools:ignore="PluralsCandidate">%1$d lignes ingérées · %2$d pertes · %3$d masquées</string>
     <string name="sorties_banc_avertissement">Les sorties du banc ne contiennent aucune donnée personnelle (contenu déterministe factice).</string>
     <string name="sorties_banc_sequence_s1">S1 — débit d\'ingestion (100 000 lignes)</string>
     <string name="sorties_banc_sequence_s2">S2 — tampon plein (100 000 lignes d\'un bloc)</string>
@@ -87,19 +99,43 @@
     <string name="sorties_repli_ferme">▸</string>
     <string name="sorties_entete_erreurs">%1$d !</string>
     <string name="sorties_entete_avertissements">%1$d ⚠</string>
-    <string name="sorties_a11y_entete_tache">Tâche %1$s, statut %2$s, %3$d lignes visibles, groupe %4$s</string>
+    <!-- En-têtes d'accessibilité : chaîne MIXTE (%s et trois %d) — pas
+         une quantité unique, le pluriel serait sémantiquement faux
+         (discipline V0.31.5) → tools:ignore assumé. -->
+    <string name="sorties_a11y_entete_tache" tools:ignore="PluralsCandidate">Tâche %1$s, statut %2$s, %3$d lignes visibles, groupe %4$s</string>
     <string name="sorties_resume_reussi">Build réussi</string>
     <string name="sorties_resume_echoue">Build échoué</string>
     <string name="sorties_resume_annule">Build annulé</string>
     <string name="sorties_resume_en_cours">Build en cours</string>
     <string name="sorties_resume_duree">%1$.1f s</string>
-    <string name="sorties_resume_taches">%1$d tâches</string>
-    <string name="sorties_resume_executees">%1$d exécutées</string>
-    <string name="sorties_resume_a_jour">%1$d à jour</string>
-    <string name="sorties_resume_cache">%1$d du cache</string>
-    <string name="sorties_resume_sautees">%1$d sautées</string>
+    <!-- Compteurs de tâches : quantités réelles → plurals (V0.31.5) —
+         l'accord au singulier redevient correct (« 1 exécutée »).
+         « à jour » et « du cache » sont invariables (le nom élidé
+         « tâche » ne s'accorde pas après la préposition). -->
+    <plurals name="sorties_resume_taches">
+        <item quantity="one">%1$d tâche</item>
+        <item quantity="other">%1$d tâches</item>
+    </plurals>
+    <plurals name="sorties_resume_executees">
+        <item quantity="one">%1$d exécutée</item>
+        <item quantity="other">%1$d exécutées</item>
+    </plurals>
+    <plurals name="sorties_resume_a_jour">
+        <item quantity="one">%1$d à jour</item>
+        <item quantity="other">%1$d à jour</item>
+    </plurals>
+    <plurals name="sorties_resume_cache">
+        <item quantity="one">%1$d du cache</item>
+        <item quantity="other">%1$d du cache</item>
+    </plurals>
+    <plurals name="sorties_resume_sautees">
+        <item quantity="one">%1$d sautée</item>
+        <item quantity="other">%1$d sautées</item>
+    </plurals>
     <string name="sorties_resume_taches_aucune">Aucun compteur de tâches (le build n\'est pas allé au bout de la synthèse)</string>
-    <string name="sorties_resume_gravites">%1$d erreur(s) · %2$d avertissement(s) · %3$d lignes</string>
+    <!-- Compteur COMPOSÉ à trois indices (erreurs, avertissements,
+         lignes) — pas une quantité unique → tools:ignore (V0.31.5). -->
+    <string name="sorties_resume_gravites" tools:ignore="PluralsCandidate">%1$d erreur(s) · %2$d avertissement(s) · %3$d lignes</string>
     <string name="sorties_consultation_bandeau">Lecture d\'une exécution passée — le direct est retenu, « revenir au direct » l\'écrira.</string>
     <string name="sorties_saut_sans_editeur">Aucun éditeur ouvert : le saut au source s\'effectuera depuis l\'éditeur (lot L5).</string>
 
@@ -116,9 +152,11 @@
     <string name="sorties_etiquette_exclue">✕ %1$s ×%2$d</string>
     <string name="sorties_erreur_precedente">Erreur précédente</string>
     <string name="sorties_erreur_suivante">Erreur suivante</string>
-    <string name="sorties_a11y_entete_logcat">Bloc %1$s, %2$s, %3$d lignes visibles, groupe %4$s</string>
+    <!-- En-tête d'accessibilité MIXTE (%s et %d) → tools:ignore (V0.31.5). -->
+    <string name="sorties_a11y_entete_logcat" tools:ignore="PluralsCandidate">Bloc %1$s, %2$s, %3$d lignes visibles, groupe %4$s</string>
     <string name="sorties_entete_logcat_repetition">×%1$d</string>
-    <string name="sorties_entete_logcat_trace">%1$d lignes · %2$d causes</string>
+    <!-- Deux indices distincts (lignes, causes) → tools:ignore (V0.31.5). -->
+    <string name="sorties_entete_logcat_trace" tools:ignore="PluralsCandidate">%1$d lignes · %2$d causes</string>
     <string name="sorties_historique_bouton">Historique</string>
     <string name="sorties_historique_cd">Historique des exécutions conservées</string>
     <string name="sorties_historique_titre">Exécutions récentes</string>
@@ -128,8 +166,12 @@
     <string name="sorties_historique_cible_vide">tâches inconnues</string>
     <string name="sorties_historique_ouvrir_cd">Ouvrir l\'exécution %1$s %2$s en consultation</string>
     <string name="sorties_historique_duree">%1$s · %2$s</string>
-    <string name="sorties_historique_lignes">%1$d lignes</string>
-    <string name="sorties_historique_tronquee">%1$d lignes conservées sur %2$d — sortie tronquée</string>
+    <plurals name="sorties_historique_lignes">
+        <item quantity="one">%1$d ligne</item>
+        <item quantity="other">%1$d lignes</item>
+    </plurals>
+    <!-- Deux indices distincts (conservées, total) → tools:ignore (V0.31.5). -->
+    <string name="sorties_historique_tronquee" tools:ignore="PluralsCandidate">%1$d lignes conservées sur %2$d — sortie tronquée</string>
     <string name="sorties_historique_effacer">Effacer tout l\'historique</string>
     <string name="sorties_historique_effacer_confirmation">Les exécutions conservées seront définitivement effacées. Les journaux applicatifs restent inchangés.</string>
     <string name="sorties_verdict_reussi">RÉUSSI</string>
