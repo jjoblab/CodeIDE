@@ -16,9 +16,13 @@ public data class LotTampon(
     public val etat: EtatTamponSorties,
 ) {
     /** Indice du PREMIER ligne NOUVELLE dans l'état après lot — les
-     *  indices < [depart] sont déjà projetés. */
+     *  indices < [depart] sont déjà projetés. Un lot plus GRAND que la
+     *  fenêtre d'un tampon vide (première rafale, réforme de fenêtre du
+     *  lot L6) fait tomber plus de tête qu'il n'y avait de lignes
+     *  projetées : le départ ne peut pas être négatif — TOUTES les
+     *  lignes retenues sont nouvelles. */
     public val depart: Int
-        get() = tailleAvant - troncatureTete
+        get() = (tailleAvant - troncatureTete).coerceAtLeast(0)
 }
 
 /**

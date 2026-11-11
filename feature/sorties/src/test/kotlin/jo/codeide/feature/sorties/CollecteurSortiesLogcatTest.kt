@@ -77,6 +77,7 @@ class CollecteurSortiesLogcatTest {
         FabriqueDeTest(flux),
         TestDispatcherProvider(regleMain.dispatcher),
         horloge,
+        ReglagesLecteurDefaut(),
         androidx.lifecycle.SavedStateHandle(),
     )
 
