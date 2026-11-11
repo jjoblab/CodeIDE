@@ -445,14 +445,7 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
     set(SettingsDataStore.Cles.APERCU_BULLE_A_DROITE, reglage.apercuBulleADroite)
     set(SettingsDataStore.Cles.APERCU_BULLE_Y, reglage.apercuBulleY.toString())
     set(SettingsDataStore.Cles.APERCU_PALETTE_PAR_POPUP, reglage.apercuPaletteParPopup)
-    set(SettingsDataStore.Cles.SORTIES_EXECUTIONS_RETENUES, reglage.sortiesExecutionsRetenues)
-    set(SettingsDataStore.Cles.SORTIES_FENETRE_LOGCAT, reglage.sortiesFenetreLogcat)
-    set(SettingsDataStore.Cles.SORTIES_FENETRE_JOURNAL, reglage.sortiesFenetreJournal)
-    set(SettingsDataStore.Cles.SORTIES_HORODATAGE_DEFAUT, reglage.sortiesHorodatageDefaut.name)
-    set(SettingsDataStore.Cles.SORTIES_TAILLE_POLICE, reglage.sortiesTaillePoliceSp)
-    set(SettingsDataStore.Cles.SORTIES_RETOUR_LIGNE, reglage.sortiesRetourLigne)
-    set(SettingsDataStore.Cles.SORTIES_COULEURS_ANSI, reglage.sortiesCouleursAnsi)
-    set(SettingsDataStore.Cles.SORTIES_NIVEAU_LOGCAT_DEFAUT, reglage.sortiesNiveauLogcatDefaut.name)
+    ecrireSorties(reglage)
 
     val dossier = reglage.workspace
     if (dossier == null) {
@@ -464,4 +457,17 @@ private fun MutablePreferences.ecrire(reglage: AppSettings) {
         set(SettingsDataStore.Cles.DOCUMENT_TRAVAIL, dossier.documentUri)
         set(SettingsDataStore.Cles.LIBELLE_TRAVAIL, dossier.displayPath)
     }
+}
+
+/** Les réglages « Sorties » (lot L6, M13) — extraits pour garder la
+ *  projection principale sous la limite detekt (une clé par ligne). */
+private fun MutablePreferences.ecrireSorties(reglage: AppSettings) {
+    set(SettingsDataStore.Cles.SORTIES_EXECUTIONS_RETENUES, reglage.sortiesExecutionsRetenues)
+    set(SettingsDataStore.Cles.SORTIES_FENETRE_LOGCAT, reglage.sortiesFenetreLogcat)
+    set(SettingsDataStore.Cles.SORTIES_FENETRE_JOURNAL, reglage.sortiesFenetreJournal)
+    set(SettingsDataStore.Cles.SORTIES_HORODATAGE_DEFAUT, reglage.sortiesHorodatageDefaut.name)
+    set(SettingsDataStore.Cles.SORTIES_TAILLE_POLICE, reglage.sortiesTaillePoliceSp)
+    set(SettingsDataStore.Cles.SORTIES_RETOUR_LIGNE, reglage.sortiesRetourLigne)
+    set(SettingsDataStore.Cles.SORTIES_COULEURS_ANSI, reglage.sortiesCouleursAnsi)
+    set(SettingsDataStore.Cles.SORTIES_NIVEAU_LOGCAT_DEFAUT, reglage.sortiesNiveauLogcatDefaut.name)
 }

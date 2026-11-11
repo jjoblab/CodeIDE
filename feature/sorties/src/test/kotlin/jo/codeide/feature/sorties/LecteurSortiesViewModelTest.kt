@@ -251,7 +251,7 @@ class LecteurSortiesViewModelTest {
             FabriqueDeTest(FluxDeTest(fenetre = FENETRE_LOGCAT)),
             TestDispatcherProvider(regleMain.dispatcher),
             horloge,
-        ReglagesLecteurDefaut(),
+            ReglagesLecteurDefaut(),
             handleLogcat,
         )
         assertEquals(FamilleSorties.LOGCAT, logcat.famille)
@@ -272,7 +272,7 @@ class LecteurSortiesViewModelTest {
             FabriqueDeTest(FluxDeTest(fenetre = FENETRE_JOURNAL)),
             TestDispatcherProvider(regleMain.dispatcher),
             horloge,
-        ReglagesLecteurDefaut(),
+            ReglagesLecteurDefaut(),
             handleJournal,
         )
         assertEquals(FamilleSorties.JOURNAL, journal.famille)

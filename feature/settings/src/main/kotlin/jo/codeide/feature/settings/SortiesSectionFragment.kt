@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.activityViewModels
+import com.google.android.material.button.MaterialButtonToggleGroup
 import dagger.hilt.android.AndroidEntryPoint
 import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.HorodatageSorties
@@ -16,16 +17,53 @@ import jo.codeide.core.ui.collectWithLifecycle
 import jo.codeide.feature.settings.databinding.FragmentSettingsSortiesBinding
 import javax.inject.Inject
 
+/** Les presets de POLICE du lecteur (sp — les mêmes bornes que le zoom). */
+private const val POLICE_PETITE_SP = 10
+
+/** Preset moyen de la police du lecteur (défaut du composant). */
+private const val POLICE_MOYENNE_SP = 12
+
+/** Preset confortable de la police du lecteur. */
+private const val POLICE_GRANDE_SP = 16
+
+/** Rétention courte du registre (exécutions). */
+private const val RETENTION_COURTE = 5
+
+/** Rétention par défaut du registre (ADR 0161). */
+private const val RETENTION_DEFAUT = 10
+
+/** Rétention large du registre. */
+private const val RETENTION_LARGE = 30
+
+/** Fenêtre courte des tampons (lignes). */
+private const val FENETRE_COURTE = 2_000
+
+/** Fenêtre Logcat par défaut (parité R3). */
+private const val FENETRE_LOGCAT_DEFAUT = 5_000
+
+/** Fenêtre Journal par défaut. */
+private const val FENETRE_JOURNAL_DEFAUT = 10_000
+
+/** Fenêtre Logcat large. */
+private const val FENETRE_LOGCAT_LARGE = 20_000
+
+/** Fenêtre Journal large. */
+private const val FENETRE_JOURNAL_LARGE = 30_000
+
 /**
  * Section Sorties (lot L6, M13 — spec SORTIES § 5.10) : les réglages du
  * Centre de sorties, CHACUN avec un effet réel —
  * - horodatage, police, retour à la ligne, couleurs ANSI : la valeur
  *   initiale du lecteur à l'ouverture (et la persistance des gestes
- *   porteurs d'un défaut, [ReglagesLecteurPort]) ;
+ *   porteurs d'un défaut, `ReglagesLecteurPort`) ;
  * - rétention du registre (ADR 0161) et fenêtres des tampons : bornes
  *   réelles lues à l'écriture et à l'ouverture du lecteur ;
  * - filtre Logcat par défaut : appliqué une fois à l'ouverture, les
  *   lignes masquées restant comptées (règle 14).
+ *
+ * Le rendu et les branchements passent par des TABLES id↔valeur : une
+ * seule lecture de vérité par bouton, aucune répétition de `when` (la
+ * complexité des méthodes reste sous les seuils detekt).
  */
 @AndroidEntryPoint
 class SortiesSectionFragment : BaseFragment<FragmentSettingsSortiesBinding>() {
@@ -54,35 +92,23 @@ class SortiesSectionFragment : BaseFragment<FragmentSettingsSortiesBinding>() {
 
     /** Branchements des contrôles → actions (une seule fois). */
     private fun brancher() {
-        binding.groupeHorodatageSorties.addOnButtonCheckedListener { _, id, coche ->
-            if (coche && !renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerSortiesHorodatage(horodatageDeLId(id)))
-            }
+        brancherChoix(binding.groupeHorodatageSorties) {
+            ActionParametres.ChangerSortiesHorodatage(horodatageDeLId(it))
         }
-        binding.groupePoliceSorties.addOnButtonCheckedListener { _, id, coche ->
-            if (coche && !renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerSortiesPolice(policeDeLId(id)))
-            }
+        brancherChoix(binding.groupePoliceSorties) {
+            ActionParametres.ChangerSortiesPolice(policeDeLId(it))
         }
-        binding.groupeRetentionSorties.addOnButtonCheckedListener { _, id, coche ->
-            if (coche && !renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerSortiesRetention(retentionDeLId(id)))
-            }
+        brancherChoix(binding.groupeRetentionSorties) {
+            ActionParametres.ChangerSortiesRetention(retentionDeLId(it))
         }
-        binding.groupeFenetreLogcat.addOnButtonCheckedListener { _, id, coche ->
-            if (coche && !renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerSortiesFenetreLogcat(fenetreLogcatDeLId(id)))
-            }
+        brancherChoix(binding.groupeFenetreLogcat) {
+            ActionParametres.ChangerSortiesFenetreLogcat(fenetreLogcatDeLId(it))
         }
-        binding.groupeFenetreJournal.addOnButtonCheckedListener { _, id, coche ->
-            if (coche && !renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerSortiesFenetreJournal(fenetreJournalDeLId(id)))
-            }
+        brancherChoix(binding.groupeFenetreJournal) {
+            ActionParametres.ChangerSortiesFenetreJournal(fenetreJournalDeLId(it))
         }
-        binding.groupeNiveauLogcat.addOnButtonCheckedListener { _, id, coche ->
-            if (coche && !renduEnCours) {
-                viewModel.onAction(ActionParametres.ChangerSortiesNiveauLogcat(niveauDeLId(id)))
-            }
+        brancherChoix(binding.groupeNiveauLogcat) {
+            ActionParametres.ChangerSortiesNiveauLogcat(niveauDeLId(it))
         }
         binding.rangeeRetourLigneSorties.setSurChangementCoche { actif ->
             if (!renduEnCours) viewModel.onAction(ActionParametres.ChangerSortiesRetourLigne(actif))
@@ -92,86 +118,92 @@ class SortiesSectionFragment : BaseFragment<FragmentSettingsSortiesBinding>() {
         }
     }
 
-    /** Rendu de l'état dans les contrôles. */
+    /** Un groupe de boutons pousse SON action (le rendu coupe l'écho). */
+    private fun brancherChoix(groupe: MaterialButtonToggleGroup, action: (Int) -> ActionParametres) {
+        groupe.addOnButtonCheckedListener { _, id, coche ->
+            if (coche && !renduEnCours) viewModel.onAction(action(id))
+        }
+    }
+
+    /** Rendu de l'état dans les contrôles (une table par groupe). */
     private fun rendre(reglages: AppSettings) {
         renduEnCours = true
         try {
-            when (reglages.sortiesHorodatageDefaut) {
-                HorodatageSorties.MASQUE -> binding.groupeHorodatageSorties.check(R.id.bouton_horodatage_1)
-                HorodatageSorties.RELATIF -> binding.groupeHorodatageSorties.check(R.id.bouton_horodatage_2)
-                HorodatageSorties.ABSOLU -> binding.groupeHorodatageSorties.check(R.id.bouton_horodatage_3)
-            }
-            when (reglages.sortiesTaillePoliceSp) {
-                10 -> binding.groupePoliceSorties.check(R.id.bouton_police_sorties_1)
-                16 -> binding.groupePoliceSorties.check(R.id.bouton_police_sorties_3)
-                else -> binding.groupePoliceSorties.check(R.id.bouton_police_sorties_2)
-            }
-            when (reglages.sortiesExecutionsRetenues) {
-                5 -> binding.groupeRetentionSorties.check(R.id.bouton_retention_1)
-                30 -> binding.groupeRetentionSorties.check(R.id.bouton_retention_3)
-                else -> binding.groupeRetentionSorties.check(R.id.bouton_retention_2)
-            }
-            when (reglages.sortiesFenetreLogcat) {
-                2_000 -> binding.groupeFenetreLogcat.check(R.id.bouton_fenetre_logcat_1)
-                20_000 -> binding.groupeFenetreLogcat.check(R.id.bouton_fenetre_logcat_3)
-                else -> binding.groupeFenetreLogcat.check(R.id.bouton_fenetre_logcat_2)
-            }
-            when (reglages.sortiesFenetreJournal) {
-                2_000 -> binding.groupeFenetreJournal.check(R.id.bouton_fenetre_journal_1)
-                30_000 -> binding.groupeFenetreJournal.check(R.id.bouton_fenetre_journal_3)
-                else -> binding.groupeFenetreJournal.check(R.id.bouton_fenetre_journal_2)
-            }
-            when (reglages.sortiesNiveauLogcatDefaut) {
-                NiveauDefautLogcat.AVERTISSEMENT -> binding.groupeNiveauLogcat.check(R.id.bouton_niveau_2)
-                NiveauDefautLogcat.ERREUR -> binding.groupeNiveauLogcat.check(R.id.bouton_niveau_3)
-                NiveauDefautLogcat.TOUT -> binding.groupeNiveauLogcat.check(R.id.bouton_niveau_1)
-            }
+            cocher(binding.groupeHorodatageSorties, reglages.sortiesHorodatageDefaut, idsHorodatage)
+            cocher(binding.groupePoliceSorties, reglages.sortiesTaillePoliceSp, idsPolice)
+            cocher(binding.groupeRetentionSorties, reglages.sortiesExecutionsRetenues, idsRetention)
+            cocher(binding.groupeFenetreLogcat, reglages.sortiesFenetreLogcat, idsFenetreLogcat)
+            cocher(binding.groupeFenetreJournal, reglages.sortiesFenetreJournal, idsFenetreJournal)
+            cocher(binding.groupeNiveauLogcat, reglages.sortiesNiveauLogcatDefaut, idsNiveau)
             binding.rangeeRetourLigneSorties.coche = reglages.sortiesRetourLigne
             binding.rangeeCouleursAnsi.coche = reglages.sortiesCouleursAnsi
         } finally {
             renduEnCours = false
         }
     }
+
+    /** Coche LE bouton de la table (aucun si la valeur n'est pas un
+     *  preset — le réglage persisté hors presets garde le défaut visuel). */
+    private fun cocher(groupe: MaterialButtonToggleGroup, valeur: Any?, table: Map<*, Int>) {
+        table[valeur]?.let(groupe::check)
+    }
 }
 
-/** Horodatage du bouton coché (MASQUE par défaut). */
-private fun horodatageDeLId(id: Int): HorodatageSorties = when (id) {
-    R.id.bouton_horodatage_2 -> HorodatageSorties.RELATIF
-    R.id.bouton_horodatage_3 -> HorodatageSorties.ABSOLU
-    else -> HorodatageSorties.MASQUE
-}
+/** Tables id de bouton ↔ valeur — la vérité du rendu ET des gestes. */
+private val idsHorodatage = mapOf(
+    HorodatageSorties.MASQUE to R.id.bouton_horodatage_1,
+    HorodatageSorties.RELATIF to R.id.bouton_horodatage_2,
+    HorodatageSorties.ABSOLU to R.id.bouton_horodatage_3,
+)
 
-/** Police par défaut du bouton coché (12 sp par défaut). */
-private fun policeDeLId(id: Int): Int = when (id) {
-    R.id.bouton_police_sorties_1 -> 10
-    R.id.bouton_police_sorties_3 -> 16
-    else -> 12
-}
+private val idsPolice = mapOf(
+    POLICE_PETITE_SP to R.id.bouton_police_sorties_1,
+    POLICE_MOYENNE_SP to R.id.bouton_police_sorties_2,
+    POLICE_GRANDE_SP to R.id.bouton_police_sorties_3,
+)
 
-/** Rétention du bouton coché (10 exécutions par défaut, ADR 0161). */
-private fun retentionDeLId(id: Int): Int = when (id) {
-    R.id.bouton_retention_1 -> 5
-    R.id.bouton_retention_3 -> 30
-    else -> 10
-}
+private val idsRetention = mapOf(
+    RETENTION_COURTE to R.id.bouton_retention_1,
+    RETENTION_DEFAUT to R.id.bouton_retention_2,
+    RETENTION_LARGE to R.id.bouton_retention_3,
+)
 
-/** Fenêtre Logcat du bouton coché (5 000 lignes par défaut, parité R3). */
-private fun fenetreLogcatDeLId(id: Int): Int = when (id) {
-    R.id.bouton_fenetre_logcat_1 -> 2_000
-    R.id.bouton_fenetre_logcat_3 -> 20_000
-    else -> 5_000
-}
+private val idsFenetreLogcat = mapOf(
+    FENETRE_COURTE to R.id.bouton_fenetre_logcat_1,
+    FENETRE_LOGCAT_DEFAUT to R.id.bouton_fenetre_logcat_2,
+    FENETRE_LOGCAT_LARGE to R.id.bouton_fenetre_logcat_3,
+)
 
-/** Fenêtre Journal du bouton coché (10 000 lignes par défaut). */
-private fun fenetreJournalDeLId(id: Int): Int = when (id) {
-    R.id.bouton_fenetre_journal_1 -> 2_000
-    R.id.bouton_fenetre_journal_3 -> 30_000
-    else -> 10_000
-}
+private val idsFenetreJournal = mapOf(
+    FENETRE_COURTE to R.id.bouton_fenetre_journal_1,
+    FENETRE_JOURNAL_DEFAUT to R.id.bouton_fenetre_journal_2,
+    FENETRE_JOURNAL_LARGE to R.id.bouton_fenetre_journal_3,
+)
 
-/** Filtre Logcat du bouton coché (TOUT par défaut). */
-private fun niveauDeLId(id: Int): NiveauDefautLogcat = when (id) {
-    R.id.bouton_niveau_2 -> NiveauDefautLogcat.AVERTISSEMENT
-    R.id.bouton_niveau_3 -> NiveauDefautLogcat.ERREUR
-    else -> NiveauDefautLogcat.TOUT
-}
+private val idsNiveau = mapOf(
+    NiveauDefautLogcat.TOUT to R.id.bouton_niveau_1,
+    NiveauDefautLogcat.AVERTISSEMENT to R.id.bouton_niveau_2,
+    NiveauDefautLogcat.ERREUR to R.id.bouton_niveau_3,
+)
+
+/** Horodatage du bouton coché (lecture inverse de la table). */
+private fun horodatageDeLId(id: Int): HorodatageSorties = cleDeLId(idsHorodatage, id, HorodatageSorties.MASQUE)
+
+/** Police par défaut du bouton coché. */
+private fun policeDeLId(id: Int): Int = cleDeLId(idsPolice, id, POLICE_MOYENNE_SP)
+
+/** Rétention du bouton coché. */
+private fun retentionDeLId(id: Int): Int = cleDeLId(idsRetention, id, RETENTION_DEFAUT)
+
+/** Fenêtre Logcat du bouton coché. */
+private fun fenetreLogcatDeLId(id: Int): Int = cleDeLId(idsFenetreLogcat, id, FENETRE_LOGCAT_DEFAUT)
+
+/** Fenêtre Journal du bouton coché. */
+private fun fenetreJournalDeLId(id: Int): Int = cleDeLId(idsFenetreJournal, id, FENETRE_JOURNAL_DEFAUT)
+
+/** Filtre Logcat du bouton coché. */
+private fun niveauDeLId(id: Int): NiveauDefautLogcat = cleDeLId(idsNiveau, id, NiveauDefautLogcat.TOUT)
+
+/** Lecture inverse générique d'une table id↔valeur (défaut en repli). */
+private inline fun <reified V> cleDeLId(table: Map<V, Int>, id: Int, defaut: V): V =
+    table.entries.firstOrNull { it.value == id }?.key ?: defaut

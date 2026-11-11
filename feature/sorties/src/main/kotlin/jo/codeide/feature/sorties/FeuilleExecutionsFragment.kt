@@ -18,8 +18,11 @@ import jo.codeide.core.domain.RegistreExecutions
 import jo.codeide.core.domain.VerdictExecution
 import jo.codeide.feature.sorties.databinding.FeuilleExecutionsBinding
 import jo.codeide.feature.sorties.databinding.RangExecutionBinding
-import javax.inject.Inject
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+/** Millisecondes par seconde (la durée lisible du registre). */
+private const val MS_PAR_SECONDE = 1000L
 
 /**
  * La feuille d'HISTORIQUE des exécutions (lot L6 — l'entrée M11 attendue
@@ -41,16 +44,12 @@ public class FeuilleExecutionsFragment : BottomSheetDialogFragment() {
     @Inject
     lateinit var registre: RegistreExecutions
 
-    private var _liaison: FeuilleExecutionsBinding? = null
+    private var liaisonVue: FeuilleExecutionsBinding? = null
     private val liaison: FeuilleExecutionsBinding
-        get() = checkNotNull(_liaison)
+        get() = checkNotNull(liaisonVue)
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
-        _liaison = FeuilleExecutionsBinding.inflate(inflater, container, false)
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        liaisonVue = FeuilleExecutionsBinding.inflate(inflater, container, false)
         return liaison.root
     }
 
@@ -61,7 +60,7 @@ public class FeuilleExecutionsFragment : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
-        _liaison = null
+        liaisonVue = null
         super.onDestroyView()
     }
 
@@ -100,25 +99,22 @@ public class FeuilleExecutionsFragment : BottomSheetDialogFragment() {
         rang.executionCible.text = cible.ifEmpty {
             getString(R.string.sorties_historique_cible_vide)
         }
-        rang.executionVerdict.text = libelleVerdict(execution.etat?.verdict)
         rang.executionQuand.text = quand(execution)
         rang.executionVolume.text = volume(execution)
+        rang.executionVerdict.text = getString(
+            when (execution.etat?.verdict) {
+                VerdictExecution.REUSSI -> R.string.sorties_verdict_reussi
+                VerdictExecution.ECHOUE -> R.string.sorties_verdict_echoue
+                VerdictExecution.ANNULE -> R.string.sorties_verdict_annule
+                null -> R.string.sorties_verdict_en_vol
+            },
+        )
         rang.racine.contentDescription = getString(
             R.string.sorties_historique_ouvrir_cd,
             rang.executionNature.text,
             rang.executionCible.text,
         )
     }
-
-    /** Le libellé du verdict (ou « en vol » — honnêteté règle 14). */
-    private fun libelleVerdict(verdict: VerdictExecution?): String = getString(
-        when (verdict) {
-            VerdictExecution.REUSSI -> R.string.sorties_verdict_reussi
-            VerdictExecution.ECHOUE -> R.string.sorties_verdict_echoue
-            VerdictExecution.ANNULE -> R.string.sorties_verdict_annule
-            null -> R.string.sorties_verdict_en_vol
-        },
-    )
 
     /** La date relative (framework, localisée) et la durée si conclue. */
     private fun quand(execution: ExecutionSortie): String {
@@ -129,7 +125,7 @@ public class FeuilleExecutionsFragment : BottomSheetDialogFragment() {
         ).toString()
         val duree = execution.etat?.dureeMs
         return if (duree != null && duree > 0L) {
-            getString(R.string.sorties_historique_duree, relatif, DateUtils.formatElapsedTime(duree / 1000L))
+            getString(R.string.sorties_historique_duree, relatif, DateUtils.formatElapsedTime(duree / MS_PAR_SECONDE))
         } else {
             relatif
         }

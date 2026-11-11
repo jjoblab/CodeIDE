@@ -11,14 +11,14 @@ import jo.codeide.feature.sorties.FENETRE_LOGCAT
 import jo.codeide.feature.sorties.FamilleSorties
 import jo.codeide.feature.sorties.OptionsRenduRangee
 import jo.codeide.feature.sorties.ReglagesLecteurPort
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * L'implémentation DATASTORE du port des réglages lecteur (lot L6, M13
@@ -42,7 +42,8 @@ import kotlinx.coroutines.launch
 @Singleton
 internal class ReglagesLecteurDataStore
 @Inject
-constructor(private val reglages: SettingsDataStore) : ReglagesLecteurPort {
+constructor(private val reglages: SettingsDataStore) :
+    ReglagesLecteurPort {
     /** Le cliché en mémoire — les défauts tant que la collecte n'a pas tourné. */
     @Volatile
     private var cliche: AppSettings = AppSettings()
@@ -67,8 +68,10 @@ constructor(private val reglages: SettingsDataStore) : ReglagesLecteurPort {
     override fun capaciteFenetre(famille: FamilleSorties, defaut: Int): Int? = when (famille) {
         FamilleSorties.LOGCAT ->
             cliche.sortiesFenetreLogcat.takeIf { it != FENETRE_LOGCAT }
+
         FamilleSorties.JOURNAL ->
             cliche.sortiesFenetreJournal.takeIf { it != FENETRE_JOURNAL }
+
         FamilleSorties.GRADLE -> null
     }
 

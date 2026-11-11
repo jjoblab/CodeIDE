@@ -1,17 +1,12 @@
 package jo.codeide.core.model
 
 /**
- * Les réglages « Sorties » persistés (lot L6, spec SORTIES § 5.10, M13) —
- * les énumérations du lecteur. Chaque réglage a UN effet réel sur le
- * composant (aucun réglage décoratif) : l'horodatage initial, le filtre
- * par défaut du Logcat, la taille des tampons, la rétention du registre.
- */
-
-/**
  * Le mode d'HORODATAGE initial du lecteur à l'ouverture (spec SORTIES
- * § 5.10 « horodatage par défaut ») — la valeur de départ du bouton
- * trois états de la barre du lecteur (masqué → relatif → absolu,
- * lot L2) ; l'utilisateur garde le dernier mot dans la session.
+ * § 5.10 « horodatage par défaut » — les réglages « Sorties » du lot L6,
+ * M13, chacun avec UN effet réel, aucun réglage décoratif) — la valeur
+ * de départ du bouton trois états de la barre du lecteur (masqué →
+ * relatif → absolu, lot L2) ; l'utilisateur garde le dernier mot dans
+ * la session.
  */
 public enum class HorodatageSorties {
     /** Pas d'horodatage affiché à l'ouverture (défaut historique). */
