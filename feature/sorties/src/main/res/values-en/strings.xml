@@ -107,4 +107,22 @@
     <string name="sorties_a11y_entete_logcat">Block %1$s, %2$s, %3$d visible lines, group %4$s</string>
     <string name="sorties_entete_logcat_repetition">×%1$d</string>
     <string name="sorties_entete_logcat_trace">%1$d lines · %2$d causes</string>
+    <string name="sorties_historique_bouton">History</string>
+    <string name="sorties_historique_cd">Kept executions history</string>
+    <string name="sorties_historique_titre">Recent executions</string>
+    <string name="sorties_historique_vide">No execution kept yet — run a build or a sync, it will show up here and stay readable after a restart.</string>
+    <string name="sorties_historique_nature_build">BUILD</string>
+    <string name="sorties_historique_nature_sync">SYNC</string>
+    <string name="sorties_historique_cible_vide">unknown tasks</string>
+    <string name="sorties_historique_ouvrir_cd">Open execution %1$s %2$s for review</string>
+    <string name="sorties_historique_duree">%1$s · %2$s</string>
+    <string name="sorties_historique_lignes">%1$d lines</string>
+    <string name="sorties_historique_tronquee">%1$d lines kept of %2$d — truncated output</string>
+    <string name="sorties_historique_effacer">Clear all history</string>
+    <string name="sorties_historique_effacer_confirmation">Kept executions will be permanently cleared. Application logs stay untouched.</string>
+    <string name="sorties_verdict_reussi">SUCCESS</string>
+    <string name="sorties_verdict_echoue">FAILED</string>
+    <string name="sorties_verdict_annule">CANCELLED</string>
+    <string name="sorties_verdict_en_vol">running</string>
+    <string name="sorties_consultation_revenir_cd">Reviewing a past execution — tap to go back to live</string>
 </resources>

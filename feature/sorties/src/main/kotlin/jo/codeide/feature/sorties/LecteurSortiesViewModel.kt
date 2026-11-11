@@ -125,6 +125,7 @@ constructor(
     fabrique: FabriqueFluxSorties,
     private val dispatchers: DispatcherProvider,
     horloge: TimeProvider,
+    private val reglagesPort: ReglagesLecteurPort,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     /** La famille de CE lecteur — l'argument `famille_sorties` du
@@ -220,8 +221,10 @@ constructor(
     val recherche: StateFlow<EtatRechercheLecteur?> = _recherche.asStateFlow()
 
     /** Les réglages de rendu (numéros, horodatage, retour à la ligne,
-     *  taille de police). */
-    private val _reglages = MutableStateFlow(OptionsRenduRangee())
+     *  taille de police, couleurs ANSI) — la valeur INITIALE vient du
+     *  port des réglages « Sorties » (lot L6, M13) ; le cliché est
+     *  synchrone (en mémoire), jamais une lecture disque au thread UI. */
+    private val _reglages = MutableStateFlow(reglagesPort.renduInitial().taillePoliceBornee())
     val reglages: StateFlow<OptionsRenduRangee> = _reglages.asStateFlow()
 
     /** Le direct est-il en pause ? */
@@ -244,9 +247,12 @@ constructor(
      *  sortie de vue, relue à l'attachement. */
     var positionRetenue: Int? = null
 
-    /** La capacité de fenêtre du tampon (lignes) — l'en-tête l'affiche. */
+    /** La capacité de fenêtre du tampon (lignes) — l'en-tête l'affiche.
+     *  Le réglage « taille des tampons » (lot L6, M13) la réforme à
+     *  l'ouverture (les pertes éventuelles restent comptées). */
+    private val _capaciteFenetre = MutableStateFlow(flux.capaciteFenetre())
     val capaciteFenetre: Int
-        get() = flux.capaciteFenetre()
+        get() = _capaciteFenetre.value
 
     /** La séquence banc armée (diagnostic), ou `null` hors banc. */
     val sequenceArmee: StateFlow<SequenceBanc?>
@@ -269,6 +275,31 @@ constructor(
                         _enConsultation.value = false
                         etatConsultationInterne.value = null
                         viderEtatVivant()
+                    }
+                }
+            }
+        }
+        // Les réglages « Sorties » (lot L6, M13) : fenêtre du tampon et
+        // filtre initial — appliqués UNE fois à l'ouverture, sous le
+        // verrou, l'honnêteté préservée (les pertes restent comptées, les
+        // lignes masquées annoncées). Le port peut ne rien dire (défauts
+        // constants) : le lecteur garde alors le comportement L2–L5.
+        viewModelScope.launch(dispatchers.io) {
+            val defaut = flux.capaciteFenetre()
+            reglagesPort.capaciteFenetre(famille, defaut)?.let { voulue ->
+                if (voulue != defaut) {
+                    verrou.withLock {
+                        tampon.reformerFenetre(voulue)
+                        _capaciteFenetre.value = voulue
+                        rederriverComplete()
+                    }
+                }
+            }
+            reglagesPort.filtreInitial(famille)?.let { filtre ->
+                if (filtre != FiltreSorties()) {
+                    verrou.withLock {
+                        filtreActuel = filtre
+                        rederriverComplete()
                     }
                 }
             }
@@ -399,11 +430,17 @@ constructor(
 
     /**
      * Régle une option de rendu (numéros, horodatage, retour à la ligne,
-     * taille de police) — la transformation est pure ; la taille de
-     * police est ramenée dans les bornes du zoom (10–20 sp).
+     * taille de police, couleurs ANSI) — la transformation est pure ; la
+     * taille de police est ramenée dans les bornes du zoom (10–20 sp) ;
+     * le réglage est PERSISTÉ au fil des gestes (lot L6, M13 — le
+     * lecteur se rouvre comme il a été laissé ; l'écriture est feu et
+     * oubli, jamais bloquante pour l'UI).
      */
     public fun regler(modification: (OptionsRenduRangee) -> OptionsRenduRangee) {
         _reglages.update { modification(it).taillePoliceBornee() }
+        viewModelScope.launch(dispatchers.io) {
+            reglagesPort.sauvegarderRendu(_reglages.value)
+        }
     }
 
     /**

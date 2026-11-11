@@ -165,6 +165,44 @@ public data class AppSettings(
      *  `true` = Placer par popup, `false` = Glisser-déposer (miroir
      *  `palMode`). */
     public val apercuPaletteParPopup: Boolean = false,
+    /** Rétention du REGISTRE des exécutions (lot L6, M13 — ADR 0161) :
+     *  le nombre d'exécutions (builds, syncs) conservées sur disque,
+     *  BORNÉ à la lecture (3–30, défaut 10 = l'ADR) ; lu à CHAQUE
+     *  `[RegistreExecutions.demarrer/conclure]` — un changement
+     *  s'applique à l'exécution suivante (les plus anciennes sont
+     *  sacrifiées en premier, comme l'ADR les décrit). */
+    public val sortiesExecutionsRetenues: Int = 10,
+    /** Taille de la FENÊTRE du tampon Logcat en lignes (lot L6, M13) —
+     *  BORNÉE à la lecture (1 000–20 000, défaut 5 000 = la parité R3
+     *  de `FENETRE_LOGCAT`) ; appliquée à l'ouverture du lecteur (le
+     *  tampon se réforme, les pertes éventuelles restent comptées). */
+    public val sortiesFenetreLogcat: Int = 5_000,
+    /** Taille de la FENÊTRE du tampon Journal en lignes (lot L6, M13) —
+     *  BORNÉE à la lecture (2 000–30 000, défaut 10 000 =
+     *  `FENETRE_JOURNAL`) ; même sémantique que la fenêtre Logcat. */
+    public val sortiesFenetreJournal: Int = 10_000,
+    /** Le mode d'HORODATAGE initial du lecteur à l'ouverture (lot L6,
+     *  M13) — la valeur de départ du bouton trois états ; le choix de
+     *  session de l'utilisateur reste maître (la persistance du rendu
+     *  suit les gestes du lecteur, ce champ n'est que le défaut). */
+    public val sortiesHorodatageDefaut: HorodatageSorties = HorodatageSorties.MASQUE,
+    /** La TAILLE DE POLICE initiale du lecteur en sp (lot L6, M13) —
+     *  BORNÉE à la lecture (10–20, les mêmes bornes que le zoom au
+     *  pincement d'[OptionsRenduRangee], défaut 12). */
+    public val sortiesTaillePoliceSp: Int = 12,
+    /** Le RETOUR À LA LIGNE initial du lecteur (lot L6, M13) — `true`
+     *  = les lignes longues s'enroulent (défaut du composant), `false`
+     *  = défilement horizontal. */
+    public val sortiesRetourLigne: Boolean = true,
+    /** Les COULEURS ANSI SGR du lecteur (lot L6, M13) — `true` = les
+     *  rôles de couleur sont appliqués (défaut), `false` = rendu
+     *  monochrome (le texte reste purgé des séquences, jamais brut). */
+    public val sortiesCouleursAnsi: Boolean = true,
+    /** Le FILTRE par défaut du lecteur LOGCAT à l'ouverture (lot L6,
+     *  M13) — un niveau minimal appliqué une fois à la construction ;
+     *  les lignes masquées restent comptées et annoncées (règle 14).
+     *  Les autres familles gardent « tout » (voir [NiveauDefautLogcat]). */
+    public val sortiesNiveauLogcatDefaut: NiveauDefautLogcat = NiveauDefautLogcat.TOUT,
 ) {
     public companion object {
         /** Position verticale par défaut de la bulle (miroir `bub.y = .42`). */

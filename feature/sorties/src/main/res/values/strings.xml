@@ -111,4 +111,22 @@
     <string name="sorties_a11y_entete_logcat">Bloc %1$s, %2$s, %3$d lignes visibles, groupe %4$s</string>
     <string name="sorties_entete_logcat_repetition">×%1$d</string>
     <string name="sorties_entete_logcat_trace">%1$d lignes · %2$d causes</string>
+    <string name="sorties_historique_bouton">Historique</string>
+    <string name="sorties_historique_cd">Historique des exécutions conservées</string>
+    <string name="sorties_historique_titre">Exécutions récentes</string>
+    <string name="sorties_historique_vide">Aucune exécution conservée — lance un build ou une sync, il apparaîtra ici et restera consultable après redémarrage.</string>
+    <string name="sorties_historique_nature_build">BUILD</string>
+    <string name="sorties_historique_nature_sync">SYNC</string>
+    <string name="sorties_historique_cible_vide">tâches inconnues</string>
+    <string name="sorties_historique_ouvrir_cd">Ouvrir l\'exécution %1$s %2$s en consultation</string>
+    <string name="sorties_historique_duree">%1$s · %2$s</string>
+    <string name="sorties_historique_lignes">%1$d lignes</string>
+    <string name="sorties_historique_tronquee">%1$d lignes conservées sur %2$d — sortie tronquée</string>
+    <string name="sorties_historique_effacer">Effacer tout l\'historique</string>
+    <string name="sorties_historique_effacer_confirmation">Les exécutions conservées seront définitivement effacées. Les journaux applicatifs restent inchangés.</string>
+    <string name="sorties_verdict_reussi">RÉUSSI</string>
+    <string name="sorties_verdict_echoue">ÉCHOUÉ</string>
+    <string name="sorties_verdict_annule">ANNULÉ</string>
+    <string name="sorties_verdict_en_vol">en cours</string>
+    <string name="sorties_consultation_revenir_cd">Consultation d\'une exécution passée — toucher pour revenir au direct</string>
 </resources>

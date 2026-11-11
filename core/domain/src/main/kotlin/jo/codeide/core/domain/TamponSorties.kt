@@ -56,7 +56,7 @@ public data class EtatTamponSorties(
  *           Logcat : `CAPACITE_TAMPON` ; banc : fenêtre de la séquence).
  * @property horloge horloge injectée pour l'horodatage à la réception.
  */
-public class TamponSorties(private val fenetreMax: Int, private val horloge: TimeProvider) {
+public class TamponSorties(private var fenetreMax: Int, private val horloge: TimeProvider) {
     private val verrou = Any()
     private val lignesInternes = ArrayList<LigneSortie>(capaciteInitiale())
     private val messagesPliesInternes = ArrayList<String>(capaciteInitiale())
@@ -112,6 +112,30 @@ public class TamponSorties(private val fenetreMax: Int, private val horloge: Tim
             messagesPliesInternes.clear()
             etiquettesPliesInternes.clear()
             pertesInternes = 0L
+        }
+    }
+
+    /**
+     * Réforme la fenêtre du tampon (lot L6, M13 — réglage « taille des
+     * tampons ») : les AJOUTS suivants tronquent à la nouvelle capacité,
+     * et une RÉDUCTION tronque la tête IMMÉDIATEMENT — les lignes qui
+     * tombent sont comptées dans [pertes] (règle 14 : jamais une perte
+     * silencieuse). Un agrandissement ne ressuscite rien (la fenêtre
+     * plus large ne sert qu'aux ajouts suivants).
+     *
+     * @param nouvelleFenetre la nouvelle capacité (lignes), plafonnée à
+     *        au moins 1 (le tampon reste utilisable).
+     */
+    public fun reformerFenetre(nouvelleFenetre: Int) {
+        synchronized(verrou) {
+            fenetreMax = nouvelleFenetre.coerceAtLeast(1)
+            val surplus = lignesInternes.size - fenetreMax
+            if (surplus > 0) {
+                lignesInternes.subList(0, surplus).clear()
+                messagesPliesInternes.subList(0, surplus).clear()
+                etiquettesPliesInternes.subList(0, surplus).clear()
+                pertesInternes += surplus
+            }
         }
     }
 
