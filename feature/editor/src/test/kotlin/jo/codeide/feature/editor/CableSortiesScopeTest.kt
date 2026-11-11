@@ -1,8 +1,8 @@
 package jo.codeide.feature.editor
 
-import javax.inject.Singleton
 import org.junit.Assert.assertNotNull
 import org.junit.Test
+import javax.inject.Singleton
 
 /**
  * Le contrat de SCOPE du câble du Centre de sorties (retour d'appareil
