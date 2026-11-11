@@ -310,3 +310,19 @@ test). Le texte intégral des cellules vit dans `values/strings.xml`
   `docs/archive/tooling-scenarios/` + cas pathologiques (ligne de
   4 000 caractères, flux coupé au milieu d'une ligne, UTF-8, `\r`,
   100 000 lignes) — lot L1.
+
+## 11. Avancement des lots (mis à jour au lot L6)
+
+| Lot | Contenu | État |
+|---|---|---|
+| **L0** | Audit confirmé, conception, banc de mesure, maquette normative, ADR 0159–0162 | ✅ (rapport L0) |
+| **L1** | `core:domain` : LigneSortie (ADR 0160), tampon borné honnête, filtre, projections | ✅ |
+| **L2** | Le lecteur : RecyclerView virtualisé, recherche accentuelle, pause, sélection, zoom, marqueurs | ✅ |
+| **L3** | Gradle : sessions et routage banc↔réel, regroupé par tâche, registre ADR 0161 (10 exécutions, tête+queue annoncées) | ✅ |
+| **L4** | Logcat (pont Binder sans adb) et Journal (`LogRepository`) sur le composant — parité stricte R3/R4 | ✅ |
+| **L5** | Surfaces (onglet central, plein écran, panneau, volet tablette, fil de l'incident) + parité § 5.4 complète (×N, traces, puces, pid/tid, saut d'erreur) | ✅ (rapport L5) |
+| **L6** | § 5.10 Réglages à effet réel (M13), notification « Voir les sorties » (§ 5.7), entrée historique (M11), accessibilité (§ 7), PV de mesure (§ 8) | ✅ (rapport L6) |
+
+**Reste au propriétaire** : la séance de mesure appareil (PV à remplir,
+`docs/PV-MESURE-SORTIES.md`) — les budgets § 8 ne sont pas clos sans
+elle ; la version se pose par `scripts/bump-version.sh` à l'intégration.

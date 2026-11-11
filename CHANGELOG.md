@@ -1,5 +1,57 @@
 # Journal des modifications
 
+## [0.215.0] – 2026-11-11 (version à poser par `scripts/bump-version.sh` à l'intégration)
+
+Lot **L6 — Réglages, finitions, mesure appareil, documentation** du
+chantier « Centre de sorties » (spec SORTIES § 5.10, § 7 ; ADR 0162) :
+la section Réglages « Sorties » à effet réel, la notification de fin de
+build qui ouvre LES SORTIES, l'entrée d'historique des exécutions
+(M11), l'accessibilité (cibles 48 dp, échelle 200 %) et le PV de mesure
+appareil. Le Centre de sorties L0-L6 est livré.
+
+### Ajouté
+
+- **Section Réglages « Sorties » (M13)** : rétention du registre
+  (3–30 exécutions, défaut 10 = ADR 0161), fenêtres des tampons Logcat
+  (2 000/5 000/20 000) et Journal (2 000/10 000/30 000), horodatage
+  par défaut (masqué/relatif/absolu), police du lecteur (10/12/16 sp),
+  retour à la ligne, couleurs ANSI on/off, filtre Logcat à l'ouverture
+  (tout / avert.+ / erreurs) — CHAQUE réglage a un effet réel (les
+  masquées restent comptées et annoncées, règle 14). Le port
+  `ReglagesLecteurPort` (feature:sorties) relie le composant aux
+  réglages persistés sans arête datastore (impl DataStore liée côté
+  app) ; les gestes du lecteur porteurs d'un défaut (horodatage,
+  retour à la ligne, ANSI) se persistent au fil de l'eau.
+- **Notification « Voir les sorties » (spec § 5.7)** : la notification
+  de RÉSULTAT du build porte une action dédiée qui ouvre l'éditeur du
+  projet SUR l'onglet central « Sorties » (`ECRAN_SORTIES`, extra
+  consommé une fois ; un espace vivant est remonté tel quel).
+- **Entrée historique des exécutions (M11, ADR 0161)** : bouton
+  « Historique » de la barre du lecteur Gradle → feuille des exécutions
+  conservées (nature, tâches, verdict, date, durée, volume, troncature
+  annoncée) ; le tap relit les lignes persistées et passe le lecteur en
+  CONSULTATION (ADR 0161.5 — le bandeau devient le geste « revenir au
+  direct ») ; effacement total explicite et confirmé.
+- **`TamponSorties.reformerFenetre`** : la fenêtre du tampon se réforme
+  à l'ouverture du lecteur (réduction = troncature de tête COMPTÉE) ;
+  correctif domaine au passage — un premier lot plus grand que la
+  fenêtre d'un tampon vide ne fait plus déborder `LotTampon.depart`
+  (crash d'ingestion impossible depuis).
+- **Accessibilité (spec § 7 L6)** : bouton historique à cible ≥ 48 dp
+  avec description TalkBack, rangée d'exécution grandissante à
+  l'échelle de police 200 %, bandeau de consultation cliquable
+  décrit ; la section « Sorties » entre dans la régression des
+  sections Paramètres (test de chevauchement).
+- **`docs/PV-MESURE-SORTIES.md`** : le PV de la séance de mesure
+  appareil (budgets B1–B7, accessibilité A1–A4) — à remplir par le
+  propriétaire sur appareil réel.
+
+### Modifié
+
+- `docs/ROADMAP.md`, `docs/SORTIES_SPEC.md` (avancement des lots),
+  `AGENTS.md` (état d'avancement) ; strings FR/EN complètes (section
+  Réglages, feuille historique, verdicts) — parité vérifiée par test.
+
 ## [0.214.0] – 2026-11-11
 
 Lot **L6 — finitions** du chantier « Refonte du générateur de projets

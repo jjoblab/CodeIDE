@@ -22,6 +22,22 @@ maquettes `docs/mockups/ui/newproject-flux-adaptatif.html`.
 | **L5** | Écrans « Nouveau projet » : parcours adaptatif (L5a socle, L5b étapes communes, L5c étapes par famille, L5d aperçu + tablette + mode rapide) | ✅ v0.213.0 |
 | **L6** | Finitions : dette `checkUiTokens` du module soldée (baseline 24 → 19), ADR 0021 amended consigné, doc module, plan consommé | ✅ v0.214.0 |
 
+## Chantier livré — Centre de sorties (lecteur unifié Gradle / Logcat / Journal)
+
+Spec `docs/SORTIES_SPEC.md` · ADR **0159**-**0162** ·
+maquette normative `docs/mockups/sorties/sorties.html` ·
+rapports `docs/SORTIES_RAPPORT_L5.md` et `docs/SORTIES_RAPPORT_L6.md`.
+
+| Lot | Contenu | État |
+|---|---|---|
+| **L0** | Audit confirmé, conception (composant unique virtualisé), banc de mesure, ADR 0153–0162 | ✅ |
+| **L1** | Modèle de ligne, tampon borné, filtre, projection (cœur testé JVM) | ✅ |
+| **L2** | Le lecteur (RecyclerView virtualisé, recherche, pause, sélection, regroupé Gradle) | ✅ |
+| **L3** | Gradle : sessions, regroupement par tâche, historique (ADR 0161), banc | ✅ |
+| **L4** | Logcat (pont sans adb) et Journal migrés sur le composant — parité R3/R4 | ✅ |
+| **L5** | Surfaces : onglet central, plein écran, panneau compact rebranché, volet tablette, fil de l'incident ; suite : regroupement Logcat ×N + traces repliées, puces d'étiquettes, pid/tid, saut d'erreur | ✅ |
+| **L6** | Réglages « Sorties » (M13, effet réel), notification « Voir les sorties », entrée historique (M11), accessibilité 200 %, PV de mesure appareil, docs | ✅ (version posée à l'intégration) |
+
 ## État actuel (v0.214.0 — chantier générateur et écrans Nouveau projet livré, L0-L6)
 
 ### Fonctionnel ✅
