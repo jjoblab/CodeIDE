@@ -7,9 +7,9 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import androidx.fragment.app.activityViewModels
 import dagger.hilt.android.AndroidEntryPoint
+import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.PaletteCouleur
 import jo.codeide.core.model.RetentionHistorique
-import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.StyleCurseurTerminal
 import jo.codeide.core.model.TaillePoliceEditeur
 import jo.codeide.core.model.TaillePoliceTerminal
