@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Barre d'outils du lecteur (spec SORTIES § 2, lot L2). -->
     <string name="sorties_recherche_indice">Rechercher dans les sorties</string>
     <string name="sorties_regex">Traiter le motif comme une expression régulière</string>
