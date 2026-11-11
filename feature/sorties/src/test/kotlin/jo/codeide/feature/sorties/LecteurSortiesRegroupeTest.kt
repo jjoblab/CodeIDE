@@ -74,6 +74,7 @@ class LecteurSortiesRegroupeTest {
         FabriqueDeTest(flux),
         TestDispatcherProvider(regleMain.dispatcher),
         horloge,
+        ReglagesLecteurDefaut(),
         androidx.lifecycle.SavedStateHandle(),
     )
 
