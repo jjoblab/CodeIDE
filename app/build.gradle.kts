@@ -52,6 +52,10 @@ dependencies {
     implementation(project(":feature:diagnostics"))
     // Espace de travail de l'éditeur (étape 13) : EditorActivity séparée.
     implementation(project(":feature:editor"))
+    // Centre de sorties (lots L4–L6) : le port ReglagesLecteurPort est
+    // lié ICI (ReglagesLecteurDataStore) et la feuille d'historique vit
+    // dans la feature — l'app est le carrefour du graphe Hilt.
+    implementation(project(":feature:sorties"))
     implementation(project(":feature:install"))
     // Previews PE6-0 : écran d'aperçu XML dédié (AppNavigator.openPreview).
     implementation(project(":feature:preview"))
@@ -60,6 +64,10 @@ dependencies {
     // FileProvider des exports.
     implementation(project(":core:logging"))
     implementation(project(":core:domain"))
+
+    // Réglages persistés (lot L6, M13) : l'impl DataStore du port des
+    // réglages lecteur vit ICI — :app voit le carrefour datastore+sorties.
+    implementation(project(":core:datastore"))
 
     // Gestion des plantages (étape 3) : installation du gestionnaire,
     // CrashActivity et FileProvider du processus :crash.
