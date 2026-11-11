@@ -1,7 +1,11 @@
 package jo.codeide.sorties
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.test.core.app.ApplicationProvider
+import jo.codeide.core.datastore.SettingsDataStore
 import jo.codeide.core.domain.EtatExecutionGradle
 import jo.codeide.core.domain.ExecutionSortie
 import jo.codeide.core.domain.LigneSortie
@@ -10,9 +14,16 @@ import jo.codeide.core.domain.ReferenceJournauxServeur
 import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.domain.TypeExecution
 import jo.codeide.core.domain.VerdictExecution
+import jo.codeide.core.model.AppSettings
 import jo.codeide.core.model.LogEntry
 import jo.codeide.core.model.LogLevel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
+import java.io.File
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -39,14 +50,34 @@ class RegistreExecutionsFichiersTest {
      *  LISENT ici — jamais copiées dans le registre). */
     private val depotJournal = DepotJournalDeTest()
 
+    /** Le stock de réglages (lot L6, M13) : DataStore réel sur un fichier
+     *  propre à chaque invocation — les défauts tombent sur la même
+     *  rétention (10) que la constante N_EXECUTIONS d'ADR 0161. */
+    private val portee = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
     @Before
     fun prepare() {
+        val stock: DataStore<Preferences> = PreferenceDataStoreFactory.create(
+            scope = portee,
+            produceFile = {
+                File(contexte.cacheDir, "registre-${System.nanoTime()}.preferences_pb")
+            },
+        )
         registre = RegistreExecutionsFichiers(
             contexte = contexte,
             journalDepot = depotJournal,
             journal = FakeLoggerSorties(),
             dispatchers = DispatchersDirects(),
+            reglages = SettingsDataStore(
+                stock,
+                AppSettings.defaults(buildDebuggable = true),
+            ),
         )
+    }
+
+    @After
+    fun relache() {
+        portee.cancel()
     }
 
     /** La racine de projet des tests (expurgation). */

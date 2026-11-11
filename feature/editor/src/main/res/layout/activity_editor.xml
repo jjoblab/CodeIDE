@@ -92,18 +92,30 @@
                      et l'activité le montre (poids) quand l'utilisateur
                      l'ouvre. Le conteneur historique devient [zone_code],
                      sa colonne conserve TOUS ses enfants existants. -->
+                <!-- baselineAligned=false : les enfants sont des conteneurs
+                     à poids (FrameLayout), jamais des rangées de texte —
+                     l'alignement de baseline n'a aucun sens ici (lint
+                     DisableBaselineAlignment). -->
                 <LinearLayout
                     android:id="@+id/conteneur_editeur"
                     android:layout_width="match_parent"
                     android:layout_height="0dp"
                     android:layout_weight="1"
+                    android:baselineAligned="false"
                     android:orientation="horizontal">
 
+                    <!-- Poids imbriqué VOLONTAIRE (lint NestedWeights) : le
+                         rang code | sorties hérite du poids vertical du
+                         conteneur central et partage sa largeur entre le
+                         code et le volet tablette (motif M8, spec SORTIES
+                         § 5.7) — le surcoût de mesure (deux passes) est
+                         négligeable face à une restructuration risquée. -->
                     <FrameLayout
                         android:id="@+id/zone_code"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        tools:ignore="NestedWeights">
 
                     <!-- Éditeur du fichier actif (pleine largeur — l'aperçu
                          XML se superpose en overlay quand activé, plus de
