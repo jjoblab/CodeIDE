@@ -333,17 +333,6 @@ class EditorActivity :
     /** Le panneau inférieur est-il étendu (pilote le retour système) ? */
     private var panneauEtendu = false
 
-    /** Alpha courant du fondu de l'en-tête du panneau (v0.80.1) : compose
-     *  la visibilité de la première section avec l'onglet actif — GONE sur
-     *  Console, INVISIBLE sous le seuil du fondu sinon. */
-    private var alphaEnteteCourant = 1f
-
-    /** Le sheet inférieur est-il ÉTENDU (état stabilisé, v0.80.2) : la
-     *  première section disparaît alors COMPLÈTEMENT (GONE — les onglets
-     *  montent au sommet du sheet, comme l'en-tête ViewFlipper d'AndroidIDE
-     *  qui s'efface à l'extension). */
-    private var sheetEtenduStable = false
-
     /** Clavier visible selon les insets IME (API 30+) ? */
     private var clavierParInsets = false
 
@@ -370,9 +359,9 @@ class EditorActivity :
      *  (jamais en pleine animation — leçon v0.124.4). */
     private var clavierEtaitDuPanneau = false
 
-    /** La ligne tooling de l'en-tête est-elle active (un canal a quelque
-     *  chose à montrer) — combinée au fondu de l'en-tête pour la
-     *  visibilité effective (v0.32.5). */
+    /** Contrôleur du rendu tooling de l'indicateur compact du rang 1
+     *  (en-tête unifié v2 : un SEUL indicateur, quel que soit l'onglet
+     *  ou l'état du sheet). */
     private var controleurTooling: PanneauToolingController? = null
 
     /** Retour système : réduit le panneau étendu, ferme le tiroir ouvert,
@@ -514,12 +503,14 @@ class EditorActivity :
             }
         }
 
-        // Ligne tooling de l'en-tête (v0.32.5 ; v4 correctif n°13) : l'état
-        // Gradle — canaux, activité, chronos — rendu par le CONTRÔLEUR
-        // (PanneauToolingController) ; l'hôte ne garde que la collecte.
+        // Indicateur tooling du rang 1 (v0.32.5 ; v4 correctif n°13 ;
+        // en-tête unifié v2) : l'état Gradle — canaux, activité, chronos —
+        // rendu par le CONTRÔLEUR (PanneauToolingController) ; l'hôte ne
+        // garde que la collecte (et le badge de l'onglet Problèmes, qui
+        // dépend du même état).
         viewModel.etatGradle.collectWithLifecycle(this, Lifecycle.State.STARTED) { etat ->
             controleurTooling?.rendre(etat)
-            rendreEntetePanneau()
+            rendreBadgeOnglets()
         }
     }
 
@@ -1715,13 +1706,7 @@ class EditorActivity :
         // de navigation n'arrivait (réserve jamais posée au premier
         // rendu, l'éditeur naissait SOUS le panneau replié).
         ViewCompat.setOnApplyWindowInsetsListener(liaison.racineEditeur) { _, insets ->
-            if (gestionnaireInsets?.surInsetsBarres(insets) == true) {
-                // v0.185.0 : les hauteurs de REPOS des rangées d'en-tête
-                // dépendent de l'inset bas (48 dp + inset) — on RE-POSE le
-                // fondu à la fraction courante pour les étirer au nouveau
-                // repos sans attendre le prochain rendu d'état.
-                appliquerFonduEntete(fractionPanneauCourante())
-            }
+            gestionnaireInsets?.surInsetsBarres(insets)
             val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
             // v0.188.0 (rapport IA §5 Lot 3, B1c — ADR 0149) : insets du
             // TIROIR au niveau de l'hôte — chaque distribution (trames
@@ -1928,19 +1913,19 @@ class EditorActivity :
     }
 
     /**
-     * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055) : trois états,
-     * en-tête (poignée, titre, badge, agrandir, réduire), onglets
-     * Console/Problèmes/Journal — le contenu vit dans trois fragments
-     * (Journal/Sortie/Problèmes) ajoutés une fois puis montrés/cachés.
+     * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055 ; en-tête unifié
+     * v2 — maquette sorties) : trois états, rang 1 unifié (poignée,
+     * indicateur compact, agrandir, réduire), onglets à badge
+     * Console/Problèmes/Journal/Logcat — le contenu vit dans quatre
+     * fragments ajoutés une fois puis montrés/cachés.
      */
     private fun brancherPanneauInferieur() {
         comportementPanneau = BottomSheetBehavior.from(liaison.panneauInferieur)
         // E1 (Phase B prompt 1, ADR 0118 brouillon) : gestionnaire unique
-        // des insets — créé APRÈS le comportementPanneau (le peek est
-        // piloté par le PanneauToolingController, mais la lecture initiale
-        // est possible). Le gestionnaire consomme les insets de barre de
-        // navigation pour la colonne centrale et le sheet, et calcule la
-        // réserve sous l'éditeur (fonction pure testée unitairement).
+        // des insets — créé APRÈS le comportementPanneau. Le gestionnaire
+        // consomme les insets de barre de navigation pour la colonne
+        // centrale et le sheet, et calcule la réserve sous l'éditeur
+        // (fonction pure testée unitairement).
         gestionnaireInsets =
             GestionnaireInsetsEditeur(
                 liaison = liaison,
@@ -1949,27 +1934,24 @@ class EditorActivity :
                 hauteurIme = { hauteurIme },
             )
         gestionnaireInsets?.brancher()
-        // Contrôleur du rendu tooling (v4, correctif n°13) : le rendu de
-        // l'en-tête quitte l'activité — horloge injectée, annulation
-        // relayée au ViewModel, présentateur pur pour la décision.
-        // v0.185.0 : le contrôleur EXPOSE la hauteur de contenu replié
-        // (peekContenuPx) — c'est le GESTIONNAIRE d'insets qui pose le
-        // peek TOTAL (contenu + inset de barre : l'en-tête replié vit
-        // ENTIÈREMENT au-dessus de la barre transparente, seul l'espace
-        // rembourré pend derrière elle).
+        // Contrôleur du rendu tooling (v4, correctif n°13 ; en-tête unifié
+        // v2) : le rendu de l'indicateur compact du rang 1 quitte
+        // l'activité — horloge injectée, annulation relayée au ViewModel,
+        // présentateur pur pour la décision. Le peek de CONTENU est
+        // CONSTANT (48 dp du rang 1, INC-18 : il ne bouge plus) — c'est le
+        // GESTIONNAIRE d'insets qui pose le peek TOTAL (contenu + inset
+        // de barre : le rang 1 replié vit ENTIÈREMENT au-dessus de la
+        // barre transparente, seul l'espace rembourré pend derrière elle).
         controleurTooling =
             PanneauToolingController(
                 activite = this,
                 liaison = liaison,
                 horloge = horloge,
                 surArret = { viewModel.onAction(ActionEditor.AnnulerBuild) },
-                surPeekChange = {
-                    controleurTooling?.let { controleur ->
-                        gestionnaireInsets?.definirPeekContenu(controleur.peekContenuPx)
-                    }
-                },
             )
-        gestionnaireInsets?.definirPeekContenu(controleurTooling?.peekContenuPx ?: 0)
+        gestionnaireInsets?.definirPeekContenu(
+            resources.getDimensionPixelSize(R.dimen.editor_panneau_replie),
+        )
         comportementPanneau.state = BottomSheetBehavior.STATE_COLLAPSED
         // E2 (ADR 0093) : voile transparent — le tiroir pousse, ne recouvre pas.
         liaison.racineEditeur.setScrimColor(android.graphics.Color.TRANSPARENT)
@@ -1985,37 +1967,22 @@ class EditorActivity :
                     // Seules les transitions **stabilisées** remontent au
                     // ViewModel (DRAGGING/SETTLING sont transitoires) — le
                     // rejou d'un état déjà courant est sans effet (UDF).
+                    // En-tête unifié v2 : le rang 1 reste TOUJOURS visible,
+                    // plus de fondu d'en-tête à re-poser par état.
                     when (nouvelEtat) {
                         BottomSheetBehavior.STATE_COLLAPSED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
-                            appliquerFonduEntete(0f)
                             appliquerReservePanneau()
                         }
 
                         BottomSheetBehavior.STATE_HALF_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.MI_HAUTEUR))
-                            appliquerFonduEntete(FRACTION_MI_HAUTEUR)
                             appliquerReservePanneau()
                         }
 
                         BottomSheetBehavior.STATE_EXPANDED -> {
                             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.ETENDU))
-                            appliquerFonduEntete(1f)
-                            // v0.80.2 : étendu stable — la première section
-                            // disparaît COMPLÈTEMENT (les onglets montent au
-                            // sommet du sheet, comme AndroidIDE).
-                            marquerSheetEtendu(true)
                             appliquerReservePanneau()
-                        }
-
-                        BottomSheetBehavior.STATE_DRAGGING,
-                        BottomSheetBehavior.STATE_SETTLING,
-                        -> {
-                            // v0.80.2 : on quitte l'état étendu stable — la
-                            // première section reprend sa place (INVISIBLE
-                            // sous le seuil du fondu : pas de saut de hauteur
-                            // en plein glissement).
-                            marquerSheetEtendu(false)
                         }
 
                         else -> {
@@ -2024,24 +1991,15 @@ class EditorActivity :
                     }
                 }
 
-                /** Fondu PROGRESSIF de l'en-tête pendant le glissement
-                 *  (v0.32.5, ADR 0056 décision 3) : opaque jusqu'à
-                 *  mi-hauteur, éteint à l'extension — chaque trame du
-                 *  glissement pose l'alpha correspondant. */
                 override fun onSlide(vue: View, glissement: Float) {
-                    appliquerFonduEntete(glissement)
                     // E3 (ADR 0093) : met à l'échelle le conteneur de l'éditeur.
                     appliquerEchelleSheet(glissement)
                 }
             },
         )
 
-        // En-tête : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
+        // Rang 1 : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
         brancherBoutonsEntetePanneau()
-
-        // Arrêt de l'activité tooling en cours (v0.32.5) : bouton de la
-        // ligne d'activité — câblé par le PanneauToolingController (v4,
-        // correctif n°13).
 
         // Fragments du contenu (v0.32.4, ADR 0055) : ajoutés UNE fois
         // au conteneur — la réconciliation d'onglet les montre/cache (le
@@ -2084,18 +2042,17 @@ class EditorActivity :
     }
 
     /**
-     * Boutons de la tête du panneau inférieur (v0.80.1 : extraits de
-     * [brancherPanneauInferieur]) : appui d'en-tête = replié <->
-     * mi-hauteur (prompt compagnon 5.5) ; agrandir = replié -> mi-hauteur
-     * -> étendu, puis redescend ; réduire. Sur l'onglet CONSOLE, la ligne
-     * tooling EST l'en-tête — son appui bascule replié <-> mi-hauteur
-     * comme la première section (le glissement du sheet reste prioritaire
-     * : le comportement intercepte le geste dès qu'il dépasse le seuil de
-     * mouvement).
+     * Boutons du RANG 1 du panneau inférieur (v0.80.1 ; en-tête unifié v2 —
+     * maquette sorties) : appui du rang = replié <-> mi-hauteur (prompt
+     * compagnon 5.5) ; agrandir = replié -> mi-hauteur -> étendu, puis
+     * redescend ; réduire. Le rang 1 remplace l'ancienne paire
+     * entete_panneau / ligne_tooling — un seul appui, quel que soit
+     * l'onglet (le glissement du sheet reste prioritaire : le comportement
+     * intercepte le geste dès qu'il dépasse le seuil de mouvement).
      */
     private fun brancherBoutonsEntetePanneau() {
-        // En-tête : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
-        liaison.entetePanneau.setOnClickListener {
+        // Rang 1 : appui = replié <-> mi-hauteur (prompt compagnon 5.5).
+        liaison.rangEntetePanneau.setOnClickListener {
             val cible =
                 if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
                     EtatPanneau.MI_HAUTEUR
@@ -2118,19 +2075,6 @@ class EditorActivity :
 
         liaison.boutonFermerPanneau.setOnClickListener {
             viewModel.onAction(ActionEditor.ChangerEtatPanneau(EtatPanneau.REPLIE))
-        }
-
-        // v0.80.1 : ligne tooling = en-tête de l'onglet Console (INC-17 :
-        // rôle annoncé par le contentDescription du layout, état tenu à
-        // jour par marquerSheetEtendu).
-        liaison.ligneTooling.setOnClickListener {
-            val cible =
-                if (comportementPanneau.state == BottomSheetBehavior.STATE_COLLAPSED) {
-                    EtatPanneau.MI_HAUTEUR
-                } else {
-                    EtatPanneau.REPLIE
-                }
-            viewModel.onAction(ActionEditor.ChangerEtatPanneau(cible))
         }
     }
 
@@ -3021,10 +2965,13 @@ class EditorActivity :
     }
 
     /**
-     * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055) : état d'ouverture
-     * appliqué au comportement, onglet actif réconcilié (barre ET
-     * fragment montré/caché), badge et titre de l'en-tête — le rendu du
-     * contenu vit dans les fragments (fenêtre, filtres, statuts).
+     * Panneau inférieur (étape 16 ; v0.32.4, ADR 0055 ; en-tête unifié
+     * v2) : état d'ouverture appliqué au comportement, onglet actif
+     * réconcilié (barre ET fragment montré/caché), badge de compte sur
+     * l'onglet Problèmes — le rendu du contenu vit dans les fragments
+     * (fenêtre, filtres, statuts) et celui de l'indicateur tooling dans
+     * [PanneauToolingController] (le rang 1 est TOUJOURS visible : plus
+     * de fondu, plus de recomposition d'en-tête par état).
      */
     private fun rendrePanneau(etat: EtatEditor) {
         // État d'ouverture — l'état du comportement peut diverger pendant
@@ -3040,16 +2987,6 @@ class EditorActivity :
         }
         panneauEtendu = etat.etatPanneau == EtatPanneau.ETENDU
         majRetourSysteme()
-
-        // Fondu de l'en-tête (v0.32.5) : l'état stabilisé repose l'alpha
-        // (un saut programmatique d'état ne passe pas par onSlide).
-        appliquerFonduEntete(
-            when (etat.etatPanneau) {
-                EtatPanneau.REPLIE -> 0f
-                EtatPanneau.MI_HAUTEUR -> FRACTION_MI_HAUTEUR
-                EtatPanneau.ETENDU -> 1f
-            },
-        )
 
         // Onglet actif : réconciliation silencieuse de la barre.
         val indexOnglet = OngletPanneau.entries.indexOf(etat.ongletPanneau)
@@ -3067,175 +3004,37 @@ class EditorActivity :
         // tiroir ne doivent pas être cachés, et réciproquement).
         montrerFragmentPanneau(etat.ongletPanneau)
 
-        // v0.80.1 : la composition de l'en-tête suit l'onglet actif —
-        // Console n'a PAS de première section, la ligne tooling EST
-        // l'en-tête ; Problèmes et Journal gardent la section titre avec
-        // les informations correspondantes (badge, sous-titre).
-        controleurTooling?.definirOnglet(etat.ongletPanneau)
-        rendreEntetePanneau()
+        // Badge de compte : il vit SUR l'onglet Problèmes (en-tête unifié
+        // v2 — l'onglet se dit lui-même, plus de titre/sous-titre
+        // duplicata dans l'en-tête).
+        rendreBadgeOnglets()
     }
 
     /**
-     * Rend la première section de l'en-tête du panneau (v0.80.1) : titre
-     * de l'onglet actif, sous-titre d'INFORMATIONS correspondant (compte
-     * de diagnostics pour Problèmes, compte d'entrées pour Journal),
-     * badge de compte — et la visibilité même de la section : GONE sur
-     * l'onglet Console (elle y est inutile, la ligne tooling sert
-     * d'en-tête), VISIBLE sinon (sous réserve du fondu d'extension).
+     * Badge de compte de l'onglet Problèmes (en-tête unifié v2 — maquette
+     * sorties) : le compte de diagnostics vit SUR l'onglet lui-même
+     * (BadgeDrawable de Material), annoncé à TalkBack par le
+     * contentDescription pluriel de l'onglet. Journal et Logcat (lot L4) :
+     * AUCUN badge — ce sont les surfaces vivantes du lecteur (compteurs
+     * honnêtes dans l'onglet), pas des « comptes à traiter » (Android
+     * Studio n'y badge rien non plus).
      */
-    private fun rendreEntetePanneau() {
-        val etat = viewModel.etat.value
-        val etatGradle = viewModel.etatGradle.value
-        val onglet = etat.ongletPanneau
-
-        // Titre de l'en-tête : libellé de l'onglet actif du panneau.
-        liaison.titrePanneau.setText(libelleOngletPanneau(onglet))
-
-        // Badge de compte : entrées du Journal, diagnostics des Problèmes.
-        // Logcat : AUCUN badge (le flux vivant n'est pas un « compte à
-        // traiter » — Android Studio n'y badge rien non plus).
-        val compte =
-            when (onglet) {
-                OngletPanneau.CONSOLE -> 0
-
-                OngletPanneau.PROBLEMES -> etatGradle.problemesTotal
-
-                // Journal et Logcat (lot L4) : AUCUN badge — ce sont les
-                // surfaces vivantes du lecteur (compteurs honnêtes dans
-                // l'onglet), pas des « comptes à traiter ».
-                OngletPanneau.JOURNAL -> 0
-
-                OngletPanneau.LOGCAT -> 0
+    private fun rendreBadgeOnglets() {
+        val compte = viewModel.etatGradle.value.problemesTotal
+        val indexProblemes = OngletPanneau.entries.indexOf(OngletPanneau.PROBLEMES)
+        val onglet = liaison.ongletsPanneau.getTabAt(indexProblemes) ?: return
+        if (compte > 0) {
+            val badge = onglet.orCreateBadge
+            badge.number = compte
+            badge.isVisible = true
+            onglet.contentDescription =
+                resources.getQuantityString(R.plurals.editor_panneau_problemes_compte, compte, compte)
+        } else {
+            if (onglet.badge != null) {
+                onglet.removeBadge()
             }
-        liaison.badgePanneau.isVisible = onglet != OngletPanneau.CONSOLE && compte > 0
-        if (liaison.badgePanneau.isVisible) {
-            // Formatage explicite indépendant de la locale (SetTextI18n).
-            liaison.badgePanneau.text = String.format(java.util.Locale.ROOT, "%d", compte)
-            liaison.badgePanneau.contentDescription =
-                when (onglet) {
-                    OngletPanneau.PROBLEMES -> {
-                        resources.getQuantityString(
-                            R.plurals.editor_panneau_problemes_compte,
-                            compte,
-                            compte,
-                        )
-                    }
-
-                    else -> {
-                        resources.getQuantityString(
-                            R.plurals.editor_panneau_badge_cd,
-                            compte,
-                            compte,
-                        )
-                    }
-                }
+            onglet.contentDescription = null
         }
-
-        // Sous-titre d'informations de l'onglet actif.
-        rendreSousTitrePanneau(onglet, compte)
-
-        // Visibilité de la section : GONE sur Console (la ligne tooling
-        // prend sa place dans le peek), soumise au fondu sinon.
-        majVisibiliteEntetePanneau()
-    }
-
-    /**
-     * Sous-titre d'INFORMATIONS de la première section (v0.80.1) — une
-     * entrée par onglet : compte de diagnostics, d'entrées de journal,
-     * ou PÉRIMÈTRE de l'onglet Logcat (politique d'honnêteté § 5 de
-     * EXECUTER.md — le détail vivant reste dans la barre d'outils de
-     * l'onglet : sélecteur, filtres, bandeaux).
-     */
-    private fun rendreSousTitrePanneau(onglet: OngletPanneau, compte: Int) {
-        when (onglet) {
-            OngletPanneau.CONSOLE -> {
-                liaison.sousTitrePanneau.isVisible = false
-            }
-
-            OngletPanneau.PROBLEMES -> {
-                liaison.sousTitrePanneau.isVisible = true
-                liaison.sousTitrePanneau.text =
-                    if (compte == 0) {
-                        getString(R.string.editor_panneau_aucun_probleme)
-                    } else {
-                        resources.getQuantityString(R.plurals.editor_panneau_problemes_compte, compte, compte)
-                    }
-            }
-
-            OngletPanneau.JOURNAL -> {
-                liaison.sousTitrePanneau.isVisible = true
-                liaison.sousTitrePanneau.text = getString(R.string.editor_panneau_journal_sous_titre)
-            }
-
-            OngletPanneau.LOGCAT -> {
-                liaison.sousTitrePanneau.isVisible = true
-                liaison.sousTitrePanneau.text = getString(R.string.editor_panneau_logcat_sous_titre)
-            }
-        }
-    }
-
-    /**
-     * Visibilité effective de la première section : GONE sur l'onglet
-     * Console (v0.80.1 — elle n'y porte aucune information), GONE quand
-     * le sheet est ÉTENDU stable (v0.80.2 — elle disparaît complètement,
-     * les onglets montent au sommet du sheet), INVISIBLE sous le seuil du
-     * fondu sur les autres onglets (la hauteur de la feuille ne saute pas
-     * en cours de glissement), VISIBLE sinon.
-     */
-    private fun majVisibiliteEntetePanneau() {
-        liaison.entetePanneau.visibility =
-            when {
-                viewModel.etat.value.ongletPanneau == OngletPanneau.CONSOLE -> View.GONE
-                sheetEtenduStable -> View.GONE
-                alphaEnteteCourant > SEUIL_FONDU_VISIBLE -> View.VISIBLE
-                else -> View.INVISIBLE
-            }
-    }
-
-    /**
-     * Fraction de glissement correspondant à l'état STABILISÉ courant du
-     * panneau (v0.185.0) : utilisée pour re-poser le fondu (et les
-     * hauteurs de repos des rangées d'en-tête) quand les insets changent
-     * — un changement d'inset ne passe JAMAIS par `onSlide`.
-     */
-    private fun fractionPanneauCourante(): Float = when (viewModel.etat.value.etatPanneau) {
-        EtatPanneau.REPLIE -> 0f
-        EtatPanneau.MI_HAUTEUR -> FRACTION_MI_HAUTEUR
-        EtatPanneau.ETENDU -> 1f
-    }
-
-    /**
-     * Marque (ou démarque) le sheet comme ÉTENDU STABLE (v0.80.2) et
-     * propage la conséquence aux deux sections : la première repasse GONE
-     * une fois l'extension stabilisée (les onglets montent au sommet), la
-     * ligne tooling suit la même règle via le contrôleur. Au repli, la
-     * place est conservée (INVISIBLE sous le seuil du fondu) — jamais de
-     * GONE en plein glissement.
-     *
-     * v0.185.0 (retour propriétaire : « le header doit SUIVRE la
-     * progression du slide pour disparaître et réapparaître ») : PLUS de
-     * reflow `ChangeBounds` aux bascules d'état stable — la HAUTEUR des
-     * deux sections est désormais posée PAR TRAME par `onSlide` sur la
-     * cosinus de [CalculsFonduEntete] (cf. [appliquerFonduEntete]) : à
-     * l'état stabilisé, elle est déjà à sa valeur finale (0 étendu,
-     * pleine repliée) et l'ancienne animation de 250 ms rejouait un
-     * mouvement APRÈS le doigt.
-     */
-    private fun marquerSheetEtendu(etendu: Boolean) {
-        if (etendu == sheetEtenduStable) return
-        sheetEtenduStable = etendu
-        // INC-17 : l'état de la zone d'appui suit la position — « Ouvrir »
-        // replié, « Fermer » sinon (le rôle est posé par le layout).
-        liaison.ligneTooling.contentDescription =
-            getString(
-                if (etendu) {
-                    R.string.editor_ligne_tooling_fermer_cd
-                } else {
-                    R.string.editor_ligne_tooling_ouvrir_cd
-                },
-            )
-        controleurTooling?.definirSheetEtendu(etendu)
-        majVisibiliteEntetePanneau()
     }
 
     /** Montre le fragment de l'[onglet] du panneau et cache les deux
@@ -3248,79 +3047,6 @@ class EditorActivity :
             if (fragment === cible) transaction.show(fragment) else transaction.hide(fragment)
         }
         transaction.commit()
-    }
-
-    /**
-     * Fondu progressif de l'en-tête du panneau (v0.32.5, ADR 0056
-     * décision 3, retour d'appareil réel) : l'en-tête (titre + ligne
-     * tooling) reste OPAQUE jusqu'à mi-hauteur puis s'éteint
-     * progressivement — entièrement disparu à l'extension : la console
-     * étendue prend tout l'écran, l'en-tête n'y a plus de place.
-     * INVISIBLE (pas GONE) une fois éteint sur Problèmes/Journal : la
-     * hauteur de la feuille ne saute pas en cours de glissement, et les
-     * appuis fantômes cessent (les vues invisibles ne reçoivent plus les
-     * touches). Sur l'onglet Console (v0.80.1), la première section est
-     * GONE — seule la ligne tooling (si active) partage le fondu ; une
-     * fois l'extension STABILISÉE (v0.80.2) les deux sections passent
-     * GONE (les onglets montent au sommet du sheet).
-     *
-     * v0.185.0 (retour propriétaire : « le header doit SUIVRE la
-     * progression du slide pour disparaître et réapparaître ») : la
-     * HAUTEUR des deux sections suit la MÊME cosinus que l'alpha, posée
-     * PAR TRAME — l'effondrement se joue PENDANT le glissement (et le
-     * ré-empilement pendant le glissement inverse), plus APRÈS : les
-     * onglets montent À MESURE que la feuille s'étend et redescendent à
-     * mesure qu'elle se referme. Le reflow `ChangeBounds` de v0.184.0
-     * rejouait son propre mouvement de 250 ms une fois le doigt levé —
-     * la disparition et la réapparition lisaient désynchronisées.
-     *
-     * @param glissement fraction de glissement du sheet (0 replié,
-     *        1 étendu) — posée par trame par onSlide ou par l'état
-     *        stabilisé.
-     */
-    private fun appliquerFonduEntete(glissement: Float) {
-        // v0.184.0 : courbe COULÉE (cosinus, [CalculsFonduEntete]) — le
-        // « coin » du départ de fondu à mi-hauteur ne se voit plus,
-        // l'extinction lit continue sur toute la seconde moitié du
-        // glissement (retour propriétaire : « n'est pas fluide en
-        // disparaissant »).
-        val alpha = CalculsFonduEntete.alpha(glissement, FRACTION_MI_HAUTEUR)
-        alphaEnteteCourant = alpha
-        liaison.entetePanneau.alpha = alpha
-        liaison.ligneTooling.alpha = alpha
-        // v0.185.0 : hauteurs PAR TRAME sur la même cosinus — les onglets
-        // suivent la progression du glissement au lieu d'un reflow
-        // post-settle (la hauteur de REPOS inclut le rembourrage d'inset
-        // des rangées : repliée, seule la bande rembourrée pend derrière
-        // la barre de navigation transparente).
-        redimensionnerSectionFondu(liaison.entetePanneau, hauteurReposEntetePanneau(), alpha)
-        redimensionnerSectionFondu(liaison.ligneTooling, hauteurReposLigneTooling(), alpha)
-        majVisibiliteEntetePanneau()
-        controleurTooling?.appliquerFondu(alpha)
-    }
-
-    /** Hauteur de REPOS de la première section : 48 dp de contenu +
-     *  l'inset de barre de navigation (rembourrage posé par le
-     *  gestionnaire d'insets — v0.185.0). */
-    private fun hauteurReposEntetePanneau(): Int = resources.getDimensionPixelSize(R.dimen.editor_panneau_replie) +
-        (gestionnaireInsets?.insetBasNavigation() ?: 0)
-
-    /** Hauteur de REPOS de la ligne tooling (52 dp, sans inset — elle
-     *  vit AU SOMMET de la bande repliée de l'onglet Console, jamais
-     *  derrière la barre — v0.185.0). */
-    private fun hauteurReposLigneTooling(): Int = resources.getDimensionPixelSize(R.dimen.editor_entete_tooling_hauteur)
-
-    /** Pose la hauteur d'une section d'en-tête pour la frame courante du
-     *  fondu (v0.185.0) : `hauteur de repos × alpha`, cosinus de
-     *  [CalculsFonduEntete]. Une vue GONE reçoit aussi sa hauteur — au
-     *  retour (DRAGGING) elle reprend sa place SANS saut : sa hauteur
-     *  est déjà celle de la frame courante. */
-    private fun redimensionnerSectionFondu(vue: android.view.View, hauteurRepos: Int, alpha: Float) {
-        val hauteur = CalculsFonduEntete.hauteurPx(hauteurRepos, alpha)
-        if (vue.layoutParams.height != hauteur) {
-            vue.layoutParams.height = hauteur
-            vue.requestLayout()
-        }
     }
 
     /**
@@ -3376,14 +3102,6 @@ class EditorActivity :
         OngletPanneau.PROBLEMES -> TAG_PANNEAU_PROBLEMES
         OngletPanneau.JOURNAL -> TAG_PANNEAU_JOURNAL
         OngletPanneau.LOGCAT -> TAG_PANNEAU_LOGCAT
-    }
-
-    /** Libellé localisé d'un onglet du panneau inférieur. */
-    private fun libelleOngletPanneau(onglet: OngletPanneau): Int = when (onglet) {
-        OngletPanneau.CONSOLE -> R.string.editor_panneau_console
-        OngletPanneau.PROBLEMES -> R.string.editor_panneau_problemes
-        OngletPanneau.JOURNAL -> R.string.editor_panneau_journal
-        OngletPanneau.LOGCAT -> R.string.editor_panneau_logcat
     }
 
     /**
@@ -3856,19 +3574,11 @@ class EditorActivity :
          *  d'insets jamais ça. */
         const val FRACTION_SEUIL_IME = 0.15f
 
-        /** Fraction de glissement correspondant à mi-hauteur (le fondu de
-         *  l'en-tête démarre AU-DESSUS — v0.32.5, ADR 0056 décision 3). */
-        const val FRACTION_MI_HAUTEUR = 0.5f
-
         /** E3 (ADR 0093) : échelle minimale du contenu quand le sheet est étendu (87%). */
         const val ECHELLE_SHEET_ETENDU = 0.87f
 
         /** Étiquette de la feuille de sélection des tâches (anti-doublon). */
         const val ETIQUETTE_FEUILLE_TACHES = "feuille-taches"
-
-        /** Alpha sous lequel l'en-tête fondu passe INVISIBLE (les appuis
-         *  fantômes cessent sans saut de hauteur). */
-        const val SEUIL_FONDU_VISIBLE = 0.02f
 
         /** Actions des touches épinglées de la barre de symboles. */
         const val ACTION_TAB = "tab"

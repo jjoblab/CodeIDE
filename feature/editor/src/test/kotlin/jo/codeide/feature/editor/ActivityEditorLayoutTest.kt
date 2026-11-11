@@ -302,7 +302,7 @@ class ActivityEditorLayoutTest {
     }
 
     @Test
-    fun `le panneau inferieur a un fond opaque une ligne tooling et un conteneur de fragments`() {
+    fun `le panneau inferieur empile rang unifie progression onglets puis fragments`() {
         val racine = gonfler(R.layout.activity_editor)
         assertNotNull(
             "conteneur de fragments du panneau (v0.32.4, ADR 0055)",
@@ -322,94 +322,90 @@ class ActivityEditorLayoutTest {
             "Logcat",
             onglets.getTabAt(3)?.text,
         )
-        // Les ids des vues empilées ont disparu des ressources — la
-        // vérification passe par getIdentifier (R.id.contenu_* ne compile
-        // plus, c'est le point).
-        val base = ApplicationProvider.getApplicationContext<Context>()
-        listOf("contenu_journal", "contenu_sortie", "contenu_problemes").forEach { idEmpile ->
-            assertEquals(
-                "l'id $idEmpile (vue empilée) a disparu des ressources (v0.32.4)",
-                0,
-                base.resources.getIdentifier(idEmpile, "id", base.packageName),
-            )
-        }
         val panneau = racine.findViewById<View>(R.id.panneau_inferieur)
         assertNotNull(
             "fond OPAQUE du panneau — plus de sheet transparent (v0.32.5)",
             panneau.background,
         )
-        val ligneTooling = racine.findViewById<View>(R.id.ligne_tooling)
-        assertEquals(
-            "ligne tooling masquée par défaut (aucune activité, v0.32.5)",
-            View.GONE,
-            ligneTooling.visibility,
-        )
+        // En-tête unifié v2 (maquette sorties) : DEUX rangs, une seule
+        // responsabilité chacun — l'ancienne pile de TROIS sections
+        // (entete_panneau + ligne_tooling + rang_onglets_panneau portant
+        // un second indicateur compact) a disparu.
         val ordre = (panneau as LinearLayout)
         assertEquals(
-            "ordre du sheet : en-tête → ligne tooling → progression → rang des onglets → conteneur (INC-10)",
+            "ordre du sheet : rang 1 unifié → progression → rang des onglets → conteneur (en-tête unifié v2)",
             listOf(
-                R.id.entete_panneau,
-                R.id.ligne_tooling,
+                R.id.rang_entete_panneau,
                 R.id.progression_tooling,
                 R.id.rang_onglets_panneau,
                 R.id.conteneur_fragments_panneau,
             ),
             (0 until ordre.childCount).map { ordre.getChildAt(it).id },
         )
+        // Les ids de l'ancienne pile ont disparu des ressources — la
+        // vérification passe par getIdentifier (R.id.* ne compile plus,
+        // c'est le point).
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        listOf(
+            "entete_panneau",
+            "ligne_tooling",
+            "indicateur_compact_onglets",
+            "titre_panneau",
+            "sous_titre_panneau",
+            "badge_panneau",
+        ).forEach { idAncien ->
+            assertEquals(
+                "l'id $idAncien (ancienne pile d'en-tête) a disparu des ressources (en-tête unifié v2)",
+                0,
+                base.resources.getIdentifier(idAncien, "id", base.packageName),
+            )
+        }
     }
 
     @Test
-    fun `l en tete tooling enrichi porte pastille titre sous-titre chrono et arret`() {
+    fun `le rang unifie porte poignee indicateur compact unique et boutons d etat`() {
         val racine = gonfler(R.layout.activity_editor)
-        val ligneTooling = racine.findViewById<View>(R.id.ligne_tooling)
+        val rang = racine.findViewById<View>(R.id.rang_entete_panneau)
 
-        // En-tête tooling ENRICHI (v4, §3.3) : pastille de canal (fond
-        // teinté + icône + spinner en vol), titre, sous-titre d'étape,
-        // chrono monospace, bouton Arrêter.
-        val vuesEntete =
+        // RANG 1 — en-tête unifié v2 (maquette sorties) : poignée,
+        // indicateur compact UNIQUE (pastille + titre + sous-titre
+        // d'étape + chrono + bouton Arrêter), agrandir, réduire.
+        assertNotNull("poignée du rang 1", rang.findViewById<View>(R.id.poignee_panneau))
+        assertNotNull(
+            "bouton Agrandir du rang 1",
+            rang.findViewById<View>(R.id.bouton_agrandir_panneau),
+        )
+        assertNotNull(
+            "bouton Réduire du rang 1",
+            rang.findViewById<View>(R.id.bouton_fermer_panneau),
+        )
+        val vuesIndicateur =
             mapOf(
-                "pastille de canal" to R.id.pastille_canal_tooling,
-                "icône de canal" to R.id.icone_canal_tooling,
-                "spinner en vol" to R.id.spinner_canal_tooling,
-                "titre d'activité" to R.id.activite_tooling,
-                "sous-titre d'étape" to R.id.sous_titre_tooling,
-                "chrono monospace" to R.id.minuteur_tooling,
-                "bouton Arrêter" to R.id.bouton_arreter_tooling,
+                "pastille de canal" to R.id.pastille_canal_compact,
+                "icône de canal" to R.id.icone_canal_compact,
+                "spinner en vol" to R.id.spinner_canal_compact,
+                "titre d'activité" to R.id.activite_compact,
+                "sous-titre d'étape" to R.id.sous_titre_compact,
+                "chrono monospace" to R.id.minuteur_compact,
+                "bouton Arrêter" to R.id.bouton_arreter_compact,
             )
-        vuesEntete.forEach { (nom, idVue) ->
-            assertNotNull("vue de l'en-tête tooling enrichi (§3.3) : $nom", ligneTooling.findViewById<View>(idVue))
+        vuesIndicateur.forEach { (nom, idVue) ->
+            assertNotNull("vue de l'indicateur compact unique du rang 1 : $nom", rang.findViewById<View>(idVue))
         }
         assertEquals(
             "spinner masqué par défaut (aucune activité en vol, §3.3)",
             View.GONE,
-            racine.findViewById<View>(R.id.spinner_canal_tooling).visibility,
+            racine.findViewById<View>(R.id.spinner_canal_compact).visibility,
         )
         assertEquals(
             "sous-titre masqué par défaut (aucune étape courante, §3.3)",
             View.GONE,
-            racine.findViewById<View>(R.id.sous_titre_tooling).visibility,
+            racine.findViewById<View>(R.id.sous_titre_compact).visibility,
         )
-    }
-
-    @Test
-    fun `l en tete du panneau porte un sous-titre d informations pour problemes et journal`() {
-        val racine = gonfler(R.layout.activity_editor)
-        val entete = racine.findViewById<View>(R.id.entete_panneau)
-
-        // v0.80.1 : la première section porte un SOUS-TITRE d'informations
-        // correspondant à l'onglet actif (compte de diagnostics pour
-        // Problèmes, compte d'entrées pour Journal) — masqué par défaut
-        // (l'onglet Console n'a pas de première section).
-        val sousTitre = racine.findViewById<View>(R.id.sous_titre_panneau)
-        assertNotNull("sous-titre d'informations de la première section (v0.80.1)", sousTitre)
         assertEquals(
-            "sous-titre masqué par défaut (v0.80.1)",
+            "bouton Arrêter masqué par défaut (la sync ne s'annule pas, INC-12)",
             View.GONE,
-            sousTitre.visibility,
-        )
-        assertNotNull(
-            "le titre reste le premier enfant texte de la colonne titre (v0.80.1)",
-            entete.findViewById<View>(R.id.titre_panneau),
+            racine.findViewById<View>(R.id.bouton_arreter_compact).visibility,
         )
     }
 

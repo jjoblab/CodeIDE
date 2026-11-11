@@ -71,10 +71,9 @@
     <string name="editor_panneau_problemes">Problèmes</string>
     <string name="editor_panneau_journal">Journal</string>
 
-    <!-- Sous-titre d\'informations de la première section (v0.80.1) :
-         compte correspondant à l\'onglet actif, Journal ou Problèmes. -->
-    <string name="editor_panneau_aucun_probleme">Aucun problème</string>
-    <string name="editor_panneau_journal_sous_titre">Fenêtre vivante du journal — historique et exports restent à Diagnostics.</string>
+    <!-- En-tête unifié v2 (maquette sorties) : le badge de compte vit
+         SUR l'onglet Problèmes, plus de sous-titre duplicata dans
+         l'en-tête. -->
     <plurals name="editor_panneau_problemes_compte">
         <item quantity="one">%1$d problème</item>
         <item quantity="many">%1$d problèmes</item>
@@ -153,7 +152,6 @@
     <!-- Mission « Exécuter » R3 (ADR 0103) : onglet Logcat — le vrai
          Logcat des applications exécutées, sans adb (spec § 4-5). -->
     <string name="editor_panneau_logcat">Logcat</string>
-    <string name="editor_panneau_logcat_sous_titre">Journaux de vos applications, sans adb</string>
     <string name="logcat_selecteur_processus">Sélectionner le processus affiché</string>
     <string name="logcat_aucun_processus">aucun</string>
     <string name="logcat_session_menu">%1$s (%2$d)</string>
@@ -372,11 +370,9 @@
          annulée (l'annulation RÉELLE est un arbitrage propriétaire, chiffrée
          dans docs/PLAN-AMELIORATIONS.md du dépôt codeide-tooling). -->
     <string name="editor_tooling_sync_non_annulable">Sync non annulable</string>
-    <!-- INC-17 (volet C) : la zone d\'appui de la ligne tooling bascule le
-         sheet — rôle et étiquette annoncés à TalkBack. -->
-    <string name="editor_ligne_tooling_cd">Ouvrir ou fermer le panneau de la console</string>
-    <string name="editor_ligne_tooling_ouvrir_cd">Ouvrir le panneau de la console</string>
-    <string name="editor_ligne_tooling_fermer_cd">Fermer le panneau de la console</string>
+    <!-- En-tête unifié v2 : le RANG 1 bascule le sheet — rôle annoncé
+         à TalkBack par editor_panneau_poignee_cd (la ligne tooling a
+         disparu). -->
     <string name="editor_tooling_sync_en_cours">Synchronisation du projet…</string>
     <!-- INC-04 (volet C) : canal Sync consultable sans qu\'aucune sync n\'ait
          jamais tourné (sélecteur INC-20) — libellé honnête, pas une activité
@@ -603,11 +599,6 @@
     <string name="editor_erreur_nom_fin">Le nom ne peut pas se terminer par un point ni un espace.</string>
     <string name="editor_erreur_nom_reserves">« %1$s » est un nom réservé par Windows.</string>
     <string name="editor_erreur_nom_generique">Ce nom n\'est pas valide.</string>
-    <plurals name="editor_panneau_badge_cd">
-        <item quantity="one">%1$d entrée affichée</item>
-        <item quantity="many">%1$d entrées affichées</item>
-        <item quantity="other">%1$d entrées affichées</item>
-    </plurals>
     <!-- Type de projet reconnu à l'ouverture (étape 18). -->
     <string name="editor_type_projet_modele">Modèle %1$s</string>
     <string name="editor_type_projet_modele_version">Modèle %1$s · v%2$s</string>

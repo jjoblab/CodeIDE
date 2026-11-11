@@ -134,7 +134,7 @@ class GestionnaireInsetsPanneauClavierTest {
     }
 
     @Test
-    fun `replie — seul l espace remboure des rangees pend derriere la barre`() {
+    fun `replie — seul l espace remboure du rang unifie pend derriere la barre`() {
         val trio = construire()
         val (liaison, _, gestionnaire) = trio
         gestionnaire.brancher()
@@ -142,16 +142,10 @@ class GestionnaireInsetsPanneauClavierTest {
         gestionnaire.surInsetsBarres(insetsBarres(insetNav))
 
         assertEquals(
-            "la rangée d'en-tête porte l'inset en paddingBottom " +
-                "(contenu confiné aux 48 dp du haut)",
+            "le RANG 1 (seule bande visible repliée) porte l'inset en " +
+                "paddingBottom — contenu confiné aux 48 dp du haut (en-tête unifié v2)",
             insetNav,
-            liaison.entetePanneau.paddingBottom,
-        )
-        assertEquals(
-            "la rangée d'onglets porte aussi l'inset (elle ferme la bande " +
-                "repliée de l'onglet Console)",
-            insetNav,
-            liaison.ongletsPanneau.paddingBottom,
+            liaison.rangEntetePanneau.paddingBottom,
         )
     }
 
@@ -162,7 +156,8 @@ class GestionnaireInsetsPanneauClavierTest {
         gestionnaire.brancher()
         gestionnaire.surInsetsBarres(insetsBarres(insetNav))
 
-        // Console avec ligne tooling : 104 dp de contenu.
+        // Contenu replié quelconque (en production : CONSTANT, les 48 dp
+        // du rang 1 — en-tête unifié v2, INC-18).
         gestionnaire.definirPeekContenu(312)
 
         assertEquals(

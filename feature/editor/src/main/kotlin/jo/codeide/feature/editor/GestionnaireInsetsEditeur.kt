@@ -39,15 +39,14 @@ import jo.codeide.feature.editor.databinding.ActivityEditorBinding
  * est transparente, je vois une partie du sheet alors que seul
  * l'en-tête devrait être visible ») : le gestionnaire devient le
  * PROPRIÉTAIRE du `peekHeight` TOTAL — [definirPeekContenu] reçoit la
- * hauteur de CONTENU replié (calculée par le `PanneauToolingController`)
- * et pose `peek = contenu + inset de navigation`. Le peek du XML ne
- * comptait QUE 48 dp depuis le BAS DE L'ÉCRAN : l'inset mordait le
- * BAS de l'en-tête, la barre transparente laissait voir son contenu
- * coupé — « une partie du sheet ». Désormais replié, l'en-tête vit
- * ENTIÈREMENT au-dessus de la barre et SEUL l'espace REMBOURRÉ des
- * rangées pend derrière elle : la rangée d'en-tête et la rangée
- * d'onglets portent un `paddingBottom` égal à l'inset, leur CONTENU
- * reste confiné aux 48 dp du haut.
+ * hauteur de CONTENU replié et pose `peek = contenu + inset de
+ * navigation`. En-tête unifié v2 : ce contenu est CONSTANT (48 dp du
+ * rang 1, INC-18). Le peek du XML ne comptait QUE 48 dp depuis le BAS
+ * DE L'ÉCRAN : l'inset mordait le BAS du rang 1, la barre transparente
+ * laissait voir son contenu coupé — « une partie du sheet ».
+ * Désormais replié, le rang 1 vit ENTIÈREMENT au-dessus de la barre et
+ * SEUL son espace REMBOURRÉ (paddingBottom = inset) pend derrière
+ * elle : le contenu du rang 1 reste confiné aux 48 dp du haut.
  *
  * Le calcul de la réserve est une fonction pure
  * ([calculerReserveEditeur]) couverte par des tests unitaires : entrées
@@ -198,23 +197,20 @@ internal class GestionnaireInsetsEditeur(
     /**
      * Reçoit la hauteur de CONTENU du sheet replié (v0.185.0) et pose le
      * `peekHeight` TOTAL = contenu + inset de barre de navigation.
-     * Appelé par l'activité à chaque changement de composition du peek
-     * (onglet du panneau, ligne tooling qui apparaît/disparaît).
+     * En-tête unifié v2 : le contenu est CONSTANT — les 48 dp du rang 1
+     * (le peek ne bouge plus, INC-18) — l'activité ne le pose qu'au
+     * branchement.
      *
-     * Replié, le HAUT du sheet vaut `bas écran − peek` : l'en-tête (48 dp)
+     * Replié, le HAUT du sheet vaut `bas écran − peek` : le rang 1 (48 dp)
      * vit ENTIER au-dessus de la barre transparente, SEUL l'espace
-     * rembourré des rangées pend derrière elle — plus de « partie du
-     * sheet » visible sous l'en-tête.
+     * rembourré de sa rangée pend derrière elle — plus de « partie du
+     * sheet » visible sous le rang 1.
      */
     fun definirPeekContenu(contenuPx: Int) {
         peekContenuPx = contenuPx
         poserPeekTotal()
         appliquerReserveEtPaddingSheet()
     }
-
-    /** Inset bas de navigation courant (0 si aucun) — l'activité étire
-     *  les hauteurs de repos des rangées d'en-tête avec (v0.185.0). */
-    fun insetBasNavigation(): Int = insetNavigationBas
 
     /**
      * Insets du TIROIR au niveau de l'HÔTE (v0.188.0, rapport IA §5 Lot 3,
@@ -256,8 +252,9 @@ internal class GestionnaireInsetsEditeur(
      * Recalcule et applique la réserve sous l'éditeur et le padding
      * interne du sheet. À appeler :
      *
-     * - après un changement de `peekHeight` (callback `surPeekChange`
-     *   du `PanneauToolingController`) ;
+     * - après un changement de `peekHeight` ([definirPeekContenu] — le
+     *   contenu replié est CONSTANT en-tête unifié v2, l'appel initial
+     *   suffit) ;
      * - après un changement d'état du sheet (`onStateChanged` du
      *   `BottomSheetCallback`) ;
      * - après un changement de visibilité du clavier (l'activité le
@@ -292,16 +289,14 @@ internal class GestionnaireInsetsEditeur(
             right = insetNavigationDroite,
             bottom = insetNavigationBas + paddingImePanneau,
         )
-        // v0.185.0 : les RANGÉES VISIBLES REPLIÉES portent l'inset en
-        // paddingBottom — leur contenu reste confiné aux 48 dp du haut.
-        // La rangée d'en-tête est la SEULE bande visible sur
-        // Problèmes/Journal, la rangée d'onglets ferme la bande sur
-        // Console — derrière la barre transparente ne pend plus qu'un
-        // espace REMBOURRÉ (« plus de partie du sheet visible », retour
-        // propriétaire). Leur hauteur est étirée par l'activité
-        // (repos = dimen + inset).
-        liaison.entetePanneau.updatePadding(bottom = insetNavigationBas)
-        liaison.ongletsPanneau.updatePadding(bottom = insetNavigationBas)
+        // v0.185.0 : la RANGÉE VISIBLE REPLIÉE porte l'inset en
+        // paddingBottom — son contenu reste confiné aux 48 dp du haut.
+        // En-tête unifié v2 : le RANG 1 est la SEULE bande visible
+        // repliée (les onglets vivent sous le peek, la bande de
+        // progression passe derrière la barre) — derrière la barre
+        // transparente ne pend plus qu'un espace REMBOURRÉ (« plus de
+        // partie du sheet visible », retour propriétaire).
+        liaison.rangEntetePanneau.updatePadding(bottom = insetNavigationBas)
     }
 
     /**

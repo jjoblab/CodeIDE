@@ -66,10 +66,8 @@
     <string name="editor_panneau_problemes">Problems</string>
     <string name="editor_panneau_journal">Log</string>
 
-    <!-- Information subtitle of the first section (v0.80.1): count for
-         the active tab, Log or Problems. -->
-    <string name="editor_panneau_aucun_probleme">No problems</string>
-    <string name="editor_panneau_journal_sous_titre">Live log window — history and exports stay in Diagnostics.</string>
+    <!-- Unified header v2 (sorties mockup): the count badge lives ON
+         the Problems tab, no duplicate subtitle in the header. -->
     <plurals name="editor_panneau_problemes_compte">
         <item quantity="one">%1$d problem</item>
         <item quantity="other">%1$d problems</item>
@@ -145,7 +143,6 @@
     <!-- Mission « Exécuter » R3 (ADR 0103): Logcat tab — the real Logcat
          of executed apps, no adb (spec § 4-5). -->
     <string name="editor_panneau_logcat">Logcat</string>
-    <string name="editor_panneau_logcat_sous_titre">Logs from your apps, no adb</string>
     <string name="logcat_selecteur_processus">Select the displayed process</string>
     <string name="logcat_aucun_processus">none</string>
     <string name="logcat_session_menu">%1$s (%2$d)</string>
@@ -335,11 +332,9 @@
          cancellation is an owner decision, costed in codeide-tooling's
          docs/PLAN-AMELIORATIONS.md). -->
     <string name="editor_tooling_sync_non_annulable">Sync can\'t be stopped</string>
-    <!-- INC-17 (volet C): the tooling line touch target toggles the
-         sheet — role and label announced to TalkBack. -->
-    <string name="editor_ligne_tooling_cd">Open or close the console panel</string>
-    <string name="editor_ligne_tooling_ouvrir_cd">Open the console panel</string>
-    <string name="editor_ligne_tooling_fermer_cd">Close the console panel</string>
+    <!-- Unified header v2: ROW 1 toggles the sheet — role announced to
+         TalkBack by editor_panneau_poignee_cd (the tooling line is
+         gone). -->
     <string name="editor_tooling_sync_en_cours">Synchronizing project…</string>
     <!-- INC-04 (volet C) : canal Sync consultable sans qu'aucune sync n'ait
          jamais tourné (sélecteur INC-20) — libellé honnête. -->
@@ -554,10 +549,6 @@
     <string name="editor_erreur_nom_fin">The name cannot end with a dot or a space.</string>
     <string name="editor_erreur_nom_reserves">“%1$s” is reserved by Windows.</string>
     <string name="editor_erreur_nom_generique">This name is not valid.</string>
-    <plurals name="editor_panneau_badge_cd">
-        <item quantity="one">%1$d entry shown</item>
-        <item quantity="other">%1$d entries shown</item>
-    </plurals>
     <!-- Recognized project type at open (step 18). -->
     <string name="editor_type_projet_modele">%1$s template</string>
     <string name="editor_type_projet_modele_version">%1$s template · v%2$s</string>

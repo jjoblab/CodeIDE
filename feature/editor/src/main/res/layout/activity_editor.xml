@@ -349,15 +349,30 @@
                     tools:visibility="gone" />
             </LinearLayout>
 
-            <!-- ================= Panneau inférieur (étape 16, v0.32.4/0.32.5) =================
-                 Trois états gérés par BottomSheetBehavior : replié (en-tête seul,
-                 peekHeight 48 dp, + ligne tooling quand une activité tourne),
-                 mi-hauteur (ratio 0,5), étendu (alors l'en-tête s'est fondu).
-                 Architecture à fragments (ADR 0055, retour v0.32.3) : le chrome
-                 (en-tête, onglets) reste à l'hôte, le contenu des trois onglets
-                 vit dans des fragments ajoutés une fois puis montrés/cachés.
-                 Fond opaque arrondi (v0.32.5, ADR 0056 décision 4) : le panneau
-                 n'est plus transparent, il se pose SUR l'éditeur. -->
+            <!-- ================= Panneau inférieur (étape 16, v0.32.4/0.32.5 ; en-tête unifié v2) =================
+                 Trois états gérés par BottomSheetBehavior : replié (rang 1
+                 seul, peekHeight 48 dp), mi-hauteur (ratio 0,5), étendu.
+                 EN-TÊTE UNIFIÉ (maquette sorties v2) : l'ancienne pile de
+                 TROIS sections — entete_panneau (poignée + titre d'onglet +
+                 sous-titre + badge + indicateur compact n°1), ligne_tooling
+                 (pastille 34 dp + titre + étape + chrono + arrêt) et
+                 rang_onglets_panneau (onglets + indicateur compact n°2) —
+                 disait l'onglet DEUX fois, répétait le compte en badge ET en
+                 sous-titre, et faisait lire TROIS rangs avant la première
+                 ligne de sortie. Désormais DEUX rangs, une seule
+                 responsabilité chacun :
+                   - rang 1 (48 dp, TOUJOURS visible) : poignée + indicateur
+                     compact UNIQUE (pastille + titre + étape + chrono +
+                     arrêter) + agrandir + réduire ;
+                   - rang 2 : les onglets — le badge de compte vit SUR
+                     l'onglet Problèmes (BadgeDrawable), plus de
+                     sous-titre duplicata.
+                 Architecture à fragments (ADR 0055, retour v0.32.3) : le
+                 chrome (rang 1 + onglets) reste à l'hôte, le contenu des
+                 quatre onglets vit dans des fragments ajoutés une fois puis
+                 montrés/cachés. Fond opaque arrondi (v0.32.5, ADR 0056
+                 décision 4) : le panneau n'est plus transparent, il se pose
+                 SUR l'éditeur. -->
 
             <LinearLayout
                 android:id="@+id/panneau_inferieur"
@@ -374,18 +389,23 @@
                 app:behavior_skipCollapsed="false"
                 app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
-                <!-- En-tête (v0.80.1) : visible sur les onglets Problèmes et
-                     Journal uniquement — l'onglet Console n'a PAS de première
-                     section (la ligne tooling ci-dessous sert d'en-tête).
-                     Poignée, titre de l'onglet, SOUS-TITRE d'informations
-                     correspondant (compte de diagnostics / d'entrées),
-                     badge de compte, agrandir, réduire. Un appui bascule
-                     replié <-> mi-hauteur (prompt compagnon 5.5). -->
+                <!-- RANG 1 — en-tête unifié (maquette sorties v2) : 48 dp
+                     TOUJOURS visibles, replié comme étendu. Un appui
+                     bascule replié <-> mi-hauteur (prompt compagnon 5.5) ;
+                     l'indicateur compact porte l'état tooling (pastille de
+                     canal, titre, étape courante, chrono, bouton Arrêter)
+                     et la poignée d'extension reste à droite. Le
+                     paddingBottom d'inset de barre de navigation est posé
+                     par GestionnaireInsetsEditeur : replié, le contenu vit
+                     ENTIÈREMENT au-dessus de la barre transparente, seul
+                     l'espace rembourré pend derrière elle. -->
                 <LinearLayout
-                    android:id="@+id/entete_panneau"
+                    android:id="@+id/rang_entete_panneau"
                     android:layout_width="match_parent"
-                    android:layout_height="@dimen/editor_panneau_replie"
+                    android:layout_height="wrap_content"
+                    android:minHeight="@dimen/editor_panneau_replie"
                     android:background="?attr/selectableItemBackground"
+                    android:contentDescription="@string/editor_panneau_poignee_cd"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     android:paddingHorizontal="@dimen/spacing_md">
@@ -395,71 +415,26 @@
                         android:layout_width="24dp"
                         android:layout_height="4dp"
                         android:background="?attr/colorOutline"
-                        android:contentDescription="@string/editor_panneau_poignee_cd" />
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no" />
 
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_sm"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/titre_panneau"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceTitleSmall"
-                            tools:text="Journal" />
-
-                        <!-- Sous-titre d'informations de l'onglet actif (v0.80.1) :
-                             compte de diagnostics pour Problèmes, compte
-                             d'entrées pour Journal — annoncé à TalkBack. -->
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/sous_titre_panneau"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:visibility="gone"
-                            tools:text="12 entrées affichées"
-                            tools:visibility="visible" />
-                    </LinearLayout>
-
-                    <!-- Indicateur tooling COMPACT (INC-10, volet C) :
-                         retour d'activité TOUJOURS présent — cette
-                         première section le porte sur les onglets
-                         Problèmes/Journal/Logcat repliés ; la ligne
-                         enrichie reste réservée à Console replié, et le
-                         rang des onglets le porte quand le sheet est
-                         étendu. Piloté par PanneauToolingController. -->
+                    <!-- Indicateur tooling COMPACT UNIQUE (INC-10, volet C ;
+                         en-tête unifié v2) : le retour d'activité vit ICI,
+                    dans le rang 1, pour TOUS les onglets et TOUS les états
+                    du sheet — l'ancien doublon du rang des onglets a
+                    disparu. Il occupe l'espace flexible : son titre et son
+                    sous-titre d'étape ellipsent, le chrono et le bouton
+                    Arrêter restent entiers. Piloté par
+                    PanneauToolingController avec le MÊME EtatEnteteTooling
+                    que l'ancienne ligne enrichie (INC-02 : une seule
+                    dérivation). -->
                     <include
                         android:id="@+id/indicateur_compact_entete"
                         layout="@layout/indicateur_tooling_compact"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="@dimen/spacing_xs"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-
-                    <!-- Badge de compte (nombre d'entrées affichées). -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/badge_panneau"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:background="@drawable/badge_panneau"
-                        android:gravity="center"
-                        android:minWidth="20dp"
-                        android:paddingHorizontal="@dimen/spacing_sm"
-                        android:paddingVertical="@dimen/spacing_2xs"
-                        android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:visibility="gone"
-                        tools:text="12"
-                        tools:visibility="visible" />
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:layout_weight="1" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/bouton_agrandir_panneau"
@@ -482,140 +457,14 @@
                         app:icon="@drawable/ic_reduire_panneau" />
                 </LinearLayout>
 
-                <!-- En-tête tooling ENRICHI (v4, §3.3 étape 5) : pastille de
-                     canal colorée (teal Sync / bleu Build / violet Tâches en
-                     vol, vert succès, rouge échec) avec spinner animé en vol,
-                     titre « Synchronisation Gradle · étape n/N », sous-titre =
-                     étape courante + détail (« 42 Mo · 3 éléments »), chrono
-                     monospace, bouton Arrêter (build). Visible dès qu'un canal
-                     est actif ou a un résultat ; le peek s'élargit pour
-                     l'accueillir. v0.80.1 : sur l'onglet CONSOLE elle EST
-                     l'en-tête du panneau (la première section disparaît).
-                     Fondu avec l'en-tête quand le panneau s'étend. L'étape
-                     courante est annoncée à TalkBack
-                     (accessibilityLiveRegion, §3.3 accessibilité). -->
-                <LinearLayout
-                    android:id="@+id/ligne_tooling"
-                    android:layout_width="match_parent"
-                    android:layout_height="@dimen/editor_entete_tooling_hauteur"
-                    android:contentDescription="@string/editor_ligne_tooling_cd"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="@dimen/spacing_md"
-                    android:visibility="gone"
-                    tools:visibility="visible">
-
-                    <!-- Pastille du canal : fond arrondi teinté au rendu
-                         (couleur de canal harmonisée, succès vert, échec
-                         rouge) — icône blanche en repos, spinner en vol. -->
-                    <FrameLayout
-                        android:id="@+id/pastille_canal_tooling"
-                        android:layout_width="@dimen/editor_pastille_canal_taille"
-                        android:layout_height="@dimen/editor_pastille_canal_taille"
-                        android:background="@drawable/pastille_canal_tooling">
-
-                        <ImageView
-                            android:id="@+id/icone_canal_tooling"
-                            android:layout_width="@dimen/editor_icone_canal_taille"
-                            android:layout_height="@dimen/editor_icone_canal_taille"
-                            android:layout_gravity="center"
-                            android:contentDescription="@null"
-                            android:importantForAccessibility="no"
-                            app:tint="?attr/colorOnPrimary"
-                            tools:src="@drawable/ic_synchroniser" />
-
-                        <com.google.android.material.progressindicator.CircularProgressIndicator
-                            android:id="@+id/spinner_canal_tooling"
-                            style="@style/Widget.CodeIDE.CircularProgressIndicator"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_gravity="center"
-                            android:contentDescription="@null"
-                            android:importantForAccessibility="no"
-                            android:indeterminate="true"
-                            android:visibility="gone"
-                            app:indicatorSize="@dimen/editor_icone_canal_taille"
-                            app:indicatorColor="?attr/colorOnPrimary"
-                            app:trackColor="@android:color/transparent"
-                            tools:visibility="visible" />
-                    </FrameLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_sm"
-                        android:layout_weight="1"
-                        android:orientation="vertical">
-
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/activite_tooling"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceTitleSmall"
-                            tools:text="Synchronisation Gradle · étape 2/7" />
-
-                        <!-- Étape courante + détail : annoncé à TalkBack à
-                             chaque changement (§3.3 — l'utilisateur « voit »
-                             toujours ce qui se passe, même hors écran). -->
-                        <com.google.android.material.textview.MaterialTextView
-                            android:id="@+id/sous_titre_tooling"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:accessibilityLiveRegion="polite"
-                            android:ellipsize="end"
-                            android:singleLine="true"
-                            android:textAppearance="?attr/textAppearanceBodySmall"
-                            android:textColor="?attr/colorOnSurfaceVariant"
-                            android:visibility="gone"
-                            tools:text="Téléchargement des dépendances — 42 Mo · 3 éléments"
-                            tools:visibility="visible" />
-                    </LinearLayout>
-
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/minuteur_tooling"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_sm"
-                        android:fontFamily="monospace"
-                        android:textAppearance="?attr/textAppearanceLabelMedium"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        tools:text="12,3 s" />
-
-                    <!-- INC-12 : honnêteté — pendant une sync (non
-                         annulable), l'emplacement du bouton Arrêter dit
-                         POURQUOI il n'y en a pas, au lieu d'un silence. -->
-                    <com.google.android.material.textview.MaterialTextView
-                        android:id="@+id/note_non_annulable"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="@dimen/spacing_xs"
-                        android:ellipsize="end"
-                        android:singleLine="true"
-                        android:text="@string/editor_tooling_sync_non_annulable"
-                        android:textAppearance="?attr/textAppearanceLabelSmall"
-                        android:textColor="?attr/colorOnSurfaceVariant"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/bouton_arreter_tooling"
-                        style="@style/Widget.CodeIDE.Button.Icon"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:contentDescription="@string/editor_tooling_arreter_cd"
-                        android:minWidth="@dimen/touch_target_min"
-                        android:minHeight="@dimen/touch_target_min"
-                        android:visibility="gone"
-                        app:icon="@drawable/ic_arreter_build"
-                        tools:visibility="visible" />
-                </LinearLayout>
-
-                <!-- Progression du canal actif (v4, §3.3) : DÉTERMINÉE quand
-                     une progression existe (octets reçus/total), indéterminée
-                     sinon — couleur de canal au rendu, pleine verte sur
-                     succès. -->
+                <!-- Progression du canal actif (v4, §3.3 ; en-tête unifié
+                     v2 : bande du rang 1, pour TOUS les onglets) :
+                     DÉTERMINÉE quand une progression existe (octets
+                     reçus/total), indéterminée sinon — couleur de canal au
+                     rendu, pleine verte sur succès. Repliée, elle vit sous
+                     le peek de 48 dp : la pastille du rang 1 (spinner en
+                     vol) porte seule le retour d'activité, le peek ne
+                     bouge plus JAMAIS (INC-18). -->
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progression_tooling"
                     android:layout_width="match_parent"
@@ -624,11 +473,13 @@
                     android:visibility="gone"
                     tools:visibility="visible" />
 
-                <!-- Rang des onglets + indicateur compact (INC-10) : quand
-                     le sheet est ÉTENDU, la première section et la ligne
-                     enrichie disparaissent — l'indicateur compact garde le
-                     retour d'activité (titre, chrono, arrêt) au sommet du
-                     sheet, à côté des onglets. -->
+                <!-- RANG 2 — onglets (chrome de l'hôte, v0.32.4) : la
+                     sélection commute les fragments du conteneur
+                     ci-dessous. Le badge de compte (diagnostics) vit SUR
+                     l'onglet Problèmes (BadgeMaterial, posé par
+                     EditorActivity rendreBadgeOnglets) — plus de titre ni
+                     de sous-titre d'onglet dans l'en-tête : l'onglet se
+                     dit lui-même. -->
                 <LinearLayout
                     android:id="@+id/rang_onglets_panneau"
                     android:layout_width="match_parent"
@@ -637,8 +488,6 @@
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <!-- Trois onglets (chrome de l'hôte, v0.32.4) : la sélection
-                         commute les fragments du conteneur ci-dessous. -->
                     <com.google.android.material.tabs.TabLayout
                         android:id="@+id/onglets_panneau"
                         android:layout_width="0dp"
@@ -668,15 +517,6 @@
                             android:layout_height="wrap_content"
                             android:text="@string/editor_panneau_logcat" />
                     </com.google.android.material.tabs.TabLayout>
-
-                    <include
-                        android:id="@+id/indicateur_compact_onglets"
-                        layout="@layout/indicateur_tooling_compact"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="@dimen/spacing_xs"
-                        android:visibility="gone"
-                        tools:visibility="visible" />
                 </LinearLayout>
 
                 <!-- Contenu des onglets (v0.32.4, ADR 0055) : fragments

@@ -15,11 +15,12 @@ import jo.codeide.core.ui.R as RUi
 
 /**
  * Régression du CHROME tooling du sheet (INC-10/12/17, volet C du prompt
- * « retard d'affichage des sorties de build ») : les indicateurs compacts
- * — un dans la première section (autres onglets repliés), un dans le rang
- * des onglets (sheet étendu) —, le rôle annoncé de la zone d'appui de la
- * ligne enrichie et la note honnête « sync non annulable ». Extraits
- * d'ActivityEditorLayoutTest (LargeClass).
+ * « retard d'affichage des sorties de build » ; en-tête unifié v2 —
+ * maquette sorties) : l'indicateur compact UNIQUE du rang 1 porte tout
+ * le retour d'activité (l'ancien doublon du rang des onglets et la ligne
+ * enrichie ont disparu), le rôle annoncé de la zone d'appui du rang 1 et
+ * la note honnête « sync non annulable » dans le sous-titre de
+ * l'indicateur. Extraits d'ActivityEditorLayoutTest (LargeClass).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
@@ -32,39 +33,55 @@ class ActivityEditorToolingLayoutTest {
     }
 
     @Test
-    fun `les indicateurs compacts tooling vivent dans l en tete du sheet - INC-10`() {
+    fun `l indicateur compact unique vit dans le rang unifie du sheet - INC-10`() {
         val racine = gonfler(R.layout.activity_editor)
 
-        // Le rang des onglets PORTE l'indicateur compact (sheet étendu)
-        // et la première section en porte un autre (autres onglets) — le
-        // retour d'activité tooling est toujours présent.
-        val rangOnglets = racine.findViewById<View>(R.id.rang_onglets_panneau)
+        // En-tête unifié v2 : le rang 1 porte l'indicateur compact UNIQUE
+        // — l'ancien doublon du rang des onglets a disparu, le retour
+        // d'activité tooling reste toujours présent.
+        val rangEntete = racine.findViewById<View>(R.id.rang_entete_panneau)
         assertNotNull(
-            "indicateur compact du rang des onglets (INC-10)",
-            racine.findViewById<View>(R.id.indicateur_compact_onglets),
-        )
-        assertNotNull(
-            "indicateur compact de la première section (INC-10)",
+            "indicateur compact du rang 1 (INC-10, en-tête unifié v2)",
             racine.findViewById<View>(R.id.indicateur_compact_entete),
         )
-        assertTrue(
-            "les onglets vivent dans le rang (INC-10)",
-            rangOnglets.findViewById<View>(R.id.onglets_panneau) != null,
-        )
-        // INC-17 : la zone d'appui de la ligne tooling a un rôle annoncé.
         assertNotNull(
-            "contentDescription de la ligne tooling (INC-17)",
-            racine.findViewById<View>(R.id.ligne_tooling).contentDescription,
+            "l'indicateur compact vit DANS le rang 1 (INC-10)",
+            rangEntete.findViewById<View>(R.id.pastille_canal_compact),
+        )
+        assertTrue(
+            "les onglets vivent dans le rang 2 (INC-10)",
+            racine.findViewById<View>(R.id.rang_onglets_panneau)
+                .findViewById<View>(R.id.onglets_panneau) != null,
+        )
+        // Le doublon a bien disparu : l'ancien id ne résout plus.
+        val base = ApplicationProvider.getApplicationContext<Context>()
+        org.junit.Assert.assertEquals(
+            "l'indicateur compact du rang des onglets a disparu (en-tête unifié v2)",
+            0,
+            base.resources.getIdentifier("indicateur_compact_onglets", "id", base.packageName),
+        )
+        // INC-17 : la zone d'appui du rang 1 a un rôle annoncé.
+        assertNotNull(
+            "contentDescription du rang 1 (INC-17)",
+            rangEntete.contentDescription,
         )
     }
 
     @Test
-    fun `la ligne enrichie porte sa note honnete sync non annulable - INC-12`() {
+    fun `l indicateur unique porte le sous-titre honnete sync non annulable - INC-12`() {
         val racine = gonfler(R.layout.activity_editor)
 
+        // INC-12 : l'emplacement du bouton Arrêter (sous-titre de
+        // l'indicateur) explique son absence pendant une sync.
+        val sousTitre = racine.findViewById<android.widget.TextView>(R.id.sous_titre_compact)
         assertNotNull(
-            "note honnête à l'emplacement du bouton Arrêter (INC-12)",
-            racine.findViewById<View>(R.id.note_non_annulable),
+            "sous-titre de l'indicateur compact — porte la note honnête (INC-12)",
+            sousTitre,
+        )
+        assertTrue(
+            "le sous-titre vit DANS le rang 1, à l'emplacement du bouton Arrêter (INC-12)",
+            racine.findViewById<View>(R.id.rang_entete_panneau)
+                .findViewById<View>(R.id.sous_titre_compact) === sousTitre,
         )
     }
 }

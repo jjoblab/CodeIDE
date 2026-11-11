@@ -19,13 +19,21 @@ import org.robolectric.annotation.Config
 import jo.codeide.core.ui.R as RUi
 
 /**
- * Tests du DÉDOUBLONNAGE du rendu de l'en-tête tooling (INC-14, volet C du
- * prompt « retard d'affichage des sorties de build » §6.2) : la collecte de
+ * Tests du DÉDOUBLONNAGE du rendu tooling (INC-14, volet C du prompt
+ * « retard d'affichage des sorties de build » §6.2) : la collecte de
  * l'état Gradle ENTIER ([GradleService] publie à chaque ligne de build,
  * chaque événement de téléchargement) appelait `rendre` à chaque émission —
  * chaque appel annulait et relançait la coroutine du chrono, réaffectait
  * les visibilités et rappelait `setProgressCompat(…, animate = true)` :
  * travail inutile du fil principal et scintillement potentiel de la bande.
+ *
+ * En-tête unifié v2 (maquette sorties) : l'INDICATEUR COMPACT UNIQUE du
+ * rang 1 porte tout le retour tooling — l'ancienne pile (ligne enrichie
+ * 34 dp sur Console + deux indicateurs compacts) a disparu. Les tests
+ * suivent : la note « Sync non annulable » vit dans le SOUS-TITRE de
+ * l'indicateur (INC-12), la bande de progression vit sous le rang 1 pour
+ * TOUS les onglets (INC-13), le peek ne bouge plus (INC-18 : contenu
+ * constant 48 dp).
  *
  * Le correctif : dédoublonnage STRUCTUREL (un en-tête identique ne rend
  * rien), chrono relancé seulement au CHANGEMENT de départ, progression
@@ -64,64 +72,61 @@ class PanneauToolingControllerTest {
                 liaison = liaisonLiee,
                 horloge = TimeProvider { instant },
                 surArret = {},
-                surPeekChange = {},
             )
     }
 
     @Test
-    fun `la note sync non annulable apparait pendant une sync - INC-12`() {
-        controleur.definirOnglet(OngletPanneau.CONSOLE)
-
-        // Sync en vol : l'emplacement du bouton Arrêter explique son
-        // absence — plus de silence de trois minutes.
+    fun `la note sync non annulable occupe le sous-titre pendant une sync - INC-12`() {
+        // Sync en vol : l'emplacement du bouton Arrêter (absent) explique
+        // son absence — le sous-titre de l'indicateur dit POURQUOI.
         controleur.rendre(EtatGradle(synchronisationEnCours = true, debutSyncMs = 1_000L))
         org.junit.Assert.assertTrue(
-            "INC-12 : la note honnête remplace le bouton absent pendant une sync",
-            controleurBinding().noteNonAnnulable.isVisible,
+            "INC-12 : la note honnête remplace le bouton absent dans le sous-titre de l'indicateur",
+            controleurBinding().indicateurCompactEntete.sousTitreCompact.isVisible,
+        )
+        org.junit.Assert.assertEquals(
+            "INC-12 : le sous-titre PORTE la note « Sync non annulable »",
+            controleurBinding().indicateurCompactEntete.sousTitreCompact.text.toString(),
+            controleurBinding().root.context.getString(R.string.editor_tooling_sync_non_annulable),
         )
 
-        // Build en vol : le bouton Arrêter EST là, pas de note.
+        // Build en vol : le bouton Arrêter EST là, le sous-titre rend au
+        // détail d'étape (aucune étape ici : masqué).
         controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 2_000L))
-        org.junit.Assert.assertFalse(controleurBinding().noteNonAnnulable.isVisible)
-        org.junit.Assert.assertTrue(controleurBinding().boutonArreterTooling.isVisible)
+        org.junit.Assert.assertTrue(
+            "INC-11 : le bouton Arrêter de l'indicateur est visible pendant un build",
+            controleurBinding().indicateurCompactEntete.boutonArreterCompact.isVisible,
+        )
     }
 
     @Test
-    fun `l indicateur compact est present hors de la ligne enrichie - INC-10`() {
+    fun `l indicateur compact unique suit l activite et se repose proprement - INC-10`() {
         val etat = EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L)
 
-        // Onglet Problèmes (première section porte l'indicateur compact).
-        controleur.definirOnglet(OngletPanneau.PROBLEMES)
+        // En vol : la pastille du rang 1 est là, quel que soit l'onglet.
         controleur.rendre(etat)
         org.junit.Assert.assertTrue(
-            "INC-10 : la première section porte l'indicateur compact sur les autres onglets",
-            controleurBinding().indicateurCompactEntete.root.isVisible,
+            "INC-10 : la pastille de l'indicateur compact du rang 1 est visible en vol",
+            controleurBinding().indicateurCompactEntete.pastilleCanalCompact.isVisible,
         )
-        org.junit.Assert.assertFalse(
-            "INC-10 : le rang des onglets ne le porte que sheet étendu",
-            controleurBinding().indicateurCompactOnglets.root.isVisible,
-        )
-
-        // Sheet étendu : le rang des onglets prend le relais. La première
-        // section est cachée par l'ACTIVITÉ à l'extension (hors contrôleur)
-        // — simulé ici pour vérifier le relais.
-        controleur.definirSheetEtendu(true)
-        controleurBinding().entetePanneau.isVisible = false
-        org.junit.Assert.assertTrue(
-            "INC-10 : le rang des onglets porte l'indicateur compact sheet étendu",
-            controleurBinding().indicateurCompactOnglets.root.isVisible,
-        )
-        controleur.definirSheetEtendu(false)
-        org.junit.Assert.assertFalse(
-            "replié, l'indicateur compact du rang disparaît (la première section reprend)",
-            controleurBinding().indicateurCompactOnglets.root.isVisible,
+        org.junit.Assert.assertEquals(
+            "INC-10 : le titre de l'indicateur porte l'activité courante",
+            controleurBinding().indicateurCompactEntete.activiteCompact.text.toString().isNotEmpty(),
+            true,
         )
 
-        // État vierge : aucun indicateur, aucune ligne.
-        controleur.definirSheetEtendu(false)
+        // État vierge : RE-RENDU propre (v0.39.1) — pastille masquée,
+        // titres effacés, plus de résidu d'un build précédent.
         controleur.rendre(EtatGradle())
-        org.junit.Assert.assertFalse(controleurBinding().indicateurCompactEntete.root.isVisible)
-        org.junit.Assert.assertFalse(controleurBinding().indicateurCompactOnglets.root.isVisible)
+        org.junit.Assert.assertFalse(
+            "état vierge : la pastille disparaît, l'indicateur se repose",
+            controleurBinding().indicateurCompactEntete.pastilleCanalCompact.isVisible,
+        )
+        assertEquals(
+            "état vierge : le titre est effacé (aucun résidu)",
+            "",
+            controleurBinding().indicateurCompactEntete.activiteCompact.text.toString(),
+        )
     }
 
     @Test
@@ -188,8 +193,6 @@ class PanneauToolingControllerTest {
 
     @Test
     fun `la bande flashe au verdict terminal puis se masque - INC-13`() {
-        controleur.definirOnglet(OngletPanneau.CONSOLE)
-
         // Build en vol : bande visible (indéterminée).
         controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L))
         org.junit.Assert.assertTrue(
@@ -207,25 +210,6 @@ class PanneauToolingControllerTest {
         org.junit.Assert.assertFalse(
             "INC-13 : la bande n'est plus indéterminée au verdict — pleine",
             controleurBinding().progressionTooling.isIndeterminate,
-        )
-    }
-
-    @Test
-    fun `le peek de la console ne bouge plus entre vol et verdict - INC-18`() {
-        controleur.definirOnglet(OngletPanneau.CONSOLE)
-
-        controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L))
-        val enVol = controleur.peekContenuPx
-
-        controleur.rendre(
-            EtatGradle(statutBuild = StatutBuild.ECHOUE, dureeBuildMs = 36_000, messageEchecBuild = "boom"),
-        )
-        val auRepos = controleur.peekContenuPx
-
-        assertEquals(
-            "INC-18 : la fin d'une activité ne retire plus la ligne ni l'emplacement de la bande du peek",
-            enVol,
-            auRepos,
         )
     }
 
