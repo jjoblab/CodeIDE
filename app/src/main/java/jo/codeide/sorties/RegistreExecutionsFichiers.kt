@@ -2,6 +2,7 @@ package jo.codeide.sorties
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
+import jo.codeide.core.datastore.SettingsDataStore
 import jo.codeide.core.domain.AppLogger
 import jo.codeide.core.domain.DispatcherProvider
 import jo.codeide.core.domain.ExecutionSortie
@@ -13,7 +14,6 @@ import jo.codeide.core.domain.RegistreExecutions
 import jo.codeide.core.domain.SourceSortie
 import jo.codeide.core.domain.TroncatureSorties
 import jo.codeide.core.domain.versNiveauSortie
-import jo.codeide.core.datastore.SettingsDataStore
 import jo.codeide.core.model.AppResult
 import jo.codeide.core.model.LogEntry
 import kotlinx.coroutines.withContext
@@ -87,8 +87,10 @@ constructor(
      * (le défaut ADR 0161) — jamais d'exception dans le chemin d'écriture.
      */
     private suspend fun executionsRetenues(): Int = when (val lecture = reglages.current()) {
-        is AppResult.Success -> lecture.value.sortiesExecutionsRetenues
-            .coerceIn(EXECUTIONS_MIN, EXECUTIONS_MAX)
+        is AppResult.Success ->
+            lecture.value.sortiesExecutionsRetenues
+                .coerceIn(EXECUTIONS_MIN, EXECUTIONS_MAX)
+
         is AppResult.Failure -> N_EXECUTIONS
     }
 

@@ -81,7 +81,10 @@ class LecteurAccessibiliteLot6Test {
         )
         // À 200 % : la même structure, les textes en sp doublent — la
         // hauteur reste wrap_content (la rangée grandit, ne coupe pas).
-        val agrandie = gonfler(contexteTheme(echellePolice = 2f), R.layout.rang_execution).findViewById<LinearLayout>(R.id.racine)
+        val agrandie = gonfler(
+            contexteTheme(echellePolice = 2f),
+            R.layout.rang_execution,
+        ).findViewById<LinearLayout>(R.id.racine)
         assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, agrandie.layoutParams.height)
         assertEquals(ViewGroup.LayoutParams.WRAP_CONTENT, normale.layoutParams.height)
     }

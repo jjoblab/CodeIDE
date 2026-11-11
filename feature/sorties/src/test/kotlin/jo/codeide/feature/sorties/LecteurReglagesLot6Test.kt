@@ -63,8 +63,7 @@ class LecteurReglagesLot6Test {
         var filtreVoulu: FiltreSorties? = null
         val rendusSauvegardes = mutableListOf<OptionsRenduRangee>()
 
-        override fun renduInitial(): OptionsRenduRangee =
-            renduInitialPose ?: OptionsRenduRangee()
+        override fun renduInitial(): OptionsRenduRangee = renduInitialPose ?: OptionsRenduRangee()
 
         override fun capaciteFenetre(famille: FamilleSorties, defaut: Int): Int? =
             if (famille == FamilleSorties.LOGCAT) fenetreVoulue else null
@@ -91,10 +90,7 @@ class LecteurReglagesLot6Test {
         androidx.lifecycle.SavedStateHandle(mapOf(CLE_FAMILLE to famille.name)),
     )
 
-    private fun ligne(
-        message: String,
-        niveau: NiveauSortie = NiveauSortie.INFO,
-    ) = LigneSortie(
+    private fun ligne(message: String, niveau: NiveauSortie = NiveauSortie.INFO) = LigneSortie(
         source = SourceSortie.LOGCAT,
         message = message,
         horodatageMs = horloge.instant.getAndIncrement(),

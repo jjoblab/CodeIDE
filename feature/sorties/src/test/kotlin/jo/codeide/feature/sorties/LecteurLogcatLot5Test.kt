@@ -176,7 +176,7 @@ class LecteurLogcatLot5Test {
             FabriqueDeTest(FluxDeTest()),
             TestDispatcherProvider(regleMain.dispatcher),
             horloge,
-        ReglagesLecteurDefaut(),
+            ReglagesLecteurDefaut(),
             androidx.lifecycle.SavedStateHandle(mapOf(CLE_FAMILLE to FamilleSorties.JOURNAL.name)),
         )
         assertFalse(viewModel.modeDisponible)

@@ -58,7 +58,7 @@
                  confirmé par dialogue avant l'appel au registre. -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/historique_effacer"
-                style="@style/Widget.Material3.Button.TextButton"
+                style="@style/Widget.CodeIDE.Button.Text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:minHeight="48dp"

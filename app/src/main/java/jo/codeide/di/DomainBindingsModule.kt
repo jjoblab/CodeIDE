@@ -13,8 +13,8 @@ import jo.codeide.core.domain.ResolveurCheminFuse
 import jo.codeide.core.domain.ResoudreRepertoireProjet
 import jo.codeide.execution.ApkInstallerAndroid
 import jo.codeide.feature.sorties.ReglagesLecteurPort
-import jo.codeide.sorties.ReglagesLecteurDataStore
 import jo.codeide.sorties.RegistreExecutionsFichiers
+import jo.codeide.sorties.ReglagesLecteurDataStore
 import javax.inject.Singleton
 
 /**

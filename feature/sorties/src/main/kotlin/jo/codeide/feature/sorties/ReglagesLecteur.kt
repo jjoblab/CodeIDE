@@ -49,8 +49,8 @@ public interface ReglagesLecteurPort {
  * celui des lots L2–L5 (aucun réglage n'invente un effet).
  */
 public class ReglagesLecteurDefaut
-    @javax.inject.Inject
-    constructor() : ReglagesLecteurPort {
+@javax.inject.Inject
+constructor() : ReglagesLecteurPort {
     override fun renduInitial(): OptionsRenduRangee = OptionsRenduRangee()
 
     override fun capaciteFenetre(famille: FamilleSorties, defaut: Int): Int? = null
