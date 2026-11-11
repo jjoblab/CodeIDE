@@ -19,9 +19,17 @@
     <string name="sorties_copie_effectuee">Selection copied</string>
 
     <!-- State banners (honesty — rule 14: never silent loss, never a
-         label promising more than reality). -->
-    <string name="sorties_bandeau_pertes">%1$d lines lost (maximum window reached)</string>
-    <string name="sorties_bandeau_masquees">%1$d lines hidden by the filter (they stay in the buffer)</string>
+         label promising more than reality). Real quantity, so plurals
+         (tiroir_terminal precedent) — lint PluralsCandidate rejects a %d
+         followed by words inside a <string>. English uses one/other. -->
+    <plurals name="sorties_bandeau_pertes">
+        <item quantity="one">%1$d line lost (maximum window reached)</item>
+        <item quantity="other">%1$d lines lost (maximum window reached)</item>
+    </plurals>
+    <plurals name="sorties_bandeau_masquees">
+        <item quantity="one">%1$d line hidden by the filter (it stays in the buffer)</item>
+        <item quantity="other">%1$d lines hidden by the filter (they stay in the buffer)</item>
+    </plurals>
     <string name="sorties_pause_bandeau">Live feed paused — the delta arrives in one shot on resume</string>
 
     <!-- Search: invalid regex pattern (FiltreLogcat heritage — no-match

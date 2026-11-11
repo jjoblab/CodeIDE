@@ -343,13 +343,23 @@ public class FragmentLecteurSorties :
             binding.bandeauPertes.isGone = pertes <= 0L
             if (pertes > 0L) {
                 binding.bandeauPertes.setEtat(NiveauEtat.ERREUR)
-                binding.bandeauPertes.titre = getString(R.string.sorties_bandeau_pertes, pertes)
+                // Plurals (lot L6 : lint PluralsCandidate) — quantité réelle,
+                // accord du français (« 1 ligne perdue » n'est plus mensonger).
+                binding.bandeauPertes.titre = resources.getQuantityString(
+                    R.plurals.sorties_bandeau_pertes,
+                    pertes.toInt(),
+                    pertes,
+                )
             }
             val masquees = projection.masquees
             binding.bandeauMasquees.isGone = masquees <= 0
             if (masquees > 0) {
                 binding.bandeauMasquees.setEtat(NiveauEtat.AVERTISSEMENT)
-                binding.bandeauMasquees.titre = getString(R.string.sorties_bandeau_masquees, masquees)
+                binding.bandeauMasquees.titre = resources.getQuantityString(
+                    R.plurals.sorties_bandeau_masquees,
+                    masquees,
+                    masquees,
+                )
             }
         }
         viewModel.recherche.collectWithLifecycle(viewLifecycleOwner) { etat ->

@@ -128,6 +128,11 @@ dependencies {
     testImplementation(libs.junit4)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    // Le test du registre des exécutions (lot L6, M13) construit un vrai
+    // SettingsDataStore sur un DataStore en fichier — les types
+    // androidx.datastore.* sont cachés derrière l'implementation de
+    // core:datastore et n'arrivent pas jusqu'aux sources de test de :app.
+    testImplementation(libs.androidx.datastore)
     // Lancement de l'activité réelle sous Robolectric avec Hilt.
     testImplementation(libs.hilt.android.testing)
     kspTest(libs.hilt.compiler)

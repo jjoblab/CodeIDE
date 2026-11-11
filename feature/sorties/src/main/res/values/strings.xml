@@ -19,9 +19,17 @@
     <string name="sorties_copie_effectuee">Sélection copiée</string>
 
     <!-- Bandeaux d\'état (honnêteté — règle 14 : jamais de perte
-         silencieuse, jamais un libellé qui promet plus que la réalité). -->
-    <string name="sorties_bandeau_pertes">%1$d lignes perdues (fenêtre maximale atteinte)</string>
-    <string name="sorties_bandeau_masquees">%1$d lignes masquées par le filtre (elles restent dans le tampon)</string>
+         silencieuse, jamais un libellé qui promet plus que la réalité).
+         Quantité RÉELLE donc plurals (précédent tiroir_terminal, V0.31.5) :
+         lint PluralsCandidate refuse un %d suivi de mots dans un <string>. -->
+    <plurals name="sorties_bandeau_pertes">
+        <item quantity="one">%1$d ligne perdue (fenêtre maximale atteinte)</item>
+        <item quantity="other">%1$d lignes perdues (fenêtre maximale atteinte)</item>
+    </plurals>
+    <plurals name="sorties_bandeau_masquees">
+        <item quantity="one">%1$d ligne masquée par le filtre (elle reste dans le tampon)</item>
+        <item quantity="other">%1$d lignes masquées par le filtre (elles restent dans le tampon)</item>
+    </plurals>
     <string name="sorties_pause_bandeau">Direct en pause — le delta arrivera en une fois à la reprise</string>
 
     <!-- Recherche : motif regex invalide (héritage FiltreLogcat — repli
