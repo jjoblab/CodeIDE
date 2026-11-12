@@ -205,14 +205,17 @@ public interface AppNavigator {
     public fun openEditor(projectId: String): Unit
 
     /**
-     * Ouvre l'espace de travail du projet SUR la surface « Sorties »
-     * (lot L6, spec SORTIES § 5.7 — sortie du build depuis la
-     * notification de fin) : instance neuve portant l'extra de surface
-     * ([ClesEditor.EXTRA_SURFACE_SORTIES]), un espace VIVANT est
-     * remonté tel quel (l'onglet y est déjà présent — à un geste).
+     * Ouvre l'espace de travail du projet SUR les sorties (lot L6, spec
+     * SORTIES § 5.7 — sortie du build depuis la notification de fin) :
+     * instance neuve portant l'extra de surface
+     * ([ClesEditor.EXTRA_SURFACE_SORTIES]) — l'espace ouvre son PANNEAU
+     * sur l'onglet Console, mi-hauteur (retour propriétaire du
+     * 2026-11-12 : plus d'onglet « Sorties » dans la barre des fichiers)
+     * ; un espace VIVANT est remonté tel quel (le panneau y vit déjà —
+     * à un geste).
      *
      * L'implémentation par défaut est le repli honnête : ouvrir
-     * l'espace standard (l'onglet « Sorties » est TOUJOURS présent).
+     * l'espace standard (le panneau est TOUJOURS présent).
      */
     public fun openEditorSurSorties(projectId: String): Unit = openEditor(projectId)
 

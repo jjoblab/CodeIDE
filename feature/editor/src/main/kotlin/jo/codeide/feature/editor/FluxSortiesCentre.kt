@@ -60,7 +60,11 @@ constructor(
 
     /** Le numéro de génération (lot L4) — le routage banc ↔ réel change
      *  de source derrière le port : chaque bascule l'incrémente (le
-     *  lecteur y voit son signal de RESET honnête). */
+     *  lecteur y voit son signal de RESET honnête). Retour propriétaire
+     *  du 2026-11-12 : le collecteur réel incrément AUSSI la génération
+     *  à CHAQUE démarrage d'exécution (sync, build) — une nouvelle
+     *  exécution vide la console (jamais de lignes empilées entre deux
+     *  exécutions ; l'ancienne reste dans le registre). */
     private val generationInterne = kotlinx.coroutines.flow.MutableStateFlow(0)
 
     override val generation: StateFlow<Int> = generationInterne
@@ -68,6 +72,9 @@ constructor(
     init {
         portee.launch {
             factice.sequenceArmee.collect { generationInterne.value += 1 }
+        }
+        portee.launch {
+            collecteur.generation.collect { generationInterne.value += 1 }
         }
     }
 
@@ -87,16 +94,24 @@ constructor(
         if (armee == null) etat else null
     }.stateIn(portee, SharingStarted.Eagerly, null)
 
-    override fun lots(): Flow<List<LigneSortie>> = factice.sequenceArmee.flatMapLatest { sequence ->
-        if (sequence != null) {
-            factice.lots()
-        } else {
-            flow {
-                // Le cliché d'abord (l'existant de la session courante),
-                // puis les lots vivants du câble — un seul collecteur.
-                emit(collecteur.clicheSession())
-                emitAll(collecteur.lots)
+    override fun lots(): Flow<List<LigneSortie>> =
+        combine(factice.sequenceArmee, collecteur.generation) { sequence, _ -> sequence }
+            .flatMapLatest { sequence ->
+                if (sequence != null) {
+                    factice.lots()
+                } else {
+                    flow {
+                        // Le cliché d'abord (l'existant de la session courante),
+                        // puis les lots vivants du câble — un seul collecteur.
+                        // Le flatMapLatest est PULSÉ PAR LA GÉNÉRATION du
+                        // collecteur (retour 2026-11-12) : au démarrage d'une
+                        // NOUVELLE exécution, la souscription REPART À ZÉRO —
+                        // le cliché vidé est re-émis, un lot en transit de
+                        // l'exécution précédente ne peut plus se glisser dans
+                        // la console neuve (jamais de mélange).
+                        emit(collecteur.clicheSession())
+                        emitAll(collecteur.lots)
+                    }
+                }
             }
-        }
-    }
 }

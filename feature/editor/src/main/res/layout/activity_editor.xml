@@ -126,20 +126,6 @@
                         android:layout_height="match_parent"
                         android:visibility="gone" />
 
-                    <!-- L5a (spec SORTIES § 5.7, M7) : l'éditeur dédié aux
-                         sorties OUVERT EN ONGLET de la zone centrale (comme
-                         un fichier, ADR 0028) — quand l'onglet « Sorties »
-                         est sélectionné, cette vue remplace l'éditeur de
-                         code (hide/show, aucun rechargement) et accueille
-                         FragmentLecteurSorties (famille GRADLE) : la MÊME
-                         fenêtre que le panneau compact et le volet tablette,
-                         jamais un second afficheur. -->
-                    <androidx.fragment.app.FragmentContainerView
-                        android:id="@+id/conteneur_lecteur_central"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:visibility="gone" />
-
                     <!-- CE3 (B10) : barre de recherche/remplacement —
                          GONE par défaut, ouverte par Ctrl+F ou menu.
                          Se pose entre l'en-tête et l'éditeur. -->

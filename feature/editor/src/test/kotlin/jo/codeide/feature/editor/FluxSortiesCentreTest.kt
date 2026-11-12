@@ -70,6 +70,40 @@ class FluxSortiesCentreTest {
         }
 
     @Test
+    fun `une nouvelle execution re emet le cliche vide au lecteur attache - retour 2026-11-12`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val scene = Scene(this)
+            // Première exécution conclue : le cliché porte ses 10 lignes.
+            scene.collecteur.demarrerBuild("b-1", emptyList())
+            repeat(10) { indice ->
+                scene.collecteur.surLigneBuild(
+                    jo.codeide.core.domain.LigneSortieBuild(
+                        "b-1",
+                        jo.codeide.core.domain.FluxSortieBuild.STDOUT,
+                        "ligne $indice",
+                        indice.toLong(),
+                    ),
+                )
+            }
+            scene.collecteur.surEtatBuild(
+                jo.codeide.core.domain.EtatBuild("b-1", jo.codeide.core.domain.StatutBuild.REUSSI, dureeMs = 1_000L),
+            )
+
+            // Un lecteur attaché : le cliché d'abord (10 lignes).
+            val recus = ArrayList<List<LigneSortie>>()
+            val travail = launch { scene.flux.lots().take(2).toList(recus) }
+            assertEquals(10, recus[0].size)
+
+            // Une NOUVELLE exécution démarre : la génération monte, la
+            // souscription REPART À ZÉRO — le cliché vidé est ré-émis
+            // (lot vide), jamais les lignes de la session précédente ne
+            // s'empilent dans la console neuve.
+            scene.collecteur.demarrerBuild("b-2", emptyList())
+            travail.join()
+            assertEquals(0, recus[1].size)
+        }
+
+    @Test
     fun `la capacite de fenetre suit la source banc ou parite console`() {
         // Aucune coroutine attendue ici : une portée de test suffisante.
         val scene = Scene(kotlinx.coroutines.test.TestScope(UnconfinedTestDispatcher()))

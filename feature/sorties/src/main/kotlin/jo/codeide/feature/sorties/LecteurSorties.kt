@@ -4,6 +4,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.roundToInt
 
@@ -70,6 +71,23 @@ internal interface LecteurSorties {
  * ([surSuiviChange] prévient la surface pour afficher le bouton). Un
  * build fini ne défile plus — plus aucun lot n'arrive (honnêteté § 3.2).
  *
+ * Retour propriétaire du 2026-11-12 (« ça donne l'impression de
+ * secouer ») : le suivi n'appelle PLUS `scrollToPosition` à CHAQUE lot
+ * — un saut sec par lot (jusqu'à 20/s, plusieurs hauteurs d'écran avec
+ * des lots de 256 lignes) relisait comme un tremblement. Désormais :
+ *  - UN SEUL lissage par passe de boucle (les lots qui s'empilent dans
+ *    la même image partagent la même cible) ;
+ *  - `LinearSmoothScroller` en `SNAP_TO_END` — le BAS de la dernière
+ *    rangée s'aligne au BAS du viewport (exact pour une rangée plus
+ *    haute que l'écran), le défilement est continu, jamais un
+ *    téléportage ;
+ *  - la durée est plafonnée (le lissage ne peut pas prendre de retard
+ *    sur le flux) ;
+ *  - la détection honnête « au bas » est suspendue pendant le lissage
+ *    programmatique (un défilement de suivi n'est pas une remontée
+ *    utilisateur — le geste utilisateur l'annule et reprend ses
+ *    droits).
+ *
  * @param liste le RecyclerView hôte.
  * @param poignee la poignée de défilement à côté de la liste.
  * @param adapter l'adaptateur des rangees.
@@ -85,6 +103,10 @@ internal class LecteurSortiesRecycler(
 ) : LecteurSorties {
     private val gestionnaire = LinearLayoutManager(liste.context)
     private var suiviActif = true
+
+    /** Un lissage de suivi est-il déjà en attente pour cette passe de
+     *  boucle ? (coalescence — retour 2026-11-12.) */
+    private var lissageEnAttente = false
 
     override var positionRetenue: Int? = null
 
@@ -110,17 +132,56 @@ internal class LecteurSortiesRecycler(
             poignee.definirFenetre(0f, 1f)
             return
         }
-        if (suiviActif && projection.delta != null) {
-            liste.scrollToPosition(taille - 1)
-        } else if (projection.delta == null) {
-            // Re-liaison complète (reprise, filtre, rotation) : retrouver
-            // la position retenue si elle est encore dans la fenêtre.
-            val position = positionRetenue
-            if (position != null && position < taille) {
-                liste.scrollToPosition(position)
+        when {
+            // Lot vivant (brut) : le suivi se déplace LISSÉ vers le bas —
+            // jamais un saut sec par lot (retour 2026-11-12).
+            suiviActif && projection.delta != null -> suivreLeBasLisse()
+
+            // Re-liaison complète PENDANT le suivi (filtre en vol,
+            // reprise de pause, bascule regroupée) : la fenêtre reste au
+            // bas — retrouver une ANCIENNE position n'aurait pas de sens.
+            suiviActif -> suivreLeBasLisse()
+
+            // Re-liaison complète hors suivi (rotation, attachement) :
+            // retrouver la position retenue si elle est encore dans la
+            // fenêtre — UNE SEULE FOIS (la position est CONSOMMÉE : le
+            // mode regroupé re-derive à chaque lot, un rappel en boucle
+            // ramenait la liste en arrière — retour 2026-11-12).
+            else -> {
+                val position = positionRetenue
+                if (position != null && position < taille) {
+                    liste.scrollToPosition(position)
+                }
+                positionRetenue = null
             }
         }
         majFenetre()
+    }
+
+    /**
+     * Le lissage du suivi du bas (retour propriétaire du 2026-11-12) :
+     * UN `LinearSmoothScroller` par passe de boucle (coalescence par
+     * [lissageEnAttente]), `SNAP_TO_END` — le bas de la dernière rangée
+     * contre le bas du viewport — et une durée PLAFONNÉE : un flux rapide
+     * (lot de 256 lignes toutes les 50 ms) déroule CONTINU au lieu de
+     * téléporter l'écran vingt fois par seconde.
+     */
+    private fun suivreLeBasLisse() {
+        if (lissageEnAttente) return
+        lissageEnAttente = true
+        liste.post {
+            lissageEnAttente = false
+            if (!suiviActif || adapter.itemCount == 0) return@post
+            val lisseur =
+                object : LinearSmoothScroller(liste.context) {
+                    override fun getVerticalSnapPreference(): Int = SNAP_TO_END
+
+                    override fun calculateTimeForScrolling(dx: Int): Int =
+                        super.calculateTimeForScrolling(dx).coerceAtMost(DUREE_MAX_SUIVI_MS)
+                }
+            lisseur.targetPosition = adapter.itemCount - 1
+            gestionnaire.startSmoothScroll(lisseur)
+        }
     }
 
     override fun definirReglages(options: OptionsRenduRangee, origineMs: Long) {
@@ -186,6 +247,14 @@ internal class LecteurSortiesRecycler(
     private inner class EcouteurFenetre : RecyclerView.OnScrollListener() {
         override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
             majFenetre()
+            // Retour 2026-11-12 : un lissage PROGRAMMATIQUE de suivi ne
+            // coupe JAMAIS le suivi — en plein vol, la dernière rangée
+            // n'est pas encore complètement visible, la détection
+            // « au bas » clignotait et le bouton « ⇣ suivre » pulserait.
+            // Le geste utilisateur ANNULE le lissage : les événements
+            // suivants viennent du doigt, la détection reprend ses
+            // droits.
+            if (gestionnaire.isSmoothScrolling) return
             val taille = adapter.itemCount
             val dernier = gestionnaire.findLastCompletelyVisibleItemPosition()
             val auBas = taille == 0 || dernier >= taille - 1
@@ -222,5 +291,15 @@ internal class LecteurSortiesRecycler(
         override fun onTouchEvent(rv: RecyclerView, e: MotionEvent) {
             detecteur.onTouchEvent(e)
         }
+    }
+
+    private companion object {
+        /**
+         * Durée MAXIMALE d'un lissage de suivi (retour 2026-11-12) : au
+         * rythme des lots (50 ms), un lissage plus long prendrait du
+         * retard sur le flux — le plafond garde le défilement CONTINU
+         * sans jamais décrocher du bas.
+         */
+        const val DUREE_MAX_SUIVI_MS = 120
     }
 }

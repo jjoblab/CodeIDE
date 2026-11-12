@@ -10,6 +10,8 @@ import jo.codeide.core.domain.EtapeSync
 import jo.codeide.core.domain.StatutBuild
 import jo.codeide.core.domain.TimeProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -263,4 +265,147 @@ class PanneauToolingControllerTest {
         )
         assertEquals(3, controleur.nbMajProgression)
     }
+
+    @Test
+    fun `l identite problemes dit le compte reel des diagnostics - retour 2026-11-12`() {
+        val contexte = liaisonLiee.root.context
+        val indicateur = controleurBinding().indicateurCompactEntete
+        controleur.rendre(EtatGradle(groupesProblemes = listOf(etatGroupeProblemes())))
+        controleur.definirOnglet(OngletPanneau.PROBLEMES)
+        assertEquals(
+            contexte.getString(R.string.editor_panneau_problemes),
+            indicateur.activiteCompact.text.toString(),
+        )
+        assertEquals(
+            contexte.resources.getQuantityString(R.plurals.editor_panneau_problemes_compte, 3, 3),
+            indicateur.sousTitreCompact.text.toString(),
+        )
+        assertTrue(indicateur.pastilleCanalCompact.isVisible)
+        assertFalse(indicateur.boutonArreterCompact.isVisible)
+        assertFalse(controleurBinding().progressionTooling.isVisible)
+    }
+
+    @Test
+    fun `l identite journal dit la fenetre vivante - retour 2026-11-12`() {
+        val contexte = liaisonLiee.root.context
+        val indicateur = controleurBinding().indicateurCompactEntete
+        controleur.rendre(EtatGradle())
+        controleur.definirOnglet(OngletPanneau.JOURNAL)
+        assertEquals(
+            contexte.getString(R.string.editor_panneau_journal_entete_titre),
+            indicateur.activiteCompact.text.toString(),
+        )
+        assertEquals(
+            contexte.getString(R.string.editor_panneau_journal_entete_sous),
+            indicateur.sousTitreCompact.text.toString(),
+        )
+    }
+
+    @Test
+    fun `l identite logcat suit le processus reel du pont - retour 2026-11-12`() {
+        val contexte = liaisonLiee.root.context
+        val indicateur = controleurBinding().indicateurCompactEntete
+        controleur.rendre(EtatGradle())
+
+        // Sans session : honnête — aucun processus.
+        controleur.definirSessionsLogcat(jo.codeide.feature.sorties.EtatSessionsLogcat())
+        controleur.definirOnglet(OngletPanneau.LOGCAT)
+        assertEquals(
+            contexte.getString(R.string.editor_panneau_logcat),
+            indicateur.activiteCompact.text.toString(),
+        )
+        assertEquals(
+            contexte.getString(R.string.editor_panneau_logcat_aucun),
+            indicateur.sousTitreCompact.text.toString(),
+        )
+
+        // Session vivante : le processus réel et son pid (données du pont).
+        controleur.definirSessionsLogcat(
+            jo.codeide.feature.sorties.EtatSessionsLogcat(
+                sessions = listOf(
+                    jo.codeide.core.domain.SessionJournal(
+                        id = "s1",
+                        identite = jo.codeide.core.domain.IdentiteSessionJournal(
+                            paquet = "jo.demo",
+                            pid = 12345,
+                            nomProcessus = ":monapp",
+                        ),
+                        etat = jo.codeide.core.domain.EtatSessionJournal.VIVANTE,
+                        fin = null,
+                        nombreLignes = 12,
+                        lignesPerdues = 0L,
+                        sortiePrecedente = null,
+                    ),
+                ),
+                selectionRegistre = "s1",
+            ),
+        )
+        assertEquals(":monapp", indicateur.activiteCompact.text.toString())
+        assertEquals(
+            contexte.getString(R.string.editor_panneau_logcat_pid, 12345),
+            indicateur.sousTitreCompact.text.toString(),
+        )
+    }
+
+    @Test
+    fun `une activite en vol prime sur l identite de l onglet - retour 2026-11-12`() {
+        controleur.rendre(EtatGradle(statutBuild = StatutBuild.EN_COURS, debutBuildMs = 1_000L))
+        // Même sur l'onglet Journal, l'en-tête unifié garde l'activité
+        // visible : le bouton Arrêter reste là (INC-11), le verdict
+        // tooling habite le rang 1.
+        controleur.definirOnglet(OngletPanneau.JOURNAL)
+        assertTrue(
+            controleurBinding().indicateurCompactEntete.boutonArreterCompact.isVisible,
+        )
+    }
+
+    @Test
+    fun `le retour sur l onglet console re-rend le verdict tooling apres une identite - retour 2026-11-12`() {
+        // Un build RÉUSSI conclut : le verdict vit sur l'onglet Console.
+        controleur.rendre(EtatGradle(statutBuild = StatutBuild.REUSSI, dureeBuildMs = 4_000L))
+        val indicateur = controleurBinding().indicateurCompactEntete
+        val titreVerdict = indicateur.activiteCompact.text.toString()
+        org.junit.Assert.assertTrue(titreVerdict.isNotEmpty())
+
+        // Journal : l'identité remplace le verdict à l'écran.
+        controleur.definirOnglet(OngletPanneau.JOURNAL)
+        org.junit.Assert.assertNotEquals(titreVerdict, indicateur.activiteCompact.text.toString())
+
+        // Retour Console : le verdict REVIENT — le dédoublonnage INC-14
+        // ne peut pas avaler le rendu derrière une identité d'onglet.
+        controleur.definirOnglet(OngletPanneau.CONSOLE)
+        assertEquals(titreVerdict, indicateur.activiteCompact.text.toString())
+    }
+
+    /** Un groupe de diagnostics de test (3 problèmes — le compte du badge). */
+    private fun etatGroupeProblemes(): GroupeProblemes = GroupeProblemes(
+        fichier = "app/MainActivity.kt",
+        nomFichier = "MainActivity.kt",
+        problems = listOf(
+            jo.codeide.core.domain.DiagnosticBuild(
+                severite = jo.codeide.core.domain.SeveriteDiagnostic.ERREUR,
+                fichier = "app/MainActivity.kt",
+                ligne = 42L,
+                colonne = 19L,
+                message = "Référence non résolue",
+                source = "compileDebugKotlin",
+            ),
+            jo.codeide.core.domain.DiagnosticBuild(
+                severite = jo.codeide.core.domain.SeveriteDiagnostic.AVERTISSEMENT,
+                fichier = "app/MainActivity.kt",
+                ligne = 7L,
+                colonne = 9L,
+                message = "paramètre jamais utilisé",
+                source = "compileDebugKotlin",
+            ),
+            jo.codeide.core.domain.DiagnosticBuild(
+                severite = jo.codeide.core.domain.SeveriteDiagnostic.ERREUR,
+                fichier = "app/Ui/Apercu.kt",
+                ligne = 18L,
+                colonne = 1L,
+                message = "type mismatch",
+                source = "compileDebugKotlin",
+            ),
+        ),
+    )
 }

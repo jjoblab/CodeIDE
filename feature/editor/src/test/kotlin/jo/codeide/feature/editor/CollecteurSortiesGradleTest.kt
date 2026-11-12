@@ -207,6 +207,40 @@ class CollecteurSortiesGradleTest {
     }
 
     @Test
+    fun `une nouvelle execution vide le cliche et monte la generation - retour 2026-11-12`() =
+        runTest(UnconfinedTestDispatcher()) {
+            scene(this)
+            // Première exécution : des lignes publiées, un cliché vivant.
+            collecteur.demarrerBuild("b-1", emptyList())
+            repeat(10) { indice ->
+                collecteur.surLigneBuild(
+                    LigneSortieBuild("b-1", FluxSortieBuild.STDOUT, "ligne $indice", indice.toLong()),
+                )
+            }
+            collecteur.surEtatBuild(EtatBuild("b-1", StatutBuild.REUSSI, dureeMs = 1_000L))
+            assertTrue(collecteur.clicheSession().isNotEmpty())
+            val generationAvant = collecteur.generation.value
+
+            // Deuxième exécution : le cliché est vidé AVANT l'incrément —
+            // un lecteur qui s'attache voit la console PROPRE, les lignes
+            // de la session précédente ne s'empilent plus (elles restent
+            // dans le registre).
+            collecteur.demarrerBuild("b-2", emptyList())
+            assertTrue(collecteur.clicheSession().isEmpty())
+            assertEquals(generationAvant + 1, collecteur.generation.value)
+
+            // La sync fait de même (canal Sync) — deux lignes de b-2,
+            // la fenêtre de lotissement écoulée (horloge du test).
+            collecteur.surLigneBuild(LigneSortieBuild("b-2", FluxSortieBuild.STDOUT, "ligne b-2", 1))
+            instant = 1_100L
+            collecteur.surLigneBuild(LigneSortieBuild("b-2", FluxSortieBuild.STDOUT, "ligne b-2 bis", 2))
+            assertTrue(collecteur.clicheSession().isNotEmpty())
+            collecteur.demarrerSync("/projet")
+            assertTrue(collecteur.clicheSession().isEmpty())
+            assertEquals(generationAvant + 2, collecteur.generation.value)
+        }
+
+    @Test
     fun `les telechargements s ecrivent une ligne par artefact termine`() = runTest(UnconfinedTestDispatcher()) {
         scene(this)
         collecteur.demarrerBuild("b-1", emptyList())

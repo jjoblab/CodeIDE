@@ -7,7 +7,18 @@
      lecteur virtualisé (liste + poignée à repères), bouton « ⇣ suivre »
      du suivi du bas honnête. Fragment FragmentLecteurSorties — les
      surfaces (onglet/plein écran/panneau, L5) l'embarquent comme UNE
-     fenêtre. -->
+     fenêtre.
+
+     Retour propriétaire du 2026-11-12 (« débordement — la barre ne
+     ressemble pas au mockup ») : la barre épouse la maquette `.tol`
+     (flex-wrap) en DEUX RANGÉES — rang 1 : le champ de recherche
+     complet (icône + saisie + compteur n/N DANS le même conteneur
+     arrondi, comme `.sr`) ; rang 2 : les actions, DÉFILANTES
+     horizontalement dans l'ordre de la maquette (.* , étiquettes,
+     navigation de recherche, sauts d'erreurs, Regrouper, pause,
+     horodatage, numéros, retour à la ligne, pid/tid, Historique,
+     sélection, effacer, copier) — plus AUCUN bouton poussé hors
+     écran, quelle que soit la largeur. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -20,232 +31,289 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?attr/colorSurface"
-        android:gravity="center_vertical"
-        android:minHeight="48dp"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:paddingHorizontal="@dimen/spacing_sm"
-        android:paddingVertical="@dimen/spacing_2xs">
+        android:paddingTop="@dimen/spacing_2xs">
 
-        <EditText
-            android:id="@+id/champ_recherche"
-            android:layout_width="0dp"
+        <!-- RANG 1 — la recherche (maquette `.sr`) : icône + saisie +
+             compteur DANS le même conteneur arrondi. -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:background="@drawable/fond_outil_sorties"
-            android:fontFamily="monospace"
-            android:hint="@string/sorties_recherche_indice"
-            android:imeOptions="actionSearch"
-            android:importantForAutofill="no"
-            android:inputType="text"
-            android:maxLines="1"
-            android:minHeight="48dp"
-            android:paddingHorizontal="@dimen/spacing_md_compact"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:textColor="?attr/colorOnSurface"
-            android:textColorHint="?attr/colorOnSurfaceVariant" />
+            android:gravity="center_vertical"
+            android:minHeight="40dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="@dimen/spacing_sm">
 
-        <!-- Option regex : le motif du champ devient une expression
-             régulière (erreur signalée en ligne — héritage FiltreLogcat). -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_regex"
-            style="@style/Widget.CodeIDE.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_regex"
-            android:fontFamily="monospace"
-            android:minWidth="48dp"
-            android:minHeight="48dp"
-            android:text="@string/sorties_regex_marque"
-            android:textAppearance="?attr/textAppearanceLabelSmall" />
+            <ImageView
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:contentDescription="@null"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_recherche"
+                app:tint="?attr/colorOnSurfaceVariant" />
 
-        <!-- Puces d'étiquettes avec compteurs (spec SORTIES § 5.4, lot
-             L5) : le menu des tags présents dans la fenêtre, chaque
-             puce cycle inclure / exclure / neutre. Caché pour les
-             familles sans étiquettes (GRADLE). -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_etiquettes"
-            style="@style/Widget.CodeIDE.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_etiquettes"
-            android:fontFamily="monospace"
-            android:minWidth="48dp"
-            android:minHeight="48dp"
-            android:text="@string/sorties_etiquettes_marque"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:visibility="gone"
-            tools:visibility="visible" />
+            <EditText
+                android:id="@+id/champ_recherche"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:layout_weight="1"
+                android:background="@null"
+                android:fontFamily="monospace"
+                android:hint="@string/sorties_recherche_indice"
+                android:imeOptions="actionSearch"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
+                android:minHeight="40dp"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                android:textColor="?attr/colorOnSurface"
+                android:textColorHint="?attr/colorOnSurfaceVariant" />
 
-        <!-- Compteur « n/N » de la recherche. -->
-        <com.google.android.material.textview.MaterialTextView
-            android:id="@+id/compteur_recherche"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="@dimen/spacing_xs"
-            android:fontFamily="monospace"
-            android:textColor="?attr/colorOnSurfaceVariant"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            tools:text="3/27" />
+            <!-- Compteur « n/N » de la recherche (vit DANS le champ,
+                 maquette `.cnt`). -->
+            <com.google.android.material.textview.MaterialTextView
+                android:id="@+id/compteur_recherche"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_xs"
+                android:fontFamily="monospace"
+                android:textColor="?attr/colorOnSurfaceVariant"
+                android:textAppearance="?attr/textAppearanceLabelSmall"
+                tools:text="3/27" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_correspondance_precedente"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
+        <!-- RANG 2 — les actions, DÉFILANTES (maquette : la rangée qui
+             replique en flex-wrap ; ici un défilement horizontal —
+             jamais de bouton coupé par le bord de l'écran). -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_correspondance_precedente"
-            app:icon="@drawable/ic_correspondance_haut"
-            app:iconGravity="textStart"
-            app:iconTint="?attr/colorOnSurfaceVariant"
-            android:visibility="gone" />
+            android:overScrollMode="never"
+            android:scrollbars="none">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_correspondance_suivante"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_correspondance_suivante"
-            app:icon="@drawable/ic_suivre_bas"
-            app:iconGravity="textStart"
-            app:iconTint="?attr/colorOnSurfaceVariant"
-            android:visibility="gone" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingVertical="@dimen/spacing_2xs">
 
-        <!-- Saut « erreur précédente / suivante » (spec SORTIES § 5.4,
-             lot L5) : navigue les repères d'erreurs de la poignée —
-             visible seulement quand des erreurs existent. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_erreur_precedente"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_erreur_precedente"
-            app:icon="@drawable/ic_correspondance_haut"
-            app:iconGravity="textStart"
-            app:iconTint="?attr/colorError"
-            android:visibility="gone" />
+                <!-- Option regex : le motif du champ devient une expression
+                     régulière (erreur signalée en ligne — héritage
+                     FiltreLogcat). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_regex"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_regex"
+                    android:fontFamily="monospace"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:text="@string/sorties_regex_marque"
+                    android:textAppearance="?attr/textAppearanceLabelSmall" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_erreur_suivante"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_erreur_suivante"
-            app:icon="@drawable/ic_suivre_bas"
-            app:iconGravity="textStart"
-            app:iconTint="?attr/colorError"
-            android:visibility="gone" />
+                <!-- Puces d'étiquettes avec compteurs (spec SORTIES § 5.4,
+                     lot L5) : le menu des tags présents dans la fenêtre,
+                     chaque puce cycle inclure / exclure / neutre. Caché
+                     pour les familles sans étiquettes (GRADLE). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_etiquettes"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_etiquettes"
+                    android:fontFamily="monospace"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:text="@string/sorties_etiquettes_marque"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
 
-        <!-- Bascule brut ↔ regroupé (spec SORTIES § 4, lot L3) : le
-             tampon est UNIQUE, la projection est une dérivation. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_regrouper"
-            style="@style/Widget.CodeIDE.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_mode_regroupe"
-            android:fontFamily="monospace"
-            android:minWidth="48dp"
-            android:minHeight="48dp"
-            android:text="@string/sorties_mode_regroupe"
-            android:textAppearance="?attr/textAppearanceLabelSmall" />
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="20dp"
+                    android:layout_marginHorizontal="@dimen/spacing_2xs"
+                    android:background="?attr/colorOutline" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_pause"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_pause"
-            app:icon="@drawable/ic_pause_sorties"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_correspondance_precedente"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_correspondance_precedente"
+                    app:icon="@drawable/ic_correspondance_haut"
+                    app:iconGravity="textStart"
+                    app:iconTint="?attr/colorOnSurfaceVariant"
+                    android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_horodatage"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_horodatage"
-            app:icon="@drawable/ic_horodatage"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_correspondance_suivante"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_correspondance_suivante"
+                    app:icon="@drawable/ic_suivre_bas"
+                    app:iconGravity="textStart"
+                    app:iconTint="?attr/colorOnSurfaceVariant"
+                    android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_numeros"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_numeros"
-            app:icon="@drawable/ic_numeros"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+                <!-- Saut « erreur précédente / suivante » (spec SORTIES § 5.4,
+                     lot L5) : navigue les repères d'erreurs de la poignée —
+                     visible seulement quand des erreurs existent. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_erreur_precedente"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_erreur_precedente"
+                    app:icon="@drawable/ic_correspondance_haut"
+                    app:iconGravity="textStart"
+                    app:iconTint="?attr/colorError"
+                    android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_retour_ligne"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_retour_ligne"
-            app:icon="@drawable/ic_retour_ligne"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_erreur_suivante"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_erreur_suivante"
+                    app:icon="@drawable/ic_suivre_bas"
+                    app:iconGravity="textStart"
+                    app:iconTint="?attr/colorError"
+                    android:visibility="gone" />
 
-        <!-- pid/tid affichables (spec SORTIES § 5.4, lot L5) : le
-             préfixe « pid:tid » des lignes Logcat — caché hors LOGCAT. -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_pid_tid"
-            style="@style/Widget.CodeIDE.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_pid_tid"
-            android:fontFamily="monospace"
-            android:minWidth="48dp"
-            android:minHeight="48dp"
-            android:text="@string/sorties_pid_tid_marque"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:visibility="gone"
-            tools:visibility="visible" />
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="20dp"
+                    android:layout_marginHorizontal="@dimen/spacing_2xs"
+                    android:background="?attr/colorOutline" />
 
-        <!-- L'HISTORIQUE des exécutions (lot L6, M11 — ADR 0161) : la
-             feuille du registre, ouverte DEPUIS le lecteur Gradle —
-             cachée hors GRADLE (le registre ne garde que les exécutions
-             Gradle). -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_historique"
-            style="@style/Widget.CodeIDE.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_historique_cd"
-            android:minWidth="48dp"
-            android:minHeight="48dp"
-            android:text="@string/sorties_historique_bouton"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:visibility="gone"
-            tools:visibility="visible" />
+                <!-- Bascule brut ↔ regroupé (spec SORTIES § 4, lot L3) : le
+                     tampon est UNIQUE, la projection est une dérivation. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_regrouper"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_mode_regroupe"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:text="@string/sorties_mode_regroupe"
+                    android:textAppearance="?attr/textAppearanceLabelSmall" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_selection"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_selection"
-            app:icon="@drawable/ic_selection"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_pause"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_pause"
+                    app:icon="@drawable/ic_pause_sorties"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_effacer"
-            style="@style/Widget.CodeIDE.Button.Icon"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_effacer"
-            app:icon="@drawable/ic_effacer"
-            app:iconTint="?attr/colorOnSurfaceVariant" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_horodatage"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_horodatage"
+                    app:icon="@drawable/ic_horodatage"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
 
-        <!-- La copie de la sélection (toujours explicite — spec § 3.6). -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bouton_copier"
-            style="@style/Widget.CodeIDE.Button.Text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:contentDescription="@string/sorties_copier_selection"
-            android:text="@string/sorties_copier_selection"
-            android:textAppearance="?attr/textAppearanceLabelSmall"
-            android:visibility="gone"
-            tools:visibility="visible" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_numeros"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_numeros"
+                    app:icon="@drawable/ic_numeros"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_retour_ligne"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_retour_ligne"
+                    app:icon="@drawable/ic_retour_ligne"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <!-- pid/tid affichables (spec SORTIES § 5.4, lot L5) : le
+                     préfixe « pid:tid » des lignes Logcat — caché hors
+                     LOGCAT. -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_pid_tid"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_pid_tid"
+                    android:fontFamily="monospace"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:text="@string/sorties_pid_tid_marque"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="20dp"
+                    android:layout_marginHorizontal="@dimen/spacing_2xs"
+                    android:background="?attr/colorOutline" />
+
+                <!-- L'HISTORIQUE des exécutions (lot L6, M11 — ADR 0161) :
+                     la feuille du registre, ouverte DEPUIS le lecteur
+                     Gradle — cachée hors GRADLE (le registre ne garde que
+                     les exécutions Gradle). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_historique"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_historique_cd"
+                    android:minWidth="@dimen/touch_target_min"
+                    android:minHeight="@dimen/touch_target_min"
+                    android:text="@string/sorties_historique_bouton"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_selection"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_selection"
+                    app:icon="@drawable/ic_selection"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_effacer"
+                    style="@style/Widget.CodeIDE.Button.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_effacer"
+                    app:icon="@drawable/ic_effacer"
+                    app:iconTint="?attr/colorOnSurfaceVariant" />
+
+                <!-- La copie de la sélection (toujours explicite — spec
+                     § 3.6). -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/bouton_copier"
+                    style="@style/Widget.CodeIDE.Button.Text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:contentDescription="@string/sorties_copier_selection"
+                    android:text="@string/sorties_copier_selection"
+                    android:textAppearance="?attr/textAppearanceLabelSmall"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+        </HorizontalScrollView>
     </LinearLayout>
 
     <!-- Ligne d'erreur de motif regex (héritage FiltreLogcat : jamais

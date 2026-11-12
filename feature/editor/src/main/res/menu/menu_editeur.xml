@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Actions de la toolbar de l'espace de travail (étape 15 ; v0.41.1 :
-     bouton Run dédié pour fun main()). -->
+     bouton Run dédié pour fun main()).
+     Retour propriétaire du 2026-11-12 (« débordement — la barre ne
+     ressemble pas au mockup ») : la maquette sorties A1/A2/A3 montre une
+     toolbar NUE — menu + titre + pastille d'état, AUCUNE icône d'action.
+     Toutes les actions vivent désormais dans le débordement (⋮) : plus
+     de course aux ifRoom, le titre garde sa place sur tous les écrans.
+     La pastille d'indexation (VuePointIndexation) reste le SEUL signal
+     à droite — l'équivalent du glyphe gradle de la maquette. -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
@@ -10,41 +17,33 @@
         android:title="@string/editor_run"
         android:visible="false"
         app:iconTint="@color/codeide_canal_build"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_synchroniser"
         android:icon="@drawable/ic_synchroniser"
         android:title="@string/editor_synchroniser"
         app:iconTint="?attr/colorOnSurfaceVariant"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_executer"
         android:icon="@drawable/ic_executer"
         android:title="@string/editor_executer"
         app:iconTint="?attr/colorOnSurfaceVariant"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
-    <!-- L5a (spec SORTIES § 5.7) : point d'entrée du NOYAU « Centre de
-         sorties » — sélectionne l'onglet central « Sorties » (l'éditeur
-         dédié ouvert comme un fichier, ADR 0028). Toujours disponible :
-         l'historique des exécutions est consultable même sans fichier
-         ouvert. -->
+    <!-- L5a (spec SORTIES § 5.7 ; retour propriétaire du 2026-11-12) :
+         point d'entrée du NOYAU « Centre de sorties » — ouvre l'éditeur
+         dédié PLEIN ÉCRAN (EditeurSortiesActivity, ADR 0162) : le lecteur
+         (famille GRADLE) y vit TEL QUEL, jamais un second afficheur.
+         Toujours disponible : l'historique des exécutions est consultable
+         même sans fichier ouvert. -->
     <item
         android:id="@+id/action_sorties"
         android:icon="@drawable/ic_terminal"
         android:title="@string/editor_sorties_onglet"
         app:iconTint="?attr/colorOnSurfaceVariant"
-        app:showAsAction="never" />
-
-    <!-- L5a (spec SORTIES § 5.7, M7) : l'éditeur dédié en PLEIN ÉCRAN
-         (téléphone portrait) — n'est visible QUE quand la surface
-         « Sorties » est déjà affichée au centre. -->
-    <item
-        android:id="@+id/action_plein_ecran_sorties"
-        android:title="@string/editor_sorties_plein_ecran"
-        android:visible="false"
         app:showAsAction="never" />
 
     <!-- L5c (spec SORTIES § 5.7, M8) : le VOLET tablette — l'éditeur
@@ -62,7 +61,7 @@
         android:icon="@drawable/ic_enregistrer"
         android:title="@string/editor_enregistrer"
         app:iconTint="?attr/colorOnSurfaceVariant"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
     <!-- Mission « LSP Java » h2 (§16.2) : revalidation des segments
          d'index + auto-guérison — visible quand une session LSP vit. -->
@@ -101,7 +100,7 @@
         android:title="@string/editor_formater"
         android:visible="false"
         app:iconTint="?attr/colorOnSurfaceVariant"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="never" />
 
     <!-- CE7 (B14) : pliage de masse — tout replier / tout déplier. -->
     <item

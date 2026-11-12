@@ -137,6 +137,10 @@ class MoteurLecteurSortiesTest {
         lecteur.afficherProjection(
             ProjectionLecteur(lignes((1..50).map { rangee("ligne $it") }), DeltaProjection(0, 50), 50, 0L, 0, 0L),
         )
+        // Le lecteur suit le bas (retour 2026-11-12 : le suivi est LISSÉ
+        // et asynchrone — le test le pose EXPLICITEMENT comme un lecteur
+        // qui lisait la fin, via le même geste que le bouton « ⇣ suivre »).
+        lecteur.reprendreSuivi()
         disposer()
         assertTrue(suiviActif)
         // L'utilisateur remonte : le gestionnaire se déplace vers le haut.

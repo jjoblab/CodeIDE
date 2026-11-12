@@ -311,7 +311,7 @@ internal class ToolingService : Service() {
      * L'intention de l'ACTION « Voir les sorties » (lot L6) : le même
      * lancement que [intentionOuverture], PLUS l'écran cible
      * [RoutageInterEcrans.ECRAN_SORTIES] — l'hôte ouvre l'éditeur du
-     * projet sur l'onglet central. Code de requête DISTINCT de
+     * projet sur le panneau des sorties. Code de requête DISTINCT de
      * [IDENTIFIANT_NOTIFICATION] (mêmes extras ≠ même identité —
      * un code partagé laisserait le dernier créé réécrire les extras
      * du premier).

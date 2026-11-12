@@ -121,6 +121,21 @@ constructor(
     public val etatExecution: StateFlow<EtatExecutionGradle?> = _etatExecution.asStateFlow()
 
     /**
+     * La GÉNÉRATION de la session courante (retour propriétaire du
+     * 2026-11-12 : « les sorties ne sont pas nettoyées après un Sync ou
+     * un build, elles s'empilent ») — incrémentée à CHAQUE démarrage
+     * d'exécution ([demarrerExecution]) APRÈS le vidage du cliché : le
+     * flux ([FluxSortiesCentre]) le relaie aux lecteurs, qui y voient
+     * leur signal de RESET (le tampon vivant est vidé — jamais un
+     * mélange de deux exécutions dans une même console). L'historique
+     * ([HistorienExecutions]) garde TOUT : une exécution passée reste
+     * consultable depuis la feuille du registre, l'effacement à l'écran
+     * ne détruit rien.
+     */
+    private val _generation = MutableStateFlow(0)
+    public val generation: StateFlow<Int> = _generation.asStateFlow()
+
+    /**
      * Le cliché borné de la session courante (même borne que le rejeu de
      * la console) — le premier lot d'un lecteur qui s'attache en pleine
      * exécution.
@@ -253,8 +268,17 @@ constructor(
     }
 
     /** Démarrage commun (build ou sync) : état vierge, parseur neuf,
-     *  en-tête du registre posé. */
+     *  en-tête du registre posé. Retour propriétaire du 2026-11-12 : le
+     *  CLICHÉ est vidé AVANT l'incrément de génération — une nouvelle
+     *  exécution part d'une console PROPRE (l'ancienne reste dans le
+     *  registre, jamais perdue), et le signal de reset part aux lecteurs
+     *  APRÈS le vidage pour que le cliché re-émis soit le bon (vide). */
     private fun demarrerExecution(id: String, type: TypeExecution, taches: List<String>) {
+        // Le résidu de la session précédente part au registre AVANT le
+        // vidage (le lot en attente lui appartient).
+        vider()
+        synchronized(cliche) { cliche.clear() }
+        _generation.value += 1
         idExecution = id
         typeExecution = type
         tachesDemandees = taches

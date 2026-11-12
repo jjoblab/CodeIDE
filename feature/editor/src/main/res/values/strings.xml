@@ -6,8 +6,6 @@
     <string name="editor_title">Éditeur</string>
     <!-- L5a (spec SORTIES § 5.7) : surfaces de l\'éditeur dédié aux sorties. -->
     <string name="editor_sorties_onglet">Sorties</string>
-    <string name="editor_sorties_plein_ecran">Plein écran</string>
-    <string name="editor_sorties_plein_ecran_cd">Ouvrir les sorties en plein écran</string>
     <string name="editor_sorties_volet">Sorties à côté du code</string>
     <string name="editor_sorties_volet_cd">Afficher les sorties à côté du code</string>
     <string name="editor_ouvrir_tiroir_cd">Ouvrir le tiroir de navigation</string>
@@ -79,6 +77,14 @@
         <item quantity="many">%1$d problèmes</item>
         <item quantity="other">%1$d problèmes</item>
     </plurals>
+
+    <!-- Retour propriétaire du 2026-11-12 : identité de l'onglet actif
+         dans l'indicateur du rang 1 (au repos tooling) — maquette A2/A3. -->
+    <string name="editor_panneau_problemes_aucun">Aucun problème</string>
+    <string name="editor_panneau_journal_entete_titre">Journal de CodeIDE</string>
+    <string name="editor_panneau_journal_entete_sous">Journal · fenêtre vivante</string>
+    <string name="editor_panneau_logcat_pid">Logcat · pid %1$d</string>
+    <string name="editor_panneau_logcat_aucun">Logcat · aucun processus</string>
 
     <!-- Onglets d\'édition (étape 15). -->
     <string name="editor_onglet_fermer_cd">Fermer cet onglet</string>

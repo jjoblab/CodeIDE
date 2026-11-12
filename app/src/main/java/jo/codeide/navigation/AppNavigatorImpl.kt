@@ -439,10 +439,11 @@ constructor(
     }
 
     override fun openEditorSurSorties(projectId: String) {
-        // Lot L6 (spec SORTIES § 5.7) : la notification de fin de build
-        // ouvre l'espace SUR l'onglet « Sorties » — instance neuve avec
+        // Lot L6 (spec SORTIES § 5.7 ; retour propriétaire du 2026-11-12) :
+        // la notification de fin de build ouvre l'espace SUR son PANNEAU
+        // des sorties (onglet Console, mi-hauteur) — instance neuve avec
         // l'extra de surface ; un espace vivant est remonté tel quel
-        // (miroir d'openEditor, l'onglet y est déjà présent).
+        // (miroir d'openEditor, le panneau y vit déjà).
         if (instanceEditeurPour(projectId) != null) {
             logger.d(TAG) { "espace vivant remontré (entrée sorties)" }
             revenirALEditeur(projectId)

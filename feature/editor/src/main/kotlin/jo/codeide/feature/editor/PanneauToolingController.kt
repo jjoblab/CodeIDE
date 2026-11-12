@@ -10,6 +10,7 @@ import com.google.android.material.color.MaterialColors
 import jo.codeide.core.domain.TimeProvider
 import jo.codeide.core.ui.ThemeHarmonizer
 import jo.codeide.feature.editor.databinding.ActivityEditorBinding
+import jo.codeide.feature.sorties.EtatSessionsLogcat
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -119,6 +120,29 @@ internal class PanneauToolingController(
     private var dernierStatutFlashe: StatutEntete? = null
     private var derniereDureeFlashee: Long? = null
 
+    /**
+     * L'onglet ACTIF du panneau (retour propriétaire du 2026-11-12 : « le
+     * header ne change pas quand je switch vers journal, problème,
+     * logcat » — la maquette A2/A3 l'exige) : SANS activité tooling en
+     * vol, l'indicateur du rang 1 dit l'IDENTITÉ DE L'ONGLET au lieu de
+     * répéter le verdict tooling. Une activité EN VOL reste prioritaire
+     * sur tous les onglets (l'en-tête unifié ne masque jamais une
+     * activité en cours — INC-10).
+     */
+    private var ongletActif: OngletPanneau = OngletPanneau.CONSOLE
+
+    /** L'état des sessions Logcat (données RÉELLES de l'identité Logcat :
+     * processus affiché, pid, vivante ou non). */
+    private var sessionsLogcat: EtatSessionsLogcat = EtatSessionsLogcat()
+
+    /** Le dernier [EtatGradle] reçu — les pushes d'onglet et de sessions
+     *  re-render sans attendre la prochaine émission du flux. */
+    private var dernierEtatRecu: EtatGradle? = null
+
+    /** La clé de la dernière identité d'onglet rendue (dédoublonnage —
+     *  INC-14 : une émission identique ne repeint pas l'indicateur). */
+    private var identiteOngletRendue: String? = null
+
     init {
         // Arrêt de l'activité tooling en cours (v0.32.5 ; INC-11 : UNE
         // seule action, un seul libellé — le bouton de l'indicateur
@@ -140,8 +164,43 @@ internal class PanneauToolingController(
      * lieu de laisser le RENDU PRÉCÉDENT en place — évite qu'une pastille
      * EN_VOL/SUCCES reste visible si l'état repasse à `null` puis
      * re-devient non-null (ré-ouverture d'espace, etc.).
+     *
+     * Retour 2026-11-12 : le rendu est ROUTÉ — activité en vol ou onglet
+     * Console → tooling (ci-dessous) ; autre onglet au repos → l'identité
+     * de l'onglet ([rendreIdentiteOnglet], la maquette A2/A3).
      */
     fun rendre(etat: EtatGradle) {
+        dernierEtatRecu = etat
+        if (etat.canalActif != null || ongletActif == OngletPanneau.CONSOLE) {
+            rendreTooling(etat)
+        } else {
+            rendreIdentiteOnglet(etat)
+        }
+    }
+
+    /**
+     * L'onglet actif du panneau change (retour 2026-11-12) : l'indicateur
+     * du rang 1 suit — identité de l'onglet au repos, tooling en vol.
+     */
+    fun definirOnglet(onglet: OngletPanneau) {
+        if (ongletActif == onglet) return
+        ongletActif = onglet
+        dernierEtatRecu?.let { rendre(it) }
+    }
+
+    /** Les sessions Logcat changent : seule l'identité de l'ONGLET Logcat
+     *  en dépend — re-render si c'est lui qui est affiché. */
+    fun definirSessionsLogcat(sessions: EtatSessionsLogcat) {
+        val changent = sessionsLogcat != sessions
+        sessionsLogcat = sessions
+        if (changent && ongletActif == OngletPanneau.LOGCAT) {
+            dernierEtatRecu?.let { rendre(it) }
+        }
+    }
+
+    /** Le rendu TOOLING historique (INC-02 : la dérivation reste unique,
+     * [PresentationTooling.etatEntete]). */
+    private fun rendreTooling(etat: EtatGradle) {
         val entete = PresentationTooling.etatEntete(etat)
         val canal = etat.canalActif ?: etat.canalDernierResultat
         // INC-14 : un en-tête structurellement IDENTIQUE au dernier rendu
@@ -151,9 +210,10 @@ internal class PanneauToolingController(
         // réaffectait les visibilités et rappelait setProgressCompat
         // (animate = true) — charge inutile du fil principal et risque de
         // scintillement de la bande.
-        if (entete == dernierEntete && canal == dernierCanal) {
+        if (entete == dernierEntete && canal == dernierCanal && identiteOngletRendue == null) {
             return
         }
+        identiteOngletRendue = null
         dernierEntete = entete
         dernierCanal = canal
         nbRendusEntete++
@@ -199,6 +259,152 @@ internal class PanneauToolingController(
     }
 
     /**
+     * L'identité de l'ONGLET actif, au repos tooling (retour propriétaire
+     * du 2026-11-12 — maquette A2/A3) : l'indicateur du rang 1 dit CE que
+     * montre l'onglet, avec des données RÉELLES —
+     *  - Problèmes : le compte de diagnostics du modèle ([EtatGradle.problemesTotal]) ;
+     *  - Journal : la fenêtre vivante du journal de CodeIDE ;
+     *  - Logcat : le processus affiché et son pid ([EtatSessionsLogcat]).
+     * La pastille prend une teinte sémantique (erreur, succès de session
+     * vivante) ou neutre — jamais une couleur de canal mensongère.
+     * Aucune activité tooling n'est en vol ici (le routage de [rendre]
+     * l'exige) : chrono éteint, arrêt masqué, bande masquée.
+     */
+    private fun rendreIdentiteOnglet(etat: EtatGradle) {
+        val identite =
+            when (ongletActif) {
+                OngletPanneau.PROBLEMES -> identiteProblemes(etat)
+                OngletPanneau.JOURNAL -> identiteJournal()
+                OngletPanneau.LOGCAT -> identiteLogcat()
+                OngletPanneau.CONSOLE -> null
+            } ?: return
+        // INC-14 : une identité identique ne repeint pas l'indicateur.
+        if (identite.cle == identiteOngletRendue) return
+        identiteOngletRendue = identite.cle
+        nbRendusEntete++
+        with(liaison.indicateurCompactEntete) {
+            pastilleCanalCompact.isVisible = true
+            pastilleCanalCompact.backgroundTintList = ColorStateList.valueOf(identite.teintePastille)
+            spinnerCanalCompact.isVisible = false
+            iconeCanalCompact.isVisible = true
+            iconeCanalCompact.setImageResource(identite.icone)
+            iconeCanalCompact.imageTintList = ColorStateList.valueOf(couleurIcone(identite.teintePastille))
+            activiteCompact.text = identite.titre
+            sousTitreCompact.isVisible = true
+            sousTitreCompact.text = identite.sousTitre
+            minuteurCompact.text = ""
+            boutonArreterCompact.isVisible = false
+        }
+        // Aucune activité tooling en vol sur ce chemin : ni bande, ni
+        // flash — le verdict tooling reprendra à la prochaine émission
+        // (l'activité démarre) ou au retour sur l'onglet Console.
+        activiteCourante = false
+        flashVerdict = false
+        liaison.progressionTooling.isVisible = false
+    }
+
+    /** L'identité de rendu d'un onglet au repos tooling (retour 2026-11-12). */
+    private data class IdentiteOnglet(
+        val titre: String,
+        val sousTitre: String,
+        val icone: Int,
+        val teintePastille: Int,
+        val cle: String,
+    )
+
+    /** Problèmes : le compte RÉEL des diagnostics ([EtatGradle.problemesTotal]). */
+    private fun identiteProblemes(etat: EtatGradle): IdentiteOnglet {
+        val compte = etat.problemesTotal
+        return IdentiteOnglet(
+            titre = activite.getString(R.string.editor_panneau_problemes),
+            sousTitre =
+            if (compte > 0) {
+                activite.resources.getQuantityString(
+                    R.plurals.editor_panneau_problemes_compte,
+                    compte,
+                    compte,
+                )
+            } else {
+                activite.getString(R.string.editor_panneau_problemes_aucun)
+            },
+            icone = jo.codeide.core.ui.R.drawable.ic_indicateur_erreur,
+            teintePastille =
+            MaterialColors.getColor(
+                liaison.root,
+                if (compte > 0) {
+                    androidx.appcompat.R.attr.colorError
+                } else {
+                    com.google.android.material.R.attr.colorOnSurfaceVariant
+                },
+            ),
+            cle = "problemes|$compte",
+        )
+    }
+
+    /** Journal : la fenêtre vivante du journal de CodeIDE (maquette A2). */
+    private fun identiteJournal(): IdentiteOnglet = IdentiteOnglet(
+        titre = activite.getString(R.string.editor_panneau_journal_entete_titre),
+        sousTitre = activite.getString(R.string.editor_panneau_journal_entete_sous),
+        icone = jo.codeide.core.ui.R.drawable.ic_historique,
+        teintePastille =
+        MaterialColors.getColor(
+            liaison.root,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+        ),
+        cle = "journal",
+    )
+
+    /** Logcat : le processus affiché et son pid, données réelles du pont
+     *  (maquette A3) — honnête sans session : « aucun processus ». */
+    private fun identiteLogcat(): IdentiteOnglet {
+        val sessionAffichee = sessionsLogcat.selectionRegistre
+            ?.let { id -> sessionsLogcat.sessions.firstOrNull { it.id == id } }
+        val identite = sessionAffichee?.identite
+            ?: sessionsLogcat.selectionArchivee?.session?.identite
+        return if (identite != null) {
+            IdentiteOnglet(
+                titre = identite.nomProcessus,
+                sousTitre = activite.getString(R.string.editor_panneau_logcat_pid, identite.pid),
+                icone = R.drawable.ic_executer,
+                teintePastille =
+                if (sessionAffichee?.etat == jo.codeide.core.domain.EtatSessionJournal.VIVANTE) {
+                    MaterialColors.getColor(liaison.root, jo.codeide.core.ui.R.attr.colorSucces)
+                } else {
+                    MaterialColors.getColor(
+                        liaison.root,
+                        com.google.android.material.R.attr.colorOnSurfaceVariant,
+                    )
+                },
+                cle = "logcat|${identite.nomProcessus}|${identite.pid}",
+            )
+        } else {
+            IdentiteOnglet(
+                titre = activite.getString(R.string.editor_panneau_logcat),
+                sousTitre = activite.getString(R.string.editor_panneau_logcat_aucun),
+                icone = jo.codeide.core.ui.R.drawable.ic_terminal,
+                teintePastille =
+                MaterialColors.getColor(
+                    liaison.root,
+                    com.google.android.material.R.attr.colorOnSurfaceVariant,
+                ),
+                cle = "logcat|aucun",
+            )
+        }
+    }
+
+    /** La teinte de l'icône de la pastille : contrastée sur une teinte
+     *  sémantique (erreur, succès), de surface sur une teinte neutre. */
+    private fun couleurIcone(teintePastille: Int): Int = if (teintePastille == MaterialColors.getColor(
+            liaison.root,
+            com.google.android.material.R.attr.colorOnSurfaceVariant,
+        )
+    ) {
+        MaterialColors.getColor(liaison.root, com.google.android.material.R.attr.colorOnSurface)
+    } else {
+        MaterialColors.getColor(liaison.root, com.google.android.material.R.attr.colorOnPrimary)
+    }
+
+    /**
      * Réinitialise l'indicateur compact à un état REPOS (v0.39.1,
      * correctif n°5) — pastille masquée, titres effacés, sous-titre
      * masqué. Évite les résidus visuels d'un build précédent quand le
@@ -230,6 +436,16 @@ internal class PanneauToolingController(
         val enVol = entete.statut == StatutEntete.EN_VOL
         indicateur.spinnerCanalCompact.isVisible = enVol
         indicateur.iconeCanalCompact.isVisible = !enVol
+        // Retour 2026-11-12 : l'identité d'onglet pose SA teinte d'icône —
+        // le chemin tooling re-pose la sienne (contraste sur la pastille
+        // de canal), jamais une teinte héritée d'un autre mode.
+        indicateur.iconeCanalCompact.imageTintList =
+            ColorStateList.valueOf(
+                MaterialColors.getColor(
+                    liaison.root,
+                    com.google.android.material.R.attr.colorOnPrimary,
+                ),
+            )
         if (!enVol) {
             val icone =
                 when (entete.statut) {

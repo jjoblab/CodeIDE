@@ -47,6 +47,25 @@ class LayoutsSortiesTest {
         assertNotNull(racine.findViewById<View>(R.id.bouton_suivre))
         assertNotNull(racine.findViewById<View>(R.id.liste_sorties))
         assertNotNull(racine.findViewById<View>(R.id.poignee_sorties))
+        // Retour propriétaire du 2026-11-12 (« débordement — la barre ne
+        // ressemble pas au mockup ») : la barre épouse la maquette `.tol`
+        // en DEUX RANGÉES — le champ de recherche (conteneur arrondi
+        // icône + saisie + compteur) PUIS les actions DÉFILANTES
+        // (HorizontalScrollView : aucun bouton poussé hors écran).
+        val parentChamp = racine.findViewById<View>(R.id.champ_recherche).parent as View
+        assertTrue(
+            "la recherche vit dans le conteneur arrondi du rang 1",
+            parentChamp is android.view.ViewGroup && parentChamp.childCount == 3,
+        )
+        assertTrue(
+            "le compteur n/N vit DANS le conteneur de la recherche (maquette .sr)",
+            racine.findViewById<View>(R.id.compteur_recherche).parent === parentChamp,
+        )
+        val parentBoutons = racine.findViewById<View>(R.id.bouton_regex).parent as View
+        assertTrue(
+            "les actions vivent dans une rangée DÉFILANTE (HorizontalScrollView)",
+            parentBoutons.parent is android.widget.HorizontalScrollView,
+        )
         // États initiaux honnêtes : rien à taire, tout masqué.
         assertEquals(View.GONE, racine.findViewById<View>(R.id.bandeau_pertes).visibility)
         assertEquals(View.GONE, racine.findViewById<View>(R.id.bandeau_masquees).visibility)

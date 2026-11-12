@@ -986,12 +986,14 @@ object ClesEditor {
     const val EXTRA_PROJECT_ID: String = "jo.codeide.editor.PROJECT_ID"
 
     /**
-     * Extra d'intention : ACTIVER la surface « Sorties » à l'ouverture
+     * Extra d'intention : OUVRIR le panneau des sorties à l'ouverture
      * (lot L6, spec SORTIES § 5.7 — sortie du build depuis la
-     * notification de fin) : consommé une fois à [EditorActivity.onCreate]
-     * (instance neuve), il pose l'onglet central « Sorties » comme
-     * surface initiale. Un espace VIVANT remonté ignore cet extra —
-     * l'onglet y est déjà présent, à un geste.
+     * notification de fin) : consommé une fois à
+     * [EditorActivity.onCreate] (instance neuve), il ouvre le PANNEAU
+     * sur son onglet Console, mi-hauteur (retour propriétaire du
+     * 2026-11-12 : plus d'onglet central dans la barre des fichiers).
+     * Un espace VIVANT remonté ignore cet extra — le panneau y vit
+     * déjà, à un geste.
      */
     const val EXTRA_SURFACE_SORTIES: String = "jo.codeide.editor.SURFACE_SORTIES"
 

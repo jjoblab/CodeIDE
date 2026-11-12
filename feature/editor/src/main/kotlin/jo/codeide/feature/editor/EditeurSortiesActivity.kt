@@ -17,8 +17,9 @@ import jo.codeide.feature.sorties.FragmentLecteurSorties
  * l'activité n'est PAS un second afficheur ni un second chrome : elle
  * n'ajoute que le retour et le titre.
  *
- * Ouverte depuis l'onglet central « Sorties » de l'espace de travail
- * (action « Plein écran ») — le composant est le MÊME : une exécution
+ * Ouverte depuis l'entrée « Sorties » du débordement de la toolbar de
+ * l'espace de travail (retour propriétaire du 2026-11-12) — le composant
+ * est le MÊME : une exécution
  * consultée à l'endroit ou à l'autre vit sur le même flux (port
  * [jo.codeide.feature.sorties.FabriqueFluxSorties], ADR 0162).
  * NON exportée (manifest) : le seul chemin d'entrée est l'espace.
