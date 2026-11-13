@@ -1,5 +1,34 @@
 # Journal des modifications
 
+## [0.217.0] – 2026-11-13
+
+Bascule des LSP vers le dépôt unique **code-lsp** (décision propriétaire
+du 13/11/2026) : le module `:host` et le moteur **XML** migrent de
+`codeide-lsp` (archivé et rendu privé après cette montée) vers
+`code-lsp`, qui devient le dépôt officiel des LSP. Aucune ligne de MAIN
+côté CodeIDE au-delà des coordonnées de résolution : la façade de
+l'hôte (`jo.codeide.lsp.host.*`) est restée compatible, les transitivités
+du POM de l'hôte (pack java + compagnon ecj-art, pack kotlin, pack xml,
+socle model/index, protocole tooling, cel-lsp) sont identiques.
+
+### Modifié
+
+- **Coordonnées de l'hôte** : `com.github.jjoblab.codeide-lsp:host`
+  (1.26.0, registre jjoblab/codeide-lsp) → `jo.codeide.lsp.host:
+  jo-codeide-lsp-host` (1.15.0, registre jjoblab/code-lsp). Le pin
+  `codeide-lsp` est retiré ; les pins miroir moteurs
+  `codeide-lsp-java`/`codeide-lsp-kotlin` passent à 1.15.0.
+- **Rails de résolution** : le dépôt Packages jjoblab/codeide-lsp est
+  retiré ; les rails code-lsp (mavenLocal filtré + Packages) couvrent
+  désormais les six groupes `jo.codeide.lsp.*` (java, kotlin, xml,
+  model, index, host). Le composite `freres.sources` pointe le checkout
+  `../code-lsp` (substitutions des six coordonnées, miroir de l'ancien
+  mécanisme codeide-lsp).
+- **Correctif absorbé (colorPresentation)** : le pack Kotlin 1.15.0
+  sert `colorPresentation` (V-I1 — l'annonce `colorProvider` n'est plus
+  un stub) ; la garde L0 de parité de l'hôte (TABLE_KOTLIN) est satisfaite.
+
+
 ## [0.216.0] – 2026-11-13
 
 Montée des LSP : **codeide-lsp 1.25.0 → 1.26.0** (pins miroir moteurs

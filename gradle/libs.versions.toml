@@ -461,13 +461,6 @@ codeide-tooling = "1.2.0"
 # 18 985 ms / H2 18 956 ms, H2 ≈ H1 3/3 : rejet option 2 sans démon
 # CONFIRMÉ, l'option 3 (démon résident) reste la seule voie crédible
 # (verdict V-H au propriétaire, ADR 0124 §10) ; baseline appareil du
-# chemin de frappe acquise sur médiane (F1-F4 p95 ≤ 9 ms, S1 249 ms,
-# F6 p99 28 ms, zéro périmé 3/3). Moteur Java INCHANGÉ depuis 1.13.0
-# (alignement de version). Les capacités nouvelles sont ANNONCÉES+SERVIES
-# par le pack — la table des capacités Kotlin dérive du serverInfo du
-# pack (les interrupteurs effectifs des réglages suivent, liste dérivée
-# de capacites(langage)).
-codeide-lsp = "1.26.0"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -555,12 +548,13 @@ codeide-lsp = "1.26.0"
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-# MONTÉE 1.13.0 → 1.14.1 (2026-11-13, avec le frère codeide-lsp 1.26.0) :
-# moteur Java INCHANGÉ depuis 1.13.0 (aucun diff src/main côté code-lsp —
-# alignement de version avec le pack Kotlin, aucune adaptation).
+# MONTÉE 1.14.1 → 1.15.0 (2026-11-13, MIGRATION :host/:xml — décision
+# propriétaire) : l'hôte et le moteur XML migrent de codeide-lsp DANS
+# code-lsp (codeide-lsp archivé/privé) ; le moteur Java est republiclié à
+# l'identique, le pack Kotlin sert colorPresentation (V-I1).
 # MONTÉE 1.12.2 → 1.13.0 (2026-11-03, bascule Kotlin ADR 0136 — V-H :
 # répartiteur au protocole, fin de la tempête de requêtes appareil).
-codeide-lsp-java = "1.14.1"
+codeide-lsp-java = "1.15.0"
 
 # Moteur Kotlin LSP RÉÉCRIT — pack langue (bascule ADR 0136 du 03/11/2026,
 # Q-K4 tranché : miroir :java, façade unique). PREMIÈRE PUBLICATION du
@@ -568,7 +562,7 @@ codeide-lsp-java = "1.14.1"
 # PIN MIROIR du catalogue du frère codeide-lsp — le preview Compose
 # consomme le modèle neutre (PreviewKotlin + arbre d'appels) par cette
 # coordonnée.
-# MONTÉE 1.13.0 → 1.14.1 (2026-11-13, avec le frère codeide-lsp 1.26.0) :
+# MONTÉE 1.14.1 → 1.15.0 (2026-11-13, MIGRATION :host/:xml dans code-lsp) :
 # le plan « niveau Android Studio » COMPLET — typage palier 2 (substitution
 # des types au survol), diagnostics élargis (when non exhaustif, suspend
 # hors contexte, @Suppress servi), complétion smart (peseur TYPE ATTENDU,
@@ -586,7 +580,7 @@ codeide-lsp-java = "1.14.1"
 # seule voie crédible (verdict V-H au propriétaire, ADR 0124 §10) ;
 # baseline appareil du chemin de frappe acquise sur médiane. Modèle
 # neutre PreviewKotlin/arbre d'appels : contrat inchangé.
-codeide-lsp-kotlin = "1.14.1"
+codeide-lsp-kotlin = "1.15.0"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,
@@ -720,7 +714,12 @@ tooling-protocol = { group = "com.github.jjoblab.codeide-tooling", name = "proto
 tooling-api = { group = "com.github.jjoblab.codeide-tooling", name = "api", version.ref = "codeide-tooling" }
 tooling-server = { group = "com.github.jjoblab.codeide-tooling", name = "server", version.ref = "codeide-tooling" }
 tooling-testing = { group = "com.github.jjoblab.codeide-tooling", name = "testing", version.ref = "codeide-tooling" }
-lsp-host = { group = "com.github.jjoblab.codeide-lsp", name = "host", version.ref = "codeide-lsp" }
+# BASCULE code-lsp 1.15.0 (décision propriétaire du 13/11/2026 — le module
+# :host migre de codeide-lsp vers code-lsp, registre jjoblab/code-lsp ;
+# codeide-lsp est archivé et rendu privé). Le POM de l'hôte transporte le
+# pack java + compagnon ecj-art (runtime) + pack kotlin + pack xml + model +
+# index + protocole tooling — mêmes transitivités que l'ancien dépôt.
+lsp-host = { group = "jo.codeide.lsp.host", name = "jo-codeide-lsp-host", version.ref = "codeide-lsp-java" }
 # Bascule ADR 0136 (03/11/2026) : le module vendored kotlin de codeide-lsp
 # est GELÉ (plus consommé par :host) — le modèle neutre du preview vit
 # dans le PACK LANGUE du dépôt code-lsp.

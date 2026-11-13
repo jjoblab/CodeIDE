@@ -39,7 +39,7 @@ val modeSources: Boolean =
 val mavenLocalFreres: Boolean = listOf(
     "com/github/jjoblab/LayoutLib",
     "com/github/jjoblab/codeide-tooling",
-    "com/github/jjoblab/codeide-lsp",
+    "jo/codeide/lsp/host",
 ).any { File(System.getProperty("user.home"), ".m2/repository/$it").isDirectory }
 
 dependencyResolutionManagement {
@@ -102,9 +102,12 @@ dependencyResolutionManagement {
             content {
                 includeGroup("com.github.jjoblab.LayoutLib")
                 includeGroup("com.github.jjoblab.codeide-tooling")
-                includeGroup("com.github.jjoblab.codeide-lsp")
                 includeGroup("jo.codeide.lsp.java")
                 includeGroup("jo.codeide.lsp.kotlin")
+                includeGroup("jo.codeide.lsp.xml")
+                includeGroup("jo.codeide.lsp.model")
+                includeGroup("jo.codeide.lsp.index")
+                includeGroup("jo.codeide.lsp.host")
             }
         }
         if (jetonPackages != null) {
@@ -124,26 +127,21 @@ dependencyResolutionManagement {
                     password = jetonPackages
                 }
             }
-            maven {
-                url = uri("https://maven.pkg.github.com/jjoblab/codeide-lsp")
-                content { includeGroup("com.github.jjoblab.codeide-lsp") }
-                credentials {
-                    username = "jjoblab"
-                    password = jetonPackages
-                }
-            }
-            // Moteur Java RÉÉCRIT (bascule §8.5 signée le 30/10/2026 —
-            // dépôt jjoblab/code-lsp) : même jeton de lecture, filtre
-            // strict sur le groupe jo.codeide.lsp.java. Rien ne le
-            // consomme ENCORE (la dépendance moteur vit dans le POM de
-            // l'hôte vendored — voir le bloc composite ci-dessous) : ces
-            // rails servent l'adaptation hôte à venir
-            // (docs/BASCULE-CODEIDE.md §3.2.2 du dépôt code-lsp).
+            // LES LSP DE CODEIDE (décision propriétaire du 13/11/2026 :
+            // « CodeIDE doit maintenant utiliser les lsp de code-lsp » —
+            // l'hôte, les moteurs Java/Kotlin/XML et le socle model/index
+            // vivent dans le dépôt jjoblab/code-lsp ; codeide-lsp est
+            // archivé et rendu privé). Même jeton de lecture, filtre
+            // strict sur les groupes jo.codeide.lsp.*.
             maven {
                 url = uri("https://maven.pkg.github.com/jjoblab/code-lsp")
                 content {
                     includeGroup("jo.codeide.lsp.java")
                     includeGroup("jo.codeide.lsp.kotlin")
+                    includeGroup("jo.codeide.lsp.xml")
+                    includeGroup("jo.codeide.lsp.model")
+                    includeGroup("jo.codeide.lsp.index")
+                    includeGroup("jo.codeide.lsp.host")
                 }
                 credentials {
                     username = "jjoblab"
@@ -245,88 +243,47 @@ if (modeSources && dossierTooling.resolve("settings.gradle.kts").isFile) {
     )
 }
 
-// Dépôt jjoblab/codeide-lsp (bascule du 2026-10-17, même recette) : les
-// 8 modules du domaine lsp (model, index, java vendored, ecj-art,
-// testing, host, kotlin, xml) consommés en COORDONNÉES EXTERNES
-// com.github.jjoblab.codeide-lsp:* (publication Packages 1.0.0).
-// MODE BINAIRE PAR DÉFAUT (arbitrage du 2026-10-18) : mavenLocal
-// (publishToMavenLocal du frère) ou Packages (jeton de lecture requis) ;
-// COMPOSITE sur opt-in `freres.sources` uniquement. Dossier : propriété
-// Gradle `lsp.dir`, variable CODEIDE_LSP_DIR, puis défaut
-// `../codeide-lsp`.
+// Dépôt jjoblab/code-lsp — LES LSP DE CODEIDE (décision propriétaire du
+// 13/11/2026 : migration de l'hôte :host et du moteur :xml depuis
+// codeide-lsp, archivé et rendu privé après cette bascule). Les moteurs
+// Java/Kotlin (bascules §8.5 / ADR 0136) et le socle model/index sont
+// déjà publiés par CE dépôt — l'hôte les consomme par ses coordonnées,
+// miroir de l'ancien POM.
+// MODE BINAIRE PAR DÉFAUT : mavenLocal (publishToMavenLocal du frère) ou
+// Packages (jeton de lecture requis) ; COMPOSITE sur opt-in
+// `freres.sources` uniquement — substitue les coordonnées vers les
+// projets du build inclus. Dossier : propriété Gradle `lsp.dir`,
+// variable CODEIDE_LSP_DIR, puis défaut `../code-lsp`.
 val dossierLsp: File =
     providers.gradleProperty("lsp.dir")
         .orElse(providers.environmentVariable("CODEIDE_LSP_DIR"))
         .map(rootDir::resolve)
-        .orElse(rootDir.resolve("../codeide-lsp"))
+        .orElse(rootDir.resolve("../code-lsp"))
         .get()
 if (modeSources && dossierLsp.resolve("settings.gradle.kts").isFile) {
     includeBuild(dossierLsp) {
         dependencySubstitution {
-            substitute(module("com.github.jjoblab.codeide-lsp:model")).using(project(":lsp:model"))
-            substitute(module("com.github.jjoblab.codeide-lsp:index")).using(project(":lsp:index"))
-            substitute(module("com.github.jjoblab.codeide-lsp:java")).using(project(":lsp:java"))
-            substitute(module("com.github.jjoblab.codeide-lsp:ecj-art")).using(project(":lsp:ecj-art"))
-            substitute(module("com.github.jjoblab.codeide-lsp:testing")).using(project(":lsp:testing"))
-            substitute(module("com.github.jjoblab.codeide-lsp:host")).using(project(":lsp:host"))
-            substitute(module("com.github.jjoblab.codeide-lsp:kotlin")).using(project(":lsp:kotlin"))
-            substitute(module("com.github.jjoblab.codeide-lsp:xml")).using(project(":lsp:xml"))
+            substitute(module("jo.codeide.lsp.java:jo-codeide-lsp-java")).using(project(":java"))
+            substitute(module("jo.codeide.lsp.kotlin:jo-codeide-lsp-kotlin")).using(project(":kotlin"))
+            substitute(module("jo.codeide.lsp.xml:jo-codeide-lsp-xml")).using(project(":xml"))
+            substitute(module("jo.codeide.lsp.model:jo-codeide-lsp-model")).using(project(":model"))
+            substitute(module("jo.codeide.lsp.index:jo-codeide-lsp-index")).using(project(":index"))
+            substitute(module("jo.codeide.lsp.host:jo-codeide-lsp-host")).using(project(":host"))
         }
     }
 } else if (jetonPackages == null && !mavenLocalFreres) {
     throw GradleException(
-        "codeide-lsp introuvable en binaire : $dossierLsp\n" +
+        "code-lsp introuvable en binaire : $dossierLsp\n" +
             "Trois options : (1) un jeton GitHub read:packages (propriété " +
             "github.packages.pat ou variable CODEIDE_PACKAGES_PAT) pour " +
-            "résoudre les coordonnées com.github.jjoblab.codeide-lsp:* " +
-            "depuis GitHub Packages ; (2) publier le frère en local — " +
-            "publishToMavenLocal dans le dépôt codeide-lsp — et relancer " +
+            "résoudre les coordonnées jo.codeide.lsp.* depuis GitHub " +
+            "Packages ; (2) publier le frère en local — " +
+            "publishToMavenLocal dans le dépôt code-lsp — et relancer " +
             "sans jeton ; (3) -Pfreres.sources (ou CODEIDE_FRERES_SOURCES=1) " +
             "avec le checkout frère (git clone " +
-            "https://github.com/jjoblab/codeide-lsp.git ../codeide-lsp, ou " +
+            "https://github.com/jjoblab/code-lsp.git ../code-lsp, ou " +
             "propriété lsp.dir) — mode composite.",
     )
-}
-
-// Dépôt jjoblab/code-lsp — MOTEUR JAVA RÉÉCRIT (bascule §8.5 SIGNÉE le
-// 30/10/2026, gabarit bancs/GABARIT-BASCULE-APPAREIL.md §6 du dépôt
-// code-lsp ; procédure docs/BASCULE-CODEIDE.md §3.2.2). L'artefact
-// `jo.codeide.lsp.java:jo-codeide-lsp-java` (publication Packages 1.0.0)
-// est le remplaçant désigné du moteur vendored. Même recette que les
-// frères : BINAIRE PAR DÉFAUT (mavenLocal — publishToMavenLocal de
-// code-lsp, chemin de test local sans jeton — ou Packages avec jeton de
-// lecture) ; COMPOSITE sur opt-in `freres.sources` uniquement —
-// substitue la coordonnée moteur vers le projet :java du build inclus.
-// Le COMPAGNON `jo-codeide-lsp-java-ecj-art` (jar ecj patché, runtime
-// compileOnly du moteur) reste BINAIRE dans tous les modes : c'est un
-// jar fabriqué (octet pour octet), pas un module substituable.
-// Dossier : propriété Gradle `moteur-java.dir`, variable
-// CODEIDE_MOTEUR_JAVA_DIR, puis défaut `../code-lsp`.
-//
-// ÉTAT AU 30/10 (honnête, re-vérification exigée par la procédure) :
-// AUCUN module de CodeIDE ne déclare encore la coordonnée moteur — la
-// dépendance java vit dans le POM de l'hôte vendored
-// (com.github.jjoblab.codeide-lsp:host), qui code contre la façade
-// `jo.lspjava.*`. Le branchement de l'hôte sur la façade neuve
-// (`jo.codeide.lsp.java.*`) est le chaînon restant (« effort à estimer
-// dans ce dépôt », PLAN-REECRITURE §7.4 de code-lsp) ; ces rails en
-// sont la préparation exacte. Retour arrière (critère 6 du gabarit) :
-// retirer la dépendance moteur (1 ligne) — ou désactiver la
-// substitution composite — l'hôte re-pointe le vendored, sans
-// re-déploiement du client.
-val dossierMoteurJava: File =
-    providers.gradleProperty("moteur-java.dir")
-        .orElse(providers.environmentVariable("CODEIDE_MOTEUR_JAVA_DIR"))
-        .map(rootDir::resolve)
-        .orElse(rootDir.resolve("../code-lsp"))
-        .get()
-if (modeSources && dossierMoteurJava.resolve("settings.gradle.kts").isFile) {
-    includeBuild(dossierMoteurJava) {
-        dependencySubstitution {
-            substitute(module("jo.codeide.lsp.java:jo-codeide-lsp-java"))
-                .using(project(":java"))
-        }
-    }
 }
 
 rootProject.name = "CodeIDE"
