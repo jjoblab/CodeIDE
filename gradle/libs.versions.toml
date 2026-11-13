@@ -442,7 +442,32 @@ codeide-tooling = "1.2.0"
 # x-codeide.usages à consommer ; opportunités semanticTokens /
 # usagesGroupes / kinds source|refactor). Publication v1.24.0 du
 # frère vérifiée sur le registre (maven-metadata host).
-codeide-lsp = "1.25.0"
+# MONTÉE 1.25.0 → 1.26.0 (2026-11-13, montée MINEURE du frère — les
+# moteurs code-lsp 1.13.0 → 1.14.1, le plan « niveau Android Studio »
+# COMPLET côté pack langue Kotlin) : l'hôte ne change pas d'une ligne
+# de MAIN — la façade est restée compatible (pins miroir du frère
+# montés en 6874742, Publication run 52). Ce que la montée transporte
+# côté pack Kotlin : typage palier 2, diagnostics élargis (when non
+# exhaustif, suspend hors contexte, @Suppress servi), complétion smart
+# (peseur TYPE ATTENDU, chaînes d'extensions ≤ 2, citées déclassées,
+# contexte OVERRIDE), actions source.organizeImports + refactor.extract
+# (kinds exacts, codeAction/resolve), Gradle KTS & catalogue (accesseurs
+# libs.… par lecture disque SANS sync, navigation kts→toml), Android
+# réel (scan build/generated, plugins déclaratifs, namespace du build
+# PRIME le manifeste, @Composable/suspend au survol), protocole étendu
+# (semanticTokens BORNÉ, typeHierarchy, callHierarchy, codeLens,
+# linkedEditingRange, documentColor, onTypeFormatting — matrice 26/0) ;
+# 1.14.1 : SÉRIE APPAREIL du gabarit 07 (moto g06, médiane) — H1
+# 18 985 ms / H2 18 956 ms, H2 ≈ H1 3/3 : rejet option 2 sans démon
+# CONFIRMÉ, l'option 3 (démon résident) reste la seule voie crédible
+# (verdict V-H au propriétaire, ADR 0124 §10) ; baseline appareil du
+# chemin de frappe acquise sur médiane (F1-F4 p95 ≤ 9 ms, S1 249 ms,
+# F6 p99 28 ms, zéro périmé 3/3). Moteur Java INCHANGÉ depuis 1.13.0
+# (alignement de version). Les capacités nouvelles sont ANNONCÉES+SERVIES
+# par le pack — la table des capacités Kotlin dérive du serverInfo du
+# pack (les interrupteurs effectifs des réglages suivent, liste dérivée
+# de capacites(langage)).
+codeide-lsp = "1.26.0"
 
 # Moteur Java LSP RÉÉCRIT (bascule §8.5 signée le 30/10/2026 — dépôt
 # jjoblab/code-lsp) : publication GitHub Packages sur tag v* (workflow
@@ -530,15 +555,38 @@ codeide-lsp = "1.25.0"
 # filtré jo.codeide.lsp.java EN TÊTE + Packages jjoblab/code-lsp derrière
 # le jeton de lecture). Mise à jour = bump ici EN MIROIR du catalogue
 # codeide-lsp + tag v* côté code-lsp.
-codeide-lsp-java = "1.13.0"
+# MONTÉE 1.13.0 → 1.14.1 (2026-11-13, avec le frère codeide-lsp 1.26.0) :
+# moteur Java INCHANGÉ depuis 1.13.0 (aucun diff src/main côté code-lsp —
+# alignement de version avec le pack Kotlin, aucune adaptation).
+# MONTÉE 1.12.2 → 1.13.0 (2026-11-03, bascule Kotlin ADR 0136 — V-H :
+# répartiteur au protocole, fin de la tempête de requêtes appareil).
+codeide-lsp-java = "1.14.1"
 
-# Moteur Kotlin LSP RÉÉCRIT — pack langue (bascule ADR 0136 du
-# 03/11/2026, Q-K4 : miroir :java, façade unique). PREMIÈRE PUBLICATION
-# du pack (tag v1.13.0 côté code-lsp, MÊME run que le moteur Java).
+# Moteur Kotlin LSP RÉÉCRIT — pack langue (bascule ADR 0136 du 03/11/2026,
+# Q-K4 tranché : miroir :java, façade unique). PREMIÈRE PUBLICATION du
+# pack (tag v1.13.0 côté code-lsp, MÊME run que le moteur Java).
 # PIN MIROIR du catalogue du frère codeide-lsp — le preview Compose
 # consomme le modèle neutre (PreviewKotlin + arbre d'appels) par cette
 # coordonnée.
-codeide-lsp-kotlin = "1.13.0"
+# MONTÉE 1.13.0 → 1.14.1 (2026-11-13, avec le frère codeide-lsp 1.26.0) :
+# le plan « niveau Android Studio » COMPLET — typage palier 2 (substitution
+# des types au survol), diagnostics élargis (when non exhaustif, suspend
+# hors contexte, @Suppress servi), complétion smart (peseur TYPE ATTENDU,
+# chaînes d'extensions ≤ 2, citées déclassées, contexte OVERRIDE), actions
+# source.organizeImports + refactor.extract variable (kinds LSP exacts,
+# codeAction/resolve), Gradle KTS & catalogue (accesseurs libs.… par
+# lecture disque SANS sync, navigation kts→toml), Android réel (scan
+# build/generated, plugins déclaratifs, namespace du build PRIME le
+# manifeste, @Composable/suspend au survol, Parcelize injecté), protocole
+# étendu (semanticTokens BORNÉ, typeHierarchy, callHierarchy, codeLens,
+# linkedEditingRange, documentColor, onTypeFormatting — matrice 26
+# annoncées / 0 absentes). 1.14.1 : SÉRIE APPAREIL du gabarit 07 (moto
+# g06, médiane) — H1 18 985 ms / H2 18 956 ms, H2 ≈ H1 3/3 : rejet
+# option 2 sans démon CONFIRMÉ, l'option 3 (démon résident) reste la
+# seule voie crédible (verdict V-H au propriétaire, ADR 0124 §10) ;
+# baseline appareil du chemin de frappe acquise sur médiane. Modèle
+# neutre PreviewKotlin/arbre d'appels : contrat inchangé.
+codeide-lsp-kotlin = "1.14.1"
 
 # Mission « Previews » Compose (PREVIEW.md §4 — PC2 : runtime Compose
 # EMBARQUÉ comme bibliothèque d'interprétation dans :preview:compose,

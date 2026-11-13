@@ -1,5 +1,50 @@
 # Journal des modifications
 
+## [0.216.0] – 2026-11-13
+
+Montée des LSP : **codeide-lsp 1.25.0 → 1.26.0** (pins miroir moteurs
+`codeide-lsp-java`/`codeide-lsp-kotlin` 1.13.0 → 1.14.1) — le plan
+« niveau Android Studio » COMPLET côté pack langue Kotlin (code-lsp
+v1.14.1, Publication run 15). Aucune ligne de MAIN côté CodeIDE : la
+façade est restée compatible, la table des capacités Kotlin dérive du
+serverInfo du pack.
+
+### Ajouté (capacités Kotlin nouvelles, annoncées + servies par le pack)
+
+- **Typage palier 2** : substitution des types au survol (`it:
+  élément`) ; **diagnostics élargis** : `when` non exhaustif, `suspend`
+  hors contexte, `@Suppress` servi.
+- **Complétion smart** : peseur TYPE ATTENDU (argument, `return`,
+  initialisateur, branche `if`/`when`), chaînes d'extensions applicables
+  (profondeur ≤ 2), constantes déjà citées d'un `when` déclassées,
+  contexte OVERRIDE (abstraits devant ouverts, signature complète à
+  l'insertion).
+- **Actions de source & refactoring** : `source.organizeImports` (tri
+  stable idempotent, retrait des inutilisés prouvés lexicalement) +
+  `refactor.extract` variable bornée — kinds LSP exacts,
+  `codeAction/resolve`.
+- **Gradle KTS & catalogue** : accesseurs `libs.…` par lecture disque
+  SANS sync, navigation kts→toml, diagnostic `kt.cleCatalogueInconnue`.
+- **Android réel** : scan dédié `build/generated`, plugins déclaratifs,
+  namespace du build PRIME le manifeste, `@Composable`/`suspend` au
+  survol, annotations Parcelize injectées.
+- **Protocole étendu** : `semanticTokens/full` BORNÉ, `typeHierarchy`,
+  `callHierarchy`, `codeLens`, `linkedEditingRange`, `documentColor`,
+  `onTypeFormatting` — matrice 26 capacités annoncées / 0 absentes.
+
+### Modifié
+
+- Catalogue : `codeide-lsp = "1.26.0"`, pins miroir
+  `codeide-lsp-java = "1.14.1"` / `codeide-lsp-kotlin = "1.14.1"`
+  (moteur Java INCHANGÉ depuis 1.13.0 — alignement de version).
+- 1.14.1 (code-lsp) : la série appareil du gabarit 07 (moto g06,
+  médiane) — H1 18 985 ms / H2 18 956 ms, H2 ≈ H1 3/3 : rejet option 2
+  sans démon confirmé, l'option 3 (démon résident) reste la seule voie
+  crédible (verdict V-H au propriétaire, ADR 0124 §10) ; baseline
+  appareil du chemin de frappe acquise sur médiane (F1-F4 p95 ≤ 9 ms,
+  S1 249 ms, F6 p99 28 ms, zéro périmé 3/3). Aucune incidence sur les
+  capacités servies.
+
 ## [0.215.0] – 2026-11-11 (version à poser par `scripts/bump-version.sh` à l'intégration)
 
 Lot **L6 — Réglages, finitions, mesure appareil, documentation** du
